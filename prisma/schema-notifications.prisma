@@ -1,0 +1,17 @@
+
+// نموذج الإشعارات
+model Notification {
+  id          String   @id @default(cuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  title       String
+  message     String
+  type        String   @default("info") // info, success, warning, error
+  isRead      Boolean  @default(false)
+  actionUrl   String?  // رابط للانتقال عند النقر على الإشعار
+  icon        String?  // أيقونة الإشعار
+  createdAt   DateTime @default(now())
+
+  // فهرس لتحسين أداء الاستعلامات
+  @@index([userId, createdAt])
+}

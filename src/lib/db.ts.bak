@@ -1,0 +1,62 @@
+// Database connection configuration with pooling settings
+
+export const databaseConfig = {
+/**
+ * Get base database configuration
+ * Reads from environment variables, provides defaults
+ */
+export const getBaseDatabaseConfig = (): DatabaseConfig => {
+  return {
+    logQueries: process.env.DB_LOG_QUERIES?.toLowerCase() === 'true' ||
+                process.env.NODE_ENV === 'development',
+    logSlowQueries: process.env.DB_LOG_SLOW_QUERIES?.toLowerCase() === 'true' ||
+                    process.env.NODE_ENV === 'development',
+    slowQueryThreshold: parseInt(process.env.DB_SLOW_QUERY_THRESHOLD || '1000', 10),
+    maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE || '20', 10),
+    minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE || '5', 10),
+    connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10),
+    idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
+    acquireTimeout: parseInt(process.env.DB_ACQUIRE_TIMEOUT || '5000', 10),
+  };
+};
+
+// Health check function
+export const checkDatabaseHealth = async () => {
+  try {
+    // For SQLite, we should first check if the database file exists and is accessible
+    const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+    if (databaseUrl.startsWith('file:')) {
+      // This is SQLite - check if file exists and is readable
+      const fsPromises = await import('fs/promises');
+      const pathModule = await import('path');
+      
+      // Extract file path from database URL
+      const dbPath = databaseUrl.replace('file:', '');
+      const fullPath = pathModule.resolve(process.cwd(), dbPath.startsWith('./') ? dbPath.substring(2) : dbPath);
+      
+      try {
+        await fsPromises.access(fullPath);
+      } catch (accessError) {
+        console.error(`Database file not accessible at ${fullPath}:`, accessError);
+        return false;
+      }
+    }
+    
+    await prisma.$queryRaw`SELECT 1`;
+    return true;
+  } catch (error) {
+    console.error('Database health check failed:', error);
+    return false;
+  }
+};
+
+// Get the appropriate configuration based on the database URL
+export function getDatabaseConfig() {
+  const baseConfig = getBaseDatabaseConfig();
+  const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+
+  return {
+    ...baseConfig,
+    url: databaseUrl,
+  };
+}
