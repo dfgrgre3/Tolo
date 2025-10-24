@@ -170,7 +170,7 @@ export function LoginCredentialsStep({
       <p className="text-center text-xs text-slate-500 dark:text-slate-400">
         لا تملك حساباً؟{' '}
         <Link
-          href="/register"
+          href="/login?view=register"
           className="font-semibold text-indigo-600 hover:text-indigo-700"
         >
           أنشئ حساباً جديداً
