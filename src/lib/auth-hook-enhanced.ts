@@ -15,6 +15,12 @@ interface LoginPayload {
   rememberMe?: boolean;
 }
 
+interface RegisterPayload {
+  email: string;
+  password: string;
+  name?: string;
+}
+
 interface LoginOutcome {
   requiresTwoFactor?: boolean;
   loginAttemptId?: string;
@@ -25,6 +31,15 @@ interface LoginOutcome {
   token?: string;
   refreshToken?: string;
   sessionId?: string;
+}
+
+interface RegisterOutcome {
+  user: User;
+  token?: string;
+  refreshToken?: string;
+  sessionId?: string;
+  verificationLink?: string;
+  message?: string;
 }
 
 interface VerifyTwoFactorPayload {
@@ -43,6 +58,7 @@ interface AuthHookResult {
   loading: boolean;
   error: string | null;
   login: (credentials: LoginPayload) => Promise<LoginOutcome>;
+  register: (payload: RegisterPayload) => Promise<RegisterOutcome>;
   verifyTwoFactor: (payload: VerifyTwoFactorPayload) => Promise<User>;
   resendTwoFactorCode: (payload: ResendTwoFactorPayload) => Promise<void>;
   loginWithSocial: (provider: 'google' | 'github' | 'twitter') => Promise<void>;
@@ -189,6 +205,70 @@ export function useEnhancedAuth(): AuthHookResult {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  const register = useCallback(async (payload: RegisterPayload) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(payload),
+      });
+
+      const data: any = await response
+        .json()
+        .catch(() => ({} as Record<string, unknown>));
+
+      if (!response.ok) {
+        throw createAuthError(
+          response,
+          data,
+          'واجهنا مشكلة أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى.',
+        );
+      }
+
+      if (!data?.user || typeof data.user !== 'object') {
+        throw new Error('استجابة غير متوقعة من الخادم.');
+      }
+
+      const registeredUser: User = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name,
+        role: data.user.role,
+      };
+
+      persistSession(
+        {
+          token: data.token,
+          refreshToken: data.refreshToken,
+          sessionId: data.sessionId,
+        },
+        { rememberMe: true },
+      );
+      setUser(registeredUser);
+
+      return {
+        user: registeredUser,
+        token: data.token,
+        refreshToken: data.refreshToken,
+        sessionId: data.sessionId,
+        verificationLink: data.verificationLink,
+        message:
+          typeof data.message === 'string'
+            ? data.message
+            : 'تم إنشاء الحساب بنجاح.',
+      };
+    } catch (err: any) {
+      setError(err.message);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const login = useCallback(async (credentials: LoginPayload) => {
@@ -346,6 +426,7 @@ export function useEnhancedAuth(): AuthHookResult {
     loading,
     error,
     login,
+    register,
     verifyTwoFactor,
     resendTwoFactorCode,
     loginWithSocial,

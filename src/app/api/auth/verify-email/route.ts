@@ -1,52 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
-export async function POST(request: NextRequest) {
+const verificationFailure = (message: string, status = 400) =>
+  NextResponse.json({ success: false, error: message }, { status });
+
+export async function GET(request: NextRequest) {
   try {
-    const { token } = await request.json();
+    const token = request.nextUrl.searchParams.get('token');
 
     if (!token) {
-      return NextResponse.json(
-        { error: 'Verification token is required' },
-        { status: 400 }
-      );
+      return verificationFailure('رمز التحقق مفقود.', 400);
     }
 
-    // Find user with valid verification token
     const user = await prisma.user.findFirst({
-      where: {
-        emailVerificationToken: token,
-        emailVerificationExpires: {
-          gte: new Date()
-        }
-      }
+      where: { emailVerificationToken: token },
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'Invalid or expired verification token' },
-        { status: 400 }
+      return verificationFailure('رمز التحقق غير صالح أو تم استخدامه مسبقاً.', 404);
+    }
+
+    if (user.emailVerified) {
+      return NextResponse.json({
+        success: true,
+        alreadyVerified: true,
+        message: 'تم تفعيل البريد مسبقاً، يمكنك متابعة استخدام الحساب.',
+      });
+    }
+
+    if (
+      user.emailVerificationExpires &&
+      user.emailVerificationExpires.getTime() < Date.now()
+    ) {
+      return verificationFailure(
+        'انتهت صلاحية رابط التفعيل. يرجى طلب رابط جديد من صفحة الحساب.',
+        410,
       );
     }
 
-    // Update user as verified and clear verification token
     await prisma.user.update({
       where: { id: user.id },
       data: {
         emailVerified: true,
         emailVerificationToken: null,
-        emailVerificationExpires: null
-      }
+        emailVerificationExpires: null,
+      },
     });
 
     return NextResponse.json({
-      message: 'Email verified successfully. You can now log in.'
+      success: true,
+      message: 'تم تفعيل البريد الإلكتروني بنجاح.',
     });
   } catch (error) {
     console.error('Email verification error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return verificationFailure('حدث خطأ غير متوقع أثناء التفعيل.', 500);
   }
 }
