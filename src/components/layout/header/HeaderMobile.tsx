@@ -157,7 +157,7 @@ export function HeaderMobile({ pathname, user, isAuthenticated }: HeaderMobilePr
                   <Link href="/login">تسجيل الدخول</Link>
                 </Button>
                 <Button variant="outline" asChild className="w-full mt-2">
-                  <Link href="/register">إنشاء حساب</Link>
+                  <Link href="/login?view=register">إنشاء حساب</Link>
                 </Button>
               </div>
             )}
@@ -242,7 +242,7 @@ export function HeaderMobile({ pathname, user, isAuthenticated }: HeaderMobilePr
               <Link href="/login">تسجيل الدخول</Link>
             </Button>
             <Button asChild>
-              <Link href="/register">إنشاء حساب</Link>
+              <Link href="/login?view=register">إنشاء حساب</Link>
             </Button>
           </div>
         )}

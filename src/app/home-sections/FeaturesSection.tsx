@@ -170,7 +170,7 @@ export function FeaturesSection() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                <Link href="/register">
+                <Link href="/login?view=register">
                   <Button size="lg" className="px-8 py-6 text-lg shadow hover:shadow-lg transition-shadow w-full sm:w-auto group">
                     إنشاء حساب
                     <Play className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />

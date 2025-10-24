@@ -618,7 +618,7 @@ export function HeaderDesktop({ pathname, user, isAuthenticated }: HeaderDesktop
                       <Link href="/login">تسجيل الدخول</Link>
                     </Button>
                     <Button size="sm" asChild className="rounded-full">
-                      <Link href="/register">إنشاء حساب</Link>
+                      <Link href="/login?view=register">إنشاء حساب</Link>
                     </Button>
                   </div>
                 )}
