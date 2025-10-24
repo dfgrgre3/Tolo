@@ -50,7 +50,7 @@ function RootLayout({
 			<body className={`${inter.variable} antialiased`}>
 				<AuthProvider>
 					<ClientLayoutProvider>
-						
+						<ScrollRestoration />
 						<div className="min-h-screen flex flex-col">
 
 							<NotificationsClient />
@@ -64,4 +64,4 @@ function RootLayout({
 	);
 }
 
-export default RootLayout;
+

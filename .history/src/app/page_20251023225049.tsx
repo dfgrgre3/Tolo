@@ -246,7 +246,7 @@ const Home = () => {
 						averageFocus: 0,
 						tasksCompleted: 0,
 						streakDays: 0
-					}, false, "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ظ„ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ");
+					}, false, "حدث خطأ أثناء تحليل البيانات");
 				}
 			} else if (res) {
 				console.warn(`API returned status ${res.status}, using default values`);
@@ -271,7 +271,7 @@ const Home = () => {
 				averageFocus: 0,
 				tasksCompleted: 0,
 				streakDays: 0
-			}, false, "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ظ…ظٹظ„ ط§ظ„ط¥ط­طµط§ط¦ظٹط§طھ");
+			}, false, "حدث خطأ أثناء تحميل الإحصائيات");
 		} finally {
 			fetchInProgressRef.current = false;
 		}
@@ -361,7 +361,7 @@ const Home = () => {
 				<h3 className="mb-3 text-xl font-semibold text-slate-900">{title}</h3>
 				<p className="mb-6 flex-grow text-muted-foreground">{description}</p>
 				<Link href={link} className="group flex items-center text-blue-600 transition-colors hover:text-blue-700">
-					<span className="font-medium">ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</span>
+					<span className="font-medium">����� ������</span>
 					<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
 				</Link>
 			</div>
@@ -372,25 +372,25 @@ const Home = () => {
 
 		const highlightCards = [
 		{
-			title: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
-			description: "ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.",
-			actionLabel: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
+			title: "���� ������ ������",
+			description: "��� ����� ������� �� ������� ����� �������� ����� ����� ��� ������ ������.",
+			actionLabel: "����� ������",
 			href: "/tasks",
 			accent: "from-sky-400/20 via-transparent to-indigo-400/20",
 			icon: <Rocket className="h-6 w-6 text-indigo-600" />
 		},
 		{
-			title: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½",
-			description: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.",
-			actionLabel: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½",
+			title: "����� ���� �����",
+			description: "���� ��� ������� ������� ��� ������ ���� ����� �������� ������� ������.",
+			actionLabel: "����� ���",
 			href: "/time",
 			accent: "from-violet-400/15 via-transparent to-purple-400/20",
 			icon: <Lightbulb className="h-6 w-6 text-violet-600" />
 		},
 		{
-			title: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
-			description: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.",
-			actionLabel: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
+			title: "���� ��������� �������",
+			description: "���� ��������� ���� ���� �� ������� ���������� ������ ��������� ������ ��� ������.",
+			actionLabel: "����� ���������",
 			href: "/notifications",
 			accent: "from-emerald-400/15 via-transparent to-teal-400/20",
 			icon: <Calendar className="h-6 w-6 text-emerald-600" />
@@ -462,7 +462,7 @@ const Home = () => {
 									size="lg"
 									className="group bg-white/85 backdrop-blur-md border-blue-200/60 px-8 py-4 transition-all duration-300 shadow-lg hover:-translate-y-1 hover:border-blue-300 hover:bg-blue-50 hover:shadow-xl"
 								>
-									<span className="text-blue-600 font-medium text-lg">ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</span>
+									<span className="text-blue-600 font-medium text-lg">������ ���� ��������</span>
 									<ChevronDown className="text-blue-500 mr-2 h-5 w-5" />
 								</Button>
 							</motion.div>
@@ -476,11 +476,11 @@ const Home = () => {
 							<div className="relative z-10 space-y-10">
 								<div className="flex flex-col gap-4 text-center md:flex-row md:items-center md:justify-between md:text-right">
 									<div className="space-y-3">
-										<h2 className="text-3xl font-bold text-primary md:text-4xl">ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</h2>
-										<p className="text-muted-foreground md:text-lg">ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.</p>
+										<h2 className="text-3xl font-bold text-primary md:text-4xl">����� ����� ���� ���� �������</h2>
+										<p className="text-muted-foreground md:text-lg">������ �� ������ ������ �� ������� ����� ������ ���� ������ ��� ����� ����� ���� �������.</p>
 									</div>
 									<div className="flex justify-center md:justify-end">
-										<Badge className="border-0 bg-blue-50 text-blue-600">ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</Badge>
+										<Badge className="border-0 bg-blue-50 text-blue-600">�� �������� ����� ��� ������� ������</Badge>
 									</div>
 								</div>
 								<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -523,10 +523,13 @@ const Home = () => {
 									transition={{ duration: 0.5 }}
 									className="text-center mb-12"
 								>
-									<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2"><span>لوحة الأداء الأسبوعي</span>
+									<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2">
+										<span>نظرة عامة على تقدمك</span>
 										<Award className="h-8 w-8 text-yellow-500" />
 									</h2>
-									<p className="text-muted-foreground max-w-2xl mx-auto text-lg">راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام.</p>
+									<p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+										تتبع تقدمك الأكاديمي بكل تفصيل واكتشف نقاط قوتك ومجالات التحسين
+									</p>
 								</motion.div>
 
 								<motion.div
@@ -536,43 +539,43 @@ const Home = () => {
 									className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
 								>
 									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<Clock className="h-8 w-8 text-blue-600" />}
-									title="إجمالي وقت الدراسة"
-									value={summary ? Math.round(summary.totalMinutes / 60) : 0}
-									unit="ساعة"
-									color="from-blue-100 to-blue-200"
-								/>
+										<StatCard
+											icon={<Clock className="h-8 w-8 text-blue-600" />}
+											title="إجمالي ساعات الدراسة"
+											value={summary ? Math.round(summary.totalMinutes / 60) : 0}
+											unit="ساعة"
+											color="from-blue-100 to-blue-200"
+										/>
 									</motion.div>
 
 									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<Flame className="h-8 w-8 text-orange-600" />}
-									title="أيام الإنجاز المتتالية"
-									value={summary?.streakDays ?? 0}
-									unit="يوم"
-									color="from-orange-100 to-orange-200"
-								/>
+										<StatCard
+											icon={<Flame className="h-8 w-8 text-orange-600" />}
+											title="أيام المداومة"
+											value={summary?.streakDays ?? 0}
+											unit="يوم"
+											color="from-orange-100 to-orange-200"
+										/>
 									</motion.div>
 
 									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<CheckCircle2 className="h-8 w-8 text-purple-600" />}
-									title="المهام المكتملة"
-									value={summary?.tasksCompleted ?? 0}
-									unit="مهمة"
-									color="from-purple-100 to-purple-200"
-								/>
+										<StatCard
+											icon={<CheckCircle2 className="h-8 w-8 text-purple-600" />}
+											title="المهام المكتملة"
+											value={summary?.tasksCompleted ?? 0}
+											unit="مهمة"
+											color="from-purple-100 to-purple-200"
+										/>
 									</motion.div>
 
 									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<Target className="h-8 w-8 text-green-600" />}
-									title="نسبة الالتزام الأسبوعية"
-									value={summary?.averageFocus ?? 0}
-									unit="%"
-									color="from-green-100 to-green-200"
-								/>
+										<StatCard
+											icon={<Target className="h-8 w-8 text-green-600" />}
+											title="معدل التركيز"
+											value={summary?.averageFocus ?? 0}
+											unit="%"
+											color="from-green-100 to-green-200"
+										/>
 									</motion.div>
 								</motion.div>
 							</div>
@@ -591,16 +594,19 @@ const Home = () => {
 									transition={{ duration: 0.5 }}
 									className="text-center mb-12"
 								>
-									<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2"><span>لوحة الأداء الأسبوعي</span>
+									<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2">
+										<span>ميزات متطورة لتعليم أفضل</span>
 										<Sparkles className="h-8 w-8 text-yellow-500" />
 									</h2>
-									<p className="text-muted-foreground max-w-2xl mx-auto text-lg">راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام.</p>
+									<p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+										اكتشف مجموعة الأدوات المتقدمة المصممة خصيصاً لتحسين تجربتك التعليمية
+									</p>
 								</motion.div>
 
 								<div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 									<FeatureCard
 										icon={<Brain className="h-8 w-8 text-blue-600" />}
-										title="ط§ظ„ظ…ط³ط§ط¹ط¯ ط§ظ„ط°ظƒظٹ ط¨ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ"
+										title="المساعد الذكي بالذكاء الاصطناعي"
 										description=""
 										link="/ai"
 										delay={0.1}
@@ -608,7 +614,7 @@ const Home = () => {
 
 									<FeatureCard
 										icon={<BarChart3 className="h-8 w-8 text-purple-600" />}
-										title="طھط­ظ„ظٹظ„ط§طھ ظ…طھظ‚ط¯ظ…ط© ظˆطھظ‚ط§ط±ظٹط± ظ…ظپطµظ„ط©"
+										title="تحليلات متقدمة وتقارير مفصلة"
 										description=""
 										link="/analytics"
 										delay={0.2}
@@ -616,7 +622,7 @@ const Home = () => {
 
 									<FeatureCard
 										icon={<FileText className="h-8 w-8 text-green-600" />}
-										title="ط§ظ…طھط­ط§ظ†ط§طھ طھط¬ط±ظٹط¨ظٹط© طھظپط§ط¹ظ„ظٹط©"
+										title="امتحانات تجريبية تفاعلية"
 										description=""
 										link="/exams"
 										delay={0.3}
@@ -624,7 +630,7 @@ const Home = () => {
 
 									<FeatureCard
 										icon={<MessageSquare className="h-8 w-8 text-amber-600" />}
-										title="ظ…ظ†طھط¯ظ‰ طھظپط§ط¹ظ„ظٹ ظ„ظ„ظ…ط°ط§ظƒط±ط©"
+										title="منتدى تفاعلي للمذاكرة"
 										description=""
 										link="/forum"
 										delay={0.4}
@@ -632,7 +638,7 @@ const Home = () => {
 
 									<FeatureCard
 										icon={<Calendar className="h-8 w-8 text-red-600" />}
-										title="ط¬ط¯ظˆظ„ط© ط°ظƒظٹط© ظ„ظ„ظ…ط°ط§ظƒط±ط©"
+										title="جدولة ذكية للمذاكرة"
 										description=""
 										link="/schedule"
 										delay={0.5}
@@ -640,7 +646,7 @@ const Home = () => {
 
 									<FeatureCard
 										icon={<Trophy className="h-8 w-8 text-indigo-600" />}
-										title="ظ†ط¸ط§ظ… ط¥ظ†ط¬ط§ط²ط§طھ ظˆظ…ظƒط§ظپط¢طھ"
+										title="نظام إنجازات ومكافآت"
 										description=""
 										link="/achievements"
 										delay={0.6}

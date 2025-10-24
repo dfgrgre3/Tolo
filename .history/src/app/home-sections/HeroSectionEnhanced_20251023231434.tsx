@@ -2,8 +2,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/shared/button";
 import { Card, CardContent } from "@/shared/card";
-import { Badge } from "@/shared/badge";
-import {
+import { Badge } from "@/shared/badgimport {
 	Clock,
 	Flame,
 	CheckCircle2,
@@ -13,6 +12,7 @@ import {
 	BookOpen,
 	Users,
 	Brain,
+	Award,
 	ArrowRight,
 	Sparkles,
 	BarChart3,
@@ -28,6 +28,7 @@ export function HeroSectionEnhanced({
 	summary: { totalMinutes: number; averageFocus: number; tasksCompleted: number; streakDays: number } | null;
 	priority?: boolean;
 }) {
+	// Keep the priority prop for backwards compatibility with layout optimization
 	void priority;
 
 	const formatNumber = (value: number) => new Intl.NumberFormat("ar-EG").format(value);
@@ -39,56 +40,56 @@ export function HeroSectionEnhanced({
 
 	const quickStats = [
 		{
-			label: "إجمالي ساعات الدراسة",
+			label: "ساعات المذاكرة المسجلة",
 			value: formatNumber(totalHours),
 			suffix: totalHours ? "ساعة" : "",
-			description: "كم من الوقت خصصته للتعلم خلال الفترة الأخيرة."
+			description: "إجمالي وقت الدراسة خلال هذا الأسبوع."
 		},
 		{
-			label: "متوسط التركيز",
+			label: "نسبة الالتزام",
 			value: `${focusAverage}%`,
-			description: "راقب مدى التزامك أثناء جلسات المذاكرة."
+			description: "متوسط تركيزك في الجلسات المسجلة."
 		},
 		{
 			label: "المهام المنجزة",
 			value: formatNumber(tasksCompleted),
 			suffix: tasksCompleted ? "مهمة" : "",
-			description: "تعرف على عدد المهام التي أكملتها هذا الأسبوع."
+			description: "عدد المهام التي أتممتها بنجاح."
 		},
 		{
-			label: "أيام السلسلة",
+			label: "سلسلة الإنجاز",
 			value: formatNumber(streakDays),
 			suffix: streakDays ? "يوم" : "",
-			description: "حافظ على سلسلة إنجازاتك دون انقطاع."
+			description: "أيام الاستمرارية المتتالية بدون انقطاع."
 		}
 	];
 
 	const heroHighlights = [
-		"خطط ليومك الدراسي بكفاءة عالية.",
-		"تابع مهامك وجلساتك في لوحة واحدة.",
-		"احصل على تذكيرات تساعدك على الالتزام بخطتك."
+		"خطط دراسية مرنة تُبنى تلقائيًا حسب جدولك.",
+		"لوحات تحليلات دقيقة لكل مادة وهدف.",
+		"تنبيهات ذكية تُحافظ على استمراريتك يومًا بيوم."
 	];
 
 	const miniFeatures = [
 		{
 			icon: <BookOpen className="h-6 w-6 text-blue-600" />,
-			title: "دروس مصغرة",
-			description: "راجِع أهم النقاط بسرعة مع ملاحظات واضحة."
+			title: "بنك دروس متجدد",
+			description: "ملخصات، مقاطع تفاعلية، واختبارات قصيرة لكل باب."
 		},
 		{
 			icon: <Users className="h-6 w-6 text-purple-600" />,
-			title: "مجتمعات دعم",
-			description: "انضم إلى مجموعات دراسية ونقاشات تفاعلية."
+			title: "مجتمع دراسة نشط",
+			description: "انضم إلى مجموعات تركز على نفس الأهداف والامتحانات."
 		},
 		{
 			icon: <Brain className="h-6 w-6 text-amber-600" />,
-			title: "تحسين التركيز",
-			description: "استفد من تمارين قصيرة للحفاظ على طاقتك الذهنية."
+			title: "تحليلات ذكية",
+			description: "قرارات مدعومة بالبيانات تساعدك على تحسين روتينك."
 		},
 		{
 			icon: <Trophy className="h-6 w-6 text-emerald-600" />,
-			title: "نظام مكافآت",
-			description: "حقق أهدافك اليومية وافتح شارات جديدة."
+			title: "لوحة إنجازات محفزة",
+			description: "اجمع الأوسمة واحتفل بالتقدم في كل مادة."
 		}
 	];
 
@@ -106,14 +107,15 @@ export function HeroSectionEnhanced({
 								<Sparkles className="h-3 w-3" />
 								منصة thanawy الذكية
 							</Badge>
-							<span className="text-sm font-medium text-blue-600/70">طور دراستك مع أدوات مدعومة بالذكاء الاصطناعي</span>
+							<span className="text-sm font-medium text-blue-600/70">حل متكامل لتنظيم يوم طالب الثانوية العامة</span>
 						</div>
 
 						<h1 className="text-4xl font-bold leading-tight text-slate-900 md:text-5xl">
-							إدارة شاملة لدراستك في الثانوية العامة
+							ابنِ خطتك الدراسية بثقة ووضوح
 						</h1>
 						<p className="text-lg leading-relaxed text-muted-foreground md:text-xl">
-							thanawy تجمع لك الجداول الذكية، التحليلات، ونصائح الخبراء في مكان واحد حتى تنجز أكثر بوقت أقل.
+							توفر thanawy مزيجًا ذكيًا من إدارة المهام، الجداول المرنة، والتحليلات اللحظية حتى تبقى دائمًا مستعدًا
+							للامتحان التالي.
 						</p>
 
 						<ul className="flex flex-col gap-3 text-base text-slate-600">
@@ -130,7 +132,7 @@ export function HeroSectionEnhanced({
 						<div className="flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-start sm:gap-4">
 							<Link href="/getting-started">
 								<Button className="flex items-center gap-2 rounded-full bg-gradient-to-l from-purple-600 to-blue-600 px-12 py-6 text-lg font-semibold shadow-xl transition-transform hover:-translate-y-1 hover:shadow-2xl">
-									ابدأ رحلتك الآن
+									ابدأ رحلة التفوق الآن
 									<ArrowRight className="h-5 w-5" />
 								</Button>
 							</Link>
@@ -140,7 +142,7 @@ export function HeroSectionEnhanced({
 									className="flex items-center gap-2 rounded-full border-2 border-blue-200 px-10 py-5 text-lg text-blue-600 hover:bg-blue-50"
 								>
 									<Play className="h-5 w-5" />
-									شاهد العرض التوضيحي
+									جولة تفاعلية سريعة
 								</Button>
 							</Link>
 							<Link
@@ -166,7 +168,7 @@ export function HeroSectionEnhanced({
 							<div className="flex items-center justify-between">
 								<span className="flex items-center gap-2 text-sm font-semibold text-blue-600">
 									<TrendingUp className="h-4 w-4" />
-									ملخص تقدمك
+									لوحة التقدم الفوري
 								</span>
 								<Badge variant="secondary" className="border-0 bg-blue-600/10 text-xs text-blue-700">
 									مباشر
@@ -190,9 +192,9 @@ export function HeroSectionEnhanced({
 							</div>
 
 							<div className="mt-6 rounded-2xl bg-gradient-to-l from-blue-600 via-indigo-600 to-purple-600 p-5 text-right text-white shadow-lg">
-								<p className="text-sm text-white/70">نصيحة سريعة</p>
+								<p className="text-sm text-white/70">نصيحة اليوم</p>
 								<p className="mt-2 text-base font-medium leading-relaxed">
-									حافظ على جلسات دراسة قصيرة ومتكررة، وشغل وضع التركيز لتحصل على تذكيرات بالاستراحة.
+									خصص 45 دقيقة لمراجعة أهم النقاط التي واجهتك هذا الأسبوع، وأضفها كمهمة مميزة في لوحة المتابعة.
 								</p>
 							</div>
 						</div>
@@ -210,18 +212,18 @@ export function HeroSectionEnhanced({
 						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 shadow-sm">
 							<Clock className="h-8 w-8 text-blue-600" />
 						</div>
-						<p className="mb-2 text-sm text-muted-foreground">ساعات الدراسة</p>
+						<p className="mb-2 text-sm text-muted-foreground">إجمالي وقت الدراسة</p>
 						<p className="text-4xl font-bold text-slate-900">{formatNumber(totalHours)}</p>
-						<span className="text-sm text-muted-foreground">وقت التعلم خلال الأسبوع الحالي</span>
+						<span className="text-sm text-muted-foreground">ساعة مسجلة خلال الأسبوع الحالي</span>
 					</div>
 
 					<div className="rounded-3xl border border-emerald-100 bg-white/85 p-6 text-center shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
 						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 shadow-sm">
 							<Flame className="h-8 w-8 text-emerald-600" />
 						</div>
-						<p className="mb-2 text-sm text-muted-foreground">سلسلة الالتزام</p>
+						<p className="mb-2 text-sm text-muted-foreground">سلسلة الإنجاز المتتالية</p>
 						<p className="text-4xl font-bold text-slate-900">{formatNumber(streakDays)}</p>
-						<span className="text-sm text-muted-foreground">عدد الأيام المتتالية بدون انقطاع</span>
+						<span className="text-sm text-muted-foreground">يومًا من الاستمرارية دون انقطاع</span>
 					</div>
 
 					<div className="rounded-3xl border border-purple-100 bg-white/85 p-6 text-center shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
@@ -230,16 +232,16 @@ export function HeroSectionEnhanced({
 						</div>
 						<p className="mb-2 text-sm text-muted-foreground">المهام المكتملة</p>
 						<p className="text-4xl font-bold text-slate-900">{formatNumber(tasksCompleted)}</p>
-						<span className="text-sm text-muted-foreground">تقدمك في قائمة المهام اليومية</span>
+						<span className="text-sm text-muted-foreground">هدفك القادم يبدأ من المهام اليومية</span>
 					</div>
 
 					<div className="rounded-3xl border border-sky-100 bg-white/85 p-6 text-center shadow-lg backdrop-blur-sm transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl">
 						<div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sky-100 shadow-sm">
 							<Target className="h-8 w-8 text-sky-600" />
 						</div>
-						<p className="mb-2 text-sm text-muted-foreground">نسبة التركيز</p>
+						<p className="mb-2 text-sm text-muted-foreground">نسبة الالتزام الأسبوعية</p>
 						<p className="text-4xl font-bold text-slate-900">{focusAverage}%</p>
-						<span className="text-sm text-muted-foreground">متوسط تركيزك في الجلسات الأخيرة</span>
+						<span className="text-sm text-muted-foreground">حافظ على تركيزك واستفد من التذكيرات الذكية</span>
 					</div>
 				</div>
 			</motion.div>
@@ -258,9 +260,9 @@ export function HeroSectionEnhanced({
 									<Zap className="h-8 w-8" />
 								</div>
 								<div className="text-right">
-									<h3 className="text-xl font-bold">ذكاء اصطناعي يدعمك في كل خطوة</h3>
+									<h3 className="text-xl font-bold">دع الذكاء الاصطناعي يرسم خطتك القادمة</h3>
 									<p className="text-base text-white/80">
-										استلم توصيات مخصصة، خطط دراسية مرنة، وتنبيهات تساعدك على الحفاظ على إيقاعك المثالي.
+										اكتشف التوزيع المثالي للمواد، أوقات الراحة، والاختبارات القصيرة بناءً على بيانات تقدمك.
 									</p>
 								</div>
 							</div>
@@ -268,7 +270,7 @@ export function HeroSectionEnhanced({
 								<Link href="/ai">
 									<Button className="flex items-center gap-2 rounded-full bg-white px-6 py-3 text-base font-semibold text-blue-700 transition-colors hover:bg-blue-50">
 										<Brain className="h-5 w-5" />
-										جرب المرشد الذكي
+										مساعد الدراسة الذكي
 									</Button>
 								</Link>
 								<Link href="/analytics">
@@ -277,7 +279,7 @@ export function HeroSectionEnhanced({
 										className="flex items-center gap-2 rounded-full border border-white/40 bg-transparent px-6 py-3 text-base text-white hover:bg-white/10"
 									>
 										<BarChart3 className="h-5 w-5" />
-										اعرض تقرير التحليل
+										عرض التحليلات المفصلة
 									</Button>
 								</Link>
 							</div>
@@ -311,3 +313,13 @@ export function HeroSectionEnhanced({
 }
 
 export default HeroSectionEnhanced;
+ className="text-base font-bold">ظ…طھط§ط¨ط¹ط© ط§ظ„طھظ‚ط¯ظ…</span>
+					<span className="text-sm text-muted-foreground">طھط­ظ„ظٹظ„ ط¯ظ‚ظٹظ‚</span>
+				</div>
+			</motion.div>
+		</div>
+	);
+}
+
+export default HeroSectionEnhanced;
+
