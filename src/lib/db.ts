@@ -122,11 +122,71 @@ export const defaultPoolStats: ConnectionPoolStats = {
   idleTimeout: 60000, // 60 seconds
 };
 
-import { prisma } from './prisma';
+// Import PrismaClient directly to avoid circular dependencies
+import { PrismaClient } from '@prisma/client';
 
-// Re-export the centralized prisma instance for backward compatibility
-export const enhancedPrisma = prisma;
-export { prisma };
+// Define the PrismaClient with appropriate configuration
+const createPrismaClient = () => {
+  const prisma = new PrismaClient({
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL || 'file:./dev.db',
+      },
+    },
+    log: process.env.NODE_ENV === 'development' ? [
+      { level: 'query', emit: 'event' },
+      { level: 'info', emit: 'event' },
+      { level: 'warn', emit: 'event' },
+    ] : undefined,
+  });
+
+  // Log slow queries
+  if (process.env.DB_LOG_SLOW_QUERIES?.toLowerCase() === 'true' || process.env.NODE_ENV === 'development') {
+    prisma.$on('query' as any, async (e: any) => {
+      const slowQueryThreshold = parseInt(process.env.SLOW_QUERY_THRESHOLD || '1000', 10);
+      if (e.duration > slowQueryThreshold) {
+        console.warn('Slow query detected:', {
+          duration: e.duration,
+          query: e.query,
+          timestamp: e.timestamp,
+        });
+      }
+    });
+  }
+
+  return prisma;
+};
+
+// TypeScript declaration for global caching
+declare const globalThis: {
+  prismaGlobal: ReturnType<typeof createPrismaClient>;
+} & typeof global;
+
+// Ensure we have a single instance of Prisma client
+const prisma = globalThis.prismaGlobal ?? createPrismaClient();
+
+// In non-production environments, cache the client globally
+if (process.env.NODE_ENV !== 'production') {
+  globalThis.prismaGlobal = prisma;
+}
+
+// Enhanced Prisma client with middleware
+const enhancedPrisma = prisma.$extends({
+  // Add any custom methods or enhancements here
+  model: {
+    // Example of a custom method
+    // user: {
+    //   async findByEmail(email: string) {
+    //     return prisma.user.findUnique({
+    //       where: { email }
+    //     });
+    //   }
+    // }
+  }
+});
+
+// Centralized Prisma clients
+export { prisma, enhancedPrisma };
 
 // Connection pooling utility functions
 export const connectionPoolUtils = {

@@ -1,7 +1,17 @@
 import { PrismaClient } from '@prisma/client';
-import { databaseConfig } from './database';
+import { databaseConfig, getDatabaseConfig } from './database';
 
-// Define the PrismaClient with appropriate configuration
+type ConnectionPoolStats = {
+  totalConnections: number;
+  activeConnections: number;
+  idleConnections: number;
+  waitingRequests: number;
+  maxConnections?: number;
+  connectionTimeout?: number;
+  idleTimeout?: number;
+};
+
+// Create an appropriately configured Prisma client
 const createPrismaClient = () => {
   const prisma = new PrismaClient({
     datasources: {
@@ -9,14 +19,15 @@ const createPrismaClient = () => {
         url: process.env.DATABASE_URL || databaseConfig.sqlite.url,
       },
     },
-    log: databaseConfig.common.logQueries ? [
-      { level: 'query', emit: 'event' },
-      { level: 'info', emit: 'event' },
-      { level: 'warn', emit: 'event' },
-    ] : undefined,
+    log: databaseConfig.common.logQueries
+      ? [
+          { level: 'query', emit: 'event' },
+          { level: 'info', emit: 'event' },
+          { level: 'warn', emit: 'event' },
+        ]
+      : undefined,
   });
 
-  // Log slow queries
   if (databaseConfig.common.logSlowQueries) {
     prisma.$on('query' as any, async (e: any) => {
       if (e.duration > databaseConfig.common.slowQueryThreshold) {
@@ -32,37 +43,121 @@ const createPrismaClient = () => {
   return prisma;
 };
 
-// Create a singleton instance for the Prisma client
 const prismaClientSingleton = () => {
   return createPrismaClient();
 };
 
-// TypeScript declaration for global caching
-declare const globalThis: {
-  prismaGlobal: ReturnType<typeof prismaClientSingleton>;
-} & typeof global;
+type GlobalPrismaContext = typeof globalThis & {
+  prismaGlobal?: ReturnType<typeof prismaClientSingleton>;
+  prismaPoolStats?: ConnectionPoolStats;
+  prismaPoolMiddlewareRegistered?: boolean;
+};
+
+const globalForPrisma = globalThis as GlobalPrismaContext;
 
 // Ensure we have a single instance of Prisma client
-const prisma = globalThis.prismaGlobal ?? prismaClientSingleton();
+const prisma = globalForPrisma.prismaGlobal ?? prismaClientSingleton();
 
 // In non-production environments, cache the client globally
 if (process.env.NODE_ENV !== 'production') {
-  globalThis.prismaGlobal = prisma;
+  globalForPrisma.prismaGlobal = prisma;
 }
 
-// Enhanced Prisma client with middleware
+// Resolve the active database configuration for pool telemetry
+const resolvedDbConfig = getDatabaseConfig() as {
+  maxPoolSize?: number;
+  connectionLimit?: number;
+  connectionTimeout?: number;
+  idleTimeout?: number;
+};
+
+const maxConnections = Math.max(
+  1,
+  resolvedDbConfig.maxPoolSize ??
+    resolvedDbConfig.connectionLimit ??
+    1,
+);
+
+const connectionTimeout =
+  typeof resolvedDbConfig.connectionTimeout === 'number'
+    ? resolvedDbConfig.connectionTimeout
+    : 5000;
+
+const idleTimeout =
+  typeof resolvedDbConfig.idleTimeout === 'number'
+    ? resolvedDbConfig.idleTimeout
+    : 30000;
+
+if (!globalForPrisma.prismaPoolStats) {
+  globalForPrisma.prismaPoolStats = {
+    totalConnections: maxConnections,
+    activeConnections: 0,
+    idleConnections: maxConnections,
+    waitingRequests: 0,
+    maxConnections,
+    connectionTimeout,
+    idleTimeout,
+  };
+}
+
+const poolStats = globalForPrisma.prismaPoolStats;
+
+if (!globalForPrisma.prismaPoolMiddlewareRegistered) {
+  prisma.$use(async (params, next) => {
+    poolStats.activeConnections += 1;
+    poolStats.totalConnections = Math.max(
+      poolStats.totalConnections,
+      poolStats.activeConnections,
+    );
+
+    const overCapacity = poolStats.activeConnections > maxConnections;
+    if (overCapacity) {
+      poolStats.waitingRequests += 1;
+    }
+
+    poolStats.idleConnections = Math.max(
+      maxConnections - poolStats.activeConnections,
+      0,
+    );
+
+    try {
+      return await next(params);
+    } finally {
+      poolStats.activeConnections = Math.max(
+        poolStats.activeConnections - 1,
+        0,
+      );
+
+      if (overCapacity && poolStats.waitingRequests > 0) {
+        poolStats.waitingRequests -= 1;
+      }
+
+      poolStats.idleConnections = Math.max(
+        maxConnections - poolStats.activeConnections,
+        0,
+      );
+    }
+  });
+
+  globalForPrisma.prismaPoolMiddlewareRegistered = true;
+}
+
 const enhancedPrisma = prisma.$extends({
-  // Add any custom methods or enhancements here
-  model: {
-    // Example of a custom method
-    // user: {
-    //   async findByEmail(email: string) {
-    //     return prisma.user.findUnique({
-    //       where: { email }
-    //     });
-    //   }
-    // }
-  }
+  client: {
+    getConnectionPoolStats(): ConnectionPoolStats {
+      return { ...poolStats };
+    },
+    optimizeConnectionPool(): void {
+      poolStats.idleConnections = Math.max(
+        maxConnections - poolStats.activeConnections,
+        0,
+      );
+      poolStats.waitingRequests = Math.max(
+        poolStats.waitingRequests - 1,
+        0,
+      );
+    },
+  },
 });
 
 export { prisma, enhancedPrisma };
