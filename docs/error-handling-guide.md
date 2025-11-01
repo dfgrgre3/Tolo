@@ -303,7 +303,7 @@ function App() {
 #### إعداد المزود
 
 ```jsx
-import { ToastProvider } from './components/ErrorToastContainer';
+import { ToastProvider } from '../components/ErrorToastContainer';
 
 function App() {
   return (
@@ -317,7 +317,7 @@ function App() {
 #### عرض إشعارات الأخطاء
 
 ```jsx
-import { useToast } from './components/ErrorToastContainer';
+import { useToast } from '../components/ErrorToastContainer';
 
 function MyComponent() {
   const { showToast } = useToast();

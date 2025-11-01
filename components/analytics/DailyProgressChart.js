@@ -1,8 +1,47 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import html2canvas from 'html2canvas';
 
-export const DailyProgressChart = React.memo(({ chartData }) => {
+export const DailyProgressChart = React.memo(({ 
+  chartData,
+  mode = 'weekly', // weekly/monthly
+  themeColors = {
+    light: '#4f46e5',
+    dark: '#818cf8'
+  }
+}) => {
+  const chartRef = useRef(null);
+  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const exportChart = async () => {
+    if (chartRef.current) {
+      const canvas = await html2canvas(chartRef.current);
+      const link = document.createElement('a');
+      link.download = 'progress-chart.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+  };
+
+  useEffect(() => {
+    setIsLoading(false);
+    const timer = setTimeout(() => setIsLoading(false), 500);
+    return () => clearTimeout(timer);
+  }, [chartData]);
+
   if (!chartData || chartData.length === 0) {
-    return <div className="text-center py-8 text-gray-500 dark:text-gray-400">لا تتوفر بيانات لعرض الرسم البياني.</div>;
+    return (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+        className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg mb-6"
+        ref={chartRef}
+      >
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">لا تتوفر بيانات لعرض الرسم البياني.</div>
+      </motion.div>
+    );
   }
 
   const width = 600;
@@ -30,10 +69,26 @@ export const DailyProgressChart = React.memo(({ chartData }) => {
   const lastY = scaleY(lastPoint.progress);
 
   return (
-    <div className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg mb-6">
-      <h3 className="text-lg font-bold text-gray-700 dark:text-gray-200 mb-4 text-right border-b pb-2 border-gray-100 dark:border-gray-700">
-        أداء التقدم خلال آخر 7 وحدات
-      </h3>
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg mb-6"
+      ref={chartRef}
+    >
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-bold text-gray-700 dark:text-gray-200 border-b pb-2 border-gray-100 dark:border-gray-700">
+          أداء التقدم خلال آخر {mode === 'weekly' ? '7 أيام' : '30 يومًا'}
+        </h3>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => exportChart()}
+            className="px-3 py-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 rounded-md"
+          >
+            تصدير
+          </button>
+        </div>
+      </div>
 
       <div className="relative overflow-x-auto">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '300px' }}>
@@ -87,17 +142,41 @@ export const DailyProgressChart = React.memo(({ chartData }) => {
           />
 
           {chartData.map((d, i) => (
-            <circle
-              key={i}
-              cx={scaleX(i)}
-              cy={scaleY(d.progress)}
-              r={4}
-              fill="#4f46e5"
-              stroke="#ffffff"
-              strokeWidth="2"
-              className="dark:stroke-gray-800 transition-all duration-1000 ease-out"
-            />
+            <g key={i}>
+              <circle
+                cx={scaleX(i)}
+                cy={scaleY(d.progress)}
+                r={hoveredIndex === i ? 6 : 4}
+                fill={hoveredIndex === i ? "#6366f1" : "#4f46e5"}
+                stroke="#ffffff"
+                strokeWidth="2"
+                className="dark:stroke-gray-800 transition-all duration-300 ease-out cursor-pointer"
+                onMouseEnter={() => setHoveredIndex(i)}
+                onMouseLeave={() => setHoveredIndex(null)}
+              />
+              {hoveredIndex === i && (
+                <foreignObject 
+                  x={scaleX(i) - 50} 
+                  y={scaleY(d.progress) - 50}
+                  width="100" 
+                  height="40"
+                  className="z-10"
+                >
+                  <div className="bg-white dark:bg-gray-800 p-2 rounded-md shadow-lg border border-gray-200 dark:border-gray-700">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+                      {d.day}: {d.progress}%
+                    </p>
+                    {d.details && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {d.details}
+                      </p>
+                    )}
+                  </div>
+                </foreignObject>
+              )}
+            </g>
           ))}
+
           {chartData.map((d, i) => (
             <text
               key={`label-${i}`}
@@ -130,7 +209,23 @@ export const DailyProgressChart = React.memo(({ chartData }) => {
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
         ملاحظة: هذا الرسم البياني يمثل تطورك على مدار آخر سبع وحدات دراسية أو أيام.
       </p>
-    </div>
+
+      <AnimatePresence>
+        {isLoading && (
+          <motion.div 
+            initial={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-70 flex items-center justify-center"
+          >
+            <motion.div 
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
+              className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 });
 

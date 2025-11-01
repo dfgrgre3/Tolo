@@ -1,34 +1,27 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
-import type { LoginFeedbackState } from './types';
 
 interface LoginFeedbackProps {
-  feedback: LoginFeedbackState | null;
+  feedback: {
+    type: 'error' | 'success' | 'warning';
+    message: string;
+    details?: string;
+  } | null;
 }
 
 export function LoginFeedback({ feedback }: LoginFeedbackProps) {
-  if (!feedback) {
-    return null;
-  }
-
-  const isError = feedback.type === 'error';
+  if (!feedback) return null;
 
   return (
-    <Alert
-      variant={isError ? 'destructive' : 'default'}
-      className="border-0 bg-white/80 text-right text-slate-700 shadow dark:bg-slate-900/80 dark:text-slate-200"
-    >
-      {isError ? (
-        <AlertCircle className="h-4 w-4 text-red-500" />
-      ) : (
-        <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+    <div className={`rounded-lg p-4 text-right ${feedback.type === 'error' 
+      ? 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-200'
+      : feedback.type === 'warning'
+      ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/20 dark:text-yellow-200'
+      : 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-200'}`}>
+      <p className="font-medium">{feedback.message}</p>
+      {feedback.details && (
+        <p className="mt-1 text-sm">{feedback.details}</p>
       )}
-      <AlertTitle className="font-semibold">
-        {isError ? '�?�?� �?���' : '�?�? �?�?�?�?�?'}
-      </AlertTitle>
-      <AlertDescription className="text-sm leading-6">
-        {feedback.message}
-      </AlertDescription>
-    </Alert>
+    </div>
   );
 }

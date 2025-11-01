@@ -174,10 +174,6 @@ export async function warmAllCache(): Promise<void> {
   console.log(`Cache warming completed in ${duration}ms`);
 }
 
-export default {
-  warmEducationalContentCache,
-  warmUserAnalyticsCache,
-  warmSystemStatsCache,
-  warmAllCache
+export class CacheWarmingService {
+  // ... تنفيذ الخدمة ...
 }
-};

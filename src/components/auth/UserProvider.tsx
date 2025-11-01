@@ -6,7 +6,7 @@ import { getTokenFromStorage, removeTokenFromStorage, getUserFromStorage, saveUs
 import { toast } from 'sonner';
 import { useHydrationFix } from '@/hydration-fix';
 
-interface User {
+export interface User {
   id: string;
   email: string;
   name?: string;
@@ -17,10 +17,10 @@ interface User {
   provider?: 'local' | 'google' | 'facebook';
   twoFactorEnabled?: boolean;
   lastLogin?: string;
-  role?: string;
+  role: string;
 }
 
-interface AuthContextType {
+export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   login: (token: string, userData?: User) => void;

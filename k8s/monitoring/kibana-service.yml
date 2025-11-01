@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: kibana
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-ip: "${EIP_IP}"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 5601
+    targetPort: 5601
+  selector:
+    app: kibana

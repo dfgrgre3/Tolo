@@ -1,67 +1,75 @@
-import React from "react";
-import type { Metadata } from "next";
+"use client";
+
+import React, { useEffect } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Footer from "../components/Footer";
 import Header from "../components/layout/header/Header";
-import { AuthProvider } from "../components/auth/UserProvider";
+import { GlobalProviders } from "../providers/index";
 import NotificationsClient from "../components/NotificationsClient";
-import ClientLayoutProvider from "./ClientLayoutProvider";
-import ToasterProvider from "../components/ui/sonner";
 import ScrollRestoration from "../components/layout/ScrollRestoration";
-
+import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 
 const inter = Inter({
 	variable: "--font-inter",
 	subsets: ["latin"],
-	display: "swap", // Optimize font loading
+	display: "swap",
 	adjustFontFallback: false,
 });
 
-export const metadata: Metadata = {
-	title: {
-		template: '%s | ثانوية بذكاء',
-		default: "ثانوية بذكاء - تنظيم وقت ونصائح"
-	},
-	description: "منصة شاملة لتنظيم الوقت، تتبع التقدم، الموارد، والامتحانات لثالثة ثانوي.",
-	applicationName: "ThanaWy Smart",
-	authors: [{ name: "ThanaWy Team" }],
-	keywords: ["تعليم", "ثانوية", "تنظيم الوقت", "امتحانات", "مصر"],
-	creator: "ThanaWy Team",
-	publisher: "ThanaWy",
-	formatDetection: {
-		email: false,
-		address: false,
-		telephone: false,
-	},
-};
+function ErrorFallback({ error }: FallbackProps) {
+  return (
+    <div className="p-4 text-red-500">
+      <h2>حدث خطأ في تحميل التطبيق</h2>
+      <pre>{error.message}</pre>
+    </div>
+  );
+}
 
-function RootLayout({
+function useWebpackErrorHandler() {
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      const error = event.error || new Error(event.message);
+      if (error.message.includes('Cannot read properties of undefined') || 
+          error.message.includes('call')) {
+        console.error('Webpack module loading error detected:', error);
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    };
+    
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+}
+
+export default function RootLayout({
 	children,
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	// Initialize with default values for SSR, will be updated by ClientLayout
+	useWebpackErrorHandler();
+	
 	const defaultLang = 'ar';
 	const defaultDir = 'rtl';
 
 	return (
 		<html lang={defaultLang} dir={defaultDir}>
 			<body className={`${inter.variable} antialiased`}>
-				<AuthProvider>
-					<ClientLayoutProvider>
-						
+				<ErrorBoundary 
+					FallbackComponent={ErrorFallback}
+					onError={(error: Error, info: {componentStack: string}) => {
+						console.error("Layout Error:", error, info.componentStack);
+					}}
+				>
+					<GlobalProviders>
 						<div className="min-h-screen flex flex-col">
-
 							<NotificationsClient />
 							<main className="flex-1">{children}</main>
 							<Footer />
 						</div>
-					</ClientLayoutProvider>
-				</AuthProvider>
+					</GlobalProviders>
+				</ErrorBoundary>
 			</body>
 		</html>
 	);
 }
-
-export default RootLayout;

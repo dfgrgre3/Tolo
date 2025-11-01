@@ -81,42 +81,32 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    const token = authHeader.slice(7);
+    const token = authHeader.split(' ')[1];
     const decoded = await verifyToken(token);
-    if (!decoded || !decoded.userId) {
+    
+    if (!decoded?.userId) {
       return NextResponse.json(
-        { error: 'Invalid or expired token' },
+        { error: 'Invalid token payload' },
         { status: 401 }
       );
     }
 
-    // جلب المستخدم
-    const user = await prisma.user.findUnique({
-      where: { id: decoded.userId }
-    });
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // حذف جميع بيانات الاعتماد البيومترية للمستخدم
+    // حذف بيانات الاعتماد البيومترية للمستخدم
     await prisma.biometricCredential.deleteMany({
-      where: { userId: user.id }
+      where: { userId: decoded.userId }
     });
 
     // تعطيل المصادقة البيومترية للمستخدم
     await prisma.user.update({
-      where: { id: user.id },
+      where: { id: decoded.userId },
       data: { biometricEnabled: false }
     });
 
     return NextResponse.json({
-      message: 'تم تعطيل المصادقة البيومترية بنجاح'
+      message: 'تم إزالة المصادقة البيومترية بنجاح'
     });
   } catch (error) {
-    console.error('Biometric disable error:', error);
+    console.error('Biometric removal error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

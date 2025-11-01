@@ -1,0 +1,31 @@
+{
+  "title": "Thanawy Performance Dashboard",
+  "description": "Monitor all critical system metrics",
+  "tags": ["thanawy", "performance"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "API Response Times",
+      "type": "graph",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, route))",
+          "legendFormat": "{{route}}"
+        }
+      ]
+    },
+    {
+      "title": "Database Queries",
+      "type": "graph",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "rate(mongodb_query_total[5m])",
+          "legendFormat": "Queries"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s"
+}

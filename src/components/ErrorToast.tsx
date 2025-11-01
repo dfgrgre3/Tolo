@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { AlertCircle, X, Info, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Button } from './ui/button';
 import { cn } from '@/lib/utils';
 
 export interface ErrorToastProps {
@@ -103,14 +102,12 @@ const ErrorToast: React.FC<ErrorToastProps> = ({
             )}
             {action && (
               <div className="mt-3 flex">
-                <Button
-                  variant="outline"
-                  size="sm"
+                <button
                   onClick={action.onClick}
-                  className="text-xs"
+                  className="text-xs px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   {action.label}
-                </Button>
+                </button>
               </div>
             )}
           </div>
