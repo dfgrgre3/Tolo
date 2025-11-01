@@ -2,6 +2,13 @@ import { prisma, enhancedPrisma } from './db';
 import redisClient, { CacheService } from './redis';
 import { ConnectionPoolStats, defaultPoolStats, getDatabaseConfig } from './db';
 
+type PrismaMonitoringClient = typeof enhancedPrisma & {
+  getConnectionPoolStats?: () => ConnectionPoolStats;
+  optimizeConnectionPool?: () => void;
+};
+
+const monitoredPrisma = enhancedPrisma as PrismaMonitoringClient;
+
 // Query performance tracking
 interface QueryPerformance {
   query: string;
@@ -115,14 +122,19 @@ export class DatabaseMonitor {
   public getConnectionPoolStats(): ConnectionPoolStats {
     // For SQLite, we return default stats since it doesn't have a real connection pool
     // But we can get enhanced stats from our enhancedPrisma instance
-    return enhancedPrisma.getConnectionPoolStats();
+    if (typeof monitoredPrisma.getConnectionPoolStats === 'function') {
+      return monitoredPrisma.getConnectionPoolStats();
+    }
+    return { ...defaultPoolStats };
   }
-  
+
   /**
    * Optimize connection pool by closing idle connections
    */
   public optimizeConnectionPool(): void {
-    enhancedPrisma.optimizeConnectionPool();
+    if (typeof monitoredPrisma.optimizeConnectionPool === 'function') {
+      monitoredPrisma.optimizeConnectionPool();
+    }
   }
   
   /**
