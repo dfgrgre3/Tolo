@@ -1,3 +1,4 @@
+// Import directly from db-unified to avoid circular dependencies
 import { enhancedPrisma } from './db-unified';
 
 // Export enhancedPrisma as prisma for backward compatibility
