@@ -1,0 +1,32 @@
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: thanawy-prometheus
+  labels:
+    app: prometheus
+spec:
+  serviceAccountName: prometheus
+  serviceMonitorSelector:
+    matchLabels:
+      app: thanawy
+  resources:
+    requests:
+      memory: 4Gi
+      cpu: 2
+    limits:
+      memory: 8Gi
+      cpu: 4
+  retention: 15d
+  ruleSelector:
+    matchLabels:
+      role: thanawy-rules
+  alerting:
+    alertmanagers:
+    - namespace: monitoring
+      name: alertmanager
+      port: web
+  additionalScrapeConfigs:
+    - job_name: 'thanawy-app'
+      scrape_interval: 30s
+      static_configs:
+        - targets: ['thanawy-service:80']

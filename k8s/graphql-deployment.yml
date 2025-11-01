@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphql-service
+  labels:
+    app: graphql
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: graphql
+  template:
+    metadata:
+      labels:
+        app: graphql
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4000"
+    spec:
+      containers:
+      - name: graphql
+        image: thanawy/graphql-service:1.0.0
+        ports:
+        - containerPort: 4000
+        resources:
+          requests:
+            cpu: "200m"
+            memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphql-service
+spec:
+  selector:
+    app: graphql
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 4000
+  type: LoadBalancer

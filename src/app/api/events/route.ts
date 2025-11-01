@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { EventBus } from '@/lib/event-bus';
 
 // GET all events
 export async function GET() {
@@ -49,6 +50,7 @@ export async function GET() {
 // POST create a new event
 export async function POST(request: NextRequest) {
   try {
+    const eventBus = new EventBus();
     const { 
       userId, 
       title, 
@@ -123,6 +125,8 @@ export async function POST(request: NextRequest) {
       currentAttendees: newEvent._count.attendees,
       tags: newEvent.tags
     };
+
+    await eventBus.publish('event.created', transformedEvent);
 
     return NextResponse.json(transformedEvent, { status: 201 });
   } catch (error) {

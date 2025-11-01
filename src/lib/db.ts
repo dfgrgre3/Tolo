@@ -126,6 +126,7 @@ import { prisma } from './prisma';
 
 // Re-export the centralized prisma instance for backward compatibility
 export const enhancedPrisma = prisma;
+export { prisma };
 
 // Connection pooling utility functions
 export const connectionPoolUtils = {

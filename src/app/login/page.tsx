@@ -79,11 +79,11 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-50">
+    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-50">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -right-16 h-72 w-72 rounded-full bg-indigo-500/40 blur-3xl" />
-        <div className="absolute bottom-0 left-[-10%] h-[26rem] w-[26rem] rounded-full bg-purple-500/30 blur-[160px]" />
-        <div className="absolute top-1/2 left-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-500/20 blur-[180px]" />
+        <div className="absolute -top-24 -right-16 h-72 w-72 animate-pulse rounded-full bg-indigo-500/40 blur-3xl" />
+        <div className="absolute bottom-0 left-[-10%] h-[26rem] w-[26rem] animate-pulse rounded-full bg-purple-500/30 blur-[160px]" />
+        <div className="absolute top-1/2 left-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500/20 blur-[180px]" />
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 py-16 lg:flex-row lg:items-center lg:justify-between">

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { AuthService } from "@/lib/auth-service";
+import { verifyToken } from "@/lib/auth-service";
 import { handleApiError, badRequestResponse, successResponse } from "@/lib/api-utils";
 
 export async function GET(req: NextRequest) {
   try {
     // Verify authentication
-    const decodedToken = await AuthService.verifyToken(req);
+    const decodedToken = await verifyToken(req);
     if (!decodedToken) {
       return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
     }
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Verify authentication
-    const decodedToken = await AuthService.verifyToken(req);
+    const decodedToken = await verifyToken(req);
     if (!decodedToken) {
       return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
     }
@@ -72,6 +72,22 @@ export async function POST(req: NextRequest) {
       return badRequestResponse('Plan is required', 'MISSING_PLAN');
     }
     
+    const existing = await prisma.schedule.findFirst({
+      where: { 
+        userId_active: { 
+          userId, 
+          active: true 
+        } 
+      }
+    });
+
+    if (existing && existing.version > (body.version || 0)) {
+      return NextResponse.json(
+        { error: 'CONFLICT', latest: existing },
+        { status: 409 }
+      );
+    }
+
     const schedule = await prisma.schedule.upsert({
       where: { 
         userId_active: { 
@@ -80,14 +96,16 @@ export async function POST(req: NextRequest) {
         } 
       },
       update: { 
-        planJson: JSON.stringify(plan) 
+        planJson: JSON.stringify(plan),
+        version: Date.now()
       },
       create: { 
         userId, 
         name: "مخصص", 
         weeklyHours: 0, 
         planJson: JSON.stringify(plan), 
-        active: true 
+        active: true,
+        version: Date.now()
       },
     });
     

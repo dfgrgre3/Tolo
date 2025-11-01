@@ -150,7 +150,13 @@ class ErrorLogger {
 
     // Log to console if enabled
     if (this.config.enableConsoleLog) {
-      console.error('Error logged:', logEntry);
+      console.error('Error logged:', {
+        message: logEntry.message,
+        source: logEntry.source,
+        severity: logEntry.severity,
+        stack: logEntry.stack,
+        ...(logEntry.additionalData && { additionalData: logEntry.additionalData })
+      });
     }
 
     // Save to localStorage if enabled

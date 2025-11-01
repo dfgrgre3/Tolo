@@ -1,67 +1,76 @@
-import Redis from 'ioredis';
+import { createClient, Cluster } from 'redis';
 import { perfConfig, PerfMonitor } from './perf-config.js';
 import { recordCacheMetric } from './db-monitor';
 
-// Create Redis client with enhanced configuration for better performance and reliability
-const redisClient = Redis.createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-  retry_delay_on_error: 100,
-  socket: {
-    connectTimeout: 10000,
-    reconnectStrategy: (retries) => {
-      // Exponential backoff strategy
-      return Math.min(retries * 100, 3000);
+class RedisService {
+  private client: any;
+  private clusterMode: boolean;
+
+  constructor() {
+    this.clusterMode = process.env.REDIS_CLUSTER === 'true';
+    
+    if (this.clusterMode) {
+      this.client = new Cluster([
+        { host: process.env.REDIS_HOST || 'localhost', port: 6379 }
+      ], {
+        scaleReads: 'slave',
+        redisOptions: {
+          password: process.env.REDIS_PASSWORD
+        }
+      });
+    } else {
+      this.client = createClient({
+        url: process.env.REDIS_URL || 'redis://localhost:6379',
+        socket: {
+          reconnectStrategy: (retries) => Math.min(retries * 100, 5000)
+        }
+      });
     }
-  },
-  // Performance optimizations
-  enable_offline_queue: true,
-  keep_alive: 1,
-});
 
-// Handle Redis errors
-redisClient.on('error', (err) => {
-  console.error('Redis error:', err);
-});
-
-// Connect to Redis
-const connectRedis = async () => {
-  try {
-    await redisClient.connect();
-    console.log('Connected to Redis');
-  } catch (error) {
-    console.error('Failed to connect to Redis:', error);
+    this.client.on('error', (err: Error) => {
+      console.error('Redis error:', err);
+    });
   }
-};
 
-// Initialize Redis connection
-if (process.env.NODE_ENV !== 'test') {
-  connectRedis();
-}
+  // Connect to Redis
+  async connectRedis() {
+    try {
+      if (this.clusterMode) {
+        await this.client.connect();
+      } else {
+        await this.client.connect();
+      }
+      console.log('Connected to Redis');
+    } catch (error) {
+      console.error('Failed to connect to Redis:', error);
+    }
+  }
 
-// Simple compression for large objects
-function compressData(data: string): string {
-  // In a real implementation, you might use a proper compression library
-  // For now, we'll just return the data as-is
-  return data;
-}
+  // Initialize Redis connection
+  async init() {
+    if (process.env.NODE_ENV !== 'test') {
+      await this.connectRedis();
+    }
+  }
 
-function decompressData(data: string): string {
-  // In a real implementation, you would decompress the data
-  // For now, we'll just return the data as-is
-  return data;
-}
+  // Simple compression for large objects
+  compressData(data: string): string {
+    // In a real implementation, you might use a proper compression library
+    // For now, we'll just return the data as-is
+    return data;
+  }
 
-// Cache service with generic type support
-export class CacheService {
-  /**
-   * Get data from cache
-   * @param key Cache key
-   * @returns Cached data or null if not found/expired
-   */
-  static async get<T>(key: string): Promise<T | null> {
+  decompressData(data: string): string {
+    // In a real implementation, you would decompress the data
+    // For now, we'll just return the data as-is
+    return data;
+  }
+
+  // Cache service with generic type support
+  async get<T>(key: string): Promise<T | null> {
     const start = Date.now();
     try {
-      const data = await redisClient.get(key);
+      const data = await this.client.get(key);
       const duration = Date.now() - start;
       const hit = data !== null;
       
@@ -69,7 +78,7 @@ export class CacheService {
       recordCacheMetric('get', duration, hit);
       
       if (data) {
-        const decompressedData = decompressData(data);
+        const decompressedData = this.decompressData(data);
         return JSON.parse(decompressedData) as T;
       }
       return null;
@@ -81,22 +90,16 @@ export class CacheService {
     }
   }
 
-  /**
-   * Set data in cache
-   * @param key Cache key
-   * @param value Data to cache
-   * @param ttl Time to live in seconds (default: 1 hour)
-   */
-  static async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
+  async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
     const start = Date.now();
     try {
       const serializedValue = JSON.stringify(value);
-      const compressedValue = compressData(serializedValue);
+      const compressedValue = this.compressData(serializedValue);
       
       if (ttl) {
-        await redisClient.setEx(key, ttl, compressedValue);
+        await this.client.setEx(key, ttl, compressedValue);
       } else {
-        await redisClient.set(key, compressedValue);
+        await this.client.set(key, compressedValue);
       }
       const duration = Date.now() - start;
       recordCacheMetric('set', duration, true);
@@ -107,14 +110,10 @@ export class CacheService {
     }
   }
 
-  /**
-   * Delete data from cache
-   * @param key Cache key
-   */
-  static async del(key: string): Promise<void> {
+  async del(key: string): Promise<void> {
     const start = Date.now();
     try {
-      await redisClient.del(key);
+      await this.client.del(key);
       const duration = Date.now() - start;
       recordCacheMetric('del', duration, true);
     } catch (error) {
@@ -124,14 +123,9 @@ export class CacheService {
     }
   }
 
-  /**
-   * Check if key exists in cache
-   * @param key Cache key
-   * @returns Boolean indicating if key exists
-   */
-  static async exists(key: string): Promise<boolean> {
+  async exists(key: string): Promise<boolean> {
     try {
-      const result = await redisClient.exists(key);
+      const result = await this.client.exists(key);
       return result > 0;
     } catch (error) {
       console.error('Error checking if key exists in cache:', error);
@@ -139,15 +133,10 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get multiple keys from cache efficiently
-   * @param keys Array of cache keys
-   * @returns Array of cached values in the same order as keys
-   */
-  static async mget<T>(keys: string[]): Promise<(T | null)[]> {
+  async mget<T>(keys: string[]): Promise<(T | null)[]> {
     const start = Date.now();
     try {
-      const results = await redisClient.mGet(keys);
+      const results = await this.client.mGet(keys);
       const duration = Date.now() - start;
       // Count hits (non-null values)
       const hitCount = results.filter(r => r !== null).length;
@@ -155,7 +144,7 @@ export class CacheService {
       
       return results.map(result => {
         if (result) {
-          const decompressedData = decompressData(result);
+          const decompressedData = this.decompressData(result);
           return JSON.parse(decompressedData) as T;
         }
         return null;
@@ -168,18 +157,13 @@ export class CacheService {
     }
   }
 
-  /**
-   * Set multiple key-value pairs in cache with pipeline for better performance
-   * @param keyValuePairs Object with key-value pairs to cache
-   * @param ttl Time to live in seconds
-   */
-  static async mset<T>(keyValuePairs: Record<string, T>, ttl?: number): Promise<void> {
+  async mset<T>(keyValuePairs: Record<string, T>, ttl?: number): Promise<void> {
     const start = Date.now();
     try {
-      const pipeline = redisClient.multi();
+      const pipeline = this.client.multi();
       for (const [key, value] of Object.entries(keyValuePairs)) {
         const serializedValue = JSON.stringify(value);
-        const compressedValue = compressData(serializedValue);
+        const compressedValue = this.compressData(serializedValue);
         if (ttl) {
           pipeline.setEx(key, ttl, compressedValue);
         } else {
@@ -196,16 +180,12 @@ export class CacheService {
     }
   }
 
-  /**
-   * Delete multiple keys from cache efficiently
-   * @param keys Array of cache keys to delete
-   */
-  static async mdel(keys: string[]): Promise<void> {
+  async mdel(keys: string[]): Promise<void> {
     const start = Date.now();
     try {
       if (keys.length === 0) return;
       
-      await redisClient.del(keys);
+      await this.client.del(keys);
       const duration = Date.now() - start;
       recordCacheMetric('mdel', duration, true);
     } catch (error) {
@@ -215,13 +195,10 @@ export class CacheService {
     }
   }
 
-  /**
-   * Flush all cache data (use with caution)
-   */
-  static async flushAll(): Promise<void> {
+  async flushAll(): Promise<void> {
     const start = Date.now();
     try {
-      await redisClient.flushAll();
+      await this.client.flushAll();
       const duration = Date.now() - start;
       recordCacheMetric('flushAll', duration, true);
     } catch (error) {
@@ -231,14 +208,7 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get data from cache or fetch and cache it with fallback on cache errors
-   * @param key Cache key
-   * @param fetchFn Function to fetch data if not in cache
-   * @param ttl Time to live in seconds
-   * @returns Cached or fetched data
-   */
-  static async getOrSet<T>(
+  async getOrSet<T>(
     key: string,
     fetchFn: () => Promise<T>,
     ttl: number = 3600
@@ -264,15 +234,11 @@ export class CacheService {
     }
   }
 
-  /**
-   * Invalidate cache entries matching a pattern efficiently
-   * @param pattern Pattern to match keys (e.g., "user:123:*")
-   */
-  static async invalidatePattern(pattern: string): Promise<void> {
+  async invalidatePattern(pattern: string): Promise<void> {
     const start = Date.now();
     try {
       // Use SCAN to find keys matching the pattern - safer for production than KEYS command
-      const stream = redisClient.scanIterator({
+      const stream = this.client.scanIterator({
         MATCH: pattern,
         COUNT: 100
       });
@@ -297,7 +263,10 @@ export class CacheService {
   }
 }
 
-// Provide a named export for compatibility with legacy services
-export const redis = redisClient;
+// Single instance shared across the app
+const redisService = new RedisService();
 
-export default redisClient;
+// Backward-compatible named export expected by legacy imports
+export const CacheService = redisService;
+
+export default redisService;

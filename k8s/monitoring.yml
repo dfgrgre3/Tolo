@@ -1,0 +1,42 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: thanawy-service-monitor
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app: auth
+  endpoints:
+  - port: web
+    interval: 30s
+    path: /metrics
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards
+  labels:
+    app: grafana
+data:
+  thanawy-dashboard.json: |
+    {
+      "title": "Thanawy Performance Dashboard",
+      "panels": [
+        {
+          "title": "CPU Usage",
+          "type": "graph",
+          "targets": [{
+            "expr": "sum(rate(container_cpu_usage_seconds_total{container='auth'}[5m])) by (pod)"
+          }]
+        },
+        {
+          "title": "Memory Usage",
+          "type": "graph",
+          "targets": [{
+            "expr": "container_memory_usage_bytes{container='auth'}"
+          }]
+        }
+      ]
+    }

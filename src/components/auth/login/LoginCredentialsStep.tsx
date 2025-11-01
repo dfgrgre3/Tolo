@@ -1,13 +1,14 @@
 import type { FormEvent } from 'react';
 import Link from 'next/link';
-import type { FormEvent } from 'react';
 import { Button } from '@/shared/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Mail, Lock, Loader2 } from 'lucide-react';
+import { Mail, Lock, Loader2, Fingerprint } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { CredentialsState, LoginFormErrors } from './types';
+import { PasswordStrengthMeter } from './PasswordStrengthMeter';
+import { WebAuthnService } from '@/lib/webauthn';
 
 interface LoginCredentialsStepProps {
   credentials: CredentialsState;
@@ -28,6 +29,21 @@ export function LoginCredentialsStep({
   onRememberMeChange,
   onSocialLogin,
 }: LoginCredentialsStepProps) {
+  const handleBiometricLogin = async () => {
+    try {
+      if (!WebAuthnService.isSupported()) {
+        alert('المتصفح الخاص بك لا يدعم المصادقة البيومترية');
+        return;
+      }
+      
+      const { token, user } = await WebAuthnService.authenticate();
+      // Handle successful authentication
+      
+    } catch (err: any) {
+      alert(`فشل المصادقة: ${err.message}`);
+    }
+  };
+
   return (
     <form className="space-y-5" onSubmit={onSubmit}>
       <div className="space-y-2">
@@ -92,6 +108,7 @@ export function LoginCredentialsStep({
           aria-invalid={Boolean(errors.password)}
           aria-describedby={errors.password ? 'login-password-error' : undefined}
         />
+        {credentials.password && <PasswordStrengthMeter password={credentials.password} />}
         {errors.password && (
           <p
             id="login-password-error"
@@ -141,30 +158,42 @@ export function LoginCredentialsStep({
         <span className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700" />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-4">
         <Button
           type="button"
           variant="outline"
-          className="border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
           onClick={() => onSocialLogin('google')}
         >
-          Google
+          <img src="/icons/google.svg" className="h-4 w-4" alt="Google" />
+          <span>Google</span>
         </Button>
         <Button
           type="button"
           variant="outline"
-          className="border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
           onClick={() => onSocialLogin('github')}
         >
-          GitHub
+          <img src="/icons/github.svg" className="h-4 w-4" alt="GitHub" />
+          <span>GitHub</span>
         </Button>
         <Button
           type="button"
           variant="outline"
-          className="border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
           onClick={() => onSocialLogin('twitter')}
         >
-          Twitter
+          <img src="/icons/twitter.svg" className="h-4 w-4" alt="Twitter" />
+          <span>Twitter</span>
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          onClick={handleBiometricLogin}
+        >
+          <Fingerprint className="h-4 w-4" />
+          <span>البصمة</span>
         </Button>
       </div>
       <p className="text-center text-xs text-slate-500 dark:text-slate-400">

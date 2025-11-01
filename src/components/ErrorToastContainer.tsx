@@ -1,22 +1,16 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+'use client';
+
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import ErrorToast, { ErrorToastProps } from './ErrorToast';
-import errorManager from '../services/ErrorManager';
+import errorManager, { ErrorDisplayOptions } from '../services/ErrorManager';
+
+type ToastCallback = (options: ErrorDisplayOptions & { variant: 'destructive' | 'warning' | 'info' }) => void;
 
 interface ToastContextType {
   showToast: (toast: Omit<ErrorToastProps, 'id' | 'onDismiss'>) => string;
   removeToast: (id: string) => void;
   clearAllToasts: () => void;
 }
-
-const ToastContext = createContext<ToastContextType | undefined>(undefined);
-
-export const useToast = () => {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast must be used within a ToastProvider');
-  }
-  return context;
-};
 
 interface Toast extends ErrorToastProps {
   id: string;
@@ -26,18 +20,37 @@ interface ToastProviderProps {
   children: ReactNode;
 }
 
+const ToastContext = createContext<ToastContextType | undefined>(undefined);
+
+export const useToast = () => {
+  const context = useContext(ToastContext);
+  if (!context) {
+    throw new Error(
+      'useToast must be used within a ToastProvider.\n' +
+      'Please wrap your root component with <ToastProvider> in your layout file.'
+    );
+  }
+  return context;
+};
+
 export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const MAX_TOASTS = 5;
 
   const showToast = useCallback((toast: Omit<ErrorToastProps, 'id' | 'onDismiss'>) => {
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    if (!toast.title && !toast.description) {
+      console.warn('Toast must have at least title or description');
+      return '';
+    }
+    
+    const id = crypto.randomUUID?.() || `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newToast: Toast = {
       ...toast,
       id,
       onDismiss: () => removeToast(id),
     };
 
-    setToasts(prev => [...prev, newToast]);
+    setToasts(prev => [...prev.slice(-(MAX_TOASTS-1)), newToast]);
     return id;
   }, []);
 
@@ -49,36 +62,41 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
     setToasts([]);
   }, []);
 
+  const contextValue = useMemo(() => ({
+    showToast,
+    removeToast,
+    clearAllToasts
+  }), [showToast, removeToast, clearAllToasts]);
+
   // Register toast callback with ErrorManager
   useEffect(() => {
-    const toastCallback = (options: any) => {
-      // Ensure we're still mounted before calling state setters
-      if (showToast && typeof showToast === 'function') {
+    const toastCallback: ToastCallback = (options) => {
+      try {
+        if (!options) return;
         showToast({
-          title: options.title,
+          title: options.title || '',
           description: options.description,
           variant: options.variant,
           duration: options.duration,
-          action: options.action,
+          action: options.action
         });
+      } catch (error) {
+        console.error('Error in toast callback:', error);
       }
     };
 
     errorManager.registerToastCallback(toastCallback);
-
-    // Cleanup on unmount
     return () => {
-      // Unregister the callback when component unmounts
-      errorManager.registerToastCallback(null);
+      errorManager.registerToastCallback(() => {});
     };
   }, [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast, removeToast, clearAllToasts }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <div className="fixed top-0 right-0 z-50 p-4 space-y-4 pointer-events-none">
         {toasts.map(toast => (
-          <div key={toast.id} className="pointer-events-auto">
+          <div key={toast.id} className="pointer-events-auto animate-fade-in-up">
             <ErrorToast {...toast} />
           </div>
         ))}

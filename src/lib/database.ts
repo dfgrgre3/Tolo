@@ -26,6 +26,15 @@ export const databaseConfig = {
     connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10), // 2 seconds
   },
 
+  // MongoDB Atlas configuration
+  mongodb: {
+    url: process.env.MONGODB_ATLAS_URI || 'mongodb://localhost:27017',
+    retryWrites: true,
+    w: 'majority',
+    retryReads: true,
+    readPreference: 'nearest'
+  },
+
   // Common settings
   common: {
     logQueries: process.env.NODE_ENV === 'development',
@@ -98,6 +107,13 @@ export function getDatabaseConfig() {
     };
   }
   
+  if (databaseUrl.startsWith('mongodb')) {
+    return {
+      ...databaseConfig.mongodb,
+      ...databaseConfig.common
+    };
+  }
+  
   // Default to SQLite
   return {
     ...databaseConfig.sqlite,
@@ -111,6 +127,9 @@ export interface ConnectionPoolStats {
   activeConnections: number;
   idleConnections: number;
   waitingRequests: number;
+  maxConnections: number;
+  connectionTimeout: number;
+  idleTimeout: number;
 }
 
 // Default pool stats (for monitoring purposes)
@@ -123,251 +142,3 @@ export const defaultPoolStats: ConnectionPoolStats = {
   connectionTimeout: 30000, // 30 seconds
   idleTimeout: 60000, // 60 seconds
 };
-
-// Enhanced Prisma client with connection pooling capabilities
-class EnhancedPrismaClient extends PrismaClient {
-  private connectionPool: any[] = [];
-  private maxPoolSize: number;
-  private connectionTimeout: number;
-  private idleTimeout: number;
-  
-  constructor() {
-    // Get database configuration
-    const dbConfig = getDatabaseConfig();
-    
-    // Configure Prisma client with optimized settings
-    super({
-      log: dbConfig.logQueries 
-        ? [
-            {
-              emit: 'event',
-              level: 'query',
-            },
-            {
-              emit: 'stdout',
-              level: 'error',
-            },
-            {
-              emit: 'stdout',
-              level: 'info',
-            },
-            {
-              emit: 'stdout',
-              level: 'warn',
-            },
-          ]
-        : ['warn', 'error'],
-      datasources: {
-        db: {
-          url: process.env.DATABASE_URL,
-        },
-      },
-      // Connection pool configuration for better performance
-      transactionOptions: {
-        maxWait: 5000, // 5 seconds
-        timeout: 10000, // 10 seconds
-      },
-    });
-    
-    this.maxPoolSize = dbConfig.maxPoolSize || parseInt(process.env.DATABASE_MAX_POOL_SIZE || '10', 10);
-    this.connectionTimeout = dbConfig.connectionTimeout || parseInt(process.env.DATABASE_CONNECTION_TIMEOUT || '30000', 10);
-    this.idleTimeout = dbConfig.idleTimeout || parseInt(process.env.DATABASE_IDLE_TIMEOUT || '60000', 10);
-    
-    // Set up connection monitoring
-    this.setupConnectionMonitoring();
-  }
-  
-  /**
-   * Set up connection monitoring and optimization
-   */
-  private setupConnectionMonitoring(): void {
-    // Monitor query performance
-    this.$on('query', (e: any) => {
-      // In a production environment, we might want to log slow queries
-      if (e.duration > getDatabaseConfig().slowQueryThreshold) {
-        console.warn(`Slow query (${e.duration}ms): ${e.query}`);
-      }
-    });
-  }
-  
-  /**
-   * Get current connection pool statistics
-   */
-  public getConnectionPoolStats(): ConnectionPoolStats {
-    // For SQLite, we return simulated stats since it doesn't have a real connection pool
-    // In a production environment with PostgreSQL or MySQL, this would connect to the
-    // database's monitoring APIs to get real statistics
-    return {
-      activeConnections: this.connectionPool.filter(conn => conn.inUse).length,
-      idleConnections: this.connectionPool.filter(conn => !conn.inUse).length,
-      totalConnections: this.connectionPool.length,
-      maxConnections: this.maxPoolSize,
-      connectionTimeout: this.connectionTimeout,
-      idleTimeout: this.idleTimeout,
-    };
-  }
-  
-  /**
-   * Optimize connection pool by closing idle connections
-   */
-  public optimizeConnectionPool(): void {
-    const now = Date.now();
-    this.connectionPool = this.connectionPool.filter(conn => {
-      // Keep connections that are in use or not timed out yet
-      return conn.inUse || (now - conn.lastUsed) < this.idleTimeout;
-    });
-  }
-  
-  /**
-   * Acquire a connection from the pool
-   */
-  public async acquireConnection(): Promise<any> {
-    // In a real implementation with a proper database that supports connection pooling,
-    // this would acquire a connection from the pool
-    
-    // For SQLite, we simulate this behavior
-    const connection = {
-      id: Math.random().toString(36).substring(7),
-      inUse: true,
-      acquiredAt: Date.now(),
-      lastUsed: Date.now(),
-    };
-    
-    this.connectionPool.push(connection);
-    return connection;
-  }
-  
-  /**
-   * Release a connection back to the pool
-   */
-  public releaseConnection(connectionId: string): void {
-    const connection = this.connectionPool.find(conn => conn.id === connectionId);
-    if (connection) {
-      connection.inUse = false;
-      connection.lastUsed = Date.now();
-    }
-  }
-}
-
-// Export the enhanced Prisma client
-export const enhancedPrisma = new EnhancedPrismaClient();
-
-// Connection pooling utility functions
-export const connectionPoolUtils = {
-  /**
-   * Check if connection pool needs optimization
-   */
-  shouldOptimizePool: (stats: ConnectionPoolStats): boolean => {
-    // Optimize if more than 80% of connections are idle
-    return stats.totalConnections > 0 && 
-           (stats.idleConnections / stats.totalConnections) > 0.8;
-  },
-  
-  /**
-   * Get recommended pool size based on current usage
-   */
-  getRecommendedPoolSize: (stats: ConnectionPoolStats): number => {
-    // Calculate recommended pool size based on usage patterns
-    const utilization = stats.totalConnections > 0 ?
-      (stats.activeConnections / stats.totalConnections) : 0;
-
-    // If utilization is high, recommend increasing pool size
-    if (utilization > 0.8) {
-      return Math.min(stats.maxConnections * 1.5, 50); // Cap at 50
-    }
-
-    // If utilization is low, recommend decreasing pool size
-    if (utilization < 0.2 && stats.totalConnections > 5) {
-      return Math.max(stats.maxConnections * 0.8, 5); // Floor at 5
-    }
-
-    // Otherwise, keep current size
-    return stats.maxConnections;
-  }
-};
-
-import { PrismaClient } from '@prisma/client';
-
-// Enhanced configuration with connection pooling optimized for production
-const enhancedPrismaConfig = {
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL,
-    },
-  },
-  // Query logging based on environment and configuration
-  log: getDatabaseConfig().logQueries
-    ? ['query', 'info', 'warn', 'error']
-    : ['warn', 'error'],
-
-  // Connection pool configuration
-  transactionOptions: {
-    isolationLevel: 'ReadCommitted',
-    maxWait: getBaseDatabaseConfig().connectionTimeout,
-    timeout: getBaseDatabaseConfig().idleTimeout,
-  },
-};
-
-// Create a single Prisma instance that will be reused
-const createPrismaClient = () => {
-  return new PrismaClient(enhancedPrismaConfig);
-};
-
-// Use a singleton pattern to ensure we only have one Prisma instance
-const getPrismaInstance = () => {
-  const globalPrisma = globalThis as any;
-
-  if (!globalPrisma.prisma) {
-    globalPrisma.prisma = createPrismaClient();
-
-    // Add connection pool monitoring in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Database connection pool initialized with config:', {
-        maxPoolSize: getBaseDatabaseConfig().maxPoolSize,
-        minPoolSize: getBaseDatabaseConfig().minPoolSize,
-        connectionTimeout: getBaseDatabaseConfig().connectionTimeout,
-        idleTimeout: getBaseDatabaseConfig().idleTimeout,
-        acquireTimeout: getBaseDatabaseConfig().acquireTimeout
-      });
-    }
-  }
-
-  return globalPrisma.prisma;
-};
-
-// Export the prisma instance
-export const prisma = getPrismaInstance();
-
-// Graceful shutdown handling
-export const closeDatabaseConnection = async () => {
-  await prisma.$disconnect();
-};
-
-// Health check function
-export const checkDatabaseHealth = async () => {
-  try {
-    await prisma.$queryRaw`SELECT 1`;
-    return true;
-  } catch (error) {
-    console.error('Database health check failed:', error);
-    return false;
-  }
-};
-
-// Add connection pool statistics monitoring
-if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DB_STATS === 'true') {
-  // Periodically log connection pool stats
-  setInterval(async () => {
-    try {
-      // This is a simple query to keep the connection pool active
-      await prisma.$queryRaw`SELECT 1`;
-      console.log('Database connection pool is active');
-    } catch (error) {
-      console.error('Database connection pool health check failed:', error);
-    }
-  }, 60000); // Every minute
-}
-
-if (process.env.NODE_ENV !== 'production') {
-  (globalThis as any).prisma = prisma;
-}

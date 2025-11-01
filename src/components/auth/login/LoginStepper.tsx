@@ -5,11 +5,12 @@ import type { LoginStep } from './types';
 interface LoginStepperProps {
   steps: LoginStep[];
   currentStepIndex: number;
+  className?: string;
 }
 
-export function LoginStepper({ steps, currentStepIndex }: LoginStepperProps) {
+export function LoginStepper({ steps, currentStepIndex, className }: LoginStepperProps) {
   return (
-    <div className="flex items-center gap-2">
+    <div className={cn('flex items-center gap-2', className)}>
       {steps.map((step, index) => (
         <div
           key={step}

@@ -89,23 +89,20 @@ export function LoginTwoFactorStep({
         />
         <div className="flex items-center justify-between text-xs text-slate-500">
           <label className="flex items-center gap-2">
-            <span>�?�?��?�? �?�?���? �?�?�?�?�?��</span>
+            <span>تذكر هذا الجهاز لمدة 30 يومًا</span>
             <Checkbox
               checked={trustDevice}
-              onCheckedChange={(checked) =>
-                onTrustDeviceChange(Boolean(checked))
-              }
+              onCheckedChange={(checked) => onTrustDeviceChange(Boolean(checked))}
             />
           </label>
           <button
             type="button"
             onClick={onResend}
             disabled={resendCooldown > 0}
-            className="flex items-center gap-2 text-indigo-600 transition hover:text-indigo-700 disabled:text-slate-400"
+            className="flex items-center gap-2 text-indigo-600 hover:text-indigo-700 disabled:text-slate-400"
           >
             <RefreshCw className="h-3.5 w-3.5" />
-            �?�?�?�?�? �?�?�?�?�?{' '}
-            {resendCooldown > 0 ? `(${formatTimeLeft(resendCooldown)})` : ''}
+            إعادة إرسال الكود
           </button>
         </div>
       </div>

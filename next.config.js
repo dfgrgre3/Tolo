@@ -7,10 +7,22 @@ const nextConfig = {
 
   // Optimize images
   images: {
-    domains: ['youtube.com', 'i.ytimg.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'youtube.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
+    ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400, // Cache images for 24 hours
   },
+
+  // Add Turbopack config
+  turbopack: {},
 
   // Enable compression
   compress: true,
@@ -38,11 +50,35 @@ const nextConfig = {
   },
 
   // Configure webpack to handle path aliases
-  webpack: (config, { dev }) => {
-    // Add alias for hydration-fix
-    config.resolve.alias = {
-      ...config.resolve.alias,
-      '@': require('path').resolve(__dirname, 'src/'),
+  webpack: (config, { dev, isServer }) => {
+    // Improved module resolution
+    config.resolve = {
+      ...config.resolve,
+      alias: {
+        ...config.resolve.alias,
+        '@': require('path').resolve(__dirname, 'src/')
+      },
+      fallback: {
+        assert: require.resolve('assert'),
+        util: require.resolve('util'),
+        stream: require.resolve('stream-browserify')
+      }
+    };
+
+    // Add error tracking
+    config.plugins.push(
+      new (require('webpack')).DefinePlugin({
+        'process.env.NODE_DEBUG': JSON.stringify(process.env.NODE_DEBUG),
+        '__WEBPACK_ERROR_HANDLING__': JSON.stringify(true)
+      })
+    );
+
+    config.stats = 'verbose';
+
+    config.performance = {
+      hints: false,
+      maxEntrypointSize: 512000,
+      maxAssetSize: 512000,
     };
 
     // Only add basic optimizations
