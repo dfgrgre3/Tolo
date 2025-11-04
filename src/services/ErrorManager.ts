@@ -123,6 +123,15 @@ class ErrorManager {
   ): string {
     const errorObj = typeof error === 'string' ? new Error(error) : error;
 
+    // Check if it's a connection error
+    const isConnectionError = 
+      errorObj.message.includes('fetch') ||
+      errorObj.message.includes('network') ||
+      errorObj.message.includes('Failed to fetch') ||
+      errorObj.message.includes('NetworkError') ||
+      errorObj.message.includes('Connection') ||
+      errorObj.name === 'TypeError';
+
     return this.handleError(errorObj, {
       severity: 'high',
       context: {
@@ -132,8 +141,10 @@ class ErrorManager {
       },
       ...config,
     }, {
-      title: displayOptions.title || 'خطأ في الشبكة',
-      description: displayOptions.description || 'فشل في الاتصال بالخادم. يرجى المحاولة مرة أخرى.',
+      title: displayOptions.title || 'خطأ في الاتصال',
+      description: displayOptions.description || (isConnectionError 
+        ? 'حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.'
+        : 'فشل في الاتصال بالخادم. يرجى المحاولة مرة أخرى.'),
       ...displayOptions,
     });
   }

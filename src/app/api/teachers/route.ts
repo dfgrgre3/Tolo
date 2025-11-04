@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma, SubjectType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { SubjectType } from "@/types/settings";
 
 export async function GET() {
 	const teachers = await prisma.teacher.findMany({ orderBy: { name: "asc" } });

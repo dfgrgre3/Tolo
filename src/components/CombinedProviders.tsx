@@ -9,11 +9,9 @@ export function CombinedProviders({ children }: { children: React.ReactNode }) {
     <AuthProvider>
       <ClientLayoutProvider>
         <ToastProvider>
-          <ToastProvider>
-            <WebSocketProvider>
-              {children}
-            </WebSocketProvider>
-          </ToastProvider>
+          <WebSocketProvider>
+            {children}
+          </WebSocketProvider>
         </ToastProvider>
       </ClientLayoutProvider>
     </AuthProvider>

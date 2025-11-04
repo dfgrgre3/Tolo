@@ -7,12 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Seed configuration
-generator seed {
-  provider = "tsx"
-  output   = "prisma/seed/main.ts"
-}
-
 model User {
   id                      String      @id
   email                   String      @unique
@@ -36,6 +30,7 @@ model User {
   resetTokenExpires       DateTime?
   twoFactorEnabled        Boolean     @default(false)
   twoFactorSecret         String?
+  recoveryCodes           String?     // JSON array of hashed recovery codes
   smsNotifications        Boolean?    @default(false)
   biometricEnabled        Boolean     @default(false)
   biometricCredentials    Json        @default("[]")

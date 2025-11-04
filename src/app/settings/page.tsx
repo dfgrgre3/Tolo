@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { Button } from "@/shared/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
 import { Label } from "@/components/ui/label";
@@ -9,14 +9,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/shared/badge";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/UserProvider";
-import { User as UserIcon, Shield as ShieldIcon, Bell as BellIcon, Palette as PaletteIcon, Globe as GlobeIcon } from "lucide-react";
-import { SettingsData, SettingsApiResponse, SubjectEnrollment, UserSettings, FocusStrategy, SubjectType } from "@/types/settings";
-
+import { User as UserIcon, Shield as ShieldIcon, Bell as BellIcon, Palette as PaletteIcon, Globe as GlobeIcon, Loader2 } from "lucide-react";
+import { SettingsData, SubjectEnrollment, FocusStrategy, SubjectType } from "@/types/settings";
 import { ensureUser } from "@/lib/user-utils";
+import { getTokenFromStorage } from "@/lib/auth-client";
 
 export default function SettingsPage() {
 	const { user } = useAuth();
@@ -39,6 +37,24 @@ export default function SettingsPage() {
 	// Security settings
 	const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
 	const [isLoading, setIsLoading] = useState(true);
+	const [isSaving, setIsSaving] = useState(false);
+	const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+
+	// Notification settings
+	const [taskReminders, setTaskReminders] = useState(true);
+	const [examReminders, setExamReminders] = useState(true);
+	const [progressReports, setProgressReports] = useState(false);
+	const [smsNotifications, setSmsNotifications] = useState(false);
+
+	// Appearance settings
+	const [darkMode, setDarkMode] = useState(false);
+	const [fontSize, setFontSize] = useState("medium");
+	const [primaryColor, setPrimaryColor] = useState("blue");
+
+	// Language settings
+	const [language, setLanguage] = useState("ar");
+	const [timezone, setTimezone] = useState("ast");
+	const [dateFormat, setDateFormat] = useState("hijri");
 
 	useEffect(() => {
 		ensureUser().then((id) => setUserId(id));
@@ -46,109 +62,275 @@ export default function SettingsPage() {
 
 	useEffect(() => {
 		if (!userId) return;
-		(async () => {
-			const res = await fetch(`/api/settings?userId=${userId}`);
-			const data: SettingsData = await res.json();
-			if (data.user) {
-				setWakeUpTime(data.user.wakeUpTime ?? "");
-				setSleepTime(data.user.sleepTime ?? "");
-				setFocusStrategy((data.user.focusStrategy as FocusStrategy) ?? FocusStrategy.POMODORO);
-			}
-			if (data.subjects?.length) setSubjects(data.subjects);
-			const recRes = await fetch(`/api/recommendations?userId=${userId}`);
+		
+		const fetchSettings = async () => {
+			setIsLoadingSettings(true);
 			try {
-				const recData = await recRes.json();
-				console.log("Recommendations data:", recData); // للتصحيح
-				// Ensure we're always setting an array
-				if (Array.isArray(recData)) {
-					setRecs(recData);
-				} else if (recData && typeof recData === 'object' && 'error' in recData) {
-					// Handle error response
-					console.error("Error fetching recommendations:", recData.error);
-					setRecs([]);
-				} else {
-					// Handle unexpected response format
-					console.error("Unexpected recommendations format:", recData);
-					setRecs([]);
+				const token = getTokenFromStorage();
+				const headers: HeadersInit = {};
+				if (token) {
+					headers["Authorization"] = `Bearer ${token}`;
 				}
-			} catch (error) {
-				console.error("Error parsing recommendations:", error);
+
+				const res = await fetch(`/api/settings?userId=${userId}`, {
+					headers,
+					credentials: "include",
+				});
+				
+				if (!res.ok) {
+					let errorMessage = "فشل في تحميل الإعدادات";
+					try {
+						const errorData = await res.json();
+						if (errorData.error) {
+							errorMessage = errorData.error;
+						}
+					} catch {
+						errorMessage = res.status === 401 
+							? "غير مصرح - يرجى تسجيل الدخول مرة أخرى"
+							: `فشل في تحميل الإعدادات (${res.status})`;
+					}
+					throw new Error(errorMessage);
+				}
+				
+				const data: SettingsData = await res.json();
+				if (data.user) {
+					setWakeUpTime(data.user.wakeUpTime ?? "");
+					setSleepTime(data.user.sleepTime ?? "");
+					setFocusStrategy((data.user.focusStrategy as FocusStrategy) ?? FocusStrategy.POMODORO);
+					setTwoFactorEnabled(data.user.twoFactorEnabled ?? false);
+				}
+				if (data.subjects?.length) setSubjects(data.subjects);
+				
+				// Fetch recommendations
+				const recRes = await fetch(`/api/recommendations?userId=${userId}`, {
+					headers: token ? { Authorization: `Bearer ${token}` } : {},
+					credentials: "include",
+				});
+				if (recRes.ok) {
+					const recData = await recRes.json();
+					if (Array.isArray(recData)) {
+						setRecs(recData);
+					} else {
+						setRecs([]);
+					}
+				}
+			} catch (error: any) {
+				console.error("Error fetching settings:", error);
+				const errorMessage = error?.message || "فشل في تحميل الإعدادات";
+				toast.error(errorMessage);
 				setRecs([]);
+			} finally {
+				setIsLoadingSettings(false);
 			}
-		})();
+		};
+
+		fetchSettings();
 	}, [userId]);
 
 	useEffect(() => {
 		if (user) {
-			setTwoFactorEnabled(user.twoFactorEnabled || false);
 			setIsLoading(false);
 		}
 	}, [user]);
 
-	async function saveGeneralSettings() {
-		if (!userId) return;
-		await fetch("/api/settings", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ userId, wakeUpTime: wakeUpTime || null, sleepTime: sleepTime || null, focusStrategy, subjects }),
-		});
-		const recRes = await fetch(`/api/recommendations?userId=${userId}`);
-		try {
-			const recData = await recRes.json();
-			console.log("Recommendations data after save:", recData); // للتصحيح
-			// Ensure we're always setting an array
-			if (Array.isArray(recData)) {
-				setRecs(recData);
-			} else if (recData && typeof recData === 'object' && 'error' in recData) {
-				// Handle error response
-				console.error("Error fetching recommendations:", recData.error);
-				setRecs([]);
-			} else {
-				// Handle unexpected response format
-				console.error("Unexpected recommendations format:", recData);
-				setRecs([]);
-			}
-			toast.success("تم حفظ الإعدادات بنجاح");
-		} catch (error) {
-			console.error("Error parsing recommendations after save:", error);
-			setRecs([]);
-			toast.error("حدث خطأ أثناء حفظ الإعدادات");
+	const saveGeneralSettings = useCallback(async () => {
+		if (!userId) {
+			toast.error("لم يتم العثور على معرف المستخدم");
+			return;
 		}
-	}
 
-	const handleToggleTwoFactor = async (enabled: boolean) => {
-		setIsLoading(true);
+		setIsSaving(true);
 		try {
+			const token = getTokenFromStorage();
+			const headers: HeadersInit = {
+				"Content-Type": "application/json",
+			};
+
+			// Add authorization token if available
+			if (token) {
+				headers["Authorization"] = `Bearer ${token}`;
+			}
+
+			const response = await fetch("/api/settings", {
+				method: "POST",
+				headers,
+				credentials: "include",
+				body: JSON.stringify({ 
+					userId, 
+					wakeUpTime: wakeUpTime || null, 
+					sleepTime: sleepTime || null, 
+					focusStrategy, 
+					subjects 
+				}),
+			});
+
+			if (!response.ok) {
+				// Try to get error message from response
+				let errorMessage = "فشل في حفظ الإعدادات";
+				let errorDetails: any = null;
+				
+				try {
+					const errorData = await response.json();
+					console.error("API Error Response:", errorData);
+					
+					if (errorData.error) {
+						errorMessage = errorData.error;
+					}
+					
+					// Include details in development mode
+					if (errorData.details && process.env.NODE_ENV === 'development') {
+						errorDetails = errorData.details;
+						console.error("Error Details:", errorDetails);
+					}
+				} catch (parseError) {
+					// If response is not JSON, use status text
+					console.error("Failed to parse error response:", parseError);
+					const responseText = await response.text().catch(() => '');
+					console.error("Response text:", responseText);
+					
+					errorMessage = response.status === 401 
+						? "غير مصرح - يرجى تسجيل الدخول مرة أخرى"
+						: response.status === 403
+						? "غير مسموح - لا يمكنك تحديث إعدادات مستخدم آخر"
+						: response.status === 404
+						? "المستخدم غير موجود"
+						: `فشل في حفظ الإعدادات (${response.status})`;
+				}
+				
+				const error = new Error(errorMessage);
+				if (errorDetails) {
+					(error as any).details = errorDetails;
+				}
+				throw error;
+			}
+
+			// Fetch updated recommendations
+			const recRes = await fetch(`/api/recommendations?userId=${userId}`, {
+				headers: token ? { Authorization: `Bearer ${token}` } : {},
+				credentials: "include",
+			});
+			if (recRes.ok) {
+				const recData = await recRes.json();
+				if (Array.isArray(recData)) {
+					setRecs(recData);
+				}
+			}
+
+			toast.success("تم حفظ الإعدادات بنجاح");
+		} catch (error: any) {
+			console.error("Error saving settings:", error);
+			console.error("Error details:", error?.details);
+			
+			let errorMessage = error?.message || "حدث خطأ أثناء حفظ الإعدادات";
+			
+			// Show more details in development
+			if (error?.details && process.env.NODE_ENV === 'development') {
+				console.error("Full error:", {
+					message: errorMessage,
+					details: error.details,
+					stack: error.stack
+				});
+			}
+			
+			toast.error(errorMessage);
+		} finally {
+			setIsSaving(false);
+		}
+	}, [userId, wakeUpTime, sleepTime, focusStrategy, subjects]);
+
+	const handleToggleTwoFactor = useCallback(async (enabled: boolean) => {
+		if (!user?.id) {
+			toast.error("لم يتم العثور على معلومات المستخدم");
+			return;
+		}
+
+		const previousState = twoFactorEnabled;
+		setTwoFactorEnabled(enabled);
+		setIsLoading(true);
+		
+		try {
+			const token = getTokenFromStorage();
+			const headers: HeadersInit = {
+				'Content-Type': 'application/json',
+			};
+			if (token) {
+				headers['Authorization'] = `Bearer ${token}`;
+			}
+
 			const response = await fetch('/api/auth/two-factor/setup', {
 				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-				},
+				headers,
+				credentials: 'include',
 				body: JSON.stringify({
-					userId: user?.id,
+					userId: user.id,
 					enable: enabled,
 				}),
 			});
 
-			const data = await response.json();
-
 			if (!response.ok) {
-				throw new Error(data.error || 'Failed to update two-factor authentication');
+				let errorMessage = 'فشل في تحديث التحقق بخطوتين';
+				try {
+					const errorData = await response.json();
+					if (errorData.error) {
+						errorMessage = errorData.error;
+					}
+				} catch {
+					errorMessage = response.status === 401 
+						? "غير مصرح - يرجى تسجيل الدخول مرة أخرى"
+						: `فشل في تحديث التحقق بخطوتين (${response.status})`;
+				}
+				throw new Error(errorMessage);
 			}
 
-			setTwoFactorEnabled(enabled);
-			toast.success(data.message);
+			const data = await response.json();
+			toast.success(data.message || 'تم تحديث إعدادات الأمان بنجاح');
 		} catch (error: any) {
-			toast.error(error.message || 'Failed to update two-factor authentication');
+			const errorMessage = error?.message || 'فشل في تحديث التحقق بخطوتين';
+			toast.error(errorMessage);
 			// Revert the switch if the request failed
-			setTwoFactorEnabled(!enabled);
+			setTwoFactorEnabled(previousState);
 		} finally {
 			setIsLoading(false);
 		}
+	}, [user?.id, twoFactorEnabled]);
+
+	const updateHours = useCallback((sub: SubjectType, hours: number) => {
+		setSubjects((prev) => prev.map((s) => (s.subject === sub ? { ...s, targetWeeklyHours: Math.max(0, hours) } : s)));
+	}, []);
+
+	// Get subject name in Arabic
+	const getSubjectName = (subject: SubjectType): string => {
+		const names: Record<SubjectType, string> = {
+			[SubjectType.MATH]: "الرياضيات",
+			[SubjectType.PHYSICS]: "الفيزياء",
+			[SubjectType.CHEMISTRY]: "الكيمياء",
+			[SubjectType.ARABIC]: "اللغة العربية",
+			[SubjectType.ENGLISH]: "اللغة الإنجليزية",
+		};
+		return names[subject] || subject;
 	};
 
-	function updateHours(sub: SubjectType, hours: number) {
-		setSubjects((prev) => prev.map((s) => (s.subject === sub ? { ...s, targetWeeklyHours: hours } : s)));
+	// Get focus strategy name in Arabic
+	const getFocusStrategyName = (strategy: FocusStrategy): string => {
+		const names: Record<FocusStrategy, string> = {
+			[FocusStrategy.POMODORO]: "Pomodoro",
+			[FocusStrategy.EIGHTY_TWENTY]: "80/20",
+			[FocusStrategy.DEEP_WORK]: "Deep Work",
+			[FocusStrategy.TIME_BLOCKING]: "Time Blocking",
+			[FocusStrategy.NO_DISTRACTION]: "No Distraction",
+		};
+		return names[strategy] || strategy;
+	};
+
+	if (isLoadingSettings) {
+		return (
+			<div className="flex justify-center items-center h-64">
+				<div className="flex flex-col items-center gap-4">
+					<Loader2 className="h-8 w-8 animate-spin text-primary" />
+					<p className="text-sm text-muted-foreground">جاري تحميل الإعدادات...</p>
+				</div>
+			</div>
+		);
 	}
 
 	return (
@@ -160,23 +342,23 @@ export default function SettingsPage() {
 					<TabsList className="grid w-full grid-cols-5">
 						<TabsTrigger value="general" className="flex items-center gap-2">
 							<UserIcon className="h-4 w-4" />
-							<span>الإعدادات العامة</span>
+							<span className="hidden sm:inline">الإعدادات العامة</span>
 						</TabsTrigger>
 						<TabsTrigger value="security" className="flex items-center gap-2">
 							<ShieldIcon className="h-4 w-4" />
-							<span>الأمان</span>
+							<span className="hidden sm:inline">الأمان</span>
 						</TabsTrigger>
 						<TabsTrigger value="notifications" className="flex items-center gap-2">
 							<BellIcon className="h-4 w-4" />
-							<span>الإشعارات</span>
+							<span className="hidden sm:inline">الإشعارات</span>
 						</TabsTrigger>
 						<TabsTrigger value="appearance" className="flex items-center gap-2">
 							<PaletteIcon className="h-4 w-4" />
-							<span>المظهر</span>
+							<span className="hidden sm:inline">المظهر</span>
 						</TabsTrigger>
 						<TabsTrigger value="language" className="flex items-center gap-2">
 							<GlobeIcon className="h-4 w-4" />
-							<span>اللغة</span>
+							<span className="hidden sm:inline">اللغة</span>
 						</TabsTrigger>
 					</TabsList>
 
@@ -190,20 +372,18 @@ export default function SettingsPage() {
 								<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 									<div className="space-y-2">
 										<Label htmlFor="wakeUpTime">وقت الاستيقاظ</Label>
-										<input
+										<Input
 											id="wakeUpTime"
 											type="time"
-											className="w-full border rounded-md px-3 py-2 text-sm"
 											value={wakeUpTime}
 											onChange={(e) => setWakeUpTime(e.target.value)}
 										/>
 									</div>
 									<div className="space-y-2">
 										<Label htmlFor="sleepTime">وقت النوم</Label>
-										<input
+										<Input
 											id="sleepTime"
 											type="time"
-											className="w-full border rounded-md px-3 py-2 text-sm"
 											value={sleepTime}
 											onChange={(e) => setSleepTime(e.target.value)}
 										/>
@@ -218,18 +398,18 @@ export default function SettingsPage() {
 								<CardDescription>اختر الطريقة التي تساعدك على التركيز أثناء الدراسة</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<select
-									className="w-full border rounded-md px-3 py-2 text-sm"
-									aria-label="اختر استراتيجية التركيز"
-									value={focusStrategy}
-									onChange={(e) => setFocusStrategy(e.target.value)}
-								>
-									<option value="POMODORO">Pomodoro</option>
-									<option value="EIGHTY_TWENTY">80/20</option>
-									<option value="DEEP_WORK">Deep Work</option>
-									<option value="TIME_BLOCKING">Time Blocking</option>
-									<option value="NO_DISTRACTION">No Distraction</option>
-								</select>
+								<Select value={focusStrategy} onValueChange={(value) => setFocusStrategy(value as FocusStrategy)}>
+									<SelectTrigger className="w-full">
+										<SelectValue placeholder="اختر استراتيجية التركيز" />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value={FocusStrategy.POMODORO}>Pomodoro</SelectItem>
+										<SelectItem value={FocusStrategy.EIGHTY_TWENTY}>80/20</SelectItem>
+										<SelectItem value={FocusStrategy.DEEP_WORK}>Deep Work</SelectItem>
+										<SelectItem value={FocusStrategy.TIME_BLOCKING}>Time Blocking</SelectItem>
+										<SelectItem value={FocusStrategy.NO_DISTRACTION}>No Distraction</SelectItem>
+									</SelectContent>
+								</Select>
 							</CardContent>
 						</Card>
 
@@ -239,14 +419,14 @@ export default function SettingsPage() {
 								<CardDescription>حدد عدد الساعات التي تخطط لدراستها كل أسبوع لكل مادة</CardDescription>
 							</CardHeader>
 							<CardContent>
-								<div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-3">
 									{subjects.map((s) => (
 										<div key={s.subject} className="flex items-center justify-between gap-2 border rounded-md px-3 py-2">
-											<span>{s.subject}</span>
-											<input
+											<Label className="font-medium">{getSubjectName(s.subject)}</Label>
+											<Input
 												type="number"
 												min={0}
-												className="w-24 border rounded-md px-2 py-1"
+												className="w-24"
 												value={s.targetWeeklyHours}
 												onChange={(e) => updateHours(s.subject, Number(e.target.value))}
 											/>
@@ -263,9 +443,12 @@ export default function SettingsPage() {
 							</CardHeader>
 							<CardContent>
 								{Array.isArray(recs) && recs.length > 0 ? (
-									<ul className="list-disc pr-5 text-sm space-y-1">
+									<ul className="list-disc pr-5 text-sm space-y-2">
 										{recs.map((r, i) => (
-											<li key={i}><span className="font-medium">{r.title}:</span> <span className="text-muted-foreground">{r.message}</span></li>
+											<li key={i}>
+												<span className="font-medium">{r.title}:</span>{" "}
+												<span className="text-muted-foreground">{r.message}</span>
+											</li>
 										))}
 									</ul>
 								) : (
@@ -275,7 +458,16 @@ export default function SettingsPage() {
 						</Card>
 
 						<div className="flex justify-end">
-							<Button onClick={saveGeneralSettings}>حفظ الإعدادات</Button>
+							<Button onClick={saveGeneralSettings} disabled={isSaving}>
+								{isSaving ? (
+									<>
+										<Loader2 className="mr-2 h-4 w-4 animate-spin" />
+										جاري الحفظ...
+									</>
+								) : (
+									"حفظ الإعدادات"
+								)}
+							</Button>
 						</div>
 					</TabsContent>
 
@@ -289,31 +481,24 @@ export default function SettingsPage() {
 							</CardHeader>
 							<CardContent className="space-y-4">
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>التحقق بخطوتين</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="two-factor">التحقق بخطوتين</Label>
 										<p className="text-sm text-muted-foreground">
 											سيتم إرسال رمز إلى بريدك الإلكتروني عند تسجيل الدخول
 										</p>
 									</div>
-									<div className="relative inline-block w-10 mr-2 align-middle select-none">
-										<input 
-											type="checkbox" 
-											name="toggle"
-											id="toggle"
-											checked={twoFactorEnabled}
-											onChange={(e) => handleToggleTwoFactor(e.target.checked)}
-											disabled={isLoading}
-											className="sr-only"
-										/>
-										<div className={`block w-10 h-6 rounded-full ${twoFactorEnabled ? 'bg-blue-500' : 'bg-gray-300'}`}></div>
-										<div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${twoFactorEnabled ? 'transform translate-x-4' : ''}`}></div>
-									</div>
+									<Switch
+										id="two-factor"
+										checked={twoFactorEnabled}
+										onCheckedChange={handleToggleTwoFactor}
+										disabled={isLoading}
+									/>
 								</div>
 
 								{twoFactorEnabled && (
 									<div className="rounded-lg bg-muted p-4">
-										<h4 className="font-medium">كيف يعمل التحقق بخطوتين:</h4>
-										<ol className="mt-2 list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+										<h4 className="font-medium mb-2">كيف يعمل التحقق بخطوتين:</h4>
+										<ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
 											<li>عند تسجيل الدخول، ستتم مطالبتك بإدخال كلمة المرور الخاصة بك</li>
 											<li>بعد إدخال كلمة المرور الصحيحة، سيتم إرسال رمز إلى بريدك الإلكتروني</li>
 											<li>أدخل الرمز لإكمال تسجيل الدخول</li>
@@ -350,64 +535,51 @@ export default function SettingsPage() {
 								<CardTitle>الإشعارات</CardTitle>
 								<CardDescription>إدارة أنواع الإشعارات التي تتلقاها</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-4">
+							<CardContent className="space-y-6">
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>إشعارات المهام</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="task-reminders">إشعارات المهام</Label>
 										<p className="text-sm text-muted-foreground">
 											تلقي إشعارات عند اقتراب موعد تسليم المهام
 										</p>
 									</div>
-									<div className="relative inline-block w-10 mr-2 align-middle select-none">
-										<input 
-											type="checkbox" 
-											name="toggle"
-											id="toggle"
-											defaultChecked
-											className="sr-only"
-										/>
-										<div className="block w-10 h-6 rounded-full bg-blue-500"></div>
-										<div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform translate-x-4"></div>
-									</div>
+									<Switch
+										id="task-reminders"
+										checked={taskReminders}
+										onCheckedChange={setTaskReminders}
+									/>
 								</div>
 
+								<Separator />
+
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>إشعارات الامتحانات</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="exam-reminders">إشعارات الامتحانات</Label>
 										<p className="text-sm text-muted-foreground">
 											تلقي إشعارات قبل الامتحانات بـ 24 ساعة
 										</p>
 									</div>
-									<div className="relative inline-block w-10 mr-2 align-middle select-none">
-										<input 
-											type="checkbox" 
-											name="toggle"
-											id="toggle"
-											defaultChecked
-											className="sr-only"
-										/>
-										<div className="block w-10 h-6 rounded-full bg-blue-500"></div>
-										<div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform transform translate-x-4"></div>
-									</div>
+									<Switch
+										id="exam-reminders"
+										checked={examReminders}
+										onCheckedChange={setExamReminders}
+									/>
 								</div>
 
+								<Separator />
+
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>إشعارات التقدم</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="progress-reports">إشعارات التقدم</Label>
 										<p className="text-sm text-muted-foreground">
 											تلقي تقارير أسبوعية عن تقدمك الدراسي
 										</p>
 									</div>
-									<div className="relative inline-block w-10 mr-2 align-middle select-none">
-										<input 
-											type="checkbox" 
-											name="toggle"
-											id="toggle"
-											className="sr-only"
-										/>
-										<div className="block w-10 h-6 rounded-full bg-gray-300"></div>
-										<div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
-									</div>
+									<Switch
+										id="progress-reports"
+										checked={progressReports}
+										onCheckedChange={setProgressReports}
+									/>
 								</div>
 							</CardContent>
 						</Card>
@@ -417,24 +589,19 @@ export default function SettingsPage() {
 								<CardTitle>الرسائل النصية</CardTitle>
 								<CardDescription>تلقي إشعارات عبر الرسائل النصية</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-4">
+							<CardContent>
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>تمكين الرسائل النصية</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="sms-notifications">تمكين الرسائل النصية</Label>
 										<p className="text-sm text-muted-foreground">
 											تلقي إشعارات مهمة عبر الرسائل النصية
 										</p>
 									</div>
-									<div className="relative inline-block w-10 mr-2 align-middle select-none">
-										<input 
-											type="checkbox" 
-											name="toggle"
-											id="toggle"
-											className="sr-only"
-										/>
-										<div className="block w-10 h-6 rounded-full bg-gray-300"></div>
-										<div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
-									</div>
+									<Switch
+										id="sms-notifications"
+										checked={smsNotifications}
+										onCheckedChange={setSmsNotifications}
+									/>
 								</div>
 							</CardContent>
 						</Card>
@@ -446,34 +613,31 @@ export default function SettingsPage() {
 								<CardTitle>المظهر</CardTitle>
 								<CardDescription>تخصيص مظهر التطبيق</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-4">
+							<CardContent className="space-y-6">
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>الوضع الليلي</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="dark-mode">الوضع الليلي</Label>
 										<p className="text-sm text-muted-foreground">
 											تفعيل الوضع الليلي لتقليل إجهاد العين
 										</p>
 									</div>
-									<div className="relative inline-block w-10 mr-2 align-middle select-none">
-										<input 
-											type="checkbox" 
-											name="toggle"
-											id="toggle"
-											className="sr-only"
-										/>
-										<div className="block w-10 h-6 rounded-full bg-gray-300"></div>
-										<div className="absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></div>
-									</div>
+									<Switch
+										id="dark-mode"
+										checked={darkMode}
+										onCheckedChange={setDarkMode}
+									/>
 								</div>
 
+								<Separator />
+
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>حجم الخط</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="font-size">حجم الخط</Label>
 										<p className="text-sm text-muted-foreground">
 											تعديل حجم الخط لسهولة القراءة
 										</p>
 									</div>
-									<Select defaultValue="medium">
+									<Select value={fontSize} onValueChange={setFontSize}>
 										<SelectTrigger className="w-32">
 											<SelectValue />
 										</SelectTrigger>
@@ -485,14 +649,16 @@ export default function SettingsPage() {
 									</Select>
 								</div>
 
+								<Separator />
+
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>اللون الرئيسي</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="primary-color">اللون الرئيسي</Label>
 										<p className="text-sm text-muted-foreground">
 											اختيار اللون الرئيسي للتطبيق
 										</p>
 									</div>
-									<Select defaultValue="blue">
+									<Select value={primaryColor} onValueChange={setPrimaryColor}>
 										<SelectTrigger className="w-32">
 											<SelectValue />
 										</SelectTrigger>
@@ -514,15 +680,15 @@ export default function SettingsPage() {
 								<CardTitle>اللغة</CardTitle>
 								<CardDescription>اختيار اللغة المفضلة للتطبيق</CardDescription>
 							</CardHeader>
-							<CardContent className="space-y-4">
+							<CardContent className="space-y-6">
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>لغة التطبيق</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="app-language">لغة التطبيق</Label>
 										<p className="text-sm text-muted-foreground">
 											اختر اللغة التي تريد استخدامها في التطبيق
 										</p>
 									</div>
-									<Select defaultValue="ar">
+									<Select value={language} onValueChange={setLanguage}>
 										<SelectTrigger className="w-32">
 											<SelectValue />
 										</SelectTrigger>
@@ -533,14 +699,16 @@ export default function SettingsPage() {
 									</Select>
 								</div>
 
+								<Separator />
+
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>المنطقة الزمنية</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="timezone">المنطقة الزمنية</Label>
 										<p className="text-sm text-muted-foreground">
 											اختر منطقتك الزمنية الصحيحة
 										</p>
 									</div>
-									<Select defaultValue="ast">
+									<Select value={timezone} onValueChange={setTimezone}>
 										<SelectTrigger className="w-32">
 											<SelectValue />
 										</SelectTrigger>
@@ -553,14 +721,16 @@ export default function SettingsPage() {
 									</Select>
 								</div>
 
+								<Separator />
+
 								<div className="flex items-center justify-between">
-									<div>
-										<Label>تنسيق التاريخ</Label>
+									<div className="space-y-0.5">
+										<Label htmlFor="date-format">تنسيق التاريخ</Label>
 										<p className="text-sm text-muted-foreground">
 											اختر تنسيق التاريخ المفضل
 										</p>
 									</div>
-									<Select defaultValue="hijri">
+									<Select value={dateFormat} onValueChange={setDateFormat}>
 										<SelectTrigger className="w-32">
 											<SelectValue />
 										</SelectTrigger>

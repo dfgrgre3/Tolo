@@ -12,7 +12,11 @@ async function handleGetRequest(req: NextRequest) {
 	try {
 		const { searchParams } = new URL(req.url);
 		const userId = searchParams.get("userId");
-		if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
+		
+		// Validate userId parameter
+		if (!userId || userId === 'undefined' || userId.trim() === '') {
+			return NextResponse.json({ error: "userId required" }, { status: 400 });
+		}
     
     // Use enhanced caching for frequently accessed subjects
     const cacheKey = `subjects:${userId}`;
@@ -70,7 +74,7 @@ export async function POST(req: NextRequest) {
     });
     
     // Invalidate user's subject cache
-    await invalidateUserCache(userId, ['subjects']);
+    await invalidateUserCache(userId);
     
     return NextResponse.json(enrollment, { status: 201 });
   } catch (e: any) {
@@ -100,7 +104,7 @@ export async function DELETE(req: NextRequest) {
     });
     
     // Invalidate user's subject cache
-    await invalidateUserCache(userId, ['subjects']);
+    await invalidateUserCache(userId);
     
     return NextResponse.json({ message: "Unenrolled successfully" });
   } catch (e: any) {

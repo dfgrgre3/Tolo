@@ -3,11 +3,11 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import Footer from "../components/Footer";
+import Header from "../components/Header";
 import { AuthProvider } from "../components/auth/UserProvider";
 import NotificationsClient from "../components/NotificationsClient";
 import ClientLayoutProvider from "./ClientLayoutProvider";
 import ToasterProvider from "../components/ui/sonner";
-import Header from "../components/layout/header/Header";
 
 
 const inter = Inter({

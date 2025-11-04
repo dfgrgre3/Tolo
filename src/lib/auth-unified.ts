@@ -6,7 +6,16 @@ import { prisma } from './prisma';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitingService } from './rate-limiting-service';
-import { SessionData } from '@/types/settings';
+
+// SessionData interface - exported for use in other modules
+export interface SessionData {
+  id: string;
+  userId: string;
+  userAgent: string;
+  ip: string;
+  expiresAt: Date;
+  createdAt: Date;
+}
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 

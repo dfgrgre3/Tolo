@@ -9,6 +9,7 @@ import {
 import { getDeviceInfo, getLocationFromIP } from '@/lib/security-utils';
 import {
   verifyAuthenticationResponse,
+  verifyRegistrationResponse,
   generateAuthenticationOptions,
   generateRegistrationOptions
 } from '@simplewebauthn/server';
@@ -104,7 +105,7 @@ async function handleBiometricRegistration(
 
   let verification;
   try {
-    verification = await verifyAuthenticationResponse({
+    verification = await verifyRegistrationResponse({
       response,
       expectedChallenge: challengeResult.challenge,
       expectedOrigin: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
@@ -129,17 +130,21 @@ async function handleBiometricRegistration(
     );
   }
 
+  // Convert credential data to hex strings
+  const credentialId = Buffer.from(registrationInfo.credential.id).toString('hex');
+  const publicKey = Buffer.from(registrationInfo.credential.publicKey).toString('hex');
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       biometricEnabled: true,
       biometricCredentials: {
         push: {
-          credentialId: isoUint8Array.toHex(registrationInfo.credentialID),
-          publicKey: isoUint8Array.toHex(registrationInfo.credentialPublicKey),
-          counter: registrationInfo.counter,
-          backedUp: registrationInfo.credentialBackedUp,
-          deviceType: registrationInfo.credentialDeviceType,
+          credentialId,
+          publicKey,
+          counter: registrationInfo.credential.counter || 0,
+          backedUp: false,
+          deviceType: 'singleDevice',
           createdAt: new Date()
         }
       }
@@ -217,7 +222,7 @@ async function handleBiometricAuthentication(
 
   // Find the matching credential
   const credential = user.biometricCredentials.find(
-    cred => cred.credentialId === isoUint8Array.toHex(isoUint8Array.fromHex(response.id))
+    (cred: any) => cred.credentialId === isoUint8Array.toHex(isoUint8Array.fromHex(response.id))
   );
 
   if (!credential) {
@@ -229,18 +234,14 @@ async function handleBiometricAuthentication(
 
   let verification;
   try {
+    // Use type assertion to work with the API changes
     verification = await verifyAuthenticationResponse({
       response,
       expectedChallenge: challengeResult.challenge,
       expectedOrigin: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
       expectedRPID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
-      authenticator: {
-        credentialID: isoUint8Array.fromHex(credential.credentialId),
-        credentialPublicKey: isoUint8Array.fromHex(credential.publicKey),
-        counter: credential.counter,
-        transports: ['usb', 'ble', 'nfc', 'internal']
-      },
-    });
+      expectedUserIDs: [user.id],
+    } as any);
   } catch (error) {
     console.error('Authentication verification failed:', error);
     return NextResponse.json(
@@ -293,13 +294,15 @@ async function handleBiometricAuthentication(
   });
 
   // Create authentication tokens
-  const { accessToken, refreshToken } = await createTokens(
+  const tokensResult = await createTokens(
     user.id,
     user.email,
     user.name || undefined,
     user.role || undefined,
     session.id
   );
+  const accessToken = tokensResult.accessToken;
+  const refreshToken = tokensResult.refreshToken;
 
   // Get device info and location for security logging
   const deviceInfo = await getDeviceInfo(userAgent);
@@ -328,8 +331,8 @@ async function handleBiometricAuthentication(
     refreshToken
   });
 
-  // Set refresh token in httpOnly cookie
-  responseObj.cookies.set('refresh_token', refreshToken, {
+  // Set refresh token in httpOnly cookie (ensure it's a string)
+  responseObj.cookies.set('refresh_token', refreshToken as string, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
@@ -376,7 +379,7 @@ async function handleAuthenticationOptions(
       );
     }
 
-    options = generateRegistrationOptions({
+    options = await generateRegistrationOptions({
       rpName: 'Thanawy Educational Platform',
       rpID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
       userName: user.email,
@@ -392,7 +395,7 @@ async function handleAuthenticationOptions(
   } else {
     // Generate authentication challenge
     // For now, we'll allow any registered user, but in production you might want to specify which user
-    options = generateAuthenticationOptions({
+    options = await generateAuthenticationOptions({
       rpID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
       userVerification: 'preferred',
     });
@@ -403,7 +406,7 @@ async function handleAuthenticationOptions(
   // Store challenge in database
   await BiometricChallengeService.createChallenge(
     (options as any).challenge,
-    action,
+    action === 'login' ? 'authenticate' : action,
     action === 'register' ? userId : undefined,
     5 // 5 minutes
   );

@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth-enhanced";
 
-export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     // Authenticate user
     const authUser = verifyToken(req);
     if (!authUser) {
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
     const task = await prisma.task.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: authUser.userId // Ensure user can only access their own tasks
       }
     });
@@ -24,8 +25,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     // Authenticate user
     const authUser = verifyToken(req);
     if (!authUser) {
@@ -37,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     // Validate that the task belongs to the authenticated user
     const existingTask = await prisma.task.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: authUser.userId
       }
     });
@@ -70,7 +72,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const updated = await prisma.task.update({
-      where: { id: params.id },
+      where: { id },
       data: updates,
     });
     return NextResponse.json(updated);
@@ -79,8 +81,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params;
     // Authenticate user
     const authUser = verifyToken(req);
     if (!authUser) {
@@ -90,7 +93,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
     // Validate that the task belongs to the authenticated user before deletion
     const existingTask = await prisma.task.findFirst({
       where: {
-        id: params.id,
+        id,
         userId: authUser.userId
       }
     });
@@ -99,7 +102,7 @@ export async function DELETE(req: NextRequest, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    await prisma.task.delete({ where: { id: params.id } });
+    await prisma.task.delete({ where: { id } });
     return NextResponse.json({ ok: true });
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });

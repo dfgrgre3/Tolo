@@ -1,8 +1,9 @@
-import { PrismaClient, Prisma, SubjectType } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { SubjectType } from "../../src/types/settings";
 
 const prisma = new PrismaClient();
 
-const seedResources: Prisma.ResourceCreateManyInput[] = [
+const seedResources = [
   { subject: SubjectType.MATH, title: "Khan Academy - Math", url: "https://www.khanacademy.org/math", free: true, type: "platform", source: "Khan" },
   { subject: SubjectType.PHYSICS, title: "PhET Simulations", url: "https://phet.colorado.edu", free: true, type: "simulator", source: "CU" },
   { subject: SubjectType.CHEMISTRY, title: "RSC Periodic Table", url: "https://www.rsc.org/periodic-table", free: true, type: "tool", source: "RSC" },

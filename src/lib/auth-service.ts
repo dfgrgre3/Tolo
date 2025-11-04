@@ -664,7 +664,7 @@ export class AuthService {
    * Get current user from server-side context
    */
   async getCurrentUser(): Promise<TokenVerificationResult> {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const token =
       cookieStore.get('authToken')?.value ||
       cookieStore.get('access_token')?.value ||

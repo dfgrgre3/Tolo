@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import DataPartitioningService from '@/lib/data-partitioning-service'
-import { auth } from '@/lib/auth'
+import { auth } from '@/auth-server'
 
 // Authentication middleware for admin-only access
 async function authenticateAdmin(request: NextRequest): Promise<boolean> {
   try {
     const session = await auth()
     // TODO: Add proper admin role checking
-    return session?.user?.id !== undefined
+    return session?.user?.userId !== undefined
   } catch {
     return false
   }
@@ -174,7 +174,7 @@ async function maintainPartitions() {
       if (table.recommendedActions.some(action => action.includes('Remove'))) {
         const cleanupResult = await DataPartitioningService.cleanupOldPartitions()
         if (cleanupResult.deletedPartitions.length > 0) {
-          const deletedForTable = cleanupResult.deletedPartitions.filter(dp => dp.startsWith(table.tableName))
+          const deletedForTable = cleanupResult.deletedPartitions.filter((dp: string) => dp.startsWith(table.tableName))
           if (deletedForTable.length > 0) {
             actionsPerformed.push(`Cleaned up ${deletedForTable.length} old partitions for ${table.tableName}`)
           }

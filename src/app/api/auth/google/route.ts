@@ -6,6 +6,11 @@ export async function GET(request: NextRequest) {
   try {
     // Generate a random state for CSRF protection
     const state = generateState();
+    
+    // Get redirect parameter from query string to preserve after OAuth
+    const { searchParams } = new URL(request.url);
+    const redirectParam = searchParams.get('redirect');
+    const redirectPath = redirectParam || '/';
 
     // Store state in a cookie for later verification
     const response = NextResponse.redirect(
@@ -25,6 +30,17 @@ export async function GET(request: NextRequest) {
       maxAge: 600, // 10 minutes
       path: '/',
     });
+    
+    // Store redirect path in cookie (validate it's a relative path)
+    if (redirectPath.startsWith('/') && !redirectPath.startsWith('//')) {
+      response.cookies.set('oauth_redirect', redirectPath, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 600, // 10 minutes
+        path: '/',
+      });
+    }
 
     return response;
   } catch (error) {

@@ -39,13 +39,13 @@ async function handleGetRequest(request: NextRequest) {
       yesterday.setDate(yesterday.getDate() - 1);
 
       // Check if user studied today or yesterday
-      const studiedToday = studySessions.some(session => {
+      const studiedToday = studySessions.some((session: any) => {
         const sessionDate = new Date(session.startTime);
         sessionDate.setHours(0, 0, 0, 0);
         return sessionDate.getTime() === today.getTime();
       });
 
-      const studiedYesterday = studySessions.some(session => {
+      const studiedYesterday = studySessions.some((session: any) => {
         const sessionDate = new Date(session.startTime);
         sessionDate.setHours(0, 0, 0, 0);
         return sessionDate.getTime() === yesterday.getTime();
@@ -59,7 +59,7 @@ async function handleGetRequest(request: NextRequest) {
         checkDate.setDate(checkDate.getDate() - 1);
 
         while (true) {
-          const studiedOnDate = studySessions.some(session => {
+          const studiedOnDate = studySessions.some((session: any) => {
             const sessionDate = new Date(session.startTime);
             sessionDate.setHours(0, 0, 0, 0);
             return sessionDate.getTime() === checkDate.getTime();
@@ -90,7 +90,7 @@ async function handleGetRequest(request: NextRequest) {
     });
 
     // Mark goals as achieved (this is a placeholder logic)
-    const goalsWithStatus = recentGoals.map(goal => ({
+    const goalsWithStatus = recentGoals.map((goal: any) => ({
       ...goal,
       achieved: Math.random() > 0.7, // Random for demo
       notified: false, // This would be stored in the database in a real app

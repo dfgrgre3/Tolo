@@ -1,23 +1,41 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth/UserProvider';
+import { usePathname, useSearchParams } from 'next/navigation';
+
+export const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
 
 export default function ClientLayoutProvider({ children }: { children: React.ReactNode }) {
-  try {
-    const router = useRouter();
-    const auth = useAuth();
-    const user = auth?.user;
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams?.toString() ?? '';
 
-    useEffect(() => {
-      if (!user) return;
-      // يمكن إضافة أي منطق خاص بالعميل هنا
-    }, [user]);
+  useEffect(() => {
+    if (typeof window === 'undefined' || !pathname) {
+      return;
+    }
 
-    return <>{children}</>;
-  } catch (error) {
-    console.error('ClientLayoutProvider error:', error);
-    return <>{children}</>; // Fallback rendering
-  }
+    // Skip auth routes to avoid redirect loops
+    if (
+      pathname.startsWith('/login') ||
+      pathname.startsWith('/register') ||
+      pathname.startsWith('/auth/')
+    ) {
+      return;
+    }
+
+    const fullPath = search ? `${pathname}?${search}` : pathname;
+
+    try {
+      sessionStorage.setItem(LAST_VISITED_PATH_KEY, fullPath);
+    } catch (sessionError) {
+      try {
+        localStorage.setItem(LAST_VISITED_PATH_KEY, fullPath);
+      } catch (storageError) {
+        console.warn('Unable to persist last visited path for redirect:', storageError);
+      }
+    }
+  }, [pathname, search]);
+
+  return <>{children}</>;
 }

@@ -16,7 +16,8 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { useClientEffect } from "@/hooks/use-client-effect";
 import { useHydrationFix } from "@/hydration-fix";
-import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
+import { safeGetItem, safeSetItem, safeFetch } from "@/lib/safe-client-utils";
+import errorManager from "@/services/ErrorManager";
 
 // Advanced scroll-triggered animation variants
 const scrollVariants = {
@@ -121,6 +122,42 @@ const ContactSection = dynamic(() => import("./home-sections/ContactSection"), {
   loading: () => <SkeletonLoader className="h-48 rounded-lg" />
 });
 
+// Advanced sections
+const IntelligentRecommendationsSection = dynamic(() => import("./home-sections/IntelligentRecommendationsSection"), { 
+  ssr: true,
+  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
+});
+
+const LiveActivityFeedSection = dynamic(() => import("./home-sections/LiveActivityFeedSection"), { 
+  ssr: true,
+  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
+});
+
+const AdvancedSearchSection = dynamic(() => import("./home-sections/AdvancedSearchSection"), { 
+  ssr: true,
+  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
+});
+
+const PerformanceDashboardSection = dynamic(() => import("./home-sections/PerformanceDashboardSection"), { 
+  ssr: true,
+  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
+});
+
+const SocialFeaturesSection = dynamic(() => import("./home-sections/SocialFeaturesSection"), { 
+  ssr: true,
+  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
+});
+
+const ProgressPredictionsSection = dynamic(() => import("./home-sections/ProgressPredictionsSection"), { 
+  ssr: true,
+  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
+});
+
+const StatusIndicatorsSection = dynamic(() => import("./home-sections/StatusIndicatorsSection"), { 
+  ssr: true,
+  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
+});
+
 import Dashboard from "@/components/Dashboard";
 
 const Home = () => {
@@ -145,19 +182,29 @@ const Home = () => {
 		let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
 		if (!id) {
 			try {
-				const res = await fetch("/api/users/guest", {
-					method: "POST",
-					next: { revalidate: 3600 } // Revalidate every hour
-				});
-				if (res.ok) {
-					const data = await res.json();
+				const { data, error: userError } = await safeFetch<{ id: string }>(
+					"/api/users/guest",
+					{
+						method: "POST",
+						next: { revalidate: 3600 } // Revalidate every hour
+					},
+					{ id: '' }
+				);
+				if (userError) {
+					errorManager.handleNetworkError(userError, "/api/users/guest", {
+						showToast: false
+					});
+				} else if (data?.id) {
 					id = data.id;
-					if (id) {
-						safeSetItem(LOCAL_USER_KEY, id);
-					}
+					safeSetItem(LOCAL_USER_KEY, id);
 				}
 			} catch (error) {
 				console.warn("Failed to create guest user:", error);
+				errorManager.handleNetworkError(
+					error instanceof Error ? error : new Error(String(error)),
+					"/api/users/guest",
+					{ showToast: false }
+				);
 			}
 		}
 		return id || '';
@@ -651,6 +698,27 @@ const Home = () => {
 						</section>
 					</LazyLoadSection>
 
+					{/* Advanced Search section */}
+					<LazyLoadSection>
+						<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
+							<AdvancedSearchSection />
+						</Suspense>
+					</LazyLoadSection>
+
+					{/* Intelligent Recommendations section */}
+					<LazyLoadSection>
+						<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
+							<IntelligentRecommendationsSection />
+						</Suspense>
+					</LazyLoadSection>
+
+					{/* Live Activity Feed section */}
+					<LazyLoadSection>
+						<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
+							<LiveActivityFeedSection />
+						</Suspense>
+					</LazyLoadSection>
+
 					{/* Quick Links section with lazy loading */}
 					<LazyLoadSection>
 						<section className={`${sectionShell} ring-1 ring-indigo-100/60`}>
@@ -709,6 +777,34 @@ const Home = () => {
 								</Suspense>
 							</div>
 						</section>
+					</LazyLoadSection>
+
+					{/* Performance Dashboard section */}
+					<LazyLoadSection>
+						<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
+							<PerformanceDashboardSection />
+						</Suspense>
+					</LazyLoadSection>
+
+					{/* Progress Predictions section */}
+					<LazyLoadSection>
+						<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
+							<ProgressPredictionsSection />
+						</Suspense>
+					</LazyLoadSection>
+
+					{/* Social Features section */}
+					<LazyLoadSection>
+						<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
+							<SocialFeaturesSection />
+						</Suspense>
+					</LazyLoadSection>
+
+					{/* Status Indicators section */}
+					<LazyLoadSection>
+						<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
+							<StatusIndicatorsSection />
+						</Suspense>
 					</LazyLoadSection>
 
 					{/* Blog section with lazy loading */}

@@ -16,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CalendarDays, Clock, Award, BookOpen, MessageSquare, FileText, Target, TrendingUp, Settings, User, Bell, Shield, Globe, MapPin, Phone, Mail, Edit, Save, X, Camera, Star, Trophy, Zap } from "lucide-react";
-import { AdvancedNavbar } from "@/components/ui/advanced-navbar";
+// import { AdvancedNavbar } from "@/components/ui/advanced-navbar"; // Module not found - commented out
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -402,13 +402,13 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <AdvancedNavbar user={user ? {
+      {/* <AdvancedNavbar user={user ? {
         id: user.id,
         name: user.name,
         email: user.email,
         avatar: user.avatar,
         notifications: 3 // يمكن استبدالها بعدد الإشعارات الفعلي
-      } : undefined} />
+      } : undefined} /> */}
       <div className="container mx-auto px-4 py-8 max-w-6xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold">الملف الشخصي</h1>

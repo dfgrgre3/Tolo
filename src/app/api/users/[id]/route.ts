@@ -5,9 +5,10 @@ import { prisma } from "@/lib/prisma";
 // GET user by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Verify authentication
     const decodedToken = verifyToken(request);
     if (!decodedToken) {
@@ -16,8 +17,6 @@ export async function GET(
         { status: 401 }
       );
     }
-
-    const { id } = params;
 
     // Users can only view their own profile
     if (decodedToken.userId !== id) {
@@ -61,9 +60,10 @@ export async function GET(
 // PATCH update user profile
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Verify authentication
     const decodedToken = verifyToken(request);
     if (!decodedToken) {
@@ -72,8 +72,6 @@ export async function PATCH(
         { status: 401 }
       );
     }
-
-    const { id } = params;
 
     // Users can only update their own profile
     if (decodedToken.userId !== id) {

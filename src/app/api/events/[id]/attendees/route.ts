@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // GET all attendees for an event
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if event exists
     const event = await prisma.event.findUnique({
@@ -38,7 +38,7 @@ export async function GET(
     });
 
     // Transform the data to match the frontend structure
-    const transformedAttendees = attendees.map(attendee => ({
+    const transformedAttendees = attendees.map((attendee: any) => ({
       id: attendee.user.id,
       name: attendee.user.name,
       avatar: attendee.user.avatar,
@@ -58,10 +58,10 @@ export async function GET(
 // POST to join an event
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { userId } = await request.json();
 
     if (!userId) {
@@ -148,10 +148,10 @@ export async function POST(
 // DELETE to leave an event
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { userId } = await request.json();
 
     if (!userId) {

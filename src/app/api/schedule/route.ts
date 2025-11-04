@@ -14,9 +14,14 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
     
+    // Validate userId parameter
+    if (!userId || userId === 'undefined' || userId.trim() === '') {
+      return badRequestResponse('userId parameter is required', 'MISSING_USER_ID');
+    }
+    
     // For security, we should only allow fetching the authenticated user's schedule
     // unless there's a specific admin requirement
-    if (!userId || userId !== decodedToken.userId) {
+    if (userId !== decodedToken.userId) {
       return badRequestResponse('Invalid userId parameter', 'INVALID_PARAMETER');
     }
     

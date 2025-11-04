@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         });
 
         // Transform the data to match the frontend structure
-        return announcements.map(announcement => ({
+        return announcements.map((announcement: any) => ({
           id: announcement.id,
           title: announcement.title,
           content: announcement.content,
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
           views: announcement.views
         }));
       },
-      600 // Cache for 10 minutes
+      { ttl: 600 } // Cache for 10 minutes
     );
 
     return NextResponse.json(announcements);

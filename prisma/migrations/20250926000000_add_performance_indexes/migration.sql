@@ -21,9 +21,9 @@ CREATE INDEX "ProgressSnapshot_userId_totalStudyMinutes_idx" ON "ProgressSnapsho
 
 CREATE INDEX "ProgressSnapshot_userId_averageFocusScore_idx" ON "ProgressSnapshot"("userId", "averageFocusScore");
 
-CREATE INDEX "ProgressSnapshot_totalStudyMinutes_idx" ON "ProgressSnapshot"("totalStudyMinutes");
-
-CREATE INDEX "ProgressSnapshot_averageFocusScore_idx" ON "ProgressSnapshot"("averageFocusScore");
+-- ProgressSnapshot indexes that already exist from migration 20250921000004
+-- CREATE INDEX "ProgressSnapshot_totalStudyMinutes_idx" ON "ProgressSnapshot"("totalStudyMinutes");
+-- CREATE INDEX "ProgressSnapshot_averageFocusScore_idx" ON "ProgressSnapshot"("averageFocusScore");
 
 -- CreateIndex for SubjectEnrollment table on frequently queried fields
 CREATE INDEX "SubjectEnrollment_userId_createdAt_idx" ON "SubjectEnrollment"("userId", "createdAt");

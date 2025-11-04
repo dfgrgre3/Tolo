@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
         if (youtubeResponse.ok) {
           const youtubeData = await youtubeResponse.json();
           if (youtubeData.items && Array.isArray(youtubeData.items)) {
-            youtubeResults = youtubeData.items.map(item => ({
+            youtubeResults = youtubeData.items.map((item: any) => ({
               name: item.snippet.channelTitle,
               url: `https://www.youtube.com/channel/${item.snippet.channelId}`,
               description: item.snippet.description,

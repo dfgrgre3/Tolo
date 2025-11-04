@@ -65,7 +65,7 @@ const AchievementsLoader = () => (
 export function App() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [userAchievements, setUserAchievements] = useState(ACHIEVEMENTS_STRUCTURE);
   const [userStats, setUserStats] = useState(STATS_STRUCTURE);
 
@@ -157,11 +157,18 @@ export function App() {
 
       // 1. Achievements Listener
       const unsubscribeAchievements = onSnapshot(achievementRef, (snapshot) => {
-        let liveAchievements = snapshot.docs.map(d => ({
-          ...ACHIEVEMENTS_STRUCTURE.find(a => a.id === d.id), // Merge static info (icon, color)
-          ...d.data(), // Override with live data (progress, title/desc if customized)
-          id: d.id,
-        })).filter(a => a.id); 
+        let liveAchievements = snapshot.docs.map(d => {
+          const staticData = ACHIEVEMENTS_STRUCTURE.find(a => a.id === d.id);
+          const liveData = d.data();
+          return {
+            id: d.id,
+            icon: staticData?.icon || <Trophy className="h-8 w-8 text-yellow-500" />,
+            title: (liveData.title as string) || staticData?.title || "",
+            description: (liveData.description as string) || staticData?.description || "",
+            progress: (liveData.progress as number) ?? staticData?.progress ?? 0,
+            color: staticData?.color || "bg-gradient-to-r from-yellow-400 to-amber-500",
+          };
+        }).filter(a => a.id); 
         
         if (liveAchievements.length === 0) {
           // Initialize if collection is empty - batch writes for better performance
@@ -177,8 +184,8 @@ export function App() {
           });
         } else {
           // IMPROVEMENT: Sort data on client-side for stable UI and better UX
-          const sortedAchievements = [...liveAchievements].sort((a, b) => b.progress - a.progress); 
-          setUserAchievements(sortedAchievements);
+          const sortedAchievements = [...liveAchievements].sort((a, b) => (b.progress || 0) - (a.progress || 0)); 
+          setUserAchievements(sortedAchievements as typeof ACHIEVEMENTS_STRUCTURE);
         }
         setLoading(false);
       }, (error) => {
@@ -189,7 +196,7 @@ export function App() {
       // 2. Stats Listener
       const unsubscribeStats = onSnapshot(statsDocRef, (docSnap) => {
           if (docSnap.exists()) {
-              const data = docSnap.data();
+              const data = docSnap.data() as Record<string, any>;
               const updatedStats = STATS_STRUCTURE.map(stat => {
                   const liveValue = data[stat.id];
                   if (liveValue !== undefined) {
@@ -202,10 +209,10 @@ export function App() {
               setUserStats(updatedStats);
           } else {
               // Initialize stats document if it doesn't exist
-              const initialData = STATS_STRUCTURE.reduce((acc, stat) => {
+              const initialData = STATS_STRUCTURE.reduce((acc: Record<string, string | number>, stat) => {
                   acc[stat.id] = (stat.id === 'rank' || stat.id === 'progress') ? '0' : 0;
                   return acc;
-              }, {});
+              }, {} as Record<string, string | number>);
               setDoc(statsDocRef, initialData, { merge: true });
           }
       }, (error) => {

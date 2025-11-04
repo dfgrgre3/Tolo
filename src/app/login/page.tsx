@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Clock, ShieldCheck, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/auth-context';
 
 const EnhancedLoginForm = dynamic(
   () => import('@/components/auth/EnhancedLoginForm'),
@@ -36,13 +37,40 @@ type AuthView = 'login' | 'register';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, isLoading } = useAuth();
   const [activeView, setActiveView] = useState<AuthView>('login');
+
+  // Redirect authenticated users to home page
+  useEffect(() => {
+    if (!isLoading && user) {
+      const redirectTo = searchParams.get('redirect') || '/';
+      router.replace(redirectTo);
+    }
+  }, [user, isLoading, router, searchParams]);
 
   useEffect(() => {
     const viewParam = (searchParams.get('view') ?? '').toLowerCase();
     const derivedView: AuthView = viewParam === 'register' ? 'register' : 'login';
     setActiveView((current) => (current === derivedView ? current : derivedView));
   }, [searchParams]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+        <div className="text-center">
+          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-400 border-r-transparent"></div>
+          <p className="text-slate-300">جارٍ التحقق من حالة تسجيل الدخول...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Don't render login form if user is already authenticated
+  // (Redirect will happen in useEffect above)
+  if (user) {
+    return null;
+  }
 
   const handleViewChange = (view: AuthView) => {
     if (view === activeView) {

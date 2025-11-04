@@ -66,7 +66,7 @@ export async function GET(
     }
 
     // Convert map to array and sort by last message time
-    const conversations = Array.from(conversationMap.values()).sort((a, b) => 
+    const conversations = Array.from(conversationMap.values()).sort((a: any, b: any) => 
       new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
     );
 

@@ -11,10 +11,10 @@ import {
   type LoginStep,
   type TwoFactorState,
 } from './types';
-import { LOGIN_STEPS } from './constants';
+import { LOGIN_STEPS, RESEND_COOLDOWN_SECONDS } from './constants';
 
+/** Email validation regex pattern */
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const RESEND_COOLDOWN_SECONDS = 45;
 
 interface UseLoginFlowOptions {
   onClose?: () => void;
@@ -92,19 +92,19 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
 
     if (!normalizedEmail || passwordValue.trim().length === 0) {
       if (!normalizedEmail) {
-        errors.email = '?????? ??? ???? ??????';
+        errors.email = 'يرجى إدخال البريد الإلكتروني';
       }
 
       if (passwordValue.trim().length === 0) {
-        errors.password = '?????? ??? ???? ??????';
+        errors.password = 'يرجى إدخال كلمة المرور';
       }
 
-      message = '?????? ??? ???? ??????';
+      message = 'يرجى إدخال جميع الحقول';
     }
 
     if (!errors.email && normalizedEmail && !EMAIL_PATTERN.test(normalizedEmail)) {
-      errors.email = '?????? ?????????? ??? ????';
-      message = '?????? ?????????? ??? ????';
+      errors.email = 'البريد الإلكتروني غير صحيح';
+      message = 'البريد الإلكتروني غير صحيح';
     }
 
     return {
@@ -153,23 +153,23 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
           });
           setTwoFactorCode('');
           setCurrentStep('two-factor');
-          setFeedback({
-            type: 'success',
-            message: '?? ????? ??? ?????? ?????. ???? ????? ????? ????????.',
-          });
+        setFeedback({
+          type: 'success',
+          message: 'تم إرسال رمز التحقق بنجاح. يرجى إدخال الرمز المرسل.',
+        });
           setResendCooldown(RESEND_COOLDOWN_SECONDS);
           return;
         }
 
         setFeedback({
           type: 'success',
-          message: '?? ????? ?????? ?????.',
+          message: 'تم تسجيل الدخول بنجاح.',
         });
         setCurrentStep('success');
       } catch (error: any) {
         const newErrors: LoginFormErrors = {};
         let message =
-          error?.message || '??? ??? ??? ?????. ???? ???????? ??? ????.';
+          error?.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
 
         const emailIssues =
           Array.isArray(error?.details?.email) &&
@@ -179,20 +179,20 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
           error.details.password.length > 0;
 
         if (emailIssues) {
-          newErrors.email = '?????? ?????????? ??? ????';
-          message = '?????? ?????????? ??? ????';
+          newErrors.email = 'البريد الإلكتروني غير صحيح';
+          message = 'البريد الإلكتروني غير صحيح';
         }
 
         if (passwordIssues) {
-          newErrors.password = '?????? ??? ???? ??????';
+          newErrors.password = 'يرجى إدخال كلمة المرور';
           if (!emailIssues) {
-            message = '?????? ??? ???? ??????';
+            message = 'يرجى إدخال كلمة المرور';
           }
         }
 
         if (error?.status === 401) {
-          newErrors.password = '???? ?????? ?????';
-          message = '???? ?????? ?????';
+          newErrors.password = 'كلمة المرور غير صحيحة';
+          message = 'كلمة المرور غير صحيحة';
         }
 
         if (typeof error?.code === 'string' && error.code.length > 0) {

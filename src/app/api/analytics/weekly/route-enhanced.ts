@@ -5,7 +5,7 @@ import {
   createErrorResponse,
   createSuccessResponse
 } from '@/lib/api-utils';
-import { cacheService } from "@/lib/cache-service";
+import cacheService from "@/lib/cache-service";
 
 export async function GET(req: NextRequest) {
   try {
@@ -36,14 +36,14 @@ export async function GET(req: NextRequest) {
                 lte: weekEnd
               }
             }
-          }).catch(error => {
+          }).catch((error: any) => {
             console.error('Error fetching study sessions:', error);
             return [];
           });
 
           // Process subject data
           const bySubject: Record<string, number> = {};
-          sessions.forEach((s) => {
+          sessions.forEach((s: any) => {
             bySubject[s.subject] = (bySubject[s.subject] || 0) + s.durationMin;
           });
 
@@ -55,8 +55,8 @@ export async function GET(req: NextRequest) {
 
           const byDay = days.map((d) => {
             const total = sessions
-              .filter((s) => startOfDay(s.startTime).getTime() === startOfDay(d).getTime())
-              .reduce((a, s) => a + s.durationMin, 0);
+              .filter((s: any) => startOfDay(s.startTime).getTime() === startOfDay(d).getTime())
+              .reduce((a: number, s: any) => a + s.durationMin, 0);
             return { date: d, minutes: total };
           });
 

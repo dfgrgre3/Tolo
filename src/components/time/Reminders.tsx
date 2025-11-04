@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Button } from "@/shared/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -191,12 +191,16 @@ export default function Reminders({
 
   useEffect(() => {
     setReminders(initialReminders);
-    calculateStats();
   }, [initialReminders]);
 
-  useEffect(() => {
-    calculateStats();
+  // Memoize stats calculation
+  const statsMemo = useMemo(() => {
+    return calculateStatsInternal(reminders);
   }, [reminders]);
+
+  useEffect(() => {
+    setStats(statsMemo);
+  }, [statsMemo]);
 
   useEffect(() => {
     // Request notification permission
@@ -212,21 +216,27 @@ export default function Reminders({
     // Check for due reminders every minute
     const interval = setInterval(checkDueReminders, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [checkDueReminders]);
 
-  const calculateStats = () => {
+  const calculateStatsInternal = useCallback((remindersList: Reminder[]) => {
     const now = new Date();
-    const total = reminders.length;
-    const upcoming = reminders.filter(r => new Date(r.remindAt) > now && !r.isCompleted && !r.isSnoozed).length;
-    const overdue = reminders.filter(r => new Date(r.remindAt) < now && !r.isCompleted && !r.isSnoozed).length;
-    const completed = reminders.filter(r => r.isCompleted).length;
-    const snoozed = reminders.filter(r => r.isSnoozed).length;
+    const total = remindersList.length;
+    const upcoming = remindersList.filter(r => {
+      const remindTime = new Date(r.remindAt);
+      return remindTime > now && !r.isCompleted && !r.isSnoozed;
+    }).length;
+    const overdue = remindersList.filter(r => {
+      const remindTime = new Date(r.remindAt);
+      return remindTime < now && !r.isCompleted && !r.isSnoozed;
+    }).length;
+    const completed = remindersList.filter(r => r.isCompleted).length;
+    const snoozed = remindersList.filter(r => r.isSnoozed).length;
     
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
     const todayEnd = new Date();
     todayEnd.setHours(23, 59, 59, 999);
-    const todayReminders = reminders.filter(r => {
+    const todayReminders = remindersList.filter(r => {
       const remindDate = new Date(r.remindAt);
       return remindDate >= todayStart && remindDate <= todayEnd;
     }).length;
@@ -237,33 +247,38 @@ export default function Reminders({
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
     weekEnd.setHours(23, 59, 59, 999);
-    const weekReminders = reminders.filter(r => {
+    const weekReminders = remindersList.filter(r => {
       const remindDate = new Date(r.remindAt);
       return remindDate >= weekStart && remindDate <= weekEnd;
     }).length;
     
     // Find most used type
-    const typeCounts = reminders.reduce((acc, reminder) => {
+    const typeCounts = remindersList.reduce((acc, reminder) => {
       const type = reminder.type || 'CUSTOM';
       acc[type] = (acc[type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
-    const mostUsedType = Object.keys(typeCounts).reduce((a, b) => 
-      typeCounts[a] > typeCounts[b] ? a : b, 'CUSTOM'
-    );
+    const mostUsedType = Object.keys(typeCounts).length > 0
+      ? Object.keys(typeCounts).reduce((a, b) => 
+          typeCounts[a] > typeCounts[b] ? a : b, 'CUSTOM'
+        )
+      : 'CUSTOM';
     
     // Calculate average completion time
-    const completedReminders = reminders.filter(r => r.isCompleted && r.completedAt);
+    const completedReminders = remindersList.filter(r => r.isCompleted && r.completedAt);
     const averageCompletionTime = completedReminders.length > 0
       ? completedReminders.reduce((acc, reminder) => {
-          const created = new Date(reminder.createdAt || '');
+          const created = new Date(reminder.createdAt || reminder.remindAt);
           const completed = new Date(reminder.completedAt || '');
-          return acc + differenceInMinutes(completed, created);
+          if (!isNaN(created.getTime()) && !isNaN(completed.getTime())) {
+            return acc + differenceInMinutes(completed, created);
+          }
+          return acc;
         }, 0) / completedReminders.length
       : 0;
     
-    setStats({
+    return {
       total,
       upcoming,
       overdue,
@@ -273,28 +288,40 @@ export default function Reminders({
       weekReminders,
       mostUsedType,
       averageCompletionTime: Math.round(averageCompletionTime)
-    });
-  };
+    };
+  }, []);
 
-  const checkDueReminders = () => {
+  const checkDueReminders = useCallback(() => {
     const now = new Date();
     const dueReminders = reminders.filter(reminder => {
       if (reminder.isCompleted || reminder.isSnoozed) return false;
       
-      const remindTime = new Date(reminder.remindAt);
-      const timeDiff = differenceInMinutes(now, remindTime);
-      
-      // Check if reminder is due (within 1 minute)
-      return timeDiff >= 0 && timeDiff < 1;
+      try {
+        const remindTime = new Date(reminder.remindAt);
+        if (isNaN(remindTime.getTime())) return false;
+        
+        const timeDiff = differenceInMinutes(now, remindTime);
+        // Check if reminder is due (within 1 minute)
+        return timeDiff >= 0 && timeDiff < 1;
+      } catch {
+        return false;
+      }
     });
     
     dueReminders.forEach(reminder => {
       showReminderNotification(reminder);
-      setActiveReminders(prev => [...prev, reminder.id]);
+      setActiveReminders(prev => {
+        if (!prev.includes(reminder.id)) {
+          return [...prev, reminder.id];
+        }
+        return prev;
+      });
     });
-  };
+  }, [reminders]);
 
-  const showReminderNotification = (reminder: Reminder) => {
+  const showReminderNotification = useCallback((reminder: Reminder) => {
+    if (!reminder) return;
+    
     // Play sound if enabled
     if (reminder.soundEnabled && 'Audio' in window) {
       // You would play a notification sound here
@@ -303,21 +330,32 @@ export default function Reminders({
     
     // Show browser notification
     if (reminder.notificationEnabled && notificationPermission === 'granted') {
-      const notification = new Notification(reminder.title, {
-        body: reminder.message || 'حان وقت التذكير',
-        icon: '/favicon.ico',
-        tag: reminder.id
-      });
-      
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
-      
-      // Auto close after 10 seconds
-      setTimeout(() => notification.close(), 10000);
+      try {
+        const notification = new Notification(reminder.title || 'تذكير', {
+          body: reminder.message || 'حان وقت التذكير',
+          icon: '/favicon.ico',
+          tag: reminder.id,
+          requireInteraction: false
+        });
+        
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
+        
+        // Auto close after 10 seconds
+        setTimeout(() => {
+          try {
+            notification.close();
+          } catch {
+            // Ignore errors when closing
+          }
+        }, 10000);
+      } catch (error) {
+        console.error('Error showing notification:', error);
+      }
     }
-  };
+  }, [notificationPermission]);
 
   const getFilteredAndSortedReminders = () => {
     let filteredReminders = reminders.filter(reminder => {
@@ -380,47 +418,89 @@ export default function Reminders({
     return filteredReminders;
   };
 
-  const handleFormSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const endpoint = reminderToEdit ? `/api/reminders/${reminderToEdit.id}` : '/api/reminders';
-    const method = reminderToEdit ? 'PATCH' : 'POST';
+    if (!formData.title?.trim()) {
+      console.error('Title is required');
+      return;
+    }
+
+    if (!formData.remindAt) {
+      console.error('Remind time is required');
+      return;
+    }
+
+    const endpoint = reminderToEdit?.id ? `/api/reminders/${reminderToEdit.id}` : '/api/reminders';
+    const method = reminderToEdit?.id ? 'PATCH' : 'POST';
     
     // Process tags
-    const tags = formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+    const tags = formData.tags 
+      ? formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+      : [];
     
-    const reminderData = {
-      ...formData,
-      userId,
-      tags,
-      remindAt: new Date(formData.remindAt).toISOString()
-    };
-
     try {
+      const remindAtDate = new Date(formData.remindAt);
+      if (isNaN(remindAtDate.getTime())) {
+        throw new Error('Invalid date format');
+      }
+
+      const reminderData = {
+        ...formData,
+        userId,
+        tags,
+        remindAt: remindAtDate.toISOString()
+      };
+
       const response = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reminderData)
       });
       
-      if (!response.ok) throw new Error('Failed to save reminder');
-      const savedReminder = await response.json();
+      // Read response text first to check if it's HTML
+      const text = await response.text();
+      
+      if (!response.ok) {
+        // Check if response is HTML (error page)
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          console.error('Server returned HTML instead of JSON');
+          throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
+        }
+        throw new Error(`Failed to save reminder: ${response.status} ${response.statusText}`);
+      }
+      
+      // Check if response is HTML (error page)
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        console.error('Server returned HTML instead of JSON');
+        throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
+      }
+
+      // Try to parse as JSON
+      let savedReminder;
+      try {
+        savedReminder = JSON.parse(text);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        throw new Error('فشل في معالجة استجابة الخادم');
+      }
       
       if (reminderToEdit) {
         setReminders(prev => prev.map(r => r.id === savedReminder.id ? savedReminder : r));
-        if (onReminderUpdate) onReminderUpdate(savedReminder);
+        onReminderUpdate?.(savedReminder);
       } else {
         setReminders(prev => [savedReminder, ...prev]);
-        if (onReminderCreate) onReminderCreate(savedReminder);
+        onReminderCreate?.(savedReminder);
       }
       
       handleDialogClose();
     } catch (error) {
       console.error("Error saving reminder:", error);
+      // You can add toast notification here if needed
     }
-  };
+  }, [formData, reminderToEdit, userId, onReminderUpdate, onReminderCreate, handleDialogClose]);
 
-  const handleDialogClose = () => {
+  const handleDialogClose = useCallback(() => {
     setIsDialogOpen(false);
     setReminderToEdit(null);
     setFormData({
@@ -441,19 +521,23 @@ export default function Reminders({
       location: '',
       notes: ''
     });
-  };
+  }, []);
 
-  const handleDelete = async (reminderId: string) => {
+  const handleDelete = useCallback(async (reminderId: string) => {
+    if (!reminderId) return;
+    
     try {
       const response = await fetch(`/api/reminders/${reminderId}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete reminder');
+      if (!response.ok) {
+        throw new Error(`Failed to delete reminder: ${response.status}`);
+      }
       
       setReminders(prev => prev.filter(r => r.id !== reminderId));
-      if (onReminderDelete) onReminderDelete(reminderId);
+      onReminderDelete?.(reminderId);
     } catch (error) {
       console.error("Error deleting reminder:", error);
     }
-  };
+  }, [onReminderDelete]);
 
   const handleComplete = async (reminderId: string) => {
     try {
@@ -466,8 +550,32 @@ export default function Reminders({
         })
       });
       
-      if (!response.ok) throw new Error('Failed to complete reminder');
-      const updatedReminder = await response.json();
+      // Read response text first to check if it's HTML
+      const text = await response.text();
+      
+      if (!response.ok) {
+        // Check if response is HTML (error page)
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          console.error('Server returned HTML instead of JSON');
+          throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
+        }
+        throw new Error('Failed to complete reminder');
+      }
+      
+      // Check if response is HTML (error page)
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        console.error('Server returned HTML instead of JSON');
+        throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
+      }
+
+      // Try to parse as JSON
+      let updatedReminder;
+      try {
+        updatedReminder = JSON.parse(text);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        throw new Error('فشل في معالجة استجابة الخادم');
+      }
       
       setReminders(prev => prev.map(r => r.id === reminderId ? updatedReminder : r));
       if (onReminderUpdate) onReminderUpdate(updatedReminder);
@@ -492,8 +600,32 @@ export default function Reminders({
         })
       });
       
-      if (!response.ok) throw new Error('Failed to snooze reminder');
-      const updatedReminder = await response.json();
+      // Read response text first to check if it's HTML
+      const text = await response.text();
+      
+      if (!response.ok) {
+        // Check if response is HTML (error page)
+        if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+          console.error('Server returned HTML instead of JSON');
+          throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
+        }
+        throw new Error('Failed to snooze reminder');
+      }
+      
+      // Check if response is HTML (error page)
+      if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+        console.error('Server returned HTML instead of JSON');
+        throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
+      }
+
+      // Try to parse as JSON
+      let updatedReminder;
+      try {
+        updatedReminder = JSON.parse(text);
+      } catch (error) {
+        console.error('Error parsing JSON:', error);
+        throw new Error('فشل في معالجة استجابة الخادم');
+      }
       
       setReminders(prev => prev.map(r => r.id === reminderId ? updatedReminder : r));
       if (onReminderUpdate) onReminderUpdate(updatedReminder);
@@ -530,10 +662,10 @@ export default function Reminders({
     if (onReminderCreate) onReminderCreate(newReminder);
   };
 
-  const getAllTags = () => {
+  const getAllTags = useMemo(() => {
     const allTags = reminders.flatMap(reminder => reminder.tags || []);
     return [...new Set(allTags)];
-  };
+  }, [reminders]);
 
   const getReminderTypeInfo = (type?: string) => {
     return REMINDER_TYPES.find(t => t.value === type) || REMINDER_TYPES[REMINDER_TYPES.length - 1];
@@ -1078,6 +1210,7 @@ export default function Reminders({
                               }
                             }}
                             className="mt-1"
+                            aria-label={`تحديد تذكير ${reminder.title}`}
                           />
                         )}
                         

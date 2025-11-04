@@ -3,8 +3,6 @@
  * Provides comprehensive error tracking and reporting capabilities
  */
 
-import { safeGetItem, safeSetItem } from '../lib/safe-client-utils';
-
 export interface ErrorLogEntry {
   id: string;
   timestamp: string;
@@ -58,12 +56,21 @@ class ErrorLogger {
    * Get existing session ID or create a new one
    */
   private getOrCreateSessionId(): string {
-    let sessionId = sessionStorage.getItem('errorLoggerSessionId');
-    if (!sessionId) {
-      sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      sessionStorage.setItem('errorLoggerSessionId', sessionId);
+    if (typeof window === 'undefined' || !window.sessionStorage) {
+      return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     }
-    return sessionId;
+    
+    try {
+      let sessionId = sessionStorage.getItem('errorLoggerSessionId');
+      if (!sessionId) {
+        sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('errorLoggerSessionId', sessionId);
+      }
+      return sessionId;
+    } catch (error) {
+      // Fallback if sessionStorage is not accessible
+      return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    }
   }
 
   /**
@@ -71,11 +78,12 @@ class ErrorLogger {
    */
   private loadLogsFromStorage(): void {
     if (!this.config.enableLocalStorage) return;
+    if (typeof window === 'undefined' || !window.localStorage) return;
 
     try {
-      const storedLogs = safeGetItem('errorLogs', { fallback: null });
+      const storedLogs = localStorage.getItem('errorLogs');
       if (storedLogs) {
-        this.logs = typeof storedLogs === 'string' ? JSON.parse(storedLogs) : storedLogs;
+        this.logs = JSON.parse(storedLogs);
         // Ensure we don't exceed max logs
         if (this.logs.length > this.config.maxLogs) {
           this.logs = this.logs.slice(-this.config.maxLogs);
@@ -91,9 +99,10 @@ class ErrorLogger {
    */
   private saveLogsToStorage(): void {
     if (!this.config.enableLocalStorage) return;
+    if (typeof window === 'undefined' || !window.localStorage) return;
 
     try {
-      safeSetItem('errorLogs', this.logs);
+      localStorage.setItem('errorLogs', JSON.stringify(this.logs));
     } catch (error) {
       console.error('Failed to save logs to localStorage:', error);
     }
@@ -103,75 +112,199 @@ class ErrorLogger {
    * Set up global error handlers
    */
   private setupGlobalErrorHandlers(): void {
-    // Catch unhandled JavaScript errors
-    window.addEventListener('error', (event) => {
-      this.logError(event.error || new Error(event.message), {
-        source: 'Global Error Handler',
-        filename: event.filename,
-        lineno: event.lineno,
-        colno: event.colno,
-      });
-    });
+    if (typeof window === 'undefined') return;
 
-    // Catch unhandled promise rejections
-    window.addEventListener('unhandledrejection', (event) => {
-      this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), {
-        source: 'Unhandled Promise Rejection',
+    try {
+      // Catch unhandled JavaScript errors
+      window.addEventListener('error', (event) => {
+        this.logError(event.error || new Error(event.message), {
+          source: 'Global Error Handler',
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+        });
       });
-    });
+
+      // Catch unhandled promise rejections
+      window.addEventListener('unhandledrejection', (event) => {
+        this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), {
+          source: 'Unhandled Promise Rejection',
+        });
+      });
+    } catch (error) {
+      // Silently fail if error handlers cannot be set up
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Failed to setup global error handlers:', error);
+      }
+    }
   }
 
   /**
    * Log an error with additional context
    */
   public logError(error: Error | string, context: Record<string, any> = {}): string {
-    const errorMessage = error instanceof Error ? error.message : error;
-    const errorStack = error instanceof Error ? error.stack : undefined;
+    let logEntry: ErrorLogEntry;
+    
+    try {
+      // Extract error message with proper fallbacks
+      let errorMessage: string;
+      if (error instanceof Error) {
+        errorMessage = error.message || error.name || 'Unknown error';
+      } else if (typeof error === 'string') {
+        errorMessage = error.trim() || 'Unknown error';
+      } else {
+        errorMessage = 'Unknown error';
+      }
 
-    const logEntry: ErrorLogEntry = {
-      id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: new Date().toISOString(),
-      message: errorMessage,
-      stack: errorStack,
-      source: context.source || 'Unknown',
-      severity: context.severity || 'medium',
-      sessionId: this.sessionId,
-      userAgent: navigator.userAgent,
-      url: window.location.href,
-      additionalData: context,
-      resolved: false,
-    };
+      // Ensure message is never empty
+      if (!errorMessage || errorMessage.length === 0) {
+        errorMessage = 'Unknown error';
+      }
 
-    // Add to logs array
-    this.logs.push(logEntry);
+      const errorStack = error instanceof Error ? error.stack : undefined;
 
-    // Ensure we don't exceed max logs
-    if (this.logs.length > this.config.maxLogs) {
-      this.logs.shift();
+      // Clean context data to remove undefined/null values and ensure serializability
+      const cleanContext: Record<string, any> = {};
+      if (context && typeof context === 'object') {
+        Object.entries(context).forEach(([key, value]) => {
+          // Skip undefined and null values
+          if (value !== undefined && value !== null) {
+            // Skip circular references and functions
+            if (typeof value !== 'function') {
+              try {
+                // Test if value is serializable
+                JSON.stringify(value);
+                cleanContext[key] = value;
+              } catch {
+                // If not serializable, convert to string
+                cleanContext[key] = String(value);
+              }
+            }
+          }
+        });
+      }
+
+      logEntry = {
+        id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        message: errorMessage,
+        stack: errorStack,
+        source: context?.source || 'Unknown',
+        severity: (context?.severity || 'medium') as 'low' | 'medium' | 'high' | 'critical',
+        sessionId: this.sessionId,
+        userAgent: typeof navigator !== 'undefined' && navigator.userAgent ? navigator.userAgent : 'Unknown',
+        url: typeof window !== 'undefined' && window.location ? window.location.href : 'Server-side',
+        additionalData: Object.keys(cleanContext).length > 0 ? cleanContext : undefined,
+        resolved: false,
+      };
+
+      // Add to logs array
+      this.logs.push(logEntry);
+
+      // Ensure we don't exceed max logs
+      if (this.logs.length > this.config.maxLogs) {
+        this.logs.shift();
+      }
+
+      // Log to console if enabled
+      if (this.config.enableConsoleLog) {
+        try {
+          // Build console log data with guaranteed values
+          const consoleLogData: Record<string, any> = {};
+          
+          // Always include message (guaranteed to exist from earlier validation)
+          const safeMessage = String(logEntry.message || errorMessage || 'Unknown error').trim();
+          if (safeMessage) {
+            consoleLogData.message = safeMessage;
+          }
+          
+          // Include source if available
+          const safeSource = String(logEntry.source || 'Unknown').trim();
+          if (safeSource && safeSource !== 'Unknown') {
+            consoleLogData.source = safeSource;
+          }
+          
+          // Include severity if available
+          const safeSeverity = String(logEntry.severity || 'medium').trim();
+          if (safeSeverity) {
+            consoleLogData.severity = safeSeverity;
+          }
+
+          // Include stack if available
+          if (logEntry.stack && typeof logEntry.stack === 'string' && logEntry.stack.trim()) {
+            consoleLogData.stack = logEntry.stack;
+          }
+
+          // Include additional data if available
+          if (logEntry.additionalData && typeof logEntry.additionalData === 'object') {
+            const cleanAdditionalData: Record<string, any> = {};
+            try {
+              Object.entries(logEntry.additionalData).forEach(([key, value]) => {
+                if (value !== undefined && value !== null && key !== 'source' && key !== 'severity') {
+                  try {
+                    // Test serializability
+                    JSON.stringify(value);
+                    cleanAdditionalData[key] = value;
+                  } catch {
+                    // Convert non-serializable values to string
+                    try {
+                      cleanAdditionalData[key] = String(value);
+                    } catch {
+                      // Skip if even string conversion fails
+                    }
+                  }
+                }
+              });
+              
+              if (Object.keys(cleanAdditionalData).length > 0) {
+                consoleLogData.additionalData = cleanAdditionalData;
+              }
+            } catch (additionalDataError) {
+              // Skip additional data if it causes issues
+              if (process.env.NODE_ENV === 'development') {
+                console.warn('Failed to process additional data:', additionalDataError);
+              }
+            }
+          }
+
+          // Always log something - at minimum the message
+          if (Object.keys(consoleLogData).length > 0) {
+            console.error('Error logged:', consoleLogData);
+          } else {
+            // Ultimate fallback - log the raw error message
+            console.error('Error logged:', safeMessage || 'Unknown error occurred');
+          }
+        } catch (consoleError) {
+          // Ultimate fallback if console logging completely fails
+          try {
+            console.error('Error logged:', errorMessage || (error instanceof Error ? error.message : String(error)) || 'Unknown error');
+          } catch {
+            // If even that fails, log a basic message
+            console.error('Error occurred but logging failed');
+          }
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Console logging error:', consoleError);
+          }
+        }
+      }
+
+      // Save to localStorage if enabled
+      if (this.config.enableLocalStorage) {
+        this.saveLogsToStorage();
+      }
+
+      // Send to remote endpoint if enabled
+      if (this.config.enableRemoteLogging && this.config.remoteEndpoint) {
+        this.sendToRemote(logEntry);
+      }
+
+      return logEntry.id;
+    } catch (logError) {
+      // Fallback logging if the main logging fails
+      console.error('Failed to log error:', logError);
+      console.error('Original error:', error);
+      return `error-fallback-${Date.now()}`;
     }
-
-    // Log to console if enabled
-    if (this.config.enableConsoleLog) {
-      console.error('Error logged:', {
-        message: logEntry.message,
-        source: logEntry.source,
-        severity: logEntry.severity,
-        stack: logEntry.stack,
-        ...(logEntry.additionalData && { additionalData: logEntry.additionalData })
-      });
-    }
-
-    // Save to localStorage if enabled
-    if (this.config.enableLocalStorage) {
-      this.saveLogsToStorage();
-    }
-
-    // Send to remote endpoint if enabled
-    if (this.config.enableRemoteLogging && this.config.remoteEndpoint) {
-      this.sendToRemote(logEntry);
-    }
-
-    return logEntry.id;
   }
 
   /**

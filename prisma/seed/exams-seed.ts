@@ -1,8 +1,9 @@
-import { PrismaClient, Prisma, SubjectType, ExamType } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { SubjectType, ExamType } from "../../src/types/settings";
 
 const prisma = new PrismaClient();
 
-const seedExams: Prisma.ExamCreateManyInput[] = [
+const seedExams = [
   { subject: SubjectType.MATH, title: "Math Past Papers", year: 2023, url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" },
   { subject: SubjectType.PHYSICS, title: "Physics Past Papers", year: 2023, url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" },
   { subject: SubjectType.CHEMISTRY, title: "Chemistry Past Papers", year: 2023, url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" },

@@ -3,13 +3,13 @@ import { cookies } from 'next/headers';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 
-const extractToken = (request: NextRequest): string | null => {
+const extractToken = async (request: NextRequest): Promise<string | null> => {
   const authHeader = request.headers.get('authorization');
   if (authHeader && authHeader.startsWith('Bearer ')) {
     return authHeader.substring(7);
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   return (
     cookieStore.get('access_token')?.value ??
     cookieStore.get('auth_token')?.value ??
@@ -19,7 +19,7 @@ const extractToken = (request: NextRequest): string | null => {
 
 export async function GET(request: NextRequest) {
   try {
-    const token = extractToken(request);
+    const token = await extractToken(request);
 
     if (!token) {
       return NextResponse.json(

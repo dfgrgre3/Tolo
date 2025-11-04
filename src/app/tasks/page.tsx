@@ -315,7 +315,7 @@ export default function TasksPage() {
             <Button variant={statusFilter === TaskStatus.IN_PROGRESS ? 'default' : 'outline'} onClick={() => setStatusFilter(TaskStatus.IN_PROGRESS)}>قيد التنفيذ</Button>
             <Button variant={statusFilter === TaskStatus.COMPLETED ? 'default' : 'outline'} onClick={() => setStatusFilter(TaskStatus.COMPLETED)}>مكتملة</Button>
         </div>
-        <Select onValueChange={(value: 'dueAt' | 'priority') => setSortBy(value)} defaultValue={sortBy}>
+        <Select value={sortBy} onValueChange={(value: 'dueAt' | 'priority') => setSortBy(value)}>
             <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="فرز حسب" />
             </SelectTrigger>

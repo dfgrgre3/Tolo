@@ -1,6 +1,6 @@
 import { redis } from './redis';
 import { prisma } from './prisma';
-import { cacheService } from './cache-service';
+import cacheService from './cache-service';
 
 // This file is deprecated. Please use cache-service-unified.ts instead.
 export * from './cache-service-unified';

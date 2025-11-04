@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Button } from "@/shared/button";
 import { Input } from "@/components/ui/input";
@@ -473,28 +473,34 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     return `${mins}د`;
   };
 
-  const exportData = () => {
-    const data = {
-      sessions: filteredSessions,
-      stats,
-      chartData,
-      exportDate: new Date().toISOString(),
-      filters: {
-        timePeriod,
-        selectedSubject,
-        selectedMood,
-        searchQuery
-      }
-    };
-    
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `study-sessions-${format(new Date(), 'yyyy-MM-dd')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const exportData = useCallback(() => {
+    try {
+      const data = {
+        sessions: filteredSessions,
+        stats,
+        chartData,
+        exportDate: new Date().toISOString(),
+        filters: {
+          timePeriod,
+          selectedSubject,
+          selectedMood,
+          searchQuery
+        }
+      };
+      
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `study-sessions-${format(new Date(), 'yyyy-MM-dd')}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting data:', error);
+    }
+  }, [filteredSessions, stats, chartData, timePeriod, selectedSubject, selectedMood, searchQuery]);
 
   const renderChart = () => {
     if (chartData.length === 0) {
