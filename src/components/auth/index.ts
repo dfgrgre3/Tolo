@@ -32,7 +32,9 @@ export * from './utils/error-handling';
 export type { ApiError } from './utils/error-handling';
 
 // Types
-export type { SessionData, SessionProviderProps } from './types/session';
+// Note: SessionProviderProps is now defined locally in SessionProviderWrapper.tsx
+// to avoid any next-auth dependencies
+export type { SessionData } from './types/session';
 
 // Login flow hooks
 export { useLoginFlow } from './login/useLoginFlow';
