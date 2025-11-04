@@ -15,8 +15,10 @@ export function fixHydrationIssues() {
   });
 
   // �?���?�?�? �?���?�?�� __processed_*
-  const processedElements = document.querySelectorAll("[__processed_*]");
-  processedElements.forEach((el) => {
+  // حذف attributes __processed_*
+  // لا يمكن استخدام wildcard في CSS selector، لذلك نبحث عن جميع العناصر ثم نتصفى
+  const allElements = document.querySelectorAll("*");
+  allElements.forEach((el) => {
     Array.from(el.attributes)
       .filter((attr) => attr.name.startsWith("__processed_"))
       .forEach((attr) => el.removeAttribute(attr.name));

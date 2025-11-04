@@ -6,7 +6,7 @@ import Header from "../components/Header";
 import { GlobalProviders } from "../providers/index";
 import NotificationsClient from "../components/NotificationsClient";
 import { ClientLayoutWrapper } from "../components/layout/ClientLayoutWrapper";
-import { auth } from '../auth-server';
+// import { auth } from '../auth-server';
 import { SessionProviderWrapper } from '../components/auth/SessionProviderWrapper';
 
 const inter = Inter({
@@ -21,7 +21,8 @@ export default async function RootLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	const session = await auth();
+	// const session = await auth();
+	const session = null; // Using custom auth system instead of next-auth
 	
 	const defaultLang = 'ar';
 	const defaultDir = 'rtl';

@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import type { RegisterRequest, RegisterResponse, RegisterErrorResponse } from '@/types/api/auth';
+import { createErrorResponse, isConnectionError } from './_helpers';
 
 const registerSchema = z.object({
   email: z
@@ -247,51 +248,10 @@ export async function POST(request: NextRequest) {
       console.error('Failed to log security event:', logError);
     }
 
-    // Determine if it's a connection/database error
-    const errorMessage = error?.message || 'Unknown error';
-    const errorStack = error?.stack || '';
-    const fullError = `${errorMessage} ${errorStack}`.toLowerCase();
-    
-    const isConnectionError = 
-      fullError.includes('connect') ||
-      fullError.includes('econnrefused') ||
-      fullError.includes('etimedout') ||
-      fullError.includes('database') ||
-      fullError.includes('prisma') ||
-      fullError.includes('timeout') ||
-      fullError.includes('p1001') || // Prisma connection error
-      fullError.includes('p1017') || // Prisma server closed connection
-      fullError.includes('p2002') || // Prisma unique constraint
-      fullError.includes('enotfound') ||
-      fullError.includes('econnreset') ||
-      fullError.includes('networkerror') ||
-      fullError.includes('failed to fetch') ||
-      fullError.includes('fetch error') ||
-      fullError.includes('cannot read properties') ||
-      fullError.includes('undefined');
-
-    // Determine error code
-    let errorCode = 'INTERNAL_ERROR';
-    if (isConnectionError) {
-      errorCode = 'CONNECTION_ERROR';
-    } else if (fullError.includes('validation') || fullError.includes('invalid')) {
-      errorCode = 'VALIDATION_ERROR';
-    } else if (fullError.includes('rate limit') || fullError.includes('too many')) {
-      errorCode = 'RATE_LIMIT_ERROR';
-    }
-
-    // Return appropriate error message
-    const userFriendlyMessage = isConnectionError
-      ? 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.'
-      : errorMessage || 'حدث خطأ غير متوقع أثناء التسجيل. حاول مرة أخرى لاحقاً.';
-    
-    return NextResponse.json(
-      {
-        error: userFriendlyMessage,
-        code: errorCode,
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
-      },
-      { status: isConnectionError ? 503 : 500 }
+    // Return appropriate error response
+    return createErrorResponse(
+      error,
+      'حدث خطأ غير متوقع أثناء التسجيل. حاول مرة أخرى لاحقاً.'
     );
   }
 }

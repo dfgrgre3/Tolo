@@ -1,9 +1,10 @@
 // Client-safe auth exports
 // Re-export from auth-server for API routes that need server-only code
 // For client components, use client-side auth hooks instead
+// Note: next-auth has been removed, using custom auth system
 
 export { default } from './auth-server';
-export { authOptions } from './auth-server';
+// authOptions no longer exists - using custom auth system
 
 // Client-safe auth function (returns null for client components)
 export const auth = async () => {

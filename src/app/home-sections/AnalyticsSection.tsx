@@ -1,5 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
+import { safeFetch } from '@/lib/safe-client-utils';
+import { getSafeUserId } from '@/lib/safe-client-utils';
 
 /**
  * @typedef {Object} DailyData
@@ -20,76 +22,86 @@ import Link from 'next/link';
 const PATH_OPTIONS = ['الكل', 'البرمجة', 'التصميم'];
 
 /**
- * Function to simulate data fetching based on the selected path filter.
+ * Function to fetch real analytics data from API based on the selected path filter.
  * @param {string} path - The selected study path (e.g., 'البرمجة').
  */
 const fetchAnalyticsData = async (path: string) => {
-    // ---------------------------------------------------------------------------------
-    // --- هذا هو المكان الذي يجب أن يتم فيه استبدال المحاكاة باستدعاء fetch() API حقيقي ---
-    // ---------------------------------------------------------------------------------
+    const userId = getSafeUserId();
     
-    // 1. محاكاة التأخير الشبكي
-    await new Promise(resolve => setTimeout(resolve, 1500)); 
+    try {
+        // Fetch analytics data from API
+        const { data, error } = await safeFetch<{
+            progressRate: number;
+            skillsAcquired: number;
+            studyHours: number;
+            dailyProgress: Array<{ day: string; progress: number }>;
+            timestamp: string;
+        }>(
+            `/api/analytics/weekly${userId ? `?userId=${userId}` : ''}${path !== 'الكل' ? `&path=${encodeURIComponent(path)}` : ''}`,
+            undefined,
+            null
+        );
 
-    // 2. توليد بيانات التقدم اليومية بشكل ديناميكي بناءً على المسار
-    const generateDailyProgress = (base: number) => {
-        return Array.from({ length: 7 }, (_, i) => ({
-            day: `س${i + 1}`,
-            // إضافة تذبذب عشوائي حول القيمة الأساسية (base)
-            progress: Math.min(100, Math.max(50, base + Math.floor(Math.random() * 15) - 7)), 
-        }));
-    };
-    
-    let kpiConfig: { baseProgress: number; skillMod: number; hourMod: number } = { baseProgress: 75, skillMod: 0, hourMod: 10 }; // KPIs configuration based on path
+        if (error || !data) {
+            // Fallback to progress summary if weekly analytics not available
+            const { data: summaryData } = await safeFetch<{
+                totalMinutes: number;
+                averageFocus: number;
+                tasksCompleted: number;
+                streakDays: number;
+            }>(
+                `/api/progress/summary${userId ? `?userId=${userId}` : ''}`,
+                undefined,
+                null
+            );
 
-    switch (path) {
-        case 'البرمجة':
-            // البرمجة: تقدم ممتاز، ساعات دراسة عالية، مهارات متوسطة
-            kpiConfig = { baseProgress: 85, skillMod: 5, hourMod: 20 };
-            break;
-        case 'التصميم':
-            // التصميم: تقدم جيد، ساعات دراسة أقل، مهارات عالية
-            kpiConfig = { baseProgress: 70, skillMod: 10, hourMod: 5 };
-            break;
-        case 'الكل':
-        default:
-            // الإجمالي: المتوسط
-            kpiConfig = { baseProgress: 75, skillMod: 0, hourMod: 10 };
-            break;
-    }
-    
-    const dailyProgressData = generateDailyProgress(kpiConfig.baseProgress);
-    const currentProgressRate = dailyProgressData[dailyProgressData.length - 1].progress;
+            if (summaryData) {
+                // Calculate progress rate from summary
+                const progressRate = Math.min(100, Math.round(
+                    (summaryData.tasksCompleted / 10) * 20 + 
+                    (summaryData.streakDays / 30) * 30 + 
+                    (summaryData.averageFocus / 100) * 50
+                ));
+                
+                // Generate daily progress from summary data
+                const dailyProgress = Array.from({ length: 7 }, (_, i) => ({
+                    day: `س${i + 1}`,
+                    progress: Math.min(100, Math.max(0, progressRate + (i % 3 === 0 ? 5 : -2)))
+                }));
 
-    // 3. محاكاة استجابة API منظمة 
-    const mockApiResponse = {
-        status: 200,
-        message: "Data fetched successfully",
-        data: {
-            progressRate: currentProgressRate,
-            skillsAcquired: Math.floor(Math.random() * 10) + 20 + kpiConfig.skillMod,
-            studyHours: Math.floor(Math.random() * 50) + 120 + kpiConfig.hourMod,
-            dailyProgress: dailyProgressData,
-            timestamp: new Date().toISOString(), 
+                return {
+                    progressRate,
+                    skillsAcquired: Math.floor(summaryData.tasksCompleted / 2),
+                    studyHours: Math.floor(summaryData.totalMinutes / 60),
+                    dailyProgress,
+                    lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+                };
+            }
+
+            // Final fallback with minimal data
+            return {
+                progressRate: 0,
+                skillsAcquired: 0,
+                studyHours: 0,
+                dailyProgress: Array.from({ length: 7 }, (_, i) => ({
+                    day: `س${i + 1}`,
+                    progress: 0
+                })),
+                lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            };
         }
-    };
 
-    // 4. معالجة الاستجابة والتحقق من الأخطاء
-    if (mockApiResponse.status !== 200) {
-        throw new Error(mockApiResponse.message || "فشل جلب التحليلات بسبب خطأ في الخادم.");
+        return {
+            progressRate: data.progressRate,
+            skillsAcquired: data.skillsAcquired,
+            studyHours: data.studyHours,
+            dailyProgress: data.dailyProgress,
+            lastUpdate: new Date(data.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        };
+    } catch (err) {
+        console.error('Error fetching analytics data:', err);
+        throw new Error("فشل جلب التحليلات بسبب خطأ في الخادم.");
     }
-
-    // 5. تحويل بيانات الخادم
-    const serverData = mockApiResponse.data;
-
-    return {
-        progressRate: serverData.progressRate,
-        skillsAcquired: serverData.skillsAcquired,
-        studyHours: serverData.studyHours,
-        dailyProgress: serverData.dailyProgress,
-        lastUpdate: new Date(serverData.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-    };
-    // ---------------------------------------------------------------------------------
 };
 
 /**

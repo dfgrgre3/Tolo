@@ -21,8 +21,11 @@ const nextConfig = {
     minimumCacheTTL: 86400, // Cache images for 24 hours
   },
 
-  // Add Turbopack config
-  turbopack: {},
+  // Add Turbopack config with HMR improvements
+  turbopack: {
+    // Improve HMR for icon libraries
+    resolveExtensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+  },
 
   // Enable compression
   compress: true,
@@ -64,6 +67,33 @@ const nextConfig = {
         stream: require.resolve('stream-browserify')
       }
     };
+
+    // Fix HMR issues with lucide-react and other icon libraries
+    if (dev) {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        // Ensure consistent module resolution for lucide-react during HMR
+        'lucide-react': require.resolve('lucide-react'),
+      };
+
+      // Improve HMR handling for ES modules
+      config.optimization = {
+        ...config.optimization,
+        moduleIds: 'named',
+      };
+
+      // Add HMR plugin configuration
+      if (config.plugins) {
+        config.plugins.forEach((plugin) => {
+          if (plugin.constructor.name === 'ReactRefreshPlugin') {
+            plugin.options = {
+              ...plugin.options,
+              overlay: false,
+            };
+          }
+        });
+      }
+    }
 
     // Add error tracking
     config.plugins.push(

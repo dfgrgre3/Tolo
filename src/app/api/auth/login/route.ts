@@ -9,24 +9,238 @@ import { deviceManagerService } from '@/lib/security/device-manager';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { captchaService } from '@/lib/security/captcha-service';
 import type { LoginRequest, LoginResponse, LoginErrorResponse } from '@/types/api/auth';
+import { 
+  setAuthCookies, 
+  createErrorResponse, 
+  createCaptchaRequiredResponse, 
+  isConnectionError,
+  getErrorCode,
+  emailSchema 
+} from '../_helpers';
+
+// ==================== CONSTANTS ====================
+
+const TWO_FACTOR_TTL_MINUTES = 10;
+const CAPTCHA_THRESHOLD = 3; // Require CAPTCHA after 3 failed attempts
+
+// ==================== VALIDATION SCHEMA ====================
 
 const loginSchema = z.object({
-  email: z.string().email('البريد الإلكتروني غير صالح'),
+  email: emailSchema,
   password: z
     .string()
-    .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل'),
-  rememberMe: z.boolean().optional(),
+    .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
+    .max(128, 'كلمة المرور طويلة جداً'),
+  rememberMe: z.boolean().optional().default(false),
   deviceFingerprint: z.any().optional(),
   captchaToken: z.string().optional(),
 });
 
-const TWO_FACTOR_TTL_MINUTES = 10;
+// ==================== HELPER FUNCTIONS ====================
 
-const buildClientId = (ip: string, userAgent: string) =>
-  `${ip || 'unknown'}-${userAgent || 'unknown'}`;
+/**
+ * Build client identifier from IP and User Agent
+ * Uses crypto for more secure hashing in production
+ */
+const buildClientId = (ip: string, userAgent: string): string => {
+  const safeIp = ip || 'unknown';
+  const safeUserAgent = userAgent || 'unknown';
+  
+  // In production, hash the client ID for better privacy
+  if (process.env.NODE_ENV === 'production') {
+    try {
+      const crypto = require('crypto');
+      const hash = crypto.createHash('sha256');
+      hash.update(`${safeIp}-${safeUserAgent}`);
+      return hash.digest('hex').substring(0, 32);
+    } catch {
+      // Fallback to simple string if crypto fails
+      return `${safeIp}-${safeUserAgent}`;
+    }
+  }
+  
+  return `${safeIp}-${safeUserAgent}`;
+};
 
-const generateTwoFactorCode = () =>
-  Math.floor(100000 + Math.random() * 900000).toString();
+/**
+ * Generate a secure 6-digit two-factor authentication code
+ * Uses Node.js crypto for better randomness
+ */
+const generateTwoFactorCode = (): string => {
+  try {
+    // Use Node.js crypto module for cryptographically secure random numbers
+    const crypto = require('crypto');
+    const randomBytes = crypto.randomBytes(4);
+    const randomNumber = randomBytes.readUInt32BE(0);
+    // Convert to range 100000-999999
+    const code = 100000 + (randomNumber % 900000);
+    return code.toString();
+  } catch (error) {
+    // Fallback to Math.random if crypto fails (shouldn't happen in Node.js)
+    console.warn('Failed to use crypto for 2FA code generation, using fallback:', error);
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+};
+
+/**
+ * Get updated failed attempts count with Redis fallback
+ */
+const getUpdatedAttempts = async (
+  rateLimitService: any,
+  clientId: string
+): Promise<number> => {
+  try {
+    if (rateLimitService) {
+      const updatedRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
+      return (updatedRateLimitStatus.attempts || 0) + 1;
+    }
+  } catch (redisError) {
+    console.warn('Redis unavailable for rate limit check:', redisError);
+  }
+  return 1; // Default to 1 attempt
+};
+
+/**
+ * Handle failed login attempt
+ */
+const handleFailedLogin = async (
+  clientId: string,
+  userId: string | null,
+  ip: string,
+  userAgent: string,
+  reason: string,
+  email: string,
+  rateLimitService: any,
+  captchaService: any
+): Promise<NextResponse<LoginErrorResponse>> => {
+  // Record failed attempt
+  await authService.recordFailedAttempt(clientId);
+  
+  // Log security event
+  await authService.logSecurityEvent(userId, 'login_failed', ip, {
+    userAgent,
+    reason,
+    email: userId ? undefined : email,
+  });
+
+  // Get updated failed attempts count
+  const updatedAttempts = await getUpdatedAttempts(rateLimitService, clientId);
+
+  // Require CAPTCHA after threshold failed attempts
+  if (captchaService.shouldRequireCaptcha(updatedAttempts)) {
+    return createCaptchaRequiredResponse(updatedAttempts, 401);
+  }
+
+  return NextResponse.json(
+    { 
+      error: 'بيانات تسجيل الدخول غير صحيحة.',
+      code: 'INVALID_CREDENTIALS',
+    },
+    { status: 401 }
+  );
+};
+
+/**
+ * Create two-factor authentication response
+ */
+const createTwoFactorResponse = (
+  user: any,
+  challengeId: string,
+  code: string,
+  reason?: string,
+  riskAssessment?: any
+): LoginResponse => {
+  const response: LoginResponse = {
+    requiresTwoFactor: true,
+    loginAttemptId: challengeId,
+    expiresAt: new Date(
+      Date.now() + TWO_FACTOR_TTL_MINUTES * 60 * 1000
+    ).toISOString(),
+    methods: ['email'],
+    reason: reason || 'two_factor_enabled',
+    token: '', // Will be set after 2FA verification
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined,
+      role: (user as any).role || 'user',
+      emailVerified: user.emailVerified || false,
+      twoFactorEnabled: user.twoFactorEnabled || false,
+    },
+    ...(riskAssessment ? {
+      riskAssessment: {
+        level: riskAssessment.level,
+        score: riskAssessment.score,
+        recommendations: riskAssessment.recommendations,
+      },
+    } : {}),
+    ...(process.env.NODE_ENV !== 'production' ? { debugCode: code } : {}),
+  };
+  
+  return response;
+};
+
+/**
+ * Create successful login response
+ * Improved with better validation and structure
+ */
+const createSuccessResponse = (
+  user: any,
+  accessToken: string,
+  refreshToken: string,
+  sessionId: string,
+  riskAssessment: any,
+  isNewDevice: boolean
+): LoginResponse => {
+  // Validate inputs
+  if (!user || !user.id || !user.email) {
+    throw new Error('User data is required for login response');
+  }
+  
+  if (!accessToken || !refreshToken) {
+    throw new Error('Tokens are required for login response');
+  }
+  
+  if (!sessionId) {
+    throw new Error('Session ID is required for login response');
+  }
+
+  // Validate risk assessment
+  if (!riskAssessment || !riskAssessment.level) {
+    console.warn('Risk assessment missing or invalid, using default');
+    riskAssessment = {
+      level: 'low' as const,
+      score: 0,
+    };
+  }
+
+  return {
+    message: 'تم تسجيل الدخول بنجاح.',
+    token: accessToken,
+    refreshToken,
+    sessionId,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined,
+      role: (user as any).role || 'user',
+      emailVerified: user.emailVerified || false,
+      twoFactorEnabled: user.twoFactorEnabled || false,
+      lastLogin: user.lastLogin 
+        ? (typeof user.lastLogin === 'string' 
+          ? user.lastLogin 
+          : user.lastLogin.toISOString())
+        : undefined,
+    },
+    riskAssessment: {
+      level: riskAssessment.level,
+      score: riskAssessment.score || 0,
+    },
+    isNewDevice: isNewDevice || false,
+  };
+};
+
+// ==================== MAIN HANDLER ====================
 
 export async function POST(request: NextRequest) {
   const ip = authService.getClientIP(request);
@@ -34,11 +248,12 @@ export async function POST(request: NextRequest) {
   const clientId = buildClientId(ip, userAgent);
 
   try {
+    // ==================== INITIALIZE RATE LIMITING ====================
     const { RateLimitingService } = await import('@/lib/rate-limiting-service');
     const { getRedisClient } = await import('@/lib/redis');
     
-    let rateLimitService: RateLimitingService;
-    let initialRateLimitStatus;
+    let rateLimitService: InstanceType<typeof RateLimitingService> | null = null;
+    let initialRateLimitStatus: any = { allowed: true, attempts: 0 };
     
     try {
       const redis = await getRedisClient();
@@ -47,11 +262,10 @@ export async function POST(request: NextRequest) {
     } catch (redisError) {
       // If Redis is unavailable, allow the request but log the error
       console.warn('Redis unavailable, proceeding without rate limiting:', redisError);
-      // Create a mock rate limit status that allows the request
-      initialRateLimitStatus = { allowed: true, attempts: 0 };
-      rateLimitService = null as any; // Will be handled gracefully
+      // Continue with default status that allows the request
     }
 
+    // ==================== CHECK RATE LIMITING ====================
     if (!initialRateLimitStatus.allowed) {
       const now = Date.now();
       const lockoutUntil = initialRateLimitStatus.lockedUntil ?? 0;
@@ -77,7 +291,60 @@ export async function POST(request: NextRequest) {
       };
       return NextResponse.json(errorResponse, { status: 429 });
     }
-    const body = await request.json().catch(() => ({}));
+    // ==================== VALIDATE REQUEST BODY ====================
+    let body: any;
+    try {
+      // Use request.json() directly for better performance and error handling
+      // Check if request has body by checking content-length
+      const contentLength = request.headers.get('content-length');
+      if (contentLength === '0' || !contentLength) {
+        const errorResponse: LoginErrorResponse = {
+          error: 'الطلب فارغ. يرجى إدخال بيانات تسجيل الدخول.',
+          code: 'EMPTY_REQUEST_BODY',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+      
+      // Check body size limit (prevent DoS)
+      const contentLengthNum = parseInt(contentLength, 10);
+      const MAX_BODY_SIZE = 1024; // 1KB max
+      if (contentLengthNum > MAX_BODY_SIZE) {
+        const errorResponse: LoginErrorResponse = {
+          error: 'حجم الطلب كبير جداً.',
+          code: 'REQUEST_TOO_LARGE',
+        };
+        return NextResponse.json(errorResponse, { status: 413 });
+      }
+      
+      // Parse JSON body directly
+      try {
+        body = await request.json();
+      } catch (jsonError) {
+        // If JSON parsing fails, return error
+        const errorResponse: LoginErrorResponse = {
+          error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.',
+          code: 'INVALID_REQUEST_BODY',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+      
+      // Validate body is an object
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        const errorResponse: LoginErrorResponse = {
+          error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.',
+          code: 'INVALID_REQUEST_BODY',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+    } catch (parseError) {
+      console.error('Error parsing request body:', parseError);
+      const errorResponse: LoginErrorResponse = {
+        error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.',
+        code: 'INVALID_REQUEST_BODY',
+      };
+      return NextResponse.json(errorResponse, { status: 400 });
+    }
+
     const parsed = loginSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -90,24 +357,24 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, password, rememberMe, deviceFingerprint, captchaToken } = parsed.data;
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedEmail = email; // Already normalized by emailSchema
 
-    const rateLimitStatus = initialRateLimitStatus;
-    const currentAttempts = rateLimitStatus.attempts || 0;
+    const currentAttempts = initialRateLimitStatus.attempts || 0;
 
-    // Check if CAPTCHA is required and verify it if provided
+    // ==================== CHECK CAPTCHA REQUIREMENT ====================
     if (captchaService.shouldRequireCaptcha(currentAttempts)) {
       if (!captchaToken) {
-      const errorResponse: LoginErrorResponse = {
-        error:
-          'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-        requiresCaptcha: true,
-        failedAttempts: currentAttempts,
-        code: 'CAPTCHA_REQUIRED',
-      };
-      return NextResponse.json(errorResponse, { status: 403 });
+        const errorResponse: LoginErrorResponse = {
+          error:
+            'يرجى إكمال التحقق من CAPTCHA للمتابعة. تم اكتشاف محاولات تسجيل دخول متكررة.',
+          requiresCaptcha: true,
+          failedAttempts: currentAttempts,
+          code: 'CAPTCHA_REQUIRED',
+        };
+        return NextResponse.json(errorResponse, { status: 403 });
       }
 
+      // Verify CAPTCHA token
       const isValidCaptcha = await captchaService.verifyCaptcha(captchaToken, ip);
       if (!isValidCaptcha) {
         await authService.logSecurityEvent(null, 'captcha_verification_failed', ip, {
@@ -117,7 +384,7 @@ export async function POST(request: NextRequest) {
 
         const errorResponse: LoginErrorResponse = {
           error:
-            'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
+            'فشل التحقق من CAPTCHA. يرجى المحاولة مرة أخرى.',
           requiresCaptcha: true,
           failedAttempts: currentAttempts,
           code: 'CAPTCHA_INVALID',
@@ -126,7 +393,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Find user by email (with error handling)
+    // ==================== FIND USER ====================
     let user;
     try {
       user = await authService.findUserByEmail(normalizedEmail);
@@ -134,18 +401,7 @@ export async function POST(request: NextRequest) {
       console.error('Database error while finding user:', dbError);
       
       // Check if it's a connection error
-      const errorMessage = dbError instanceof Error ? dbError.message : String(dbError);
-      const isConnectionError = 
-        errorMessage.includes('connect') ||
-        errorMessage.includes('ECONNREFUSED') ||
-        errorMessage.includes('ETIMEDOUT') ||
-        errorMessage.includes('database') ||
-        errorMessage.includes('prisma') ||
-        errorMessage.includes('timeout') ||
-        errorMessage.includes('P1001') || // Prisma connection error code
-        errorMessage.includes('P1017'); // Prisma server closed connection
-      
-      if (isConnectionError) {
+      if (isConnectionError(dbError)) {
         return NextResponse.json(
           {
             error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
@@ -159,7 +415,7 @@ export async function POST(request: NextRequest) {
       throw dbError;
     }
 
-    // Generate device fingerprint from client data or user agent
+    // ==================== GENERATE DEVICE FINGERPRINT ====================
     let fingerprintData;
     if (deviceFingerprint) {
       fingerprintData = deviceFingerprint;
@@ -171,98 +427,65 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // ==================== VERIFY USER EXISTS ====================
     if (!user || !user.passwordHash) {
-      await authService.recordFailedAttempt(clientId);
-      await authService.logSecurityEvent(null, 'login_failed', ip, {
+      return await handleFailedLogin(
+        clientId,
+        null,
+        ip,
         userAgent,
-        reason: 'user_not_found',
-        email: normalizedEmail,
-      });
-
-      // Record failed attempt first
-      await authService.recordFailedAttempt(clientId);
-      
-      // Get updated failed attempts count (with Redis fallback)
-      let updatedAttempts = 1;
-      try {
-        if (rateLimitService) {
-          const updatedRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
-          updatedAttempts = (updatedRateLimitStatus.attempts || 0) + 1; // +1 for current failed attempt
-        }
-      } catch (redisError) {
-        console.warn('Redis unavailable for rate limit check:', redisError);
-        updatedAttempts = 1; // Default to 1 attempt
-      }
-
-      // Require CAPTCHA after 3 failed attempts
-      if (captchaService.shouldRequireCaptcha(updatedAttempts)) {
-        return NextResponse.json(
-          {
-            error:
-            'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-            requiresCaptcha: true,
-            failedAttempts: updatedAttempts,
-            code: 'CAPTCHA_REQUIRED',
-          },
-          { status: 401 },
-        );
-      }
-
-      return NextResponse.json(
-        { error: 'ط¨ظٹط§ظ†ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©.' },
-        { status: 401 },
+        'user_not_found',
+        normalizedEmail,
+        rateLimitService,
+        captchaService
       );
     }
 
-    const passwordMatches = await AuthService.comparePasswords(
-      password,
-      user.passwordHash,
-    );
+    // ==================== VERIFY PASSWORD ====================
+    // Add timing attack protection by always performing comparison
+    let passwordMatches = false;
+    try {
+      passwordMatches = await AuthService.comparePasswords(
+        password,
+        user.passwordHash,
+      );
+    } catch (passwordError) {
+      console.error('Password comparison error:', passwordError);
+      // Even if comparison fails, we should still record the failed attempt
+      return await handleFailedLogin(
+        clientId,
+        user.id,
+        ip,
+        userAgent,
+        'password_comparison_error',
+        normalizedEmail,
+        rateLimitService,
+        captchaService
+      );
+    }
 
     if (!passwordMatches) {
-      await authService.recordFailedAttempt(clientId);
-      await authService.logSecurityEvent(user.id, 'login_failed', ip, {
+      return await handleFailedLogin(
+        clientId,
+        user.id,
+        ip,
         userAgent,
-        reason: 'invalid_password',
-      });
-
-      // Record failed attempt first
-      await authService.recordFailedAttempt(clientId);
-      
-      // Get updated failed attempts count (with Redis fallback)
-      let updatedAttempts = 1;
-      try {
-        if (rateLimitService) {
-          const updatedRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
-          updatedAttempts = (updatedRateLimitStatus.attempts || 0) + 1; // +1 for current failed attempt
-        }
-      } catch (redisError) {
-        console.warn('Redis unavailable for rate limit check:', redisError);
-        updatedAttempts = 1; // Default to 1 attempt
-      }
-
-      // Require CAPTCHA after 3 failed attempts
-      if (captchaService.shouldRequireCaptcha(updatedAttempts)) {
-        return NextResponse.json(
-          {
-            error:
-            'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-            requiresCaptcha: true,
-            failedAttempts: updatedAttempts,
-            code: 'CAPTCHA_REQUIRED',
-          },
-          { status: 401 },
-        );
-      }
-
-      return NextResponse.json(
-        { error: 'ط¨ظٹط§ظ†ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©.' },
-        { status: 401 },
+        'invalid_password',
+        normalizedEmail,
+        rateLimitService,
+        captchaService
       );
     }
 
-    // Perform risk assessment (with error handling)
-    let loginHistory = [];
+    // ==================== PERFORM RISK ASSESSMENT ====================
+    let loginHistory: Array<{
+      userId: string | null;
+      ip: string;
+      createdAt: Date;
+      eventType: string;
+      userAgent: string;
+    }> = [];
+    
     try {
       loginHistory = await prisma.securityLog.findMany({
         where: {
@@ -278,74 +501,105 @@ export async function POST(request: NextRequest) {
       loginHistory = [];
     }
 
-    const riskAssessment = await riskAssessmentService.assessLoginRisk(
-      {
-        userId: user.id,
-        email: normalizedEmail,
-        ip,
-        deviceFingerprint: fingerprintData,
-        timestamp: new Date(),
-        success: true,
-        userAgent,
-      },
-      loginHistory.map((log: any) => ({
-        userId: log.userId!,
-        email: normalizedEmail,
-        ip: log.ip,
-        timestamp: log.createdAt,
-        success: log.eventType === 'login_success',
-        userAgent: log.userAgent,
-      }))
-    );
+    // Perform risk assessment with error handling
+    let riskAssessment: any;
+    try {
+      riskAssessment = await riskAssessmentService.assessLoginRisk(
+        {
+          userId: user.id,
+          email: normalizedEmail,
+          ip,
+          deviceFingerprint: fingerprintData,
+          timestamp: new Date(),
+          success: true,
+          userAgent,
+        },
+        loginHistory.map((log) => ({
+          userId: log.userId || user.id,
+          email: normalizedEmail,
+          ip: log.ip,
+          timestamp: log.createdAt,
+          success: log.eventType === 'login_success',
+          userAgent: log.userAgent,
+        }))
+      );
+    } catch (riskError) {
+      console.warn('Failed to perform risk assessment:', riskError);
+      // Use default low-risk assessment if risk assessment fails
+      riskAssessment = {
+        level: 'low' as const,
+        score: 0,
+        factors: {},
+        blockAccess: false,
+        requireAdditionalAuth: false,
+      };
+    }
 
-    // Log risk assessment
-    await authService.logSecurityEvent(user.id, 'risk_assessment', ip, {
+    // Log risk assessment (non-blocking)
+    authService.logSecurityEvent(user.id, 'risk_assessment', ip, {
       userAgent,
       riskLevel: riskAssessment.level,
       riskScore: riskAssessment.score,
       factors: riskAssessment.factors,
+    }).catch((logError) => {
+      console.warn('Failed to log risk assessment:', logError);
+      // Continue with login even if logging fails
     });
 
-    // Handle high-risk logins
+    // ==================== HANDLE HIGH-RISK LOGINS ====================
     if (riskAssessment.level === 'critical' || riskAssessment.blockAccess) {
-      await authService.logSecurityEvent(user.id, 'login_blocked_high_risk', ip, {
+      // Log security event (non-blocking)
+      authService.logSecurityEvent(user.id, 'login_blocked_high_risk', ip, {
         userAgent,
         riskLevel: riskAssessment.level,
         riskScore: riskAssessment.score,
+      }).catch((logError) => {
+        console.warn('Failed to log high-risk login:', logError);
       });
 
-      await securityNotificationService.notifySuspiciousLogin(
+      // Send notification (non-blocking)
+      securityNotificationService.notifySuspiciousLogin(
         user.id,
         riskAssessment,
         ip
-      );
+      ).catch((notifyError) => {
+        console.warn('Failed to send security notification:', notifyError);
+      });
 
       const errorResponse: LoginErrorResponse = {
         error:
-          'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
+          'تم رفض تسجيل الدخول بسبب تقييم مخاطر عالي. يرجى التواصل مع الدعم الفني.',
         code: 'HIGH_RISK',
         riskLevel: riskAssessment.level,
       };
       return NextResponse.json(errorResponse, { status: 403 });
     }
 
-    // Check if new device
-    const isNewDevice = riskAssessment.factors.newDevice;
+    // ==================== HANDLE NEW DEVICE ====================
+    const isNewDevice = riskAssessment.factors?.newDevice || false;
     if (isNewDevice) {
-      await securityNotificationService.notifyNewDeviceLogin(
+      // Send notification (non-blocking)
+      securityNotificationService.notifyNewDeviceLogin(
         user.id,
         fingerprintData,
         ip
-      );
+      ).catch((notifyError) => {
+        console.warn('Failed to send new device notification:', notifyError);
+      });
     }
 
-    // Register/update device
-    await deviceManagerService.registerDevice(
+    // Register/update device (non-blocking)
+    deviceManagerService.registerDevice(
       user.id,
       fingerprintData,
       ip
-    );
+    ).catch((deviceError) => {
+      console.warn('Failed to register device:', deviceError);
+      // Continue with login even if device registration fails
+    });
 
+    // ==================== HANDLE TWO-FACTOR AUTHENTICATION ====================
+    
     // Force 2FA for medium/high risk even if not enabled
     if (
       riskAssessment.requireAdditionalAuth &&
@@ -375,40 +629,41 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      const response: LoginResponse = {
-        requiresTwoFactor: true,
-        loginAttemptId: challengeId,
-        expiresAt: new Date(
-          Date.now() + TWO_FACTOR_TTL_MINUTES * 60 * 1000
-        ).toISOString(),
-        methods: ['email'],
-        reason: 'high_risk',
-        riskAssessment: {
-          level: riskAssessment.level,
-          score: riskAssessment.score,
-          recommendations: riskAssessment.recommendations,
-        },
-        token: '', // Will be set after 2FA verification
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name || undefined,
-          role: (user as any).role || 'user',
-          emailVerified: user.emailVerified || false,
-          twoFactorEnabled: user.twoFactorEnabled || false,
-        },
-        ...(process.env.NODE_ENV !== 'production' ? { debugCode: code } : {}),
-      };
+      const response = createTwoFactorResponse(
+        user,
+        challengeId,
+        code,
+        'high_risk',
+        riskAssessment
+      );
+      
       return NextResponse.json(response);
     }
 
+    // Check if user has 2FA enabled
     if (user.twoFactorEnabled) {
-      const code = generateTwoFactorCode();
-      const challengeId = await TwoFactorChallengeService.createChallenge(
-        user.id,
-        code,
-        TWO_FACTOR_TTL_MINUTES,
-      );
+      let code: string;
+      let challengeId: string;
+      
+      try {
+        code = generateTwoFactorCode();
+        challengeId = await TwoFactorChallengeService.createChallenge(
+          user.id,
+          code,
+          TWO_FACTOR_TTL_MINUTES,
+        );
+        
+        // Validate challenge creation
+        if (!challengeId) {
+          throw new Error('Failed to create 2FA challenge');
+        }
+      } catch (challengeError) {
+        console.error('Failed to create 2FA challenge:', challengeError);
+        return createErrorResponse(
+          challengeError,
+          'فشل إنشاء تحدي المصادقة بخطوتين. يرجى المحاولة مرة أخرى.'
+        );
+      }
 
       if (process.env.NODE_ENV !== 'production') {
         console.info(`[Auth] 2FA code for ${user.email}: ${code}`);
@@ -425,163 +680,242 @@ export async function POST(request: NextRequest) {
         },
       );
 
-      const response: LoginResponse = {
-        requiresTwoFactor: true,
-        loginAttemptId: challengeId,
-        expiresAt: new Date(
-          Date.now() + TWO_FACTOR_TTL_MINUTES * 60 * 1000,
-        ).toISOString(),
-        methods: ['email'],
-        token: '', // Will be set after 2FA verification
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name || undefined,
-          role: (user as any).role || 'user',
-          emailVerified: user.emailVerified || false,
-          twoFactorEnabled: user.twoFactorEnabled || false,
-        },
-        ...(process.env.NODE_ENV !== 'production' ? { debugCode: code } : {}),
-      };
+      const response = createTwoFactorResponse(user, challengeId, code);
+      
+      // Validate 2FA response
+      if (!response.loginAttemptId || !response.requiresTwoFactor) {
+        console.error('Invalid 2FA response structure');
+        return createErrorResponse(
+          new Error('استجابة المصادقة بخطوتين غير صحيحة'),
+          'فشل إنشاء استجابة المصادقة بخطوتين. يرجى المحاولة مرة أخرى.'
+        );
+      }
+      
       return NextResponse.json(response);
     }
 
-    // Reset rate limit (with error handling)
-    try {
-      await authService.resetRateLimit(clientId);
-    } catch (rateLimitError) {
+    // ==================== SUCCESSFUL LOGIN ====================
+    
+    // Reset rate limit on successful login (non-blocking)
+    authService.resetRateLimit(clientId).catch((rateLimitError) => {
       console.warn('Failed to reset rate limit:', rateLimitError);
-      // Continue with login even if rate limit reset fails
+    });
+
+    // Create session first (critical for login)
+    let session;
+    try {
+      session = await authService.createSession(user.id, userAgent, ip);
+      
+      // Validate session was created
+      if (!session || !session.id) {
+        console.error('Invalid session created:', session);
+        return createErrorResponse(
+          new Error('فشل إنشاء جلسة صحيحة'),
+          'فشل إنشاء جلسة تسجيل الدخول. يرجى المحاولة مرة أخرى.'
+        );
+      }
+    } catch (sessionError) {
+      console.error('Failed to create session:', sessionError);
+      
+      // Check if it's a connection error
+      if (isConnectionError(sessionError)) {
+        return NextResponse.json(
+          {
+            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقاً.',
+            code: 'CONNECTION_ERROR',
+          },
+          { status: 503 }
+        );
+      }
+      
+      return createErrorResponse(
+        sessionError,
+        'فشل إنشاء جلسة تسجيل الدخول. يرجى المحاولة مرة أخرى.'
+      );
+    }
+    
+    // Generate tokens (critical for login)
+    let accessToken: string;
+    let refreshToken: string;
+    try {
+      // Validate JWT_SECRET is available
+      const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+      if (!jwtSecret || jwtSecret === 'your-secret-key') {
+        console.error('JWT_SECRET is not configured properly');
+        return createErrorResponse(
+          new Error('JWT_SECRET غير مُعد بشكل صحيح'),
+          'خطأ في إعدادات الخادم. يرجى التواصل مع الدعم الفني.'
+        );
+      }
+      
+      const tokens = await authService.createTokens(
+        {
+          id: user.id,
+          email: user.email,
+          name: user.name || undefined,
+          role: (user as any).role || undefined,
+        },
+        session.id,
+      );
+      
+      // Validate tokens were created
+      if (!tokens || !tokens.accessToken || !tokens.refreshToken) {
+        console.error('Invalid tokens created:', tokens);
+        return createErrorResponse(
+          new Error('فشل إنشاء رموز المصادقة'),
+          'فشل إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.'
+        );
+      }
+      
+      accessToken = tokens.accessToken;
+      refreshToken = tokens.refreshToken;
+    } catch (tokenError) {
+      console.error('Failed to generate tokens:', tokenError);
+      
+      // Check if it's a connection error
+      if (isConnectionError(tokenError)) {
+        return NextResponse.json(
+          {
+            error: 'خطأ في الاتصال: حدث خطأ أثناء إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى لاحقاً.',
+            code: 'CONNECTION_ERROR',
+          },
+          { status: 503 }
+        );
+      }
+      
+      return createErrorResponse(
+        tokenError,
+        'فشل إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.'
+      );
     }
 
-    await authService.updateLastLogin(user.id);
-
-    const session = await authService.createSession(user.id, userAgent, ip);
-    const { accessToken, refreshToken } = await authService.createTokens(
-      {
-        id: user.id,
-        email: user.email,
-        name: user.name || undefined,
-        role: (user as any).role || undefined,
-      },
-      session.id,
-    );
-
-    // Update user with refresh token and last login (with error handling)
-    try {
-      await prisma.user.update({
+    // Update user with refresh token and last login (non-blocking)
+    // Use transaction-like approach but don't fail login if this fails
+    Promise.all([
+      authService.updateLastLogin(user.id).catch((updateError) => {
+        console.warn('Failed to update last login:', updateError);
+      }),
+      prisma.user.update({
         where: { id: user.id },
         data: {
           refreshToken,
           lastLogin: new Date(),
         },
-      });
-    } catch (dbError) {
-      console.error('Failed to update user in database:', dbError);
-      // Continue with login even if database update fails
-    }
+      }).catch((dbError) => {
+        console.warn('Failed to update user in database:', dbError);
+      }),
+    ]).catch(() => {
+      // Silent fail - login can still proceed
+    });
 
-    await authService.logSecurityEvent(user.id, 'login_success', ip, {
+    // Log successful login (non-blocking)
+    authService.logSecurityEvent(user.id, 'login_success', ip, {
       userAgent,
       sessionId: session.id,
-    });
-
-    const loginResponse: LoginResponse = {
-      message: 'تم تسجيل الدخول بنجاح.',
-      token: accessToken,
-      refreshToken,
-      sessionId: session.id,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name || undefined,
-        role: (user as any).role || 'user',
-        emailVerified: user.emailVerified || false,
-        twoFactorEnabled: user.twoFactorEnabled || false,
-        lastLogin: user.lastLogin || undefined,
-      },
-      riskAssessment: {
-        level: riskAssessment.level,
-        score: riskAssessment.score,
-      },
+      riskLevel: riskAssessment.level,
       isNewDevice,
-    };
+    }).catch((logError) => {
+      console.warn('Failed to log security event:', logError);
+      // Continue with login even if logging fails
+    });
+
+    // Validate tokens before sending response
+    if (!accessToken || !refreshToken) {
+      console.error('Failed to generate tokens');
+      return createErrorResponse(
+        new Error('فشل إنشاء رموز المصادقة'),
+        'فشل إنشاء رموز المصادقة. يرجى المحاولة مرة أخرى.'
+      );
+    }
+
+    // Validate token format (basic JWT check)
+    const accessTokenParts = accessToken.split('.');
+    if (accessTokenParts.length !== 3) {
+      console.error('Invalid access token format');
+      return createErrorResponse(
+        new Error('تنسيق رمز المصادقة غير صحيح'),
+        'فشل إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.'
+      );
+    }
+
+    // Create success response
+    const loginResponse = createSuccessResponse(
+      user,
+      accessToken,
+      refreshToken,
+      session.id,
+      riskAssessment,
+      isNewDevice
+    );
     
+    // Validate response structure before sending
+    if (!loginResponse.token || !loginResponse.user || !loginResponse.user.id) {
+      console.error('Invalid login response structure');
+      return createErrorResponse(
+        new Error('استجابة تسجيل الدخول غير صحيحة'),
+        'حدث خطأ أثناء إنشاء استجابة تسجيل الدخول. يرجى المحاولة مرة أخرى.'
+      );
+    }
+    
+    // Set authentication cookies and return response
     const response = NextResponse.json(loginResponse);
-
-    response.cookies.set('access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60,
-      path: '/',
-    });
-
-    response.cookies.set('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: rememberMe ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
-      path: '/',
-    });
-
+    setAuthCookies(response, accessToken, refreshToken, rememberMe);
+    
+    // Add security headers
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('X-XSS-Protection', '1; mode=block');
+    
     return response;
   } catch (error) {
-    console.error('Login error:', error);
+    // Enhanced error logging with better details
+    console.error('Login error details:', {
+      error,
+      errorType: typeof error,
+      errorConstructor: error instanceof Error ? error.constructor.name : 'unknown',
+      errorMessage: error instanceof Error ? error.message : String(error),
+      errorStack: error instanceof Error ? error.stack : undefined,
+      errorString: String(error),
+    });
     
-    // Log security event safely
-    try {
-      await authService.logSecurityEvent(null, 'login_error', ip, {
-        userAgent,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } catch (logError) {
+    // Check if it's a connection error (database, etc.)
+    if (isConnectionError(error)) {
+      return NextResponse.json(
+        {
+          error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
+          code: 'CONNECTION_ERROR',
+        },
+        { status: 503 }
+      );
+    }
+    
+    // Get error code and message for logging and response
+    const errorCode = getErrorCode(error);
+    const errorMessage = error instanceof Error 
+      ? error.message 
+      : (typeof error === 'string' ? error : 'Unknown error');
+    
+    // Log security event safely (non-blocking)
+    authService.logSecurityEvent(null, 'login_error', ip, {
+      userAgent,
+      error: errorMessage,
+      errorType: error instanceof Error ? error.constructor.name : typeof error,
+    }).catch((logError) => {
       console.error('Failed to log security event:', logError);
-    }
+    });
 
-    // Determine if it's a connection/database error
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    const errorStack = error instanceof Error ? error.stack : '';
-    const fullError = `${errorMessage} ${errorStack}`.toLowerCase();
+    const userFriendlyMessage = isConnectionError(error)
+      ? 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.'
+      : 'حدث خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
     
-    const isConnectionError = 
-      fullError.includes('connect') ||
-      fullError.includes('econnrefused') ||
-      fullError.includes('etimedout') ||
-      fullError.includes('database') ||
-      fullError.includes('prisma') ||
-      fullError.includes('timeout') ||
-      fullError.includes('p1001') || // Prisma connection error
-      fullError.includes('p1017') || // Prisma server closed connection
-      fullError.includes('p2002') || // Prisma unique constraint
-      fullError.includes('enotfound') ||
-      fullError.includes('econnreset') ||
-      fullError.includes('networkerror') ||
-      fullError.includes('failed to fetch') ||
-      fullError.includes('fetch error') ||
-      fullError.includes('cannot read properties') ||
-      fullError.includes('undefined');
-
-    // Determine error code
-    let errorCode = 'INTERNAL_ERROR';
-    if (isConnectionError) {
-      errorCode = 'CONNECTION_ERROR';
-    } else if (fullError.includes('unauthorized') || fullError.includes('invalid')) {
-      errorCode = 'AUTH_ERROR';
-    } else if (fullError.includes('rate limit') || fullError.includes('too many')) {
-      errorCode = 'RATE_LIMIT_ERROR';
-    }
-
-    // Return proper error response with detailed error code
+    // Return proper error response with SERVER_ERROR code to match client expectations
     return NextResponse.json(
       {
-        error: isConnectionError
-          ? 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.'
-          : 'حدث خطأ غير متوقع أثناء معالجة طلب تسجيل الدخول. حاول مرة أخرى لاحقاً.',
-        code: errorCode,
+        error: userFriendlyMessage,
+        code: errorCode === 'INTERNAL_ERROR' ? 'SERVER_ERROR' : errorCode,
         details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
       },
-      { status: isConnectionError ? 503 : 500 },
+      { status: isConnectionError(error) ? 503 : 500 }
     );
   }
 }

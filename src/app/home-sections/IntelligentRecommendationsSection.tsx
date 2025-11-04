@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
 import { Button } from "@/shared/button";
+import { safeFetch } from "@/lib/safe-client-utils";
 import { 
   Sparkles, 
   TrendingUp, 
@@ -41,17 +42,22 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
     const fetchRecommendations = async () => {
       try {
         setLoading(true);
-        const response = await fetch("/api/recommendations");
-        if (response.ok) {
-          const data = await response.json();
-          setRecommendations(data.recommendations || []);
-        } else {
-          // Fallback to mock data
-          setRecommendations(getMockRecommendations());
+        const { data, error } = await safeFetch<{ recommendations: Recommendation[] }>(
+          "/api/recommendations",
+          undefined,
+          null
+        );
+
+        if (error || !data) {
+          console.warn("Failed to fetch recommendations:", error);
+          setRecommendations([]);
+          return;
         }
+
+        setRecommendations(data.recommendations || []);
       } catch (error) {
-        console.warn("Failed to fetch recommendations, using mock data");
-        setRecommendations(getMockRecommendations());
+        console.error("Error fetching recommendations:", error);
+        setRecommendations([]);
       } finally {
         setLoading(false);
       }
@@ -60,66 +66,6 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
     fetchRecommendations();
   }, []);
 
-  const getMockRecommendations = (): Recommendation[] => [
-    {
-      id: "1",
-      type: "study_plan",
-      title: "خطة دراسة مخصصة للرياضيات",
-      description: "بناءً على أدائك الأخير، نوصي بتخصيص 45 دقيقة يومياً للرياضيات مع التركيز على الجبر",
-      priority: "high",
-      impact: 92,
-      estimatedTime: "45 دقيقة",
-      category: "study_plan",
-      icon: <Target className="h-5 w-5" />,
-      actionUrl: "/schedule"
-    },
-    {
-      id: "2",
-      type: "task",
-      title: "مراجعة الفصل الثالث في العلوم",
-      description: "حان وقت مراجعة المواد التي درستها قبل 3 أيام لتحسين الاست retention",
-      priority: "high",
-      impact: 88,
-      estimatedTime: "30 دقيقة",
-      category: "task",
-      icon: <BookOpen className="h-5 w-5" />,
-      actionUrl: "/tasks"
-    },
-    {
-      id: "3",
-      type: "resource",
-      title: "مصادر إضافية للفيزياء",
-      description: "اكتشف مجموعة من الفيديوهات والتمارين التفاعلية التي ستساعدك في فهم الميكانيكا",
-      priority: "medium",
-      impact: 75,
-      category: "resource",
-      icon: <Lightbulb className="h-5 w-5" />,
-      actionUrl: "/resources"
-    },
-    {
-      id: "4",
-      type: "exam_prep",
-      title: "اختبار تجريبي للغة العربية",
-      description: "جاهز لاختبار نفسك؟ لدينا اختبار تجريبي مصمم بناءً على نقاط ضعفك المكتشفة",
-      priority: "high",
-      impact: 95,
-      estimatedTime: "60 دقيقة",
-      category: "exam_prep",
-      icon: <CheckCircle2 className="h-5 w-5" />,
-      actionUrl: "/exams"
-    },
-    {
-      id: "5",
-      type: "tip",
-      title: "تقنية Pomodoro للتركيز",
-      description: "جرب تقنية 25 دقيقة دراسة + 5 دقائق راحة لزيادة إنتاجيتك بنسبة 40%",
-      priority: "medium",
-      impact: 70,
-      category: "tip",
-      icon: <Zap className="h-5 w-5" />,
-      actionUrl: "/time"
-    }
-  ];
 
   const categories = [
     { id: "all", label: "الكل", icon: <Sparkles className="h-4 w-4" /> },

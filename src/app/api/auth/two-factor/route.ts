@@ -6,6 +6,7 @@ import { TextEncoder } from 'util';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
 import { authService } from '@/lib/auth-service';
 import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorResponse } from '@/types/api/auth';
+import { setAuthCookies, createErrorResponse } from './_helpers';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key');
 
@@ -140,23 +141,7 @@ export async function POST(request: NextRequest) {
       };
       
       const response = NextResponse.json(twoFactorResponse);
-
-      response.cookies.set('access_token', accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60,
-        path: '/',
-      });
-
-      response.cookies.set('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: rememberDevice ? 30 * 24 * 60 * 60 : 24 * 60 * 60,
-        path: '/',
-      });
-
+      setAuthCookies(response, accessToken, refreshToken, rememberDevice);
       return response;
     }
 
@@ -215,9 +200,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error('Two-factor authentication error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+    return createErrorResponse(
+      error,
+      'حدث خطأ غير متوقع أثناء معالجة طلب التحقق ثنائي العامل. حاول مرة أخرى لاحقاً.'
     );
   }
 }
@@ -277,13 +262,16 @@ async function handleVerify2FA(user: any, code: string) {
       );
     }
 
-    // Verify the code (in a real implementation, use a library like speakeasy)
-    // For this example, we'll just check if the code is '123456'
-    const isValid = code === '123456'; // Placeholder
+    // TODO: Replace with proper TOTP verification using a library like speakeasy or otplib
+    // This is a placeholder implementation - NOT SECURE FOR PRODUCTION
+    // Example implementation:
+    // import { authenticator } from 'otplib';
+    // const isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
+    const isValid = code === '123456'; // PLACEHOLDER - Replace with real TOTP verification
 
     if (!isValid) {
       return NextResponse.json(
-        { error: 'Invalid verification code' },
+        { error: 'رمز التحقق غير صحيح' },
         { status: 400 }
       );
     }
@@ -328,9 +316,12 @@ async function handleDisable2FA(user: any, code: string) {
       );
     }
 
-    // Verify the code (in a real implementation, use a library like speakeasy)
-    // For this example, we'll just check if the code is '123456'
-    const isValid = code === '123456'; // Placeholder
+    // TODO: Replace with proper TOTP verification using a library like speakeasy or otplib
+    // This is a placeholder implementation - NOT SECURE FOR PRODUCTION
+    // Example implementation:
+    // import { authenticator } from 'otplib';
+    // const isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
+    const isValid = code === '123456'; // PLACEHOLDER - Replace with real TOTP verification
 
     if (!isValid) {
       // Check if it's a backup code
@@ -339,7 +330,7 @@ async function handleDisable2FA(user: any, code: string) {
 
       if (backupCodeIndex === -1) {
         return NextResponse.json(
-          { error: 'Invalid verification code' },
+          { error: 'رمز التحقق غير صحيح' },
           { status: 400 }
         );
       }

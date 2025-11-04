@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
 import { Progress } from "@/shared/progress";
+import { safeFetch } from "@/lib/safe-client-utils";
+import { getSafeUserId } from "@/lib/safe-client-utils";
 import { 
   TrendingUp,
   Target,
@@ -32,17 +34,26 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
 
   useEffect(() => {
     const fetchPredictions = async () => {
+      const userId = getSafeUserId();
+      
       try {
-        // In production, this would call an AI-powered prediction API
-        const response = await fetch("/api/analytics/predictions");
-        if (response.ok) {
-          const data = await response.json();
-          setPredictions(data.predictions || []);
-        } else {
-          setPredictions(getMockPredictions());
+        const { data, error } = await safeFetch<{ predictions: Prediction[] }>(
+          `/api/analytics/predictions${userId ? `?userId=${userId}` : ''}`,
+          undefined,
+          null
+        );
+
+        if (error || !data) {
+          console.warn("Failed to fetch predictions:", error);
+          setPredictions([]);
+          setLoading(false);
+          return;
         }
-      } catch {
-        setPredictions(getMockPredictions());
+
+        setPredictions(data.predictions || []);
+      } catch (error) {
+        console.error("Error fetching predictions:", error);
+        setPredictions([]);
       } finally {
         setLoading(false);
       }
@@ -50,39 +61,6 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
 
     fetchPredictions();
   }, []);
-
-  const getMockPredictions = (): Prediction[] => [
-    {
-      period: "الأسبوع القادم",
-      predictedScore: 87,
-      confidence: 85,
-      milestones: [
-        { date: "2024-01-15", goal: "إكمال 20 ساعة دراسة", status: "upcoming" },
-        { date: "2024-01-18", goal: "مراجعة جميع الدروس", status: "upcoming" },
-        { date: "2024-01-20", goal: "اختبار تجريبي", status: "upcoming" }
-      ],
-      recommendations: [
-        "ركز على مراجعة المواد الضعيفة لمدة 30 دقيقة يومياً",
-        "احرص على جلسات دراسة قصيرة متكررة",
-        "خذ استراحات منتظمة للحفاظ على التركيز"
-      ]
-    },
-    {
-      period: "الشهر القادم",
-      predictedScore: 92,
-      confidence: 78,
-      milestones: [
-        { date: "2024-01-25", goal: "إكمال 100 ساعة إجمالية", status: "upcoming" },
-        { date: "2024-02-01", goal: "إنجاز سلسلة 30 يوم", status: "upcoming" },
-        { date: "2024-02-10", goal: "اختبار منتصف الفصل", status: "upcoming" }
-      ],
-      recommendations: [
-        "استمر في الالتزام بجدولك الدراسي اليومي",
-        "شارك في المناقشات الجماعية لتعزيز الفهم",
-        "استخدم تقنيات الاستذكار المتقدم"
-      ]
-    }
-  ];
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 80) return "text-green-600 bg-green-100";

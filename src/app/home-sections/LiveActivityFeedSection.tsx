@@ -4,6 +4,8 @@ import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/shared/card";
 import { Badge } from "@/shared/badge";
+import { safeFetch } from "@/lib/safe-client-utils";
+import { getSafeUserId } from "@/lib/safe-client-utils";
 import { 
   Activity,
   Clock,
@@ -36,112 +38,68 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
   const [isLive, setIsLive] = useState(true);
 
   useEffect(() => {
-    // Simulate live updates
-    const interval = setInterval(() => {
-      // In production, this would be a WebSocket or polling connection
-      const newActivity = generateRandomActivity();
-      setActivities(prev => [newActivity, ...prev.slice(0, 9)]);
-    }, 8000);
+    const fetchActivities = async () => {
+      const userId = getSafeUserId();
+      
+      try {
+        // Fetch real activities from API
+        const { data, error } = await safeFetch<ActivityItem[]>(
+          `/api/notifications${userId ? `?userId=${userId}` : ''}`,
+          undefined,
+          []
+        );
 
-    // Load initial activities
-    setActivities(generateInitialActivities());
+        if (!error && data && data.length > 0) {
+          // Transform API data to ActivityItem format
+          const transformedActivities = data.map((notification: any) => ({
+            id: notification.id || `activity-${Date.now()}-${Math.random()}`,
+            type: notification.type || "notification",
+            title: notification.title || "إشعار جديد",
+            description: notification.message || notification.description || "",
+            timestamp: new Date(notification.createdAt || notification.timestamp || Date.now()),
+            icon: <Bell className="h-5 w-5" />,
+            color: "text-blue-600 bg-blue-100",
+            user: notification.userId
+          }));
+
+          setActivities(transformedActivities);
+        } else {
+          // If no notifications, try to get study sessions
+          const { data: sessionsData } = await safeFetch<any[]>(
+            `/api/study-sessions${userId ? `?userId=${userId}` : ''}`,
+            undefined,
+            []
+          );
+
+          if (sessionsData && sessionsData.length > 0) {
+            const sessionActivities = sessionsData.slice(0, 5).map((session: any) => ({
+              id: `session-${session.id}`,
+              type: "study_session" as const,
+              title: `جلسة دراسة: ${session.subject || 'عام'}`,
+              description: `${session.duration || 0} دقيقة من الدراسة`,
+              timestamp: new Date(session.createdAt || session.timestamp || Date.now()),
+              icon: <BookOpen className="h-5 w-5" />,
+              color: "text-blue-600 bg-blue-100"
+            }));
+
+            setActivities(sessionActivities);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching activities:", error);
+        // Keep empty array instead of showing fake data
+        setActivities([]);
+      }
+    };
+
+    fetchActivities();
+
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchActivities, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
-  const generateRandomActivity = (): ActivityItem => {
-    const types = [
-      {
-        type: "achievement" as const,
-        title: "إنجاز جديد: سلسلة 7 أيام!",
-        description: "أكملت 7 أيام متتالية من الدراسة",
-        icon: <Trophy className="h-5 w-5" />,
-        color: "text-yellow-600 bg-yellow-100"
-      },
-      {
-        type: "task_completed" as const,
-        title: "مهمة مكتملة: مراجعة الرياضيات",
-        description: "تم إكمال جميع التمارين المخصصة",
-        icon: <CheckCircle2 className="h-5 w-5" />,
-        color: "text-green-600 bg-green-100"
-      },
-      {
-        type: "study_session" as const,
-        title: "جلسة دراسة جديدة",
-        description: "45 دقيقة من الدراسة المكثفة",
-        icon: <BookOpen className="h-5 w-5" />,
-        color: "text-blue-600 bg-blue-100"
-      },
-      {
-        type: "milestone" as const,
-        title: "معلم جديد: 100 ساعة دراسة!",
-        description: "وصلت إلى 100 ساعة إجمالية",
-        icon: <TrendingUp className="h-5 w-5" />,
-        color: "text-purple-600 bg-purple-100"
-      }
-    ];
-
-    const random = types[Math.floor(Math.random() * types.length)];
-    return {
-      id: `activity-${Date.now()}-${Math.random()}`,
-      type: random.type,
-      title: random.title,
-      description: random.description,
-      timestamp: new Date(),
-      icon: random.icon,
-      color: random.color
-    };
-  };
-
-  const generateInitialActivities = (): ActivityItem[] => {
-    return [
-      {
-        id: "1",
-        type: "achievement",
-        title: "إنجاز: سلسلة 5 أيام",
-        description: "حافظت على سلسلة الدراسة لمدة 5 أيام متتالية",
-        timestamp: new Date(Date.now() - 2 * 60 * 1000),
-        icon: <Trophy className="h-5 w-5" />,
-        color: "text-yellow-600 bg-yellow-100"
-      },
-      {
-        id: "2",
-        type: "task_completed",
-        title: "مهمة مكتملة: مراجعة الفصل الثالث",
-        description: "تم إكمال مراجعة الفصل الثالث في العلوم",
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
-        icon: <CheckCircle2 className="h-5 w-5" />,
-        color: "text-green-600 bg-green-100"
-      },
-      {
-        id: "3",
-        type: "study_session",
-        title: "جلسة دراسة: الرياضيات",
-        description: "45 دقيقة من الدراسة المكثفة في الجبر",
-        timestamp: new Date(Date.now() - 30 * 60 * 1000),
-        icon: <BookOpen className="h-5 w-5" />,
-        color: "text-blue-600 bg-blue-100"
-      },
-      {
-        id: "4",
-        type: "milestone",
-        title: "معلم: 50 ساعة إجمالية",
-        description: "وصلت إلى 50 ساعة من إجمالي وقت الدراسة",
-        timestamp: new Date(Date.now() - 60 * 60 * 1000),
-        icon: <TrendingUp className="h-5 w-5" />,
-        color: "text-purple-600 bg-purple-100"
-      },
-      {
-        id: "5",
-        type: "notification",
-        title: "تذكير: اختبار قريب",
-        description: "يوجد اختبار في اللغة العربية بعد 3 أيام",
-        timestamp: new Date(Date.now() - 90 * 60 * 1000),
-        icon: <Bell className="h-5 w-5" />,
-        color: "text-orange-600 bg-orange-100"
-      }
-    ];
-  };
 
   const formatTime = (date: Date) => {
     try {

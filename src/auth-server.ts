@@ -1,54 +1,26 @@
 // Server-only auth configuration
+// Note: This file previously used next-auth, but we've migrated to a custom auth system
+// This file is kept for backward compatibility but no longer uses next-auth
 import 'server-only';
 
-import NextAuth, { NextAuthOptions } from 'next-auth'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import { prisma } from './lib/prisma'
-
-// NextAuth v4 configuration
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  providers: [
-    // يمكن إضافة المزيد من مزودي المصادقة هنا
-  ],
-  session: {
-    strategy: 'jwt',
-  },
-  callbacks: {
-    async session({ session, token }) {
-      if (token && session.user) {
-        session.user.id = token.sub as string
-      }
-      return session
-    },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id
-      }
-      return token
-    },
-  },
-  pages: {
-    // يمكن تخصيص صفحات المصادقة هنا
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-}
-
-// Create NextAuth instance
-const nextAuth = NextAuth(authOptions)
-
-// Export handler for API routes (NextAuth v4 pattern)
-export default nextAuth
+// Removed next-auth imports - using custom auth system instead
+// import NextAuth, { NextAuthOptions } from 'next-auth'
+// import { PrismaAdapter } from '@next-auth/prisma-adapter'
+// import { prisma } from './lib/prisma'
 
 // Export auth function for server-side usage
+// Returns null since we're using custom auth system (see src/lib/auth-service.ts)
 export const auth = async () => {
   try {
-    // For NextAuth v4, you would use getServerSession from next-auth/next
-    // This is a placeholder that returns null to prevent errors
+    // Using custom auth system - see src/lib/auth-service.ts
+    // This function is kept for backward compatibility
     return null
   } catch (error) {
     console.error('Auth error:', error)
     return null
   }
 }
+
+// Placeholder export for backward compatibility
+export default auth
 

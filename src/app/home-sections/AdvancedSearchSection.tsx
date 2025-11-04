@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/shared/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/shared/button";
 import { Badge } from "@/shared/badge";
+import { safeFetch } from "@/lib/safe-client-utils";
 import { 
   Search,
   FileText,
@@ -49,16 +50,15 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
       }
     }
 
-    // Generate suggestions based on query
+    // Generate suggestions based on query and recent searches
     if (query.length > 1) {
-      const mockSuggestions = [
-        "رياضيات - الجبر",
-        "علوم - الفيزياء",
-        "لغة عربية - النحو",
-        "تاريخ - الحضارة الإسلامية",
-        "كيمياء - التفاعلات"
-      ].filter(s => s.toLowerCase().includes(query.toLowerCase()));
-      setSuggestions(mockSuggestions);
+      // Filter recent searches that match the query
+      const matchingRecent = recentSearches.filter(s => 
+        s.toLowerCase().includes(query.toLowerCase())
+      );
+      
+      // Only show suggestions if we have matching recent searches
+      setSuggestions(matchingRecent.slice(0, 5));
     } else {
       setSuggestions([]);
     }
@@ -72,56 +72,74 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
 
     setIsSearching(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      const mockResults: SearchResult[] = [
-        {
-          id: "1",
-          type: "course",
-          title: "دورة الرياضيات المتقدمة",
-          description: "دورة شاملة تغطي الجبر والهندسة والتفاضل",
-          category: "رياضيات",
-          relevance: 95,
-          url: "/courses/1",
-          icon: <BookOpen className="h-5 w-5" />
-        },
-        {
-          id: "2",
-          type: "resource",
-          title: "ملخص الجبر التفاعلي",
-          description: "ملخص شامل لجميع قواعد الجبر مع أمثلة تفاعلية",
-          category: "رياضيات",
-          relevance: 88,
-          url: "/resources/1",
-          icon: <FileText className="h-5 w-5" />
-        },
-        {
-          id: "3",
-          type: "video",
-          title: "شرح فيديو: المعادلات التربيعية",
-          description: "شرح مفصل للمعادلات التربيعية مع أمثلة عملية",
-          category: "رياضيات",
-          relevance: 85,
-          url: "/resources/video/1",
-          icon: <Video className="h-5 w-5" />
-        },
-        {
-          id: "4",
-          type: "teacher",
-          title: "أستاذ أحمد محمد - الرياضيات",
-          description: "معلم متخصص في الرياضيات مع 15 سنة خبرة",
-          category: "رياضيات",
-          relevance: 75,
-          url: "/teachers/1",
-          icon: <Users className="h-5 w-5" />
-        }
-      ].filter(r => 
-        r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    try {
+      // Search in multiple endpoints
+      const [coursesData, resourcesData, teachersData] = await Promise.all([
+        safeFetch<any[]>(`/api/courses?search=${encodeURIComponent(searchQuery)}`, undefined, []),
+        safeFetch<any[]>(`/api/resources?search=${encodeURIComponent(searchQuery)}`, undefined, []),
+        safeFetch<any[]>(`/api/teachers?search=${encodeURIComponent(searchQuery)}`, undefined, [])
+      ]);
 
-      setResults(mockResults);
-      setIsSearching(false);
+      const results: SearchResult[] = [];
+
+      // Transform courses
+      if (coursesData.data) {
+        coursesData.data.forEach((course: any) => {
+          results.push({
+            id: `course-${course.id}`,
+            type: "course",
+            title: course.title || course.name || "دورة بدون عنوان",
+            description: course.description || "",
+            category: course.category || course.subject || "عام",
+            relevance: 95,
+            url: `/courses/${course.id}`,
+            icon: <BookOpen className="h-5 w-5" />
+          });
+        });
+      }
+
+      // Transform resources
+      if (resourcesData.data) {
+        resourcesData.data.forEach((resource: any) => {
+          results.push({
+            id: `resource-${resource.id}`,
+            type: resource.type === "video" ? "video" : "resource",
+            title: resource.title || resource.name || "مورد بدون عنوان",
+            description: resource.description || "",
+            category: resource.category || resource.subject || "عام",
+            relevance: 88,
+            url: `/resources/${resource.id}`,
+            icon: resource.type === "video" ? <Video className="h-5 w-5" /> : <FileText className="h-5 w-5" />
+          });
+        });
+      }
+
+      // Transform teachers
+      if (teachersData.data) {
+        teachersData.data.forEach((teacher: any) => {
+          results.push({
+            id: `teacher-${teacher.id}`,
+            type: "teacher",
+            title: `${teacher.name || "معلم"} - ${teacher.subject || "عام"}`,
+            description: teacher.bio || teacher.description || `معلم متخصص في ${teacher.subject || "المواد الدراسية"}`,
+            category: teacher.subject || "عام",
+            relevance: 75,
+            url: `/teachers/${teacher.id}`,
+            icon: <Users className="h-5 w-5" />
+          });
+        });
+      }
+
+      // Sort by relevance and limit results
+      const sortedResults = results
+        .filter(r => 
+          r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          r.description.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .sort((a, b) => b.relevance - a.relevance)
+        .slice(0, 10);
+
+      setResults(sortedResults);
 
       // Save to recent searches
       if (searchQuery && !recentSearches.includes(searchQuery)) {
@@ -129,7 +147,12 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
         setRecentSearches(updated);
         localStorage.setItem("recent_searches", JSON.stringify(updated));
       }
-    }, 500);
+    } catch (error) {
+      console.error("Error performing search:", error);
+      setResults([]);
+    } finally {
+      setIsSearching(false);
+    }
   };
 
   const handleSearch = (searchQuery: string) => {
