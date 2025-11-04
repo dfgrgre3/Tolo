@@ -18,11 +18,14 @@ import {
   Smartphone,
   CheckCircle2,
   XCircle,
+  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getClientDeviceFingerprint } from '@/lib/security/device-fingerprint';
 import { CaptchaWidget } from './CaptchaWidget';
 import { LAST_VISITED_PATH_KEY } from '@/app/ClientLayoutProvider';
+import { loginUser, verifyTwoFactor } from '@/lib/api/auth-client';
+import type { LoginErrorResponse } from '@/types/api/auth';
 
 const formVariants = {
   initial: { opacity: 0, y: 20, x: 0 },
@@ -48,7 +51,7 @@ interface LoginFormData {
 
 export default function EnhancedLoginForm() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, refreshUser } = useAuth();
   const formControls = useAnimation();
   const [isShaking, setIsShaking] = useState(false);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
@@ -151,7 +154,7 @@ export default function EnhancedLoginForm() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [loginAttemptId, setLoginAttemptId] = useState('');
   const [deviceFingerprint, setDeviceFingerprint] = useState<any>(null);
-  const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high' | null>(null);
+  const [riskLevel, setRiskLevel] = useState<'low' | 'medium' | 'high' | 'critical' | null>(null);
   const [requiresCaptcha, setRequiresCaptcha] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -271,212 +274,19 @@ export default function EnhancedLoginForm() {
     setIsLoading(true);
 
     try {
-      // Create an AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-      let response: Response;
-      let data: any;
-
-      try {
-        response = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            ...formData,
-            deviceFingerprint,
-            captchaToken: requiresCaptcha ? captchaToken : undefined,
-          }),
-          signal: controller.signal,
-        });
-
-        // Check content type before parsing
-        const contentType = response.headers.get('content-type');
-        const isJson = contentType?.includes('application/json');
-
-        // Check if response is ok before parsing JSON
-        if (!response.ok) {
-          if (isJson) {
-            try {
-              data = await response.json();
-              const normalizedCode =
-                typeof data.code === 'string' && data.code.trim().length > 0
-                  ? data.code
-                  : undefined;
-              let errorMessage = data.error || 'فشل تسجيل الدخول';
-              let errorCode = normalizedCode ?? 'LOGIN_FAILED';
-
-              // Handle rate limiting and CAPTCHA requirements
-              if (normalizedCode === 'RATE_LIMITED') {
-                const retryValue = Number(data.retryAfterSeconds);
-                const safeRetrySeconds = Number.isFinite(retryValue)
-                  ? Math.max(1, Math.round(retryValue))
-                  : 60;
-                setLockoutSeconds(safeRetrySeconds);
-                if (!errorMessage) {
-                  errorMessage =
-                    'تم تعليق المحاولات مؤقتاً. يرجى الانتظار قبل المحاولة مرة أخرى.';
-                }
-                const formattedCountdown = formatLockoutTime(safeRetrySeconds);
-                const formattedMessage = `${errorMessage} (${formattedCountdown})`;
-                toast.error(formattedMessage, { duration: 5000 });
-                setFormErrorMessage(formattedMessage);
-                setFormErrorCode(errorCode);
-                setIsShaking(true);
-              } else if (data.requiresCaptcha) {
-                // Server requires CAPTCHA after multiple failed attempts
-                setRequiresCaptcha(true);
-                setFailedAttempts(data.failedAttempts || 0);
-                const captchaMessage = 'يرجى إكمال التحقق من CAPTCHA للمتابعة';
-                toast.warning(captchaMessage, { duration: 4000 });
-                setFormErrorMessage(captchaMessage);
-                setFormErrorCode(errorCode || 'CAPTCHA_REQUIRED');
-                setIsShaking(true);
-              } else {
-                // Regular error - increment failed attempts
-                const newAttempts = failedAttempts + 1;
-                setFailedAttempts(newAttempts);
-                
-                // Require CAPTCHA after 3 failed attempts
-                if (newAttempts >= 3) {
-                  setRequiresCaptcha(true);
-                }
-
-                // Set field errors based on error message
-                const errors: { email?: string; password?: string } = {};
-                if (errorMessage.includes('بريد') || errorMessage.toLowerCase().includes('email')) {
-                  errors.email = errorMessage;
-                } else if (errorMessage.includes('مرور') || errorMessage.toLowerCase().includes('password')) {
-                  errors.password = errorMessage;
-                } else {
-                  // Generic error - show on password field
-                  errors.password = errorMessage;
-                }
-                
-                setFieldErrors(errors);
-                toast.error(errorMessage);
-                setFormErrorMessage(errorMessage);
-                setFormErrorCode(errorCode);
-                setIsShaking(true);
-              }
-              clearTimeout(timeoutId);
-              setIsLoading(false);
-              return;
-            } catch (jsonError) {
-              if (process.env.NODE_ENV === 'development') {
-                console.error('JSON parsing error:', jsonError);
-              }
-              const parsingMessage = `خطأ في الاتصال: ${response.status} ${response.statusText}`;
-              setFormErrorMessage(parsingMessage);
-              setFormErrorCode('PARSING_ERROR');
-              setIsShaking(true);
-              throw new Error(parsingMessage);
-            }
-          } else {
-            // Response is not JSON (likely HTML error page from Next.js)
-            // Don't log the full HTML to console to avoid noise
-            const status = response.status;
-            let errorMessage = `خطأ في الخادم (${status})`;
-            
-            // Provide specific error messages based on status code
-            if (status === 404) {
-              errorMessage = 'مسار API غير موجود. يرجى التحقق من إعدادات الخادم.';
-            } else if (status === 500) {
-              errorMessage = 'خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
-            } else if (status === 503) {
-              errorMessage = 'الخادم غير متاح حالياً. يرجى المحاولة مرة أخرى لاحقاً.';
-            }
-            
-            setFormErrorMessage(errorMessage);
-            setFormErrorCode('SERVER_RESPONSE_ERROR');
-            setIsShaking(true);
-            throw new Error(errorMessage);
-          }
-        }
-
-        // Parse JSON response
-        if (!isJson) {
-          // Response should be JSON but isn't - this is a server configuration issue
-          const status = response.status;
-          const serverIssueMessage =
-            status >= 500
-              ? 'الخادم يواجه مشكلة تقنية. يرجى المحاولة مرة أخرى لاحقاً.'
-              : 'استجابة غير صحيحة من الخادم. يرجى التحقق من إعدادات الخادم.';
-          setFormErrorMessage(serverIssueMessage);
-          setFormErrorCode('INVALID_RESPONSE_FORMAT');
-          setIsShaking(true);
-          throw new Error(serverIssueMessage);
-        }
-
-        try {
-          data = await response.json();
-        } catch (jsonError) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('JSON parsing error:', jsonError);
-          }
-          const parseMessage = 'فشل في معالجة استجابة الخادم. يرجى المحاولة مرة أخرى.';
-          setFormErrorMessage(parseMessage);
-          setFormErrorCode('JSON_PARSE_ERROR');
-          setIsShaking(true);
-          throw new Error(parseMessage);
-        }
-        
-        clearTimeout(timeoutId);
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        // Handle network/connection errors
-        if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
-          const timeoutMessage = 'انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-          toast.error(timeoutMessage, { duration: 5000 });
-          setFormErrorMessage(timeoutMessage);
-          setFormErrorCode('REQUEST_TIMEOUT');
-          setIsShaking(true);
-          setIsLoading(false);
-          return;
-        }
-
-        // Check for network errors
-        if (
-          fetchError.message?.includes('Failed to fetch') ||
-          fetchError.message?.includes('NetworkError') ||
-          fetchError.message?.includes('Network request failed') ||
-          fetchError.message?.includes('ERR_INTERNET_DISCONNECTED') ||
-          fetchError.message?.includes('ERR_CONNECTION_REFUSED') ||
-          fetchError.message?.includes('ERR_CONNECTION_TIMED_OUT') ||
-          !navigator.onLine
-        ) {
-          const networkMessage = 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-          toast.error(networkMessage, { duration: 5000 });
-          setFormErrorMessage(networkMessage);
-          setFormErrorCode('NETWORK_ERROR');
-          setIsShaking(true);
-          setIsLoading(false);
-          return;
-        }
-
-        // Handle other fetch errors
-        if (fetchError.message) {
-          const genericFetchMessage = `خطأ في الاتصال: ${fetchError.message}`;
-          toast.error(genericFetchMessage, { duration: 5000 });
-          setFormErrorMessage(genericFetchMessage);
-        } else {
-          const fallbackFetchMessage = 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
-          toast.error(fallbackFetchMessage, { duration: 5000 });
-          setFormErrorMessage(fallbackFetchMessage);
-        }
-        setFormErrorCode('FETCH_ERROR');
-        setIsShaking(true);
-        setIsLoading(false);
-        return;
-      }
+      // Use the centralized API client
+      const data = await loginUser({
+        email: formData.email,
+        password: formData.password,
+        rememberMe: formData.rememberMe,
+        deviceFingerprint,
+        captchaToken: requiresCaptcha && captchaToken ? captchaToken : undefined,
+      });
 
       // Check if 2FA is required
       if (data.requiresTwoFactor) {
         setShowTwoFactor(true);
-        setLoginAttemptId(data.loginAttemptId);
+        setLoginAttemptId(data.loginAttemptId || '');
         setIsLoading(false);
         toast.info('يرجى إدخال رمز التحقق المرسل إلى بريدك الإلكتروني');
         return;
@@ -517,9 +327,46 @@ export default function EnhancedLoginForm() {
         });
       }
 
+      // Prepare user data to match User interface
+      const userData = {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name || undefined,
+        role: data.user.role || 'user',
+        emailVerified: data.user.emailVerified || false,
+        twoFactorEnabled: data.user.twoFactorEnabled || false,
+        lastLogin: data.user.lastLogin 
+          ? (typeof data.user.lastLogin === 'string' ? data.user.lastLogin : data.user.lastLogin.toISOString())
+          : undefined,
+        provider: 'local' as const,
+      };
+
       // Save token and user data
       try {
-        login(data.token, data.user);
+        // Call login function from auth context to save token and user state
+        login(data.token, userData);
+        
+        // Also save refresh token if available (for token refresh functionality)
+        if (data.refreshToken && typeof window !== 'undefined') {
+          try {
+            const storage = formData.rememberMe ? localStorage : sessionStorage;
+            storage.setItem('refresh_token', data.refreshToken);
+          } catch (storageError) {
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('Failed to save refresh token:', storageError);
+            }
+          }
+        }
+        
+        // Refresh user data from server to ensure we have the latest information
+        try {
+          await refreshUser();
+        } catch (refreshError) {
+          // Non-critical error - user data was already set from login response
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Failed to refresh user data:', refreshError);
+          }
+        }
         
         // Show success message
         toast.success('تم تسجيل الدخول بنجاح!');
@@ -535,9 +382,11 @@ export default function EnhancedLoginForm() {
         clearStoredRedirect();
 
         // Use replace instead of push to prevent back navigation to login
-        // Small delay to ensure state is updated and cookies are set
+        // Small delay to ensure state is updated and cookies are set by server
         setTimeout(() => {
           router.replace(redirectPath);
+          // Refresh the page to ensure server-side cookies are recognized
+          router.refresh();
         }, 500);
       } catch (loginError) {
         // If login function fails, show error and reset loading
@@ -551,31 +400,74 @@ export default function EnhancedLoginForm() {
         console.error('Login error:', error);
       }
       
-      // Final catch for any unexpected errors
+      // Handle API errors with proper typing
+      const apiError = error as LoginErrorResponse;
+      const errorMessage = apiError.error || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+      const errorCode = apiError.code || 'UNEXPECTED_ERROR';
+
+      // Handle rate limiting
+      if (errorCode === 'RATE_LIMITED' && apiError.retryAfterSeconds) {
+        const safeRetrySeconds = Math.max(1, Math.round(apiError.retryAfterSeconds));
+        setLockoutSeconds(safeRetrySeconds);
+        const formattedCountdown = formatLockoutTime(safeRetrySeconds);
+        const formattedMessage = `${errorMessage} (${formattedCountdown})`;
+        toast.error(formattedMessage, { duration: 5000 });
+        setFormErrorMessage(formattedMessage);
+        setFormErrorCode(errorCode);
+        setIsShaking(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Handle CAPTCHA requirements
+      if (apiError.requiresCaptcha) {
+        setRequiresCaptcha(true);
+        setFailedAttempts(apiError.failedAttempts || 0);
+        const captchaMessage = 'يرجى إكمال التحقق من CAPTCHA للمتابعة';
+        toast.warning(captchaMessage, { duration: 4000 });
+        setFormErrorMessage(captchaMessage);
+        setFormErrorCode(errorCode);
+        setIsShaking(true);
+        setIsLoading(false);
+        return;
+      }
+
+      // Handle network errors
       if (
-        error?.message?.includes('Failed to fetch') ||
-        error?.message?.includes('NetworkError') ||
-        error?.name === 'TypeError' ||
+        errorCode === 'FETCH_ERROR' ||
+        errorCode === 'NETWORK_ERROR' ||
+        errorCode === 'REQUEST_TIMEOUT' ||
         !navigator.onLine
       ) {
-        const finalNetworkMessage = 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-        toast.error(finalNetworkMessage, { duration: 5000 });
-        if (!formErrorMessage) {
-          setFormErrorMessage(finalNetworkMessage);
-        }
-        if (!formErrorCode) {
-          setFormErrorCode('NETWORK_ERROR');
-        }
+        toast.error(errorMessage, { duration: 5000 });
+        setFormErrorMessage(errorMessage);
+        setFormErrorCode(errorCode);
         setIsShaking(true);
       } else {
-        const unexpectedMessage = error?.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
-        toast.error(unexpectedMessage);
-        if (!formErrorMessage) {
-          setFormErrorMessage(unexpectedMessage);
+        // Regular error - increment failed attempts
+        const newAttempts = failedAttempts + 1;
+        setFailedAttempts(newAttempts);
+        
+        // Require CAPTCHA after 3 failed attempts
+        if (newAttempts >= 3) {
+          setRequiresCaptcha(true);
         }
-        if (!formErrorCode) {
-          setFormErrorCode('UNEXPECTED_ERROR');
+
+        // Set field errors based on error message
+        const errors: { email?: string; password?: string } = {};
+        if (errorMessage.includes('بريد') || errorMessage.toLowerCase().includes('email')) {
+          errors.email = errorMessage;
+        } else if (errorMessage.includes('مرور') || errorMessage.toLowerCase().includes('password')) {
+          errors.password = errorMessage;
+        } else {
+          // Generic error - show on password field
+          errors.password = errorMessage;
         }
+        
+        setFieldErrors(errors);
+        toast.error(errorMessage);
+        setFormErrorMessage(errorMessage);
+        setFormErrorCode(errorCode);
         setIsShaking(true);
       }
     } finally {
@@ -600,140 +492,27 @@ export default function EnhancedLoginForm() {
     setIsLoading(true);
 
     try {
-      // Create an AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-
-      let response: Response;
-      let data: any;
-
-      try {
-        response = await fetch('/api/auth/two-factor', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            challengeId: loginAttemptId,
-            code: twoFactorCode,
-          }),
-          signal: controller.signal,
-        });
-
-        const contentType = response.headers.get('content-type');
-        const isJson = contentType?.includes('application/json');
-
-        if (!response.ok) {
-          if (isJson) {
-            try {
-              data = await response.json();
-              const twoFactorErrorMessage = data.error || 'رمز التحقق غير صحيح';
-              const twoFactorErrorCode =
-                typeof data.code === 'string' && data.code.trim().length > 0
-                  ? data.code
-                  : 'TWO_FACTOR_FAILED';
-              toast.error(twoFactorErrorMessage);
-              setFormErrorMessage(twoFactorErrorMessage);
-              setFormErrorCode(twoFactorErrorCode);
-              setIsShaking(true);
-              clearTimeout(timeoutId);
-              setIsLoading(false);
-              return;
-            } catch (jsonError) {
-              if (process.env.NODE_ENV === 'development') {
-                console.error('JSON parsing error:', jsonError);
-              }
-              const tfParseMessage = `خطأ في الاتصال: ${response.status} ${response.statusText}`;
-              setFormErrorMessage(tfParseMessage);
-              setFormErrorCode('TWO_FACTOR_PARSING_ERROR');
-              setIsShaking(true);
-              throw new Error(tfParseMessage);
-            }
-          } else {
-            // HTML error page from server
-            const status = response.status;
-            let errorMessage = `خطأ في الخادم (${status})`;
-            
-            if (status === 404) {
-              errorMessage = 'مسار API غير موجود.';
-            } else if (status >= 500) {
-              errorMessage = 'خطأ داخلي في الخادم. يرجى المحاولة لاحقاً.';
-            }
-            
-            setFormErrorMessage(errorMessage);
-            setFormErrorCode('TWO_FACTOR_RESPONSE_ERROR');
-            setIsShaking(true);
-            throw new Error(errorMessage);
-          }
-        }
-
-        if (!isJson) {
-          const status = response.status;
-          const invalidResponseMessage =
-            status >= 500
-              ? 'الخادم يواجه مشكلة تقنية. يرجى المحاولة لاحقاً.'
-              : 'استجابة غير صحيحة من الخادم.';
-          setFormErrorMessage(invalidResponseMessage);
-          setFormErrorCode('TWO_FACTOR_INVALID_RESPONSE');
-          setIsShaking(true);
-          throw new Error(invalidResponseMessage);
-        }
-
-        try {
-          data = await response.json();
-        } catch (jsonError) {
-          if (process.env.NODE_ENV === 'development') {
-            console.error('JSON parsing error:', jsonError);
-          }
-          const parsingErrorMessage = 'فشل في معالجة استجابة الخادم. يرجى المحاولة مرة أخرى.';
-          setFormErrorMessage(parsingErrorMessage);
-          setFormErrorCode('TWO_FACTOR_JSON_PARSE_ERROR');
-          setIsShaking(true);
-          throw new Error(parsingErrorMessage);
-        }
-        
-        clearTimeout(timeoutId);
-      } catch (fetchError: any) {
-        clearTimeout(timeoutId);
-        
-        // Handle network/connection errors
-        if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
-          const timeoutMessage = 'انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-          toast.error(timeoutMessage, { duration: 5000 });
-          setFormErrorMessage(timeoutMessage);
-          setFormErrorCode('TWO_FACTOR_TIMEOUT');
-          setIsShaking(true);
-          setIsLoading(false);
-          return;
-        }
-
-        if (
-          fetchError.message?.includes('Failed to fetch') ||
-          fetchError.message?.includes('NetworkError') ||
-          fetchError.message?.includes('Network request failed') ||
-          !navigator.onLine
-        ) {
-          const networkMessage = 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-          toast.error(networkMessage, { duration: 5000 });
-          setFormErrorMessage(networkMessage);
-          setFormErrorCode('TWO_FACTOR_NETWORK_ERROR');
-          setIsShaking(true);
-          setIsLoading(false);
-          return;
-        }
-
-        const genericMessage = fetchError.message || 'حدث خطأ أثناء التحقق';
-        toast.error(genericMessage, { duration: 5000 });
-        setFormErrorMessage(genericMessage);
-        setFormErrorCode('TWO_FACTOR_FETCH_ERROR');
-        setIsShaking(true);
-        setIsLoading(false);
-        return;
-      }
+      // Use the centralized API client
+      const data = await verifyTwoFactor({
+        loginAttemptId,
+        code: twoFactorCode,
+      });
 
       // Successful 2FA verification
       try {
-        login(data.token, data.user);
+        // Prepare user data to match User interface
+        const userData = {
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name || undefined,
+          role: data.user.role || 'user',
+          emailVerified: data.user.emailVerified || false,
+          twoFactorEnabled: data.user.twoFactorEnabled || false,
+          lastLogin: data.user.lastLogin 
+            ? (typeof data.user.lastLogin === 'string' ? data.user.lastLogin : data.user.lastLogin.toISOString())
+            : undefined,
+        };
+        login(data.token, userData);
         toast.success('تم التحقق بنجاح!');
         setFormErrorMessage(null);
         setFormErrorCode(null);
@@ -762,32 +541,14 @@ export default function EnhancedLoginForm() {
         console.error('2FA verification error:', error);
       }
       
-      if (
-        error?.message?.includes('Failed to fetch') ||
-        error?.message?.includes('NetworkError') ||
-        error?.name === 'TypeError' ||
-        !navigator.onLine
-      ) {
-        const finalTwoFactorNetwork = 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-        toast.error(finalTwoFactorNetwork, { duration: 5000 });
-        if (!formErrorMessage) {
-          setFormErrorMessage(finalTwoFactorNetwork);
-        }
-        if (!formErrorCode) {
-          setFormErrorCode('TWO_FACTOR_NETWORK_ERROR');
-        }
-        setIsShaking(true);
-      } else {
-        const fallbackTwoFactorMessage = error?.message || 'حدث خطأ أثناء التحقق';
-        toast.error(fallbackTwoFactorMessage);
-        if (!formErrorMessage) {
-          setFormErrorMessage(fallbackTwoFactorMessage);
-        }
-        if (!formErrorCode) {
-          setFormErrorCode('TWO_FACTOR_UNEXPECTED_ERROR');
-        }
-        setIsShaking(true);
-      }
+      const apiError = error as { error?: string; code?: string };
+      const errorMessage = apiError.error || 'حدث خطأ أثناء التحقق';
+      const errorCode = apiError.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
+      
+      toast.error(errorMessage);
+      setFormErrorMessage(errorMessage);
+      setFormErrorCode(errorCode);
+      setIsShaking(true);
     } finally {
       setIsLoading(false);
     }
@@ -1555,6 +1316,128 @@ export default function EnhancedLoginForm() {
             <Chrome className="h-5 w-5" aria-hidden="true" />
             تسجيل الدخول بجوجل
           </motion.button>
+
+          {/* Test Account Login - Only in development */}
+          {(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS === 'true') && (
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.75 }}
+              whileHover={{ scale: 1.02, backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={async () => {
+                setIsLoading(true);
+                try {
+                  // Use test account credentials
+                  setFormData({
+                    email: 'test@example.com',
+                    password: 'Test123!@#',
+                    rememberMe: true,
+                  });
+                  
+                  // Auto-submit the form with test credentials
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                  
+                  const loginController = new AbortController();
+                  const loginTimeout = setTimeout(() => loginController.abort(), 30000);
+
+                  try {
+                    const loginResponse = await fetch('/api/auth/login', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      credentials: 'include',
+                      body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'Test123!@#',
+                        rememberMe: true,
+                      }),
+                      signal: loginController.signal,
+                    });
+
+                    clearTimeout(loginTimeout);
+
+                    if (!loginResponse.ok) {
+                      // If login fails, try to create the test account first
+                      toast.info('جارٍ إنشاء الحساب التجريبي...', { duration: 2000 });
+                      
+                      try {
+                        await fetch('/api/auth/test-account', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                        });
+                        
+                        // Retry login after creating account
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        const retryResponse = await fetch('/api/auth/login', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          credentials: 'include',
+                          body: JSON.stringify({
+                            email: 'test@example.com',
+                            password: 'Test123!@#',
+                            rememberMe: true,
+                          }),
+                        });
+
+                        if (retryResponse.ok) {
+                          const retryData = await retryResponse.json();
+                          if (retryData.token && retryData.user) {
+                            login(retryData.token, retryData.user);
+                            toast.success('تم تسجيل الدخول بحساب تجريبي!', { duration: 3000 });
+                            const redirectPath = getRedirectPath();
+                            clearStoredRedirect();
+                            router.push(redirectPath);
+                            router.refresh();
+                            setIsLoading(false);
+                            return;
+                          }
+                        }
+                      } catch (createError) {
+                        console.error('Failed to create test account:', createError);
+                      }
+                      
+                      toast.error('فشل تسجيل الدخول بالحساب التجريبي. يرجى المحاولة يدوياً.');
+                      setIsLoading(false);
+                      return;
+                    }
+
+                    const loginData = await loginResponse.json();
+
+                    if (loginData.token && loginData.user) {
+                      login(loginData.token, loginData.user);
+                      toast.success('تم تسجيل الدخول بحساب تجريبي!', { duration: 3000 });
+                      const redirectPath = getRedirectPath();
+                      clearStoredRedirect();
+                      router.push(redirectPath);
+                      router.refresh();
+                    } else {
+                      toast.error('بيانات تسجيل الدخول غير صحيحة');
+                    }
+                  } catch (fetchError: any) {
+                    clearTimeout(loginTimeout);
+                    if (fetchError.name !== 'AbortError') {
+                      toast.error('حدث خطأ أثناء تسجيل الدخول');
+                    }
+                  } finally {
+                    setIsLoading(false);
+                  }
+                } catch (error) {
+                  console.error('Test account login error:', error);
+                  toast.error('حدث خطأ أثناء تسجيل الدخول بالحساب التجريبي');
+                  setIsLoading(false);
+                }
+              }}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-3 rounded-xl bg-blue-500/20 border border-blue-400/30 px-6 py-3 text-sm font-medium text-blue-200 transition hover:bg-blue-500/30 disabled:opacity-50"
+              aria-label="تسجيل الدخول بحساب تجريبي"
+            >
+              <Sparkles className="h-5 w-5" aria-hidden="true" />
+              تسجيل الدخول بحساب تجريبي
+            </motion.button>
+          )}
         </motion.div>
       </form>
 

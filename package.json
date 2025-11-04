@@ -18,7 +18,9 @@
     "check:cov": "node scripts/check-coverage.js",
     "websocket": "ts-node src/lib/websocket.ts",
     "postinstall": "prisma generate",
-    "prisma:generate": "prisma generate"
+    "prisma:generate": "prisma generate",
+    "create-test-account": "ts-node scripts/create-test-account.ts",
+    "seed": "ts-node prisma/seed/main.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

@@ -191,20 +191,30 @@ const Home = () => {
 					{ id: '' }
 				);
 				if (userError) {
-					errorManager.handleNetworkError(userError, "/api/users/guest", {
-						showToast: false
-					});
+					// Only log error if it's a real error (not just undefined/null)
+					if (userError instanceof Error || (typeof userError === 'string' && userError.trim())) {
+						errorManager.handleNetworkError(userError, "/api/users/guest", {
+							showToast: false,
+							logError: true,
+						});
+					}
 				} else if (data?.id) {
 					id = data.id;
 					safeSetItem(LOCAL_USER_KEY, id);
 				}
 			} catch (error) {
 				console.warn("Failed to create guest user:", error);
-				errorManager.handleNetworkError(
-					error instanceof Error ? error : new Error(String(error)),
-					"/api/users/guest",
-					{ showToast: false }
-				);
+				// Only log if error is meaningful
+				if (error instanceof Error || (typeof error === 'string' && error.trim())) {
+					errorManager.handleNetworkError(
+						error instanceof Error ? error : new Error(String(error)),
+						"/api/users/guest",
+						{ 
+							showToast: false,
+							logError: true,
+						}
+					);
+				}
 			}
 		}
 		return id || '';
@@ -418,7 +428,7 @@ const Home = () => {
 
 	const sectionShell = "relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md";
 
-		const highlightCards = [
+	const highlightCards = [
 		{
 			title: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
 			description: "ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.",

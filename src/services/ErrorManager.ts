@@ -49,7 +49,28 @@ class ErrorManager {
     config: Partial<ErrorConfig> = {},
     displayOptions: ErrorDisplayOptions = {}
   ): string {
-    const errorObj = typeof error === 'string' ? new Error(error) : error;
+    // Ensure error is not empty
+    let errorObj: Error;
+    if (typeof error === 'string') {
+      const trimmedError = error.trim();
+      if (!trimmedError) {
+        // Skip logging if error is empty
+        if (!config.logError) {
+          return '';
+        }
+        errorObj = new Error('Unknown error');
+      } else {
+        errorObj = new Error(trimmedError);
+      }
+    } else if (error instanceof Error) {
+      // Ensure error message is not empty
+      if (!error.message || !error.message.trim()) {
+        error.message = 'Unknown error';
+      }
+      errorObj = error;
+    } else {
+      errorObj = new Error('Unknown error');
+    }
 
     // Default configuration
     const finalConfig: ErrorConfig = {

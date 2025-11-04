@@ -266,6 +266,42 @@ class RedisService {
   getClient() {
     return this.client;
   }
+
+  // Check if client is connected
+  isConnected(): boolean {
+    try {
+      return this.client?.isOpen || this.client?.isReady || false;
+    } catch {
+      return false;
+    }
+  }
+
+  // Ensure client is connected (with error handling)
+  async ensureConnected(): Promise<boolean> {
+    try {
+      if (this.isConnected()) {
+        return true;
+      }
+      
+      // Try to connect if not already connected
+      if (!this.client.isOpen && !this.client.isReady) {
+        await this.connectRedis();
+      }
+      
+      // Wait a bit for connection to be established
+      let attempts = 0;
+      while (!this.isConnected() && attempts < 5) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      return this.isConnected();
+    } catch (error) {
+      console.error('Failed to ensure Redis connection:', error);
+      // Return false but don't throw - allow the app to continue without Redis
+      return false;
+    }
+  }
 }
 
 // Single instance shared across the app
@@ -277,5 +313,16 @@ export const CacheService = redisService;
 // Export the raw Redis client for advanced usage (like rate limiting)
 // We need to access the private client property
 export const redis = (redisService as any).client;
+
+// Export getRedisClient function for rate limiting service
+export async function getRedisClient() {
+  // Try to ensure Redis is connected, but return client even if not connected
+  // The rate limiting service will handle connection errors gracefully
+  const connected = await redisService.ensureConnected();
+  if (!connected) {
+    console.warn('Redis is not connected, but returning client anyway. Rate limiting may not work.');
+  }
+  return redisService.getClient();
+}
 
 export default redisService;
