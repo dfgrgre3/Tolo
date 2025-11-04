@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { memo } from "react";
 import { Button } from "@/shared/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
@@ -70,7 +71,7 @@ const FEATURES: ReadonlyArray<Feature> = [
   },
 ];
 
-export function FeaturesSection() {
+export const FeaturesSection = memo(function FeaturesSection() {
   return (
     <section aria-labelledby="features-heading" className="max-w-6xl mx-auto">
       <motion.div
@@ -188,6 +189,7 @@ export function FeaturesSection() {
       </motion.div>
     </section>
   );
-}
+});
+FeaturesSection.displayName = "FeaturesSection";
 
 export default FeaturesSection;

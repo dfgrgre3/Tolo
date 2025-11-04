@@ -1,12 +1,13 @@
 import { MessageSquare, Send, Phone, MapPin, Mail } from "lucide-react";
+import { memo } from "react";
 
-export function ContactSection() {
+export const ContactSection = memo(function ContactSection() {
 	return (
-		<div className="max-w-6xl mx-auto py-8 md:py-12">
+		<section className="max-w-6xl mx-auto py-8 md:py-12" aria-labelledby="contact-heading">
 			<div className="text-center mb-10 md:mb-14">
-				<h2 className="text-2xl md:text-3xl font-bold mb-4 text-primary flex items-center justify-center gap-2">
+				<h2 id="contact-heading" className="text-2xl md:text-3xl font-bold mb-4 text-primary flex items-center justify-center gap-2">
 					<span>تواصل معنا</span>
-					<span className="text-xl">📬</span>
+					<span className="text-xl" aria-hidden="true">📬</span>
 				</h2>
 				<p className="text-muted-foreground max-w-2xl mx-auto">نحن هنا لمساعدتك في رحلتك التعليمية. تواصل معنا لأي استفسار أو اقتراح</p>
 			</div>
@@ -17,7 +18,7 @@ export function ContactSection() {
 						<MessageSquare className="h-5 w-5 text-primary" />
 						<span>أرسل لنا رسالة</span>
 					</h3>
-					<form className="space-y-4">
+					<form className="space-y-4" onSubmit={(e) => { e.preventDefault(); }}>
 						<div>
 							<label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">الاسم</label>
 							<input type="text" id="name" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary outline-none transition" placeholder="أدخل اسمك" />
@@ -92,8 +93,9 @@ export function ContactSection() {
 					</div>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
-}
+});
+ContactSection.displayName = "ContactSection";
 
 export default ContactSection;

@@ -3,6 +3,8 @@
  * Provides comprehensive error tracking and reporting capabilities
  */
 
+import { safeGetItem, safeSetItem } from '../lib/safe-client-utils';
+
 export interface ErrorLogEntry {
   id: string;
   timestamp: string;
@@ -71,9 +73,9 @@ class ErrorLogger {
     if (!this.config.enableLocalStorage) return;
 
     try {
-      const storedLogs = localStorage.getItem('errorLogs');
+      const storedLogs = safeGetItem('errorLogs', { fallback: null });
       if (storedLogs) {
-        this.logs = JSON.parse(storedLogs);
+        this.logs = typeof storedLogs === 'string' ? JSON.parse(storedLogs) : storedLogs;
         // Ensure we don't exceed max logs
         if (this.logs.length > this.config.maxLogs) {
           this.logs = this.logs.slice(-this.config.maxLogs);
@@ -91,7 +93,7 @@ class ErrorLogger {
     if (!this.config.enableLocalStorage) return;
 
     try {
-      localStorage.setItem('errorLogs', JSON.stringify(this.logs));
+      safeSetItem('errorLogs', this.logs);
     } catch (error) {
       console.error('Failed to save logs to localStorage:', error);
     }

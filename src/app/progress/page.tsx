@@ -2,16 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { useLocalStorageState } from "@/hooks/use-local-storage-state";
+import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
 const LOCAL_USER_KEY = "tw_user_id";
 
 async function ensureUser(): Promise<string> {
-	let id = localStorage.getItem(LOCAL_USER_KEY);
+	let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
 	if (!id) {
 		const res = await fetch("/api/users/guest", { method: "POST" });
 		const data = await res.json();
 		id = data.id;
-		localStorage.setItem(LOCAL_USER_KEY, id!);
+		safeSetItem(LOCAL_USER_KEY, id!);
 	}
 	return id!;
 }

@@ -18,22 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CalendarDays, Clock, Award, BookOpen, MessageSquare, FileText, Target, TrendingUp, Settings, User, Bell, Shield, Globe, MapPin, Phone, Mail, Edit, Save, X, Camera, Star, Trophy, Zap } from "lucide-react";
 import { AdvancedNavbar } from "@/components/ui/advanced-navbar";
 
-const LOCAL_USER_KEY = "tw_user_id";
-async function ensureUser(): Promise<string> {
-  // Check if we're in the browser environment
-  if (typeof window !== "undefined") {
-    let id = localStorage.getItem(LOCAL_USER_KEY);
-    if (!id) {
-      const res = await fetch("/api/users/guest", { method: "POST" });
-      const data = await res.json();
-      id = data.id;
-      localStorage.setItem(LOCAL_USER_KEY, id!);
-    }
-    return id!;
-  }
-  // Return empty string during server rendering
-  return "";
-}
+import { ensureUser } from "@/lib/user-utils";
 
 type User = {
   id: string;

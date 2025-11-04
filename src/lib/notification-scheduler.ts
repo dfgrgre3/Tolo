@@ -1,10 +1,10 @@
-
 import { sendTemplatedNotification } from './notification-service';
+import { getSafeAuthToken } from './safe-client-utils';
 
 // دالة لفحص المهام القريبة الموعد وإرسال إشعارات
 export async function checkUpcomingTasks() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = getSafeAuthToken();
     if (!token) return;
 
     // جلب المهام القريبة الموعد (خلال 24 ساعة القادمة)
@@ -50,7 +50,7 @@ export async function checkUpcomingTasks() {
 // دالة لفحص الاختبارات القريبة وإرسال إشعارات
 export async function checkUpcomingTests() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = getSafeAuthToken();
     if (!token) return;
 
     // جلب الاختبارات القريبة
@@ -84,7 +84,7 @@ export async function checkUpcomingTests() {
 // دالة لفحص الجدول الدراسي وإرسال إشعارات
 export async function checkSchedule() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = getSafeAuthToken();
     if (!token) return;
 
     // جلب الجدول الدراسي لليوم الحالي
@@ -122,7 +122,7 @@ export async function checkSchedule() {
 // دالة لفحص التقدم وإرسال إشعارات عند تحقيق إنجازات
 export async function checkProgressMilestones() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = getSafeAuthToken();
     if (!token) return;
 
     // جلب بيانات التقدم
@@ -165,7 +165,7 @@ export async function checkProgressMilestones() {
 // دالة لفحص المناسبات القريبة وإرسال إشعارات
 export async function checkUpcomingEvents() {
   try {
-    const token = localStorage.getItem('authToken');
+    const token = getSafeAuthToken();
     if (!token) return;
 
     // جلب المناسبات القريبة

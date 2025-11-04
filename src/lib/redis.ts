@@ -261,6 +261,11 @@ class RedisService {
       console.error('Error invalidating cache pattern:', error);
     }
   }
+
+  // Get the raw Redis client for advanced usage
+  getClient() {
+    return this.client;
+  }
 }
 
 // Single instance shared across the app
@@ -268,5 +273,9 @@ const redisService = new RedisService();
 
 // Backward-compatible named export expected by legacy imports
 export const CacheService = redisService;
+
+// Export the raw Redis client for advanced usage (like rate limiting)
+// We need to access the private client property
+export const redis = (redisService as any).client;
 
 export default redisService;

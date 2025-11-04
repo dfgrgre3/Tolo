@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { getSafeAuthToken } from "@/lib/safe-client-utils";
 
 async function getUserId(): Promise<string | null> {
 	// Get user ID from auth token - only run on client side
-	if (typeof window === "undefined") return null;
-	const token = localStorage.getItem("authToken");
+	const token = getSafeAuthToken();
 	if (!token) return null;
 	
 	try {

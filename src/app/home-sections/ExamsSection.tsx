@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
+import Link from "next/link";
 
 // --- Skeleton Components for Loading State ---
 
@@ -20,14 +21,19 @@ const StatCardSkeleton = () => (
 
 // --- Presentational Components ---
 
-const SubjectCard = ({ emoji, name, onClick }) => (
-    <div onClick={onClick} className="bg-white rounded-xl p-4 text-center shadow-md transition-all duration-300 hover:shadow-xl hover:scale-105 transform hover:border-primary border-2 border-transparent cursor-pointer">
-        <div className="text-4xl mb-2" role="img" aria-label={`${name} icon`}>{emoji}</div>
+const SubjectCard = memo(({ emoji, name, onClick }: { emoji: string; name: string; onClick: () => void }) => (
+    <button
+        onClick={onClick}
+        className="bg-white rounded-xl p-4 text-center shadow-md transition-all duration-300 hover:shadow-xl hover:scale-105 transform hover:border-primary border-2 border-transparent cursor-pointer w-full"
+        aria-label={`اختر مادة ${name}`}
+    >
+        <div className="text-4xl mb-2" role="img" aria-hidden="true">{emoji}</div>
         <div className="text-sm font-semibold text-gray-800">{name}</div>
-    </div>
-);
+    </button>
+));
+SubjectCard.displayName = "SubjectCard";
 
-const StatCard = ({ icon, value, label }) => {
+const StatCard = memo(({ icon, value, label }: { icon: string; value: string; label: string }) => {
     const [count, setCount] = useState(0);
     const cardRef = useRef(null);
     const endValue = useMemo(() => parseInt(value.replace(/k|\+/g, '')) * (value.includes('k') ? 1000 : 1), [value]);
@@ -61,24 +67,26 @@ const StatCard = ({ icon, value, label }) => {
     };
 
     return (
-        <div ref={cardRef} className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center border border-gray-200/50 shadow-sm">
-            <div className="text-3xl mb-2" role="img" aria-label={`${label} icon`}>{icon}</div>
-            <div className="text-2xl font-bold text-primary tabular-nums">{formatDisplayValue(count)}</div>
+        <div ref={cardRef} className="bg-white/60 backdrop-blur-sm rounded-xl p-4 text-center border border-gray-200/50 shadow-sm" role="region" aria-label={label}>
+            <div className="text-3xl mb-2" role="img" aria-hidden="true">{icon}</div>
+            <div className="text-2xl font-bold text-primary tabular-nums" aria-live="polite">{formatDisplayValue(count)}</div>
             <p className="text-sm text-gray-600">{label}</p>
         </div>
     );
-};
+});
+StatCard.displayName = "StatCard";
 
 // --- New Modal Component for Exams ---
 
-const ExamsModal = ({ subject, onClose }) => {
+const ExamsModal = memo(({ subject, onClose }: { subject: any; onClose: () => void }) => {
+    const handleEsc = useCallback((event: KeyboardEvent) => {
+        if (event.key === 'Escape') onClose();
+    }, [onClose]);
+
     useEffect(() => {
-        const handleEsc = (event) => {
-            if (event.keyCode === 27) onClose();
-        };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [onClose]);
+    }, [handleEsc]);
 
     if (!subject) return null;
 
@@ -89,14 +97,26 @@ const ExamsModal = ({ subject, onClose }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 transition-opacity duration-300" onClick={onClose}>
+        <div 
+            className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-50 transition-opacity duration-300" 
+            onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="exams-modal-title"
+        >
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 md:p-8 transform transition-all duration-300 scale-95 animate-scale-in" onClick={(e) => e.stopPropagation()}>
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-2xl font-bold text-primary flex items-center gap-3">
-                        <span className="text-4xl">{subject.emoji}</span>
+                    <h3 id="exams-modal-title" className="text-2xl font-bold text-primary flex items-center gap-3">
+                        <span className="text-4xl" aria-hidden="true">{subject.emoji}</span>
                         <span>امتحانات مادة {subject.name}</span>
                     </h3>
-                    <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors text-3xl">&times;</button>
+                    <button 
+                        onClick={onClose} 
+                        className="text-gray-400 hover:text-gray-700 transition-colors text-3xl"
+                        aria-label="إغلاق النافذة"
+                    >
+                        &times;
+                    </button>
                 </div>
                 <div className="space-y-4">
                     {subject.exams.map(exam => (
@@ -109,25 +129,29 @@ const ExamsModal = ({ subject, onClose }) => {
                                     <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${difficultyStyles[exam.difficulty]}`}>{exam.difficulty}</span>
                                 </div>
                             </div>
-                            <button className="bg-primary text-white px-5 py-2 rounded-lg font-medium whitespace-nowrap shadow-md hover:bg-primary/90 transition-all duration-200 w-full sm:w-auto">
+                            <Link 
+                                href={`/exams/${exam.id}`}
+                                className="bg-primary text-white px-5 py-2 rounded-lg font-medium whitespace-nowrap shadow-md hover:bg-primary/90 transition-all duration-200 w-full sm:w-auto inline-block text-center"
+                            >
                                 ابدأ الامتحان
-                            </button>
+                            </Link>
                         </div>
                     ))}
                 </div>
             </div>
         </div>
     );
-};
+});
+ExamsModal.displayName = "ExamsModal";
 
 // --- Main Advanced Component ---
 
 function ExamsSectionComponent() {
     const [loading, setLoading] = useState(true);
-    const [subjects, setSubjects] = useState([]);
-    const [stats, setStats] = useState([]);
+    const [subjects, setSubjects] = useState<any[]>([]);
+    const [stats, setStats] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedSubject, setSelectedSubject] = useState(null);
+    const [selectedSubject, setSelectedSubject] = useState<any>(null);
 
     // Simulate fetching structured data from an API
     useEffect(() => {
@@ -168,7 +192,6 @@ function ExamsSectionComponent() {
     return (
         <>
             <section className="mt-8 py-10 px-4 bg-gradient-to-b from-blue-50 to-indigo-100 rounded-2xl" aria-labelledby="exams-heading">
-                {/* ... Main section content remains the same ... */}
                 <h2 id="exams-heading" className="text-center text-3xl md:text-4xl font-bold mb-2 text-primary">
                     أهلاً بك يا بطل علمي رياضة! استعد لتحدي جديد.
                 </h2>
@@ -194,6 +217,7 @@ function ExamsSectionComponent() {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full sm:w-64 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary focus:outline-none transition"
+                            aria-label="ابحث عن مادة"
                         />
                     </div>
                     

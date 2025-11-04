@@ -1,83 +1,73 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { jwtVerify, SignJWT } from 'jose';
-import { prisma } from '@/lib/prisma';
-import { TextEncoder } from 'util';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key');
+import { authService } from '@/lib/auth-service';
 
 export async function POST(request: NextRequest) {
   try {
-    // Get refresh token from cookie
-    const refreshToken = request.cookies.get('refresh_token')?.value;
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
+
+    // Get refresh token from cookie or request body
+    let refreshToken = request.cookies.get('refresh_token')?.value;
+    
+    if (!refreshToken) {
+      try {
+        const body = await request.json();
+        refreshToken = body.refreshToken;
+      } catch {
+        // No body or invalid JSON
+      }
+    }
 
     if (!refreshToken) {
-      return NextResponse.json(
-        { error: 'Refresh token not found' },
-        { status: 401 }
+      const response = NextResponse.json(
+        { error: 'Refresh token is required' },
+        { status: 400 }
       );
+      
+      // Clear refresh token cookie
+      response.cookies.set('refresh_token', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+        path: '/',
+      });
+      
+      return response;
     }
 
-    // Verify refresh token
-    let payload;
-    try {
-      const { payload: verifiedPayload } = await jwtVerify(refreshToken, JWT_SECRET);
-      payload = verifiedPayload;
-    } catch (error) {
-      return NextResponse.json(
-        { error: 'Invalid refresh token' },
+    // Verify refresh token using authService
+    const tokens = await authService.refreshAccessToken(refreshToken, userAgent, ip);
+    
+    if (!tokens.isValid || !tokens.accessToken || !tokens.refreshToken) {
+      const response = NextResponse.json(
+        { error: 'Invalid or expired refresh token' },
         { status: 401 }
       );
+      
+      // Clear refresh token cookie
+      response.cookies.set('refresh_token', '', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 0,
+        path: '/',
+      });
+      
+      return response;
     }
 
-    // Check if user exists and refresh token matches
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId as string }
-    });
-
-    if (!user || user.refreshToken !== refreshToken) {
-      return NextResponse.json(
-        { error: 'Invalid refresh token' },
-        { status: 401 }
-      );
-    }
-
-    // Create new access token
-    const newAccessToken = await new SignJWT({ 
-      userId: user.id, 
-      email: user.email, 
-      name: user.name,
-      role: user.role || 'user'
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(JWT_SECRET);
-
-    // Create new refresh token
-    const newRefreshToken = await new SignJWT({ userId: user.id })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('30d')
-      .sign(JWT_SECRET);
-
-    // Update refresh token in database
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { refreshToken: newRefreshToken }
-    });
-
-    // Return new tokens
     const response = NextResponse.json({
-      message: 'Token refreshed successfully',
-      token: newAccessToken
+      message: 'تم تحديث الرمز بنجاح.',
+      token: tokens.accessToken
     });
 
-    // Set new refresh token in cookie
-    response.cookies.set('refresh_token', newRefreshToken, {
+    // Set new refresh token in httpOnly cookie
+    response.cookies.set('refresh_token', tokens.refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      maxAge: 30 * 24 * 60 * 60, // 30 days
       path: '/',
     });
 
@@ -85,7 +75,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Token refresh error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'حدث خطأ غير متوقع أثناء معالجة طلب تحديث الرمز. حاول مرة أخرى لاحقاً.'
+      },
       { status: 500 }
     );
   }

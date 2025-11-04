@@ -1,16 +1,5 @@
 import React from 'react';
-
-// For this single-file demonstration, we will define a mock Link component
-const Link = ({ href, children, className }) => (
-    <a 
-        href={href} 
-        className={className} 
-        // Prevent default navigation for the demo
-        onClick={(e) => { e.preventDefault(); console.log('Simulated navigation to:', href); }}
-    >
-        {children}
-    </a>
-);
+import Link from 'next/link';
 
 /**
  * @typedef {Object} DailyData
@@ -363,11 +352,14 @@ function AnalyticsSectionComponent() {
                         <span>محدث آخر مرة: {data?.lastUpdate} - (المسار: {pathFilter})</span>
                     </div>
                     
-                    <Link href="/analytics" className="rtl:flex-row-reverse rtl:justify-end 
-                                                      px-6 py-3 bg-indigo-600 text-white rounded-xl text-base 
-                                                      font-medium hover:bg-indigo-700 transition-all duration-300 
-                                                      shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/50 
-                                                      inline-flex items-center gap-2 transform hover:scale-[1.02]">
+                    <Link 
+                        href="/analytics" 
+                        className="rtl:flex-row-reverse rtl:justify-end 
+                                  px-6 py-3 bg-indigo-600 text-white rounded-xl text-base 
+                                  font-medium hover:bg-indigo-700 transition-all duration-300 
+                                  shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/50 
+                                  inline-flex items-center gap-2 transform hover:scale-[1.02]"
+                    >
                         عرض التحليلات
                         {/* Arrow icon (flipped for RTL visual flow) */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="rtl:rotate-180">

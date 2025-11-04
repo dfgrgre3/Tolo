@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEnhancedAuth } from '@/lib/auth-hook-enhanced';
+import { safeGetItem } from '@/lib/safe-client-utils';
 import {
   evaluatePassword,
   validateProfileState,
@@ -168,10 +169,8 @@ export function useRegistrationFlow(options: UseRegistrationFlowOptions = {}) {
 
         const authToken =
           outcome.token ||
-          (typeof window !== 'undefined'
-            ? window.localStorage.getItem('access_token') ??
-              window.localStorage.getItem('accessToken')
-            : undefined);
+          (safeGetItem('access_token', { fallback: null }) ??
+          safeGetItem('accessToken', { fallback: null }));
 
         const authHeaders =
           authToken && authToken.length > 0

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { getTokenFromStorage, removeTokenFromStorage, getUserFromStorage, saveUserToStorage } from '@/lib/auth-client';
 import { toast } from 'sonner';
 import { useHydrationFix } from '@/hydration-fix';
+import { setSafeAuthToken } from '@/lib/safe-client-utils';
 
 export interface User {
   id: string;
@@ -102,23 +103,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [isHydrated]);
 
   const login = (token: string, userData?: User) => {
-    // Save token to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('authToken', token);
-      if (userData) {
-        saveUserToStorage(userData);
-        setUser(userData);
+    // Save token using safe method
+    setSafeAuthToken(token);
+    if (userData) {
+      saveUserToStorage(userData);
+      setUser(userData);
+      
+      // Show welcome message
+      toast.success(`مرحباً ${userData.name || userData.email}!`);
         
-        // Show welcome message
-        toast.success(`مرحباً ${userData.name || userData.email}!`);
-        
-        // Show verification warnings if needed
-        if (!userData.emailVerified && userData.provider === 'local') {
-          toast.warning('يرجى تفعيل بريدك الإلكتروني');
-        }
-        if (!userData.phoneVerified && userData.phone) {
-          toast.warning('يرجى تفعيل رقم هاتفك');
-        }
+      // Show verification warnings if needed
+      if (!userData.emailVerified && userData.provider === 'local') {
+        toast.warning('يرجى تفعيل بريدك الإلكتروني');
+      }
+      if (!userData.phoneVerified && userData.phone) {
+        toast.warning('يرجى تفعيل رقم هاتفك');
       }
     }
   };

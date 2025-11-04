@@ -1,4 +1,5 @@
-import React, { memo, useState, useEffect } from 'react';
+import React, { memo, useState, useEffect, useCallback } from 'react';
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { 
   Trophy, 
@@ -13,51 +14,14 @@ import {
   Sparkles,
   Loader2
 } from "lucide-react";
+import { Card, CardContent } from "@/shared/card";
+import { Button } from "@/shared/button";
+import { Badge } from "@/shared/badge";
 
 // Firebase imports (Mandatory for real-world apps)
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
-
-
-// --- Internal UI Component Definitions (Memoized) ---
-// Note: Memoization helps prevent unnecessary re-renders, reducing CPU load.
-
-const Card = memo(({ className, children }) => (
-  <div className={`rounded-xl border bg-card text-card-foreground shadow-sm ${className}`}>
-    {children}
-  </div>
-));
-
-const CardContent = memo(({ className, children }) => (
-  <div className={`p-6 pt-0 ${className}`}>{children}</div>
-));
-
-const Badge = memo(({ className, children }) => (
-  <div className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 ${className}`}>
-    {children}
-  </div>
-));
-
-const Button = memo(({ className, children, variant = 'default', ...props }) => {
-  let baseClasses = "inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2";
-  
-  if (variant === 'secondary') {
-    baseClasses = "bg-white text-yellow-600 hover:bg-yellow-50 px-6 py-3 text-lg border-0 shadow-lg"; 
-  } else {
-    baseClasses = "bg-primary text-primary-foreground hover:bg-primary/90";
-  }
-
-  return (
-    <button className={`${baseClasses} ${className}`} {...props}>
-      {children}
-    </button>
-  );
-});
-
-const Link = memo(({ href, children }) => (
-  <a href={href} className="text-current no-underline">{children}</a>
-));
 
 // Mock static data structure 
 const ACHIEVEMENTS_STRUCTURE = [
@@ -105,120 +69,162 @@ export function App() {
   const [userAchievements, setUserAchievements] = useState(ACHIEVEMENTS_STRUCTURE);
   const [userStats, setUserStats] = useState(STATS_STRUCTURE);
 
-  // Define environment variables once
-  const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-  const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-  const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+  // Define environment variables once - memoized to prevent recreation
+  const appId = typeof window !== 'undefined' && typeof (window as any).__app_id !== 'undefined' 
+    ? (window as any).__app_id 
+    : 'default-app-id';
+  const firebaseConfig = typeof window !== 'undefined' && typeof (window as any).__firebase_config !== 'undefined' 
+    ? JSON.parse((window as any).__firebase_config) 
+    : null;
+  const initialAuthToken = typeof window !== 'undefined' && typeof (window as any).__initial_auth_token !== 'undefined' 
+    ? (window as any).__initial_auth_token 
+    : null;
 
   // Initialize Firebase and Auth State
   useEffect(() => {
+    // Firebase is optional - use static data if not configured
     if (!firebaseConfig) {
-      console.error("Firebase config is missing. Cannot initialize Firebase.");
+      // Use static data instead of Firebase
+      setUserId('static-user-id');
+      setIsAuthReady(true);
       setLoading(false);
       return;
     }
 
-    const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    
-    // Auth State Listener and Sign-in Logic
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-        let currentUserId;
-        if (user) {
-            currentUserId = user.uid;
-        } else {
-            // Attempt sign in if token is provided, otherwise sign in anonymously
-            try {
-                if (initialAuthToken) {
-                    const credentials = await signInWithCustomToken(auth, initialAuthToken);
-                    currentUserId = credentials.user.uid;
-                } else {
-                    const credentials = await signInAnonymously(auth);
-                    currentUserId = credentials.user.uid;
-                }
-            } catch (error) {
-                console.error("Firebase Auth Error: Failed to sign in.", error);
-                // Fallback to anonymous or random ID if sign-in fails
-                currentUserId = auth.currentUser?.uid || crypto.randomUUID();
-            }
-        }
-        
-        setUserId(currentUserId);
-        setIsAuthReady(true);
-    });
+    let unsubscribeAuth: (() => void) | null = null;
+
+    try {
+      const app = initializeApp(firebaseConfig);
+      const auth = getAuth(app);
+      
+      // Auth State Listener and Sign-in Logic
+      unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+          let currentUserId;
+          if (user) {
+              currentUserId = user.uid;
+          } else {
+              // Attempt sign in if token is provided, otherwise sign in anonymously
+              try {
+                  if (initialAuthToken) {
+                      const credentials = await signInWithCustomToken(auth, initialAuthToken);
+                      currentUserId = credentials.user.uid;
+                  } else {
+                      const credentials = await signInAnonymously(auth);
+                      currentUserId = credentials.user.uid;
+                  }
+              } catch (error) {
+                  console.error("Firebase Auth Error: Failed to sign in.", error);
+                  // Fallback to anonymous or random ID if sign-in fails
+                  currentUserId = auth.currentUser?.uid || crypto.randomUUID();
+              }
+          }
+          
+          setUserId(currentUserId);
+          setIsAuthReady(true);
+      });
+    } catch (error) {
+      console.error("Firebase initialization error:", error);
+      setLoading(false);
+    }
 
     // CRITICAL for memory consumption: Clean up Auth listener on unmount
-    return () => unsubscribeAuth();
-  }, [firebaseConfig, initialAuthToken]); // Dependencies are static config values
+    return () => {
+      if (unsubscribeAuth) {
+        unsubscribeAuth();
+      }
+    };
+  }, [firebaseConfig, initialAuthToken]);
 
   // Fetch Firestore Data Listeners
   useEffect(() => {
-    // Return early if not ready
-    if (!isAuthReady || !userId || !firebaseConfig) return;
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    // Return early if not ready or Firebase not configured
+    if (!isAuthReady || !userId) return;
     
-    const achievementRef = collection(db, 'artifacts', appId, 'users', userId, 'userAchievements');
-    const statsDocRef = doc(db, 'artifacts', appId, 'users', userId, 'userStats', 'summary');
+    // If Firebase is not configured, use static data
+    if (!firebaseConfig) {
+      setUserAchievements(ACHIEVEMENTS_STRUCTURE);
+      setUserStats(STATS_STRUCTURE);
+      setLoading(false);
+      return;
+    }
 
-    // 1. Achievements Listener
-    const unsubscribeAchievements = onSnapshot(achievementRef, (snapshot) => {
-      let liveAchievements = snapshot.docs.map(d => ({
-        ...ACHIEVEMENTS_STRUCTURE.find(a => a.id === d.id), // Merge static info (icon, color)
-        ...d.data(), // Override with live data (progress, title/desc if customized)
-        id: d.id,
-      })).filter(a => a.id); 
+    try {
+      const app = initializeApp(firebaseConfig);
+      const db = getFirestore(app);
       
-      if (liveAchievements.length === 0) {
-        // Initialize if collection is empty
-        ACHIEVEMENTS_STRUCTURE.forEach(async (ach) => {
-          await setDoc(doc(achievementRef, ach.id), { progress: ach.progress, title: ach.title, description: ach.description });
-        });
-      } else {
-        // IMPROVEMENT: Sort data on client-side for stable UI and better UX
-        liveAchievements.sort((a, b) => b.progress - a.progress); 
-        setUserAchievements(liveAchievements);
-      }
-      setLoading(false);
-    }, (error) => {
-      console.error("Error fetching achievements:", error);
-      setLoading(false);
-    });
+      const achievementRef = collection(db, 'artifacts', appId, 'users', userId, 'userAchievements');
+      const statsDocRef = doc(db, 'artifacts', appId, 'users', userId, 'userStats', 'summary');
 
-    // 2. Stats Listener
-    const unsubscribeStats = onSnapshot(statsDocRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const updatedStats = STATS_STRUCTURE.map(stat => {
-                const liveValue = data[stat.id];
-                if (liveValue !== undefined) {
-                    // Convert to string and append '%' only for progress
-                    return { ...stat, value: liveValue.toString() + (stat.id === 'progress' ? '%' : '') };
-                }
-                return stat;
-            });
-            // State update only if data is successfully fetched
-            setUserStats(updatedStats);
+      // 1. Achievements Listener
+      const unsubscribeAchievements = onSnapshot(achievementRef, (snapshot) => {
+        let liveAchievements = snapshot.docs.map(d => ({
+          ...ACHIEVEMENTS_STRUCTURE.find(a => a.id === d.id), // Merge static info (icon, color)
+          ...d.data(), // Override with live data (progress, title/desc if customized)
+          id: d.id,
+        })).filter(a => a.id); 
+        
+        if (liveAchievements.length === 0) {
+          // Initialize if collection is empty - batch writes for better performance
+          const initPromises = ACHIEVEMENTS_STRUCTURE.map((ach) =>
+            setDoc(doc(achievementRef, ach.id), { 
+              progress: ach.progress, 
+              title: ach.title, 
+              description: ach.description 
+            })
+          );
+          Promise.all(initPromises).catch((error) => {
+            console.error("Error initializing achievements:", error);
+          });
         } else {
-            // Initialize stats document if it doesn't exist
-            const initialData = STATS_STRUCTURE.reduce((acc, stat) => {
-                acc[stat.id] = (stat.id === 'rank' || stat.id === 'progress') ? '0' : 0;
-                return acc;
-            }, {});
-            setDoc(statsDocRef, initialData, { merge: true });
+          // IMPROVEMENT: Sort data on client-side for stable UI and better UX
+          const sortedAchievements = [...liveAchievements].sort((a, b) => b.progress - a.progress); 
+          setUserAchievements(sortedAchievements);
         }
-    }, (error) => {
-      console.error("Error fetching stats:", error);
-    });
+        setLoading(false);
+      }, (error) => {
+        console.error("Error fetching achievements:", error);
+        setLoading(false);
+      });
 
-    // CRITICAL for memory consumption: Clean up Firestore listeners on unmount
-    return () => {
-        unsubscribeAchievements();
-        unsubscribeStats();
-        // 
-    };
-  }, [isAuthReady, userId]); // Runs only after auth is confirmed and userId is set
+      // 2. Stats Listener
+      const unsubscribeStats = onSnapshot(statsDocRef, (docSnap) => {
+          if (docSnap.exists()) {
+              const data = docSnap.data();
+              const updatedStats = STATS_STRUCTURE.map(stat => {
+                  const liveValue = data[stat.id];
+                  if (liveValue !== undefined) {
+                      // Convert to string and append '%' only for progress
+                      return { ...stat, value: liveValue.toString() + (stat.id === 'progress' ? '%' : '') };
+                  }
+                  return stat;
+              });
+              // State update only if data is successfully fetched
+              setUserStats(updatedStats);
+          } else {
+              // Initialize stats document if it doesn't exist
+              const initialData = STATS_STRUCTURE.reduce((acc, stat) => {
+                  acc[stat.id] = (stat.id === 'rank' || stat.id === 'progress') ? '0' : 0;
+                  return acc;
+              }, {});
+              setDoc(statsDocRef, initialData, { merge: true });
+          }
+      }, (error) => {
+        console.error("Error fetching stats:", error);
+      });
+
+      // CRITICAL for memory consumption: Clean up Firestore listeners on unmount
+      return () => {
+          unsubscribeAchievements();
+          unsubscribeStats();
+      };
+    } catch (error) {
+      console.error("Firestore error:", error);
+      // Fallback to static data on error
+      setUserAchievements(ACHIEVEMENTS_STRUCTURE);
+      setUserStats(STATS_STRUCTURE);
+      setLoading(false);
+    }
+  }, [isAuthReady, userId, firebaseConfig, appId]); // Runs only after auth is confirmed and userId is set
 
   if (loading) {
     return <AchievementsLoader />;
@@ -244,7 +250,7 @@ export function App() {
             تتبع إنجازاتك وتفوقك
           </h2>
           <p className="text-gray-600 max-w-3xl mx-auto text-lg">
-            احصل على تقدير على جهودك وتحفيز لمواصلة التقدم من خلال نظام الإنجازات المتكامل (معرّف المستخدم: {userId})
+            احصل على تقدير على جهودك وتحفيز لمواصلة التقدم من خلال نظام الإنجازات المتكامل
           </p>
         </motion.div>
 
@@ -334,7 +340,7 @@ export function App() {
                   <Link href="/achievements">
                     <Button variant="secondary" className="bg-white text-amber-600 hover:bg-yellow-50 px-6 py-3 text-lg border-0 shadow-xl font-bold rounded-lg">
                       عرض جميع الإنجازات
-                      <ArrowRight className="h-5 w-5 mr-2" />
+                      <ArrowRight className="h-5 w-5 ml-2" />
                     </Button>
                   </Link>
                 </div>

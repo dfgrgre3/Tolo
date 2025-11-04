@@ -2,18 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-
-const LOCAL_USER_KEY = "tw_user_id";
-async function ensureUser(): Promise<string> {
-	let id = localStorage.getItem(LOCAL_USER_KEY);
-	if (!id) {
-		const res = await fetch("/api/users/guest", { method: "POST" });
-		const data = await res.json();
-		id = data.id;
-		localStorage.setItem(LOCAL_USER_KEY, id!);
-	}
-	return id!;
-}
+import { ensureUser } from "@/lib/user-utils";
+import { safeDocument } from "@/lib/safe-client-utils";
 
 type Exam = { id: string; subject: string; title: string; year: number; url: string };
 
@@ -46,7 +36,10 @@ export default function ExamsPage() {
 			setResults(list);
 			if (focusId) {
 				setTimeout(() => {
-					const el = document.getElementById(`exam-${focusId}`) || document.getElementById(`exam-option-${focusId}`);
+					const el = safeDocument(
+						(doc) => doc.getElementById(`exam-${focusId}`) || doc.getElementById(`exam-option-${focusId}`),
+						null
+					);
 					if (el) {
 						el.scrollIntoView({ behavior: "smooth", block: "center" });
 						el.classList.add("ring", "ring-primary");
