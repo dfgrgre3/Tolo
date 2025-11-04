@@ -11,7 +11,9 @@ export type { AuthGuardProps } from './AuthGuard';
 export { default as ChangePassword } from './ChangePassword';
 export { default as EnhancedLoginForm } from './EnhancedLoginForm';
 export { default as EnhancedRegisterForm } from './EnhancedRegisterForm';
-export { SessionProviderWrapper } from './SessionProviderWrapper';
+export { AuthSessionWrapper } from './AuthSessionWrapper';
+// Legacy export - kept for backward compatibility
+export { AuthSessionWrapper as SessionProviderWrapper } from './AuthSessionWrapper';
 export { AuthProvider, useAuth, AuthContext } from './UserProvider';
 export type { User, AuthContextType } from './UserProvider';
 

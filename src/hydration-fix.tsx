@@ -10,21 +10,30 @@ export function useHydrationFix(): boolean {
   const [isHydrated, setIsHydrated] = useState(false);
 
   useEffect(() => {
-    // Use requestIdleCallback for better performance if available
-    if ('requestIdleCallback' in window) {
-      const idleCallbackId = window.requestIdleCallback(() => {
-        setIsHydrated(true);
-      }, { timeout: 100 });
+    // Set hydrated immediately on client side
+    setIsHydrated(true);
 
-      return () => {
-        if (idleCallbackId && 'cancelIdleCallback' in window) {
-          window.cancelIdleCallback(idleCallbackId);
-        }
-      };
-    } else {
-      // Fallback for browsers that don't support requestIdleCallback
-      const timeoutId = setTimeout(() => setIsHydrated(true), 1);
-      return () => clearTimeout(timeoutId);
+    // Fix hydration issues by removing problematic attributes
+    if (typeof window !== "undefined") {
+      // Remove bis_skin_checked attributes
+      const elements = document.querySelectorAll("[bis_skin_checked]");
+      elements.forEach((el) => {
+        el.removeAttribute("bis_skin_checked");
+      });
+
+      // Remove __processed_* attributes
+      const allElements = document.querySelectorAll("*");
+      allElements.forEach((el) => {
+        Array.from(el.attributes)
+          .filter((attr) => attr.name.startsWith("__processed_"))
+          .forEach((attr) => el.removeAttribute(attr.name));
+      });
+
+      // Remove bis_register attributes
+      const registerElements = document.querySelectorAll("[bis_register]");
+      registerElements.forEach((el) => {
+        el.removeAttribute("bis_register");
+      });
     }
   }, []);
 

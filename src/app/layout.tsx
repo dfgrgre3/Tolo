@@ -7,7 +7,7 @@ import { GlobalProviders } from "../providers/index";
 import NotificationsClient from "../components/NotificationsClient";
 import { ClientLayoutWrapper } from "../components/layout/ClientLayoutWrapper";
 // import { auth } from '../auth-server';
-import { SessionProviderWrapper } from '../components/auth/SessionProviderWrapper';
+import { AuthSessionWrapper } from '../components/auth/AuthSessionWrapper';
 
 const inter = Inter({
 	variable: "--font-inter",
@@ -31,7 +31,7 @@ export default async function RootLayout({
 		<html lang={defaultLang} dir={defaultDir} suppressHydrationWarning>
 			<body className={`${inter.variable} antialiased`} suppressHydrationWarning>
 				<ClientLayoutWrapper>
-					<SessionProviderWrapper session={session}>
+					<AuthSessionWrapper session={session}>
 						<GlobalProviders>
 							<div className="min-h-screen flex flex-col">
 								<Header />
@@ -40,7 +40,7 @@ export default async function RootLayout({
 								<Footer />
 							</div>
 						</GlobalProviders>
-					</SessionProviderWrapper>
+					</AuthSessionWrapper>
 				</ClientLayoutWrapper>
 			</body>
 		</html>

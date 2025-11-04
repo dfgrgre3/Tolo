@@ -3,10 +3,10 @@ import { gamificationService } from '@/lib/gamification-service';
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { goalId: string } }
+  { params }: { params: Promise<{ goalId: string }> }
 ) {
   try {
-    const { goalId } = params;
+    const { goalId } = await params;
     const body = await request.json();
     const { currentValue } = body;
 
@@ -31,10 +31,10 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { goalId: string } }
+  { params }: { params: Promise<{ goalId: string }> }
 ) {
   try {
-    const { goalId } = params;
+    const { goalId } = await params;
     await gamificationService.deleteCustomGoal(goalId);
     return NextResponse.json({ message: 'Goal deleted successfully' });
 

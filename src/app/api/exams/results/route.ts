@@ -9,8 +9,7 @@ export async function GET(req: NextRequest) {
 		const results = await prisma.examResult.findMany({ 
 			where: { userId }, 
 			include: { 
-				exam: true,
-				teacher: true
+				exam: true
 			}, 
 			orderBy: { takenAt: "desc" } 
 		});
@@ -34,8 +33,7 @@ export async function POST(req: NextRequest) {
 				teacherId
 			},
 			include: {
-				exam: true,
-				teacher: true
+				exam: true
 			}
 		});
 		return NextResponse.json(result);

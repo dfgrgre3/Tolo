@@ -55,6 +55,7 @@ model User {
   sessions                Session[]
   achievements            UserAchievement[]
   customGoals             CustomGoal[]
+  examResults             ExamResult[]
 }
 
 model SubjectEnrollment {
@@ -142,6 +143,22 @@ model Exam {
   title     String
   year      Int
   url       String
+  
+  results   ExamResult[]
+}
+
+model ExamResult {
+  id         String   @id @default(cuid())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  exam       Exam     @relation(fields: [examId], references: [id])
+  examId     String
+  score      Float
+  takenAt    DateTime @default(now())
+  teacherId  String?
+  
+  @@index([userId])
+  @@index([examId])
 }
 
 model Session {

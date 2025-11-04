@@ -50,32 +50,53 @@ const ErrorFallback = React.memo(function ErrorFallback({
 });
 
 /**
- * Hook to handle webpack module loading errors
- * Automatically reloads the page on certain errors
+ * Hook to handle webpack/turbopack module loading errors
+ * Automatically reloads the page on certain errors including HMR issues
  */
 function useWebpackErrorHandler() {
   useEffect(() => {
     const handleError = (event: ErrorEvent) => {
       const error = event.error || new Error(event.message);
+      const errorMessage = error.message || event.message || '';
+      
+      // Check for various module loading errors including HMR issues
       if (
-        error.message.includes('Cannot read properties of undefined') ||
-        error.message.includes('call') ||
-        error.message.includes('is not a function') ||
-        error.message.includes('Component is not a function')
+        errorMessage.includes('Cannot read properties of undefined') ||
+        errorMessage.includes('call') ||
+        errorMessage.includes('is not a function') ||
+        errorMessage.includes('Component is not a function') ||
+        errorMessage.includes('module factory is not available') ||
+        errorMessage.includes('was instantiated because it was required') ||
+        errorMessage.includes('next-auth') ||
+        errorMessage.includes('HMR update')
       ) {
-        console.error('Webpack module loading error detected:', error);
-        setTimeout(() => window.location.reload(), 1000);
+        console.error('Module loading error detected:', error);
+        // Clear any cached module references and reload
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
       }
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       const error = event.reason;
+      const errorMessage = error?.message || '';
+      
       if (
-        error?.message?.includes('is not a function') ||
-        error?.message?.includes('Component is not a function')
+        errorMessage.includes('is not a function') ||
+        errorMessage.includes('Component is not a function') ||
+        errorMessage.includes('module factory is not available') ||
+        errorMessage.includes('next-auth') ||
+        errorMessage.includes('HMR update')
       ) {
-        console.error('Unhandled promise rejection:', error);
-        setTimeout(() => window.location.reload(), 1000);
+        console.error('Unhandled promise rejection (module error):', error);
+        if (typeof window !== 'undefined') {
+          setTimeout(() => {
+            window.location.reload();
+          }, 500);
+        }
       }
     };
 
