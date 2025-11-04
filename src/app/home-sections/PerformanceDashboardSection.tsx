@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
 import { Progress } from "@/shared/progress";
+import { safeFetch } from "@/lib/safe-client-utils";
 import { 
   Activity,
   Zap,
@@ -32,15 +33,57 @@ export const PerformanceDashboardSection = memo(function PerformanceDashboardSec
   useEffect(() => {
     const fetchMetrics = async () => {
       try {
-        const response = await fetch("/api/analytics/performance");
-        if (response.ok) {
-          const data = await response.json();
-          setMetrics(transformMetrics(data));
-        } else {
-          setMetrics(getMockMetrics());
+        const { data, error } = await safeFetch<{ metrics: Record<string, { count: number; avg: number; min: number; max: number; trend: 'up' | 'down' | 'stable' }> }>(
+          "/api/analytics/performance",
+          undefined,
+          null
+        );
+
+        if (error || !data) {
+          setMetrics([]);
+          setLoading(false);
+          return;
         }
-      } catch {
-        setMetrics(getMockMetrics());
+
+        // Transform API data to PerformanceMetric format
+        const transformedMetrics: PerformanceMetric[] = Object.entries(data.metrics || {}).map(([key, value]) => {
+          let status: "excellent" | "good" | "warning" | "critical" = "good";
+          let unit = "%";
+          let target = 100;
+
+          // Determine status and target based on metric type
+          if (key.includes("سرعة") || key.includes("سرعة التحميل")) {
+            status = value.avg >= 90 ? "excellent" : value.avg >= 70 ? "good" : "warning";
+            target = 85;
+          } else if (key.includes("وقت") || key.includes("استجابة")) {
+            status = value.avg <= 200 ? "excellent" : value.avg <= 500 ? "good" : "warning";
+            target = 200;
+            unit = "ms";
+          } else if (key.includes("خطأ") || key.includes("error")) {
+            status = value.avg <= 1 ? "excellent" : value.avg <= 2 ? "good" : "warning";
+            target = 2;
+          } else if (key.includes("ذاكرة") || key.includes("memory")) {
+            status = value.avg <= 70 ? "excellent" : value.avg <= 85 ? "good" : "warning";
+            target = 80;
+          } else if (key.includes("CPU")) {
+            status = value.avg <= 50 ? "excellent" : value.avg <= 70 ? "good" : "warning";
+            target = 70;
+          }
+
+          return {
+            name: key,
+            value: Math.round(value.avg),
+            target,
+            unit,
+            trend: value.trend,
+            status
+          };
+        });
+
+        setMetrics(transformedMetrics);
+      } catch (error) {
+        console.error("Error fetching performance metrics:", error);
+        setMetrics([]);
       } finally {
         setLoading(false);
       }
@@ -50,62 +93,6 @@ export const PerformanceDashboardSection = memo(function PerformanceDashboardSec
     const interval = setInterval(fetchMetrics, 30000); // Update every 30 seconds
     return () => clearInterval(interval);
   }, []);
-
-  const transformMetrics = (data: any): PerformanceMetric[] => {
-    // Transform API data to our format
-    return getMockMetrics(); // Placeholder
-  };
-
-  const getMockMetrics = (): PerformanceMetric[] => [
-    {
-      name: "سرعة التحميل",
-      value: 92,
-      target: 85,
-      unit: "%",
-      trend: "up",
-      status: "excellent"
-    },
-    {
-      name: "وقت الاستجابة",
-      value: 145,
-      target: 200,
-      unit: "ms",
-      trend: "stable",
-      status: "excellent"
-    },
-    {
-      name: "معدل الأخطاء",
-      value: 0.8,
-      target: 2,
-      unit: "%",
-      trend: "down",
-      status: "good"
-    },
-    {
-      name: "استخدام الذاكرة",
-      value: 68,
-      target: 80,
-      unit: "%",
-      trend: "stable",
-      status: "good"
-    },
-    {
-      name: "استخدام CPU",
-      value: 45,
-      target: 70,
-      unit: "%",
-      trend: "up",
-      status: "excellent"
-    },
-    {
-      name: "طلبات API/دقيقة",
-      value: 245,
-      target: 300,
-      unit: "req/min",
-      trend: "stable",
-      status: "good"
-    }
-  ];
 
   const getStatusColor = (status: string) => {
     switch (status) {

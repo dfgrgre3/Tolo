@@ -23,7 +23,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 
-// Mock static data structure 
+// Default achievement structure used as template when initializing Firebase collections
+// Real data comes from Firebase Firestore
 const ACHIEVEMENTS_STRUCTURE = [
   { id: 'study_hero', icon: <Trophy className="h-8 w-8 text-yellow-500" />, title: "بطل الدراسة", description: "أكمل 10 أيام متتالية من المذاكرة", progress: 70, color: "bg-gradient-to-r from-yellow-400 to-amber-500" },
   { id: 'star_student', icon: <Star className="h-8 w-8 text-blue-500" />, title: "نجم المواد", description: "احصل على معدل 90% في 3 مواد مختلفة", progress: 45, color: "bg-gradient-to-r from-blue-400 to-indigo-500" },

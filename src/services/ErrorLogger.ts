@@ -213,35 +213,34 @@ class ErrorLogger {
           const consoleLogData: Record<string, any> = {};
           
           // Always include message (guaranteed to exist from earlier validation)
-          const safeMessage = String(logEntry.message || errorMessage || 'Unknown error').trim() || 'Unknown error';
-          // Always set message - never empty
-          consoleLogData.message = safeMessage;
+          const safeMessage = String(logEntry?.message || errorMessage || 'Unknown error').trim();
+          consoleLogData.message = safeMessage || 'Unknown error';
           
-          // Include source if available
-          const safeSource = String(logEntry.source || 'Unknown').trim();
-          if (safeSource && safeSource !== 'Unknown') {
-            consoleLogData.source = safeSource;
-          } else {
-            // Always include source even if unknown
-            consoleLogData.source = safeSource || 'Unknown';
+          // Always include source
+          const safeSource = String(logEntry?.source || context?.source || 'Unknown').trim();
+          consoleLogData.source = safeSource || 'Unknown';
+          
+          // Always include severity
+          const safeSeverity = String(logEntry?.severity || context?.severity || 'medium').trim();
+          consoleLogData.severity = safeSeverity || 'medium';
+
+          // Include timestamp
+          if (logEntry?.timestamp) {
+            consoleLogData.timestamp = logEntry.timestamp;
           }
-          
-          // Include severity if available
-          const safeSeverity = String(logEntry.severity || 'medium').trim();
-          if (safeSeverity) {
-            consoleLogData.severity = safeSeverity;
-          } else {
-            // Always include severity
-            consoleLogData.severity = 'medium';
+
+          // Include error ID
+          if (logEntry?.id) {
+            consoleLogData.id = logEntry.id;
           }
 
           // Include stack if available
-          if (logEntry.stack && typeof logEntry.stack === 'string' && logEntry.stack.trim()) {
-            consoleLogData.stack = logEntry.stack;
+          if (logEntry?.stack && typeof logEntry.stack === 'string' && logEntry.stack.trim()) {
+            consoleLogData.stack = logEntry.stack.substring(0, 500); // Limit stack length
           }
 
           // Include additional data if available
-          if (logEntry.additionalData && typeof logEntry.additionalData === 'object') {
+          if (logEntry?.additionalData && typeof logEntry.additionalData === 'object') {
             const cleanAdditionalData: Record<string, any> = {};
             try {
               Object.entries(logEntry.additionalData).forEach(([key, value]) => {
@@ -272,8 +271,22 @@ class ErrorLogger {
             }
           }
 
-          // Always log - consoleLogData now guaranteed to have at least message, source, and severity
-          console.error('Error logged:', consoleLogData);
+          // Verify consoleLogData has at least one meaningful property
+          const hasValidData = Object.keys(consoleLogData).length > 0 && 
+            (consoleLogData.message || consoleLogData.source || consoleLogData.severity);
+          
+          if (hasValidData) {
+            console.error('Error logged:', consoleLogData);
+          } else {
+            // Fallback if somehow consoleLogData is empty
+            console.error('Error logged:', {
+              message: errorMessage || 'Unknown error',
+              source: context?.source || 'Unknown',
+              severity: 'medium',
+              timestamp: new Date().toISOString(),
+              fallback: true
+            });
+          }
         } catch (consoleError) {
           // Ultimate fallback if console logging completely fails
           try {

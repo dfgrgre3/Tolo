@@ -89,57 +89,148 @@ export class AuthService {
 
   /**
    * Create access and refresh tokens for a user
+   * Improved with better validation and error handling
    */
   async createTokens(user: AuthUser, sessionId?: string): Promise<{ accessToken: string; refreshToken: string }> {
-    const tokenPayload = {
-      userId: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role || 'user',
-      sessionId: sessionId || undefined,
-    };
+    // Validate user data
+    if (!user || !user.id || !user.email) {
+      throw new Error('User data is required for token creation');
+    }
 
-    const accessToken = await new SignJWT(tokenPayload)
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('1h')
-      .sign(JWT_SECRET);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(user.email)) {
+      throw new Error('Invalid email format for token creation');
+    }
 
-    const refreshToken = await new SignJWT({
-      userId: user.id,
-      sessionId: sessionId || undefined,
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('30d')
-      .sign(JWT_SECRET);
+    // Validate session ID format if provided
+    if (sessionId && (typeof sessionId !== 'string' || sessionId.trim().length === 0)) {
+      throw new Error('Invalid session ID format');
+    }
 
-    return { accessToken, refreshToken };
+    try {
+      const tokenPayload = {
+        userId: user.id,
+        email: user.email,
+        name: user.name || undefined,
+        role: user.role || 'user',
+        sessionId: sessionId || undefined,
+      };
+
+      // Create access token with 1 hour expiration
+      const accessToken = await new SignJWT(tokenPayload)
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('1h')
+        .sign(JWT_SECRET);
+
+      // Validate access token was created
+      if (!accessToken || accessToken.split('.').length !== 3) {
+        throw new Error('Failed to create valid access token');
+      }
+
+      // Create refresh token with 30 days expiration
+      const refreshToken = await new SignJWT({
+        userId: user.id,
+        sessionId: sessionId || undefined,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setIssuedAt()
+        .setExpirationTime('30d')
+        .sign(JWT_SECRET);
+
+      // Validate refresh token was created
+      if (!refreshToken || refreshToken.split('.').length !== 3) {
+        throw new Error('Failed to create valid refresh token');
+      }
+
+      return { accessToken, refreshToken };
+    } catch (error) {
+      console.error('Error creating tokens:', error);
+      throw new Error(`Failed to create authentication tokens: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
    * Verify and decode a JWT token
+   * Improved with better validation and error handling
    */
   async verifyToken(token: string): Promise<TokenVerificationResult> {
+    // Validate token format before attempting verification
+    if (!token || typeof token !== 'string' || token.trim().length === 0) {
+      return {
+        isValid: false,
+        error: 'Token is required',
+      };
+    }
+
+    // Basic JWT format validation (should have 3 parts separated by dots)
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3) {
+      return {
+        isValid: false,
+        error: 'Invalid token format',
+      };
+    }
+
     try {
       const { payload } = await jwtVerify(token, JWT_SECRET);
+
+      // Validate payload structure
+      if (!payload || !payload.userId || !payload.email) {
+        return {
+          isValid: false,
+          error: 'Invalid token payload',
+        };
+      }
+
+      // Validate user ID and email format
+      if (typeof payload.userId !== 'string' || payload.userId.trim().length === 0) {
+        return {
+          isValid: false,
+          error: 'Invalid user ID in token',
+        };
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (typeof payload.email !== 'string' || !emailRegex.test(payload.email)) {
+        return {
+          isValid: false,
+          error: 'Invalid email in token',
+        };
+      }
 
       const user: AuthUser = {
         id: payload.userId as string,
         email: payload.email as string,
-        name: payload.name as string,
-        role: payload.role as string,
+        name: (payload.name as string) || undefined,
+        role: (payload.role as string) || 'user',
       };
 
       return {
         isValid: true,
         user,
-        sessionId: payload.sessionId as string,
+        sessionId: payload.sessionId ? (payload.sessionId as string) : undefined,
       };
     } catch (error) {
+      // Provide more specific error messages
+      let errorMessage = 'Token verification failed';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('expired')) {
+          errorMessage = 'Token has expired';
+        } else if (error.message.includes('invalid') || error.message.includes('malformed')) {
+          errorMessage = 'Invalid token format';
+        } else if (error.message.includes('signature')) {
+          errorMessage = 'Invalid token signature';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+
       return {
         isValid: false,
-        error: error instanceof Error ? error.message : 'Token verification failed',
+        error: errorMessage,
       };
     }
   }

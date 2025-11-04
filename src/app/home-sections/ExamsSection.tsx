@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
 import Link from "next/link";
+import { safeFetch } from "@/lib/safe-client-utils";
 
 // --- Skeleton Components for Loading State ---
 
@@ -154,35 +155,97 @@ function ExamsSectionComponent() {
     const [stats, setStats] = useState<any[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedSubject, setSelectedSubject] = useState<any>(null);
+    const [error, setError] = useState<string | null>(null);
 
-    // Simulate fetching structured data from an API
+    // Fetch real data from API
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setSubjects([
-                { emoji: "📚", name: "الرياضيات", exams: [
-                    { id: 1, title: "نموذج التفاضل والتكامل 2023", duration: 180, questionCount: 25, difficulty: "صعب" },
-                    { id: 2, title: "امتحان الجبر والهندسة الفراغية التجريبي", duration: 180, questionCount: 25, difficulty: "متوسط" },
-                    { id: 3, title: "مراجعة نهائية استاتيكا", duration: 120, questionCount: 20, difficulty: "سهل" },
-                ]},
-                { emoji: "⚗️", name: "الكيمياء", exams: [
-                    { id: 4, title: "امتحان الكيمياء العضوية الشامل", duration: 180, questionCount: 45, difficulty: "صعب" },
-                    { id: 5, title: "نموذج تجريبي (الباب الأول والثاني)", duration: 90, questionCount: 30, difficulty: "متوسط" },
-                ]},
-                { emoji: "🔬", name: "الفيزياء", exams: [
-                    { id: 6, title: "امتحان الفصل الأول (التيار الكهربي)", duration: 60, questionCount: 20, difficulty: "متوسط" },
-                    { id: 7, title: "نموذج شامل على الفيزياء الحديثة", duration: 120, questionCount: 35, difficulty: "صعب" },
-                ]},
-                { emoji: "🇬🇧", name: "اللغة الإنجليزية", exams: [{ id: 8, title: "Final Revision Test (Units 1-6)", duration: 120, questionCount: 50, difficulty: "متوسط" }]},
-                { emoji: "📝", name: "اللغة العربية", exams: [{ id: 9, title: "امتحان شامل على البلاغة والنصوص", duration: 90, questionCount: 40, difficulty: "صعب" }]},
-            ]);
-            setStats([
-                { icon: "📄", value: "150+", label: "نموذج امتحان" },
-                { icon: "🎓", value: "10k+", label: "طالب مشارك" },
-                { icon: "💡", value: "50k+", label: "سؤال تمت إجابته" }
-            ]);
-            setLoading(false);
-        }, 1500);
-        return () => clearTimeout(timer);
+        const fetchExamsData = async () => {
+            setLoading(true);
+            setError(null);
+            
+            try {
+                // Fetch exams from API
+                const { data: examsData, error: examsError } = await safeFetch<any[]>(
+                    "/api/exams",
+                    undefined,
+                    []
+                );
+
+                if (examsError) {
+                    console.error("Error fetching exams:", examsError);
+                    setError("فشل تحميل الامتحانات");
+                    setLoading(false);
+                    return;
+                }
+
+                // Group exams by subject
+                const subjectMap = new Map<string, any>();
+                
+                examsData?.forEach((exam: any) => {
+                    const subjectName = exam.subject || "غير محدد";
+                    if (!subjectMap.has(subjectName)) {
+                        // Get emoji based on subject
+                        const emojiMap: Record<string, string> = {
+                            "الرياضيات": "📚",
+                            "الكيمياء": "⚗️",
+                            "الفيزياء": "🔬",
+                            "اللغة الإنجليزية": "🇬🇧",
+                            "اللغة العربية": "📝",
+                            "العلوم": "🔬",
+                            "التاريخ": "📜",
+                            "الجغرافيا": "🌍"
+                        };
+                        
+                        subjectMap.set(subjectName, {
+                            emoji: emojiMap[subjectName] || "📖",
+                            name: subjectName,
+                            exams: []
+                        });
+                    }
+                    
+                    const subject = subjectMap.get(subjectName);
+                    subject.exams.push({
+                        id: exam.id,
+                        title: exam.title || "امتحان بدون عنوان",
+                        duration: exam.duration || 120,
+                        questionCount: exam.questionCount || 20,
+                        difficulty: exam.difficulty || "متوسط",
+                        year: exam.year,
+                        type: exam.type
+                    });
+                });
+
+                // Convert map to array
+                const subjectsArray = Array.from(subjectMap.values());
+                setSubjects(subjectsArray);
+
+                // Calculate stats from real data
+                const totalExams = examsData?.length || 0;
+                const totalQuestions = examsData?.reduce((sum: number, exam: any) => 
+                    sum + (exam.questionCount || 0), 0) || 0;
+                
+                // Get user count from API if available
+                const { data: statsData } = await safeFetch<{ totalStudents: number; totalQuestions: number }>(
+                    "/api/users/stats",
+                    undefined,
+                    { totalStudents: 0, totalQuestions: 0 }
+                );
+
+                setStats([
+                    { icon: "📄", value: `${totalExams}+`, label: "نموذج امتحان" },
+                    { icon: "🎓", value: `${statsData?.totalStudents || 0}+`, label: "طالب مشارك" },
+                    { icon: "💡", value: `${totalQuestions}+`, label: "سؤال تمت إجابته" }
+                ]);
+
+            } catch (err) {
+                console.error("Error fetching exams data:", err);
+                setError("حدث خطأ أثناء تحميل البيانات");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchExamsData();
     }, []);
 
     const filteredSubjects = useMemo(() =>
@@ -230,7 +293,18 @@ function ExamsSectionComponent() {
                                  ))
                         }
                     </div>
-                    { !loading && filteredSubjects.length === 0 && (
+                    {error && (
+                        <div className="text-center py-8">
+                            <p className="text-red-600 mb-2">{error}</p>
+                            <button 
+                                onClick={() => window.location.reload()} 
+                                className="text-primary hover:underline"
+                            >
+                                إعادة المحاولة
+                            </button>
+                        </div>
+                    )}
+                    { !loading && !error && filteredSubjects.length === 0 && (
                         <p className="text-center py-8 text-gray-500">لا توجد مواد تطابق بحثك.</p>
                     )}
                 </div>

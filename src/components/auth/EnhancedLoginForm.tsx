@@ -57,6 +57,30 @@ export default function EnhancedLoginForm() {
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [formErrorCode, setFormErrorCode] = useState<string | null>(null);
   
+  // Check for OAuth errors in URL parameters
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const error = urlParams.get('error');
+      const message = urlParams.get('message');
+      
+      if (error) {
+        const errorMessage = message 
+          ? decodeURIComponent(message) 
+          : 'حدث خطأ أثناء تسجيل الدخول بجوجل. يرجى المحاولة مرة أخرى.';
+        
+        setFormErrorMessage(errorMessage);
+        setFormErrorCode(error);
+        setIsShaking(true);
+        toast.error(errorMessage, { duration: 5000 });
+        
+        // Clean up URL parameters
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, '', newUrl);
+      }
+    }
+  }, []);
+  
   // Get redirect parameter from URL
   const getRedirectPath = () => {
     if (typeof window !== 'undefined') {
@@ -237,14 +261,267 @@ export default function EnhancedLoginForm() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  /**
+   * Validate form data before submission
+   * Improved validation with better error messages
+   */
+  const validateForm = (): { isValid: boolean; errors: { email?: string; password?: string } } => {
+    const errors: { email?: string; password?: string } = {};
     
-    // Reset field errors
+    // Email validation
+    const trimmedEmail = formData.email.trim();
+    if (!trimmedEmail) {
+      errors.email = 'البريد الإلكتروني مطلوب';
+    } else if (trimmedEmail.length > 255) {
+      errors.email = 'البريد الإلكتروني طويل جداً (الحد الأقصى 255 حرف)';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      errors.email = 'البريد الإلكتروني غير صالح. يرجى التحقق من التنسيق';
+    }
+    
+    // Password validation
+    if (!formData.password) {
+      errors.password = 'كلمة المرور مطلوبة';
+    } else if (formData.password.length < 8) {
+      errors.password = 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل';
+    } else if (formData.password.length > 128) {
+      errors.password = 'كلمة المرور طويلة جداً (الحد الأقصى 128 حرف)';
+    }
+    
+    return { isValid: Object.keys(errors).length === 0, errors };
+  };
+
+  /**
+   * Reset all form errors
+   */
+  const resetErrors = () => {
     setFieldErrors({});
     setFormErrorMessage(null);
     setFormErrorCode(null);
+  };
 
+  /**
+   * Handle successful login
+   * Improved with better validation and error handling
+   */
+  const handleLoginSuccess = async (data: any) => {
+    // Reset CAPTCHA state on successful login
+    setRequiresCaptcha(false);
+    setCaptchaToken(null);
+    setFailedAttempts(0);
+    resetErrors();
+
+    // Validate response data
+    if (!data || !data.token || !data.user) {
+      console.error('Invalid login response data:', data);
+      toast.error('استجابة تسجيل الدخول غير صحيحة');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate token format
+    const tokenParts = data.token.split('.');
+    if (tokenParts.length !== 3) {
+      console.error('Invalid token format received');
+      toast.error('رمز المصادقة المستلم غير صحيح');
+      setIsLoading(false);
+      return;
+    }
+
+    // Validate user data
+    if (!data.user.id || !data.user.email) {
+      console.error('Invalid user data in response:', data.user);
+      toast.error('بيانات المستخدم غير صحيحة');
+      setIsLoading(false);
+      return;
+    }
+
+    // Prepare user data to match User interface
+    const userData = {
+      id: data.user.id,
+      email: data.user.email,
+      name: data.user.name || undefined,
+      role: data.user.role || 'user',
+      emailVerified: data.user.emailVerified || false,
+      twoFactorEnabled: data.user.twoFactorEnabled || false,
+      lastLogin: data.user.lastLogin 
+        ? (typeof data.user.lastLogin === 'string' ? data.user.lastLogin : data.user.lastLogin.toISOString())
+        : undefined,
+      provider: 'local' as const,
+    };
+
+    // Save token and user data
+    try {
+      login(data.token, userData);
+      
+      // Also save refresh token if available
+      if (data.refreshToken && typeof window !== 'undefined') {
+        try {
+          const storage = formData.rememberMe ? localStorage : sessionStorage;
+          storage.setItem('refresh_token', data.refreshToken);
+        } catch (storageError) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('Failed to save refresh token:', storageError);
+          }
+        }
+      }
+      
+      // Show success message
+      toast.success('تم تسجيل الدخول بنجاح!', { duration: 3000 });
+      
+      // Refresh user data from server to ensure we have the latest information
+      // Do this in parallel with navigation to avoid blocking
+      refreshUser().catch((refreshError) => {
+        // Non-critical error - user data was already set from login response
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Failed to refresh user data:', refreshError);
+        }
+      });
+      
+      resetErrors();
+      
+      // Reset loading state immediately
+      setIsLoading(false);
+      
+      // Get redirect path from URL or default to home
+      const redirectPath = getRedirectPath();
+      clearStoredRedirect();
+
+      // Use replace instead of push to prevent back navigation to login
+      // Small delay to ensure state is updated and cookies are set by server
+      setTimeout(() => {
+        router.replace(redirectPath);
+        router.refresh();
+      }, 500);
+    } catch (loginError) {
+      // If login function fails, show error and reset loading
+      console.error('Error in login function:', loginError);
+      toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
+      setIsLoading(false);
+      
+      // Reset form state on error
+      setRequiresCaptcha(false);
+      setCaptchaToken(null);
+      resetErrors();
+    }
+  };
+
+  /**
+   * Handle login errors
+   */
+  const handleLoginError = (error: any) => {
+    // Normalize error object - handle empty objects and various error formats
+    let apiError: LoginErrorResponse;
+    
+    if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+      // Empty error object - create a default error
+      apiError = {
+        error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: 'UNEXPECTED_ERROR',
+      };
+    } else if (error instanceof Error) {
+      // Native Error object
+      apiError = {
+        error: error.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: 'UNEXPECTED_ERROR',
+      };
+    } else if (typeof error === 'string') {
+      // String error
+      apiError = {
+        error: error || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: 'UNEXPECTED_ERROR',
+      };
+    } else if (error.error || error.code) {
+      // Already formatted error response
+      apiError = error as LoginErrorResponse;
+    } else {
+      // Unknown error format - try to extract message
+      const errorMessage = error?.message || error?.toString() || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+      apiError = {
+        error: errorMessage,
+        code: error?.code || 'UNEXPECTED_ERROR',
+      };
+    }
+    
+    const errorMessage = apiError.error || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+    const errorCode = apiError.code || 'UNEXPECTED_ERROR';
+
+    // Handle rate limiting
+    if (errorCode === 'RATE_LIMITED' && apiError.retryAfterSeconds) {
+      const safeRetrySeconds = Math.max(1, Math.round(apiError.retryAfterSeconds));
+      setLockoutSeconds(safeRetrySeconds);
+      const formattedCountdown = formatLockoutTime(safeRetrySeconds);
+      const formattedMessage = `${errorMessage} (${formattedCountdown})`;
+      toast.error(formattedMessage, { duration: 5000 });
+      setFormErrorMessage(formattedMessage);
+      setFormErrorCode(errorCode);
+      setIsShaking(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Handle CAPTCHA requirements
+    if (apiError.requiresCaptcha) {
+      setRequiresCaptcha(true);
+      setFailedAttempts(apiError.failedAttempts || 0);
+      const captchaMessage = 'يرجى إكمال التحقق من CAPTCHA للمتابعة';
+      toast.warning(captchaMessage, { duration: 4000 });
+      setFormErrorMessage(captchaMessage);
+      setFormErrorCode(errorCode);
+      setIsShaking(true);
+      setIsLoading(false);
+      return;
+    }
+
+    // Handle network errors
+    if (
+      errorCode === 'FETCH_ERROR' ||
+      errorCode === 'NETWORK_ERROR' ||
+      errorCode === 'REQUEST_TIMEOUT' ||
+      errorCode === 'NOT_FOUND' ||
+      errorCode === 'SERVER_RESPONSE_ERROR' ||
+      errorCode === 'SERVER_ERROR' ||
+      !navigator.onLine
+    ) {
+      toast.error(errorMessage, { duration: 5000 });
+      setFormErrorMessage(errorMessage);
+      setFormErrorCode(errorCode);
+      setIsShaking(true);
+    } else {
+      // Regular error - increment failed attempts
+      const newAttempts = failedAttempts + 1;
+      setFailedAttempts(newAttempts);
+      
+      // Require CAPTCHA after 3 failed attempts
+      if (newAttempts >= 3) {
+        setRequiresCaptcha(true);
+      }
+
+      // Set field errors based on error message
+      const errors: { email?: string; password?: string } = {};
+      if (errorMessage.includes('بريد') || errorMessage.toLowerCase().includes('email')) {
+        errors.email = errorMessage;
+      } else if (errorMessage.includes('مرور') || errorMessage.toLowerCase().includes('password')) {
+        errors.password = errorMessage;
+      } else {
+        // Generic error - show on password field
+        errors.password = errorMessage;
+      }
+      
+      setFieldErrors(errors);
+      toast.error(errorMessage);
+      setFormErrorMessage(errorMessage);
+      setFormErrorCode(errorCode);
+      setIsShaking(true);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Reset errors
+    resetErrors();
+
+    // Check if form is locked
     if (isFormLocked && lockoutSeconds !== null) {
       const waitMessage = `يرجى الانتظار ${formatLockoutTime(lockoutSeconds)} قبل المحاولة مرة أخرى.`;
       toast.warning(waitMessage);
@@ -254,16 +531,11 @@ export default function EnhancedLoginForm() {
       return;
     }
 
-    if (!formData.email || !formData.password) {
-      const errors: { email?: string; password?: string } = {};
-      if (!formData.email) {
-        errors.email = 'البريد الإلكتروني مطلوب';
-      }
-      if (!formData.password) {
-        errors.password = 'كلمة المرور مطلوبة';
-      }
-      setFieldErrors(errors);
-      const validationMessage = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+    // Validate form data
+    const validation = validateForm();
+    if (!validation.isValid) {
+      setFieldErrors(validation.errors);
+      const validationMessage = 'يرجى إدخال جميع الحقول بشكل صحيح';
       toast.error(validationMessage);
       setFormErrorMessage(validationMessage);
       setFormErrorCode('VALIDATION_ERROR');
@@ -274,21 +546,49 @@ export default function EnhancedLoginForm() {
     setIsLoading(true);
 
     try {
-      // Use the centralized API client
-      const data = await loginUser({
-        email: formData.email,
-        password: formData.password,
-        rememberMe: formData.rememberMe,
-        deviceFingerprint,
-        captchaToken: requiresCaptcha && captchaToken ? captchaToken : undefined,
-      });
+      // Normalize email input
+      const normalizedEmail = formData.email.trim().toLowerCase();
+      
+      // Use the centralized API client with improved error handling
+      let data;
+      try {
+        data = await loginUser({
+          email: normalizedEmail,
+          password: formData.password,
+          rememberMe: formData.rememberMe,
+          deviceFingerprint,
+          captchaToken: requiresCaptcha && captchaToken ? captchaToken : undefined,
+        });
+      } catch (apiError: any) {
+        // The API client already handles most errors, but we catch here to ensure proper state management
+        throw apiError;
+      }
+
+      // Validate response structure
+      if (!data || typeof data !== 'object') {
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Invalid login response structure:', data);
+        }
+        toast.error('استجابة غير صحيحة من الخادم. يرجى المحاولة مرة أخرى.');
+        setIsLoading(false);
+        return;
+      }
 
       // Check if 2FA is required
       if (data.requiresTwoFactor) {
+        // Validate 2FA response structure
+        if (!data.loginAttemptId) {
+          console.error('2FA required but missing loginAttemptId');
+          toast.error('خطأ في استجابة التحقق بخطوتين. يرجى المحاولة مرة أخرى.');
+          setIsLoading(false);
+          return;
+        }
+        
         setShowTwoFactor(true);
-        setLoginAttemptId(data.loginAttemptId || '');
+        setLoginAttemptId(data.loginAttemptId);
         setIsLoading(false);
-        toast.info('يرجى إدخال رمز التحقق المرسل إلى بريدك الإلكتروني');
+        resetErrors(); // Clear any previous errors
+        toast.info('يرجى إدخال رمز التحقق المرسل إلى بريدك الإلكتروني', { duration: 5000 });
         return;
       }
 
@@ -297,7 +597,9 @@ export default function EnhancedLoginForm() {
         setRiskLevel(data.riskAssessment.level);
         
         if (data.riskAssessment.level === 'high' || data.riskAssessment.level === 'critical') {
-          toast.warning('تم اكتشاف نشاط غير معتاد. يرجى التحقق من هويتك.');
+          toast.warning('تم اكتشاف نشاط غير معتاد. يرجى التحقق من هويتك.', { duration: 6000 });
+        } else if (data.riskAssessment.level === 'medium') {
+          toast.info('تم اكتشاف جهاز جديد. يرجى التأكد من هويتك.', { duration: 4000 });
         }
       }
 
@@ -311,174 +613,117 @@ export default function EnhancedLoginForm() {
         return;
       }
 
-      // Reset CAPTCHA state on successful login
-      setRequiresCaptcha(false);
-      setCaptchaToken(null);
-      setFailedAttempts(0);
-      setFieldErrors({});
-
-      // Log successful login for debugging (development only)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Login successful:', {
-          hasToken: !!data.token,
-          hasUser: !!data.user,
-          userId: data.user?.id,
-          userEmail: data.user?.email,
-        });
-      }
-
-      // Prepare user data to match User interface
-      const userData = {
-        id: data.user.id,
-        email: data.user.email,
-        name: data.user.name || undefined,
-        role: data.user.role || 'user',
-        emailVerified: data.user.emailVerified || false,
-        twoFactorEnabled: data.user.twoFactorEnabled || false,
-        lastLogin: data.user.lastLogin 
-          ? (typeof data.user.lastLogin === 'string' ? data.user.lastLogin : data.user.lastLogin.toISOString())
-          : undefined,
-        provider: 'local' as const,
-      };
-
-      // Save token and user data
-      try {
-        // Call login function from auth context to save token and user state
-        login(data.token, userData);
-        
-        // Also save refresh token if available (for token refresh functionality)
-        if (data.refreshToken && typeof window !== 'undefined') {
-          try {
-            const storage = formData.rememberMe ? localStorage : sessionStorage;
-            storage.setItem('refresh_token', data.refreshToken);
-          } catch (storageError) {
-            if (process.env.NODE_ENV === 'development') {
-              console.warn('Failed to save refresh token:', storageError);
-            }
-          }
-        }
-        
-        // Refresh user data from server to ensure we have the latest information
-        try {
-          await refreshUser();
-        } catch (refreshError) {
-          // Non-critical error - user data was already set from login response
-          if (process.env.NODE_ENV === 'development') {
-            console.warn('Failed to refresh user data:', refreshError);
-          }
-        }
-        
-        // Show success message
-        toast.success('تم تسجيل الدخول بنجاح!');
-        setFormErrorMessage(null);
-        setFormErrorCode(null);
-        
-        // Reset loading state immediately
-        setIsLoading(false);
-        
-        // Get redirect path from URL or default to home
-        const redirectPath = getRedirectPath();
-        
-        clearStoredRedirect();
-
-        // Use replace instead of push to prevent back navigation to login
-        // Small delay to ensure state is updated and cookies are set by server
-        setTimeout(() => {
-          router.replace(redirectPath);
-          // Refresh the page to ensure server-side cookies are recognized
-          router.refresh();
-        }, 500);
-      } catch (loginError) {
-        // If login function fails, show error and reset loading
-        console.error('Error in login function:', loginError);
-        toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
-        setIsLoading(false);
-      }
+      // Handle successful login
+      await handleLoginSuccess(data);
 
     } catch (error: any) {
+      // Enhanced error logging with better details
       if (process.env.NODE_ENV === 'development') {
-        console.error('Login error:', error);
+        try {
+          // Safely extract error information
+          const errorDetails: any = {
+            timestamp: new Date().toISOString(),
+            errorType: error === null ? 'null' : error === undefined ? 'undefined' : typeof error,
+            errorConstructor: error?.constructor?.name || 'Unknown',
+            errorMessage: error?.message || error?.toString() || 'No message available',
+            errorStack: error?.stack || 'No stack trace available',
+            errorString: String(error || 'null/undefined'),
+          };
+
+          // Safely serialize error object
+          if (error) {
+            try {
+              // Try to serialize with all properties
+              const errorKeys = Object.getOwnPropertyNames(error);
+              if (errorKeys.length > 0) {
+                const errorObj: any = {};
+                errorKeys.forEach(key => {
+                  try {
+                    const value = error[key];
+                    // Handle circular references and non-serializable values
+                    if (typeof value === 'function') {
+                      errorObj[key] = '[Function]';
+                    } else if (value instanceof Error) {
+                      errorObj[key] = {
+                        name: value.name,
+                        message: value.message,
+                        stack: value.stack?.substring(0, 200),
+                      };
+                    } else {
+                      errorObj[key] = value;
+                    }
+                  } catch {
+                    errorObj[key] = '[Unable to access]';
+                  }
+                });
+                errorDetails.errorJSON = JSON.stringify(errorObj, null, 2);
+                errorDetails.errorKeys = errorKeys;
+              } else {
+                errorDetails.errorJSON = 'Error object has no enumerable properties';
+                errorDetails.errorKeys = [];
+              }
+            } catch (serializeError: any) {
+              errorDetails.errorJSON = `Serialization failed: ${serializeError?.message || serializeError}`;
+            }
+          } else {
+            errorDetails.errorJSON = 'Error is null or undefined';
+          }
+
+          // Add additional properties if error is an object
+          if (error && typeof error === 'object') {
+            errorDetails.hasError = 'error' in error;
+            errorDetails.hasCode = 'code' in error;
+            errorDetails.hasStatus = 'status' in error;
+            errorDetails.hasStatusText = 'statusText' in error;
+            
+            // Try to extract common error properties
+            if ('response' in error) {
+              errorDetails.hasResponse = true;
+              try {
+                errorDetails.responseStatus = (error as any).response?.status;
+                errorDetails.responseData = (error as any).response?.data;
+              } catch {}
+            }
+          }
+
+          // Ensure we always have meaningful information
+          if (Object.keys(errorDetails).length === 0) {
+            errorDetails.fallback = 'Error object is completely empty';
+          }
+
+          console.error('Login error details:', errorDetails);
+          // Also log the raw error for debugging
+          console.error('Raw error object:', error);
+        } catch (logError) {
+          // Fallback if even logging fails
+          console.error('Login error (logging failed):', {
+            originalError: error,
+            loggingError: logError,
+            errorType: typeof error,
+            errorString: String(error),
+          });
+        }
       }
       
-      // Handle API errors with proper typing
-      const apiError = error as LoginErrorResponse;
-      const errorMessage = apiError.error || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
-      const errorCode = apiError.code || 'UNEXPECTED_ERROR';
-
-      // Handle rate limiting
-      if (errorCode === 'RATE_LIMITED' && apiError.retryAfterSeconds) {
-        const safeRetrySeconds = Math.max(1, Math.round(apiError.retryAfterSeconds));
-        setLockoutSeconds(safeRetrySeconds);
-        const formattedCountdown = formatLockoutTime(safeRetrySeconds);
-        const formattedMessage = `${errorMessage} (${formattedCountdown})`;
-        toast.error(formattedMessage, { duration: 5000 });
-        setFormErrorMessage(formattedMessage);
-        setFormErrorCode(errorCode);
-        setIsShaking(true);
-        setIsLoading(false);
-        return;
-      }
-
-      // Handle CAPTCHA requirements
-      if (apiError.requiresCaptcha) {
-        setRequiresCaptcha(true);
-        setFailedAttempts(apiError.failedAttempts || 0);
-        const captchaMessage = 'يرجى إكمال التحقق من CAPTCHA للمتابعة';
-        toast.warning(captchaMessage, { duration: 4000 });
-        setFormErrorMessage(captchaMessage);
-        setFormErrorCode(errorCode);
-        setIsShaking(true);
-        setIsLoading(false);
-        return;
-      }
-
-      // Handle network errors
-      if (
-        errorCode === 'FETCH_ERROR' ||
-        errorCode === 'NETWORK_ERROR' ||
-        errorCode === 'REQUEST_TIMEOUT' ||
-        !navigator.onLine
-      ) {
-        toast.error(errorMessage, { duration: 5000 });
-        setFormErrorMessage(errorMessage);
-        setFormErrorCode(errorCode);
-        setIsShaking(true);
-      } else {
-        // Regular error - increment failed attempts
-        const newAttempts = failedAttempts + 1;
-        setFailedAttempts(newAttempts);
-        
-        // Require CAPTCHA after 3 failed attempts
-        if (newAttempts >= 3) {
-          setRequiresCaptcha(true);
-        }
-
-        // Set field errors based on error message
-        const errors: { email?: string; password?: string } = {};
-        if (errorMessage.includes('بريد') || errorMessage.toLowerCase().includes('email')) {
-          errors.email = errorMessage;
-        } else if (errorMessage.includes('مرور') || errorMessage.toLowerCase().includes('password')) {
-          errors.password = errorMessage;
-        } else {
-          // Generic error - show on password field
-          errors.password = errorMessage;
-        }
-        
-        setFieldErrors(errors);
-        toast.error(errorMessage);
-        setFormErrorMessage(errorMessage);
-        setFormErrorCode(errorCode);
-        setIsShaking(true);
-      }
+      // Handle login errors with better error normalization
+      handleLoginError(error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  /**
+   * Validate two-factor code
+   */
+  const validateTwoFactorCode = (code: string): boolean => {
+    return code.length === 6 && /^\d{6}$/.test(code);
+  };
+
   const handleTwoFactorSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!twoFactorCode || twoFactorCode.length !== 6) {
+    // Validate 2FA code
+    if (!twoFactorCode || !validateTwoFactorCode(twoFactorCode)) {
       const invalidCodeMessage = 'يرجى إدخال رمز صحيح مكون من 6 أرقام';
       toast.error(invalidCodeMessage);
       setFormErrorMessage(invalidCodeMessage);
@@ -487,8 +732,7 @@ export default function EnhancedLoginForm() {
       return;
     }
 
-    setFormErrorMessage(null);
-    setFormErrorCode(null);
+    resetErrors();
     setIsLoading(true);
 
     try {
@@ -498,57 +742,87 @@ export default function EnhancedLoginForm() {
         code: twoFactorCode,
       });
 
-      // Successful 2FA verification
-      try {
-        // Prepare user data to match User interface
-        const userData = {
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name || undefined,
-          role: data.user.role || 'user',
-          emailVerified: data.user.emailVerified || false,
-          twoFactorEnabled: data.user.twoFactorEnabled || false,
-          lastLogin: data.user.lastLogin 
-            ? (typeof data.user.lastLogin === 'string' ? data.user.lastLogin : data.user.lastLogin.toISOString())
-            : undefined,
-        };
-        login(data.token, userData);
-        toast.success('تم التحقق بنجاح!');
-        setFormErrorMessage(null);
-        setFormErrorCode(null);
-        
-        // Reset loading state immediately
-        setIsLoading(false);
-        
-        // Get redirect path from URL or default to home
-        const redirectPath = getRedirectPath();
-        
-        clearStoredRedirect();
-
-        // Use replace instead of push to prevent back navigation to login
-        setTimeout(() => {
-          router.replace(redirectPath);
-        }, 500);
-      } catch (loginError) {
-        // If login function fails, show error and reset loading
-        console.error('Error in login function:', loginError);
-        toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
-        setIsLoading(false);
-      }
+      // Successful 2FA verification - use the same success handler
+      await handleLoginSuccess(data);
 
     } catch (error: any) {
+      // Enhanced error logging with better details
       if (process.env.NODE_ENV === 'development') {
-        console.error('2FA verification error:', error);
+        try {
+          // Safely serialize error object
+          let errorJSON = 'Unable to serialize';
+          if (error) {
+            try {
+              // Try to serialize with all properties
+              const errorKeys = Object.getOwnPropertyNames(error);
+              const errorObj: any = {};
+              errorKeys.forEach(key => {
+                try {
+                  errorObj[key] = error[key];
+                } catch {
+                  errorObj[key] = '[Unable to access]';
+                }
+              });
+              errorJSON = JSON.stringify(errorObj, null, 2);
+            } catch (serializeError) {
+              errorJSON = `Serialization failed: ${serializeError}`;
+            }
+          }
+
+          const errorDetails: any = {
+            errorType: typeof error,
+            errorConstructor: error?.constructor?.name || 'Unknown',
+            errorMessage: error?.message || 'No message',
+            errorStack: error?.stack || 'No stack',
+            errorString: String(error || 'null/undefined'),
+          };
+
+          // Only add these if error is an object
+          if (error && typeof error === 'object') {
+            errorDetails.hasError = 'error' in error;
+            errorDetails.hasCode = 'code' in error;
+            errorDetails.errorKeys = Object.keys(error);
+            errorDetails.errorJSON = errorJSON;
+          }
+
+          console.error('2FA verification error details:', errorDetails);
+        } catch (logError) {
+          // Fallback if even logging fails
+          console.error('2FA verification error (logging failed):', error, logError);
+        }
       }
       
-      const apiError = error as { error?: string; code?: string };
-      const errorMessage = apiError.error || 'حدث خطأ أثناء التحقق';
-      const errorCode = apiError.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
+      // Normalize error - handle empty objects and various error formats
+      let errorMessage: string;
+      let errorCode: string;
+      
+      if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+        // Empty error object
+        errorMessage = 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
+        errorCode = 'TWO_FACTOR_UNEXPECTED_ERROR';
+      } else if (error instanceof Error) {
+        // Native Error object
+        errorMessage = error.message || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
+        errorCode = 'TWO_FACTOR_UNEXPECTED_ERROR';
+      } else if (typeof error === 'string') {
+        // String error
+        errorMessage = error || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
+        errorCode = 'TWO_FACTOR_UNEXPECTED_ERROR';
+      } else if (error.error || error.code) {
+        // Already formatted error response
+        errorMessage = error.error || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
+        errorCode = error.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
+      } else {
+        // Unknown error format - try to extract message
+        errorMessage = error?.message || error?.toString() || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
+        errorCode = error?.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
+      }
       
       toast.error(errorMessage);
       setFormErrorMessage(errorMessage);
       setFormErrorCode(errorCode);
       setIsShaking(true);
+      setTwoFactorCode(''); // Clear the code on error
     } finally {
       setIsLoading(false);
     }

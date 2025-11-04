@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
 import { Button } from "@/shared/button";
+import { safeFetch } from "@/lib/safe-client-utils";
+import { getSafeUserId } from "@/lib/safe-client-utils";
 import { 
   Trophy,
   Share2,
@@ -46,27 +48,68 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
 
   useEffect(() => {
     const fetchData = async () => {
+      const userId = getSafeUserId();
+      
       try {
         // Fetch leaderboard
-        const leaderResponse = await fetch("/api/gamification/leaderboard?limit=5");
-        if (leaderResponse.ok) {
-          const leaderData = await leaderResponse.json();
-          setLeaderboard(leaderData.entries || []);
+        const { data: leaderData, error: leaderError } = await safeFetch<{
+          leaderboard: Array<{ rank: number; userId: string; name: string; totalXP: number; level: number }>;
+          userPosition?: { rank: number; totalXP: number; level: number };
+        }>(
+          `/api/gamification/leaderboard?limit=5${userId ? `&userId=${userId}` : ''}`,
+          undefined,
+          null
+        );
+
+        if (!leaderError && leaderData?.leaderboard) {
+          const transformedLeaderboard: LeaderboardEntry[] = leaderData.leaderboard.map((entry, index) => ({
+            rank: entry.rank || index + 1,
+            name: entry.name || "مستخدم",
+            score: entry.totalXP || 0,
+            badge: entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : "⭐",
+            isCurrentUser: entry.userId === userId
+          }));
+
+          setLeaderboard(transformedLeaderboard);
         } else {
-          setLeaderboard(getMockLeaderboard());
+          setLeaderboard([]);
         }
 
         // Fetch achievements
-        const achievementsResponse = await fetch("/api/gamification/achievements?recent=true");
-        if (achievementsResponse.ok) {
-          const achievementsData = await achievementsResponse.json();
-          setRecentAchievements(achievementsData.achievements || []);
+        const { data: achievementsData, error: achievementsError } = await safeFetch<{
+          achievements: Array<{
+            id: string;
+            title: string;
+            description: string;
+            progress?: number;
+            total?: number;
+            unlockedAt?: string;
+          }>;
+        }>(
+          `/api/gamification/achievements${userId ? `?userId=${userId}` : ''}`,
+          undefined,
+          null
+        );
+
+        if (!achievementsError && achievementsData?.achievements) {
+          const transformedAchievements: Achievement[] = achievementsData.achievements.slice(0, 3).map((ach) => ({
+            id: ach.id,
+            title: ach.title,
+            description: ach.description,
+            icon: <Award className="h-6 w-6" />,
+            unlockedAt: ach.unlockedAt ? new Date(ach.unlockedAt) : undefined,
+            progress: ach.progress,
+            total: ach.total
+          }));
+
+          setRecentAchievements(transformedAchievements);
         } else {
-          setRecentAchievements(getMockAchievements());
+          setRecentAchievements([]);
         }
-      } catch {
-        setLeaderboard(getMockLeaderboard());
-        setRecentAchievements(getMockAchievements());
+      } catch (error) {
+        console.error("Error fetching social data:", error);
+        setLeaderboard([]);
+        setRecentAchievements([]);
       } finally {
         setLoading(false);
       }
@@ -74,39 +117,6 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
 
     fetchData();
   }, []);
-
-  const getMockLeaderboard = (): LeaderboardEntry[] => [
-    { rank: 1, name: "أحمد محمد", score: 12500, badge: "🥇", isCurrentUser: false },
-    { rank: 2, name: "فاطمة علي", score: 11800, badge: "🥈", isCurrentUser: false },
-    { rank: 3, name: "محمد خالد", score: 11200, badge: "🥉", isCurrentUser: false },
-    { rank: 4, name: "أنت", score: 9850, badge: "⭐", isCurrentUser: true },
-    { rank: 5, name: "سارة أحمد", score: 9200, badge: "🏅", isCurrentUser: false }
-  ];
-
-  const getMockAchievements = (): Achievement[] => [
-    {
-      id: "1",
-      title: "سلسلة 7 أيام",
-      description: "أكملت 7 أيام متتالية من الدراسة",
-      icon: <Flame className="h-6 w-6" />,
-      unlockedAt: new Date(Date.now() - 2 * 60 * 60 * 1000)
-    },
-    {
-      id: "2",
-      title: "معلم 100 ساعة",
-      description: "وصلت إلى 100 ساعة إجمالية من الدراسة",
-      icon: <Target className="h-6 w-6" />,
-      unlockedAt: new Date(Date.now() - 24 * 60 * 60 * 1000)
-    },
-    {
-      id: "3",
-      title: "متقن الرياضيات",
-      description: "أكملت جميع دروس الرياضيات",
-      icon: <Award className="h-6 w-6" />,
-      progress: 85,
-      total: 100
-    }
-  ];
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
