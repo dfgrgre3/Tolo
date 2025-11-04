@@ -53,8 +53,8 @@ export default function RootLayout({
 	const defaultDir = 'rtl';
 
 	return (
-		<html lang={defaultLang} dir={defaultDir}>
-			<body className={`${inter.variable} antialiased`}>
+		<html lang={defaultLang} dir={defaultDir} suppressHydrationWarning>
+			<body className={`${inter.variable} antialiased`} suppressHydrationWarning>
 				<ErrorBoundary 
 					FallbackComponent={ErrorFallback}
 					onError={(error: Error, info: {componentStack: string}) => {

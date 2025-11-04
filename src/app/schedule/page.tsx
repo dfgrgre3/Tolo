@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
-import { DndProvider } from "react-dnd/dist/core";
-import { useDrag, useDrop } from "react-dnd";
+import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { WebSocketProvider, useWebSocket } from "@/contexts/websocket-context";
+import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
 type DragItem = {
   id: string;
@@ -15,23 +15,6 @@ type DragItem = {
 };
 
 const LOCAL_USER_KEY = "tw_user_id";
-async function ensureUser(): Promise<string> {
-	setLoadingUser(true);
-	try {
-		let id = typeof window !== 'undefined' ? localStorage.getItem(LOCAL_USER_KEY) : null;
-		if (!id) {
-			const res = await fetch("/api/users/guest", { method: "POST" });
-			const data = await res.json();
-			id = data.id;
-			if (typeof window !== 'undefined') {
-				localStorage.setItem(LOCAL_USER_KEY, id!);
-			}
-		}
-		return id!;
-	} finally {
-		setLoadingUser(false);
-	}
-}
 
 type PlanBlock = { id: string; type: string; title: string; color?: string; location?: string; startTime: string; endTime: string; teacherId?: string; taskId?: string; examId?: string };
 
@@ -79,38 +62,52 @@ function hasTimeConflict(blocks: PlanBlock[]): boolean {
 	return false;
 }
 
-function DraggableBlock({ block, dayKey, index }: { block: PlanBlock; dayKey: string; index: number }) {
-  const [{ isDragging }, drag] = useDrag(() => ({
-    type: 'BLOCK',
-    item: { id: block.id, originalDay: dayKey, index },
-    collect: (monitor) => ({
-      isDragging: !!monitor.isDragging(),
-    }),
-  }));
+const DraggableBlock = memo(({ 
+	block, 
+	dayKey, 
+	index,
+	onRemove,
+	onOpenLinked
+}: { 
+	block: PlanBlock; 
+	dayKey: string; 
+	index: number;
+	onRemove: (dayKey: string, blockId: string) => void;
+	onOpenLinked: (block: PlanBlock) => void;
+}) => {
+	const [{ isDragging }, drag] = useDrag(() => ({
+		type: 'BLOCK',
+		item: { id: block.id, originalDay: dayKey, index },
+		collect: (monitor: any) => ({
+			isDragging: !!monitor.isDragging(),
+		}),
+	}));
 
-  return (
-    <li
-      ref={drag}
-      className={`border rounded-md p-2 text-xs flex items-center justify-between cursor-move transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'}`}
-      style={{ backgroundColor: block.color || '#f3f4f6' }}
-      onClick={() => openLinked(block)}
-    >
-      <span>
-        {block.title}
-        {block.startTime && block.endTime ? ` (${block.startTime} - ${block.endTime})` : ''}
-        {block.taskId ? <em className="ml-2 text-muted-foreground">(مهمة)</em> : null}
-        {block.examId ? <em className="ml-2 text-muted-foreground">(امتحان)</em> : null}
-      </span>
-      <button 
-        className="text-destructive text-xs" 
-        onClick={(e) => { e.stopPropagation(); removeBlock(dayKey, block.id); }}
-        aria-label="حذف"
-      >
-        حذف
-      </button>
-    </li>
-  );
-}
+	return (
+		<li
+			ref={drag}
+			className={`border rounded-md p-2 text-xs flex items-center justify-between cursor-move transition-opacity ${isDragging ? 'opacity-50' : 'opacity-100'}`}
+			style={{ backgroundColor: block.color || '#f3f4f6' }}
+			onClick={() => onOpenLinked(block)}
+		>
+			<span>
+				{block.title}
+				{block.startTime && block.endTime ? ` (${block.startTime} - ${block.endTime})` : ''}
+				{block.taskId ? <em className="ml-2 text-muted-foreground">(مهمة)</em> : null}
+				{block.examId ? <em className="ml-2 text-muted-foreground">(امتحان)</em> : null}
+			</span>
+			<button 
+				className="text-destructive text-xs" 
+				onClick={(e) => { e.stopPropagation(); onRemove(dayKey, block.id); }}
+				aria-label="حذف"
+			>
+				حذف
+			</button>
+		</li>
+	);
+});
+
+DraggableBlock.displayName = 'DraggableBlock';
 
 export default function SchedulePage() {
 	const router = useRouter();
@@ -155,11 +152,25 @@ export default function SchedulePage() {
 	}, []);
 
 	useEffect(() => {
-		setLoadingUser(true);
-		ensureUser().then((id) => {
-			setUserId(id);
-			setLoadingUser(false);
-		});
+		const loadUser = async () => {
+			setLoadingUser(true);
+			try {
+				let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
+				if (!id) {
+					const res = await fetch("/api/users/guest", { method: "POST" });
+					const data = await res.json();
+					id = data.id;
+					safeSetItem(LOCAL_USER_KEY, id!);
+				}
+				setUserId(id!);
+			} catch (error) {
+				console.error("Failed to load user:", error);
+			} finally {
+				setLoadingUser(false);
+			}
+		};
+		
+		loadUser();
 	}, []);
 
 	useEffect(() => {
@@ -394,7 +405,14 @@ export default function SchedulePage() {
 											</div>
 											<ul className="space-y-2">
 												{(plan[d.key] || []).map((b, i) => (
-													<DraggableBlock key={b.id} block={b} dayKey={d.key} index={i} />
+													<DraggableBlock 
+														key={b.id} 
+														block={b} 
+														dayKey={d.key} 
+														index={i}
+														onRemove={removeBlock}
+														onOpenLinked={openLinked}
+													/>
 												))}
 											</ul>
 										</div>

@@ -6,18 +6,7 @@ import { useGamification } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { CustomGoal } from '@/lib/gamification-service';
 
-const LOCAL_USER_KEY = "tw_user_id";
-
-async function ensureUser(): Promise<string> {
-  let id = localStorage.getItem(LOCAL_USER_KEY);
-  if (!id) {
-    const res = await fetch("/api/users/guest", { method: "POST" });
-    const data = await res.json();
-    id = data.id;
-    localStorage.setItem(LOCAL_USER_KEY, id!);
-  }
-  return id!;
-}
+import { ensureUser } from "@/lib/user-utils";
 
 interface CreateGoalModalProps {
   isOpen: boolean;

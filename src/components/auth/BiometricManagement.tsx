@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Loader2, AlertCircle, Fingerprint, Smartphone, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEnhancedAuth } from '@/lib/auth-hook-enhanced';
+import { getSafeAuthToken } from '@/lib/safe-client-utils';
 
 interface BiometricCredential {
   id: string;
@@ -32,9 +33,10 @@ export default function BiometricManagement() {
   // Fetch biometric credentials
   const fetchCredentials = async () => {
     try {
+      const token = getSafeAuthToken();
       const response = await fetch('/api/auth/biometric/credentials', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${token}`
         }
       });
 
@@ -66,7 +68,7 @@ export default function BiometricManagement() {
       const response = await fetch('/api/auth/biometric/setup', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getSafeAuthToken()}`
         }
       });
 
@@ -99,7 +101,7 @@ export default function BiometricManagement() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getSafeAuthToken()}`
         },
         body: JSON.stringify({ credentialId })
       });
@@ -125,7 +127,7 @@ export default function BiometricManagement() {
       const response = await fetch('/api/auth/biometric/setup', {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${getSafeAuthToken()}`
         }
       });
 

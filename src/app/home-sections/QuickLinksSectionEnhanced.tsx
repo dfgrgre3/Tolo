@@ -4,9 +4,9 @@ import { Card, CardContent } from "@/shared/card";
 import { Button } from "@/shared/button";
 import { Badge } from "@/shared/badge";
 import { ArrowRight } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, memo } from "react";
 
-export function QuickLinksSectionEnhanced() {
+export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced() {
   const quickLinks = useMemo(() => [
     {
       href: "/progress",
@@ -43,8 +43,9 @@ export function QuickLinksSectionEnhanced() {
   ], []);
 
   return (
-    <div className="mt-6">
+    <section className="mt-6" aria-labelledby="quick-links-heading">
       <motion.h2 
+        id="quick-links-heading"
         className="text-xl md:text-2xl font-bold mb-4 text-primary flex items-center gap-2"
         initial={{ opacity: 0, x: -20 }}
         whileInView={{ opacity: 1, x: 0 }}
@@ -52,7 +53,7 @@ export function QuickLinksSectionEnhanced() {
         transition={{ duration: 0.5 }}
       >
         <span>روابط سريعة</span>
-        <span className="text-lg">⚡</span>
+        <span className="text-lg" aria-hidden="true">⚡</span>
       </motion.h2>
       
       <div className="grid gap-4 md:gap-6 grid-cols-2 md:grid-cols-4">
@@ -105,8 +106,9 @@ export function QuickLinksSectionEnhanced() {
           </Button>
         </Link>
       </motion.div>
-    </div>
+    </section>
   );
-}
+});
+QuickLinksSectionEnhanced.displayName = "QuickLinksSectionEnhanced";
 
 export default QuickLinksSectionEnhanced;

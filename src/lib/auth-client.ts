@@ -1,5 +1,7 @@
 'use client';
 
+import { safeGetItem, safeSetItem, safeRemoveItem } from './safe-client-utils';
+
 export interface AuthTokens {
   token: string;
   refreshToken?: string;
@@ -23,48 +25,33 @@ let currentUser: User | null = null;
 
 // Get token from localStorage
 export function getTokenFromStorage(): string | null {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('authToken');
-  }
-  return null;
+  return safeGetItem('authToken', { fallback: null });
 }
 
 // Save token to localStorage
 export function saveTokenToStorage(token: string): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('authToken', token);
-  }
+  safeSetItem('authToken', token);
 }
 
 // Remove token from localStorage
 export function removeTokenFromStorage(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('user');
-  }
+  safeRemoveItem('authToken');
+  safeRemoveItem('user');
 }
 
 // Get user from localStorage
 export function getUserFromStorage(): User | null {
-  if (typeof window !== 'undefined') {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  }
-  return null;
+  return safeGetItem('user', { fallback: null });
 }
 
 // Save user to localStorage
 export function saveUserToStorage(user: User): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('user', JSON.stringify(user));
-  }
+  safeSetItem('user', user);
 }
 
 // Clear user from localStorage
 export function removeUserFromStorage(): void {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('user');
-  }
+  safeRemoveItem('user');
 }
 
 // Set current auth token

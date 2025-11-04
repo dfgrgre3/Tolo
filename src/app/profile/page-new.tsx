@@ -14,17 +14,7 @@ import { Progress } from "@/shared/progress";
 import { Badge } from "@/shared/badge";
 import { Separator } from "@/components/ui/separator";
 
-const LOCAL_USER_KEY = "tw_user_id";
-async function ensureUser(): Promise<string> {
-  let id = localStorage.getItem(LOCAL_USER_KEY);
-  if (!id) {
-    const res = await fetch("/api/users/guest", { method: "POST" });
-    const data = await res.json();
-    id = data.id;
-    localStorage.setItem(LOCAL_USER_KEY, id!);
-  }
-  return id!;
-}
+import { ensureUser } from "@/lib/user-utils";
 
 type User = {
   id: string;

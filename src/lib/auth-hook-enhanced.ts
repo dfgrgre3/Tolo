@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { safeGetItem } from './safe-client-utils';
 
 interface User {
   id: string;
@@ -145,13 +146,13 @@ const getStoredAccessToken = () => {
     return null;
   }
 
-  const localToken = window.localStorage.getItem(ACCESS_TOKEN_KEY);
+  const localToken = safeGetItem(ACCESS_TOKEN_KEY, { fallback: null, storageType: 'local' });
   if (localToken) {
     lastPreferredStorage = 'local';
     return localToken;
   }
 
-  const sessionToken = window.sessionStorage.getItem(ACCESS_TOKEN_KEY);
+  const sessionToken = safeGetItem(ACCESS_TOKEN_KEY, { fallback: null, storageType: 'session' });
   if (sessionToken) {
     lastPreferredStorage = 'session';
     return sessionToken;

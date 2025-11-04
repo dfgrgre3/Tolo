@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Bell, Check, CheckCheck, Trash2, MoreHorizontal } from 'lucide-react';
 import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { Button } from '@/shared/button';
+import { getSafeAuthToken } from '@/lib/safe-client-utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,7 +46,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   const fetchNotifications = useCallback(async (reset = false) => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) return;
 
       const currentOffset = reset ? 0 : offset;
@@ -90,7 +91,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   // Mark notifications as read
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) return;
 
       const response = await fetch('/api/notifications/mark-read', {

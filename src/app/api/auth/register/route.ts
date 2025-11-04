@@ -1,55 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server';
-import bcrypt from 'bcryptjs';
+import { z } from 'zod';
+import { authService, AuthService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
-import { SignJWT } from 'jose';
-import { TextEncoder } from 'util';
 import { randomBytes } from 'crypto';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key');
+const registerSchema = z.object({
+  email: z.string().email('البريد الإلكتروني غير صالح'),
+  password: z
+    .string()
+    .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
+    .regex(/[A-Z]/, 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل')
+    .regex(/[a-z]/, 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل')
+    .regex(/[0-9]/, 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل'),
+  name: z.string().min(1, 'الاسم مطلوب').max(100, 'الاسم طويل جداً').optional(),
+});
 
 export async function POST(request: NextRequest) {
+  const ip = authService.getClientIP(request);
+  const userAgent = authService.getUserAgent(request);
+
   try {
-    const { email, password, name } = await request.json();
+    const body = await request.json().catch(() => ({}));
+    const parsed = registerSchema.safeParse(body);
 
-    if (!email || !password) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        {
+          error: 'تعذر معالجة البيانات المدخلة.',
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      );
-    }
-
-    // Validate password strength
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: 'Password must be at least 8 characters long' },
-        { status: 400 }
-      );
-    }
+    const { email, password, name } = parsed.data;
+    const normalizedEmail = email.trim().toLowerCase();
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
+    const existingUser = await authService.findUserByEmail(normalizedEmail);
 
     if (existingUser) {
       return NextResponse.json(
-        { error: 'User with this email already exists' },
+        {
+          error: 'البريد الإلكتروني مستخدم بالفعل.',
+          code: 'USER_EXISTS',
+        },
         { status: 409 }
       );
     }
 
     // Hash password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(password, saltRounds);
+    const passwordHash = await AuthService.hashPassword(password);
 
     // Generate email verification token
     const emailVerificationToken = randomBytes(32).toString('hex');
@@ -58,38 +59,44 @@ export async function POST(request: NextRequest) {
     // Create new user
     const newUser = await prisma.user.create({
       data: {
-        email,
+        email: normalizedEmail,
         passwordHash,
-        name: name || null,
+        name: name?.trim() || null,
         emailVerificationToken,
-        emailVerificationExpires
-      }
+        emailVerificationExpires,
+      },
     });
 
-    // In a real app, you would send an email with the verification link
-    // For now, we'll just return the token (this is not secure for production)
-    const verificationLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
+    // Log security event
+    await authService.logSecurityEvent(newUser.id, 'register_success', ip, {
+      userAgent,
+    });
 
-    // Create JWT token for immediate login (optional)
-    const token = await new SignJWT({ userId: newUser.id, email: newUser.email, name: newUser.name })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('7d')
-      .sign(JWT_SECRET);
+    // In production, send email with verification link
+    const verificationLink = `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/verify-email?token=${emailVerificationToken}`;
 
     // Return user data without password
     const { passwordHash: _removed, ...userData } = newUser;
 
-    return NextResponse.json({
-      message: 'Registration successful. Please check your email to verify your account.',
-      user: userData,
-      token,
-      verificationLink // Remove this in production
-    }, { status: 201 });
+    return NextResponse.json(
+      {
+        message: 'تم التسجيل بنجاح. يرجى التحقق من بريدك الإلكتروني.',
+        user: userData,
+        verificationLink, // TODO: Remove in production
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error('Registration error:', error);
+    await authService.logSecurityEvent(null, 'register_error', ip, {
+      userAgent,
+    });
+
     return NextResponse.json(
-      { error: 'Internal server error' },
+      {
+        error: 'حدث خطأ غير متوقع أثناء التسجيل. حاول مرة أخرى لاحقاً.',
+        code: 'INTERNAL_ERROR',
+      },
       { status: 500 }
     );
   }

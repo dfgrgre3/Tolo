@@ -7,23 +7,15 @@ import { cn } from "@/lib/utils";
 
 const LOCAL_USER_KEY = "tw_user_id";
 
+import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
+
 // Safe localStorage access that doesn't run during SSR
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return null;
-    }
+    return safeGetItem(key, { fallback: null });
   },
   setItem: (key: string, value: string): void => {
-    if (typeof window === 'undefined') return;
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      // Ignore localStorage errors
-    }
+    safeSetItem(key, value);
   }
 };
 

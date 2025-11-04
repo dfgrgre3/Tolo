@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { safeGetItem, safeSetItem } from './safe-client-utils';
 
 // Translation data
 import arTranslations from '../../public/locales/ar/common.json';
@@ -20,11 +21,9 @@ export function useTranslation() {
   // Load language from localStorage on mount (for SSR consistency)
   useEffect(() => {
     setIsMounted(true);
-    if (typeof window !== 'undefined') {
-      const savedLanguage = localStorage.getItem('language') as Language;
-      if (savedLanguage && (savedLanguage === 'ar' || savedLanguage === 'en')) {
-        setLanguage(savedLanguage);
-      }
+    const savedLanguage = safeGetItem('language', { fallback: 'ar' }) as Language;
+    if (savedLanguage && (savedLanguage === 'ar' || savedLanguage === 'en')) {
+      setLanguage(savedLanguage);
     }
   }, []);
 
@@ -56,9 +55,7 @@ export function useTranslation() {
 
   const changeLanguage = (newLanguage: Language) => {
     setLanguage(newLanguage);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('language', newLanguage);
-    }
+    safeSetItem('language', newLanguage);
   };
 
   return { t, language, changeLanguage, isMounted };

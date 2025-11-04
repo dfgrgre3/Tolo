@@ -1,9 +1,13 @@
 import Link from "next/link";
+import { memo } from "react";
 
-export function BlogSection() {
+export const BlogSection = memo(function BlogSection() {
 	return (
-		<div className="mt-16">
-			<h2 className="text-2xl font-bold mb-4 text-primary">📰 المدونة</h2>
+		<section className="mt-16" aria-labelledby="blog-heading">
+			<h2 id="blog-heading" className="text-2xl font-bold mb-4 text-primary flex items-center gap-2">
+				<span>المدونة</span>
+				<span className="text-xl" aria-hidden="true">📰</span>
+			</h2>
 			<div className="grid gap-4 grid-cols-1 md:grid-cols-2">
 				<div className="rounded-lg border p-4 bg-card shadow-sm">
 					<h3 className="font-semibold mb-2">أفضل طرق المذاكرة الحديثة</h3>
@@ -16,8 +20,9 @@ export function BlogSection() {
 					<Link href="/exams" className="text-primary text-xs mt-2 inline-block hover:underline">اقرأ المزيد →</Link>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
-}
+});
+BlogSection.displayName = "BlogSection";
 
 export default BlogSection;

@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { memo } from "react";
 
-export function TipsSection() {
+export const TipsSection = memo(function TipsSection() {
 	return (
-		<div className="mt-4">
-			<h2 className="text-xl md:text-2xl font-bold mb-4 text-primary flex items-center gap-2">
+		<section className="mt-4" aria-labelledby="tips-heading">
+			<h2 id="tips-heading" className="text-xl md:text-2xl font-bold mb-4 text-primary flex items-center gap-2">
 				<span>نصائح مفيدة</span>
-				<span className="text-lg">💡</span>
+				<span className="text-lg" aria-hidden="true">💡</span>
 			</h2>
 			<div className="grid gap-6 grid-cols-1 md:grid-cols-3">
 				<div className="group rounded-xl bg-gradient-to-br from-blue-50 to-indigo-50 p-6 shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-between border border-blue-100">
@@ -45,8 +46,9 @@ export function TipsSection() {
 					</Link>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
-}
+});
+TipsSection.displayName = "TipsSection";
 
 export default TipsSection;

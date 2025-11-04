@@ -114,7 +114,8 @@ export async function POST(request: NextRequest) {
         // Non-critical persistence error
       });
 
-      await logSecurityEvent(user.id, 'two_factor_verified', ip, userAgent, {
+      await authService.logSecurityEvent(user.id, 'two_factor_verified', ip, {
+        userAgent,
         sessionId: session.id,
       });
 
@@ -284,7 +285,9 @@ async function handleVerify2FA(user: any, code: string) {
     });
 
     // Log security event
-    await logSecurityEvent(user.id, '2fa_enabled', 'unknown', 'unknown');
+    await authService.logSecurityEvent(user.id, '2fa_enabled', 'unknown', {
+      userAgent: 'unknown',
+    });
 
     return NextResponse.json({
       message: '2FA has been enabled successfully'
@@ -350,7 +353,9 @@ async function handleDisable2FA(user: any, code: string) {
     });
 
     // Log security event
-    await logSecurityEvent(user.id, '2fa_disabled', 'unknown', 'unknown');
+    await authService.logSecurityEvent(user.id, '2fa_disabled', 'unknown', {
+      userAgent: 'unknown',
+    });
 
     return NextResponse.json({
       message: '2FA has been disabled successfully'
@@ -399,7 +404,9 @@ async function handleBackupCode(user: any, backupCode: string) {
     });
 
     // Log security event
-    await logSecurityEvent(user.id, '2fa_backup_code_used', 'unknown', 'unknown');
+    await authService.logSecurityEvent(user.id, '2fa_backup_code_used', 'unknown', {
+      userAgent: 'unknown',
+    });
 
     // Generate a new token for the user
     const token = await new SignJWT({
@@ -445,19 +452,3 @@ function generateBackupCodes(count = 10): string[] {
   return codes;
 }
 
-// Helper function to log security events
-async function logSecurityEvent(userId: string, action: string, ipAddress: string, device: string, details?: any) {
-  try {
-    await prisma.securityLog.create({
-      data: {
-        userId,
-        action,
-        ipAddress,
-        device,
-        details: details ? JSON.stringify(details) : null
-      }
-    });
-  } catch (error) {
-    console.error('Failed to log security event:', error);
-  }
-}

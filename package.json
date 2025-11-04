@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
+    "clean": "node -e \"require('fs').rmSync('.next', {recursive: true, force: true})\"",
     "lint": "eslint",
     "perf": "lighthouse --chrome-flags='--headless' --output=json --output-path=./lighthouse-results.json",
     "test": "dotenv -e tests/test.env jest",

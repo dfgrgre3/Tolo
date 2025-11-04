@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useToast } from '@/contexts/toast-context';
+// import { useToast } from '@/contexts/toast-context'; // Not needed - WebSocket is disabled
 
 type WebSocketContextType = {
   socket: WebSocket | null;
@@ -14,80 +14,91 @@ const WebSocketContext = createContext<WebSocketContextType>({
 });
 
 export function WebSocketProvider({ children, userId }: { children: React.ReactNode, userId?: string }) {
+  // WebSocket is completely disabled - set as constant
+  // Change to true only when deploying to edge runtime (Cloudflare Workers)
+  const WEBSOCKET_ENABLED = false;
+  
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const { showToast } = useToast();
 
   useEffect(() => {
-    let ws: WebSocket;
+    // CRITICAL: WebSocket is disabled - exit immediately before any operations
+    // This prevents any WebSocket connection attempts
+    if (!WEBSOCKET_ENABLED) {
+      return;
+    }
+    
+    // The code below will never execute while WEBSOCKET_ENABLED is false
+    // WebSocket is currently disabled as it requires edge runtime (Cloudflare Workers)
+    // The app works fine without it - it's only for real-time notifications
+
+    // WebSocket implementation (currently disabled)
+    const isWebSocketSupported = typeof window !== 'undefined' && 'WebSocket' in window;
+    
+    if (!isWebSocketSupported) {
+      return;
+    }
+
+    let ws: WebSocket | null = null;
     let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
+    const maxReconnectAttempts = 3;
+    let reconnectTimeout: NodeJS.Timeout | null = null;
 
     const connect = () => {
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = userId ? `${wsProtocol}//${window.location.host}/api/ws?userId=${userId}` : `${wsProtocol}//${window.location.host}/api/ws`;
-      ws = new WebSocket(wsUrl);
+      try {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = userId ? `${wsProtocol}//${window.location.host}/api/ws?userId=${userId}` : `${wsProtocol}//${window.location.host}/api/ws`;
+        ws = new WebSocket(wsUrl);
 
-      ws.onopen = () => {
-        setIsConnected(true);
-        setSocket(ws);
-        reconnectAttempts = 0;
-        showToast({ message: 'تم الاتصال بالخادم بنجاح', type: 'success' });
-      };
+        ws.onopen = () => {
+          setIsConnected(true);
+          setSocket(ws);
+          reconnectAttempts = 0;
+        };
 
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'notification') {
-            const mappedType = data.notificationType === 'warning' ? 'warning'
-              : data.notificationType === 'error' || data.notificationType === 'destructive' ? 'error'
-              : 'success';
-            showToast({ 
-              message: data.message,
-              type: mappedType
-            });
-          } else if (data.type === 'SCHEDULE_CONFLICT') {
-            showToast({
-              message: 'تعارض في الجدول: تم اكتشاف تغييرات متضاربة، جاري تحميل أحدث نسخة',
-              type: 'warning'
-            });
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'notification') {
+              console.log('WebSocket notification:', data.message);
+            } else if (data.type === 'SCHEDULE_CONFLICT') {
+              console.log('WebSocket: Schedule conflict detected');
+            }
+          } catch (error) {
+            console.warn('Error parsing WebSocket message:', error);
           }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
+        };
 
-      ws.onclose = () => {
-        setIsConnected(false);
-        setSocket(null);
-        
-        if (reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          const delay = Math.min(3000 * reconnectAttempts, 15000);
-          setTimeout(connect, delay);
-        } else {
-          showToast({ 
-            message: 'فشل إعادة الاتصال بالخادم. الرجاء التحقق من اتصال الإنترنت',
-            type: 'error' 
-          });
-        }
-      };
+        ws.onclose = () => {
+          setIsConnected(false);
+          setSocket(null);
+          
+          if (reconnectAttempts < maxReconnectAttempts) {
+            reconnectAttempts++;
+            const delay = Math.min(3000 * reconnectAttempts, 15000);
+            reconnectTimeout = setTimeout(connect, delay);
+          }
+        };
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        showToast({
-          message: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم',
-          type: 'error'
-        });
-      };
+        ws.onerror = () => {
+          // Silently handle WebSocket errors
+        };
+      } catch (error) {
+        // Silently handle errors
+      }
     };
 
     connect();
 
     return () => {
-      if (ws) ws.close();
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      if (ws) {
+        ws.close();
+      }
     };
-  }, [showToast, userId]);
+  }, [userId]); // Removed showToast since WebSocket is disabled
 
   return (
     <WebSocketContext.Provider value={{ socket, isConnected }}>

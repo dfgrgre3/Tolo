@@ -16,6 +16,7 @@ import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 import { motion, AnimatePresence } from "framer-motion";
 import { useClientEffect } from "@/hooks/use-client-effect";
 import { useHydrationFix } from "@/hydration-fix";
+import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
 // Advanced scroll-triggered animation variants
 const scrollVariants = {
@@ -141,7 +142,7 @@ const Home = () => {
 		// Only run on client side to avoid hydration issues
 		if (typeof window === 'undefined') return '';
 
-		let id = localStorage.getItem(LOCAL_USER_KEY);
+		let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
 		if (!id) {
 			try {
 				const res = await fetch("/api/users/guest", {
@@ -152,7 +153,7 @@ const Home = () => {
 					const data = await res.json();
 					id = data.id;
 					if (id) {
-						localStorage.setItem(LOCAL_USER_KEY, id);
+						safeSetItem(LOCAL_USER_KEY, id);
 					}
 				}
 			} catch (error) {
