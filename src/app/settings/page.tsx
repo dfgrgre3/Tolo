@@ -11,10 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/UserProvider";
-import { User as UserIcon, Shield as ShieldIcon, Bell as BellIcon, Palette as PaletteIcon, Globe as GlobeIcon, Loader2 } from "lucide-react";
+import { User as UserIcon, Shield as ShieldIcon, Bell as BellIcon, Palette as PaletteIcon, Globe as GlobeIcon, Clock as ClockIcon, Loader2 } from "lucide-react";
 import { SettingsData, SubjectEnrollment, FocusStrategy, SubjectType } from "@/types/settings";
 import { ensureUser } from "@/lib/user-utils";
 import { getTokenFromStorage } from "@/lib/auth-client";
+import TimeSettings from "@/app/time/components/TimeSettings";
 
 export default function SettingsPage() {
 	const { user } = useAuth();
@@ -339,7 +340,7 @@ export default function SettingsPage() {
 				<h1 className="text-2xl md:text-3xl font-bold">الإعدادات والتخصيص</h1>
 
 				<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-					<TabsList className="grid w-full grid-cols-5">
+					<TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-1">
 						<TabsTrigger value="general" className="flex items-center gap-2">
 							<UserIcon className="h-4 w-4" />
 							<span className="hidden sm:inline">الإعدادات العامة</span>
@@ -359,6 +360,10 @@ export default function SettingsPage() {
 						<TabsTrigger value="language" className="flex items-center gap-2">
 							<GlobeIcon className="h-4 w-4" />
 							<span className="hidden sm:inline">اللغة</span>
+						</TabsTrigger>
+						<TabsTrigger value="time" className="flex items-center gap-2">
+							<ClockIcon className="h-4 w-4" />
+							<span className="hidden sm:inline">إعدادات الوقت</span>
 						</TabsTrigger>
 					</TabsList>
 
@@ -742,6 +747,10 @@ export default function SettingsPage() {
 								</div>
 							</CardContent>
 						</Card>
+					</TabsContent>
+
+					<TabsContent value="time" className="space-y-6">
+						<TimeSettings />
 					</TabsContent>
 				</Tabs>
 			</section>

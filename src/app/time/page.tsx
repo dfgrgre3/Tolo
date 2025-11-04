@@ -8,18 +8,24 @@ import StudySessionsHistory from "@/components/time/StudySessionsHistory";
 import Reminders from "@/components/time/Reminders";
 import TimeTracker from "@/components/TimeTracker";
 import { Button } from "@/shared/button";
-import { RefreshCw, Settings, Filter, Search, BarChart3, Play, Pause } from 'lucide-react';
+import { RefreshCw, Settings, Filter, Search, BarChart3, Play, Pause, Cog } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Components
 import TimeManagementHeader from './components/TimeManagementHeader';
 import DashboardTab from './components/DashboardTab';
+import TimeAnalytics from './components/TimeAnalytics';
+import ProductivityInsights from './components/ProductivityInsights';
+import ExportDialog from './components/ExportDialog';
+import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 
 // Hooks
 import { useTimeData } from './hooks/useTimeData';
 import { useTimeStats } from './hooks/useTimeStats';
 import { useTimeFilters } from './hooks/useTimeFilters';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { useOverdueNotifications } from './hooks/useOverdueNotifications';
 
 // Types
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
@@ -38,6 +44,8 @@ export default function TimeManagementPage() {
   // UI states
   const [showCompletedTasks, setShowCompletedTasks] = useState(true);
   const [showUpcomingRemindersOnly, setShowUpcomingRemindersOnly] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showInsights, setShowInsights] = useState(false);
 
   // Custom hooks
   const { 
@@ -139,6 +147,35 @@ export default function TimeManagementPage() {
     setScheduleLocal(updatedSchedule);
   };
 
+  // Handle notifications
+  const handleNotification = (message: string, type: 'warning' | 'error') => {
+    // You can integrate with your notification system here
+    console.log(`[${type.toUpperCase()}] ${message}`);
+    // Example: toast notification
+    if (typeof window !== 'undefined' && (window as any).toast) {
+      (window as any).toast({
+        title: type === 'error' ? 'تنبيه مهم' : 'إشعار',
+        description: message,
+        variant: type === 'error' ? 'destructive' : 'default'
+      });
+    }
+  };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    onTabChange: setActiveTab,
+    onTimerToggle: () => handleTimerToggle(),
+    onRefresh: fetchData,
+    onNewTask: () => setActiveTab('tasks'),
+    onNewReminder: () => setActiveTab('reminders')
+  });
+
+  // Overdue notifications
+  useOverdueNotifications({
+    tasks: tasksLocal,
+    onNotification: handleNotification
+  });
+
   // Handle timer start/stop
   const handleTimerToggle = (taskId?: string) => {
     setIsTimerRunning(!isTimerRunning);
@@ -228,11 +265,32 @@ export default function TimeManagementPage() {
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex justify-between items-center mb-4 gap-2">
+            <KeyboardShortcutsHelp />
+            <div className="flex gap-2">
+              <ExportDialog 
+                tasks={tasksLocal}
+                studySessions={studySessionsLocal}
+                reminders={remindersLocal}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowAnalytics(!showAnalytics)}
+                className="flex items-center gap-2"
+              >
+                <BarChart3 className="h-4 w-4" />
+                {showAnalytics ? 'إخفاء التحليلات' : 'إظهار التحليلات'}
+              </Button>
+            </div>
+          </div>
+          
           <DashboardTab
             stats={stats}
             subjects={subjects}
             tasks={filteredTasks}
             reminders={filteredReminders}
+            studySessions={studySessionsLocal}
             showCompletedTasks={showCompletedTasks}
             showUpcomingRemindersOnly={showUpcomingRemindersOnly}
             onTabChange={setActiveTab}
@@ -240,6 +298,20 @@ export default function TimeManagementPage() {
             onToggleUpcomingReminders={() => setShowUpcomingRemindersOnly(!showUpcomingRemindersOnly)}
             onTimerToggle={handleTimerToggle}
           />
+
+          {showAnalytics && (
+            <div className="space-y-6">
+              <TimeAnalytics
+                tasks={tasksLocal}
+                studySessions={studySessionsLocal}
+                reminders={remindersLocal}
+              />
+              <ProductivityInsights
+                tasks={tasksLocal}
+                studySessions={studySessionsLocal}
+              />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="schedule" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -416,6 +488,7 @@ export default function TimeManagementPage() {
             </div>
           )}
         </TabsContent>
+
       </Tabs>
     </div>
   );

@@ -90,7 +90,13 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({
   
   const startTimer = () => {
     if (!selectedTaskId && !selectedSubject) {
-      alert("Please select a task or subject to track");
+      if (typeof window !== 'undefined' && (window as any).toast) {
+        (window as any).toast({
+          title: 'تنبيه',
+          description: 'يرجى اختيار مهمة أو مادة لبدء المؤقت',
+          variant: 'default'
+        });
+      }
       return;
     }
     
@@ -259,156 +265,203 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({
   const goalProgress = Math.min(100, (todayMinutes / todayGoal) * 100);
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Time Tracker
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="text-center">
-          <div className="text-4xl font-mono mb-4">{formatTime(currentTime)}</div>
-          
-          <div className="flex justify-center gap-2">
-            {!isRunning ? (
-              <Button onClick={startTimer} className="flex items-center gap-2">
-                <Play className="h-4 w-4" />
-                Start
-              </Button>
-            ) : (
-              <Button onClick={pauseTimer} variant="outline" className="flex items-center gap-2">
-                <Pause className="h-4 w-4" />
-                Pause
-              </Button>
-            )}
-            <Button 
-              onClick={stopTimer} 
-              variant="outline"
-              disabled={currentTime === 0}
-              className="flex items-center gap-2"
-            >
-              <Square className="h-4 w-4" />
-              Stop
-            </Button>
-
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-2">Select Task</label>
-            <Select 
-              value={selectedTaskId || undefined} 
-              onValueChange={setSelectedTaskId}
-              disabled={isRunning}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a task to track" />
-              </SelectTrigger>
-              <SelectContent>
-                {tasks && tasks.length > 0
-                  ? tasks
-                      .filter(task => task.status !== 'COMPLETED')
-                      .map(task => (
-                    <SelectItem key={task.id} value={task.id}>
-                      {task.title}
-                    </SelectItem>
-                  ))
-                  : null}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium mb-2">Or Select Subject</label>
-            <Select 
-              value={selectedSubject || undefined} 
-              onValueChange={setSelectedSubject}
-              disabled={isRunning}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a subject" />
-              </SelectTrigger>
-              <SelectContent>
-                {subjects && subjects.length > 0
-                  ? subjects.map(subject => (
-                      <SelectItem key={subject} value={subject}>
-                        {subject}
-                      </SelectItem>
-                    ))
-                  : null}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Target className="h-5 w-5" />
-              Today's Goal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <div className="flex justify-between mb-1">
-                <span>Target Time: {todayGoal} minutes</span>
-                <span>{todayMinutes} minutes</span>
-              </div>
-              <Progress value={goalProgress} className="h-3" />
+    <div className="space-y-6 rtl" dir="rtl">
+      {/* Timer Display Card */}
+      <Card className="border-2 border-primary/20 shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-primary/10 to-primary/5 pb-4">
+          <CardTitle className="flex items-center justify-center gap-3 text-2xl">
+            <Clock className="h-6 w-6 text-primary" />
+            مؤقت الوقت
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6 pt-6">
+          {/* Timer Display */}
+          <div className="text-center space-y-4">
+            <div className={`text-6xl md:text-7xl font-mono font-bold mb-6 transition-all ${
+              isRunning ? 'text-primary animate-pulse' : 'text-foreground'
+            }`}>
+              {formatTime(currentTime)}
             </div>
             
-            <div className="grid grid-cols-3 gap-2">
-              {[60, 120, 180].map(goal => (
-                <Button
-                  key={goal}
-                  variant={todayGoal === goal ? "default" : "outline"}
-                  onClick={() => setTodayGoal(goal)}
-                  size="sm"
+            {/* Timer Controls */}
+            <div className="flex justify-center gap-3">
+              {!isRunning ? (
+                <Button 
+                  onClick={startTimer} 
+                  size="lg"
+                  className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-8 py-6 text-lg shadow-lg hover:shadow-xl transition-all"
+                  disabled={!selectedTaskId && !selectedSubject}
                 >
-                  {goal} min
+                  <Play className="h-5 w-5" />
+                  بدء
                 </Button>
+              ) : (
+                <Button 
+                  onClick={pauseTimer} 
+                  variant="outline" 
+                  size="lg"
+                  className="flex items-center gap-2 px-8 py-6 text-lg border-2 border-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+                >
+                  <Pause className="h-5 w-5" />
+                  إيقاف مؤقت
+                </Button>
+              )}
+              <Button 
+                onClick={stopTimer} 
+                variant="outline"
+                size="lg"
+                disabled={currentTime === 0}
+                className="flex items-center gap-2 px-8 py-6 text-lg border-2 border-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50"
+              >
+                <Square className="h-5 w-5" />
+                إيقاف
+              </Button>
+            </div>
+            
+            {(!selectedTaskId && !selectedSubject) && (
+              <p className="text-sm text-muted-foreground mt-2">
+                يرجى اختيار مهمة أو مادة لبدء المؤقت
+              </p>
+            )}
+          </div>
+
+          {/* Task and Subject Selection */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium mb-2">اختر المهمة</label>
+              <Select 
+                value={selectedTaskId || undefined} 
+                onValueChange={(value) => {
+                  setSelectedTaskId(value);
+                  setSelectedSubject(null); // Clear subject when task is selected
+                }}
+                disabled={isRunning}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="اختر مهمة للمتابعة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {tasks && tasks.length > 0
+                    ? tasks
+                        .filter(task => task.status !== 'COMPLETED')
+                        .map(task => (
+                      <SelectItem key={task.id} value={task.id}>
+                        {task.title}
+                      </SelectItem>
+                    ))
+                    : <SelectItem value="no-tasks" disabled>لا توجد مهام متاحة</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="block text-sm font-medium mb-2">أو اختر المادة</label>
+              <Select 
+                value={selectedSubject || undefined} 
+                onValueChange={(value) => {
+                  setSelectedSubject(value);
+                  setSelectedTaskId(null); // Clear task when subject is selected
+                }}
+                disabled={isRunning}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="اختر مادة للمتابعة" />
+                </SelectTrigger>
+                <SelectContent>
+                  {subjects && subjects.length > 0
+                    ? subjects.map(subject => (
+                        <SelectItem key={subject} value={subject}>
+                          {subject}
+                        </SelectItem>
+                      ))
+                    : <SelectItem value="no-subjects" disabled>لا توجد مواد متاحة</SelectItem>}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Goal Progress Card */}
+      <Card className="border-2 border-primary/10">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/30">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            الهدف اليومي
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-4">
+          <div>
+            <div className="flex justify-between mb-2 text-sm">
+              <span className="text-muted-foreground">الهدف: {todayGoal} دقيقة</span>
+              <span className="font-semibold">{todayMinutes} دقيقة</span>
+            </div>
+            <Progress value={goalProgress} className="h-4" />
+            <div className="flex justify-between mt-1 text-xs text-muted-foreground">
+              <span>{Math.round(goalProgress)}%</span>
+              <span>{todayGoal - todayMinutes} دقيقة متبقية</span>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-2">
+            {[60, 120, 180].map(goal => (
+              <Button
+                key={goal}
+                variant={todayGoal === goal ? "default" : "outline"}
+                onClick={() => setTodayGoal(goal)}
+                size="sm"
+                className="transition-all"
+              >
+                {goal} دقيقة
+              </Button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Sessions Card */}
+      <Card className="border-2 border-primary/10">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 dark:from-purple-950/30">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <BarChart3 className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+            الجلسات الأخيرة
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {sessions.length === 0 ? (
+            <div className="text-center py-8">
+              <Clock className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
+              <p className="text-muted-foreground">لا توجد جلسات مذاكرة بعد</p>
+              <p className="text-sm text-muted-foreground mt-1">ابدأ المؤقت لتسجيل جلسة مذاكرة</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-60 overflow-y-auto">
+              {[...sessions].slice(0, 5).map(session => (
+                <div 
+                  key={session.id} 
+                  className="flex items-center justify-between p-4 bg-muted/50 rounded-lg hover:bg-muted transition-colors border border-border"
+                >
+                  <div className="flex-1">
+                    <div className="font-medium mb-1">
+                      {session.taskId 
+                        ? tasks.find(t => t.id === session.taskId)?.title 
+                        : session.subject || 'جلسة مذاكرة'}
+                    </div>
+                    <div className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Clock className="h-3 w-3" />
+                      {formatTime(session.duration)} - {new Date(session.startTime).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <Badge variant="secondary" className="ml-3">
+                    {Math.floor(session.duration / 60)} د
+                  </Badge>
+                </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <BarChart3 className="h-5 w-5" />
-              Recent Sessions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {sessions.length === 0 ? (
-              <p className="text-center text-gray-500 py-4">No study sessions yet</p>
-            ) : (
-              <div className="space-y-3 max-h-60 overflow-y-auto">
-                {[...sessions].slice(0, 5).map(session => (
-                  <div key={session.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                    <div>
-                      <div className="font-medium">
-                        {session.taskId 
-                          ? tasks.find(t => t.id === session.taskId)?.title 
-                          : session.subject || 'Study Session'}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {formatTime(session.duration)} - {new Date(session.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </div>
-                    </div>
-                    <Badge variant="secondary">
-                      {Math.floor(session.duration / 60)} min
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </CardContent>
-    </Card>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 

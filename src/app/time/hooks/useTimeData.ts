@@ -34,13 +34,8 @@ export function useTimeData(): UseTimeDataReturn {
     setIsLoading(true);
     
     try {
-      const [
-        { data: scheduleData, error: scheduleError },
-        { data: subjectsData, error: subjectsError },
-        { data: tasksData, error: tasksError },
-        { data: studySessionsData, error: studySessionsError },
-        { data: remindersData, error: remindersError }
-      ] = await Promise.all([
+      // Use Promise.allSettled for better error handling - allows partial success
+      const results = await Promise.allSettled([
         safeFetch<Schedule>(`/api/schedule?userId=${encodeURIComponent(userId)}`, undefined, null),
         safeFetch<SubjectEnrollment[]>(`/api/subjects?userId=${encodeURIComponent(userId)}`, undefined, []),
         safeFetch<Task[]>(`/api/tasks`, undefined, []),
@@ -48,57 +43,116 @@ export function useTimeData(): UseTimeDataReturn {
         safeFetch<Reminder[]>(`/api/reminders?userId=${encodeURIComponent(userId)}`, undefined, []),
       ]);
 
-      if (scheduleError) {
-        errorManager.handleNetworkError(scheduleError, `/api/schedule?userId=${userId}`, {
-          showToast: false
-        });
-      } else if (scheduleData) {
-        setSchedule(scheduleData);
-      }
-      
-      if (subjectsError) {
-        errorManager.handleNetworkError(subjectsError, `/api/subjects?userId=${userId}`, {
-          showToast: false
-        });
-      } else if (subjectsData) {
-        setSubjects(subjectsData.map(s => s.subject));
-      }
-      
-      if (tasksError) {
-        errorManager.handleNetworkError(tasksError, `/api/tasks?userId=${userId}`, {
-          showToast: false
-        });
-      } else if (tasksData) {
-        setTasks(tasksData);
-      }
-      
-      if (studySessionsError) {
-        errorManager.handleNetworkError(studySessionsError, `/api/study-sessions?userId=${userId}`, {
-          showToast: false
-        });
-      } else if (studySessionsData) {
-        setStudySessions(studySessionsData);
-      }
-      
-      if (remindersError) {
-        errorManager.handleNetworkError(remindersError, `/api/reminders?userId=${userId}`, {
-          showToast: false
-        });
-      } else if (remindersData) {
-        setReminders(remindersData);
+      // Process schedule
+      const scheduleResult = results[0];
+      if (scheduleResult.status === 'fulfilled') {
+        const { data: scheduleData, error: scheduleError } = scheduleResult.value;
+        if (scheduleError) {
+          errorManager.handleNetworkError(scheduleError, `/api/schedule?userId=${userId}`, {
+            showToast: false
+          });
+        } else if (scheduleData) {
+          setSchedule(scheduleData);
+        }
+      } else {
+        errorManager.handleNetworkError(
+          scheduleResult.reason instanceof Error ? scheduleResult.reason : new Error(String(scheduleResult.reason)),
+          `/api/schedule?userId=${userId}`,
+          { showToast: false }
+        );
       }
 
-      const criticalErrors = [scheduleError, tasksError, studySessionsError].filter(Boolean);
-      if (criticalErrors.length > 0) {
+      // Process subjects
+      const subjectsResult = results[1];
+      if (subjectsResult.status === 'fulfilled') {
+        const { data: subjectsData, error: subjectsError } = subjectsResult.value;
+        if (subjectsError) {
+          errorManager.handleNetworkError(subjectsError, `/api/subjects?userId=${userId}`, {
+            showToast: false
+          });
+        } else if (subjectsData) {
+          setSubjects(subjectsData.map(s => s.subject));
+        }
+      } else {
         errorManager.handleNetworkError(
-          new Error("فشل في تحميل بعض البيانات"),
+          subjectsResult.reason instanceof Error ? subjectsResult.reason : new Error(String(subjectsResult.reason)),
+          `/api/subjects?userId=${userId}`,
+          { showToast: false }
+        );
+      }
+
+      // Process tasks
+      const tasksResult = results[2];
+      if (tasksResult.status === 'fulfilled') {
+        const { data: tasksData, error: tasksError } = tasksResult.value;
+        if (tasksError) {
+          errorManager.handleNetworkError(tasksError, `/api/tasks?userId=${userId}`, {
+            showToast: false
+          });
+        } else if (tasksData) {
+          setTasks(tasksData);
+        }
+      } else {
+        errorManager.handleNetworkError(
+          tasksResult.reason instanceof Error ? tasksResult.reason : new Error(String(tasksResult.reason)),
+          `/api/tasks?userId=${userId}`,
+          { showToast: false }
+        );
+      }
+
+      // Process study sessions
+      const sessionsResult = results[3];
+      if (sessionsResult.status === 'fulfilled') {
+        const { data: studySessionsData, error: studySessionsError } = sessionsResult.value;
+        if (studySessionsError) {
+          errorManager.handleNetworkError(studySessionsError, `/api/study-sessions?userId=${userId}`, {
+            showToast: false
+          });
+        } else if (studySessionsData) {
+          setStudySessions(studySessionsData);
+        }
+      } else {
+        errorManager.handleNetworkError(
+          sessionsResult.reason instanceof Error ? sessionsResult.reason : new Error(String(sessionsResult.reason)),
+          `/api/study-sessions?userId=${userId}`,
+          { showToast: false }
+        );
+      }
+
+      // Process reminders
+      const remindersResult = results[4];
+      if (remindersResult.status === 'fulfilled') {
+        const { data: remindersData, error: remindersError } = remindersResult.value;
+        if (remindersError) {
+          errorManager.handleNetworkError(remindersError, `/api/reminders?userId=${userId}`, {
+            showToast: false
+          });
+        } else if (remindersData) {
+          setReminders(remindersData);
+        }
+      } else {
+        errorManager.handleNetworkError(
+          remindersResult.reason instanceof Error ? remindersResult.reason : new Error(String(remindersResult.reason)),
+          `/api/reminders?userId=${userId}`,
+          { showToast: false }
+        );
+      }
+
+      // Check for critical failures
+      const criticalFailures = results.filter(r => r.status === 'rejected');
+      if (criticalFailures.length === results.length) {
+        errorManager.handleNetworkError(
+          new Error("فشل في تحميل جميع البيانات"),
           "fetchData",
           {},
           {
             title: "خطأ في الاتصال",
-            description: "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى."
+            description: "فشل في تحميل البيانات. يرجى التحقق من الاتصال بالإنترنت والمحاولة مرة أخرى."
           }
         );
+      } else if (criticalFailures.length > 0) {
+        // Partial failure - show warning but continue
+        console.warn(`Failed to load ${criticalFailures.length} out of ${results.length} data sources`);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -108,7 +162,7 @@ export function useTimeData(): UseTimeDataReturn {
         {},
         {
           title: "خطأ في الاتصال",
-          description: "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى."
+          description: "حدث خطأ غير متوقع. يرجى المحاولة مرة أخرى أو تحديث الصفحة."
         }
       );
     } finally {

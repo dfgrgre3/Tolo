@@ -40,6 +40,10 @@ export default function UpcomingRemindersCard({
       <CardContent className="p-4">
         <div className="space-y-3 max-h-80 overflow-y-auto">
           {reminders
+            .filter(reminder => {
+              if (!showUpcomingOnly) return true;
+              return new Date(reminder.remindAt) > new Date();
+            })
             .sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime())
             .slice(0, 5)
             .map((reminder, index) => {
@@ -77,11 +81,19 @@ export default function UpcomingRemindersCard({
                 </div>
               );
             })}
-          {reminders.length === 0 && (
+          {reminders
+            .filter(reminder => {
+              if (!showUpcomingOnly) return true;
+              return new Date(reminder.remindAt) > new Date();
+            }).length === 0 && (
             <div className="text-center py-8">
               <div className="mb-2 text-4xl">🔔</div>
-              <p className="text-muted-foreground font-medium">لا توجد تذكيرات</p>
-              <p className="text-sm text-muted-foreground mt-1">قم بإنشاء تذكير جديد</p>
+              <p className="text-muted-foreground font-medium">
+                {showUpcomingOnly ? 'لا توجد تذكيرات قادمة' : 'لا توجد تذكيرات'}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {showUpcomingOnly ? 'جميع التذكيرات قد انتهت' : 'قم بإنشاء تذكير جديد'}
+              </p>
             </div>
           )}
         </div>

@@ -1,76 +1,271 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-	Chart as ChartJS,
-	CategoryScale,
-	LinearScale,
-	BarElement,
-	PointElement,
-	LineElement,
-	Tooltip,
-	Legend,
-	Title,
-} from "chart.js";
-import { Bar, Line } from "react-chartjs-2";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, PointElement, LineElement, Tooltip, Legend, Title);
-
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageContainer } from "@/components/ui/PageContainer";
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
+import { Button } from "@/shared/button";
+import { 
+	BarChart3, 
+	TrendingUp, 
+	TrendingDown, 
+	Clock, 
+	Target, 
+	Calendar, 
+	Zap, 
+	Brain,
+	RefreshCw,
+	Download,
+	Filter,
+	Activity,
+	Award,
+	BookOpen,
+	ArrowUp,
+	ArrowDown
+} from 'lucide-react';
 import { ensureUser } from "@/lib/user-utils";
+import OverviewStats from "./components/OverviewStats";
+import WeeklyChart from "./components/WeeklyChart";
+import PerformanceMetrics from "./components/PerformanceMetrics";
+import PredictionsSection from "./components/PredictionsSection";
+import SubjectDistribution from "./components/SubjectDistribution";
+import TimeTrends from "./components/TimeTrends";
+import StudyPatterns from "./components/StudyPatterns";
 
-type WeeklyData = { bySubject: Record<string, number>; byDay: { date: string | Date; minutes: number }[] };
+type WeeklyData = { 
+	bySubject: Record<string, number>; 
+	byDay: { date: string | Date; minutes: number }[] 
+};
+
+type SummaryData = {
+	totalMinutes: number;
+	averageFocus: number;
+	tasksCompleted: number;
+	streakDays: number;
+};
+
+type PredictionsData = {
+	period: string;
+	predictedScore: number;
+	confidence: number;
+	milestones: Array<{ date: string; goal: string; status: string }>;
+	recommendations: string[];
+};
 
 export default function AnalyticsPage() {
-	const [summary, setSummary] = useState<{ totalMinutes: number; averageFocus: number; tasksCompleted: number; streakDays: number } | null>(null);
+	const [activeTab, setActiveTab] = useState("overview");
+	const [isLoading, setIsLoading] = useState(true);
+	const [summary, setSummary] = useState<SummaryData | null>(null);
 	const [weekly, setWeekly] = useState<WeeklyData | null>(null);
+	const [predictions, setPredictions] = useState<PredictionsData[]>([]);
+	const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
+	const [error, setError] = useState<string | null>(null);
+
+	const fetchData = async () => {
+		try {
+			setIsLoading(true);
+			setError(null);
+			const userId = await ensureUser();
+			
+			// Fetch all data in parallel
+			const [summaryRes, weeklyRes, predictionsRes, performanceRes] = await Promise.all([
+				fetch(`/api/progress/summary?userId=${userId}`).catch(() => null),
+				fetch(`/api/analytics/weekly?userId=${userId}`).catch(() => null),
+				fetch(`/api/analytics/predictions?userId=${userId}`).catch(() => null),
+				fetch(`/api/analytics/performance?hours=168`).catch(() => null)
+			]);
+
+			if (summaryRes?.ok) {
+				const summaryData = await summaryRes.json();
+				setSummary(summaryData);
+			}
+
+			if (weeklyRes?.ok) {
+				const weeklyData = await weeklyRes.json();
+				setWeekly(weeklyData);
+			}
+
+			if (predictionsRes?.ok) {
+				const predictionsData = await predictionsRes.json();
+				if (predictionsData.success) {
+					setPredictions(predictionsData.predictions || []);
+				}
+			}
+
+			if (performanceRes?.ok) {
+				const performanceData = await performanceRes.json();
+				setPerformanceMetrics(performanceData);
+			}
+		} catch (err: any) {
+			console.error('Error fetching analytics:', err);
+			setError(err?.message || 'حدث خطأ أثناء تحميل البيانات');
+		} finally {
+			setIsLoading(false);
+		}
+	};
 
 	useEffect(() => {
-		(async () => {
-			const userId = await ensureUser();
-			const sRes = await fetch(`/api/progress/summary?userId=${userId}`);
-			setSummary(await sRes.json());
-			const wRes = await fetch(`/api/analytics/weekly?userId=${userId}`);
-			setWeekly(await wRes.json());
-		})();
+		fetchData();
 	}, []);
 
-	const subjectLabels = weekly ? Object.keys(weekly.bySubject) : [];
-	const subjectData = weekly ? Object.values(weekly.bySubject) : [];
-	const dayLabels = weekly ? weekly.byDay.map((d) => new Date(d.date).toLocaleDateString("ar-EG", { weekday: "short" })) : [];
-	const dayData = weekly ? weekly.byDay.map((d) => d.minutes) : [];
+	const handleExport = () => {
+		// Export analytics data as JSON
+		const exportData = {
+			summary,
+			weekly,
+			predictions,
+			performanceMetrics,
+			exportedAt: new Date().toISOString()
+		};
+		const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+		const url = URL.createObjectURL(blob);
+		const a = document.createElement('a');
+		a.href = url;
+		a.download = `analytics-${new Date().toISOString().split('T')[0]}.json`;
+		document.body.appendChild(a);
+		a.click();
+		document.body.removeChild(a);
+		URL.revokeObjectURL(url);
+	};
+
+	if (isLoading) {
+		return (
+			<PageContainer size="xl" spacing="lg">
+				<div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+					<RefreshCw className="h-8 w-8 animate-spin text-primary" />
+					<p className="text-lg font-semibold">جاري تحميل التحليلات...</p>
+					<p className="text-sm text-muted-foreground">يرجى الانتظار</p>
+				</div>
+			</PageContainer>
+		);
+	}
+
+	if (error) {
+		return (
+			<PageContainer size="xl" spacing="lg">
+				<Card className="border-red-200 dark:border-red-800">
+					<CardContent className="p-6">
+						<div className="flex flex-col items-center justify-center space-y-4 text-center">
+							<div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+								<Activity className="h-6 w-6 text-red-600 dark:text-red-400" />
+							</div>
+							<div>
+								<h3 className="text-lg font-semibold mb-2">حدث خطأ</h3>
+								<p className="text-sm text-muted-foreground mb-4">{error}</p>
+								<Button onClick={fetchData} variant="outline">
+									<RefreshCw className="h-4 w-4 ml-2" />
+									إعادة المحاولة
+								</Button>
+							</div>
+						</div>
+					</CardContent>
+				</Card>
+			</PageContainer>
+		);
+	}
 
 	return (
-		<div className="px-4">
-			<section className="mx-auto max-w-7xl py-8 space-y-6">
-				<h1 className="text-2xl md:text-3xl font-bold">الإحصائيات والتحليلات</h1>
-				<div className="grid gap-4 md:grid-cols-3">
-					<div className="rounded-lg border p-4"><p className="text-sm text-muted-foreground">معدل التحسن</p><p className="text-2xl font-bold">{summary ? Math.max(0, Math.round(((summary.totalMinutes / 60) % 100))) : 0}%</p></div>
-					<div className="rounded-lg border p-4"><p className="text-sm text-muted-foreground">متوسط ساعات اليوم</p><p className="text-2xl font-bold">{summary ? Math.round((summary.totalMinutes / 7) / 60) : 0}</p></div>
-					<div className="rounded-lg border p-4"><p className="text-sm text-muted-foreground">معدل الدرجات</p><p className="text-2xl font-bold">-</p></div>
+		<PageContainer size="xl" spacing="lg">
+			{/* Header */}
+			<div className="mb-8 text-center">
+				<div className="flex items-center justify-center gap-3 mb-4">
+					<div className="p-3 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl shadow-lg">
+						<BarChart3 className="h-8 w-8 text-white" />
+					</div>
+					<h1 className="text-3xl md:text-4xl font-bold text-gray-800 dark:text-gray-100">
+						التحليلات والإحصائيات
+					</h1>
 				</div>
-				<div className="rounded-lg border p-4">
-					<h2 className="font-semibold mb-2">دقائق هذا الأسبوع حسب المادة</h2>
-					{weekly && subjectLabels.length > 0 ? (
-						<Bar
-							data={{ labels: subjectLabels, datasets: [{ label: "دقائق", data: subjectData, backgroundColor: "rgba(59,130,246,0.6)" }] }}
-							options={{ responsive: true, plugins: { legend: { display: false }, title: { display: false, text: "" } } }}
-						/>
-					) : (
-						<p className="text-sm text-muted-foreground">لا توجد بيانات بعد.</p>
-					)}
+				<p className="text-base md:text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto mb-6">
+					تابع أداءك التعليمي وتطورك مع تحليلات شاملة ومفصلة
+				</p>
+				<div className="flex items-center justify-center gap-3">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={fetchData}
+						className="flex items-center gap-2"
+					>
+						<RefreshCw className="h-4 w-4" />
+						تحديث البيانات
+					</Button>
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={handleExport}
+						className="flex items-center gap-2"
+					>
+						<Download className="h-4 w-4" />
+						تصدير البيانات
+					</Button>
 				</div>
-				<div className="rounded-lg border p-4">
-					<h2 className="font-semibold mb-2">آخر 7 أيام</h2>
-					{weekly && dayLabels.length > 0 ? (
-						<Line
-							data={{ labels: dayLabels, datasets: [{ label: "دقائق", data: dayData, borderColor: "rgb(16,185,129)", backgroundColor: "rgba(16,185,129,0.3)" }] }}
-							options={{ responsive: true, plugins: { legend: { display: false } } }}
-						/>
-					) : (
-						<p className="text-sm text-muted-foreground">لا توجد بيانات بعد.</p>
-					)}
-				</div>
-			</section>
-		</div>
+			</div>
+
+			{/* Tabs */}
+			<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+				<TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+					<TabsTrigger value="overview" className="flex items-center gap-2">
+						<Activity className="h-4 w-4" />
+						<span className="hidden sm:inline">نظرة عامة</span>
+					</TabsTrigger>
+					<TabsTrigger value="weekly" className="flex items-center gap-2">
+						<Calendar className="h-4 w-4" />
+						<span className="hidden sm:inline">الأسبوعي</span>
+					</TabsTrigger>
+					<TabsTrigger value="performance" className="flex items-center gap-2">
+						<Target className="h-4 w-4" />
+						<span className="hidden sm:inline">الأداء</span>
+					</TabsTrigger>
+					<TabsTrigger value="subjects" className="flex items-center gap-2">
+						<BookOpen className="h-4 w-4" />
+						<span className="hidden sm:inline">المواد</span>
+					</TabsTrigger>
+					<TabsTrigger value="trends" className="flex items-center gap-2">
+						<TrendingUp className="h-4 w-4" />
+						<span className="hidden sm:inline">الاتجاهات</span>
+					</TabsTrigger>
+					<TabsTrigger value="patterns" className="flex items-center gap-2">
+						<Brain className="h-4 w-4" />
+						<span className="hidden sm:inline">الأنماط</span>
+					</TabsTrigger>
+					<TabsTrigger value="predictions" className="flex items-center gap-2">
+						<Zap className="h-4 w-4" />
+						<span className="hidden sm:inline">التنبؤات</span>
+					</TabsTrigger>
+				</TabsList>
+
+				<TabsContent value="overview" className="space-y-6">
+					<OverviewStats summary={summary} weekly={weekly} />
+				</TabsContent>
+
+				<TabsContent value="weekly" className="space-y-6">
+					<WeeklyChart weekly={weekly} />
+				</TabsContent>
+
+				<TabsContent value="performance" className="space-y-6">
+					<PerformanceMetrics 
+						summary={summary} 
+						weekly={weekly}
+						performanceMetrics={performanceMetrics}
+					/>
+				</TabsContent>
+
+				<TabsContent value="subjects" className="space-y-6">
+					<SubjectDistribution weekly={weekly} />
+				</TabsContent>
+
+				<TabsContent value="trends" className="space-y-6">
+					<TimeTrends weekly={weekly} />
+				</TabsContent>
+
+				<TabsContent value="patterns" className="space-y-6">
+					<StudyPatterns weekly={weekly} />
+				</TabsContent>
+
+				<TabsContent value="predictions" className="space-y-6">
+					<PredictionsSection predictions={predictions} />
+				</TabsContent>
+			</Tabs>
+		</PageContainer>
 	);
-} 
+}

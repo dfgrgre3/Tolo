@@ -25,27 +25,18 @@ export function Layout({
   };
 
   return (
-    <div className="min-h-screen bg-background transition-colors duration-300">
-      {/* Navbar */}
-
-      <div className="flex">
-
-        {/* Main Content */}
-        <main className={cn(
-          "flex-1 transition-all duration-300 ease-in-out w-full",
-          className
-        )}>
-
-          <div className={cn(
-            "mx-auto w-full transition-all duration-300",
-            "px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10",
-            "py-4 sm:py-6 md:py-8 lg:py-10",
-            maxWidthClasses[maxWidth],
-            containerClassName
-          )}>
-            {children}
-          </div>
-        </main>
+    <div className={cn(
+      "flex-1 transition-all duration-300 ease-in-out w-full",
+      className
+    )}>
+      <div className={cn(
+        "mx-auto w-full transition-all duration-300",
+        "px-3 sm:px-4 md:px-6 lg:px-8 xl:px-10",
+        "py-4 sm:py-6 md:py-8 lg:py-10",
+        maxWidthClasses[maxWidth],
+        containerClassName
+      )}>
+        {children}
       </div>
     </div>
   );
