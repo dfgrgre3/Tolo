@@ -1,11 +1,12 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { getTokenFromStorage, removeTokenFromStorage, getUserFromStorage, saveUserToStorage } from '@/lib/auth-client';
 import { toast } from 'sonner';
 import { useHydrationFix } from '@/hydration-fix';
 import { setSafeAuthToken } from '@/lib/safe-client-utils';
+import { setupAutoTokenRefresh } from '@/lib/token-refresh-interceptor';
 
 export interface User {
   id: string;
@@ -82,9 +83,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (response.ok) {
-          const userData = await response.json();
-          setUser(userData.user);
-          saveUserToStorage(userData.user);
+          // Check if response is JSON before parsing
+          const contentType = response.headers.get('content-type');
+          const isJson = contentType?.includes('application/json');
+          
+          if (isJson) {
+            try {
+              const userData = await response.json();
+              setUser(userData.user);
+              saveUserToStorage(userData.user);
+            } catch (error) {
+              console.error('Error parsing user data:', error);
+              removeTokenFromStorage();
+              setUser(null);
+            }
+          } else {
+            // Response is not JSON (likely HTML error page)
+            console.error('Server returned non-JSON response');
+            removeTokenFromStorage();
+            setUser(null);
+          }
         } else {
           // Token is invalid, remove it
           removeTokenFromStorage();
@@ -102,44 +120,98 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [isHydrated]);
 
-  const login = (token: string, userData?: User) => {
-    // Save token using safe method
-    setSafeAuthToken(token);
-    if (userData) {
-      saveUserToStorage(userData);
-      setUser(userData);
-      
-      // Show welcome message
-      toast.success(`مرحباً ${userData.name || userData.email}!`);
-        
-      // Show verification warnings if needed
-      if (!userData.emailVerified && userData.provider === 'local') {
-        toast.warning('يرجى تفعيل بريدك الإلكتروني');
-      }
-      if (!userData.phoneVerified && userData.phone) {
-        toast.warning('يرجى تفعيل رقم هاتفك');
-      }
-    }
-  };
+  // Setup automatic token refresh
+  useEffect(() => {
+    if (!isHydrated) return;
+    
+    const cleanup = setupAutoTokenRefresh(
+      (newToken) => {
+        // Token refreshed successfully
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Token auto-refreshed successfully');
+        }
+      },
+      () => {
+        // Refresh failed, user should be logged out
+        removeTokenFromStorage();
+        setUser(null);
+        router.push('/login');
+      },
+      5, // Refresh 5 minutes before expiration
+      1  // Check every 1 minute
+    );
 
-  const logout = () => {
+    return cleanup;
+  }, [isHydrated, router]);
+
+  const login = useCallback((token: string, userData?: User) => {
+    try {
+      // Validate token
+      if (!token || typeof token !== 'string' || token.trim().length === 0) {
+        console.error('Invalid token provided to login function');
+        toast.error('رمز المصادقة غير صالح');
+        return;
+      }
+
+      // Save token using safe method
+      const tokenSaved = setSafeAuthToken(token);
+      if (!tokenSaved) {
+        console.error('Failed to save token to storage');
+        toast.error('فشل حفظ رمز المصادقة');
+        return;
+      }
+
+      if (userData) {
+        // Validate user data
+        if (!userData.id || !userData.email) {
+          console.error('Invalid user data provided:', userData);
+          toast.error('بيانات المستخدم غير صحيحة');
+          return;
+        }
+
+        // Save user data
+        saveUserToStorage(userData);
+        setUser(userData);
+        
+        // Show verification warnings if needed
+        if (!userData.emailVerified && userData.provider === 'local') {
+          toast.warning('يرجى تفعيل بريدك الإلكتروني');
+        }
+        if (!userData.phoneVerified && userData.phone) {
+          toast.warning('يرجى تفعيل رقم هاتفك');
+        }
+      }
+    } catch (error) {
+      console.error('Error in login function:', error);
+      toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
+    }
+  }, []);
+
+  const logout = useCallback(() => {
     if (typeof window !== 'undefined') {
       removeTokenFromStorage();
     }
     setUser(null);
     toast.success('تم تسجيل الخروج بنجاح');
     router.push('/');
-  };
+  }, [router]);
 
-  const updateUser = (userData: Partial<User>) => {
+  const updateUser = useCallback((userData: Partial<User>) => {
     if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
-      saveUserToStorage(updatedUser);
+      // Only update if there are actual changes
+      const hasChanges = Object.keys(userData).some(
+        key => user[key as keyof User] !== userData[key as keyof User]
+      );
+      
+      if (hasChanges) {
+        const updatedUser = { ...user, ...userData };
+        setUser(updatedUser);
+        saveUserToStorage(updatedUser);
+      }
     }
-  };
+  }, [user]);
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const token = getTokenFromStorage();
       if (!token) return;
@@ -148,20 +220,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
+        // Add cache control to prevent stale data
+        cache: 'no-store',
       });
 
       if (response.ok) {
-        const userData = await response.json();
-        setUser(userData.user);
-        saveUserToStorage(userData.user);
+        // Check if response is JSON before parsing
+        const contentType = response.headers.get('content-type');
+        const isJson = contentType?.includes('application/json');
+        
+        if (isJson) {
+          try {
+            const userData = await response.json();
+            // Only update if data actually changed to prevent unnecessary re-renders
+            if (userData?.user) {
+              setUser(userData.user);
+              saveUserToStorage(userData.user);
+            }
+          } catch (error) {
+            console.error('Error parsing user data:', error);
+          }
+        } else {
+          console.error('Server returned non-JSON response');
+        }
+      } else if (response.status === 401) {
+        // Token expired, clear auth state
+        removeTokenFromStorage();
+        setUser(null);
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
+      // On network errors, don't clear auth state
+      // The token refresh interceptor will handle token expiration
     }
-  };
+  }, []);
+
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = useMemo(
+    () => ({ user, isLoading, login, logout, updateUser, refreshUser }),
+    [user, isLoading, login, logout, updateUser, refreshUser]
+  );
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, updateUser, refreshUser }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

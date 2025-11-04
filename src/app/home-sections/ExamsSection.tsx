@@ -53,7 +53,9 @@ const StatCard = memo(({ icon, value, label }: { icon: string; value: string; la
                         setCount(endValue); // Ensure it ends on the exact value
                     }
                 }, 16.67);
-                observer.unobserve(cardRef.current);
+                if (cardRef.current) {
+                    observer.unobserve(cardRef.current);
+                }
             }
         }, { threshold: 0.1 });
 
@@ -61,7 +63,7 @@ const StatCard = memo(({ icon, value, label }: { icon: string; value: string; la
         return () => observer.disconnect();
     }, [endValue]);
 
-    const formatDisplayValue = (num) => {
+    const formatDisplayValue = (num: number) => {
         if (value.includes('k')) return `${Math.floor(num / 1000)}k+`;
         return `${num}+`;
     };
@@ -119,14 +121,14 @@ const ExamsModal = memo(({ subject, onClose }: { subject: any; onClose: () => vo
                     </button>
                 </div>
                 <div className="space-y-4">
-                    {subject.exams.map(exam => (
+                    {subject.exams.map((exam: any) => (
                         <div key={exam.id} className="bg-gray-50 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-gray-200">
                             <div>
                                 <h4 className="font-semibold text-gray-800">{exam.title}</h4>
                                 <div className="flex items-center gap-4 text-sm text-gray-500 mt-1">
                                     <span>⏳ {exam.duration} دقيقة</span>
                                     <span>❓ {exam.questionCount} سؤال</span>
-                                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${difficultyStyles[exam.difficulty]}`}>{exam.difficulty}</span>
+                                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${difficultyStyles[exam.difficulty as keyof typeof difficultyStyles] || ''}`}>{exam.difficulty}</span>
                                 </div>
                             </div>
                             <Link 

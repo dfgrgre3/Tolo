@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate JWT token
-    const token = generateToken(user.id, user.email, user.name || undefined);
+    const token = await generateToken(user.id, user.email, user.name || undefined);
 
     // Create response with redirect
     const response = NextResponse.redirect(

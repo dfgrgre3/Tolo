@@ -502,3 +502,54 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
 
   return response;
 }
+
+/**
+ * Create error response (backward compatibility alias)
+ * @param message Error message
+ * @param status HTTP status code
+ * @param details Optional details object
+ * @param code Optional error code
+ * @returns NextResponse with error
+ */
+export function createErrorResponse(message: string, status: number = 500, details?: any, code?: string): NextResponse {
+  if (code) {
+    return NextResponse.json(
+      {
+        error: message,
+        code,
+        details,
+        status
+      },
+      { status }
+    );
+  }
+  return badRequestResponse(message, 'ERROR');
+}
+
+/**
+ * Create success response (backward compatibility alias)
+ * @param data Response data
+ * @param message Optional success message
+ * @param status HTTP status code
+ * @returns NextResponse with success data
+ */
+export function createSuccessResponse<T>(data: T, message?: string, status: number = 200): NextResponse {
+  return successResponse(data, message, status);
+}
+
+/**
+ * Rate limiting function with identifier support (backward compatibility wrapper)
+ * @param req Next.js request object
+ * @param limit Maximum requests allowed
+ * @param identifier Optional identifier for rate limiting (not used in current implementation, but kept for compatibility)
+ * @param windowMs Optional time window in milliseconds (default: 15 minutes)
+ * @returns NextResponse if rate limit exceeded, null otherwise
+ */
+export async function rateLimit(
+  req: NextRequest,
+  limit: number,
+  identifier?: string,
+  windowMs: number = 15 * 60 * 1000 // 15 minutes default
+): Promise<NextResponse | null> {
+  return applyRateLimit(req, limit, windowMs);
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { Prisma, SubjectType, ExamType } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import { SubjectType, ExamType } from "@/types/settings";
 
 export async function GET() {
 	const exams = await prisma.exam.findMany({ orderBy: [{ year: "desc" }, { createdAt: "desc" }] });

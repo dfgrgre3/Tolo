@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "clean": "node -e \"require('fs').rmSync('.next', {recursive: true, force: true})\"",
     "lint": "eslint",
@@ -16,7 +16,9 @@
     "test:cov": "dotenv -e tests/test.env jest --coverage",
     "test:watch": "dotenv -e tests/test.env jest --watch",
     "check:cov": "node scripts/check-coverage.js",
-    "websocket": "ts-node src/lib/websocket.ts"
+    "websocket": "ts-node src/lib/websocket.ts",
+    "postinstall": "prisma generate",
+    "prisma:generate": "prisma generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
@@ -71,6 +73,7 @@
     "react-hook-form": "^7.62.0",
     "react-i18next": "^16.0.0",
     "redis": "^5.9.0",
+    "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
     "twilio": "^5.10.2",

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { AuthService } from '@/lib/auth-service';
+import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
@@ -47,7 +47,8 @@ async function handleGetRequest(req: NextRequest) {
     }
 
     // Verify authentication using the unified AuthService
-    const decodedToken = await AuthService.verifyToken(req);
+    const verification = await authService.verifyTokenFromRequest(req);
+    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
     if (!decodedToken) {
       return unauthorizedResponse();
     }
@@ -118,7 +119,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify authentication using the unified AuthService
-    const decodedToken = await AuthService.verifyToken(request);
+    const verification = await authService.verifyTokenFromRequest(request);
+    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
     if (!decodedToken) {
       return unauthorizedResponse();
     }
@@ -147,10 +149,10 @@ export async function POST(request: NextRequest) {
     });
 
     // Invalidate cache
-    await invalidateUserCache(decodedToken.userId, 'tasks');
+    await invalidateUserCache(decodedToken.userId);
 
     // Trigger gamification
-    await gamificationService.trackActivity(decodedToken.userId, 'TASK_CREATED');
+    await gamificationService.updateUserProgress(decodedToken.userId, 'task_created');
 
     // Return successful response
     return successResponse(task, 'Task created successfully', 201);
@@ -169,7 +171,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify authentication using the unified AuthService
-    const decodedToken = await AuthService.verifyToken(request);
+    const verification = await authService.verifyTokenFromRequest(request);
+    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
     if (!decodedToken) {
       return unauthorizedResponse();
     }
@@ -215,11 +218,11 @@ export async function PUT(request: NextRequest) {
     });
 
     // Invalidate cache
-    await invalidateUserCache(decodedToken.userId, 'tasks');
+    await invalidateUserCache(decodedToken.userId);
 
     // Trigger gamification for completion
     if (task.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
-      await gamificationService.trackActivity(decodedToken.userId, 'TASK_COMPLETED');
+      await gamificationService.updateUserProgress(decodedToken.userId, 'task_completed');
     }
 
     // Return successful response
@@ -239,7 +242,8 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Verify authentication using the unified AuthService
-    const decodedToken = await AuthService.verifyToken(request);
+    const verification = await authService.verifyTokenFromRequest(request);
+    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
     if (!decodedToken) {
       return unauthorizedResponse();
     }
@@ -274,7 +278,7 @@ export async function DELETE(request: NextRequest) {
     });
 
     // Invalidate cache
-    await invalidateUserCache(decodedToken.userId, 'tasks');
+    await invalidateUserCache(decodedToken.userId);
 
     // Return successful response
     return successResponse(null, 'Task deleted successfully');

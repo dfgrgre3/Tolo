@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // GET all replies for a forum post
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if post exists
     const post = await prisma.forumPost.findUnique({
@@ -32,7 +32,7 @@ export async function GET(
     });
 
     // Transform the data to match the frontend structure
-    const transformedReplies = replies.map(reply => ({
+    const transformedReplies = replies.map((reply: any) => ({
       id: reply.id,
       content: reply.content,
       authorName: reply.author.name,
@@ -52,10 +52,10 @@ export async function GET(
 // POST create a new reply for a forum post
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const { userId, content } = await request.json();
 
     if (!userId || !content) {

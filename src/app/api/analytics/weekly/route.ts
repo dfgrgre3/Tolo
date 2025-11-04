@@ -23,15 +23,15 @@ export async function GET(req: NextRequest) {
 		const sessions = await prisma.studySession.findMany({ where: { userId, startTime: { gte: weekStart, lte: weekEnd } } });
 
 		const bySubject: Record<string, number> = {};
-		sessions.forEach((s) => {
+          sessions.forEach((s: any) => {
 			bySubject[s.subject] = (bySubject[s.subject] || 0) + s.durationMin;
 		});
 
 		const days = eachDayOfInterval({ start: startOfDay(subDays(new Date(), 6)), end: startOfDay(new Date()) });
 		const byDay = days.map((d) => {
 			const total = sessions
-				.filter((s) => startOfDay(s.startTime).getTime() === startOfDay(d).getTime())
-				.reduce((a, s) => a + s.durationMin, 0);
+				.filter((s: any) => startOfDay(s.startTime).getTime() === startOfDay(d).getTime())
+				.reduce((a: number, s: any) => a + s.durationMin, 0);
 			return { date: d, minutes: total };
 		});
 

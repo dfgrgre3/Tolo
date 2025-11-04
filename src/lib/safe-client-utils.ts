@@ -489,6 +489,172 @@ export function useSafeAuthToken(): [string | null, (token: string) => void, () 
   return [token, setToken, removeToken, mounted];
 }
 
+// ==================== Safe Fetch & JSON Parsing ====================
+
+/**
+ * التحقق من أن الاستجابة هي JSON وليست HTML
+ * Check if response is JSON and not HTML
+ */
+function isJsonResponse(response: Response): boolean {
+  const contentType = response.headers.get('content-type');
+  return contentType?.includes('application/json') ?? false;
+}
+
+/**
+ * التحقق من أن النص هو HTML وليس JSON
+ */
+function isHtmlContent(text: string): boolean {
+  const trimmed = text.trim();
+  return (
+    trimmed.startsWith('<!DOCTYPE') ||
+    trimmed.startsWith('<!doctype') ||
+    trimmed.startsWith('<html') ||
+    trimmed.startsWith('<HTML') ||
+    trimmed.startsWith('<Html') ||
+    (trimmed.startsWith('<') && trimmed.includes('<head') || trimmed.includes('<body'))
+  );
+}
+
+export async function safeJsonParse<T = any>(
+  response: Response,
+  fallback: T | null = null
+): Promise<T | null> {
+  try {
+    // قراءة النص أولاً للتحقق من نوع المحتوى
+    // نستخدم clone() إذا كان response مستهلكاً بالفعل
+    let text: string;
+    try {
+      text = await response.text();
+    } catch (textError) {
+      // إذا فشل قراءة النص (مثلاً إذا تم استهلاك response بالفعل)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('[Development] Failed to read response text:', textError);
+      }
+      return fallback;
+    }
+    
+    // التحقق من أن النص غير فارغ
+    if (!text || text.trim().length === 0) {
+      return fallback;
+    }
+    
+    // إذا كان HTML، يعني أن هناك خطأ في الخادم (مثل صفحة خطأ Next.js)
+    if (isHtmlContent(text)) {
+      // فقط في وضع التطوير نُظهر الخطأ التفصيلي
+      if (process.env.NODE_ENV === 'development') {
+        const url = response.url || 'Unknown URL';
+        console.warn(
+          `[Development] Server returned HTML error page instead of JSON:`,
+          {
+            status: response.status,
+            statusText: response.statusText,
+            url: url,
+            preview: text.substring(0, 200)
+          }
+        );
+      }
+      return fallback;
+    }
+    
+    // التحقق من أن الاستجابة ناجحة وأن المحتوى هو JSON
+    if (!response.ok) {
+      // محاولة تحليل JSON حتى لو كانت الاستجابة غير ناجحة
+      // (بعض APIs ترجع JSON حتى في حالة الخطأ)
+      try {
+        return JSON.parse(text) as T;
+      } catch (parseError) {
+        // إذا فشل تحليل JSON، رجوع للـ fallback
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(
+            `[Development] Failed to parse error response as JSON:`,
+            {
+              status: response.status,
+              statusText: response.statusText,
+              preview: text.substring(0, 200),
+              error: parseError
+            }
+          );
+        }
+        return fallback;
+      }
+    }
+    
+    // محاولة تحليل JSON من النص
+    try {
+      return JSON.parse(text) as T;
+    } catch (parseError) {
+      // فقط في وضع التطوير نُظهر تفاصيل الخطأ
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          `[Development] Failed to parse response as JSON:`,
+          {
+            error: parseError,
+            preview: text.substring(0, 200),
+            contentType: response.headers.get('content-type')
+          }
+        );
+      }
+      return fallback;
+    }
+  } catch (error) {
+    // فقط في وضع التطوير نُظهر تفاصيل الخطأ
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Development] Error parsing JSON response:', error);
+    }
+    return fallback;
+  }
+}
+
+/**
+ * استدعاء fetch مع معالجة آمنة للأخطاء والـ JSON
+ * Safe fetch with error handling and JSON parsing
+ */
+export async function safeFetch<T = any>(
+  url: string,
+  options?: RequestInit,
+  fallback: T | null = null
+): Promise<{ data: T | null; error: Error | null; response: Response | null }> {
+  try {
+    const response = await fetch(url, options);
+    
+    // استخدام safeJsonParse الذي يتعامل مع HTML و JSON بشكل آمن
+    const data = await safeJsonParse<T>(response, fallback);
+    
+    // إذا كانت الاستجابة غير ناجحة
+    if (!response.ok) {
+      // إذا كان data هو fallback (يعني أن الـ response لم تكن JSON صالحة)
+      if (data === fallback) {
+        return {
+          data: fallback,
+          error: new Error(
+            `HTTP ${response.status}: ${response.statusText} - Server returned non-JSON response`
+          ),
+          response
+        };
+      }
+      
+      // إذا كان data ليس fallback، يعني أننا حصلنا على JSON (حتى لو كانت error response)
+      return {
+        data,
+        error: new Error(`HTTP ${response.status}: ${response.statusText}`),
+        response
+      };
+    }
+    
+    return { data, error: null, response };
+  } catch (error) {
+    // فقط في وضع التطوير نُظهر تفاصيل الخطأ
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Development] Fetch error:', error);
+    }
+    return {
+      data: fallback,
+      error: error instanceof Error ? error : new Error('Unknown fetch error'),
+      response: null
+    };
+  }
+}
+
 // ==================== Export All ====================
 
 export default {
@@ -525,5 +691,9 @@ export default {
   setSafeAuthToken,
   removeSafeAuthToken,
   useSafeAuthToken,
+  
+  // Safe fetch & JSON
+  safeJsonParse,
+  safeFetch,
 };
 

@@ -277,23 +277,127 @@ export function useEnhancedAuth(): AuthHookResult {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(credentials),
-      });
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      const data: any = await response
-        .json()
-        .catch(() => ({} as Record<string, unknown>));
+      let response: Response;
+      let data: any;
 
-      if (!response.ok) {
-        throw createAuthError(
-          response,
-          data,
-          '???? ????? ??????. ???? ???????? ??? ????.',
-        );
+      try {
+        response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(credentials),
+          signal: controller.signal,
+        });
+
+        // Check content type before parsing
+        const contentType = response.headers.get('content-type');
+        const isJson = contentType?.includes('application/json');
+
+        // Check if response is ok before parsing JSON
+        if (!response.ok) {
+          if (isJson) {
+            try {
+              data = await response.json();
+              clearTimeout(timeoutId);
+              throw createAuthError(
+                response,
+                data,
+                'فشل تسجيل الدخول. يرجى التحقق من بياناتك والمحاولة مرة أخرى.',
+              );
+            } catch (jsonError: any) {
+              // If it's already an AuthError, rethrow it
+              if (jsonError.status !== undefined || jsonError.code !== undefined) {
+                clearTimeout(timeoutId);
+                throw jsonError;
+              }
+              // If JSON parsing fails, check network error
+              if (!navigator.onLine) {
+                throw new Error('خطأ في الاتصال: لا يوجد اتصال بالإنترنت. يرجى التحقق من اتصالك والمحاولة مرة أخرى.');
+              }
+              throw new Error(`خطأ في الاتصال: ${response.status} ${response.statusText}`);
+            }
+          } else {
+            // Response is not JSON (likely HTML error page from Next.js)
+            const status = response.status;
+            clearTimeout(timeoutId);
+            
+            if (!navigator.onLine) {
+              throw new Error('خطأ في الاتصال: لا يوجد اتصال بالإنترنت. يرجى التحقق من اتصالك والمحاولة مرة أخرى.');
+            }
+            
+            let errorMessage = `خطأ في الخادم (${status})`;
+            if (status === 404) {
+              errorMessage = 'مسار API غير موجود. يرجى التحقق من إعدادات الخادم.';
+            } else if (status >= 500) {
+              errorMessage = 'خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
+            }
+            
+            throw new Error(errorMessage);
+          }
+        }
+
+        // Parse JSON response
+        if (!isJson) {
+          const status = response.status;
+          clearTimeout(timeoutId);
+          throw new Error(
+            status >= 500
+              ? 'الخادم يواجه مشكلة تقنية. يرجى المحاولة مرة أخرى لاحقاً.'
+              : 'استجابة غير صحيحة من الخادم. يرجى التحقق من إعدادات الخادم.'
+          );
+        }
+
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          clearTimeout(timeoutId);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('JSON parsing error:', jsonError);
+          }
+          throw new Error('فشل في معالجة استجابة الخادم. يرجى المحاولة مرة أخرى.');
+        }
+
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // Handle network/connection errors
+        if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
+          const error = new Error('انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.');
+          setError(error.message);
+          throw error;
+        }
+
+        // Check for network errors
+        if (
+          fetchError.message?.includes('Failed to fetch') ||
+          fetchError.message?.includes('NetworkError') ||
+          fetchError.message?.includes('Network request failed') ||
+          fetchError.message?.includes('ERR_INTERNET_DISCONNECTED') ||
+          fetchError.message?.includes('ERR_CONNECTION_REFUSED') ||
+          fetchError.message?.includes('ERR_CONNECTION_TIMED_OUT') ||
+          !navigator.onLine
+        ) {
+          const error = new Error('خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.');
+          setError(error.message);
+          throw error;
+        }
+
+        // If it's already an AuthError, rethrow it
+        if (fetchError.status !== undefined || fetchError.code !== undefined) {
+          setError(fetchError.message);
+          throw fetchError;
+        }
+
+        // Handle other fetch errors
+        const errorMessage = fetchError.message || 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+        const error = new Error(errorMessage);
+        setError(error.message);
+        throw error;
       }
 
       if (data.requiresTwoFactor) {
@@ -317,7 +421,7 @@ export function useEnhancedAuth(): AuthHookResult {
         token: data.token,
         refreshToken: data.refreshToken,
         sessionId: data.sessionId,
-      });
+      }, { rememberMe: credentials.rememberMe });
       setUser(authenticatedUser);
 
       return {
@@ -339,23 +443,117 @@ export function useEnhancedAuth(): AuthHookResult {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/two-factor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
+      // Create an AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
 
-      const data: any = await response
-        .json()
-        .catch(() => ({} as Record<string, unknown>));
+      let response: Response;
+      let data: any;
 
-      if (!response.ok) {
-        throw createAuthError(
-          response,
-          data,
-          '???? ?????? ?? ?????. ???? ???????? ??? ????.',
-        );
+      try {
+        response = await fetch('/api/auth/two-factor', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+
+        const contentType = response.headers.get('content-type');
+        const isJson = contentType?.includes('application/json');
+
+        if (!response.ok) {
+          if (isJson) {
+            try {
+              data = await response.json();
+              clearTimeout(timeoutId);
+              throw createAuthError(
+                response,
+                data,
+                'فشل التحقق من الرمز. يرجى التحقق من الرمز والمحاولة مرة أخرى.',
+              );
+            } catch (jsonError: any) {
+              if (jsonError.status !== undefined || jsonError.code !== undefined) {
+                clearTimeout(timeoutId);
+                throw jsonError;
+              }
+              if (!navigator.onLine) {
+                throw new Error('خطأ في الاتصال: لا يوجد اتصال بالإنترنت. يرجى التحقق من اتصالك والمحاولة مرة أخرى.');
+              }
+              throw new Error(`خطأ في الاتصال: ${response.status} ${response.statusText}`);
+            }
+          } else {
+            // HTML error page from server
+            const status = response.status;
+            clearTimeout(timeoutId);
+            
+            if (!navigator.onLine) {
+              throw new Error('خطأ في الاتصال: لا يوجد اتصال بالإنترنت. يرجى التحقق من اتصالك والمحاولة مرة أخرى.');
+            }
+            
+            let errorMessage = `خطأ في الخادم (${status})`;
+            if (status === 404) {
+              errorMessage = 'مسار API غير موجود.';
+            } else if (status >= 500) {
+              errorMessage = 'خطأ داخلي في الخادم. يرجى المحاولة لاحقاً.';
+            }
+            
+            throw new Error(errorMessage);
+          }
+        }
+
+        if (!isJson) {
+          const status = response.status;
+          clearTimeout(timeoutId);
+          throw new Error(
+            status >= 500
+              ? 'الخادم يواجه مشكلة تقنية. يرجى المحاولة لاحقاً.'
+              : 'استجابة غير صحيحة من الخادم.'
+          );
+        }
+
+        try {
+          data = await response.json();
+        } catch (jsonError) {
+          clearTimeout(timeoutId);
+          if (process.env.NODE_ENV === 'development') {
+            console.error('JSON parsing error:', jsonError);
+          }
+          throw new Error('فشل في معالجة استجابة الخادم.');
+        }
+
+        clearTimeout(timeoutId);
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        
+        // Handle network/connection errors
+        if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
+          const error = new Error('انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.');
+          setError(error.message);
+          throw error;
+        }
+
+        if (
+          fetchError.message?.includes('Failed to fetch') ||
+          fetchError.message?.includes('NetworkError') ||
+          fetchError.message?.includes('Network request failed') ||
+          !navigator.onLine
+        ) {
+          const error = new Error('خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.');
+          setError(error.message);
+          throw error;
+        }
+
+        // If it's already an AuthError, rethrow it
+        if (fetchError.status !== undefined || fetchError.code !== undefined) {
+          setError(fetchError.message);
+          throw fetchError;
+        }
+
+        const errorMessage = fetchError.message || 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى.';
+        const error = new Error(errorMessage);
+        setError(error.message);
+        throw error;
       }
 
       const authenticatedUser: User = {

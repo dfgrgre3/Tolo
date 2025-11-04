@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // GET a single forum post by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const post = await prisma.forumPost.findUnique({
       where: { id },
@@ -58,10 +58,10 @@ export async function GET(
 // POST to increment view count
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     await prisma.forumPost.update({
       where: { id },

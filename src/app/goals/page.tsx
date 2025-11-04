@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useGamification } from '@/hooks/use-gamification';
+import { useGamification, CustomGoal } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
-import { CustomGoal } from '@/lib/gamification-service';
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -32,6 +31,7 @@ function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalModalProps
       title: formData.title,
       description: formData.description || undefined,
       targetValue: parseFloat(formData.targetValue),
+      currentValue: 0,
       unit: formData.unit,
       category: formData.category
     });

@@ -10,6 +10,14 @@ export enum SubjectType {
   ENGLISH = 'ENGLISH'
 }
 
+export enum ExamType {
+  FINAL = 'FINAL',
+  MIDTERM = 'MIDTERM',
+  QUIZ = 'QUIZ',
+  PRACTICE = 'PRACTICE',
+  OTHER = 'OTHER'
+}
+
 export enum FocusStrategy {
   POMODORO = 'POMODORO',
   EIGHTY_TWENTY = 'EIGHTY_TWENTY',

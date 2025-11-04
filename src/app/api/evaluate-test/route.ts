@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Prepare answers and questions for AI evaluation
-    const questionsForEvaluation = test.questions.map(q => ({
+    const questionsForEvaluation = test.questions.map((q: any) => ({
       id: q.id,
       question: q.question,
       type: q.type,
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     let score = 0;
     let totalPoints = 0;
 
-    test.questions.forEach(question => {
+    test.questions.forEach((question: any) => {
       totalPoints += question.points;
       const result = evaluation.detailedResults.find((r: any) => r.questionId === question.id);
       if (result && result.isCorrect) {

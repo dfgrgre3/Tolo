@@ -43,9 +43,9 @@ export async function POST(request: NextRequest) {
     معلومات الطالب:
     ${userData ? `
     - الاسم: ${userData.name || "غير محدد"}
-    - المواد المسجلة: ${userData.subjects.map(s => s.subject).join(", ") || "لا توجد مواد مسجلة"}
-    - متوسط درجات الامتحانات الأخيرة: ${userData.exams.length > 0 ? (userData.exams.reduce((sum, exam) => sum + exam.score, 0) / userData.exams.length).toFixed(2) : "لا توجد بيانات"}
-    - متوسط وقت الدراسة الأسبوعي: ${userData.progress.length > 0 ? (userData.progress.reduce((sum, p) => sum + p.totalStudyMinutes, 0) / userData.progress.length / 60).toFixed(2) + " ساعات" : "لا توجد بيانات"}
+    - المواد المسجلة: ${userData.subjects.map((s: any) => s.subject).join(", ") || "لا توجد مواد مسجلة"}
+    - متوسط درجات الامتحانات الأخيرة: ${userData.exams.length > 0 ? (userData.exams.reduce((sum: number, exam: any) => sum + exam.score, 0) / userData.exams.length).toFixed(2) : "لا توجد بيانات"}
+    - متوسط وقت الدراسة الأسبوعي: ${userData.progress.length > 0 ? (userData.progress.reduce((sum: number, p: any) => sum + p.totalStudyMinutes, 0) / userData.progress.length / 60).toFixed(2) + " ساعات" : "لا توجد بيانات"}
     ` : "لا توجد بيانات مستخدم متاحة"}
 
     طلب النصائح:

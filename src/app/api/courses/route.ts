@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         }
       });
       
-      enrollments = userEnrollments.reduce((acc, enrollment) => {
+      enrollments = userEnrollments.reduce((acc: any, enrollment: any) => {
         acc[enrollment.subject] = enrollment;
         return acc;
       }, {});

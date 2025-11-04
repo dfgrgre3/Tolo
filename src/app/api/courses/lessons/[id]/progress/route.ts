@@ -60,8 +60,8 @@ export async function POST(
           include: { subTopics: true }
         });
         
-        const allSubTopics = subjectTopics.flatMap(topic => topic.subTopics);
-        const subTopicIds = allSubTopics.map(st => st.id);
+        const allSubTopics = subjectTopics.flatMap((topic: any) => topic.subTopics);
+        const subTopicIds = allSubTopics.map((st: any) => st.id);
         
         // Get user progress for all subtopics in this subject
         const userProgress = await prisma.topicProgress.findMany({
@@ -71,7 +71,7 @@ export async function POST(
           }
         });
         
-        const completedCount = userProgress.filter(p => p.completed).length;
+        const completedCount = userProgress.filter((p: any) => p.completed).length;
         const totalCount = subTopicIds.length;
         const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
         

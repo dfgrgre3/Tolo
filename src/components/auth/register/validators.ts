@@ -1,3 +1,10 @@
+/**
+ * Registration form validators
+ * Centralized validation logic for registration forms
+ * 
+ * @optimized - Efficient validation with early returns
+ */
+
 import { PASSWORD_REQUIREMENT_LABELS, PASSWORD_STRENGTH_LEVELS } from './constants';
 import type {
   PasswordRequirement,
@@ -6,16 +13,29 @@ import type {
   RegistrationFormErrors,
 } from './types';
 
+/** Email validation regex pattern */
 export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * Password evaluation result
+ */
 interface PasswordEvaluation {
+  /** Password strength score (0-100) */
   score: number;
+  /** Human-readable strength label */
   label: string;
+  /** List of password requirements and their status */
   requirements: PasswordRequirement[];
 }
 
+/** Minimum password length requirement */
 export const MIN_PASSWORD_LENGTH = 8;
 
+/**
+ * Evaluate password strength and requirements
+ * @param password - Password to evaluate
+ * @returns Password evaluation with score, label, and requirements
+ */
 export function evaluatePassword(password: string): PasswordEvaluation {
   const checks: Array<[keyof typeof PASSWORD_REQUIREMENT_LABELS, boolean]> = [
     ['length', password.length >= MIN_PASSWORD_LENGTH],
@@ -55,6 +75,11 @@ export function evaluatePassword(password: string): PasswordEvaluation {
   };
 }
 
+/**
+ * Validate profile information step
+ * @param state - Profile state to validate
+ * @returns Validation result with errors if any
+ */
 export function validateProfileState(
   state: RegistrationProfileState,
 ): { valid: boolean; errors: RegistrationFormErrors } {
@@ -77,6 +102,12 @@ export function validateProfileState(
   };
 }
 
+/**
+ * Validate security settings step
+ * @param state - Security state to validate
+ * @param strengthScore - Password strength score (0-100)
+ * @returns Validation result with errors if any
+ */
 export function validateSecurityState(
   state: RegistrationSecurityState,
   strengthScore: number,

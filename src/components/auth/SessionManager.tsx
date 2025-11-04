@@ -7,11 +7,18 @@ import { toast } from 'sonner';
 import { Icons } from '@/components/ui/icons';
 import { useEnhancedAuth } from '@/lib/auth-hook-enhanced';
 
+interface DeviceInfo {
+  browser?: string;
+  os?: string;
+  device?: string;
+  platform?: string;
+}
+
 interface Session {
   id: string;
   userAgent: string;
   ip: string;
-  deviceInfo: any;
+  deviceInfo: DeviceInfo | null;
   createdAt: string;
   expiresAt: string;
   lastAccessed: string;

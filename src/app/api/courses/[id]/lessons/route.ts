@@ -48,7 +48,7 @@ export async function GET(
     // If userId is provided, get progress information
     let lessonProgress = {};
     if (userId) {
-      const lessonIds = lessons.map(lesson => lesson.id);
+      const lessonIds = lessons.map((lesson: any) => lesson.id);
       const progressRecords = await prisma.topicProgress.findMany({
         where: {
           userId,
@@ -56,7 +56,7 @@ export async function GET(
         }
       });
       
-      lessonProgress = progressRecords.reduce((acc, progress) => {
+      lessonProgress = progressRecords.reduce((acc: any, progress: any) => {
         acc[progress.subTopicId] = progress.completed;
         return acc;
       }, {});

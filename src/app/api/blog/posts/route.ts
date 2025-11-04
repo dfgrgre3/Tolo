@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the data to match the frontend structure
-    const transformedPosts = posts.map(post => ({
+    const transformedPosts = posts.map((post: any) => ({
       id: post.id,
       title: post.title,
       excerpt: post.excerpt,

@@ -1,8 +1,9 @@
-import { PrismaClient, Prisma, SubjectType } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import { SubjectType } from "../../src/types/settings";
 
 const prisma = new PrismaClient();
 
-const seedTeachers: Prisma.TeacherCreateManyInput[] = [
+const seedTeachers = [
   { name: "Khan Academy Math", subject: SubjectType.MATH, onlineUrl: "https://www.khanacademy.org/math" },
   { name: "MinutePhysics", subject: SubjectType.PHYSICS, onlineUrl: "https://www.youtube.com/@minutephysics" },
   { name: "NileRed (Chemistry)", subject: SubjectType.CHEMISTRY, onlineUrl: "https://www.youtube.com/@NileRed" },

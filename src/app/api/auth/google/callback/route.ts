@@ -80,11 +80,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Generate JWT token
-    const token = generateToken(user.id, user.email, user.name || undefined);
+    const token = await generateToken(user.id, user.email, user.name || undefined);
+
+    // Get redirect path from cookie (set during OAuth initiation)
+    const redirectPath = request.cookies.get('oauth_redirect')?.value || '/';
+    
+    // Validate redirect path (security measure)
+    const safeRedirectPath = redirectPath.startsWith('/') && !redirectPath.startsWith('//') 
+      ? redirectPath 
+      : '/';
 
     // Create response with redirect
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/`
+      `${baseUrl}${safeRedirectPath}`
     );
 
     // Set token in cookie
@@ -96,8 +105,15 @@ export async function GET(request: NextRequest) {
       path: '/',
     });
 
-    // Clear state cookie
+    // Clear state and redirect cookies
     response.cookies.set('oauth_state', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/',
+    });
+    response.cookies.set('oauth_redirect', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

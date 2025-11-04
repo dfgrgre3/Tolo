@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import DataPartitioningService from '@/lib/data-partitioning-service'
-import { auth } from '@/lib/auth'
+import { auth } from '@/auth-server'
 import { 
   createErrorResponse, 
   createSuccessResponse 
@@ -11,8 +11,8 @@ async function authenticateAdmin(request: NextRequest): Promise<{ authorized: bo
   try {
     const session = await auth()
     // Check if user is authenticated and has admin role
-    if (session?.user?.id && session?.user?.role === 'admin') {
-      return { authorized: true, userId: session.user.id };
+    if (session?.user?.userId && session?.user?.role === 'admin') {
+      return { authorized: true, userId: session.user.userId };
     }
     return { authorized: false };
   } catch (error) {
@@ -165,7 +165,7 @@ async function getPartitionInfo() {
 
 async function getPartitioningEfficiency() {
   try {
-    const report = await DataPartitioningService.getPartitioningEfficiencyReport()
+    const report = await DataPartitioningService.verifyPartitioningEfficiency()
     return createSuccessResponse(report)
   } catch (error) {
     console.error('Error getting partitioning efficiency:', error)
@@ -180,7 +180,7 @@ async function getPartitioningEfficiency() {
 
 async function checkAndExtendPartitions() {
   try {
-    const result = await DataPartitioningService.checkAndExtendPartitions()
+    const result = await DataPartitioningService.checkAndExtendPartitionsIfNeeded()
     return createSuccessResponse(result)
   } catch (error) {
     console.error('Error checking and extending partitions:', error)
@@ -195,8 +195,8 @@ async function checkAndExtendPartitions() {
 
 async function createPartitions(tableName: string, startDate: Date, endDate: Date) {
   try {
-    const result = await DataPartitioningService.createPartitions(tableName, startDate, endDate)
-    return createSuccessResponse(result)
+    await DataPartitioningService.createMonthlyPartitions(tableName, startDate, endDate)
+    return createSuccessResponse({ message: `Partitions created successfully for ${tableName}` })
   } catch (error) {
     console.error(`Error creating partitions for ${tableName}:`, error)
     return createErrorResponse(
@@ -225,8 +225,14 @@ async function cleanupPartitions() {
 
 async function maintainPartitions() {
   try {
-    const result = await DataPartitioningService.maintainPartitions()
-    return createSuccessResponse(result)
+    // Perform maintenance: cleanup old partitions and extend if needed
+    const cleanupResult = await DataPartitioningService.cleanupOldPartitions()
+    const extendResult = await DataPartitioningService.checkAndExtendPartitionsIfNeeded()
+    return createSuccessResponse({ 
+      cleanup: cleanupResult,
+      extension: extendResult,
+      message: 'Partition maintenance completed successfully'
+    })
   } catch (error) {
     console.error('Error maintaining partitions:', error)
     return createErrorResponse(

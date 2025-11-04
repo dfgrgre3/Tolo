@@ -107,13 +107,59 @@ export async function refreshToken(): Promise<string | null> {
       credentials: 'include',
     });
 
-    if (!response.ok) {
-      throw new Error('Failed to refresh token');
+    // التحقق من نوع المحتوى قبل تحليل JSON
+    const contentType = response.headers.get('content-type');
+    const isJson = contentType?.includes('application/json') ?? false;
+    
+    // قراءة النص أولاً للتحقق من نوع المحتوى
+    const text = await response.text();
+    
+    // إذا كان HTML، يعني أن هناك خطأ في الخادم (مثل 404 أو 500 صفحة خطأ)
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      // فقط في وضع التطوير نُظهر الخطأ التفصيلي
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(
+          '[Development] Token refresh: Server returned HTML error page instead of JSON:',
+          {
+            status: response.status,
+            statusText: response.statusText
+          }
+        );
+      }
+      clearAuthState();
+      return null;
     }
 
-    const data = await response.json();
-    setAuthToken(data.token);
-    return data.token;
+    if (!response.ok) {
+      // محاولة تحليل JSON للرسالة الخطأ
+      if (isJson) {
+        try {
+          const errorData = JSON.parse(text);
+          console.error('Token refresh failed:', errorData);
+        } catch {
+          // لا بأس إذا فشل تحليل JSON
+        }
+      }
+      clearAuthState();
+      return null;
+    }
+
+    // محاولة تحليل JSON من النص
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (parseError) {
+      console.error('Failed to parse token refresh response as JSON:', text.substring(0, 100));
+      clearAuthState();
+      return null;
+    }
+
+    if (data.token) {
+      setAuthToken(data.token);
+      return data.token;
+    }
+
+    return null;
   } catch (error) {
     console.error('Token refresh error:', error);
     clearAuthState();

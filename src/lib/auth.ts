@@ -253,7 +253,7 @@ export function verifyToken(input: NextRequest | string | null | undefined): Dec
 }
 
 export async function auth(): Promise<{ user: DecodedToken } | null> {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const token =
     cookieStore.get('authToken')?.value ||
     cookieStore.get('access_token')?.value ||

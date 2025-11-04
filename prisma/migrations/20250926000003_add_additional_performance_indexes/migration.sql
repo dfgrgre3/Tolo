@@ -2,14 +2,17 @@
 
 -- Add composite indexes for common query patterns
 CREATE INDEX "User_email_createdAt_idx" ON "User"("email", "createdAt");
-CREATE INDEX "User_createdAt_idx" ON "User"("createdAt");
+-- User_createdAt_idx already exists from migration 20250921000004
+-- CREATE INDEX "User_createdAt_idx" ON "User"("createdAt");
 
 -- Add indexes for improved SubjectEnrollment queries
 CREATE INDEX "SubjectEnrollment_userId_subjectId_createdAt_idx" ON "SubjectEnrollment"("userId", "subjectId", "createdAt");
 
 -- Add indexes for improved StudySession queries
-CREATE INDEX "StudySession_userId_startTime_idx" ON "StudySession"("userId", "startTime");
-CREATE INDEX "StudySession_userId_subject_startTime_idx" ON "StudySession"("userId", "subject", "startTime");
+-- StudySession_userId_startTime_idx already exists from migration 20250921000002
+-- CREATE INDEX "StudySession_userId_startTime_idx" ON "StudySession"("userId", "startTime");
+-- StudySession_userId_subject_startTime_idx already exists from migration 20250926000002
+-- CREATE INDEX "StudySession_userId_subject_startTime_idx" ON "StudySession"("userId", "subject", "startTime");
 CREATE INDEX "StudySession_startTime_endTime_idx" ON "StudySession"("startTime", "endTime");
 
 -- Add indexes for improved Task queries
@@ -19,7 +22,8 @@ CREATE INDEX "Task_status_dueAt_idx" ON "Task"("status", "dueAt");
 CREATE INDEX "Task_userId_priority_createdAt_idx" ON "Task"("userId", "priority", "createdAt");
 
 -- Add indexes for improved Reminder queries
-CREATE INDEX "Reminder_userId_remindAt_idx" ON "Reminder"("userId", "remindAt");
+-- Reminder_userId_remindAt_idx already exists from migration 20250926000000
+-- CREATE INDEX "Reminder_userId_remindAt_idx" ON "Reminder"("userId", "remindAt");
 CREATE INDEX "Reminder_remindAt_isActive_idx" ON "Reminder"("remindAt", "isActive");
 
 -- Add indexes for improved ProgressSnapshot queries
@@ -44,7 +48,8 @@ CREATE INDEX "SecurityLog_eventType_createdAt_idx" ON "SecurityLog"("eventType",
 CREATE INDEX "GradeLevel_educationSystem_level_idx" ON "GradeLevel"("educationSystem", "level");
 
 -- Add indexes for improved Subject queries
-CREATE INDEX "Subject_code_isActive_idx" ON "Subject"("code", "isActive");
+-- Subject_code_isActive_idx already exists from migration 20250926000001
+-- CREATE INDEX "Subject_code_isActive_idx" ON "Subject"("code", "isActive");
 
 -- Add indexes for improved Curriculum queries
 CREATE INDEX "Curriculum_gradeLevelId_subject_createdAt_idx" ON "Curriculum"("gradeLevelId", "subject", "createdAt");
@@ -54,4 +59,5 @@ CREATE INDEX "Topic_subjectId_gradeLevelId_order_idx" ON "Topic"("subjectId", "g
 CREATE INDEX "Topic_curriculumId_order_idx" ON "Topic"("curriculumId", "order");
 
 -- Add indexes for improved SubTopic queries
-CREATE INDEX "SubTopic_topicId_order_idx" ON "SubTopic"("topicId", "order");
+-- SubTopic_topicId_order_idx already exists from migration 20250926000001
+-- CREATE INDEX "SubTopic_topicId_order_idx" ON "SubTopic"("topicId", "order");

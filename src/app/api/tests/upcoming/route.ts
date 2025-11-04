@@ -37,9 +37,9 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter tests that the user hasn't taken yet
-    const upcomingTests = tests.filter(test => 
+    const upcomingTests = tests.filter((test: any) => 
       test.results.length === 0 || 
-      !test.results.some(result => 
+      !test.results.some((result: any) => 
         new Date(result.takenAt) >= now && new Date(result.takenAt) <= tomorrow
       )
     );

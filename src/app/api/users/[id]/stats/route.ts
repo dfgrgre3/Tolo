@@ -5,10 +5,10 @@ import { verifyToken } from "@/lib/auth-enhanced";
 // GET user stats by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Authenticate user and ensure they can only access their own stats
     const authUser = verifyToken(request);
@@ -38,7 +38,7 @@ export async function GET(
       }
     });
 
-    const totalStudyTime = studySessions.reduce((total, session) => total + session.duration, 0);
+    const totalStudyTime = studySessions.reduce((total: number, session: any) => total + session.duration, 0);
 
     // Get courses enrolled count
     const coursesEnrolled = await prisma.enrollment.count({

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
 import { prisma } from '@/lib/prisma';
-import { authOptions } from '@/lib/auth-old'; // Adjust path as needed
 import { randomBytes } from 'crypto';
 
 export async function POST(request: NextRequest) {

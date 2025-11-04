@@ -38,7 +38,10 @@ export function TaskForm({ control, register, errors }: TaskFormProps) {
           name="subject"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={field.onChange} defaultValue={field.value}>
+            <Select 
+              value={field.value || ''} 
+              onValueChange={field.onChange}
+            >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="اختر المادة" />
               </SelectTrigger>
@@ -69,7 +72,10 @@ export function TaskForm({ control, register, errors }: TaskFormProps) {
           name="priority"
           control={control}
           render={({ field }) => (
-            <Select onValueChange={(value) => field.onChange(parseInt(value))} defaultValue={String(field.value)}>
+            <Select 
+              value={field.value !== undefined ? String(field.value) : ''} 
+              onValueChange={(value) => field.onChange(parseInt(value))}
+            >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="اختر الأولوية" />
               </SelectTrigger>

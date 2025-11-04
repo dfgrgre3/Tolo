@@ -23,7 +23,7 @@ const PATH_OPTIONS = ['الكل', 'البرمجة', 'التصميم'];
  * Function to simulate data fetching based on the selected path filter.
  * @param {string} path - The selected study path (e.g., 'البرمجة').
  */
-const fetchAnalyticsData = async (path) => {
+const fetchAnalyticsData = async (path: string) => {
     // ---------------------------------------------------------------------------------
     // --- هذا هو المكان الذي يجب أن يتم فيه استبدال المحاكاة باستدعاء fetch() API حقيقي ---
     // ---------------------------------------------------------------------------------
@@ -32,7 +32,7 @@ const fetchAnalyticsData = async (path) => {
     await new Promise(resolve => setTimeout(resolve, 1500)); 
 
     // 2. توليد بيانات التقدم اليومية بشكل ديناميكي بناءً على المسار
-    const generateDailyProgress = (base) => {
+    const generateDailyProgress = (base: number) => {
         return Array.from({ length: 7 }, (_, i) => ({
             day: `س${i + 1}`,
             // إضافة تذبذب عشوائي حول القيمة الأساسية (base)
@@ -40,7 +40,7 @@ const fetchAnalyticsData = async (path) => {
         }));
     };
     
-    let kpiConfig = {}; // KPIs configuration based on path
+    let kpiConfig: { baseProgress: number; skillMod: number; hourMod: number } = { baseProgress: 75, skillMod: 0, hourMod: 10 }; // KPIs configuration based on path
 
     switch (path) {
         case 'البرمجة':
@@ -96,7 +96,7 @@ const fetchAnalyticsData = async (path) => {
  * DailyProgressChart Component (Visualizes progress using SVG)
  * @param {DailyData[]} chartData 
  */
-const DailyProgressChart = React.memo(({ chartData }) => {
+const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: string; progress: number }> }) => {
     if (!chartData || chartData.length === 0) {
         return <div className="text-center py-8 text-gray-500 dark:text-gray-400">لا تتوفر بيانات لعرض الرسم البياني.</div>;
     }
@@ -111,8 +111,8 @@ const DailyProgressChart = React.memo(({ chartData }) => {
     const fixedMax = 100;
     const rangeY = fixedMax - fixedMin;
 
-    const scaleX = (index) => (index / (chartData.length - 1)) * (width - 2 * padding) + padding;
-    const scaleY = (value) => {
+    const scaleX = (index: number) => (index / (chartData.length - 1)) * (width - 2 * padding) + padding;
+    const scaleY = (value: number) => {
         const normalizedValue = (value - fixedMin) / rangeY;
         return height - padding - (normalizedValue * (height - 2 * padding));
     };
@@ -248,14 +248,14 @@ const DailyProgressChart = React.memo(({ chartData }) => {
  * Note: Wrapped in React.memo for performance optimization.
  */
 function AnalyticsSectionComponent() {
-    const [data, setData] = React.useState(null);
+    const [data, setData] = React.useState<{ progressRate: number; skillsAcquired: number; studyHours: number; dailyProgress: Array<{ day: string; progress: number }>; lastUpdate: string } | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
-    const [error, setError] = React.useState(null);
+    const [error, setError] = React.useState<string | null>(null);
     // NEW STATE: Filter for the study path
     const [pathFilter, setPathFilter] = React.useState('الكل'); 
 
     // Function to load/refresh data, memoized for stability
-    const loadData = React.useCallback(async (path) => {
+    const loadData = React.useCallback(async (path: string) => {
         setIsLoading(true);
         setError(null);
         try {
@@ -264,7 +264,7 @@ function AnalyticsSectionComponent() {
             setData(fetchedData);
         } catch (err) {
             console.error("Failed to fetch analytics data:", err);
-            setError(err.message || "فشل تحميل البيانات. الرجاء التحقق من اتصالك وإعادة المحاولة.");
+            setError((err instanceof Error ? err.message : String(err)) || "فشل تحميل البيانات. الرجاء التحقق من اتصالك وإعادة المحاولة.");
         } finally {
             setIsLoading(false);
         }
@@ -276,7 +276,7 @@ function AnalyticsSectionComponent() {
     }, [loadData, pathFilter]); // Dependency on pathFilter ensures data refetches when filter changes
 
     // Helper component for Loading/Error states
-    const StatusMessage = ({ text, isError = false }) => (
+    const StatusMessage = ({ text, isError = false }: { text: string; isError?: boolean }) => (
         <div className="text-center py-12">
             <svg 
                 className={`h-6 w-6 mx-auto mb-3 ${isError ? 'text-red-500' : 'animate-spin text-indigo-500'}`} 
@@ -409,7 +409,7 @@ function AnalyticsSectionComponent() {
                                 backgroundSize: '1.2em'
                             }}
                         >
-                            {PATH_OPTIONS.map(path => (
+                            {PATH_OPTIONS.map((path: string) => (
                                 <option key={path} value={path}>{path}</option>
                             ))}
                         </select>

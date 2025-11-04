@@ -32,18 +32,18 @@ export async function GET(request: NextRequest) {
 
       // Calculate total minutes
       const totalMinutes = sessions.reduce(
-        (sum, session) => sum + (session.duration || 0),
+        (sum: number, session: any) => sum + (session.duration || 0),
         0
       );
 
       // Calculate average focus
       const focusSessions = sessions.filter(
-        (session) => session.focusRating !== null
+        (session: any) => session.focusRating !== null
       );
       const averageFocus =
         focusSessions.length > 0
           ? focusSessions.reduce(
-              (sum, session) => sum + (session.focusRating || 0),
+              (sum: number, session: any) => sum + (session.focusRating || 0),
               0
             ) / focusSessions.length
           : 0;
@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         previousDate.setDate(previousDate.getDate() - 1);
 
         // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
+        const studiedToday = sessions.some((session: any) => {
           const sessionDate = new Date(session.createdAt);
           sessionDate.setHours(0, 0, 0, 0);
           return sessionDate.getTime() === currentDate.getTime();
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
 
           while (found) {
             checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
+            found = sessions.some((session: any) => {
               const sessionDate = new Date(session.createdAt);
               sessionDate.setHours(0, 0, 0, 0);
               return sessionDate.getTime() === checkDate.getTime();

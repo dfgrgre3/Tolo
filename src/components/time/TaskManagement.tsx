@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Button } from "@/shared/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -184,13 +184,13 @@ export default function TaskManagement({
   }, [activeTimer]);
 
   // Get all unique tags from tasks
-  const getAllTags = () => {
+  const getAllTags = useMemo(() => {
     const allTags = tasks.flatMap(task => task.tags || []);
     return [...new Set(allTags)];
-  };
+  }, [tasks]);
 
-  // Filter and sort tasks
-  const getFilteredAndSortedTasks = () => {
+  // Memoize filtered and sorted tasks
+  const filteredTasks = useMemo(() => {
     let filteredTasks = tasks.filter(task => {
       // Text search
       if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
@@ -250,10 +250,10 @@ export default function TaskManagement({
     });
 
     return filteredTasks;
-  };
+  }, [tasks, searchQuery, filter, selectedSubject, selectedPriority, selectedTags, showCompleted, sortBy, sortOrder]);
 
-  // Calculate task statistics
-  const getTaskStats = () => {
+  // Memoize task statistics
+  const stats = useMemo(() => {
     const total = tasks.length;
     const completed = tasks.filter(t => t.status === 'COMPLETED').length;
     const pending = tasks.filter(t => t.status === 'PENDING').length;
@@ -275,15 +275,15 @@ export default function TaskManagement({
       totalActualTime,
       completionRate
     };
-  };
+  }, [tasks]);
 
-  const handleFinished = () => {
+  const handleFinished = useCallback(() => {
     setIsDialogOpen(false);
     setTaskToEdit(null);
     form.reset();
-  };
+  }, [form]);
 
-  const onSubmit = async (values: z.infer<typeof taskSchema>) => {
+  const onSubmit = useCallback(async (values: z.infer<typeof taskSchema>) => {
     const endpoint = taskToEdit ? `/api/tasks/${taskToEdit.id}` : '/api/tasks';
     const method = taskToEdit ? 'PATCH' : 'POST';
     
@@ -319,19 +319,23 @@ export default function TaskManagement({
     } catch (error) {
       console.error("Error saving task:", error);
     }
-  };
+  }, [taskToEdit, userId, onTaskUpdate, onTaskCreate, handleFinished]);
 
-  const handleDelete = async (taskId: string) => {
+  const handleDelete = useCallback(async (taskId: string) => {
+    if (!taskId) return;
+    
     try {
       const response = await fetch(`/api/tasks/${taskId}`, { method: 'DELETE' });
-      if (!response.ok) throw new Error('Failed to delete task');
+      if (!response.ok) {
+        throw new Error(`Failed to delete task: ${response.status}`);
+      }
       
-      setTasks(tasks.filter(t => t.id !== taskId));
-      if (onTaskDelete) onTaskDelete(taskId);
+      setTasks(prev => prev.filter(t => t.id !== taskId));
+      onTaskDelete?.(taskId);
     } catch (error) {
       console.error("Error deleting task:", error);
     }
-  };
+  }, [onTaskDelete]);
 
   const handleStatusChange = async (taskId: string, status: string) => {
     try {
@@ -523,8 +527,6 @@ export default function TaskManagement({
     }
   };
 
-  const filteredTasks = getFilteredAndSortedTasks();
-  const stats = getTaskStats();
 
   return (
     <div className="space-y-6">
@@ -614,7 +616,7 @@ export default function TaskManagement({
                       render={({ field }: { field: any }) => (
                         <FormItem>
                           <FormLabel>المادة</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select value={field.value || ''} onValueChange={field.onChange}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="اختر المادة" />
@@ -639,7 +641,7 @@ export default function TaskManagement({
                       render={({ field }: { field: any }) => (
                         <FormItem>
                           <FormLabel>الأولوية</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select value={field.value || ''} onValueChange={field.onChange}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue />

@@ -19,7 +19,7 @@ export async function GET() {
     });
 
     // Transform the data to match the frontend structure
-    const transformedContests = contests.map(contest => ({
+    const transformedContests = contests.map((contest: any) => ({
       id: contest.id,
       title: contest.title,
       description: contest.description,

@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       
       if (values.length > 0) {
         const count = values.length;
-        const avg = values.reduce((a, b) => a + b, 0) / count;
+        const avg = values.reduce((a: number, b: number) => a + b, 0) / count;
         const min = Math.min(...values);
         const max = Math.max(...values);
         
@@ -55,8 +55,8 @@ export async function GET(request: NextRequest) {
         
         let trend: 'up' | 'down' | 'stable' = 'stable';
         if (firstHalf.length > 0 && secondHalf.length > 0) {
-          const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-          const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+          const firstAvg = firstHalf.reduce((a: number, b: number) => a + b, 0) / firstHalf.length;
+          const secondAvg = secondHalf.reduce((a: number, b: number) => a + b, 0) / secondHalf.length;
           
           if (secondAvg > firstAvg * 1.1) {
             trend = 'up';

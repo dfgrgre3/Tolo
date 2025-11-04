@@ -20,7 +20,7 @@ export async function GET() {
     });
 
     // Transform the data to match the frontend structure
-    const transformedEvents = events.map(event => ({
+    const transformedEvents = events.map((event: any) => ({
       id: event.id,
       title: event.title,
       description: event.description,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gamificationService } from '@/lib/gamification-service';
-import { db } from '@/lib/db';
+import { prisma as db } from '@/lib/prisma';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,52 +9,89 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category');
     const difficulty = searchParams.get('difficulty');
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User ID is required' }, { status: 400 });
+    if (!userId || userId.trim() === '') {
+      return NextResponse.json(
+        { 
+          error: 'User ID is required',
+          achievements: [],
+          userProgress: null
+        }, 
+        { status: 400 }
+      );
     }
 
-    // Get user progress with achievements
-    const progress = await gamificationService.getUserProgress(userId);
-
-    // Get all available achievements
+    // Get all available achievements first (this always works)
     const allAchievements = gamificationService.getAllAchievements();
+
+    // Try to get user progress, but handle errors gracefully
+    let progress;
+    let userAchievements: string[] = [];
+    let userProgressData = {
+      totalXP: 0,
+      level: 1,
+      achievementsCount: 0,
+      totalAchievements: allAchievements.length
+    };
+
+    try {
+      progress = await gamificationService.getUserProgress(userId);
+      userAchievements = progress.achievements || [];
+      userProgressData = {
+        totalXP: progress.totalXP || 0,
+        level: progress.level || 1,
+        achievementsCount: userAchievements.length,
+        totalAchievements: allAchievements.length
+      };
+    } catch (progressError: any) {
+      // If user doesn't exist or other error, continue with empty progress
+      console.warn('Could not fetch user progress, using defaults:', progressError?.message || progressError);
+      // Continue with default values
+    }
 
     // Filter achievements based on query parameters
     let filteredAchievements = allAchievements;
 
     if (category) {
-      filteredAchievements = filteredAchievements.filter(a => a.category === category);
+      filteredAchievements = filteredAchievements.filter((a: any) => a.category === category);
     }
 
     if (difficulty) {
-      filteredAchievements = filteredAchievements.filter(a => a.difficulty === difficulty);
+      filteredAchievements = filteredAchievements.filter((a: any) => a.difficulty === difficulty);
     }
 
     // Mark which achievements are earned by the user
-    const achievementsWithStatus = filteredAchievements.map(achievement => ({
+    const achievementsWithStatus = filteredAchievements.map((achievement: any) => ({
       ...achievement,
-      isEarned: progress.achievements.includes(achievement.key),
-      earnedAt: progress.achievements.includes(achievement.key) ?
+      isEarned: userAchievements.includes(achievement.key),
+      earnedAt: userAchievements.includes(achievement.key) ?
         // In a real implementation, you'd get the actual earned date from the database
         new Date().toISOString() : null
     }));
 
     return NextResponse.json({
       achievements: achievementsWithStatus,
-      userProgress: {
-        totalXP: progress.totalXP,
-        level: progress.level,
-        achievementsCount: progress.achievements.length,
-        totalAchievements: allAchievements.length
-      }
+      userProgress: userProgressData
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching achievements:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch achievements' },
-      { status: 500 }
-    );
+    
+    // Return a safe fallback response
+    const allAchievements = gamificationService.getAllAchievements();
+    return NextResponse.json({
+      error: error?.message || 'Failed to fetch achievements',
+      achievements: allAchievements.map((ach: any) => ({
+        ...ach,
+        isEarned: false,
+        earnedAt: null
+      })),
+      userProgress: {
+        totalXP: 0,
+        level: 1,
+        achievementsCount: 0,
+        totalAchievements: allAchievements.length
+      }
+    }, { status: 500 });
   }
 }
 

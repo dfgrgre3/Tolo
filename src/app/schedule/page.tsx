@@ -3,10 +3,11 @@
 import { useEffect, useMemo, useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import { Modal } from "@/components/ui/modal";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
+import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { WebSocketProvider, useWebSocket } from "@/contexts/websocket-context";
-import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
+import { safeGetItem, safeSetItem, safeJsonParse, safeFetch } from "@/lib/safe-client-utils";
+import errorManager from "@/services/ErrorManager";
 
 type DragItem = {
   id: string;
@@ -157,14 +158,32 @@ export default function SchedulePage() {
 			try {
 				let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
 				if (!id) {
-					const res = await fetch("/api/users/guest", { method: "POST" });
-					const data = await res.json();
-					id = data.id;
-					safeSetItem(LOCAL_USER_KEY, id!);
+					const { data, error } = await safeFetch<{ id: string }>(
+						"/api/users/guest", 
+						{ method: "POST" },
+						{ id: '' }
+					);
+					if (error) {
+						errorManager.handleNetworkError(error, "/api/users/guest", {}, {
+							title: "خطأ في الاتصال",
+							description: "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى."
+						});
+						return;
+					}
+					if (data && data.id) {
+						id = data.id;
+						safeSetItem(LOCAL_USER_KEY, id);
+					}
 				}
-				setUserId(id!);
+				if (id) {
+					setUserId(id);
+				}
 			} catch (error) {
 				console.error("Failed to load user:", error);
+				errorManager.handleNetworkError(
+					error instanceof Error ? error : new Error(String(error)),
+					"/api/users/guest"
+				);
 			} finally {
 				setLoadingUser(false);
 			}
@@ -178,31 +197,73 @@ export default function SchedulePage() {
 		(async () => {
 			try {
 				setLoadingSchedule(true);
-				const sch: Schedule = await fetch(`/api/schedule?userId=${userId}`).then((r) => r.json());
-				setSchedule(sch);
-				try {
-					const parsed: Plan = JSON.parse(sch?.planJson || "{}");
-					setPlan(parsed);
-					setJsonText(JSON.stringify(parsed, null, 2));
-				} catch {
-					setPlan({});
+				const { data: sch, error: scheduleError } = await safeFetch<Schedule>(
+					`/api/schedule?userId=${userId}`,
+					undefined,
+					{ id: '', planJson: '{}', version: 0 }
+				);
+				if (scheduleError) {
+					errorManager.handleNetworkError(scheduleError, `/api/schedule?userId=${userId}`, {}, {
+						title: "خطأ في الاتصال",
+						description: "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى."
+					});
+					return;
 				}
+				if (sch) {
+					setSchedule(sch);
+					try {
+						const parsed: Plan = JSON.parse(sch?.planJson || "{}");
+						setPlan(parsed);
+						setJsonText(JSON.stringify(parsed, null, 2));
+					} catch {
+						setPlan({});
+					}
+				}
+			} catch (error) {
+				errorManager.handleNetworkError(
+					error instanceof Error ? error : new Error(String(error)),
+					`/api/schedule?userId=${userId}`
+				);
 			} finally {
 				setLoadingSchedule(false);
 			}
 			
 			try {
 				setLoadingTasks(true);
-				const ts: Task[] = await fetch(`/api/tasks?userId=${userId}`).then((r) => r.json());
-				setTasks(ts);
+				const { data: ts, error: tasksError } = await safeFetch<Task[]>(
+					`/api/tasks?userId=${userId}`,
+					undefined,
+					[]
+				);
+				if (tasksError) {
+					errorManager.handleNetworkError(tasksError, `/api/tasks?userId=${userId}`, {
+						showToast: false
+					});
+				} else if (ts) {
+					setTasks(ts);
+				}
+			} catch (error) {
+				console.error("Failed to load tasks:", error);
 			} finally {
 				setLoadingTasks(false);
 			}
 			
 			try {
 				setLoadingExams(true);
-				const ex: Exam[] = await fetch(`/api/exams`).then((r) => r.json());
-				setExams(ex);
+				const { data: ex, error: examsError } = await safeFetch<Exam[]>(
+					"/api/exams",
+					undefined,
+					[]
+				);
+				if (examsError) {
+					errorManager.handleNetworkError(examsError, "/api/exams", {
+						showToast: false
+					});
+				} else if (ex) {
+					setExams(ex);
+				}
+			} catch (error) {
+				console.error("Failed to load exams:", error);
 			} finally {
 				setLoadingExams(false);
 			}
@@ -212,50 +273,120 @@ export default function SchedulePage() {
 	useEffect(() => {
 		if (!socket) return;
 
-		socket.onmessage = (event) => {
-			const data = JSON.parse(event.data);
-			if (data.type === 'SCHEDULE_UPDATE') {
-				const parsed: Plan = JSON.parse(data.payload.planJson || "{}");
-				setPlan(parsed);
-				setJsonText(JSON.stringify(parsed, null, 2));
+		// Add error handler to prevent unhandled errors
+		const handleMessage = (event: MessageEvent) => {
+			try {
+				const data = JSON.parse(event.data);
+				if (data.type === 'SCHEDULE_UPDATE') {
+					try {
+						const parsed: Plan = JSON.parse(data.payload.planJson || "{}");
+						setPlan(parsed);
+						setJsonText(JSON.stringify(parsed, null, 2));
+					} catch (parseError) {
+						console.error('Failed to parse schedule update:', parseError);
+					}
+				}
+			} catch (parseError) {
+				console.error('Failed to parse WebSocket message:', parseError);
 			}
 		};
 
+		const handleError = (error: Event) => {
+			// Silently handle WebSocket errors to prevent console spam
+			// WebSocket is disabled, so errors are expected
+		};
+
+		try {
+			socket.onmessage = handleMessage;
+			socket.onerror = handleError;
+		} catch (error) {
+			// Silently ignore - socket may have closed
+		}
+
 		return () => {
-			socket.onmessage = null;
+			if (socket) {
+				try {
+					socket.onmessage = null;
+					socket.onerror = null;
+				} catch (e) {
+					// Silently ignore cleanup errors
+				}
+			}
 		};
 	}, [socket]);
 
 	async function persist(next: Plan) {
 		if (!userId) return;
 		setSaving(true);
+		setError("");
 		try {
-			const res = await fetch("/api/schedule", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ 
-					userId, 
-					plan: next,
-					version: schedule?.version
-				}),
-			});
+			const { data: updated, error: persistError, response } = await safeFetch<Schedule>(
+				"/api/schedule",
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify({ 
+						userId, 
+						plan: next,
+						version: schedule?.version
+					}),
+				},
+				null
+			);
 
-			if (res.status === 409) {
-				// Conflict detected
-				const latest = await res.json();
-				setError("تم تعديل الجدول من جهة أخرى. جاري تحميل أحدث نسخة...");
-				setPlan(JSON.parse(latest.planJson));
-				setJsonText(JSON.stringify(latest.planJson, null, 2));
-				setSchedule(latest);
+			if (persistError) {
+				if (response?.status === 409) {
+					// Conflict detected
+					if (updated) {
+						setError("تم تعديل الجدول من جهة أخرى. جاري تحميل أحدث نسخة...");
+						try {
+							const parsed = JSON.parse(updated.planJson || "{}");
+							setPlan(parsed);
+							setJsonText(JSON.stringify(parsed, null, 2));
+							setSchedule(updated);
+						} catch (parseError) {
+							console.error('Failed to parse latest schedule:', parseError);
+							setError("حدث خطأ في تحميل أحدث نسخة");
+							errorManager.handleError(
+								parseError instanceof Error ? parseError : new Error(String(parseError)),
+								{ showToast: true },
+								{ title: "خطأ في الاتصال", description: "حدث خطأ أثناء تحميل أحدث نسخة من الجدول." }
+							);
+						}
+					}
+					return;
+				}
+				
+				errorManager.handleNetworkError(persistError, "/api/schedule", {}, {
+					title: "خطأ في الاتصال",
+					description: "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى."
+				});
+				setError("حدث خطأ أثناء الحفظ");
 				return;
 			}
 
-			const updated = await res.json();
-			setSchedule(updated);
-			setPlan(next);
-			setJsonText(JSON.stringify(next, null, 2));
+			if (updated) {
+				setSchedule(updated);
+				setPlan(next);
+				setJsonText(JSON.stringify(next, null, 2));
+				setError("");
+			} else {
+				setError("حدث خطأ أثناء الحفظ");
+				errorManager.handleError(
+					new Error("Failed to save schedule - no data returned"),
+					{ showToast: true },
+					{ title: "خطأ في الحفظ", description: "حدث خطأ أثناء حفظ الجدول." }
+				);
+			}
 		} catch (error) {
+			console.error("Error persisting schedule:", error);
 			setError("حدث خطأ أثناء الحفظ");
+			errorManager.handleNetworkError(
+				error instanceof Error ? error : new Error(String(error)),
+				"/api/schedule",
+				{},
+				{ title: "خطأ في الاتصال", description: "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى." }
+			);
 		} finally {
 			setSaving(false);
 		}
