@@ -22,6 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getPasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
 import type { PasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
+import type { User } from '@/components/auth/UserProvider';
 
 interface RegisterFormData {
   name: string;
@@ -90,33 +91,91 @@ export default function EnhancedRegisterForm() {
   };
 
   const validateForm = (): boolean => {
+    // Validate name
     if (!formData.name.trim()) {
-      toast.error('يرجى إدخال الاسم');
+      toast.error('يرجى إدخال الاسم الكامل');
       return false;
     }
 
+    if (formData.name.trim().length < 2) {
+      toast.error('الاسم يجب أن يكون على الأقل حرفين');
+      return false;
+    }
+
+    if (formData.name.trim().length > 100) {
+      toast.error('الاسم طويل جداً (الحد الأقصى 100 حرف)');
+      return false;
+    }
+
+    // Validate email
     if (!formData.email.trim()) {
       toast.error('يرجى إدخال البريد الإلكتروني');
       return false;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      toast.error('البريد الإلكتروني غير صالح');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email.trim())) {
+      toast.error('البريد الإلكتروني غير صالح. يرجى إدخال بريد إلكتروني صحيح');
+      return false;
+    }
+
+    if (formData.email.trim().length > 255) {
+      toast.error('البريد الإلكتروني طويل جداً');
+      return false;
+    }
+
+    // Validate password
+    if (!formData.password) {
+      toast.error('يرجى إدخال كلمة المرور');
+      return false;
+    }
+
+    // Check all password requirements
+    const passwordChecks = passwordStrength.checks;
+    if (!passwordChecks.minLength) {
+      toast.error('كلمة المرور يجب أن تحتوي على 8 أحرف على الأقل');
+      return false;
+    }
+
+    if (!passwordChecks.hasUpper) {
+      toast.error('كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل (A-Z)');
+      return false;
+    }
+
+    if (!passwordChecks.hasLower) {
+      toast.error('كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل (a-z)');
+      return false;
+    }
+
+    if (!passwordChecks.hasNumber) {
+      toast.error('كلمة المرور يجب أن تحتوي على رقم واحد على الأقل (0-9)');
+      return false;
+    }
+
+    if (!passwordChecks.hasSpecial) {
+      toast.error('كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل (!@#$%...)');
       return false;
     }
 
     if (passwordStrength.score < 40) {
-      toast.error('كلمة المرور ضعيفة. يجب أن تحتوي على 8 أحرف على الأقل وتضم أحرف كبيرة وصغيرة وأرقام ورمز خاص');
+      toast.error('كلمة المرور ضعيفة. يجب أن تستوفي جميع المتطلبات');
       return false;
     }
 
+    if (formData.password.length > 128) {
+      toast.error('كلمة المرور طويلة جداً (الحد الأقصى 128 حرف)');
+      return false;
+    }
+
+    // Validate confirm password
     if (formData.password !== formData.confirmPassword) {
-      toast.error('كلمات المرور غير متطابقة');
+      toast.error('كلمات المرور غير متطابقة. يرجى التأكد من تطابق كلمة المرور');
       return false;
     }
 
+    // Validate terms acceptance
     if (!formData.acceptTerms) {
-      toast.error('يجب الموافقة على الشروط والأحكام');
+      toast.error('يجب الموافقة على الشروط والأحكام لإنشاء الحساب');
       return false;
     }
 
@@ -161,10 +220,27 @@ export default function EnhancedRegisterForm() {
           if (isJson) {
             try {
               data = await response.json();
-              if (data.code === 'USER_EXISTS') {
-                toast.error('البريد الإلكتروني مستخدم بالفعل');
+              
+              // Handle specific error codes
+              if (data.code === 'USER_EXISTS' || response.status === 409) {
+                toast.error('البريد الإلكتروني مستخدم بالفعل. يرجى استخدام بريد إلكتروني آخر أو تسجيل الدخول');
+              } else if (data.code === 'INVALID_EMAIL') {
+                toast.error('البريد الإلكتروني غير صالح. يرجى التحقق من البريد الإلكتروني');
+              } else if (data.details) {
+                // Handle validation errors
+                const errorMessages: string[] = [];
+                if (data.details.email) {
+                  errorMessages.push(`البريد الإلكتروني: ${Array.isArray(data.details.email) ? data.details.email[0] : data.details.email}`);
+                }
+                if (data.details.password) {
+                  errorMessages.push(`كلمة المرور: ${Array.isArray(data.details.password) ? data.details.password[0] : data.details.password}`);
+                }
+                if (data.details.name) {
+                  errorMessages.push(`الاسم: ${Array.isArray(data.details.name) ? data.details.name[0] : data.details.name}`);
+                }
+                toast.error(errorMessages.length > 0 ? errorMessages.join('\n') : data.error || 'يرجى التحقق من البيانات المدخلة');
               } else {
-                toast.error(data.error || 'فشل إنشاء الحساب');
+                toast.error(data.error || 'فشل إنشاء الحساب. يرجى المحاولة مرة أخرى');
               }
               clearTimeout(timeoutId);
               return;
@@ -229,78 +305,263 @@ export default function EnhancedRegisterForm() {
         return;
       }
 
-      toast.success('تم إنشاء الحساب بنجاح! يرجى التحقق من بريدك الإلكتروني.');
+      // Check if account was created successfully
+      if (!data.success || !data.user) {
+        toast.error('حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى');
+        setIsLoading(false);
+        return;
+      }
+
+      // Verify user data exists
+      if (!data.user.id || !data.user.email) {
+        console.error('Invalid user data in registration response:', data);
+        toast.error('حدث خطأ في بيانات الحساب. يرجى المحاولة مرة أخرى');
+        setIsLoading(false);
+        return;
+      }
+
+      // Show success message for account creation
+      toast.success('تم إنشاء الحساب بنجاح! جاري تسجيل الدخول...', { duration: 2000 });
       
-      // Auto login after registration
+      // Show verification link in development only
+      if (data.verificationLink && process.env.NODE_ENV === 'development') {
+        console.log('Verification link:', data.verificationLink);
+      }
+      
+      // Auto login after registration - with better error handling and retry logic
       const loginController = new AbortController();
       const loginTimeout = setTimeout(() => loginController.abort(), 30000);
 
       try {
-        const loginResponse = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          }),
-          signal: loginController.signal,
-        });
+        // Wait a bit to ensure user is fully created and committed to database
+        await new Promise(resolve => setTimeout(resolve, 800));
 
-        const loginContentType = loginResponse.headers.get('content-type');
-        const isLoginJson = loginContentType?.includes('application/json');
-
-        if (loginResponse.ok) {
-          if (!isLoginJson) {
-            // Server returned HTML instead of JSON - likely a server error
-            if (process.env.NODE_ENV === 'development') {
-              const text = await loginResponse.text();
-              console.warn('Expected JSON but got HTML:', text.substring(0, 100));
-            }
-            toast.info('تم إنشاء الحساب. يرجى تسجيل الدخول الآن.');
-            router.push('/login');
-            clearTimeout(loginTimeout);
-            return;
-          }
-
+        // Retry login up to 3 times if it fails
+        let loginSuccess = false;
+        let lastLoginError: any = null;
+        const maxRetries = 3;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
           try {
-            const loginData = await loginResponse.json();
-            login(loginData.token, loginData.user);
-            
-            // Get redirect path from URL or default to home
-            const redirectPath = getRedirectPath();
-            
-            setTimeout(() => {
-              router.push(redirectPath);
-            }, 800);
-          } catch (jsonError) {
-            if (process.env.NODE_ENV === 'development') {
-              console.error('JSON parsing error:', jsonError);
+            if (attempt > 1) {
+              // Wait longer between retries
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
             }
-            toast.info('تم إنشاء الحساب. يرجى تسجيل الدخول الآن.');
-            router.push('/login');
-          }
-        } else {
-          // Redirect to login page if auto-login fails
-          if (isLoginJson && process.env.NODE_ENV === 'development') {
+
+            const loginResponse = await fetch('/api/auth/login', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include', // Important for cookies
+              body: JSON.stringify({
+                email: formData.email.trim().toLowerCase(),
+                password: formData.password,
+                rememberMe: true, // Remember user after registration
+              }),
+              signal: loginController.signal,
+            });
+
+            const loginContentType = loginResponse.headers.get('content-type');
+            const isLoginJson = loginContentType?.includes('application/json');
+
+            if (!loginResponse.ok) {
+              // If login fails, try to get error message
+              let errorMessage = 'فشل تسجيل الدخول التلقائي';
+              let errorCode = 'LOGIN_FAILED';
+              
+              if (isLoginJson) {
+                try {
+                  const errorData = await loginResponse.json();
+                  errorMessage = errorData.error || errorMessage;
+                  errorCode = errorData.code || errorCode;
+                  
+                  // Handle connection errors specifically
+                  if (errorCode === 'CONNECTION_ERROR' || errorCode === 'FETCH_ERROR') {
+                    // Retry on connection errors
+                    if (attempt < maxRetries) {
+                      console.log(`Login attempt ${attempt} failed with connection error, retrying...`);
+                      continue;
+                    }
+                    toast.error('خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.');
+                    setIsLoading(false);
+                    return;
+                  }
+                  
+                  // Don't retry on authentication errors
+                  if (errorCode === 'INVALID_CREDENTIALS' || loginResponse.status === 401) {
+                    toast.error('فشل تسجيل الدخول. يرجى تسجيل الدخول يدوياً.');
+                    router.push('/login?view=login');
+                    setIsLoading(false);
+                    return;
+                  }
+                } catch {
+                  // Ignore JSON parsing errors
+                }
+              }
+              
+              // If it's a temporary error and we haven't exhausted retries, retry
+              if (loginResponse.status >= 500 && attempt < maxRetries) {
+                console.log(`Login attempt ${attempt} failed with server error, retrying...`);
+                lastLoginError = { message: errorMessage, code: errorCode };
+                continue;
+              }
+              
+              // If it's a temporary error and we've exhausted retries
+              if (loginResponse.status >= 500) {
+                toast.error('الخادم يواجه مشكلة مؤقتة. يرجى المحاولة مرة أخرى خلال لحظات.');
+                setIsLoading(false);
+                return;
+              }
+              
+              toast.error(`${errorMessage}. يرجى تسجيل الدخول يدوياً.`);
+              router.push('/login?view=login');
+              setIsLoading(false);
+              return;
+            }
+
+            if (!isLoginJson) {
+              // Server returned HTML instead of JSON
+              if (attempt < maxRetries) {
+                console.log(`Login attempt ${attempt} returned non-JSON, retrying...`);
+                continue;
+              }
+              toast.error('حدث خطأ في الاستجابة. يرجى تسجيل الدخول يدوياً.');
+              router.push('/login?view=login');
+              setIsLoading(false);
+              return;
+            }
+
+            // Parse login response
+            let loginData: any;
             try {
-              const errorData = await loginResponse.json();
-              console.warn('Auto-login failed:', errorData);
-            } catch {
-              // Ignore JSON parsing errors for error responses
+              loginData = await loginResponse.json();
+            } catch (jsonError) {
+              console.error('JSON parsing error:', jsonError);
+              if (attempt < maxRetries) {
+                continue;
+              }
+              toast.error('حدث خطأ في معالجة الاستجابة. يرجى تسجيل الدخول يدوياً.');
+              router.push('/login?view=login');
+              setIsLoading(false);
+              return;
+            }
+
+            // Validate login response
+            if (!loginData.token || !loginData.user) {
+              console.error('Invalid login response:', loginData);
+              if (attempt < maxRetries) {
+                continue;
+              }
+              toast.error('بيانات تسجيل الدخول غير صحيحة. يرجى تسجيل الدخول يدوياً.');
+              router.push('/login?view=login');
+              setIsLoading(false);
+              return;
+            }
+
+            // Prepare user data for login function
+            const userData: User = {
+              id: loginData.user.id,
+              email: loginData.user.email,
+              name: loginData.user.name || data.user.name || formData.name.trim(),
+              emailVerified: data.user.emailVerified || false,
+              role: loginData.user.role || data.user.role || 'user',
+              twoFactorEnabled: loginData.user.twoFactorEnabled || false,
+              lastLogin: loginData.user.lastLogin,
+              provider: 'local',
+            };
+
+            // Save token and user data
+            login(loginData.token, userData);
+            
+            // Mark as successful
+            loginSuccess = true;
+            clearTimeout(loginTimeout);
+            
+            // Show success message
+            toast.success('تم إنشاء الحساب وتسجيل الدخول بنجاح! مرحباً بك في منصتنا التعليمية!', { 
+              duration: 3000 
+            });
+            
+            // Always navigate to home page after successful registration
+            // Use setTimeout to ensure toast is shown before navigation
+            setTimeout(() => {
+              router.push('/');
+              router.refresh(); // Refresh to ensure the page updates with new user data
+            }, 500);
+            
+            // Exit retry loop
+            break;
+          } catch (loginAttemptError: any) {
+            lastLoginError = loginAttemptError;
+            
+            // If it's an abort error, don't retry
+            if (loginAttemptError.name === 'AbortError' || loginAttemptError.message?.includes('aborted')) {
+              toast.error('انتهت مهلة الاتصال. يرجى تسجيل الدخول يدوياً.');
+              router.push('/login?view=login');
+              setIsLoading(false);
+              return;
+            }
+            
+            // If it's a network error and we haven't exhausted retries, retry
+            if (
+              (loginAttemptError.message?.includes('Failed to fetch') ||
+               loginAttemptError.message?.includes('NetworkError') ||
+               loginAttemptError.message?.includes('FETCH_ERROR') ||
+               !navigator.onLine) &&
+              attempt < maxRetries
+            ) {
+              console.log(`Login attempt ${attempt} failed with network error, retrying...`);
+              continue;
+            }
+            
+            // If we've exhausted retries or it's not a retryable error
+            if (attempt >= maxRetries) {
+              if (
+                loginAttemptError.message?.includes('Failed to fetch') ||
+                loginAttemptError.message?.includes('NetworkError') ||
+                loginAttemptError.message?.includes('FETCH_ERROR') ||
+                !navigator.onLine
+              ) {
+                toast.error('خطأ في الاتصال. يرجى التحقق من الإنترنت وتسجيل الدخول يدوياً.');
+              } else {
+                toast.error('حدث خطأ أثناء تسجيل الدخول. يرجى تسجيل الدخول يدوياً.');
+              }
+              
+              router.push('/login?view=login');
+              setIsLoading(false);
+              return;
             }
           }
-          toast.info('تم إنشاء الحساب. يرجى تسجيل الدخول الآن.');
-          router.push('/login');
         }
-        clearTimeout(loginTimeout);
+        
+        // If we exhausted all retries without success
+        if (!loginSuccess) {
+          toast.error(lastLoginError?.message || 'فشل تسجيل الدخول بعد عدة محاولات. يرجى تسجيل الدخول يدوياً.');
+          router.push('/login?view=login');
+          setIsLoading(false);
+          return;
+        }
+        
       } catch (loginError: any) {
         clearTimeout(loginTimeout);
         
-        // Don't show error for auto-login failures, just redirect
-        toast.info('تم إنشاء الحساب. يرجى تسجيل الدخول الآن.');
-        router.push('/login');
+        // Handle different types of errors
+        if (loginError.name === 'AbortError' || loginError.message?.includes('aborted')) {
+          toast.error('انتهت مهلة الاتصال. يرجى تسجيل الدخول يدوياً.');
+        } else if (
+          loginError.message?.includes('Failed to fetch') ||
+          loginError.message?.includes('NetworkError') ||
+          loginError.message?.includes('FETCH_ERROR') ||
+          !navigator.onLine
+        ) {
+          toast.error('خطأ في الاتصال. يرجى التحقق من الإنترنت وتسجيل الدخول يدوياً.');
+        } else {
+          toast.error('حدث خطأ أثناء تسجيل الدخول. يرجى تسجيل الدخول يدوياً.');
+        }
+        
+        router.push('/login?view=login');
+        setIsLoading(false);
       }
 
     } catch (error: any) {

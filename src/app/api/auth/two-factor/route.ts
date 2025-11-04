@@ -5,6 +5,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { TextEncoder } from 'util';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
 import { authService } from '@/lib/auth-service';
+import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorResponse } from '@/types/api/auth';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key');
 
@@ -53,17 +54,19 @@ export async function POST(request: NextRequest) {
       const challengeResult = await TwoFactorChallengeService.verifyAndConsumeChallenge(loginAttemptId, code);
 
       if (!challengeResult.valid) {
-        return NextResponse.json(
-          { error: 'Invalid or expired login attempt' },
-          { status: 400 }
-        );
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
+          code: 'INVALID_OR_EXPIRED',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
       }
 
       if (!challengeResult.userId) {
-        return NextResponse.json(
-          { error: 'Invalid or expired login attempt' },
-          { status: 400 }
-        );
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
+          code: 'INVALID_OR_EXPIRED',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
       }
 
       const user = await prisma.user.findUnique({
@@ -79,10 +82,11 @@ export async function POST(request: NextRequest) {
       });
 
       if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'المستخدم غير موجود',
+          code: 'USER_NOT_FOUND',
+        };
+        return NextResponse.json(errorResponse, { status: 404 });
       }
 
       const ip = authService.getClientIP(request);
@@ -119,17 +123,23 @@ export async function POST(request: NextRequest) {
         sessionId: session.id,
       });
 
-      const response = NextResponse.json({
+      const twoFactorResponse: TwoFactorVerifyResponse = {
         message: 'تم التحقق من الرمز بنجاح.',
         user: {
-          ...user,
+          id: user.id,
+          email: user.email,
+          name: user.name || undefined,
           role: user.role || 'user',
+          emailVerified: false, // Add if available from user
+          twoFactorEnabled: user.twoFactorEnabled || false,
           lastLogin: loginTimestamp,
         },
         token: accessToken,
         refreshToken,
         sessionId: session.id,
-      });
+      };
+      
+      const response = NextResponse.json(twoFactorResponse);
 
       response.cookies.set('access_token', accessToken, {
         httpOnly: true,

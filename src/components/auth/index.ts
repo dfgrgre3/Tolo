@@ -42,3 +42,11 @@ export type { LoginStep, CredentialsState, TwoFactorState } from './login/types'
 export { useRegistrationFlow } from './register/useRegistrationFlow';
 export type { RegistrationStep, RegistrationProfileState, RegistrationSecurityState } from './register/types';
 
+// Auth UI Components
+export * from './components';
+
+// Auth Hooks
+export * from './hooks';
+
+// Login API utilities
+export * from './utils/loginApi';

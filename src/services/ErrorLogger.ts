@@ -213,21 +213,26 @@ class ErrorLogger {
           const consoleLogData: Record<string, any> = {};
           
           // Always include message (guaranteed to exist from earlier validation)
-          const safeMessage = String(logEntry.message || errorMessage || 'Unknown error').trim();
-          if (safeMessage) {
-            consoleLogData.message = safeMessage;
-          }
+          const safeMessage = String(logEntry.message || errorMessage || 'Unknown error').trim() || 'Unknown error';
+          // Always set message - never empty
+          consoleLogData.message = safeMessage;
           
           // Include source if available
           const safeSource = String(logEntry.source || 'Unknown').trim();
           if (safeSource && safeSource !== 'Unknown') {
             consoleLogData.source = safeSource;
+          } else {
+            // Always include source even if unknown
+            consoleLogData.source = safeSource || 'Unknown';
           }
           
           // Include severity if available
           const safeSeverity = String(logEntry.severity || 'medium').trim();
           if (safeSeverity) {
             consoleLogData.severity = safeSeverity;
+          } else {
+            // Always include severity
+            consoleLogData.severity = 'medium';
           }
 
           // Include stack if available
@@ -267,13 +272,8 @@ class ErrorLogger {
             }
           }
 
-          // Always log something - at minimum the message
-          if (Object.keys(consoleLogData).length > 0) {
-            console.error('Error logged:', consoleLogData);
-          } else {
-            // Ultimate fallback - log the raw error message
-            console.error('Error logged:', safeMessage || 'Unknown error occurred');
-          }
+          // Always log - consoleLogData now guaranteed to have at least message, source, and severity
+          console.error('Error logged:', consoleLogData);
         } catch (consoleError) {
           // Ultimate fallback if console logging completely fails
           try {

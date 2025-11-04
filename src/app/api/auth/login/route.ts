@@ -8,12 +8,13 @@ import { riskAssessmentService } from '@/lib/security/risk-assessment';
 import { deviceManagerService } from '@/lib/security/device-manager';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { captchaService } from '@/lib/security/captcha-service';
+import type { LoginRequest, LoginResponse, LoginErrorResponse } from '@/types/api/auth';
 
 const loginSchema = z.object({
-  email: z.string().email('ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± طµط§ظ„ط­'),
+  email: z.string().email('البريد الإلكتروني غير صالح'),
   password: z
     .string()
-    .min(8, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظٹط¬ط¨ ط£ظ† طھطھظƒظˆظ† ظ…ظ† 8 ط£ط­ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„'),
+    .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل'),
   rememberMe: z.boolean().optional(),
   deviceFingerprint: z.any().optional(),
   captchaToken: z.string().optional(),
@@ -35,9 +36,21 @@ export async function POST(request: NextRequest) {
   try {
     const { RateLimitingService } = await import('@/lib/rate-limiting-service');
     const { getRedisClient } = await import('@/lib/redis');
-    const redis = getRedisClient();
-    const rateLimitService = new RateLimitingService(redis);
-    const initialRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
+    
+    let rateLimitService: RateLimitingService;
+    let initialRateLimitStatus;
+    
+    try {
+      const redis = await getRedisClient();
+      rateLimitService = new RateLimitingService(redis);
+      initialRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
+    } catch (redisError) {
+      // If Redis is unavailable, allow the request but log the error
+      console.warn('Redis unavailable, proceeding without rate limiting:', redisError);
+      // Create a mock rate limit status that allows the request
+      initialRateLimitStatus = { allowed: true, attempts: 0 };
+      rateLimitService = null as any; // Will be handled gracefully
+    }
 
     if (!initialRateLimitStatus.allowed) {
       const now = Date.now();
@@ -54,30 +67,26 @@ export async function POST(request: NextRequest) {
         lockedUntil: lockoutUntil ? new Date(lockoutUntil).toISOString() : undefined,
       });
 
-      return NextResponse.json(
-        {
-          error:
-            'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-          code: 'RATE_LIMITED',
-          retryAfterSeconds,
-          lockedUntil: lockoutUntil ? new Date(lockoutUntil).toISOString() : undefined,
-          attempts: initialRateLimitStatus.attempts,
-        },
-        { status: 429 },
-      );
+      const errorResponse: LoginErrorResponse = {
+        error:
+          'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
+        code: 'RATE_LIMITED',
+        retryAfterSeconds,
+        lockedUntil: lockoutUntil ? new Date(lockoutUntil).toISOString() : undefined,
+        attempts: initialRateLimitStatus.attempts,
+      };
+      return NextResponse.json(errorResponse, { status: 429 });
     }
     const body = await request.json().catch(() => ({}));
     const parsed = loginSchema.safeParse(body);
 
     if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error:
-            'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-          details: parsed.error.flatten().fieldErrors,
-        },
-        { status: 400 },
-      );
+      const errorResponse: LoginErrorResponse = {
+        error: 'بيانات تسجيل الدخول غير صحيحة',
+        code: 'VALIDATION_ERROR',
+        details: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+      };
+      return NextResponse.json(errorResponse, { status: 400 });
     }
 
     const { email, password, rememberMe, deviceFingerprint, captchaToken } = parsed.data;
@@ -89,16 +98,14 @@ export async function POST(request: NextRequest) {
     // Check if CAPTCHA is required and verify it if provided
     if (captchaService.shouldRequireCaptcha(currentAttempts)) {
       if (!captchaToken) {
-        return NextResponse.json(
-          {
-            error:
-            'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-            requiresCaptcha: true,
-            failedAttempts: currentAttempts,
-            code: 'CAPTCHA_REQUIRED',
-          },
-          { status: 403 },
-        );
+      const errorResponse: LoginErrorResponse = {
+        error:
+          'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
+        requiresCaptcha: true,
+        failedAttempts: currentAttempts,
+        code: 'CAPTCHA_REQUIRED',
+      };
+      return NextResponse.json(errorResponse, { status: 403 });
       }
 
       const isValidCaptcha = await captchaService.verifyCaptcha(captchaToken, ip);
@@ -108,20 +115,49 @@ export async function POST(request: NextRequest) {
           email: normalizedEmail,
         });
 
-        return NextResponse.json(
-          {
-            error:
+        const errorResponse: LoginErrorResponse = {
+          error:
             'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-            requiresCaptcha: true,
-            failedAttempts: currentAttempts,
-            code: 'CAPTCHA_INVALID',
-          },
-          { status: 403 },
-        );
+          requiresCaptcha: true,
+          failedAttempts: currentAttempts,
+          code: 'CAPTCHA_INVALID',
+        };
+        return NextResponse.json(errorResponse, { status: 403 });
       }
     }
 
-    const user = await authService.findUserByEmail(normalizedEmail);
+    // Find user by email (with error handling)
+    let user;
+    try {
+      user = await authService.findUserByEmail(normalizedEmail);
+    } catch (dbError: any) {
+      console.error('Database error while finding user:', dbError);
+      
+      // Check if it's a connection error
+      const errorMessage = dbError instanceof Error ? dbError.message : String(dbError);
+      const isConnectionError = 
+        errorMessage.includes('connect') ||
+        errorMessage.includes('ECONNREFUSED') ||
+        errorMessage.includes('ETIMEDOUT') ||
+        errorMessage.includes('database') ||
+        errorMessage.includes('prisma') ||
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('P1001') || // Prisma connection error code
+        errorMessage.includes('P1017'); // Prisma server closed connection
+      
+      if (isConnectionError) {
+        return NextResponse.json(
+          {
+            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
+            code: 'CONNECTION_ERROR',
+          },
+          { status: 503 },
+        );
+      }
+      
+      // Re-throw if it's not a connection error
+      throw dbError;
+    }
 
     // Generate device fingerprint from client data or user agent
     let fingerprintData;
@@ -146,9 +182,17 @@ export async function POST(request: NextRequest) {
       // Record failed attempt first
       await authService.recordFailedAttempt(clientId);
       
-      // Get updated failed attempts count
-      const updatedRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
-      const updatedAttempts = (updatedRateLimitStatus.attempts || 0) + 1; // +1 for current failed attempt
+      // Get updated failed attempts count (with Redis fallback)
+      let updatedAttempts = 1;
+      try {
+        if (rateLimitService) {
+          const updatedRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
+          updatedAttempts = (updatedRateLimitStatus.attempts || 0) + 1; // +1 for current failed attempt
+        }
+      } catch (redisError) {
+        console.warn('Redis unavailable for rate limit check:', redisError);
+        updatedAttempts = 1; // Default to 1 attempt
+      }
 
       // Require CAPTCHA after 3 failed attempts
       if (captchaService.shouldRequireCaptcha(updatedAttempts)) {
@@ -185,9 +229,17 @@ export async function POST(request: NextRequest) {
       // Record failed attempt first
       await authService.recordFailedAttempt(clientId);
       
-      // Get updated failed attempts count
-      const updatedRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
-      const updatedAttempts = (updatedRateLimitStatus.attempts || 0) + 1; // +1 for current failed attempt
+      // Get updated failed attempts count (with Redis fallback)
+      let updatedAttempts = 1;
+      try {
+        if (rateLimitService) {
+          const updatedRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
+          updatedAttempts = (updatedRateLimitStatus.attempts || 0) + 1; // +1 for current failed attempt
+        }
+      } catch (redisError) {
+        console.warn('Redis unavailable for rate limit check:', redisError);
+        updatedAttempts = 1; // Default to 1 attempt
+      }
 
       // Require CAPTCHA after 3 failed attempts
       if (captchaService.shouldRequireCaptcha(updatedAttempts)) {
@@ -209,15 +261,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Perform risk assessment
-    const loginHistory = await prisma.securityLog.findMany({
-      where: {
-        userId: user.id,
-        eventType: { in: ['login_success', 'login_failed'] },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
+    // Perform risk assessment (with error handling)
+    let loginHistory = [];
+    try {
+      loginHistory = await prisma.securityLog.findMany({
+        where: {
+          userId: user.id,
+          eventType: { in: ['login_success', 'login_failed'] },
+        },
+        orderBy: { createdAt: 'desc' },
+        take: 50,
+      });
+    } catch (dbError) {
+      console.warn('Failed to fetch login history for risk assessment:', dbError);
+      // Continue with login even if we can't fetch history
+      loginHistory = [];
+    }
 
     const riskAssessment = await riskAssessmentService.assessLoginRisk(
       {
@@ -261,15 +320,13 @@ export async function POST(request: NextRequest) {
         ip
       );
 
-      return NextResponse.json(
-        {
-          error:
-            'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
-          code: 'HIGH_RISK',
-          riskLevel: riskAssessment.level,
-        },
-        { status: 403 }
-      );
+      const errorResponse: LoginErrorResponse = {
+        error:
+          'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
+        code: 'HIGH_RISK',
+        riskLevel: riskAssessment.level,
+      };
+      return NextResponse.json(errorResponse, { status: 403 });
     }
 
     // Check if new device
@@ -318,7 +375,7 @@ export async function POST(request: NextRequest) {
         }
       );
 
-      return NextResponse.json({
+      const response: LoginResponse = {
         requiresTwoFactor: true,
         loginAttemptId: challengeId,
         expiresAt: new Date(
@@ -331,8 +388,18 @@ export async function POST(request: NextRequest) {
           score: riskAssessment.score,
           recommendations: riskAssessment.recommendations,
         },
+        token: '', // Will be set after 2FA verification
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name || undefined,
+          role: (user as any).role || 'user',
+          emailVerified: user.emailVerified || false,
+          twoFactorEnabled: user.twoFactorEnabled || false,
+        },
         ...(process.env.NODE_ENV !== 'production' ? { debugCode: code } : {}),
-      });
+      };
+      return NextResponse.json(response);
     }
 
     if (user.twoFactorEnabled) {
@@ -358,18 +425,35 @@ export async function POST(request: NextRequest) {
         },
       );
 
-      return NextResponse.json({
+      const response: LoginResponse = {
         requiresTwoFactor: true,
         loginAttemptId: challengeId,
         expiresAt: new Date(
           Date.now() + TWO_FACTOR_TTL_MINUTES * 60 * 1000,
         ).toISOString(),
         methods: ['email'],
+        token: '', // Will be set after 2FA verification
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name || undefined,
+          role: (user as any).role || 'user',
+          emailVerified: user.emailVerified || false,
+          twoFactorEnabled: user.twoFactorEnabled || false,
+        },
         ...(process.env.NODE_ENV !== 'production' ? { debugCode: code } : {}),
-      });
+      };
+      return NextResponse.json(response);
     }
 
-    await authService.resetRateLimit(clientId);
+    // Reset rate limit (with error handling)
+    try {
+      await authService.resetRateLimit(clientId);
+    } catch (rateLimitError) {
+      console.warn('Failed to reset rate limit:', rateLimitError);
+      // Continue with login even if rate limit reset fails
+    }
+
     await authService.updateLastLogin(user.id);
 
     const session = await authService.createSession(user.id, userAgent, ip);
@@ -383,40 +467,47 @@ export async function POST(request: NextRequest) {
       session.id,
     );
 
-    await prisma.user
-      .update({
+    // Update user with refresh token and last login (with error handling)
+    try {
+      await prisma.user.update({
         where: { id: user.id },
         data: {
           refreshToken,
           lastLogin: new Date(),
         },
-      })
-      .catch(() => undefined);
+      });
+    } catch (dbError) {
+      console.error('Failed to update user in database:', dbError);
+      // Continue with login even if database update fails
+    }
 
     await authService.logSecurityEvent(user.id, 'login_success', ip, {
       userAgent,
       sessionId: session.id,
     });
 
-    const response = NextResponse.json({
-      message: 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­.',
+    const loginResponse: LoginResponse = {
+      message: 'تم تسجيل الدخول بنجاح.',
       token: accessToken,
       refreshToken,
       sessionId: session.id,
       user: {
         id: user.id,
         email: user.email,
-        name: user.name,
+        name: user.name || undefined,
         role: (user as any).role || 'user',
-        twoFactorEnabled: user.twoFactorEnabled,
-        lastLogin: user.lastLogin,
+        emailVerified: user.emailVerified || false,
+        twoFactorEnabled: user.twoFactorEnabled || false,
+        lastLogin: user.lastLogin || undefined,
       },
       riskAssessment: {
         level: riskAssessment.level,
         score: riskAssessment.score,
       },
       isNewDevice,
-    });
+    };
+    
+    const response = NextResponse.json(loginResponse);
 
     response.cookies.set('access_token', accessToken, {
       httpOnly: true,
@@ -450,20 +541,45 @@ export async function POST(request: NextRequest) {
 
     // Determine if it's a connection/database error
     const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    const fullError = `${errorMessage} ${errorStack}`.toLowerCase();
+    
     const isConnectionError = 
-      errorMessage.includes('connect') ||
-      errorMessage.includes('ECONNREFUSED') ||
-      errorMessage.includes('ETIMEDOUT') ||
-      errorMessage.includes('database') ||
-      errorMessage.includes('prisma') ||
-      errorMessage.includes('timeout');
+      fullError.includes('connect') ||
+      fullError.includes('econnrefused') ||
+      fullError.includes('etimedout') ||
+      fullError.includes('database') ||
+      fullError.includes('prisma') ||
+      fullError.includes('timeout') ||
+      fullError.includes('p1001') || // Prisma connection error
+      fullError.includes('p1017') || // Prisma server closed connection
+      fullError.includes('p2002') || // Prisma unique constraint
+      fullError.includes('enotfound') ||
+      fullError.includes('econnreset') ||
+      fullError.includes('networkerror') ||
+      fullError.includes('failed to fetch') ||
+      fullError.includes('fetch error') ||
+      fullError.includes('cannot read properties') ||
+      fullError.includes('undefined');
 
+    // Determine error code
+    let errorCode = 'INTERNAL_ERROR';
+    if (isConnectionError) {
+      errorCode = 'CONNECTION_ERROR';
+    } else if (fullError.includes('unauthorized') || fullError.includes('invalid')) {
+      errorCode = 'AUTH_ERROR';
+    } else if (fullError.includes('rate limit') || fullError.includes('too many')) {
+      errorCode = 'RATE_LIMIT_ERROR';
+    }
+
+    // Return proper error response with detailed error code
     return NextResponse.json(
       {
         error: isConnectionError
-          ? 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.'
-          : 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط·ظ„ط¨ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
-        code: isConnectionError ? 'CONNECTION_ERROR' : 'INTERNAL_ERROR',
+          ? 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.'
+          : 'حدث خطأ غير متوقع أثناء معالجة طلب تسجيل الدخول. حاول مرة أخرى لاحقاً.',
+        code: errorCode,
+        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
       },
       { status: isConnectionError ? 503 : 500 },
     );
