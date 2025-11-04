@@ -6,7 +6,7 @@ import { TextEncoder } from 'util';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
 import { authService } from '@/lib/auth-service';
 import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorResponse } from '@/types/api/auth';
-import { setAuthCookies, createErrorResponse } from './_helpers';
+import { setAuthCookies, createErrorResponse } from '../_helpers';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key');
 

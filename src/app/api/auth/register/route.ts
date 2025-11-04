@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import type { RegisterRequest, RegisterResponse, RegisterErrorResponse } from '@/types/api/auth';
-import { createErrorResponse, isConnectionError } from './_helpers';
+import { createErrorResponse, isConnectionError } from '../_helpers';
 
 const registerSchema = z.object({
   email: z

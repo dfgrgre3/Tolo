@@ -1,23 +1,37 @@
 "use client";
 
-// Removed next-auth dependency - using custom auth system
-// import { SessionProvider } from 'next-auth/react';
-// import type { Session } from 'next-auth';
-import type { SessionProviderProps } from './types/session';
-import React from 'react';
-
 /**
  * SessionProviderWrapper component
- * Simplified wrapper that doesn't require next-auth
+ * Simplified wrapper - no longer uses next-auth
+ * Using custom auth system (see src/lib/auth-service.ts)
+ * 
+ * This component is kept for backward compatibility but no longer
+ * requires or uses next-auth/react SessionProvider
  * 
  * @optimized - Memoized to prevent unnecessary re-renders
  */
-export const SessionProviderWrapper = React.memo(function SessionProviderWrapper({ 
-  session, 
-  children 
-}: SessionProviderProps) {
-  // Simply return children since we're using custom auth system
-  // This wrapper is kept for backward compatibility
-  return <>{children}</>;
-});
 
+import React from 'react';
+
+// Define props locally to avoid any next-auth type dependencies
+interface SessionProviderWrapperProps {
+  session?: any | null;
+  children: React.ReactNode;
+}
+
+/**
+ * SessionProviderWrapper - Simplified version without next-auth
+ * Simply renders children since we're using custom auth system
+ */
+export const SessionProviderWrapper: React.FC<SessionProviderWrapperProps> = React.memo(
+  function SessionProviderWrapper({ 
+    session, 
+    children 
+  }: SessionProviderWrapperProps) {
+    // Simply return children since we're using custom auth system
+    // The session prop is ignored but kept for backward compatibility
+    return <>{children}</>;
+  }
+);
+
+SessionProviderWrapper.displayName = 'SessionProviderWrapper';
