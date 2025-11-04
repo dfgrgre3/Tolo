@@ -116,6 +116,14 @@ const handleFailedLogin = async (
   // Record failed attempt
   await authService.recordFailedAttempt(clientId);
   
+  // Record IP-based failed attempt
+  try {
+    const { ipBlockingService } = await import('@/lib/security/ip-blocking');
+    ipBlockingService.recordFailedAttempt(ip, `Failed login: ${reason}`);
+  } catch (ipBlockError) {
+    // Ignore IP blocking errors
+  }
+  
   // Log security event
   await authService.logSecurityEvent(userId, 'login_failed', ip, {
     userAgent,
@@ -247,6 +255,24 @@ export async function POST(request: NextRequest) {
   const userAgent = authService.getUserAgent(request);
   const clientId = buildClientId(ip, userAgent);
 
+  // Validate JWT_SECRET early to provide better error messages
+  const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  if (!jwtSecret || jwtSecret === 'your-secret-key' || jwtSecret.trim().length < 32) {
+    console.error('JWT_SECRET validation failed:', {
+      hasSecret: !!jwtSecret,
+      isDefault: jwtSecret === 'your-secret-key',
+      length: jwtSecret?.length || 0,
+    });
+    
+    return NextResponse.json(
+      {
+        error: 'خطأ في إعدادات الخادم: مفتاح المصادقة غير مُعد بشكل صحيح. يرجى التواصل مع الدعم الفني.',
+        code: 'CONFIGURATION_ERROR',
+      },
+      { status: 500 }
+    );
+  }
+
   try {
     // ==================== INITIALIZE RATE LIMITING ====================
     const { RateLimitingService } = await import('@/lib/rate-limiting-service');
@@ -265,6 +291,30 @@ export async function POST(request: NextRequest) {
       // Continue with default status that allows the request
     }
 
+    // ==================== CHECK IP BLOCKING ====================
+    try {
+      const { ipBlockingService } = await import('@/lib/security/ip-blocking');
+      const ipBlockStatus = ipBlockingService.isBlocked(ip);
+      
+      if (ipBlockStatus.blocked) {
+        await authService.logSecurityEvent(null, 'login_blocked_ip', ip, {
+          userAgent,
+          reason: ipBlockStatus.reason,
+          blockedUntil: ipBlockStatus.blockedUntil?.toISOString(),
+        });
+
+        const errorResponse: LoginErrorResponse = {
+          error: `تم حظر عنوان IP هذا بسبب محاولات غير مصرح بها. السبب: ${ipBlockStatus.reason}`,
+          code: 'IP_BLOCKED',
+          blockedUntil: ipBlockStatus.blockedUntil?.toISOString(),
+        };
+        return NextResponse.json(errorResponse, { status: 403 });
+      }
+    } catch (ipBlockError) {
+      // If IP blocking service fails, continue with normal flow
+      console.warn('IP blocking check failed:', ipBlockError);
+    }
+
     // ==================== CHECK RATE LIMITING ====================
     if (!initialRateLimitStatus.allowed) {
       const now = Date.now();
@@ -273,6 +323,14 @@ export async function POST(request: NextRequest) {
         ? lockoutUntil - now
         : (initialRateLimitStatus.remainingTime ?? 0) * 60 * 1000;
       const retryAfterSeconds = Math.max(1, Math.ceil((retryMs || 60000) / 1000));
+
+      // Record suspicious IP activity
+      try {
+        const { ipBlockingService } = await import('@/lib/security/ip-blocking');
+        ipBlockingService.recordFailedAttempt(ip, 'Rate limit exceeded');
+      } catch (ipBlockError) {
+        // Ignore IP blocking errors
+      }
 
       await authService.logSecurityEvent(null, 'login_rate_limited', ip, {
         userAgent,
@@ -738,16 +796,7 @@ export async function POST(request: NextRequest) {
     let accessToken: string;
     let refreshToken: string;
     try {
-      // Validate JWT_SECRET is available
-      const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-      if (!jwtSecret || jwtSecret === 'your-secret-key') {
-        console.error('JWT_SECRET is not configured properly');
-        return createErrorResponse(
-          new Error('JWT_SECRET غير مُعد بشكل صحيح'),
-          'خطأ في إعدادات الخادم. يرجى التواصل مع الدعم الفني.'
-        );
-      }
-      
+      // JWT_SECRET is already validated at the start of the function
       const tokens = await authService.createTokens(
         {
           id: user.id,
@@ -867,55 +916,104 @@ export async function POST(request: NextRequest) {
     response.headers.set('X-XSS-Protection', '1; mode=block');
     
     return response;
-  } catch (error) {
+  } catch (error: unknown) {
     // Enhanced error logging with better details
-    console.error('Login error details:', {
+    const errorDetails = {
       error,
       errorType: typeof error,
       errorConstructor: error instanceof Error ? error.constructor.name : 'unknown',
       errorMessage: error instanceof Error ? error.message : String(error),
       errorStack: error instanceof Error ? error.stack : undefined,
       errorString: String(error),
-    });
+      errorCode: error && typeof error === 'object' && 'code' in error ? (error as any).code : undefined,
+    };
+    
+    console.error('Login error details:', errorDetails);
+    
+    // Handle different error types
+    let errorCode = 'SERVER_ERROR';
+    let errorMessage = 'حدث خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
+    let statusCode = 500;
     
     // Check if it's a connection error (database, etc.)
     if (isConnectionError(error)) {
-      return NextResponse.json(
-        {
-          error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
-          code: 'CONNECTION_ERROR',
-        },
-        { status: 503 }
-      );
+      errorCode = 'CONNECTION_ERROR';
+      errorMessage = 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.';
+      statusCode = 503;
+    } 
+    // Check if it's a validation error
+    else if (error instanceof Error && error.message.includes('validation')) {
+      errorCode = 'VALIDATION_ERROR';
+      errorMessage = 'بيانات الطلب غير صحيحة. يرجى التحقق من البيانات المرسلة.';
+      statusCode = 400;
+    }
+    // Check if it's a JWT/Token error
+    else if (error instanceof Error && (
+      error.message.includes('JWT') || 
+      error.message.includes('token') || 
+      error.message.includes('secret')
+    )) {
+      errorCode = 'AUTH_ERROR';
+      errorMessage = 'خطأ في إعدادات المصادقة. يرجى التواصل مع الدعم الفني.';
+      statusCode = 500;
+    }
+    // Check if it's a database error (Prisma errors)
+    else if (error && typeof error === 'object' && 'code' in error) {
+      const prismaCode = (error as any).code;
+      if (prismaCode && typeof prismaCode === 'string') {
+        if (prismaCode.startsWith('P1')) {
+          // Prisma connection errors
+          errorCode = 'CONNECTION_ERROR';
+          errorMessage = 'خطأ في الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقاً.';
+          statusCode = 503;
+        } else if (prismaCode.startsWith('P2')) {
+          // Prisma data errors
+          errorCode = 'DATABASE_ERROR';
+          errorMessage = 'حدث خطأ أثناء معالجة البيانات. يرجى المحاولة مرة أخرى.';
+          statusCode = 500;
+        }
+      }
+    }
+    // Use getErrorCode helper for other errors
+    else {
+      errorCode = getErrorCode(error);
+      if (errorCode === 'INTERNAL_ERROR') {
+        errorCode = 'SERVER_ERROR';
+      }
+      const errorMsg = error instanceof Error 
+        ? error.message 
+        : (typeof error === 'string' ? error : 'Unknown error');
+      
+      // Only show detailed error in development
+      if (process.env.NODE_ENV === 'development' && errorMsg !== 'Unknown error') {
+        errorMessage = `حدث خطأ: ${errorMsg}`;
+      }
     }
     
-    // Get error code and message for logging and response
-    const errorCode = getErrorCode(error);
-    const errorMessage = error instanceof Error 
+    // Log security event safely (non-blocking)
+    const errorMsgForLog = error instanceof Error 
       ? error.message 
       : (typeof error === 'string' ? error : 'Unknown error');
     
-    // Log security event safely (non-blocking)
     authService.logSecurityEvent(null, 'login_error', ip, {
       userAgent,
-      error: errorMessage,
+      error: errorMsgForLog,
       errorType: error instanceof Error ? error.constructor.name : typeof error,
+      errorCode,
     }).catch((logError) => {
       console.error('Failed to log security event:', logError);
     });
-
-    const userFriendlyMessage = isConnectionError(error)
-      ? 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.'
-      : 'حدث خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
     
-    // Return proper error response with SERVER_ERROR code to match client expectations
+    // Return proper error response
     return NextResponse.json(
       {
-        error: userFriendlyMessage,
-        code: errorCode === 'INTERNAL_ERROR' ? 'SERVER_ERROR' : errorCode,
-        details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
+        error: errorMessage,
+        code: errorCode,
+        details: process.env.NODE_ENV === 'development' 
+          ? (error instanceof Error ? error.message : String(error))
+          : undefined,
       },
-      { status: isConnectionError(error) ? 503 : 500 }
+      { status: statusCode }
     );
   }
 }

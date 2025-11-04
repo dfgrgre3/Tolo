@@ -371,15 +371,15 @@ const Home = () => {
 		color: string;
 	}) => (
 		<motion.div 
-			className="relative flex flex-col items-center rounded-3xl border border-slate-100/80 bg-white/80 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+			className="relative flex flex-col items-center rounded-3xl border border-slate-100/80 bg-white/80 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:shadow-2xl"
 			whileHover={{ y: -8, scale: 1.03 }}
-			transition={{ type: "spring", stiffness: 300 }}
+			transition={{ type: "spring", stiffness: 300, damping: 20 }}
 		>
 			<div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-			<div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${color} shadow-md`}>
+			<div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${color} shadow-md group-hover:shadow-lg transition-shadow duration-300`}>
 				{icon}
 			</div>
-			<p className="mb-2 text-sm text-muted-foreground">{title}</p>
+			<p className="mb-2 text-sm font-medium text-muted-foreground">{title}</p>
 			<div className="flex items-baseline gap-2">
 				<span className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
 					{value}
@@ -387,7 +387,7 @@ const Home = () => {
 				<span className="text-base font-medium text-muted-foreground">{unit}</span>
 			</div>
 			{trend && (
-				<div className="mt-3 flex items-center text-sm font-medium text-emerald-600">
+				<div className="mt-3 flex items-center justify-center text-sm font-medium text-emerald-600">
 					<TrendingUp className="mr-1 h-4 w-4" />
 					<span>{trend}</span>
 				</div>
@@ -408,19 +408,19 @@ const Home = () => {
 			whileInView={{ opacity: 1, y: 0 }}
 			viewport={{ once: true }}
 			transition={{ delay, duration: 0.5 }}
-			whileHover={{ y: -10 }}
-			className="group relative flex h-full flex-col rounded-3xl border border-slate-100/80 bg-white/70 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl"
+			whileHover={{ y: -10, scale: 1.02 }}
+			className="group relative flex h-full flex-col rounded-3xl border border-slate-100/80 bg-white/80 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:shadow-2xl"
 		>
 			<div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-400/10 via-transparent to-purple-400/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 			<div className="relative z-10 flex h-full flex-col">
-				<div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 shadow-sm">
+				<div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 shadow-sm group-hover:shadow-md transition-shadow duration-300">
 					{icon}
 				</div>
-				<h3 className="mb-3 text-xl font-semibold text-slate-900">{title}</h3>
-				<p className="mb-6 flex-grow text-muted-foreground">{description}</p>
-				<Link href={link} className="group flex items-center text-blue-600 transition-colors hover:text-blue-700">
-					<span className="font-medium">ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</span>
-					<ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+				<h3 className="mb-3 text-xl font-semibold text-slate-900 group-hover:text-blue-700 transition-colors duration-300">{title}</h3>
+				<p className="mb-6 flex-grow text-muted-foreground leading-relaxed">{description}</p>
+				<Link href={link} className="group/link inline-flex items-center text-blue-600 font-medium transition-all duration-300 hover:text-blue-700 hover:gap-2">
+					<span>تعرف على المزيد</span>
+					<ArrowRight className="mr-2 h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-1" />
 				</Link>
 			</div>
 		</motion.div>
@@ -430,25 +430,25 @@ const Home = () => {
 
 	const highlightCards = [
 		{
-			title: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
-			description: "ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.",
-			actionLabel: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
+			title: "إدارة المهام الذكية",
+			description: "نظم مهامك اليومية والأسبوعية بسهولة، واحصل على تذكيرات ذكية تساعدك على الالتزام بجدولك الدراسي.",
+			actionLabel: "إدارة المهام",
 			href: "/tasks",
 			accent: "from-sky-400/20 via-transparent to-indigo-400/20",
 			icon: <Rocket className="h-6 w-6 text-indigo-600" />
 		},
 		{
-			title: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½",
-			description: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.",
-			actionLabel: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½",
+			title: "تتبع وقت الدراسة",
+			description: "راقب وقت دراستك الفعلي، واحصل على إحصائيات دقيقة تساعدك على تحسين إدارة وقتك.",
+			actionLabel: "تتبع الوقت",
 			href: "/time",
 			accent: "from-violet-400/15 via-transparent to-purple-400/20",
 			icon: <Lightbulb className="h-6 w-6 text-violet-600" />
 		},
 		{
-			title: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
-			description: "ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.",
-			actionLabel: "ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½",
+			title: "التنبيهات والتذكيرات",
+			description: "لا تفوت أي موعد مهم. احصل على تذكيرات ذكية للامتحانات والدروس والأنشطة المهمة.",
+			actionLabel: "عرض التنبيهات",
 			href: "/notifications",
 			accent: "from-emerald-400/15 via-transparent to-teal-400/20",
 			icon: <Calendar className="h-6 w-6 text-emerald-600" />
@@ -477,7 +477,7 @@ const Home = () => {
 					<div className="absolute right-[12%] top-[40%] h-80 w-80 translate-x-1/3 rounded-full bg-sky-200/35 blur-3xl" />
 					<div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(129,140,248,0.12),_transparent_60%)]" />
 				</div>
-				<div className="relative mx-auto max-w-7xl space-y-16 px-4 py-10 sm:px-6 md:space-y-24 lg:px-8">
+				<div className="relative mx-auto max-w-7xl space-y-12 sm:space-y-16 md:space-y-20 lg:space-y-24 px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-10 lg:py-16">
 					{/* Optimize scrolling behavior with CSS */}
 					<style jsx global>{`
 						html {
@@ -520,7 +520,7 @@ const Home = () => {
 									size="lg"
 									className="group bg-white/85 backdrop-blur-md border-blue-200/60 px-8 py-4 transition-all duration-300 shadow-lg hover:-translate-y-1 hover:border-blue-300 hover:bg-blue-50 hover:shadow-xl"
 								>
-									<span className="text-blue-600 font-medium text-lg">ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</span>
+									<span className="text-blue-600 font-medium text-lg">انتقل إلى لوحة التحكم</span>
 									<ChevronDown className="text-blue-500 mr-2 h-5 w-5" />
 								</Button>
 							</motion.div>
@@ -534,35 +534,43 @@ const Home = () => {
 							<div className="relative z-10 space-y-10">
 								<div className="flex flex-col gap-4 text-center md:flex-row md:items-center md:justify-between md:text-right">
 									<div className="space-y-3">
-										<h2 className="text-3xl font-bold text-primary md:text-4xl">ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</h2>
-										<p className="text-muted-foreground md:text-lg">ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½.</p>
+										<h2 className="text-3xl font-bold text-primary md:text-4xl">إجراءات سريعة للبدء</h2>
+										<p className="text-muted-foreground md:text-lg">ابدأ رحلتك التعليمية بسرعة وكفاءة. اختر من الأدوات والخدمات المتاحة لتسهيل دراستك وتحسين أدائك.</p>
 									</div>
 									<div className="flex justify-center md:justify-end">
-										<Badge className="border-0 bg-blue-50 text-blue-600">ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½ ï؟½ï؟½ï؟½ï؟½ï؟½ï؟½</Badge>
+										<Badge className="border-0 bg-blue-50 text-blue-600">جديد: واجهة محسّنة</Badge>
 									</div>
 								</div>
 								<div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-									{highlightCards.map((card) => (
-										<div key={card.title} className="group relative overflow-hidden rounded-2xl border border-slate-100/70 bg-white/80 p-6 shadow-lg transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl">
+									{highlightCards.map((card, index) => (
+										<motion.div
+											key={card.title}
+											initial={{ opacity: 0, y: 20 }}
+											whileInView={{ opacity: 1, y: 0 }}
+											viewport={{ once: true }}
+											transition={{ delay: index * 0.1, duration: 0.5 }}
+											whileHover={{ y: -8, scale: 1.02 }}
+											className="group relative overflow-hidden rounded-2xl border border-slate-100/70 bg-white/80 p-6 shadow-lg transition-all duration-300 hover:border-blue-200/60 hover:shadow-2xl"
+										>
 											<div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${card.accent} opacity-0 transition-opacity duration-300 group-hover:opacity-100`} />
 											<div className="relative z-10 flex h-full flex-col gap-4">
 												<div className="flex items-center justify-between">
-													<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900/5">
+													<div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900/5 group-hover:bg-blue-50 transition-colors duration-300">
 														{card.icon}
 													</div>
 													<Sparkles className="h-5 w-5 text-blue-500 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 												</div>
-												<h3 className="text-xl font-semibold text-slate-900">{card.title}</h3>
-												<p className="flex-grow text-sm text-muted-foreground md:text-base">{card.description}</p>
+												<h3 className="text-xl font-semibold text-slate-900 group-hover:text-blue-700 transition-colors duration-300">{card.title}</h3>
+												<p className="flex-grow text-sm text-muted-foreground md:text-base leading-relaxed">{card.description}</p>
 												<Link
 													href={card.href}
-													className="group/link inline-flex items-center self-start rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-all hover:bg-blue-100"
+													className="group/link inline-flex items-center self-start rounded-full bg-blue-50 px-4 py-2 text-sm font-medium text-blue-600 transition-all duration-300 hover:bg-blue-100 hover:gap-2"
 												>
 													{card.actionLabel}
 													<ArrowRight className="ml-2 h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-1" />
 												</Link>
 											</div>
-										</div>
+										</motion.div>
 									))}
 								</div>
 							</div>
@@ -649,57 +657,58 @@ const Home = () => {
 									transition={{ duration: 0.5 }}
 									className="text-center mb-12"
 								>
-									<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2"><span>لوحة الأداء الأسبوعي</span>
+									<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2">
+										<span>المميزات والخدمات</span>
 										<Sparkles className="h-8 w-8 text-yellow-500" />
 									</h2>
-									<p className="text-muted-foreground max-w-2xl mx-auto text-lg">راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام.</p>
+									<p className="text-muted-foreground max-w-2xl mx-auto text-lg">اكتشف الأدوات والخدمات المتقدمة التي تساعدك على تحسين أدائك الأكاديمي.</p>
 								</motion.div>
 
 								<div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
 									<FeatureCard
 										icon={<Brain className="h-8 w-8 text-blue-600" />}
-										title="ط§ظ„ظ…ط³ط§ط¹ط¯ ط§ظ„ط°ظƒظٹ ط¨ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ"
-										description=""
+										title="المساعد الذكي بالذكاء الاصطناعي"
+										description="احصل على مساعدة ذكية في الدراسة والتحضير للامتحانات باستخدام الذكاء الاصطناعي."
 										link="/ai"
 										delay={0.1}
 									/>
 
 									<FeatureCard
 										icon={<BarChart3 className="h-8 w-8 text-purple-600" />}
-										title="طھط­ظ„ظٹظ„ط§طھ ظ…طھظ‚ط¯ظ…ط© ظˆطھظ‚ط§ط±ظٹط± ظ…ظپطµظ„ط©"
-										description=""
+										title="تحليلات متقدمة وتقارير مفصلة"
+										description="تابع تقدمك الدراسي مع تحليلات شاملة وتقارير تفصيلية عن أدائك."
 										link="/analytics"
 										delay={0.2}
 									/>
 
 									<FeatureCard
 										icon={<FileText className="h-8 w-8 text-green-600" />}
-										title="ط§ظ…طھط­ط§ظ†ط§طھ طھط¬ط±ظٹط¨ظٹط© طھظپط§ط¹ظ„ظٹط©"
-										description=""
+										title="امتحانات تجريبية تفاعلية"
+										description="اختبر معلوماتك مع امتحانات تجريبية شاملة تساعدك على التحضير الجيد."
 										link="/exams"
 										delay={0.3}
 									/>
 
 									<FeatureCard
 										icon={<MessageSquare className="h-8 w-8 text-amber-600" />}
-										title="ظ…ظ†طھط¯ظ‰ طھظپط§ط¹ظ„ظٹ ظ„ظ„ظ…ط°ط§ظƒط±ط©"
-										description=""
+										title="منتدى تفاعلي للمذاكرة"
+										description="انضم إلى مجتمع الطلاب وشارك في النقاشات والاستفسارات التعليمية."
 										link="/forum"
 										delay={0.4}
 									/>
 
 									<FeatureCard
 										icon={<Calendar className="h-8 w-8 text-red-600" />}
-										title="ط¬ط¯ظˆظ„ط© ط°ظƒظٹط© ظ„ظ„ظ…ط°ط§ظƒط±ط©"
-										description=""
+										title="جدولة ذكية للمذاكرة"
+										description="نظم جدول دراستك بشكل ذكي وفعال مع تذكيرات تلقائية للمهام."
 										link="/schedule"
 										delay={0.5}
 									/>
 
 									<FeatureCard
 										icon={<Trophy className="h-8 w-8 text-indigo-600" />}
-										title="ظ†ط¸ط§ظ… ط¥ظ†ط¬ط§ط²ط§طھ ظˆظ…ظƒط§ظپط¢طھ"
-										description=""
+										title="نظام إنجازات ومكافآت"
+										description="احصل على شارات ومكافآت عند إكمال المهام وتحقيق الأهداف الدراسية."
 										link="/achievements"
 										delay={0.6}
 									/>

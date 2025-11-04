@@ -54,7 +54,7 @@ export function MegaMenuContent({
 					damping: 35,
 					mass: 0.7
 				}}
-				className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[95vw] md:max-w-5xl lg:max-w-6xl xl:max-w-7xl bg-gradient-to-br from-popover via-popover to-popover/98 rounded-b-2xl border border-border/50 shadow-2xl shadow-black/30 z-50 overflow-hidden backdrop-blur-xl supports-[backdrop-filter]:bg-popover/95"
+				className="fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[95vw] md:max-w-5xl lg:max-w-6xl xl:max-w-7xl bg-popover rounded-b-2xl border border-border shadow-2xl shadow-black/30 z-50 overflow-hidden"
 				onMouseEnter={() => {}}
 				onMouseLeave={onClose}
 				data-mega-menu-content

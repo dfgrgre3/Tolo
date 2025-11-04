@@ -1,53 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { createErrorResponse, isConnectionError } from '../_helpers';
-
-const extractToken = async (request: NextRequest): Promise<string | null> => {
-  const authHeader = request.headers.get('authorization');
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    return authHeader.substring(7);
-  }
-
-  const cookieStore = await cookies();
-  return (
-    cookieStore.get('access_token')?.value ??
-    cookieStore.get('auth_token')?.value ??
-    null
-  );
-};
+import { withAuth } from '@/lib/middleware/auth-middleware';
 
 export async function GET(request: NextRequest) {
   const ip = authService.getClientIP(request);
   const userAgent = authService.getUserAgent(request);
 
   try {
-    const token = await extractToken(request);
+    // Use auth middleware for cleaner code
+    const authResult = await withAuth(request, {
+      requireAuth: true,
+      checkSession: true,
+    });
 
-    if (!token) {
-      return NextResponse.json(
-        {
-          error: 'يتطلب هذا الطلب تسجيل الدخول.',
-          code: 'UNAUTHORIZED',
-        },
-        { status: 401 }
-      );
+    if (!authResult.success) {
+      return authResult.response;
     }
 
-    const verification = await authService.verifyTokenFromInput(token, true);
-
-    if (!verification.isValid || !verification.user) {
-      return NextResponse.json(
-        {
-          error: verification.error || 'انتهت صلاحية الجلسة الحالية.',
-          code: 'INVALID_OR_EXPIRED_TOKEN',
-        },
-        { status: 401 }
-      );
-    }
-
-    const userId = verification.user.id;
+    const { user } = authResult;
+    const userId = user.id;
 
     // Get user from database with error handling
     let dbUser;
@@ -86,7 +59,7 @@ export async function GET(request: NextRequest) {
       // Log security event for missing user after valid token
       await authService.logSecurityEvent(userId, 'me_endpoint_user_not_found', ip, {
         userAgent,
-        sessionId: verification.sessionId,
+        sessionId: authResult.sessionId,
       });
 
       return NextResponse.json(
@@ -100,22 +73,19 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       user: dbUser,
-      sessionId: verification.sessionId,
+      sessionId: authResult.sessionId,
     });
   } catch (error) {
     console.error('Auth verification error:', error);
     
     // Log security event safely
     try {
-      const token = await extractToken(request);
-      if (token) {
-        const verification = await authService.verifyTokenFromInput(token, true);
-        if (verification.isValid && verification.user) {
-          await authService.logSecurityEvent(verification.user.id, 'me_endpoint_error', ip, {
-            userAgent,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          });
-        }
+      const authResult = await withAuth(request, { requireAuth: false });
+      if (authResult.success && authResult.user) {
+        await authService.logSecurityEvent(authResult.user.id, 'me_endpoint_error', ip, {
+          userAgent,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     } catch (logError) {
       console.error('Failed to log security event:', logError);

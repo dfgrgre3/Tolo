@@ -1,4 +1,4 @@
-import { prisma, closeDatabaseConnection, checkDatabaseHealth } from './db';
+import { prisma, closeDatabaseConnection, checkDatabaseHealth, ensureDatabaseConnection } from './db';
 import { CacheService } from './redis';
 import { Prisma } from '@prisma/client';
 
@@ -11,28 +11,83 @@ export interface PaginatedResult<T> {
 }
 
 /**
- * Execute a database query with proper error handling
+ * Check if an error is a connection-related error that can be retried
+ */
+function isConnectionError(error: unknown): boolean {
+  if (!error) return false;
+  
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorCode = (error as any)?.code || '';
+  const fullError = `${errorMessage} ${errorCode}`.toLowerCase();
+  
+  return (
+    fullError.includes('connect') ||
+    fullError.includes('econnrefused') ||
+    fullError.includes('etimedout') ||
+    fullError.includes('p1001') || // Prisma connection error
+    fullError.includes('p1017') || // Prisma server closed connection
+    fullError.includes('enotfound') ||
+    fullError.includes('econnreset') ||
+    fullError.includes('epipe') ||
+    fullError.includes('sqlite') ||
+    fullError.includes('database') ||
+    fullError.includes('timeout')
+  );
+}
+
+/**
+ * Execute a database query with proper error handling and retry logic
  * @param queryFn The database query function to execute
  * @param errorMessage Custom error message to log
+ * @param retry Whether to retry on connection errors (default: true)
+ * @param maxRetries Maximum number of retries (default: 3)
  * @returns The result of the query or null if an error occurred
  */
 export async function executeQuery<T>(
   queryFn: () => Promise<T>,
-  errorMessage: string = 'Database query failed'
+  errorMessage: string = 'Database query failed',
+  retry: boolean = true,
+  maxRetries: number = 3
 ): Promise<T | null> {
-  try {
-    return await queryFn();
-  } catch (error) {
-    console.error(`${errorMessage}:`, error);
-    
-    // Log specific Prisma errors
-    if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error(`Prisma error code: ${error.code}`);
-      console.error(`Prisma error meta:`, error.meta);
+  let lastError: unknown;
+  
+  for (let attempt = 1; attempt <= (retry ? maxRetries : 1); attempt++) {
+    try {
+      // Ensure connection before executing query
+      if (attempt === 1) {
+        const isConnected = await ensureDatabaseConnection();
+        if (!isConnected && retry) {
+          console.warn('Database connection not established, will retry...');
+        }
+      }
+      
+      return await queryFn();
+    } catch (error) {
+      lastError = error;
+      
+      // Log specific Prisma errors
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        console.error(`Prisma error code: ${error.code}`);
+        console.error(`Prisma error meta:`, error.meta);
+      }
+      
+      // Only retry on connection errors
+      if (retry && isConnectionError(error) && attempt < maxRetries) {
+        const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff
+        console.warn(`${errorMessage} (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, {
+          error: error instanceof Error ? error.message : String(error)
+        });
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      
+      // If not retrying or max retries reached, log and return null
+      console.error(`${errorMessage}:`, error);
+      return null;
     }
-    
-    return null;
   }
+  
+  return null;
 }
 
 /**

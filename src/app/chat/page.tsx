@@ -169,7 +169,7 @@ export default function ChatPage() {
   };
 
   return (
-    <Layout showSidebar={false}>
+    <Layout>
       <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6">
         {/* Conversations List */}
         <div className="w-full md:w-1/3 flex flex-col border rounded-lg overflow-hidden">

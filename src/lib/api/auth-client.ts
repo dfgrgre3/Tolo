@@ -195,6 +195,14 @@ async function apiFetch<T>(
       } else {
         // Empty response
         if (response.status === 204 || (response.status === 200 && !hasContent)) {
+          // For login endpoint, empty response is an error
+          if (endpoint === '/login') {
+            throw {
+              error: 'استجابة فارغة من الخادم. يرجى المحاولة مرة أخرى.',
+              code: 'EMPTY_RESPONSE',
+              status: response.status,
+            };
+          }
           return {} as T;
         }
       }
@@ -228,11 +236,30 @@ async function apiFetch<T>(
       
       // Handle error response
       if (responseData && typeof responseData === 'object') {
+        // Check if responseData is empty object
+        const responseDataKeys = Object.keys(responseData);
+        if (responseDataKeys.length === 0) {
+          // Empty object response - create proper error
+          throw {
+            error: `خطأ في الخادم: ${response.statusText || 'Unknown Error'} (${response.status})`,
+            code: response.status === 429 ? 'RATE_LIMITED' : 
+                  response.status === 404 ? 'NOT_FOUND' :
+                  response.status >= 500 ? 'SERVER_ERROR' : 
+                  'SERVER_RESPONSE_ERROR',
+            status: response.status,
+          };
+        }
+        
         // Valid JSON error response
         const error: any = {
           ...responseData,
           status: response.status,
         };
+        
+        // Ensure error has at least error message and code
+        if (!error.error && !error.message) {
+          error.error = `خطأ في الخادم: ${response.statusText || 'Unknown Error'} (${response.status})`;
+        }
         
         // Add specific error codes based on status if not present
         if (!error.code) {
@@ -278,7 +305,16 @@ async function apiFetch<T>(
       return responseData as T;
     }
     
-    // Empty successful response
+    // Empty successful response - for login endpoint, this is an error
+    if (endpoint === '/login') {
+      throw {
+        error: 'استجابة فارغة من الخادم. يرجى المحاولة مرة أخرى.',
+        code: 'EMPTY_RESPONSE',
+        status: response.status,
+      };
+    }
+    
+    // For other endpoints, return empty object
     return {} as T;
   } catch (error: any) {
     clearTimeout(timeoutId);
@@ -293,9 +329,25 @@ async function apiFetch<T>(
       return apiFetch<T>(endpoint, options, retryCount + 1);
     }
 
-    // If error already has the expected structure, return it
-    if (error && (error.error || error.code)) {
-      throw error;
+    // Check if error is empty object first
+    if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+      throw {
+        error: 'حدث خطأ غير متوقع أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.',
+        code: 'UNEXPECTED_ERROR',
+      };
+    }
+    
+    // If error already has the expected structure, normalize it
+    if (error && typeof error === 'object' && (error.error || error.code)) {
+      // Ensure error message is present
+      const normalizedError = {
+        error: error.error || error.message || 'حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.',
+        code: error.code || 'UNEXPECTED_ERROR',
+        ...(error.status !== undefined && { status: error.status }),
+        ...(error.retryAfterSeconds !== undefined && { retryAfterSeconds: error.retryAfterSeconds }),
+        ...(error.requiresCaptcha !== undefined && { requiresCaptcha: error.requiresCaptcha }),
+      };
+      throw normalizedError;
     }
 
     // Handle timeout errors
@@ -315,11 +367,25 @@ async function apiFetch<T>(
     }
 
     // Generic error - ensure we always have a proper error structure
-    const errorMessage = error?.message || error?.toString() || 'حدث خطأ غير متوقع أثناء معالجة الطلب';
+    let errorMessage = 'حدث خطأ غير متوقع أثناء معالجة الطلب';
+    if (error instanceof Error) {
+      errorMessage = error.message || errorMessage;
+    } else if (typeof error === 'string') {
+      errorMessage = error || errorMessage;
+    } else if (error?.message) {
+      errorMessage = error.message;
+    } else if (error?.error) {
+      errorMessage = error.error;
+    } else {
+      errorMessage = String(error) || errorMessage;
+    }
+    
     throw {
       error: errorMessage,
       code: 'UNEXPECTED_ERROR',
-      originalError: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+      ...(process.env.NODE_ENV === 'development' && {
+        originalError: String(error),
+      }),
     };
   }
 }
@@ -366,31 +432,50 @@ export async function loginUser(
     
     return response;
   } catch (error: any) {
-    // Re-throw if it's already a properly formatted error
-    if (error && (typeof error === 'object' && Object.keys(error).length > 0 && (error.error || error.code))) {
-      throw error;
+    // Check if error is empty object or null/undefined
+    if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+      throw {
+        error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: 'UNEXPECTED_ERROR',
+      };
     }
     
-    // Normalize error - handle empty objects and various formats
+    // Re-throw if it's already a properly formatted error with error or code property
+    if (error && typeof error === 'object' && (error.error || error.code)) {
+      // Ensure error message is present
+      const normalizedError = {
+        error: error.error || error.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: error.code || 'LOGIN_ERROR',
+        ...(error.status !== undefined && { status: error.status }),
+        ...(error.retryAfterSeconds !== undefined && { retryAfterSeconds: error.retryAfterSeconds }),
+        ...(error.requiresCaptcha !== undefined && { requiresCaptcha: error.requiresCaptcha }),
+        ...(error.failedAttempts !== undefined && { failedAttempts: error.failedAttempts }),
+      };
+      throw normalizedError;
+    }
+    
+    // Normalize error - handle various formats
     let errorMessage: string;
     
-    if (!error) {
-      errorMessage = 'حدث خطأ أثناء تسجيل الدخول';
-    } else if (typeof error === 'string') {
-      errorMessage = error;
+    if (typeof error === 'string') {
+      errorMessage = error || 'حدث خطأ أثناء تسجيل الدخول';
     } else if (error instanceof Error) {
       errorMessage = error.message || 'حدث خطأ أثناء تسجيل الدخول';
     } else if (error?.message) {
       errorMessage = error.message;
+    } else if (error?.error) {
+      errorMessage = error.error;
     } else {
       errorMessage = String(error) || 'حدث خطأ أثناء تسجيل الدخول';
     }
     
-    // Wrap unexpected errors
+    // Wrap unexpected errors - ensure we always have proper structure
     throw {
       error: errorMessage,
       code: 'LOGIN_ERROR',
-      originalError: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+      ...(process.env.NODE_ENV === 'development' && {
+        originalError: String(error),
+      }),
     };
   }
 }

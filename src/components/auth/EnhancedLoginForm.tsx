@@ -56,6 +56,26 @@ export default function EnhancedLoginForm() {
   const [isShaking, setIsShaking] = useState(false);
   const [formErrorMessage, setFormErrorMessage] = useState<string | null>(null);
   const [formErrorCode, setFormErrorCode] = useState<string | null>(null);
+  const [isGoogleOAuthEnabled, setIsGoogleOAuthEnabled] = useState<boolean>(true); // Default to true to avoid flash
+  
+  // Check OAuth provider status
+  useEffect(() => {
+    const checkOAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/oauth/status');
+        if (response.ok) {
+          const data = await response.json();
+          setIsGoogleOAuthEnabled(data.providers?.google?.enabled ?? false);
+        }
+      } catch (error) {
+        console.error('Failed to check OAuth status:', error);
+        // If check fails, default to false for safety
+        setIsGoogleOAuthEnabled(false);
+      }
+    };
+    
+    checkOAuthStatus();
+  }, []);
   
   // Check for OAuth errors in URL parameters
   useEffect(() => {
@@ -407,12 +427,24 @@ export default function EnhancedLoginForm() {
 
   /**
    * Handle login errors
+   * Ensures all errors are properly formatted and never empty
    */
   const handleLoginError = (error: any) => {
+    // Helper to safely check if object is empty
+    const isEmpty = (obj: any): boolean => {
+      if (!obj || typeof obj !== 'object') return false;
+      try {
+        return Object.keys(obj).length === 0;
+      } catch {
+        return false;
+      }
+    };
+    
     // Normalize error object - handle empty objects and various error formats
     let apiError: LoginErrorResponse;
     
-    if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+    // Check if error is empty or invalid
+    if (!error || isEmpty(error)) {
       // Empty error object - create a default error
       apiError = {
         error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
@@ -430,20 +462,39 @@ export default function EnhancedLoginForm() {
         error: error || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
         code: 'UNEXPECTED_ERROR',
       };
-    } else if (error.error || error.code) {
-      // Already formatted error response
-      apiError = error as LoginErrorResponse;
+    } else if (error && typeof error === 'object') {
+      // Object error - extract error message and code
+      const errorMessage = error.error || error.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+      const errorCode = error.code || 'UNEXPECTED_ERROR';
+      
+      // Build error object with all properties
+      apiError = {
+        error: errorMessage,
+        code: errorCode,
+        ...(error.status !== undefined && { status: error.status }),
+        ...(error.retryAfterSeconds !== undefined && { retryAfterSeconds: error.retryAfterSeconds }),
+        ...(error.requiresCaptcha !== undefined && { requiresCaptcha: error.requiresCaptcha }),
+        ...(error.failedAttempts !== undefined && { failedAttempts: error.failedAttempts }),
+      };
     } else {
       // Unknown error format - try to extract message
-      const errorMessage = error?.message || error?.toString() || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+      const errorMessage = error?.message || error?.error || String(error) || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
       apiError = {
         error: errorMessage,
         code: error?.code || 'UNEXPECTED_ERROR',
       };
     }
     
-    const errorMessage = apiError.error || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
-    const errorCode = apiError.code || 'UNEXPECTED_ERROR';
+    // Final safety check - ensure error message and code are never empty
+    if (!apiError.error || !apiError.code) {
+      apiError = {
+        error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: 'UNEXPECTED_ERROR',
+      };
+    }
+    
+    const errorMessage = apiError.error;
+    const errorCode = apiError.code;
 
     // Handle rate limiting
     if (errorCode === 'RATE_LIMITED' && apiError.retryAfterSeconds) {
@@ -617,96 +668,229 @@ export default function EnhancedLoginForm() {
       await handleLoginSuccess(data);
 
     } catch (error: any) {
-      // Enhanced error logging with better details
+      // First, normalize the error to ensure it has proper structure
+      // This prevents empty objects from being logged
+      let normalizedError: LoginErrorResponse;
+      
+      // Helper function to safely get object keys
+      const getObjectKeys = (obj: any): string[] => {
+        try {
+          if (obj && typeof obj === 'object') {
+            return Object.keys(obj);
+          }
+          return [];
+        } catch {
+          return [];
+        }
+      };
+      
+      // Check if error is empty object or invalid
+      const errorKeys = getObjectKeys(error);
+      const isEmptyObject = error && typeof error === 'object' && errorKeys.length === 0;
+      
+      if (!error || isEmptyObject) {
+        // Empty error object - create a proper error structure
+        normalizedError = {
+          error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+          code: 'UNEXPECTED_ERROR',
+        };
+      } else if (error instanceof Error) {
+        // Native Error object - convert to our format
+        normalizedError = {
+          error: error.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+          code: 'UNEXPECTED_ERROR',
+        };
+      } else if (typeof error === 'string') {
+        // String error - convert to our format
+        normalizedError = {
+          error: error || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+          code: 'UNEXPECTED_ERROR',
+        };
+      } else if (error && typeof error === 'object') {
+        // Object error - ensure it has required properties
+        const errorMessage = error.error || error.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+        const errorCode = error.code || 'UNEXPECTED_ERROR';
+        
+        normalizedError = {
+          error: errorMessage,
+          code: errorCode,
+          ...(error.status !== undefined && { status: error.status }),
+          ...(error.retryAfterSeconds !== undefined && { retryAfterSeconds: error.retryAfterSeconds }),
+          ...(error.requiresCaptcha !== undefined && { requiresCaptcha: error.requiresCaptcha }),
+          ...(error.failedAttempts !== undefined && { failedAttempts: error.failedAttempts }),
+        };
+      } else {
+        // Unknown error type - create default
+        normalizedError = {
+          error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+          code: 'UNEXPECTED_ERROR',
+        };
+      }
+      
+      // Final safety check - ensure normalizedError always has error and code
+      // Check multiple ways to ensure it's not empty
+      const hasErrorProperty = normalizedError && typeof normalizedError === 'object' && 'error' in normalizedError;
+      const hasCodeProperty = normalizedError && typeof normalizedError === 'object' && 'code' in normalizedError;
+      const errorValue = hasErrorProperty ? (normalizedError as any).error : null;
+      const codeValue = hasCodeProperty ? (normalizedError as any).code : null;
+      
+      if (!normalizedError || !hasErrorProperty || !hasCodeProperty || !errorValue || !codeValue) {
+        // Force create a proper error object
+        normalizedError = {
+          error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+          code: 'UNEXPECTED_ERROR',
+        };
+      }
+      
+      // Enhanced error logging in development mode only
       if (process.env.NODE_ENV === 'development') {
         try {
-          // Safely extract error information
-          const errorDetails: any = {
-            timestamp: new Date().toISOString(),
-            errorType: error === null ? 'null' : error === undefined ? 'undefined' : typeof error,
-            errorConstructor: error?.constructor?.name || 'Unknown',
-            errorMessage: error?.message || error?.toString() || 'No message available',
-            errorStack: error?.stack || 'No stack trace available',
-            errorString: String(error || 'null/undefined'),
-          };
-
-          // Safely serialize error object
-          if (error) {
-            try {
-              // Try to serialize with all properties
-              const errorKeys = Object.getOwnPropertyNames(error);
-              if (errorKeys.length > 0) {
-                const errorObj: any = {};
-                errorKeys.forEach(key => {
-                  try {
-                    const value = error[key];
-                    // Handle circular references and non-serializable values
-                    if (typeof value === 'function') {
-                      errorObj[key] = '[Function]';
-                    } else if (value instanceof Error) {
-                      errorObj[key] = {
-                        name: value.name,
-                        message: value.message,
-                        stack: value.stack?.substring(0, 200),
-                      };
-                    } else {
-                      errorObj[key] = value;
-                    }
-                  } catch {
-                    errorObj[key] = '[Unable to access]';
-                  }
-                });
-                errorDetails.errorJSON = JSON.stringify(errorObj, null, 2);
-                errorDetails.errorKeys = errorKeys;
-              } else {
-                errorDetails.errorJSON = 'Error object has no enumerable properties';
-                errorDetails.errorKeys = [];
-              }
-            } catch (serializeError: any) {
-              errorDetails.errorJSON = `Serialization failed: ${serializeError?.message || serializeError}`;
-            }
+          // Extract values safely with multiple fallbacks
+          const timestamp = new Date().toISOString();
+          const errorMessage = (normalizedError as any)?.error || 
+                              (normalizedError as any)?.message || 
+                              'Unknown error';
+          const errorCode = (normalizedError as any)?.code || 
+                           (normalizedError as any)?.errorCode || 
+                           'UNKNOWN_CODE';
+          
+          // Double-check that we have valid values (not empty strings or default values)
+          const hasValidMessage = errorMessage && errorMessage !== 'Unknown error' && errorMessage.trim().length > 0;
+          const hasValidCode = errorCode && errorCode !== 'UNKNOWN_CODE' && errorCode.trim().length > 0;
+          
+          if (!hasValidMessage || !hasValidCode) {
+            // If we still don't have good values, create a safe fallback
+            console.error('Login error (normalization failed):', {
+              timestamp: new Date().toISOString(),
+              error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول',
+              code: 'UNEXPECTED_ERROR',
+              note: 'Error object normalization completely failed',
+              originalErrorType: typeof error,
+              normalizedErrorType: typeof normalizedError,
+              normalizedErrorIsNull: normalizedError === null,
+              normalizedErrorIsUndefined: normalizedError === undefined,
+              extractedErrorMessage: errorMessage,
+              extractedErrorCode: errorCode,
+            });
           } else {
-            errorDetails.errorJSON = 'Error is null or undefined';
-          }
-
-          // Add additional properties if error is an object
-          if (error && typeof error === 'object') {
-            errorDetails.hasError = 'error' in error;
-            errorDetails.hasCode = 'code' in error;
-            errorDetails.hasStatus = 'status' in error;
-            errorDetails.hasStatusText = 'statusText' in error;
+            // Build log object step by step to ensure it's never empty
+            const logObject: Record<string, any> = {};
+            logObject.timestamp = timestamp;
+            logObject.error = errorMessage;
+            logObject.code = errorCode;
             
-            // Try to extract common error properties
-            if ('response' in error) {
-              errorDetails.hasResponse = true;
+            // Add normalized error info if available
+            if (normalizedError) {
+              if (normalizedError.status !== undefined) {
+                logObject.status = normalizedError.status;
+              }
+              if (normalizedError.retryAfterSeconds !== undefined) {
+                logObject.retryAfterSeconds = normalizedError.retryAfterSeconds;
+              }
+              if (normalizedError.requiresCaptcha !== undefined) {
+                logObject.requiresCaptcha = normalizedError.requiresCaptcha;
+              }
+              if (normalizedError.failedAttempts !== undefined) {
+                logObject.failedAttempts = normalizedError.failedAttempts;
+              }
+            }
+            
+            // Add additional debug info safely
+            if (error && typeof error === 'object' && !isEmptyObject) {
               try {
-                errorDetails.responseStatus = (error as any).response?.status;
-                errorDetails.responseData = (error as any).response?.data;
-              } catch {}
+                const errorKeys = getObjectKeys(error);
+                const errorType = typeof error;
+                const errorConstructor = error.constructor?.name || 'Unknown';
+                const hasErrorProp = 'error' in error;
+                const hasCodeProp = 'code' in error;
+                
+                // Build originalError object step by step to ensure it's never empty
+                const originalErrorInfo: Record<string, any> = {};
+                originalErrorInfo.type = errorType || 'unknown';
+                originalErrorInfo.constructor = errorConstructor;
+                originalErrorInfo.keys = Array.isArray(errorKeys) ? errorKeys : [];
+                originalErrorInfo.hasError = Boolean(hasErrorProp);
+                originalErrorInfo.hasCode = Boolean(hasCodeProp);
+                
+                // Only add if we have valid info
+                if (originalErrorInfo.type && originalErrorInfo.constructor) {
+                  logObject.originalError = originalErrorInfo;
+                } else {
+                  logObject.originalErrorExtractionFailed = true;
+                  logObject.originalErrorNote = 'Failed to extract error info safely';
+                }
+              } catch (e) {
+                // If we can't extract original error, at least note it
+                logObject.originalErrorExtractionFailed = true;
+                logObject.extractionError = e instanceof Error ? e.message : String(e);
+              }
+            }
+            
+            // Final safety check - ensure logObject has at least the required fields
+            // Check that logObject is not empty and has required properties
+            const logObjectKeys = Object.keys(logObject);
+            const hasRequiredFields = logObject.error && logObject.code && logObject.timestamp;
+            
+            if (!hasRequiredFields || logObjectKeys.length === 0) {
+              // If logObject is somehow incomplete or empty, create a minimal safe version
+              console.error('Login error (fallback):', {
+                timestamp: new Date().toISOString(),
+                error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول',
+                code: 'UNEXPECTED_ERROR',
+                note: 'Error normalization failed - logObject was incomplete',
+                logObjectKeys: logObjectKeys,
+                hasError: !!logObject.error,
+                hasCode: !!logObject.code,
+                hasTimestamp: !!logObject.timestamp,
+                normalizedErrorType: typeof normalizedError,
+                normalizedErrorKeys: normalizedError ? Object.keys(normalizedError) : [],
+              });
+            } else {
+              // Verify logObject is not empty before logging
+              const safeLogObject: Record<string, any> = {
+                timestamp: logObject.timestamp || new Date().toISOString(),
+                error: logObject.error || 'حدث خطأ أثناء تسجيل الدخول',
+                code: logObject.code || 'UNEXPECTED_ERROR',
+              };
+              
+              // Add optional fields only if they exist and are not empty
+              if (logObject.status !== undefined) {
+                safeLogObject.status = logObject.status;
+              }
+              if (logObject.retryAfterSeconds !== undefined) {
+                safeLogObject.retryAfterSeconds = logObject.retryAfterSeconds;
+              }
+              if (logObject.requiresCaptcha !== undefined) {
+                safeLogObject.requiresCaptcha = logObject.requiresCaptcha;
+              }
+              if (logObject.failedAttempts !== undefined) {
+                safeLogObject.failedAttempts = logObject.failedAttempts;
+              }
+              if (logObject.originalError && typeof logObject.originalError === 'object' && Object.keys(logObject.originalError).length > 0) {
+                safeLogObject.originalError = logObject.originalError;
+              }
+              if (logObject.originalErrorExtractionFailed) {
+                safeLogObject.originalErrorExtractionFailed = logObject.originalErrorExtractionFailed;
+              }
+              
+              // Log the properly formatted error
+              console.error('Login error:', safeLogObject);
             }
           }
-
-          // Ensure we always have meaningful information
-          if (Object.keys(errorDetails).length === 0) {
-            errorDetails.fallback = 'Error object is completely empty';
-          }
-
-          console.error('Login error details:', errorDetails);
-          // Also log the raw error for debugging
-          console.error('Raw error object:', error);
         } catch (logError) {
-          // Fallback if even logging fails
+          // If even logging fails, use a minimal safe log
           console.error('Login error (logging failed):', {
-            originalError: error,
-            loggingError: logError,
-            errorType: typeof error,
-            errorString: String(error),
+            timestamp: new Date().toISOString(),
+            error: 'حدث خطأ أثناء تسجيل الدخول',
+            code: 'LOG_ERROR',
+            loggingError: logError instanceof Error ? logError.message : String(logError),
+            originalErrorType: typeof error,
           });
         }
       }
       
-      // Handle login errors with better error normalization
-      handleLoginError(error);
+      // Handle login errors with normalized error
+      handleLoginError(normalizedError);
     } finally {
       setIsLoading(false);
     }
@@ -746,77 +930,49 @@ export default function EnhancedLoginForm() {
       await handleLoginSuccess(data);
 
     } catch (error: any) {
-      // Enhanced error logging with better details
-      if (process.env.NODE_ENV === 'development') {
-        try {
-          // Safely serialize error object
-          let errorJSON = 'Unable to serialize';
-          if (error) {
-            try {
-              // Try to serialize with all properties
-              const errorKeys = Object.getOwnPropertyNames(error);
-              const errorObj: any = {};
-              errorKeys.forEach(key => {
-                try {
-                  errorObj[key] = error[key];
-                } catch {
-                  errorObj[key] = '[Unable to access]';
-                }
-              });
-              errorJSON = JSON.stringify(errorObj, null, 2);
-            } catch (serializeError) {
-              errorJSON = `Serialization failed: ${serializeError}`;
-            }
-          }
-
-          const errorDetails: any = {
-            errorType: typeof error,
-            errorConstructor: error?.constructor?.name || 'Unknown',
-            errorMessage: error?.message || 'No message',
-            errorStack: error?.stack || 'No stack',
-            errorString: String(error || 'null/undefined'),
-          };
-
-          // Only add these if error is an object
-          if (error && typeof error === 'object') {
-            errorDetails.hasError = 'error' in error;
-            errorDetails.hasCode = 'code' in error;
-            errorDetails.errorKeys = Object.keys(error);
-            errorDetails.errorJSON = errorJSON;
-          }
-
-          console.error('2FA verification error details:', errorDetails);
-        } catch (logError) {
-          // Fallback if even logging fails
-          console.error('2FA verification error (logging failed):', error, logError);
-        }
-      }
+      // Normalize error first to ensure it has proper structure
+      let normalizedError: any = error;
       
-      // Normalize error - handle empty objects and various error formats
-      let errorMessage: string;
-      let errorCode: string;
-      
+      // Check if error is empty object or invalid
       if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
-        // Empty error object
-        errorMessage = 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
-        errorCode = 'TWO_FACTOR_UNEXPECTED_ERROR';
+        normalizedError = {
+          error: 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.',
+          code: 'TWO_FACTOR_UNEXPECTED_ERROR',
+        };
       } else if (error instanceof Error) {
-        // Native Error object
-        errorMessage = error.message || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
-        errorCode = 'TWO_FACTOR_UNEXPECTED_ERROR';
+        normalizedError = {
+          error: error.message || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.',
+          code: 'TWO_FACTOR_UNEXPECTED_ERROR',
+        };
       } else if (typeof error === 'string') {
-        // String error
-        errorMessage = error || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
-        errorCode = 'TWO_FACTOR_UNEXPECTED_ERROR';
-      } else if (error.error || error.code) {
-        // Already formatted error response
-        errorMessage = error.error || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
-        errorCode = error.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
+        normalizedError = {
+          error: error || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.',
+          code: 'TWO_FACTOR_UNEXPECTED_ERROR',
+        };
+      } else if (error && typeof error === 'object') {
+        normalizedError = {
+          error: error.error || error.message || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.',
+          code: error.code || 'TWO_FACTOR_UNEXPECTED_ERROR',
+        };
       } else {
-        // Unknown error format - try to extract message
-        errorMessage = error?.message || error?.toString() || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
-        errorCode = error?.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
+        normalizedError = {
+          error: 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.',
+          code: 'TWO_FACTOR_UNEXPECTED_ERROR',
+        };
       }
+      
+      // Enhanced error logging in development mode only
+      if (process.env.NODE_ENV === 'development') {
+        console.error('2FA verification error:', {
+          timestamp: new Date().toISOString(),
+          error: normalizedError.error,
+          code: normalizedError.code,
+        });
+      }
+      
+      // Use normalized error
+      const errorMessage = normalizedError.error || 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.';
+      const errorCode = normalizedError.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
       
       toast.error(errorMessage);
       setFormErrorMessage(errorMessage);
@@ -1570,26 +1726,29 @@ export default function EnhancedLoginForm() {
             )}
           </AnimatePresence>
 
-          {/* Google Login */}
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.7 }}
-            whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
-          whileTap={{ scale: 0.98 }}
-          type="button"
-          onClick={() => {
-            const redirectPath = getRedirectPath();
-            clearStoredRedirect();
-            window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
-          }}
-          disabled={isLoading}
-            className="flex items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
-            aria-label="تسجيل الدخول باستخدام حساب جوجل"
-          >
-            <Chrome className="h-5 w-5" aria-hidden="true" />
-            تسجيل الدخول بجوجل
-          </motion.button>
+          {/* Google Login - Only show if OAuth is configured */}
+          {isGoogleOAuthEnabled && (
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ delay: 0.7 }}
+              whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={() => {
+                const redirectPath = getRedirectPath();
+                clearStoredRedirect();
+                window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
+              }}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
+              aria-label="تسجيل الدخول باستخدام حساب جوجل"
+            >
+              <Chrome className="h-5 w-5" aria-hidden="true" />
+              تسجيل الدخول بجوجل
+            </motion.button>
+          )}
 
           {/* Test Account Login - Only in development */}
           {(process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS === 'true') && (

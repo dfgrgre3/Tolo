@@ -5,17 +5,23 @@ import { oauthConfig, generateState } from '@/lib/oauth';
 export async function GET(request: NextRequest) {
   try {
     // Validate OAuth configuration
-    if (!oauthConfig.google.clientId || oauthConfig.google.clientId.trim() === '') {
-      console.error('Google OAuth: GOOGLE_CLIENT_ID is not configured');
+    if (!oauthConfig.google.isConfigured()) {
+      const missingFields: string[] = [];
+      if (!oauthConfig.google.clientId || oauthConfig.google.clientId.trim() === '') {
+        missingFields.push('GOOGLE_CLIENT_ID');
+      }
+      if (!oauthConfig.google.clientSecret || oauthConfig.google.clientSecret.trim() === '') {
+        missingFields.push('GOOGLE_CLIENT_SECRET');
+      }
+      
+      console.error('Google OAuth: Missing configuration', { missingFields });
+      
+      const errorMessage = missingFields.length > 0
+        ? `إعدادات Google OAuth غير مكتملة. المتغيرات المفقودة: ${missingFields.join(', ')}. يرجى إضافة هذه المتغيرات إلى ملف .env.local`
+        : 'إعدادات Google OAuth غير مكتملة. يرجى التحقق من إعدادات الخادم.';
+      
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_not_configured&message=${encodeURIComponent('إعدادات Google OAuth غير مكتملة. يرجى التحقق من إعدادات الخادم.')}`
-      );
-    }
-
-    if (!oauthConfig.google.clientSecret || oauthConfig.google.clientSecret.trim() === '') {
-      console.error('Google OAuth: GOOGLE_CLIENT_SECRET is not configured');
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_not_configured&message=${encodeURIComponent('إعدادات Google OAuth غير مكتملة. يرجى التحقق من إعدادات الخادم.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_not_configured&message=${encodeURIComponent(errorMessage)}`
       );
     }
 
@@ -35,10 +41,19 @@ export async function GET(request: NextRequest) {
     const redirectParam = searchParams.get('redirect');
     const redirectPath = redirectParam || '/';
 
+    // Log configuration for debugging
+    console.log('Google OAuth Configuration:', {
+      clientId: oauthConfig.google.clientId.substring(0, 20) + '...',
+      redirectUri: oauthConfig.google.redirectUri,
+      baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+    });
+
     // Build OAuth URL with proper encoding
+    // redirect_uri is the complete URI stored in oauthConfig (e.g., http://localhost:3000/api/auth/google/callback)
+    // This must match exactly what is configured in Google Cloud Console
     const authParams = new URLSearchParams({
       client_id: oauthConfig.google.clientId,
-      redirect_uri: oauthConfig.google.redirectUri,
+      redirect_uri: oauthConfig.google.redirectUri, // Complete redirect URI from oauthConfig
       response_type: 'code',
       scope: 'openid email profile',
       state: state,
@@ -46,10 +61,11 @@ export async function GET(request: NextRequest) {
       prompt: 'consent',
     });
 
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${authParams.toString()}`;
+    console.log('Google OAuth URL:', authUrl.replace(/client_secret=[^&]+/g, 'client_secret=***'));
+
     // Store state in a cookie for later verification
-    const response = NextResponse.redirect(
-      `https://accounts.google.com/o/oauth2/v2/auth?${authParams.toString()}`
-    );
+    const response = NextResponse.redirect(authUrl);
 
     // Set state cookie
     response.cookies.set('oauth_state', state, {

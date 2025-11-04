@@ -27,19 +27,46 @@ export async function verifyToken(token: string) {
   }
 }
 
-// OAuth configuration
-export const oauthConfig = {
-  google: {
-    clientId: process.env.GOOGLE_CLIENT_ID || '',
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/google/callback`,
-  },
-  facebook: {
-    clientId: process.env.FACEBOOK_CLIENT_ID || '',
-    clientSecret: process.env.FACEBOOK_CLIENT_SECRET || '',
-    redirectUri: `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/auth/facebook/callback`,
-  },
-};
+// OAuth configuration with validation
+function getOAuthConfig() {
+  // Get base URL from environment variable (should be just the domain, e.g., http://localhost:3000)
+  // The redirect URI path will be appended automatically
+  const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').trim();
+  
+  // Remove trailing slash if present to avoid double slashes
+  const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
+  
+  // Build the complete redirect URI (this is what will be sent to Google OAuth)
+  // This must match exactly what is configured in Google Cloud Console
+  const googleRedirectUri = `${cleanBaseUrl}/api/auth/google/callback`;
+  
+  return {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+      // Complete redirect URI stored internally - this is used as redirect_uri when calling Google OAuth
+      redirectUri: googleRedirectUri,
+      isConfigured: () => {
+        const clientId = process.env.GOOGLE_CLIENT_ID || '';
+        const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
+        return clientId.trim() !== '' && clientSecret.trim() !== '';
+      },
+    },
+    facebook: {
+      clientId: process.env.FACEBOOK_CLIENT_ID || '',
+      clientSecret: process.env.FACEBOOK_CLIENT_SECRET || '',
+      // Complete redirect URI stored internally
+      redirectUri: `${cleanBaseUrl}/api/auth/facebook/callback`,
+      isConfigured: () => {
+        const clientId = process.env.FACEBOOK_CLIENT_ID || '';
+        const clientSecret = process.env.FACEBOOK_CLIENT_SECRET || '';
+        return clientId.trim() !== '' && clientSecret.trim() !== '';
+      },
+    },
+  };
+}
+
+export const oauthConfig = getOAuthConfig();
 
 // Generate a random state string for OAuth
 export function generateState() {

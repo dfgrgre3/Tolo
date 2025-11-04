@@ -114,12 +114,12 @@ export default function LoginPage() {
         <div className="absolute top-1/2 left-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500/20 blur-[180px]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-12 px-6 py-16 lg:flex-row lg:items-center lg:justify-between">
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 sm:gap-10 md:gap-12 px-4 sm:px-6 md:px-8 py-8 sm:py-12 md:py-16 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex-1 space-y-8 text-right">
           <span className="inline-flex items-center gap-2 rounded-full bg-indigo-500/15 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-200">
             بوابة thanawy الذكية
           </span>
-          <h1 className="text-4xl font-bold leading-snug md:text-5xl">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-snug">
             صفحة موحدة لتسجيل الدخول وإنشاء الحساب
           </h1>
           <p className="max-w-xl text-sm leading-7 text-slate-200/80 md:text-base md:leading-8">

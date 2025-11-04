@@ -1,0 +1,277 @@
+/**
+ * Enhanced Authentication Logger
+ * Provides structured logging for authentication events
+ */
+
+import { authService } from '../auth-service';
+
+export enum AuthLogLevel {
+  INFO = 'info',
+  WARN = 'warn',
+  ERROR = 'error',
+  DEBUG = 'debug',
+}
+
+export interface AuthLogEntry {
+  timestamp: Date;
+  level: AuthLogLevel;
+  event: string;
+  userId?: string | null;
+  ip: string;
+  userAgent?: string;
+  metadata?: Record<string, any>;
+  error?: string;
+  duration?: number; // Duration in milliseconds
+}
+
+export class AuthLogger {
+  private static instance: AuthLogger;
+  private logs: AuthLogEntry[] = [];
+  private maxLogs = 1000; // Keep last 1000 logs in memory
+
+  private constructor() {
+    // Cleanup old logs periodically
+    setInterval(() => this.cleanup(), 60 * 1000); // Every minute
+  }
+
+  public static getInstance(): AuthLogger {
+    if (!AuthLogger.instance) {
+      AuthLogger.instance = new AuthLogger();
+    }
+    return AuthLogger.instance;
+  }
+
+  /**
+   * Log authentication event
+   */
+  async log(
+    level: AuthLogLevel,
+    event: string,
+    userId: string | null,
+    ip: string,
+    metadata?: Record<string, any>,
+    error?: string
+  ): Promise<void> {
+    const logEntry: AuthLogEntry = {
+      timestamp: new Date(),
+      level,
+      event,
+      userId,
+      ip,
+      userAgent: metadata?.userAgent,
+      metadata,
+      error,
+    };
+
+    // Store in memory
+    this.logs.push(logEntry);
+    if (this.logs.length > this.maxLogs) {
+      this.logs.shift(); // Remove oldest
+    }
+
+    // Also log to security log (database)
+    try {
+      await authService.logSecurityEvent(userId, event, ip, {
+        ...metadata,
+        level,
+        error,
+      });
+    } catch (dbError) {
+      // Don't fail if DB logging fails, but log it
+      console.error('Failed to log to database:', dbError);
+    }
+
+    // Console logging based on level
+    const logMessage = `[Auth ${level.toUpperCase()}] ${event}${userId ? ` - User: ${userId}` : ''} - IP: ${ip}`;
+    
+    switch (level) {
+      case AuthLogLevel.ERROR:
+        console.error(logMessage, error || metadata);
+        break;
+      case AuthLogLevel.WARN:
+        console.warn(logMessage, metadata);
+        break;
+      case AuthLogLevel.DEBUG:
+        if (process.env.NODE_ENV === 'development') {
+          console.debug(logMessage, metadata);
+        }
+        break;
+      default:
+        console.log(logMessage, metadata);
+    }
+  }
+
+  /**
+   * Log info event
+   */
+  async info(event: string, userId: string | null, ip: string, metadata?: Record<string, any>): Promise<void> {
+    return this.log(AuthLogLevel.INFO, event, userId, ip, metadata);
+  }
+
+  /**
+   * Log warning event
+   */
+  async warn(event: string, userId: string | null, ip: string, metadata?: Record<string, any>): Promise<void> {
+    return this.log(AuthLogLevel.WARN, event, userId, ip, metadata);
+  }
+
+  /**
+   * Log error event
+   */
+  async error(event: string, userId: string | null, ip: string, error: string, metadata?: Record<string, any>): Promise<void> {
+    return this.log(AuthLogLevel.ERROR, event, userId, ip, metadata, error);
+  }
+
+  /**
+   * Log debug event
+   */
+  async debug(event: string, userId: string | null, ip: string, metadata?: Record<string, any>): Promise<void> {
+    return this.log(AuthLogLevel.DEBUG, event, userId, ip, metadata);
+  }
+
+  /**
+   * Time an operation and log it
+   */
+  async time<T>(
+    event: string,
+    userId: string | null,
+    ip: string,
+    operation: () => Promise<T>,
+    metadata?: Record<string, any>
+  ): Promise<T> {
+    const startTime = Date.now();
+    
+    try {
+      const result = await operation();
+      const duration = Date.now() - startTime;
+      
+      await this.log(
+        AuthLogLevel.INFO,
+        event,
+        userId,
+        ip,
+        { ...metadata, duration },
+      );
+      
+      return result;
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      await this.log(
+        AuthLogLevel.ERROR,
+        `${event}_failed`,
+        userId,
+        ip,
+        { ...metadata, duration },
+        errorMessage
+      );
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Get recent logs
+   */
+  getRecentLogs(limit: number = 100): AuthLogEntry[] {
+    return this.logs.slice(-limit).reverse(); // Most recent first
+  }
+
+  /**
+   * Get logs by event type
+   */
+  getLogsByEvent(event: string, limit: number = 100): AuthLogEntry[] {
+    return this.logs
+      .filter(log => log.event === event)
+      .slice(-limit)
+      .reverse();
+  }
+
+  /**
+   * Get logs by user
+   */
+  getLogsByUser(userId: string, limit: number = 100): AuthLogEntry[] {
+    return this.logs
+      .filter(log => log.userId === userId)
+      .slice(-limit)
+      .reverse();
+  }
+
+  /**
+   * Get logs by IP
+   */
+  getLogsByIP(ip: string, limit: number = 100): AuthLogEntry[] {
+    return this.logs
+      .filter(log => log.ip === ip)
+      .slice(-limit)
+      .reverse();
+  }
+
+  /**
+   * Get error logs
+   */
+  getErrorLogs(limit: number = 100): AuthLogEntry[] {
+    return this.logs
+      .filter(log => log.level === AuthLogLevel.ERROR)
+      .slice(-limit)
+      .reverse();
+  }
+
+  /**
+   * Get statistics
+   */
+  getStats(): {
+    total: number;
+    byLevel: Record<AuthLogLevel, number>;
+    byEvent: Record<string, number>;
+    recentErrors: number;
+  } {
+    const byLevel: Record<AuthLogLevel, number> = {
+      [AuthLogLevel.INFO]: 0,
+      [AuthLogLevel.WARN]: 0,
+      [AuthLogLevel.ERROR]: 0,
+      [AuthLogLevel.DEBUG]: 0,
+    };
+
+    const byEvent: Record<string, number> = {};
+    let recentErrors = 0;
+
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+    for (const log of this.logs) {
+      byLevel[log.level]++;
+      byEvent[log.event] = (byEvent[log.event] || 0) + 1;
+      
+      if (log.level === AuthLogLevel.ERROR && log.timestamp.getTime() > oneHourAgo) {
+        recentErrors++;
+      }
+    }
+
+    return {
+      total: this.logs.length,
+      byLevel,
+      byEvent,
+      recentErrors,
+    };
+  }
+
+  /**
+   * Cleanup old logs
+   */
+  private cleanup(): void {
+    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    this.logs = this.logs.filter(log => log.timestamp.getTime() > oneDayAgo);
+  }
+
+  /**
+   * Clear all logs
+   */
+  clear(): void {
+    this.logs = [];
+  }
+}
+
+// Export singleton instance
+export const authLogger = AuthLogger.getInstance();
+

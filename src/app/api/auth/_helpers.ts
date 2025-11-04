@@ -90,30 +90,78 @@ export function clearAuthCookies(response: NextResponse): void {
 
 /**
  * Helper function to check if error is a connection/database error
+ * Improved to handle more error types and Prisma-specific errors
  */
 export function isConnectionError(error: unknown): boolean {
+  if (!error) {
+    return false;
+  }
+
+  // Check for Prisma error codes
+  if (error && typeof error === 'object' && 'code' in error) {
+    const errorCode = String((error as any).code).toUpperCase();
+    // P1xxx codes are connection errors
+    if (errorCode.startsWith('P1')) {
+      return true;
+    }
+    // P2002 can be a connection issue (race condition)
+    if (errorCode === 'P2002') {
+      return true;
+    }
+  }
+
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : '';
-  const fullError = `${errorMessage} ${errorStack}`.toLowerCase();
+  const errorName = error instanceof Error ? error.name : '';
+  const fullError = `${errorName} ${errorMessage} ${errorStack}`.toLowerCase();
   
-  return (
-    fullError.includes('connect') ||
-    fullError.includes('econnrefused') ||
-    fullError.includes('etimedout') ||
-    fullError.includes('database') ||
-    fullError.includes('prisma') ||
-    fullError.includes('timeout') ||
-    fullError.includes('p1001') || // Prisma connection error
-    fullError.includes('p1017') || // Prisma server closed connection
-    fullError.includes('p2002') || // Prisma unique constraint
-    fullError.includes('enotfound') ||
-    fullError.includes('econnreset') ||
-    fullError.includes('networkerror') ||
-    fullError.includes('failed to fetch') ||
-    fullError.includes('fetch error') ||
-    fullError.includes('cannot read properties') ||
-    fullError.includes('undefined')
-  );
+  // Connection-related keywords
+  const connectionKeywords = [
+    'connect',
+    'connection',
+    'econnrefused',
+    'etimedout',
+    'econnreset',
+    'enotfound',
+    'networkerror',
+    'network error',
+    'failed to fetch',
+    'fetch error',
+    'connection timeout',
+    'connection refused',
+    'connection lost',
+    'connection closed',
+    'socket hang up',
+    'econnaborted',
+  ];
+  
+  // Database-related keywords
+  const databaseKeywords = [
+    'database',
+    'prisma',
+    'query timeout',
+    'connection pool',
+    'pool exhausted',
+    'too many connections',
+    'cannot read properties',
+    'undefined',
+  ];
+  
+  // Check if error message contains any connection keywords
+  if (connectionKeywords.some(keyword => fullError.includes(keyword))) {
+    return true;
+  }
+  
+  // Check if error message contains database keywords (but not data validation errors)
+  if (databaseKeywords.some(keyword => fullError.includes(keyword))) {
+    // Exclude data validation errors (P2000-P2009 except P2002)
+    const prismaDataErrorPattern = /p20[0-9][0-9]/;
+    if (!prismaDataErrorPattern.test(fullError) || fullError.includes('p2002')) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**

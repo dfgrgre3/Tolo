@@ -214,9 +214,9 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="container mx-auto p-4 font-sans">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">مركز المهام</h1>
+    <div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 max-w-7xl font-sans">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">مركز المهام</h1>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => reset()}>

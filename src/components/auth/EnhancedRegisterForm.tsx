@@ -37,6 +37,26 @@ type PasswordStrength = PasswordStrengthDisplay;
 export default function EnhancedRegisterForm() {
   const router = useRouter();
   const { login } = useAuth();
+  const [isGoogleOAuthEnabled, setIsGoogleOAuthEnabled] = useState<boolean>(true); // Default to true to avoid flash
+  
+  // Check OAuth provider status
+  useEffect(() => {
+    const checkOAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/oauth/status');
+        if (response.ok) {
+          const data = await response.json();
+          setIsGoogleOAuthEnabled(data.providers?.google?.enabled ?? false);
+        }
+      } catch (error) {
+        console.error('Failed to check OAuth status:', error);
+        // If check fails, default to false for safety
+        setIsGoogleOAuthEnabled(false);
+      }
+    };
+    
+    checkOAuthStatus();
+  }, []);
   
   // Get redirect parameter from URL
   const getRedirectPath = () => {
@@ -938,16 +958,18 @@ export default function EnhancedRegisterForm() {
           </div>
         </div>
 
-        {/* Google Signup */}
-        <button
-          type="button"
-          onClick={handleGoogleSignup}
-          disabled={isLoading}
-          className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
-        >
-          <Chrome className="h-5 w-5" />
-          التسجيل بواسطة جوجل
-        </button>
+        {/* Google Signup - Only show if OAuth is configured */}
+        {isGoogleOAuthEnabled && (
+          <button
+            type="button"
+            onClick={handleGoogleSignup}
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
+          >
+            <Chrome className="h-5 w-5" />
+            التسجيل بواسطة جوجل
+          </button>
+        )}
       </form>
 
       {/* Security Notice */}

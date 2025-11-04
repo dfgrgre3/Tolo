@@ -167,11 +167,73 @@ export const closeDatabaseConnection = async () => {
   await prisma.$disconnect();
 };
 
-// Health check function
-export const checkDatabaseHealth = async () => {
-  try {
+/**
+ * Check if an error is a connection-related error that can be retried
+ */
+function isConnectionError(error: unknown): boolean {
+  if (!error) return false;
+  
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const errorCode = (error as any)?.code || '';
+  const fullError = `${errorMessage} ${errorCode}`.toLowerCase();
+  
+  return (
+    fullError.includes('connect') ||
+    fullError.includes('econnrefused') ||
+    fullError.includes('etimedout') ||
+    fullError.includes('p1001') || // Prisma connection error
+    fullError.includes('p1017') || // Prisma server closed connection
+    fullError.includes('enotfound') ||
+    fullError.includes('econnreset') ||
+    fullError.includes('epipe') ||
+    fullError.includes('sqlite') ||
+    fullError.includes('database') ||
+    fullError.includes('timeout')
+  );
+}
+
+/**
+ * Retry a database operation with exponential backoff
+ */
+async function retryDatabaseOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  initialDelay: number = 1000
+): Promise<T> {
+  let lastError: unknown;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      // Only retry on connection errors
+      if (!isConnectionError(error) || attempt === maxRetries) {
+        throw error;
+      }
+      
+      // Calculate delay with exponential backoff
+      const delay = initialDelay * Math.pow(2, attempt - 1);
+      console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, {
+        error: error instanceof Error ? error.message : String(error),
+        attempt,
+        maxRetries
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+}
+
+// Health check function with retry logic
+export const checkDatabaseHealth = async (retry: boolean = true): Promise<boolean> => {
+  const operation = async () => {
     // For SQLite, we should first check if the database file exists and is accessible
     const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+    
     if (databaseUrl.startsWith('file:')) {
       // This is SQLite - check if file exists and is readable
       const fsPromises = await import('fs/promises');
@@ -184,15 +246,68 @@ export const checkDatabaseHealth = async () => {
       try {
         await fsPromises.access(fullPath);
       } catch (accessError) {
-        console.error(`Database file not accessible at ${fullPath}:`, accessError);
-        return false;
+        // If database file doesn't exist, try to create it
+        console.warn(`Database file not found at ${fullPath}, attempting to create directory structure...`);
+        try {
+          const dir = pathModule.dirname(fullPath);
+          await fsPromises.mkdir(dir, { recursive: true });
+          // File will be created by Prisma when we try to connect
+        } catch (mkdirError) {
+          console.error(`Failed to create database directory:`, mkdirError);
+          throw new Error(`Database file not accessible and cannot create directory: ${fullPath}`);
+        }
       }
     }
     
+    // Test connection with a simple query
     await prisma.$queryRaw`SELECT 1`;
     return true;
+  };
+
+  try {
+    if (retry) {
+      await retryDatabaseOperation(operation, 3, 1000);
+      return true;
+    } else {
+      return await operation();
+    }
   } catch (error) {
-    console.error('Database health check failed:', error);
+    console.error('Database health check failed:', {
+      error: error instanceof Error ? error.message : String(error),
+      code: (error as any)?.code,
+      databaseUrl: process.env.DATABASE_URL ? '***' : 'not set'
+    });
+    return false;
+  }
+};
+
+/**
+ * Ensure database connection is established
+ * This function will attempt to connect and retry if necessary
+ */
+export const ensureDatabaseConnection = async (): Promise<boolean> => {
+  try {
+    // First check if Prisma client is available
+    if (!prisma) {
+      console.error('Prisma client is not available');
+      return false;
+    }
+
+    // Try to connect
+    try {
+      await prisma.$connect();
+    } catch (connectError) {
+      // If already connected, this might throw, but it's okay
+      if (!isConnectionError(connectError)) {
+        console.warn('Connection attempt:', connectError instanceof Error ? connectError.message : String(connectError));
+      }
+    }
+
+    // Verify connection with health check
+    const isHealthy = await checkDatabaseHealth(true);
+    return isHealthy;
+  } catch (error) {
+    console.error('Failed to ensure database connection:', error);
     return false;
   }
 };

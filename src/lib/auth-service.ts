@@ -92,6 +92,13 @@ export class AuthService {
    * Improved with better validation and error handling
    */
   async createTokens(user: AuthUser, sessionId?: string): Promise<{ accessToken: string; refreshToken: string }> {
+    // Validate JWT_SECRET before proceeding
+    const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+    if (!jwtSecret || jwtSecret === 'your-secret-key' || jwtSecret.trim().length < 32) {
+      console.error('JWT_SECRET validation failed in createTokens');
+      throw new Error('JWT_SECRET is not configured properly. Please set a valid JWT_SECRET in environment variables.');
+    }
+
     // Validate user data
     if (!user || !user.id || !user.email) {
       throw new Error('User data is required for token creation');
@@ -145,9 +152,24 @@ export class AuthService {
       }
 
       return { accessToken, refreshToken };
-    } catch (error) {
-      console.error('Error creating tokens:', error);
-      throw new Error(`Failed to create authentication tokens: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } catch (error: unknown) {
+      console.error('Error creating tokens:', {
+        error,
+        errorType: typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        hasUser: !!user,
+        userId: user?.id,
+      });
+      
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('JWT') || error.message.includes('secret')) {
+          throw new Error('JWT configuration error: Please check JWT_SECRET environment variable.');
+        }
+        throw new Error(`Failed to create authentication tokens: ${error.message}`);
+      }
+      
+      throw new Error('Failed to create authentication tokens: Unknown error');
     }
   }
 
@@ -298,12 +320,37 @@ export class AuthService {
   // ==================== USER OPERATIONS ====================
 
   /**
-   * Find user by email
+   * Find user by email with caching
    */
   async findUserByEmail(email: string) {
-    return prisma.user.findUnique({
+    // Try to get from cache first
+    try {
+      const { authCache, CacheKeys } = await import('./cache/auth-cache');
+      const cached = authCache.get(CacheKeys.userByEmail(email));
+      if (cached) {
+        return cached;
+      }
+    } catch (cacheError) {
+      // Cache not available, continue with DB query
+      console.warn('Cache not available, using database:', cacheError);
+    }
+
+    // Fetch from database
+    const user = await prisma.user.findUnique({
       where: { email },
     });
+
+    // Cache the result if found
+    if (user) {
+      try {
+        const { authCache, CacheKeys } = await import('./cache/auth-cache');
+        authCache.set(CacheKeys.userByEmail(email), user, 5 * 60 * 1000); // Cache for 5 minutes
+      } catch (cacheError) {
+        // Ignore cache errors
+      }
+    }
+
+    return user;
   }
 
   /**
@@ -357,13 +404,22 @@ export class AuthService {
   }
 
   /**
-   * Delete a session
+   * Delete a session and invalidate cache
    */
   async deleteSession(sessionId: string): Promise<boolean> {
     try {
       await prisma.session.delete({
         where: { id: sessionId }
       });
+      
+      // Invalidate cache
+      try {
+        const { authCache, CacheKeys } = await import('./cache/auth-cache');
+        authCache.delete(CacheKeys.session(sessionId));
+      } catch (cacheError) {
+        // Ignore cache errors
+      }
+      
       return true;
     } catch {
       return false;
@@ -371,12 +427,37 @@ export class AuthService {
   }
 
   /**
-   * Get session by ID
+   * Get session by ID with caching
    */
   async getSession(sessionId: string) {
-    return prisma.session.findUnique({
+    // Try to get from cache first
+    try {
+      const { authCache, CacheKeys } = await import('./cache/auth-cache');
+      const cached = authCache.get(CacheKeys.session(sessionId));
+      if (cached) {
+        return cached;
+      }
+    } catch (cacheError) {
+      // Cache not available, continue with DB query
+    }
+
+    // Fetch from database
+    const session = await prisma.session.findUnique({
       where: { id: sessionId }
     });
+
+    // Cache the result if found
+    if (session) {
+      try {
+        const { authCache, CacheKeys } = await import('./cache/auth-cache');
+        // Cache for shorter time since sessions can change
+        authCache.set(CacheKeys.session(sessionId), session, 2 * 60 * 1000); // Cache for 2 minutes
+      } catch (cacheError) {
+        // Ignore cache errors
+      }
+    }
+
+    return session;
   }
 
   /**

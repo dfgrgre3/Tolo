@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Fingerprint, Chrome, Sparkles } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 interface AlternativeLoginMethodsProps {
   onBiometricLogin: () => void;
@@ -20,6 +21,27 @@ export function AlternativeLoginMethods({
   showBiometric = true,
   showTestAccount = false,
 }: AlternativeLoginMethodsProps) {
+  const [isGoogleOAuthEnabled, setIsGoogleOAuthEnabled] = useState<boolean>(true); // Default to true to avoid flash
+
+  // Check OAuth provider status
+  useEffect(() => {
+    const checkOAuthStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/oauth/status');
+        if (response.ok) {
+          const data = await response.json();
+          setIsGoogleOAuthEnabled(data.providers?.google?.enabled ?? false);
+        }
+      } catch (error) {
+        console.error('Failed to check OAuth status:', error);
+        // If check fails, default to false for safety
+        setIsGoogleOAuthEnabled(false);
+      }
+    };
+    
+    checkOAuthStatus();
+  }, []);
+
   return (
     <>
       {/* Divider */}
@@ -78,22 +100,27 @@ export function AlternativeLoginMethods({
           )}
         </AnimatePresence>
 
-        {/* Google Login */}
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.7 }}
-          whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
-          whileTap={{ scale: 0.98 }}
-          type="button"
-          onClick={onGoogleLogin}
-          disabled={isLoading}
-          className="flex items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
-          aria-label="تسجيل الدخول باستخدام حساب جوجل"
-        >
-          <Chrome className="h-5 w-5" aria-hidden="true" />
-          تسجيل الدخول بجوجل
-        </motion.button>
+        {/* Google Login - Only show if OAuth is configured */}
+        <AnimatePresence>
+          {isGoogleOAuthEnabled && (
+            <motion.button
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ delay: 0.7 }}
+              whileHover={{ scale: 1.02, backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
+              whileTap={{ scale: 0.98 }}
+              type="button"
+              onClick={onGoogleLogin}
+              disabled={isLoading}
+              className="flex items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
+              aria-label="تسجيل الدخول باستخدام حساب جوجل"
+            >
+              <Chrome className="h-5 w-5" aria-hidden="true" />
+              تسجيل الدخول بجوجل
+            </motion.button>
+          )}
+        </AnimatePresence>
 
         {/* Test Account Login - Only in development */}
         {showTestAccount && onTestAccountLogin && (

@@ -42,10 +42,17 @@ This will generate the Prisma Client based on your schema.prisma file.
   }
 
   try {
+    const databaseUrl = process.env.DATABASE_URL || databaseConfig.sqlite.url;
+    
+    // Validate DATABASE_URL format
+    if (!databaseUrl) {
+      console.warn('DATABASE_URL is not set, using default SQLite database');
+    }
+
     const prisma = new PrismaClient({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL || databaseConfig.sqlite.url,
+          url: databaseUrl,
         },
       },
       log: databaseConfig.common.logQueries
@@ -53,8 +60,17 @@ This will generate the Prisma Client based on your schema.prisma file.
             { level: 'query', emit: 'event' },
             { level: 'info', emit: 'event' },
             { level: 'warn', emit: 'event' },
+            { level: 'error', emit: 'event' },
           ]
-        : undefined,
+        : [
+            { level: 'error', emit: 'event' },
+            { level: 'warn', emit: 'event' },
+          ],
+    });
+
+    // Add error handler for connection errors
+    prisma.$on('error' as any, (e: any) => {
+      console.error('Prisma error event:', e);
     });
 
     if (databaseConfig.common.logSlowQueries) {
@@ -68,6 +84,60 @@ This will generate the Prisma Client based on your schema.prisma file.
         }
       });
     }
+
+    // Add connection error handling with improved retry logic
+    prisma.$use(async (params, next) => {
+      try {
+        return await next(params);
+      } catch (error: any) {
+        // Handle connection errors
+        if (error?.code === 'P1001' || error?.code === 'P1017' || 
+            error?.message?.includes('Connection') ||
+            error?.message?.includes('ECONNREFUSED') ||
+            error?.message?.includes('ETIMEDOUT')) {
+          console.error('Database connection error:', {
+            code: error.code,
+            message: error.message,
+            databaseUrl: databaseUrl ? '***' : 'not set'
+          });
+          
+          // Try to reconnect with retry
+          let reconnectSuccess = false;
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            try {
+              // Disconnect if needed
+              try {
+                await prisma.$disconnect();
+              } catch (disconnectError) {
+                // Ignore disconnect errors
+              }
+              
+              // Wait a bit before reconnecting
+              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+              
+              // Try to reconnect
+              await prisma.$connect();
+              console.log(`Database reconnected successfully (attempt ${attempt})`);
+              reconnectSuccess = true;
+              
+              // Retry the operation once after successful reconnection
+              return await next(params);
+            } catch (reconnectError: any) {
+              console.warn(`Reconnection attempt ${attempt} failed:`, reconnectError.message);
+              if (attempt === 3) {
+                console.error('Failed to reconnect to database after all attempts');
+                throw error; // Throw original error
+              }
+            }
+          }
+          
+          if (!reconnectSuccess) {
+            throw error;
+          }
+        }
+        throw error;
+      }
+    });
 
     return prisma;
   } catch (error: any) {
@@ -84,6 +154,25 @@ Or if using npm:
 Original error: ${error.message}
       `.trim();
       
+      throw new Error(errorMessage);
+    }
+    
+    // Handle EPERM errors (Windows file locking issues)
+    if (error?.code === 'EPERM' || error?.message?.includes('EPERM')) {
+      const errorMessage = `
+Prisma Client generation failed due to file permission error (EPERM).
+This usually happens when the Prisma Client files are locked by another process.
+
+Solutions:
+1. Close any running development servers or processes using Prisma
+2. Try running: npx prisma generate
+3. If the issue persists, restart your terminal/IDE
+4. On Windows, check if any antivirus is blocking the file
+
+Original error: ${error.message}
+      `.trim();
+      
+      console.error(errorMessage);
       throw new Error(errorMessage);
     }
     
