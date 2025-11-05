@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 export async function POST(request: NextRequest) {
+  return opsWrapper(request, async (req) => {
   try {
-    const { subject, year, lesson, difficulty, questionCount, provider } = await request.json();
+    const { subject, year, lesson, difficulty, questionCount, provider } = await req.json();
 
     if (!subject || !year || !lesson) {
       return NextResponse.json(
@@ -147,4 +149,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

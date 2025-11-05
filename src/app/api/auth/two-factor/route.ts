@@ -5,6 +5,10 @@ import { SignJWT, jwtVerify } from 'jose';
 import { TextEncoder } from 'util';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
 import { authService } from '@/lib/auth-service';
+import { verifyTOTP, disableTOTP } from '@/lib/two-factor/totp-service';
+import { verifyAndConsumeRecoveryCode } from '@/lib/two-factor/recovery-codes';
+import { securityLogger } from '@/lib/security-logger';
+import { securityNotificationService } from '@/lib/security/security-notifications';
 import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorResponse } from '@/types/api/auth';
 import { setAuthCookies, createErrorResponse } from '@/app/api/auth/_helpers';
 
@@ -187,11 +191,11 @@ export async function POST(request: NextRequest) {
       case 'setup':
         return await handleSetup2FA(user);
       case 'verify':
-        return await handleVerify2FA(user, code);
+        return await handleVerify2FA(user, code, request);
       case 'disable':
-        return await handleDisable2FA(user, code);
+        return await handleDisable2FA(user, code, request);
       case 'backup-code':
-        return await handleBackupCode(user, backupCode);
+        return await handleBackupCode(user, backupCode, request);
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
@@ -246,7 +250,7 @@ async function handleSetup2FA(user: any) {
 }
 
 // Handle 2FA verification
-async function handleVerify2FA(user: any, code: string) {
+async function handleVerify2FA(user: any, code: string, request: NextRequest) {
   try {
     if (!code) {
       return NextResponse.json(
@@ -262,14 +266,30 @@ async function handleVerify2FA(user: any, code: string) {
       );
     }
 
-    // TODO: Replace with proper TOTP verification using a library like speakeasy or otplib
-    // This is a placeholder implementation - NOT SECURE FOR PRODUCTION
-    // Example implementation:
-    // import { authenticator } from 'otplib';
-    // const isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
-    const isValid = code === '123456'; // PLACEHOLDER - Replace with real TOTP verification
+    // Verify TOTP code using real implementation
+    const isValid = verifyTOTP(user.twoFactorSecret, code);
+
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
 
     if (!isValid) {
+      // Log failed verification attempt
+      await Promise.all([
+        authService.logSecurityEvent(user.id, 'two_factor_verify_failed', ip, {
+          userAgent,
+          method: 'TOTP',
+        }),
+        securityLogger.logEvent({
+          userId: user.id,
+          eventType: 'TWO_FACTOR_VERIFY_FAILED',
+          ip,
+          userAgent,
+          metadata: { method: 'TOTP' },
+        }),
+      ]).catch(() => {
+        // Non-blocking log failure
+      });
+
       return NextResponse.json(
         { error: 'رمز التحقق غير صحيح' },
         { status: 400 }
@@ -282,13 +302,26 @@ async function handleVerify2FA(user: any, code: string) {
       data: { twoFactorEnabled: true }
     });
 
-    // Log security event
-    await authService.logSecurityEvent(user.id, '2fa_enabled', 'unknown', {
-      userAgent: 'unknown',
+    // Log security events
+    await Promise.all([
+      authService.logSecurityEvent(user.id, 'two_factor_enabled', ip, {
+        userAgent,
+        method: 'TOTP',
+      }),
+      securityLogger.logEvent({
+        userId: user.id,
+        eventType: 'TWO_FACTOR_ENABLED',
+        ip,
+        userAgent,
+        metadata: { method: 'TOTP' },
+      }),
+      securityNotificationService.notify2FAStatusChange(user.id, true, ip),
+    ]).catch(() => {
+      // Non-blocking log failure
     });
 
     return NextResponse.json({
-      message: '2FA has been enabled successfully'
+      message: 'تم تفعيل المصادقة الثنائية بنجاح'
     });
   } catch (error) {
     console.error('2FA verification error:', error);
@@ -300,7 +333,7 @@ async function handleVerify2FA(user: any, code: string) {
 }
 
 // Handle 2FA disabling
-async function handleDisable2FA(user: any, code: string) {
+async function handleDisable2FA(user: any, code: string, request: NextRequest) {
   try {
     if (!code) {
       return NextResponse.json(
@@ -316,50 +349,65 @@ async function handleDisable2FA(user: any, code: string) {
       );
     }
 
-    // TODO: Replace with proper TOTP verification using a library like speakeasy or otplib
-    // This is a placeholder implementation - NOT SECURE FOR PRODUCTION
-    // Example implementation:
-    // import { authenticator } from 'otplib';
-    // const isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
-    const isValid = code === '123456'; // PLACEHOLDER - Replace with real TOTP verification
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
 
-    if (!isValid) {
-      // Check if it's a backup code
-      const backupCodes = user.backupCodes ? JSON.parse(user.backupCodes) : [];
-      const backupCodeIndex = backupCodes.indexOf(code);
-
-      if (backupCodeIndex === -1) {
-        return NextResponse.json(
-          { error: 'رمز التحقق غير صحيح' },
-          { status: 400 }
-        );
-      }
-
-      // Remove the used backup code
-      backupCodes.splice(backupCodeIndex, 1);
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { backupCodes: JSON.stringify(backupCodes) }
-      });
+    // Try TOTP verification first
+    let isValid = false;
+    if (user.twoFactorSecret) {
+      isValid = verifyTOTP(user.twoFactorSecret, code);
     }
 
-    // Disable 2FA
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { 
-        twoFactorEnabled: false,
-        twoFactorSecret: null,
-        backupCodes: null
-      }
-    });
+    // If TOTP verification failed, try recovery code
+    if (!isValid) {
+      isValid = await verifyAndConsumeRecoveryCode(user.id, code);
+    }
 
-    // Log security event
-    await authService.logSecurityEvent(user.id, '2fa_disabled', 'unknown', {
-      userAgent: 'unknown',
+    if (!isValid) {
+      // Log failed disable attempt
+      await Promise.all([
+        authService.logSecurityEvent(user.id, 'two_factor_disable_failed', ip, {
+          userAgent,
+          reason: 'invalid_code',
+        }),
+        securityLogger.logEvent({
+          userId: user.id,
+          eventType: 'TWO_FACTOR_DISABLE_FAILED',
+          ip,
+          userAgent,
+          metadata: { reason: 'invalid_code' },
+        }),
+      ]).catch(() => {
+        // Non-blocking log failure
+      });
+
+      return NextResponse.json(
+        { error: 'رمز التحقق غير صحيح' },
+        { status: 400 }
+      );
+    }
+
+    // Disable 2FA using proper service (code already verified)
+    await disableTOTP(user.id);
+
+    // Log security events
+    await Promise.all([
+      authService.logSecurityEvent(user.id, 'two_factor_disabled', ip, {
+        userAgent,
+      }),
+      securityLogger.logEvent({
+        userId: user.id,
+        eventType: 'TWO_FACTOR_DISABLED',
+        ip,
+        userAgent,
+      }),
+      securityNotificationService.notify2FAStatusChange(user.id, false, ip),
+    ]).catch(() => {
+      // Non-blocking log failure
     });
 
     return NextResponse.json({
-      message: '2FA has been disabled successfully'
+      message: 'تم إلغاء تفعيل المصادقة الثنائية بنجاح'
     });
   } catch (error) {
     console.error('2FA disable error:', error);
@@ -371,7 +419,7 @@ async function handleDisable2FA(user: any, code: string) {
 }
 
 // Handle backup code verification
-async function handleBackupCode(user: any, backupCode: string) {
+async function handleBackupCode(user: any, backupCode: string, request: NextRequest) {
   try {
     if (!backupCode) {
       return NextResponse.json(
@@ -387,26 +435,59 @@ async function handleBackupCode(user: any, backupCode: string) {
       );
     }
 
-    const backupCodes = user.backupCodes ? JSON.parse(user.backupCodes) : [];
-    const backupCodeIndex = backupCodes.indexOf(backupCode);
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
 
-    if (backupCodeIndex === -1) {
+    // Verify and consume recovery code using proper service
+    const isValid = await verifyAndConsumeRecoveryCode(user.id, backupCode);
+
+    if (!isValid) {
+      // Log failed backup code attempt
+      await Promise.all([
+        authService.logSecurityEvent(user.id, 'two_factor_backup_code_failed', ip, {
+          userAgent,
+        }),
+        securityLogger.logEvent({
+          userId: user.id,
+          eventType: 'TWO_FACTOR_BACKUP_CODE_FAILED',
+          ip,
+          userAgent,
+        }),
+      ]).catch(() => {
+        // Non-blocking log failure
+      });
+
       return NextResponse.json(
-        { error: 'Invalid backup code' },
+        { error: 'رمز الاسترداد غير صحيح أو مستخدم' },
         { status: 400 }
       );
     }
 
-    // Remove the used backup code
-    backupCodes.splice(backupCodeIndex, 1);
-    await prisma.user.update({
+    // Get remaining codes count
+    const userWithCodes = await prisma.user.findUnique({
       where: { id: user.id },
-      data: { backupCodes: JSON.stringify(backupCodes) }
+      select: { recoveryCodes: true },
     });
 
-    // Log security event
-    await authService.logSecurityEvent(user.id, '2fa_backup_code_used', 'unknown', {
-      userAgent: 'unknown',
+    const remainingCodes = userWithCodes?.recoveryCodes 
+      ? JSON.parse(userWithCodes.recoveryCodes as string).length 
+      : 0;
+
+    // Log security events
+    await Promise.all([
+      authService.logSecurityEvent(user.id, 'two_factor_backup_code_used', ip, {
+        userAgent,
+        remainingCodes,
+      }),
+      securityLogger.logEvent({
+        userId: user.id,
+        eventType: 'TWO_FACTOR_BACKUP_CODE_USED',
+        ip,
+        userAgent,
+        metadata: { remainingCodes },
+      }),
+    ]).catch(() => {
+      // Non-blocking log failure
     });
 
     // Generate a new token for the user
@@ -422,9 +503,9 @@ async function handleBackupCode(user: any, backupCode: string) {
       .sign(JWT_SECRET);
 
     return NextResponse.json({
-      message: 'Backup code verified successfully',
+      message: 'تم التحقق من رمز الاسترداد بنجاح',
       token,
-      remainingBackupCodes: backupCodes.length
+      remainingBackupCodes: remainingCodes
     });
   } catch (error) {
     console.error('Backup code verification error:', error);

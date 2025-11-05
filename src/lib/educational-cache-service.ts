@@ -1,4 +1,4 @@
-import { getOrSetEnhanced, batchGetOrSet, CacheService } from "@/lib/cache-service-enhanced";
+import { getOrSetEnhanced, batchGetOrSet, CacheService } from "@/lib/cache-service-unified";
 
 /**
  * Educational Content Cache Service

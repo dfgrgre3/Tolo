@@ -26,6 +26,7 @@ import { CaptchaWidget } from './CaptchaWidget';
 import { LAST_VISITED_PATH_KEY } from '@/app/ClientLayoutProvider';
 import { loginUser, verifyTwoFactor } from '@/lib/api/auth-client';
 import type { LoginErrorResponse } from '@/types/api/auth';
+import { safeGetItem, safeRemoveItem, safeWindow, isBrowser } from '@/lib/safe-client-utils';
 
 const formVariants = {
   initial: { opacity: 0, y: 20, x: 0 },
@@ -79,32 +80,34 @@ export default function EnhancedLoginForm() {
   
   // Check for OAuth errors in URL parameters
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const error = urlParams.get('error');
-      const message = urlParams.get('message');
-      
-      if (error) {
-        const errorMessage = message 
-          ? decodeURIComponent(message) 
-          : 'حدث خطأ أثناء تسجيل الدخول بجوجل. يرجى المحاولة مرة أخرى.';
+    if (isBrowser()) {
+      safeWindow((w) => {
+        const urlParams = new URLSearchParams(w.location.search);
+        const error = urlParams.get('error');
+        const message = urlParams.get('message');
         
-        setFormErrorMessage(errorMessage);
-        setFormErrorCode(error);
-        setIsShaking(true);
-        toast.error(errorMessage, { duration: 5000 });
-        
-        // Clean up URL parameters
-        const newUrl = window.location.pathname;
-        window.history.replaceState({}, '', newUrl);
-      }
+        if (error) {
+          const errorMessage = message 
+            ? decodeURIComponent(message) 
+            : 'حدث خطأ أثناء تسجيل الدخول بجوجل. يرجى المحاولة مرة أخرى.';
+          
+          setFormErrorMessage(errorMessage);
+          setFormErrorCode(error);
+          setIsShaking(true);
+          toast.error(errorMessage, { duration: 5000 });
+          
+          // Clean up URL parameters
+          const newUrl = w.location.pathname;
+          w.history.replaceState({}, '', newUrl);
+        }
+      }, undefined);
     }
   }, []);
   
   // Get redirect parameter from URL
   const getRedirectPath = () => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
+    const redirectFromUrl = safeWindow((w) => {
+      const urlParams = new URLSearchParams(w.location.search);
       const redirectParam = urlParams.get('redirect');
       if (redirectParam) {
         try {
@@ -117,46 +120,39 @@ export default function EnhancedLoginForm() {
           console.error('Failed to decode redirect parameter:', e);
         }
       }
+      return null;
+    }, null);
 
-      try {
-        const storedRedirect =
-          sessionStorage.getItem(LAST_VISITED_PATH_KEY) ??
-          localStorage.getItem(LAST_VISITED_PATH_KEY);
+    if (redirectFromUrl) return redirectFromUrl;
 
-        if (
-          storedRedirect &&
-          storedRedirect.startsWith('/') &&
-          !storedRedirect.startsWith('//') &&
-          !storedRedirect.startsWith('/login') &&
-          !storedRedirect.startsWith('/register')
-        ) {
-          return storedRedirect;
-        }
-      } catch (storageError) {
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('Unable to read stored redirect path:', storageError);
-        }
+    try {
+      const storedRedirect =
+        safeGetItem(LAST_VISITED_PATH_KEY, { storageType: 'session', fallback: null }) ??
+        safeGetItem(LAST_VISITED_PATH_KEY, { storageType: 'local', fallback: null });
+
+      if (
+        storedRedirect &&
+        typeof storedRedirect === 'string' &&
+        storedRedirect.startsWith('/') &&
+        !storedRedirect.startsWith('//') &&
+        !storedRedirect.startsWith('/login') &&
+        !storedRedirect.startsWith('/register')
+      ) {
+        return storedRedirect;
+      }
+    } catch (storageError) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Unable to read stored redirect path:', storageError);
       }
     }
+    
     return '/';
   };
 
   const clearStoredRedirect = () => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    try {
-      sessionStorage.removeItem(LAST_VISITED_PATH_KEY);
-    } catch {
-      // Ignore sessionStorage errors (e.g., unavailable in private mode)
-    }
-
-    try {
-      localStorage.removeItem(LAST_VISITED_PATH_KEY);
-    } catch {
-      // Ignore localStorage errors for the same reason
-    }
+    // Use safe wrappers that handle window undefined and errors automatically
+    safeRemoveItem(LAST_VISITED_PATH_KEY, { storageType: 'session' });
+    safeRemoveItem(LAST_VISITED_PATH_KEY, { storageType: 'local' });
   };
   
   const [formData, setFormData] = useState<LoginFormData>({
@@ -245,8 +241,16 @@ export default function EnhancedLoginForm() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
+    if (isBrowser()) {
+      safeWindow((w) => {
+        w.addEventListener('keydown', handleKeyPress);
+      }, undefined);
+      return () => {
+        safeWindow((w) => {
+          w.removeEventListener('keydown', handleKeyPress);
+        }, undefined);
+      };
+    }
   }, [isLoading, showTwoFactor]);
 
   useEffect(() => {
@@ -254,14 +258,20 @@ export default function EnhancedLoginForm() {
       return;
     }
 
-    const intervalId = window.setInterval(() => {
+    const intervalId = safeWindow((w) => w.setInterval(() => {
       setLockoutSeconds((prev) => {
         if (prev === null) return prev;
         return prev <= 1 ? 0 : prev - 1;
       });
-    }, 1000);
+    }, 1000), null);
 
-    return () => window.clearInterval(intervalId);
+    if (!intervalId) return;
+
+    return () => {
+      safeWindow((w) => {
+        w.clearInterval(intervalId);
+      }, undefined);
+    };
   }, [isFormLocked]);
 
   useEffect(() => {
@@ -374,7 +384,7 @@ export default function EnhancedLoginForm() {
       login(data.token, userData);
       
       // Also save refresh token if available
-      if (data.refreshToken && typeof window !== 'undefined') {
+      if (data.refreshToken && isBrowser()) {
         try {
           const storage = formData.rememberMe ? localStorage : sessionStorage;
           storage.setItem('refresh_token', data.refreshToken);
@@ -985,7 +995,8 @@ export default function EnhancedLoginForm() {
   };
 
   const handleBiometricLogin = async () => {
-    if (!window.PublicKeyCredential) {
+    const hasPublicKeyCredential = safeWindow((w) => !!w.PublicKeyCredential, false);
+    if (!hasPublicKeyCredential) {
       toast.error('المصادقة البيومترية غير مدعومة في هذا المتصفح');
       return;
     }
@@ -1706,7 +1717,7 @@ export default function EnhancedLoginForm() {
         >
           {/* Biometric Login */}
           <AnimatePresence>
-            {typeof window !== 'undefined' && window.PublicKeyCredential && (
+            {safeWindow((w) => !!w.PublicKeyCredential, false) && (
               <motion.button
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -1739,7 +1750,9 @@ export default function EnhancedLoginForm() {
               onClick={() => {
                 const redirectPath = getRedirectPath();
                 clearStoredRedirect();
-                window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
+                safeWindow((w) => {
+                  w.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath || '/')}`;
+                }, undefined);
               }}
               disabled={isLoading}
               className="flex items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"

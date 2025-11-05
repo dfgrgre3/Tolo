@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 export async function POST(request: NextRequest) {
+  return opsWrapper(request, async (req) => {
   try {
-    const { messages, provider } = await request.json();
+    const { messages, provider } = await req.json();
 
     // تحديد مقدم الخدمة
     const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
@@ -102,4 +104,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

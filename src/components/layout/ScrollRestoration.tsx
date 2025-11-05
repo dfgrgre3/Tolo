@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
+import { safeGetItem, safeSetItem, isBrowser, safeWindow, safeDocument } from "@/lib/safe-client-utils";
 
 type ScrollPosition = {
 	x: number;
@@ -32,22 +33,23 @@ const ScrollRestoration = () => {
 	}, [pathname, searchParams]);
 
 	useEffect(() => {
-		if (typeof window === "undefined") {
+		if (!isBrowser()) {
 			return;
 		}
 
 		const restoreScrollPosition = () => {
 			try {
-				const storedValue = sessionStorage.getItem(storageKey);
+				const storedValue = safeGetItem(storageKey, { storageType: 'session', fallback: null });
 				if (!storedValue) {
 					return;
 				}
 
-				const { x, y } = JSON.parse(storedValue) as ScrollPosition;
+				const position = typeof storedValue === 'string' ? JSON.parse(storedValue) : storedValue;
+				const { x, y } = position as ScrollPosition;
 				// Use double rAF to ensure the DOM is ready before scrolling
 				requestAnimationFrame(() => {
 					requestAnimationFrame(() => {
-						window.scrollTo(x, y);
+						safeWindow((w) => w.scrollTo(x, y), undefined);
 					});
 				});
 			} catch {
@@ -59,40 +61,49 @@ const ScrollRestoration = () => {
 	}, [storageKey]);
 
 	useEffect(() => {
-		if (typeof window === "undefined") {
+		if (!isBrowser()) {
 			return;
 		}
 
 		const storeScrollPosition = () => {
-			try {
-				const value: ScrollPosition = {
-					x: window.scrollX,
-					y: window.scrollY
-				};
-				sessionStorage.setItem(storageKey, JSON.stringify(value));
-			} catch {
-				// Ignore storage errors
-			}
+			const value: ScrollPosition = safeWindow((w) => ({
+				x: w.scrollX,
+				y: w.scrollY
+			}), { x: 0, y: 0 });
+			// Use safe wrapper that handles errors automatically
+			safeSetItem(storageKey, value, { storageType: 'session' });
 		};
 
 		// Keep browser from overriding our manual logic
-		const originalScrollRestoration = window.history.scrollRestoration;
-		window.history.scrollRestoration = "manual";
+		const originalScrollRestoration = safeWindow((w) => w.history.scrollRestoration, 'auto');
+		safeWindow((w) => {
+			w.history.scrollRestoration = "manual";
+		}, undefined);
 
 		const handleVisibilityChange = () => {
-			if (document.visibilityState === "hidden") {
+			if (safeDocument((d) => d.visibilityState, 'visible') === "hidden") {
 				storeScrollPosition();
 			}
 		};
 
-		window.addEventListener("beforeunload", storeScrollPosition);
-		document.addEventListener("visibilitychange", handleVisibilityChange);
+		safeWindow((w) => {
+			w.addEventListener("beforeunload", storeScrollPosition);
+		}, undefined);
+		safeDocument((d) => {
+			d.addEventListener("visibilitychange", handleVisibilityChange);
+		}, undefined);
 
 		return () => {
 			storeScrollPosition();
-			window.removeEventListener("beforeunload", storeScrollPosition);
-			document.removeEventListener("visibilitychange", handleVisibilityChange);
-			window.history.scrollRestoration = originalScrollRestoration;
+			safeWindow((w) => {
+				w.removeEventListener("beforeunload", storeScrollPosition);
+			}, undefined);
+			safeDocument((d) => {
+				d.removeEventListener("visibilitychange", handleVisibilityChange);
+			}, undefined);
+			safeWindow((w) => {
+				w.history.scrollRestoration = originalScrollRestoration;
+			}, undefined);
 		};
 	}, [storageKey]);
 

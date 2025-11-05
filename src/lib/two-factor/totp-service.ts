@@ -260,36 +260,24 @@ export async function verifyTOTPLogin(
 
 /**
  * Disable TOTP for a user
+ * Note: Code verification should be done before calling this function
  */
-export async function disableTOTP(
-  userId: string,
-  code: string
-): Promise<boolean> {
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { twoFactorSecret: true, twoFactorEnabled: true },
-  });
+export async function disableTOTP(userId: string): Promise<boolean> {
+  try {
+    // Disable and clear secret and recovery codes
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        twoFactorEnabled: false,
+        twoFactorSecret: null,
+        recoveryCodes: null,
+      },
+    });
 
-  if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+    return true;
+  } catch (error) {
+    console.error('Failed to disable TOTP:', error);
     return false;
   }
-
-  // Verify code before disabling
-  const isValid = verifyTOTP(user.twoFactorSecret, code);
-
-  if (!isValid) {
-    return false;
-  }
-
-  // Disable and clear secret
-  await prisma.user.update({
-    where: { id: userId },
-    data: {
-      twoFactorEnabled: false,
-      twoFactorSecret: null,
-    },
-  });
-
-  return true;
 }
 

@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { createErrorResponse, isConnectionError } from '../_helpers';
 import { withAuth } from '@/lib/middleware/auth-middleware';
 
 export async function GET(request: NextRequest) {
-  const ip = authService.getClientIP(request);
-  const userAgent = authService.getUserAgent(request);
+  return opsWrapper(request, async (req) => {
+  const ip = authService.getClientIP(req);
+  const userAgent = authService.getUserAgent(req);
 
   try {
     // Use auth middleware for cleaner code
-    const authResult = await withAuth(request, {
+    const authResult = await withAuth(req, {
       requireAuth: true,
       checkSession: true,
     });
@@ -80,7 +82,7 @@ export async function GET(request: NextRequest) {
     
     // Log security event safely
     try {
-      const authResult = await withAuth(request, { requireAuth: false });
+      const authResult = await withAuth(req, { requireAuth: false });
       if (authResult.success && authResult.user) {
         await authService.logSecurityEvent(authResult.user.id, 'me_endpoint_error', ip, {
           userAgent,
@@ -96,4 +98,5 @@ export async function GET(request: NextRequest) {
       'حدث خلل أثناء التحقق من الجلسة.'
     );
   }
+  });
 }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { CacheService } from "@/lib/cache-service-enhanced";
+import { CacheService } from "@/lib/cache-service-unified";
 
 // GET all announcements with caching
 export async function GET(request: NextRequest) {
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
           views: announcement.views
         }));
       },
-      { ttl: 600 } // Cache for 10 minutes
+      600 // Cache for 10 minutes
     );
 
     return NextResponse.json(announcements);

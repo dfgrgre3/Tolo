@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { TrendingUp, TrendingDown, Calendar, Clock, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useIsMounted } from '@/lib/safe-client-utils';
 
 ChartJS.register(
 	CategoryScale,
@@ -37,6 +38,8 @@ interface TimeTrendsProps {
 }
 
 export default function TimeTrends({ weekly }: TimeTrendsProps) {
+	const isMounted = useIsMounted();
+	
 	const trendData = useMemo(() => {
 		if (!weekly || !weekly.byDay) return null;
 
@@ -194,17 +197,18 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 			</div>
 
 			{/* Trend Chart */}
-			<Card>
-				<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
-					<CardTitle className="flex items-center gap-2">
-						<TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-						اتجاه وقت المذاكرة خلال الأسبوع
-					</CardTitle>
-				</CardHeader>
-				<CardContent className="p-6">
-					<div className="h-96">
-						<Line
-							data={lineChartData}
+			{isMounted && (
+				<Card>
+					<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
+						<CardTitle className="flex items-center gap-2">
+							<TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+							اتجاه وقت المذاكرة خلال الأسبوع
+						</CardTitle>
+					</CardHeader>
+					<CardContent className="p-6">
+						<div className="h-96">
+							<Line
+								data={lineChartData}
 							options={{
 								responsive: true,
 								maintainAspectRatio: false,
@@ -241,6 +245,7 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 					</div>
 				</CardContent>
 			</Card>
+			)}
 
 			{/* Day Details */}
 			<Card>

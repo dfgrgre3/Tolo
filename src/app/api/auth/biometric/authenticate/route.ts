@@ -67,6 +67,15 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Log security event
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
+    await authService.logSecurityEvent(user.id, 'biometric_authentication_initiated', ip, {
+      userAgent,
+    }).catch(() => {
+      // Non-blocking log failure
+    });
+
     return NextResponse.json({
       options,
     });
@@ -160,6 +169,15 @@ export async function PUT(request: NextRequest) {
     );
 
     if (!verificationResult.verified) {
+      // Log failed authentication attempt
+      const ip = authService.getClientIP(request);
+      const userAgent = authService.getUserAgent(request);
+      await authService.logSecurityEvent(user.id, 'biometric_authentication_failed', ip, {
+        userAgent,
+      }).catch(() => {
+        // Non-blocking log failure
+      });
+
       return NextResponse.json(
         { error: 'فشل التحقق من المصادقة البيومترية' },
         { status: 400 }

@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { clearAuthCookies, createErrorResponse } from '@/app/api/auth/_helpers';
 
 export async function POST(request: NextRequest) {
+  return opsWrapper(request, async (req) => {
   try {
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+    const ip = authService.getClientIP(req);
+    const userAgent = authService.getUserAgent(req);
 
     // Get authorization header
-    const authHeader = request.headers.get('authorization');
+    const authHeader = req.headers.get('authorization');
     let sessionId: string | null = null;
 
     if (authHeader?.startsWith('Bearer ')) {
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
     // Parse body to check if user wants to logout from all devices
     let logoutAllDevices = false;
     try {
-      const body = await request.json();
+      const body = await req.json();
       logoutAllDevices = Boolean(body.logoutAllDevices);
     } catch {
       // No body or invalid JSON - use default
@@ -71,4 +73,5 @@ export async function POST(request: NextRequest) {
       'حدث خطأ غير متوقع أثناء معالجة طلب تسجيل الخروج. حاول مرة أخرى لاحقاً.'
     );
   }
+  });
 }

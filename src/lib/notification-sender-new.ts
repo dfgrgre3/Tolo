@@ -3,6 +3,8 @@
  * مكتبة مساعدة لإرسال الإشعارات عبر قنوات متعددة
  */
 import { prisma } from '@/lib/prisma';
+import nodemailer from 'nodemailer';
+import twilio from 'twilio';
 
 // إرسال إشعار عبر البريد الإلكتروني
 export async function sendEmailNotification(options: {
@@ -23,13 +25,10 @@ export async function sendEmailNotification(options: {
       return { success: true, simulated: true };
     }
 
-    // استخدام Nodemailer لإرسال البريد الإلكتروني
-    const nodemailer = require('nodemailer');
-
     // إنشاء ناقل بريد إلكتروني
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT),
+      port: parseInt(process.env.SMTP_PORT || '587'),
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
         user: process.env.SMTP_USER,
@@ -37,13 +36,17 @@ export async function sendEmailNotification(options: {
       },
     });
 
+    // تحضير محتوى البريد الإلكتروني
+    const emailText = text || (html ? html.replace(/<[^>]*>/g, '') : '');
+    const emailHtml = html || (text ? `<p>${text}</p>` : '');
+
     // إرسال البريد الإلكتروني
     const info = await transporter.sendMail({
       from,
       to,
       subject,
-      text: text || html.replace(/<[^>]*>/g, ''), // نص عادي بدون HTML
-      html: html || `<p>${text}</p>`, // HTML إذا لم يتم توفيره
+      text: emailText,
+      html: emailHtml,
     });
 
     console.log('تم إرسال البريد الإلكتروني:', info.messageId);
@@ -72,8 +75,6 @@ export async function sendSMSNotification(options: {
     }
 
     // استخدام Twilio لإرسال الرسالة النصية
-    const twilio = require('twilio');
-
     const client = twilio(
       process.env.TWILIO_ACCOUNT_SID,
       process.env.TWILIO_AUTH_TOKEN
@@ -130,7 +131,11 @@ export async function sendMultiChannelNotification(options: {
       throw new Error('المستخدم غير موجود');
     }
 
-    const results: any = {
+    const results: {
+      app: any;
+      email: any;
+      sms: any;
+    } = {
       app: null,
       email: null,
       sms: null
@@ -156,7 +161,7 @@ export async function sendMultiChannelNotification(options: {
     }
 
     // إرسال بريد إلكتروني (مع مراعاة تفضيلات المستخدم)
-    if (channels.includes('email') && user.email && user.emailNotifications) {
+    if (channels.includes('email') && user.email && (user.emailNotifications ?? true)) {
       try {
         results.email = await sendEmailNotification({
           to: user.email,
@@ -187,7 +192,7 @@ export async function sendMultiChannelNotification(options: {
     }
 
     // إرسال رسالة نصية (مع مراعاة تفضيلات المستخدم)
-    if (channels.includes('sms') && user.phone && user.smsNotifications) {
+    if (channels.includes('sms') && user.phone && (user.smsNotifications ?? false)) {
       try {
         results.sms = await sendSMSNotification({
           to: user.phone,

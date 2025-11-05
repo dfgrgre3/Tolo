@@ -4,6 +4,7 @@ import { authService, AuthService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import type { RegisterRequest, RegisterResponse, RegisterErrorResponse } from '@/types/api/auth';
 import { createErrorResponse, isConnectionError } from '@/app/api/auth/_helpers';
 
@@ -30,11 +31,12 @@ const registerSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const ip = authService.getClientIP(request);
-  const userAgent = authService.getUserAgent(request);
+  return opsWrapper(request, async (req) => {
+  const ip = authService.getClientIP(req);
+  const userAgent = authService.getUserAgent(req);
 
   try {
-    const body = await request.json().catch(() => ({}));
+    const body = await req.json().catch(() => ({}));
     const parsed = registerSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -254,4 +256,5 @@ export async function POST(request: NextRequest) {
       'حدث خطأ غير متوقع أثناء التسجيل. حاول مرة أخرى لاحقاً.'
     );
   }
+  });
 }

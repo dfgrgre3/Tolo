@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
+import { getSafeAuthToken } from '@/lib/safe-client-utils';
 
 export default function NotificationSettings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -21,7 +22,7 @@ export default function NotificationSettings() {
     const fetchNotificationSettings = async () => {
       setIsLoading(true);
       try {
-        const token = localStorage.getItem('authToken');
+        const token = getSafeAuthToken();
         if (!token) return;
 
         const response = await fetch('/api/user/notification-settings', {
@@ -51,7 +52,7 @@ export default function NotificationSettings() {
   const saveNotificationSettings = async () => {
     setIsSaving(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) return;
 
       const response = await fetch('/api/user/notification-settings', {
@@ -81,7 +82,7 @@ export default function NotificationSettings() {
   // اختبار إشعار
   const testNotification = async (channel: 'email' | 'sms') => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) return;
 
       const response = await fetch('/api/notifications/send', {

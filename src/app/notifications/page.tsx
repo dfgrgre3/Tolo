@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Badge } from "@/shared/badge";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getSafeAuthToken } from '@/lib/safe-client-utils';
 
 interface Notification {
   id: string;
@@ -31,7 +32,7 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async (reset = false) => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) return;
 
       const currentOffset = reset ? 0 : offset;
@@ -75,7 +76,7 @@ export default function NotificationsPage() {
   // Mark notifications as read
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) return;
 
       const response = await fetch('/api/notifications/mark-read', {
@@ -273,7 +274,13 @@ export default function NotificationsPage() {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => window.location.href = notification.actionUrl!}
+                              onClick={() => {
+                                if (notification.actionUrl) {
+                                  if (typeof window !== 'undefined') {
+                                    window.location.href = notification.actionUrl;
+                                  }
+                                }
+                              }}
                               className="h-8 px-2 text-xs"
                             >
                               <ExternalLink className="h-3 w-3 mr-1" />

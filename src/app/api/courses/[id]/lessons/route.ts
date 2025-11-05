@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOrSetEnhanced } from "@/lib/cache-service-enhanced";
+import { getOrSetEnhanced } from "@/lib/cache-service-unified";
 
 // GET lessons for a course (now topics for a subject)
 export async function GET(

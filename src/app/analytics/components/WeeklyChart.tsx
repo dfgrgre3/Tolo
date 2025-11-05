@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Calendar, TrendingUp, Clock } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useIsMounted } from '@/lib/safe-client-utils';
 
 ChartJS.register(
 	CategoryScale,
@@ -41,14 +42,18 @@ interface WeeklyChartProps {
 }
 
 export default function WeeklyChart({ weekly }: WeeklyChartProps) {
+	const isMounted = useIsMounted();
+	
 	const chartData = useMemo(() => {
 		if (!weekly) return null;
 
 		const subjectLabels = Object.keys(weekly.bySubject);
 		const subjectData = Object.values(weekly.bySubject);
 		
+		// استخدام تنسيق آمن للتاريخ - نفس التنسيق على الخادم والعميل لتجنب مشاكل Hydration
 		const dayLabels = weekly.byDay.map((d) => {
 			const date = new Date(d.date);
+			// استخدام نفس التنسيق دائماً لضمان التوافق
 			return format(date, 'EEEE', { locale: ar });
 		});
 		const dayData = weekly.byDay.map((d) => d.minutes);
@@ -126,7 +131,8 @@ export default function WeeklyChart({ weekly }: WeeklyChartProps) {
 	const totalHours = (totalMinutes / 60).toFixed(1);
 	const averageMinutes = Math.round(totalMinutes / chartData.days.data.length);
 	const maxDayIndex = chartData.days.data.indexOf(Math.max(...chartData.days.data));
-	const bestDay = chartData.days.labels[maxDayIndex];
+	// استخدام تنسيق آمن للتاريخ - نفس التنسيق المستخدم في labels
+	const bestDay = chartData.days.labels[maxDayIndex] || '';
 
 	return (
 		<div className="space-y-6">
@@ -168,7 +174,7 @@ export default function WeeklyChart({ weekly }: WeeklyChartProps) {
 			</div>
 
 			{/* Subject Distribution Chart */}
-			{chartData.subjects.labels.length > 0 && (
+			{chartData.subjects.labels.length > 0 && isMounted && (
 				<Card>
 					<CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/20 dark:to-blue-900/20">
 						<CardTitle className="flex items-center gap-2">
@@ -215,7 +221,7 @@ export default function WeeklyChart({ weekly }: WeeklyChartProps) {
 			)}
 
 			{/* Daily Trend Chart */}
-			{chartData.days.labels.length > 0 && (
+			{chartData.days.labels.length > 0 && isMounted && (
 				<Card>
 					<CardHeader className="bg-gradient-to-r from-green-50 to-green-100 dark:from-green-950/20 dark:to-green-900/20">
 						<CardTitle className="flex items-center gap-2">

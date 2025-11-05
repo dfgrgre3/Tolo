@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { cacheMultipleEducationalItems } from "@/lib/educational-cache-service";
-import { CacheService } from "@/lib/redis";
+import { CacheService } from "@/lib/cache-service-unified";
 
 /**
  * Cache Warming Service

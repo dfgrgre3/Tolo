@@ -309,3 +309,97 @@ export class AuthService {
     });
   }
 }
+
+// Export DecodedToken interface for use in other modules
+export interface DecodedToken {
+  userId: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  sessionId?: string;
+}
+
+// Helper function to extract token from request or string
+function extractToken(input: NextRequest | string | null | undefined): string | null {
+  if (!input) {
+    return null;
+  }
+
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  const authHeader = input.headers.get('authorization');
+  if (authHeader?.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+
+  // Support token passed via cookie for SSR utilities
+  const tokenCookie = input.cookies.get('authToken')?.value || input.cookies.get('access_token')?.value;
+  if (tokenCookie) {
+    return tokenCookie;
+  }
+
+  return null;
+}
+
+/**
+ * Verify JWT token and return decoded token data
+ * This is a convenience function for backward compatibility
+ */
+export function verifyToken(input: NextRequest | string | null | undefined): DecodedToken | null {
+  const token = extractToken(input);
+  if (!token || !JWT_SECRET_STRING) {
+    return null;
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET_STRING) as JwtPayload & DecodedToken;
+
+    if (!decoded || !decoded.userId) {
+      return null;
+    }
+
+    return {
+      userId: decoded.userId,
+      email: decoded.email,
+      name: decoded.name,
+      role: decoded.role,
+      sessionId: decoded.sessionId,
+    };
+  } catch (error) {
+    console.error('JWT verification failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Get authenticated user from cookies
+ * This is a convenience function for backward compatibility
+ */
+export async function auth(): Promise<{ user: DecodedToken } | null> {
+  const cookieStore = await cookies();
+  const token =
+    cookieStore.get('authToken')?.value ||
+    cookieStore.get('access_token')?.value ||
+    null;
+
+  if (!token) {
+    return null;
+  }
+
+  const decoded = verifyToken(token);
+  if (!decoded) {
+    return null;
+  }
+
+  // Verify session is still valid if sessionId is present
+  if (decoded.sessionId) {
+    const isValidSession = await AuthService.validateSession(decoded.sessionId, decoded.userId);
+    if (!isValidSession) {
+      return null;
+    }
+  }
+
+  return { user: decoded };
+}

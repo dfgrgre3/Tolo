@@ -4,7 +4,7 @@ import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
-import { getOrSetEnhanced } from '@/lib/cache-service-enhanced';
+import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 import { gamificationService } from '@/lib/gamification-service';
 import { firestoreService } from '@/lib/firestore-service';
 import { rateLimit, handleApiError, badRequestResponse, unauthorizedResponse, successResponse } from '@/lib/api-utils';

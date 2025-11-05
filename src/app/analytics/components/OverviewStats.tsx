@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useIsMounted } from '@/lib/safe-client-utils';
 
 type WeeklyData = { 
 	bySubject: Record<string, number>; 
@@ -33,6 +34,8 @@ interface OverviewStatsProps {
 }
 
 export default function OverviewStats({ summary, weekly }: OverviewStatsProps) {
+	const isMounted = useIsMounted();
+	
 	const calculateImprovement = () => {
 		if (!summary) return 0;
 		const hours = summary.totalMinutes / 60;
@@ -204,7 +207,7 @@ export default function OverviewStats({ summary, weekly }: OverviewStatsProps) {
 							<p className="text-sm font-medium text-muted-foreground">التقدم الأسبوعي</p>
 							<p className="text-2xl font-bold">{weeklyTotal.toFixed(1)} ساعة</p>
 							<p className="text-xs text-muted-foreground">
-								من {format(new Date(), 'EEEE', { locale: ar })} الماضي
+								{isMounted ? `من ${format(new Date(), 'EEEE', { locale: ar })} الماضي` : 'من الأسبوع الماضي'}
 							</p>
 							<Progress 
 								value={Math.min(100, (weeklyTotal / 20) * 100)} 

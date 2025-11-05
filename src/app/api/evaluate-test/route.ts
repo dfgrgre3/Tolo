@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, DecodedToken } from '@/lib/auth';
+import { verifyToken, DecodedToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
 import { OpenAI } from 'openai';
 import { rateLimit } from '@/lib/api-utils';

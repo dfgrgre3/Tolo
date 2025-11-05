@@ -1,11 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import {
-  createTokens,
-  createSession,
-  resetRateLimit
-} from '@/lib/auth-enhanced';
+import { AuthService } from '@/lib/auth-unified';
 import { getDeviceInfo, getLocationFromIP } from '@/lib/security-utils';
 import {
   verifyAuthenticationResponse,
@@ -282,10 +278,10 @@ async function handleBiometricAuthentication(
   });
 
   // Create session
-  const session = await createSession(user.id, userAgent, ip);
+  const session = await AuthService.createSession(user.id, userAgent, ip);
 
   // Reset rate limiting on successful login
-  resetRateLimit(clientId);
+  await AuthService.resetRateLimit(clientId);
 
   // Update last login time
   await prisma.user.update({
@@ -294,11 +290,13 @@ async function handleBiometricAuthentication(
   });
 
   // Create authentication tokens
-  const tokensResult = await createTokens(
-    user.id,
-    user.email,
-    user.name || undefined,
-    user.role || undefined,
+  const tokensResult = await AuthService.createTokens(
+    {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined,
+      role: user.role || undefined,
+    },
     session.id
   );
   const accessToken = tokensResult.accessToken;

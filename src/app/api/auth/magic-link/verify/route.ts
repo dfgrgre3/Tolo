@@ -25,6 +25,14 @@ export async function POST(request: NextRequest) {
     const result = await verifyMagicLink(token, email, ip, userAgent);
 
     if (!result.valid || !result.user) {
+      // Log failed verification attempt
+      await authService.logSecurityEvent(null, 'magic_link_verification_failed', ip, {
+        userAgent,
+        email,
+      }).catch(() => {
+        // Non-blocking log failure
+      });
+
       return NextResponse.json(
         { error: result.error || 'الرابط غير صالح أو منتهي الصلاحية' },
         { status: 400 }
@@ -69,6 +77,14 @@ export async function POST(request: NextRequest) {
       },
       session.id
     );
+
+    // Log successful magic link login (additional to the one in verifyMagicLink)
+    await authService.logSecurityEvent(user.id, 'magic_link_login_success', ip, {
+      userAgent,
+      sessionId: session.id,
+    }).catch(() => {
+      // Non-blocking log failure
+    });
 
     return NextResponse.json({
       message: 'تم تسجيل الدخول بنجاح',

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
+import { getSafeAuthToken } from '@/lib/safe-client-utils';
 import {
   Shield,
   Smartphone,
@@ -32,7 +33,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
   const handleSetup = async () => {
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) {
         toast.error('غير مصرح');
         return;
@@ -92,7 +93,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
 
     setIsLoading(true);
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getSafeAuthToken();
       if (!token) {
         toast.error('غير مصرح');
         return;

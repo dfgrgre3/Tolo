@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { webAuthnService } from '@/lib/security/webauthn';
 import { prisma } from '@/lib/prisma';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -51,6 +52,15 @@ export async function POST(request: NextRequest) {
         expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
         used: false,
       },
+    });
+
+    // Log security event
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
+    await authService.logSecurityEvent(user.id, 'biometric_registration_initiated', ip, {
+      userAgent,
+    }).catch(() => {
+      // Non-blocking log failure
     });
 
     return NextResponse.json({

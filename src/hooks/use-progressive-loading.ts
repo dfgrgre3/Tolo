@@ -205,12 +205,15 @@ export function useProgressiveData<T>(
   const { cacheTime = 5 * 60 * 1000, staleWhileRevalidate = true, ...loadingOptions } = options;
 
   const loadFunction = useCallback(async () => {
+    const { safeGetItem, safeSetItem, isBrowser } = require('@/lib/safe-client-utils');
+    
     // Check cache first (client-side only)
-    if (typeof window !== 'undefined') {
+    if (isBrowser()) {
       try {
-        const cached = localStorage.getItem(`progressive_cache_${key}`);
+        const cached = safeGetItem(`progressive_cache_${key}`, { fallback: null });
         if (cached) {
-          const { data, timestamp } = JSON.parse(cached);
+          const cacheData = typeof cached === 'string' ? JSON.parse(cached) : cached;
+          const { data, timestamp } = cacheData;
           const isExpired = Date.now() - timestamp > cacheTime;
 
           if (!isExpired) {
@@ -220,10 +223,10 @@ export function useProgressiveData<T>(
           // If stale-while-revalidate is enabled, return cached data and refresh in background
           if (staleWhileRevalidate) {
             fetchFunction().then(freshData => {
-              localStorage.setItem(`progressive_cache_${key}`, JSON.stringify({
+              safeSetItem(`progressive_cache_${key}`, {
                 data: freshData,
                 timestamp: Date.now()
-              }));
+              });
             }).catch(() => {
               // Silently fail background refresh
             });
@@ -240,12 +243,12 @@ export function useProgressiveData<T>(
     const data = await fetchFunction();
 
     // Cache the result (client-side only)
-    if (typeof window !== 'undefined') {
+    if (isBrowser()) {
       try {
-        localStorage.setItem(`progressive_cache_${key}`, JSON.stringify({
+        safeSetItem(`progressive_cache_${key}`, {
           data,
           timestamp: Date.now()
-        }));
+        });
       } catch (error) {
         // Ignore cache write errors
       }

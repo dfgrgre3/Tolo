@@ -261,3 +261,26 @@ export class CacheService {
     }
   }
 }
+
+// Export convenience functions for backward compatibility
+export async function getOrSetEnhanced<T>(
+  key: string,
+  fetchFn: () => Promise<T>,
+  ttl: number = 3600
+): Promise<T> {
+  return CacheService.getOrSet(key, fetchFn, ttl);
+}
+
+export async function batchGetOrSet<T>(
+  items: { key: string; fetchFn: () => Promise<T>; ttl?: number }[]
+): Promise<T[]> {
+  return Promise.all(
+    items.map(async (item) => {
+      return CacheService.getOrSet(item.key, item.fetchFn, item.ttl || 3600);
+    })
+  );
+}
+
+// Export default instance for backward compatibility
+const cacheService = CacheService;
+export default cacheService;

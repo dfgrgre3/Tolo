@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-enhanced";
+import { verifyToken } from "@/lib/auth-unified";
 
 // GET user stats by ID
 export async function GET(

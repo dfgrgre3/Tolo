@@ -2,10 +2,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AI_PROVIDERS, getDefaultProvider } from "@/lib/ai-config";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 export async function POST(request: NextRequest) {
+  return opsWrapper(request, async (req) => {
   try {
-    const { userId, subject, studyGoal, challenges, currentGrade, provider } = await request.json();
+    const { userId, subject, studyGoal, challenges, currentGrade, provider } = await req.json();
 
     // تحديد مقدم الخدمة
     const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
@@ -173,9 +175,10 @@ export async function POST(request: NextRequest) {
     }
   } catch (error) {
     console.error("Error in AI tips API:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في معالجة طلبك" },
-      { status: 500 }
-    );
+      return NextResponse.json(
+        { error: "حدث خطأ في معالجة طلبك" },
+        { status: 500 }
+      );
   }
+  });
 }

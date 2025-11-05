@@ -5,7 +5,7 @@ import {
   createErrorResponse,
   createSuccessResponse
 } from '@/lib/api-utils';
-import cacheService from "@/lib/cache-service";
+import { CacheService as cacheService } from "@/lib/cache-service-unified";
 
 export async function GET(req: NextRequest) {
   try {

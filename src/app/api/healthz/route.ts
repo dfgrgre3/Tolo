@@ -1,0 +1,45 @@
+import { NextResponse } from 'next/server';
+import { prisma } from '@/lib/prisma';
+import { redis } from '@/lib/redis';
+import 'server-only';
+
+/**
+ * GET /api/healthz
+ * 
+ * Health check endpoint للـ Kubernetes liveness probe
+ * يتحقق من أن التطبيق يعمل بشكل صحيح
+ * 
+ * هذا endpoint يجب أن يكون سريعاً ولا يعتمد على خدمات خارجية معقدة
+ */
+export async function GET() {
+  try {
+    // فحص بسيط للتأكد من أن التطبيق يعمل
+    const health = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+    };
+
+    return NextResponse.json(health, {
+      status: 200,
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate',
+      },
+    });
+  } catch (error) {
+    console.error('Health check failed:', error);
+    
+    return NextResponse.json(
+      {
+        status: 'unhealthy',
+        timestamp: new Date().toISOString(),
+        error: 'Health check failed',
+      },
+      { status: 503 }
+    );
+  }
+}
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+

@@ -2,6 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
+import { safeSetItem } from '@/lib/safe-client-utils';
 
 export const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
 
@@ -26,14 +27,11 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
 
     const fullPath = search ? `${pathname}?${search}` : pathname;
 
-    try {
-      sessionStorage.setItem(LAST_VISITED_PATH_KEY, fullPath);
-    } catch (sessionError) {
-      try {
-        localStorage.setItem(LAST_VISITED_PATH_KEY, fullPath);
-      } catch (storageError) {
-        console.warn('Unable to persist last visited path for redirect:', storageError);
-      }
+    // Use safe wrappers that handle errors automatically
+    // Try sessionStorage first, then localStorage as fallback
+    const sessionSuccess = safeSetItem(LAST_VISITED_PATH_KEY, fullPath, { storageType: 'session' });
+    if (!sessionSuccess) {
+      safeSetItem(LAST_VISITED_PATH_KEY, fullPath, { storageType: 'local' });
     }
   }, [pathname, search]);
 

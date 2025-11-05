@@ -45,7 +45,19 @@ export async function POST(request: NextRequest) {
       code
     );
 
+    // Get IP and User Agent for logging
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
+
     if (!isValid) {
+      // Log failed verification attempt
+      await authService.logSecurityEvent(verification.user.id, 'two_factor_verify_failed', ip, {
+        userAgent,
+        method: 'TOTP',
+      }).catch(() => {
+        // Non-blocking log failure
+      });
+
       return NextResponse.json(
         { error: 'رمز التحقق غير صحيح' },
         { status: 400 }
@@ -53,22 +65,29 @@ export async function POST(request: NextRequest) {
     }
 
     // Log event and send notification
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
-    
-    await securityLogger.logEvent({
-      userId: verification.user.id,
-      eventType: 'TWO_FACTOR_ENABLED',
-      ip,
-      userAgent,
-      metadata: { method: 'TOTP' },
+    await Promise.all([
+      securityLogger.logEvent({
+        userId: verification.user.id,
+        eventType: 'TWO_FACTOR_ENABLED',
+        ip,
+        userAgent,
+        metadata: { method: 'TOTP' },
+      }),
+      authService.logSecurityEvent(verification.user.id, 'two_factor_enabled', ip, {
+        userAgent,
+        method: 'TOTP',
+      }),
+    ]).catch(() => {
+      // Non-blocking log failure
     });
 
     await securityNotificationService.notify2FAStatusChange(
       verification.user.id,
       true,
       ip
-    );
+    ).catch(() => {
+      // Non-blocking notification failure
+    });
 
     return NextResponse.json({
       message: 'تم تفعيل المصادقة الثنائية بنجاح',

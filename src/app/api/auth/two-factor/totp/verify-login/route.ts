@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyTOTPLogin, verifyTOTP } from '@/lib/two-factor/totp-service';
 import { verifyAndConsumeRecoveryCode } from '@/lib/two-factor/recovery-codes';
 import { prisma } from '@/lib/prisma';
+import { authService } from '@/lib/auth-service';
 
 /**
  * POST /api/auth/two-factor/totp/verify-login
@@ -60,12 +61,32 @@ export async function POST(request: NextRequest) {
       isValid = verifyTOTP(user.twoFactorSecret, code);
     }
 
+    // Get IP and User Agent for logging
+    const ip = authService.getClientIP(request);
+    const userAgent = authService.getUserAgent(request);
+
     if (!isValid) {
+      // Log failed verification attempt
+      await authService.logSecurityEvent(user.id, 'two_factor_verification_failed', ip, {
+        userAgent,
+        method: useRecoveryCode ? 'recovery_code' : 'totp',
+      }).catch(() => {
+        // Non-blocking log failure
+      });
+
       return NextResponse.json(
         { error: useRecoveryCode ? 'رمز الاسترداد غير صحيح' : 'رمز التحقق غير صحيح' },
         { status: 401 }
       );
     }
+
+    // Log successful verification
+    await authService.logSecurityEvent(user.id, 'two_factor_verification_success', ip, {
+      userAgent,
+      method: useRecoveryCode ? 'recovery_code' : 'totp',
+    }).catch(() => {
+      // Non-blocking log failure
+    });
 
     return NextResponse.json({
       valid: true,

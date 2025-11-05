@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {

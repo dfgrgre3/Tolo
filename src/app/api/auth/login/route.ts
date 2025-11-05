@@ -8,6 +8,7 @@ import { riskAssessmentService } from '@/lib/security/risk-assessment';
 import { deviceManagerService } from '@/lib/security/device-manager';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { captchaService } from '@/lib/security/captcha-service';
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import type { LoginRequest, LoginResponse, LoginErrorResponse } from '@/types/api/auth';
 import { 
   setAuthCookies, 
@@ -251,8 +252,9 @@ const createSuccessResponse = (
 // ==================== MAIN HANDLER ====================
 
 export async function POST(request: NextRequest) {
-  const ip = authService.getClientIP(request);
-  const userAgent = authService.getUserAgent(request);
+  return opsWrapper(request, async (req) => {
+  const ip = authService.getClientIP(req);
+  const userAgent = authService.getUserAgent(req);
   const clientId = buildClientId(ip, userAgent);
 
   // Validate JWT_SECRET early to provide better error messages
@@ -352,9 +354,9 @@ export async function POST(request: NextRequest) {
     // ==================== VALIDATE REQUEST BODY ====================
     let body: any;
     try {
-      // Use request.json() directly for better performance and error handling
+      // Use req.json() directly for better performance and error handling
       // Check if request has body by checking content-length
-      const contentLength = request.headers.get('content-length');
+      const contentLength = req.headers.get('content-length');
       if (contentLength === '0' || !contentLength) {
         const errorResponse: LoginErrorResponse = {
           error: 'الطلب فارغ. يرجى إدخال بيانات تسجيل الدخول.',
@@ -376,7 +378,7 @@ export async function POST(request: NextRequest) {
       
       // Parse JSON body directly
       try {
-        body = await request.json();
+        body = await req.json();
       } catch (jsonError) {
         // If JSON parsing fails, return error
         const errorResponse: LoginErrorResponse = {
@@ -1016,6 +1018,7 @@ export async function POST(request: NextRequest) {
       { status: statusCode }
     );
   }
+  });
 }
 
 

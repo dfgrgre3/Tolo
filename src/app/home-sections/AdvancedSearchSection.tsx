@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/shared/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/shared/button";
 import { Badge } from "@/shared/badge";
-import { safeFetch } from "@/lib/safe-client-utils";
+import { safeFetch, safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import { 
   Search,
   FileText,
@@ -40,11 +40,11 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
-    // Load recent searches from localStorage
-    const stored = localStorage.getItem("recent_searches");
+    // Load recent searches from localStorage using safe wrapper
+    const stored = safeGetItem("recent_searches", { fallback: null });
     if (stored) {
       try {
-        setRecentSearches(JSON.parse(stored));
+        setRecentSearches(Array.isArray(stored) ? stored : JSON.parse(String(stored)));
       } catch {
         // Ignore parse errors
       }
@@ -141,11 +141,11 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
 
       setResults(sortedResults);
 
-      // Save to recent searches
+      // Save to recent searches using safe wrapper
       if (searchQuery && !recentSearches.includes(searchQuery)) {
         const updated = [searchQuery, ...recentSearches.slice(0, 4)];
         setRecentSearches(updated);
-        localStorage.setItem("recent_searches", JSON.stringify(updated));
+        safeSetItem("recent_searches", updated);
       }
     } catch (error) {
       console.error("Error performing search:", error);

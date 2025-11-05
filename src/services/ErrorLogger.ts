@@ -56,21 +56,14 @@ class ErrorLogger {
    * Get existing session ID or create a new one
    */
   private getOrCreateSessionId(): string {
-    if (typeof window === 'undefined' || !window.sessionStorage) {
-      return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    }
+    const { safeGetItem, safeSetItem } = require('@/lib/safe-client-utils');
     
-    try {
-      let sessionId = sessionStorage.getItem('errorLoggerSessionId');
-      if (!sessionId) {
-        sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-        sessionStorage.setItem('errorLoggerSessionId', sessionId);
-      }
-      return sessionId;
-    } catch (error) {
-      // Fallback if sessionStorage is not accessible
-      return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    let sessionId = safeGetItem('errorLoggerSessionId', { storageType: 'session', fallback: null });
+    if (!sessionId) {
+      sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      safeSetItem('errorLoggerSessionId', sessionId, { storageType: 'session' });
     }
+    return sessionId as string;
   }
 
   /**
@@ -78,12 +71,14 @@ class ErrorLogger {
    */
   private loadLogsFromStorage(): void {
     if (!this.config.enableLocalStorage) return;
-    if (typeof window === 'undefined' || !window.localStorage) return;
-
+    
+    const { safeGetItem } = require('@/lib/safe-client-utils');
+    
     try {
-      const storedLogs = localStorage.getItem('errorLogs');
+      const storedLogs = safeGetItem('errorLogs', { fallback: null });
       if (storedLogs) {
-        this.logs = JSON.parse(storedLogs);
+        const logs = Array.isArray(storedLogs) ? storedLogs : JSON.parse(String(storedLogs));
+        this.logs = logs;
         // Ensure we don't exceed max logs
         if (this.logs.length > this.config.maxLogs) {
           this.logs = this.logs.slice(-this.config.maxLogs);
@@ -99,13 +94,11 @@ class ErrorLogger {
    */
   private saveLogsToStorage(): void {
     if (!this.config.enableLocalStorage) return;
-    if (typeof window === 'undefined' || !window.localStorage) return;
-
-    try {
-      localStorage.setItem('errorLogs', JSON.stringify(this.logs));
-    } catch (error) {
-      console.error('Failed to save logs to localStorage:', error);
-    }
+    
+    const { safeSetItem } = require('@/lib/safe-client-utils');
+    
+    // Use safe wrapper that handles errors automatically
+    safeSetItem('errorLogs', this.logs);
   }
 
   /**
@@ -115,22 +108,24 @@ class ErrorLogger {
     if (typeof window === 'undefined') return;
 
     try {
-      // Catch unhandled JavaScript errors
-      window.addEventListener('error', (event) => {
-        this.logError(event.error || new Error(event.message), {
-          source: 'Global Error Handler',
-          filename: event.filename,
-          lineno: event.lineno,
-          colno: event.colno,
+      if (typeof window !== 'undefined') {
+        // Catch unhandled JavaScript errors
+        window.addEventListener('error', (event) => {
+          this.logError(event.error || new Error(event.message), {
+            source: 'Global Error Handler',
+            filename: event.filename,
+            lineno: event.lineno,
+            colno: event.colno,
+          });
         });
-      });
 
-      // Catch unhandled promise rejections
-      window.addEventListener('unhandledrejection', (event) => {
-        this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), {
-          source: 'Unhandled Promise Rejection',
+        // Catch unhandled promise rejections
+        window.addEventListener('unhandledrejection', (event) => {
+          this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), {
+            source: 'Unhandled Promise Rejection',
+          });
         });
-      });
+      }
     } catch (error) {
       // Silently fail if error handlers cannot be set up
       if (process.env.NODE_ENV === 'development') {

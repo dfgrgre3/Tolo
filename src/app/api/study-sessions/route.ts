@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
 import { getCachedOrFetch, invalidateCachePattern } from '@/lib/db-service';
-import { CacheService } from '@/lib/redis';
+import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';
 import { gamificationService } from '@/lib/gamification-service';
 import { firestoreService } from '@/lib/firestore-service';

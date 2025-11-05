@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 // واجهة برمجة تطبيقات اليوتيب للبحث عن القنوات التعليمية
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 
 export async function POST(request: NextRequest) {
+  return opsWrapper(request, async (req) => {
   try {
-    const { subject, keywords, platform, provider } = await request.json();
+    const { subject, keywords, platform, provider } = await req.json();
 
     if (!subject) {
       return NextResponse.json(
@@ -198,4 +200,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+  });
 }

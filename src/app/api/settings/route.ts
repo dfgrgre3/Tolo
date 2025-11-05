@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { SubjectType, FocusStrategy } from "@/types/settings";
 import { SettingsUpdateRequest } from "@/types/settings";
-import { verifyToken } from "@/lib/auth-enhanced";
+import { verifyToken } from "@/lib/auth-unified";
 import { randomUUID } from "crypto";
 
 export async function GET(req: NextRequest) {

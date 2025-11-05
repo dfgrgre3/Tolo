@@ -80,11 +80,20 @@ export async function POST(request: NextRequest) {
     // Log event
     const ip = authService.getClientIP(request);
     const userAgent = authService.getUserAgent(request);
-    await securityLogger.logEvent({
-      userId: verification.user.id,
-      eventType: 'RECOVERY_CODES_REGENERATED',
-      ip,
-      userAgent,
+    await Promise.all([
+      authService.logSecurityEvent(verification.user.id, 'recovery_codes_regenerated', ip, {
+        userAgent,
+        count,
+      }),
+      securityLogger.logEvent({
+        userId: verification.user.id,
+        eventType: 'RECOVERY_CODES_REGENERATED',
+        ip,
+        userAgent,
+        metadata: { count },
+      }),
+    ]).catch(() => {
+      // Non-blocking log failure
     });
 
     return NextResponse.json({

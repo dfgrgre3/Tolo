@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Settings, Save, Bell, Clock, Target, Moon } from 'lucide-react';
+import { safeSetItem } from '@/lib/safe-client-utils';
 
 interface TimeSettingsProps {
   onSave?: (settings: TimeSettingsData) => void;
@@ -43,8 +44,8 @@ export default function TimeSettings({ onSave }: TimeSettingsProps) {
   });
 
   const handleSave = () => {
-    // Save to localStorage
-    localStorage.setItem('timeSettings', JSON.stringify(settings));
+    // Save to localStorage using safe wrapper
+    safeSetItem('timeSettings', settings);
     if (onSave) {
       onSave(settings);
     }

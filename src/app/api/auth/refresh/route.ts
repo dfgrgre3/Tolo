@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { authService } from '@/lib/auth-service';
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { setAuthCookies, clearAuthCookies, createErrorResponse, isConnectionError } from '../_helpers';
 
 const refreshTokenSchema = z.object({
@@ -8,16 +9,17 @@ const refreshTokenSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const ip = authService.getClientIP(request);
-  const userAgent = authService.getUserAgent(request);
+  return opsWrapper(request, async (req) => {
+  const ip = authService.getClientIP(req);
+  const userAgent = authService.getUserAgent(req);
 
   try {
     // Get refresh token from cookie or request body
-    let refreshToken = request.cookies.get('refresh_token')?.value;
+    let refreshToken = req.cookies.get('refresh_token')?.value;
     
     if (!refreshToken) {
       try {
-        const body = await request.json().catch(() => ({}));
+        const body = await req.json().catch(() => ({}));
         const parsed = refreshTokenSchema.safeParse(body);
         
         if (parsed.success && parsed.data.refreshToken) {
@@ -139,4 +141,5 @@ export async function POST(request: NextRequest) {
     
     return response;
   }
+  });
 }
