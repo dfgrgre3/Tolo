@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
 import { Button } from "@/shared/button";
 import { Badge } from "@/shared/badge";
@@ -179,60 +181,77 @@ export default function ProfilePage() {
 		}
 	};
 
-	if (loading) {
-		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="text-center space-y-4">
-					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-					<p className="text-lg font-medium text-muted-foreground">جاري تحميل الملف الشخصي...</p>
-				</div>
-			</div>
-		);
-	}
-
-	if (!user) {
-		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<Card className="max-w-md">
-					<CardContent className="pt-6 text-center space-y-4">
-						<User className="h-16 w-16 text-muted-foreground mx-auto" />
-						<div>
-							<h3 className="text-lg font-semibold">المستخدم غير موجود</h3>
-							<p className="text-muted-foreground">لم يتم العثور على ملفك الشخصي</p>
-						</div>
-						<Button onClick={() => router.push("/")}>العودة للصفحة الرئيسية</Button>
-					</CardContent>
-				</Card>
-			</div>
-		);
-	}
-
 	return (
-		<div className="container mx-auto px-4 py-8 max-w-6xl">
-			<div className="mb-8 space-y-2">
-				<h1 className="text-3xl md:text-4xl font-bold">الملف الشخصي</h1>
-				<p className="text-muted-foreground">إدارة معلوماتك الشخصية ومتابعة تقدمك الأكاديمي</p>
-			</div>
+		<AuthGuard>
+			{loading ? (
+				<div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+					<div className="text-center space-y-4">
+						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+						<p className="text-lg font-medium text-muted-foreground">جاري تحميل الملف الشخصي...</p>
+					</div>
+				</div>
+			) : !user ? (
+				<div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+					<Card className="max-w-md shadow-xl border-2">
+						<CardContent className="pt-6 text-center space-y-4">
+							<User className="h-16 w-16 text-muted-foreground mx-auto" />
+							<div>
+								<h3 className="text-lg font-semibold">المستخدم غير موجود</h3>
+								<p className="text-muted-foreground">لم يتم العثور على ملفك الشخصي</p>
+							</div>
+							<Button onClick={() => router.push("/")}>العودة للصفحة الرئيسية</Button>
+						</CardContent>
+					</Card>
+				</div>
+			) : (
+				<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
+					<div className="container mx-auto px-4 py-8 max-w-6xl">
+			{/* Header Section */}
+			<motion.div 
+				className="mb-8 space-y-2"
+				initial={{ opacity: 0, y: -20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5 }}
+			>
+				<h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+					الملف الشخصي
+				</h1>
+				<p className="text-muted-foreground text-lg">إدارة معلوماتك الشخصية ومتابعة تقدمك الأكاديمي</p>
+			</motion.div>
 
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{/* Profile Card */}
+				{/* Profile Card - Enhanced */}
 				<div className="lg:col-span-1 space-y-6">
-					<Card className="overflow-hidden">
-						<div className="h-24 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+					<Card className="overflow-hidden shadow-xl border-2 border-primary/10">
+						<div className="h-32 bg-gradient-to-r from-blue-500 via-purple-600 to-pink-500 relative overflow-hidden">
+							<div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-transparent" />
+							<div className="absolute top-4 left-4 right-4 flex justify-between items-center z-10">
+								<Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30">
+									<Sparkles className="h-3 w-3 mr-1" />
+									عضو نشط
+								</Badge>
+							</div>
+						</div>
 						<CardContent className="p-6 pt-0">
-							<div className="flex flex-col items-center -mt-12">
-								<div className="relative mb-4">
-									<Avatar className="w-24 h-24 border-4 border-background shadow-lg">
+							<div className="flex flex-col items-center -mt-16">
+								<motion.div 
+									className="relative mb-4"
+									whileHover={{ scale: 1.05 }}
+									transition={{ type: "spring", stiffness: 300 }}
+								>
+									<Avatar className="w-28 h-28 border-4 border-background shadow-2xl ring-4 ring-primary/20">
 										<AvatarImage src={user.avatar} alt={user.name} />
-										<AvatarFallback className="text-2xl font-bold bg-primary/10">
+										<AvatarFallback className="text-3xl font-bold bg-gradient-to-br from-primary to-primary/80 text-primary-foreground">
 											{user.name.charAt(0).toUpperCase()}
 										</AvatarFallback>
 									</Avatar>
 									<label
 										htmlFor="avatar-upload"
-										className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-2 cursor-pointer shadow-md hover:bg-primary/90 transition-colors"
+										className="absolute bottom-0 right-0 bg-gradient-to-br from-primary to-primary/90 text-primary-foreground rounded-full p-3 cursor-pointer shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 ring-2 ring-background"
+										title="رفع صورة شخصية جديدة"
 									>
-										<Camera className="h-4 w-4" />
+										<Camera className="h-5 w-5" />
+										<span className="sr-only">رفع صورة شخصية جديدة</span>
 									</label>
 									<input
 										id="avatar-upload"
@@ -240,54 +259,57 @@ export default function ProfilePage() {
 										className="hidden"
 										accept="image/*"
 										onChange={handleAvatarUpload}
+										aria-label="رفع صورة شخصية جديدة"
 									/>
-								</div>
+								</motion.div>
 
-								<h2 className="text-xl font-bold mb-1">{user.name}</h2>
-								<p className="text-sm text-muted-foreground mb-4 flex items-center gap-1">
-									<Mail className="h-3 w-3" />
+								<h2 className="text-2xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+									{user.name}
+								</h2>
+								<p className="text-sm text-muted-foreground mb-6 flex items-center gap-2 px-4 py-2 rounded-full bg-muted/50">
+									<Mail className="h-4 w-4 text-primary" />
 									{user.email}
 								</p>
 
-								<div className="w-full space-y-2 text-sm">
+								<div className="w-full space-y-3 text-sm">
 									{user.grade && (
-										<div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-											<span className="text-muted-foreground flex items-center gap-1">
-												<School className="h-4 w-4" />
+										<div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-blue-50 to-blue-100/50 border border-blue-200/50 shadow-sm">
+											<span className="text-muted-foreground flex items-center gap-2 font-medium">
+												<School className="h-4 w-4 text-blue-600" />
 												الصف:
 											</span>
-											<span className="font-medium">{user.grade}</span>
+											<span className="font-semibold text-blue-700">{user.grade}</span>
 										</div>
 									)}
 									{user.school && (
-										<div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-											<span className="text-muted-foreground flex items-center gap-1">
-												<School className="h-4 w-4" />
+										<div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100/50 border border-purple-200/50 shadow-sm">
+											<span className="text-muted-foreground flex items-center gap-2 font-medium">
+												<School className="h-4 w-4 text-purple-600" />
 												المدرسة:
 											</span>
-											<span className="font-medium">{user.school}</span>
+											<span className="font-semibold text-purple-700">{user.school}</span>
 										</div>
 									)}
-									<div className="flex items-center justify-between p-2 rounded-lg bg-muted/50">
-										<span className="text-muted-foreground flex items-center gap-1">
-											<Calendar className="h-4 w-4" />
+									<div className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-green-50 to-green-100/50 border border-green-200/50 shadow-sm">
+										<span className="text-muted-foreground flex items-center gap-2 font-medium">
+											<Calendar className="h-4 w-4 text-green-600" />
 											انضم في:
 										</span>
-										<span className="font-medium">
+										<span className="font-semibold text-green-700">
 											{new Date(user.createdAt).toLocaleDateString("ar-EG")}
 										</span>
 									</div>
 								</div>
 
 								<Button
-									className="mt-6 w-full"
+									className="mt-6 w-full bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl transition-all duration-300"
 									onClick={() => setIsEditing(!isEditing)}
 									variant={isEditing ? "outline" : "default"}
 								>
 									{isEditing ? (
 										<>
 											<X className="ml-2 h-4 w-4" />
-											إلغاء
+											إلغاء التعديل
 										</>
 									) : (
 										<>
@@ -300,51 +322,69 @@ export default function ProfilePage() {
 						</CardContent>
 					</Card>
 
-					{/* Stats Card */}
+					{/* Stats Card - Enhanced */}
 					{stats && (
-						<Card>
-							<CardHeader>
-								<CardTitle className="flex items-center gap-2">
+						<Card className="shadow-xl border-2 border-primary/10 overflow-hidden">
+							<div className="h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+							<CardHeader className="bg-gradient-to-br from-primary/5 to-primary/10">
+								<CardTitle className="flex items-center gap-2 text-primary">
 									<TrendingUp className="h-5 w-5" />
 									إحصائيات النشاط
 								</CardTitle>
 							</CardHeader>
-							<CardContent>
-								<div className="grid grid-cols-2 gap-3">
-									<div className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-4 rounded-lg text-center border border-blue-200 dark:border-blue-800">
-										<div className="text-2xl font-bold text-blue-700 dark:text-blue-300">
+							<CardContent className="pt-6">
+								<div className="grid grid-cols-2 gap-4">
+									<motion.div 
+										className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-5 rounded-xl text-center border-2 border-blue-200 dark:border-blue-800 shadow-md hover:shadow-lg transition-all duration-300"
+										whileHover={{ scale: 1.05, y: -2 }}
+									>
+										<div className="text-3xl font-bold text-blue-700 dark:text-blue-300 mb-1">
 											{stats.completedTasks}
 										</div>
-										<div className="text-xs text-blue-600 dark:text-blue-400 mt-1">مهام مكتملة</div>
-									</div>
-									<div className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 p-4 rounded-lg text-center border border-green-200 dark:border-green-800">
-										<div className="text-2xl font-bold text-green-700 dark:text-green-300">
+										<div className="text-xs font-semibold text-blue-600 dark:text-blue-400">مهام مكتملة</div>
+									</motion.div>
+									<motion.div 
+										className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 p-5 rounded-xl text-center border-2 border-green-200 dark:border-green-800 shadow-md hover:shadow-lg transition-all duration-300"
+										whileHover={{ scale: 1.05, y: -2 }}
+									>
+										<div className="text-3xl font-bold text-green-700 dark:text-green-300 mb-1">
 											{Math.floor(stats.totalStudyTime / 60)}س
 										</div>
-										<div className="text-xs text-green-600 dark:text-green-400 mt-1">وقت الدراسة</div>
-									</div>
-									<div className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 p-4 rounded-lg text-center border border-purple-200 dark:border-purple-800">
-										<div className="text-2xl font-bold text-purple-700 dark:text-purple-300">
+										<div className="text-xs font-semibold text-green-600 dark:text-green-400">وقت الدراسة</div>
+									</motion.div>
+									<motion.div 
+										className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 p-5 rounded-xl text-center border-2 border-purple-200 dark:border-purple-800 shadow-md hover:shadow-lg transition-all duration-300"
+										whileHover={{ scale: 1.05, y: -2 }}
+									>
+										<div className="text-3xl font-bold text-purple-700 dark:text-purple-300 mb-1">
 											{stats.coursesEnrolled}
 										</div>
-										<div className="text-xs text-purple-600 dark:text-purple-400 mt-1">دورات مسجلة</div>
-									</div>
-									<div className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 p-4 rounded-lg text-center border border-orange-200 dark:border-orange-800">
-										<div className="text-2xl font-bold text-orange-700 dark:text-orange-300">
+										<div className="text-xs font-semibold text-purple-600 dark:text-purple-400">دورات مسجلة</div>
+									</motion.div>
+									<motion.div 
+										className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 p-5 rounded-xl text-center border-2 border-orange-200 dark:border-orange-800 shadow-md hover:shadow-lg transition-all duration-300"
+										whileHover={{ scale: 1.05, y: -2 }}
+									>
+										<div className="text-3xl font-bold text-orange-700 dark:text-orange-300 mb-1">
 											{stats.examsTaken}
 										</div>
-										<div className="text-xs text-orange-600 dark:text-orange-400 mt-1">امتحانات</div>
-									</div>
+										<div className="text-xs font-semibold text-orange-600 dark:text-orange-400">امتحانات</div>
+									</motion.div>
 								</div>
 								{stats.studyStreak && (
-									<div className="mt-4 p-3 rounded-lg bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 border border-yellow-200 dark:border-yellow-800">
-										<div className="flex items-center justify-center gap-2">
-											<Sparkles className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
-											<span className="text-sm font-medium">
-												{stats.studyStreak} يوم متتالي
+									<motion.div 
+										className="mt-6 p-4 rounded-xl bg-gradient-to-r from-yellow-50 via-orange-50 to-amber-50 dark:from-yellow-950 dark:to-orange-950 border-2 border-yellow-300 dark:border-yellow-800 shadow-md"
+										initial={{ opacity: 0, scale: 0.9 }}
+										animate={{ opacity: 1, scale: 1 }}
+										transition={{ delay: 0.2 }}
+									>
+										<div className="flex items-center justify-center gap-3">
+											<Sparkles className="h-6 w-6 text-yellow-600 dark:text-yellow-400 animate-pulse" />
+											<span className="text-base font-bold text-yellow-700 dark:text-yellow-400">
+												{stats.studyStreak} يوم متتالي 🔥
 											</span>
 										</div>
-									</div>
+									</motion.div>
 								)}
 							</CardContent>
 						</Card>
@@ -635,6 +675,9 @@ export default function ProfilePage() {
 					</Tabs>
 				</div>
 			</div>
-		</div>
+					</div>
+				</div>
+			)}
+		</AuthGuard>
 	);
 }

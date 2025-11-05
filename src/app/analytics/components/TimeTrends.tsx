@@ -65,8 +65,12 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 			: 0;
 
 		// Find peak and low days
-		const peakDay = days.reduce((max, day) => day.minutes > max.minutes ? day : max, days[0]);
-		const lowDay = days.reduce((min, day) => day.minutes < min.minutes ? day : min, days[0]);
+		const peakDay = days.length > 0 
+			? days.reduce((max, day) => day.minutes > max.minutes ? day : max, days[0])
+			: null;
+		const lowDay = days.length > 0
+			? days.reduce((min, day) => day.minutes < min.minutes ? day : min, days[0])
+			: null;
 
 		return {
 			days,
@@ -168,7 +172,7 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 						<div className="flex items-center justify-between">
 							<div>
 								<p className="text-sm font-medium text-muted-foreground mb-1">أفضل يوم</p>
-								<p className="text-2xl font-bold">{trendData.peakDay?.label}</p>
+								<p className="text-2xl font-bold">{trendData.peakDay?.label || '-'}</p>
 							</div>
 							<Calendar className="h-8 w-8 text-purple-600 dark:text-purple-400" />
 						</div>

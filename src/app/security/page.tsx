@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/components/auth/UserProvider';
 import { useRouter } from 'next/navigation';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
   Shield,
   Smartphone,
@@ -89,15 +90,10 @@ export default function SecurityDashboardPage() {
   });
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      router.push('/login');
-      return;
-    }
-
     if (user) {
       loadSecurityData();
     }
-  }, [user, authLoading, router]);
+  }, [user]);
 
   const loadSecurityData = async () => {
     setIsLoading(true);
@@ -260,7 +256,8 @@ export default function SecurityDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6">
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8">
@@ -414,7 +411,8 @@ export default function SecurityDashboardPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }
 

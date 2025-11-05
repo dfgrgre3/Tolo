@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/shared/button';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -209,12 +210,13 @@ export default function TasksPage() {
     return new Date(dueAt) < new Date();
   };
 
-  if (loading) {
-    return <div className="flex justify-center items-center h-screen">جاري التحميل...</div>;
-  }
+	if (loading) {
+		return <div className="flex justify-center items-center h-screen">جاري التحميل...</div>;
+	}
 
-  return (
-    <div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 max-w-7xl font-sans">
+	return (
+		<AuthGuard>
+			<div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 max-w-7xl font-sans">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">مركز المهام</h1>
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -345,6 +347,7 @@ export default function TasksPage() {
         </Dialog>
 
       {/* هذا القسم تم استبداله بمكون Tabs و TaskList في الأعلى */}
-    </div>
+			</div>
+		</AuthGuard>
   );
 }

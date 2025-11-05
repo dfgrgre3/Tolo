@@ -18,6 +18,18 @@ import {
   CheckCircle2,
   Loader2
 } from "lucide-react";
+
+// Icon mapping for string-based icons from API
+const iconMap: Record<string, React.ReactNode> = {
+  target: <Target className="h-5 w-5" />,
+  "book-open": <BookOpen className="h-5 w-5" />,
+  clock: <Clock className="h-5 w-5" />,
+  "check-circle-2": <CheckCircle2 className="h-5 w-5" />,
+  zap: <Zap className="h-5 w-5" />,
+  "trending-up": <TrendingUp className="h-5 w-5" />,
+  lightbulb: <Lightbulb className="h-5 w-5" />,
+  sparkles: <Sparkles className="h-5 w-5" />
+};
 import Link from "next/link";
 
 interface Recommendation {
@@ -29,7 +41,7 @@ interface Recommendation {
   impact: number;
   estimatedTime?: string;
   category: string;
-  icon: React.ReactNode;
+  icon: string | React.ReactNode;
   actionUrl: string;
 }
 
@@ -77,7 +89,7 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
 
   const filteredRecommendations = selectedCategory === "all" 
     ? recommendations 
-    : recommendations.filter(rec => rec.category === selectedCategory);
+    : recommendations.filter(rec => rec.type === selectedCategory || rec.category === selectedCategory);
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
@@ -172,7 +184,9 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
                           <div className="rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 p-2">
-                            {recommendation.icon}
+                            {typeof recommendation.icon === 'string' 
+                              ? (iconMap[recommendation.icon] || <Sparkles className="h-5 w-5" />)
+                              : recommendation.icon}
                           </div>
                           <Badge className={getPriorityColor(recommendation.priority)}>
                             {getPriorityLabel(recommendation.priority)}

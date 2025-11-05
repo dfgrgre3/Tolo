@@ -6,6 +6,8 @@ import { memo } from "react";
 import { Button } from "@/shared/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
+import { useAuth } from "@/components/auth/UserProvider";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Play, ChevronRight, Zap, Bell, Users, Bot, BarChart3, BookOpen, CalendarCheck, Headphones, Award, Globe } from 'lucide-react';
 
 type Feature = {
@@ -72,6 +74,7 @@ const FEATURES: ReadonlyArray<Feature> = [
 ];
 
 export const FeaturesSection = memo(function FeaturesSection() {
+  const { user } = useAuth();
   return (
     <section aria-labelledby="features-heading" className="max-w-6xl mx-auto">
       <motion.div
@@ -170,13 +173,30 @@ export const FeaturesSection = memo(function FeaturesSection() {
                   </div>
                 </div>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
-                <Link href="/login?view=register">
-                  <Button size="lg" className="px-8 py-6 text-lg shadow hover:shadow-lg transition-shadow w-full sm:w-auto group">
-                    إنشاء حساب
-                    <Play className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
+              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
+                {/* Show user avatar if authenticated, register button if not */}
+                {user ? (
+                  <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/5 transition-colors">
+                    <Avatar className="h-10 w-10 border-2 border-primary/20">
+                      <AvatarImage src={user.avatar} alt={user.name || "User"} />
+                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
+                        {user.name
+                          ?.split(" ")
+                          .map((n) => n[0])
+                          .join("")
+                          .toUpperCase() || user.email[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium text-primary">{user.name || user.email}</span>
+                  </Link>
+                ) : (
+                  <Link href="/login?view=register">
+                    <Button size="lg" className="px-8 py-6 text-lg shadow hover:shadow-lg transition-shadow w-full sm:w-auto group">
+                      إنشاء حساب
+                      <Play className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </Link>
+                )}
                 <Link href="/demo">
                   <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-2 hover:bg-primary/5 w-full sm:w-auto">
                     مشاهدة العرض التوضيحي

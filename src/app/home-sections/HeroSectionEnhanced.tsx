@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { Button } from "@/shared/button";
 import { Card, CardContent } from "@/shared/card";
 import { Badge } from "@/shared/badge";
+import { useAuth } from "@/components/auth/UserProvider";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
 	Clock,
 	Flame,
@@ -29,6 +31,7 @@ export function HeroSectionEnhanced({
 	priority?: boolean;
 }) {
 	void priority;
+	const { user } = useAuth();
 
 	const formatNumber = (value: number) => new Intl.NumberFormat("ar-EG").format(value);
 
@@ -143,13 +146,33 @@ export function HeroSectionEnhanced({
 									شاهد العرض التوضيحي
 								</Button>
 							</Link>
-							<Link
-								href="/login"
-								className="flex items-center justify-end gap-2 text-sm font-medium text-blue-700 transition-colors hover:text-blue-800"
-							>
-								<LogIn className="h-4 w-4" />
-								تسجيل الدخول للطلاب
-							</Link>
+							{/* Show user avatar if authenticated, login link if not */}
+							{user ? (
+								<Link
+									href="/profile"
+									className="flex items-center justify-end gap-2 text-sm font-medium text-blue-700 transition-colors hover:text-blue-800"
+								>
+									<Avatar className="h-8 w-8 border-2 border-blue-200">
+										<AvatarImage src={user.avatar} alt={user.name || "User"} />
+										<AvatarFallback className="bg-gradient-to-br from-blue-600 to-purple-600 text-white font-semibold">
+											{user.name
+												?.split(" ")
+												.map((n) => n[0])
+												.join("")
+												.toUpperCase() || user.email[0].toUpperCase()}
+										</AvatarFallback>
+									</Avatar>
+									<span className="hidden sm:inline">{user.name || user.email}</span>
+								</Link>
+							) : (
+								<Link
+									href="/login"
+									className="flex items-center justify-end gap-2 text-sm font-medium text-blue-700 transition-colors hover:text-blue-800"
+								>
+									<LogIn className="h-4 w-4" />
+									تسجيل الدخول للطلاب
+								</Link>
+							)}
 						</div>
 					</div>
 

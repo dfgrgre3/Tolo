@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Clock, ShieldCheck, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '@/components/auth/UserProvider';
 
 const EnhancedLoginForm = dynamic(
   () => import('@/components/auth/EnhancedLoginForm'),
@@ -40,11 +40,22 @@ export default function LoginPage() {
   const { user, isLoading } = useAuth();
   const [activeView, setActiveView] = useState<AuthView>('login');
 
-  // Redirect authenticated users to home page
+  // Redirect authenticated users to home page immediately
   useEffect(() => {
     if (!isLoading && user) {
       const redirectTo = searchParams.get('redirect') || '/';
+      // Use replace to prevent back navigation to login page
       router.replace(redirectTo);
+      // Clear any login-related data from localStorage
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('loginAttempts');
+          localStorage.removeItem('loginFormData');
+          localStorage.removeItem('pendingLogin');
+        } catch (e) {
+          // Ignore errors
+        }
+      }
     }
   }, [user, isLoading, router, searchParams]);
 

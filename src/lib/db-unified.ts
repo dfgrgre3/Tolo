@@ -86,58 +86,64 @@ This will generate the Prisma Client based on your schema.prisma file.
     }
 
     // Add connection error handling with improved retry logic
-    prisma.$use(async (params, next) => {
-      try {
-        return await next(params);
-      } catch (error: any) {
-        // Handle connection errors
-        if (error?.code === 'P1001' || error?.code === 'P1017' || 
-            error?.message?.includes('Connection') ||
-            error?.message?.includes('ECONNREFUSED') ||
-            error?.message?.includes('ETIMEDOUT')) {
-          console.error('Database connection error:', {
-            code: error.code,
-            message: error.message,
-            databaseUrl: databaseUrl ? '***' : 'not set'
-          });
-          
-          // Try to reconnect with retry
-          let reconnectSuccess = false;
-          for (let attempt = 1; attempt <= 3; attempt++) {
-            try {
-              // Disconnect if needed
+    if (typeof prisma.$use === 'function') {
+      prisma.$use(async (params, next) => {
+        try {
+          return await next(params);
+        } catch (error: any) {
+          // Handle connection errors
+          if (error?.code === 'P1001' || error?.code === 'P1017' || 
+              error?.message?.includes('Connection') ||
+              error?.message?.includes('ECONNREFUSED') ||
+              error?.message?.includes('ETIMEDOUT')) {
+            console.error('Database connection error:', {
+              code: error.code,
+              message: error.message,
+              databaseUrl: databaseUrl ? '***' : 'not set'
+            });
+            
+            // Try to reconnect with retry
+            let reconnectSuccess = false;
+            for (let attempt = 1; attempt <= 3; attempt++) {
               try {
-                await prisma.$disconnect();
-              } catch (disconnectError) {
-                // Ignore disconnect errors
-              }
-              
-              // Wait a bit before reconnecting
-              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-              
-              // Try to reconnect
-              await prisma.$connect();
-              console.log(`Database reconnected successfully (attempt ${attempt})`);
-              reconnectSuccess = true;
-              
-              // Retry the operation once after successful reconnection
-              return await next(params);
-            } catch (reconnectError: any) {
-              console.warn(`Reconnection attempt ${attempt} failed:`, reconnectError.message);
-              if (attempt === 3) {
-                console.error('Failed to reconnect to database after all attempts');
-                throw error; // Throw original error
+                // Disconnect if needed
+                try {
+                  await prisma.$disconnect();
+                } catch (disconnectError) {
+                  // Ignore disconnect errors
+                }
+                
+                // Wait a bit before reconnecting
+                await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                
+                // Try to reconnect
+                await prisma.$connect();
+                console.log(`Database reconnected successfully (attempt ${attempt})`);
+                reconnectSuccess = true;
+                
+                // Retry the operation once after successful reconnection
+                return await next(params);
+              } catch (reconnectError: any) {
+                console.warn(`Reconnection attempt ${attempt} failed:`, reconnectError.message);
+                if (attempt === 3) {
+                  console.error('Failed to reconnect to database after all attempts');
+                  throw error; // Throw original error
+                }
               }
             }
+            
+            if (!reconnectSuccess) {
+              throw error;
+            }
           }
-          
-          if (!reconnectSuccess) {
-            throw error;
-          }
+          throw error;
         }
-        throw error;
+      });
+    } else {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('Prisma $use is not available, connection error handling middleware will be limited');
       }
-    });
+    }
 
     return prisma;
   } catch (error: any) {
@@ -269,48 +275,59 @@ const initializePrismaWithMiddleware = () => {
 
   if (!globalForPrisma.prismaPoolMiddlewareRegistered) {
     try {
-      prisma.$use(async (params, next) => {
-        poolStats.activeConnections += 1;
-        poolStats.totalConnections = Math.max(
-          poolStats.totalConnections,
-          poolStats.activeConnections,
-        );
-
-        const overCapacity = poolStats.activeConnections > maxConnections;
-        if (overCapacity) {
-          poolStats.waitingRequests += 1;
-        }
-
-        poolStats.idleConnections = Math.max(
-          maxConnections - poolStats.activeConnections,
-          0,
-        );
-
-        try {
-          return await next(params);
-        } finally {
-          poolStats.activeConnections = Math.max(
-            poolStats.activeConnections - 1,
-            0,
+      // Check if $use is available before using it
+      if (typeof prisma.$use === 'function') {
+        prisma.$use(async (params, next) => {
+          poolStats.activeConnections += 1;
+          poolStats.totalConnections = Math.max(
+            poolStats.totalConnections,
+            poolStats.activeConnections,
           );
 
-          if (overCapacity && poolStats.waitingRequests > 0) {
-            poolStats.waitingRequests -= 1;
+          const overCapacity = poolStats.activeConnections > maxConnections;
+          if (overCapacity) {
+            poolStats.waitingRequests += 1;
           }
 
           poolStats.idleConnections = Math.max(
             maxConnections - poolStats.activeConnections,
             0,
           );
-        }
-      });
 
-      globalForPrisma.prismaPoolMiddlewareRegistered = true;
+          try {
+            return await next(params);
+          } finally {
+            poolStats.activeConnections = Math.max(
+              poolStats.activeConnections - 1,
+              0,
+            );
+
+            if (overCapacity && poolStats.waitingRequests > 0) {
+              poolStats.waitingRequests -= 1;
+            }
+
+            poolStats.idleConnections = Math.max(
+              maxConnections - poolStats.activeConnections,
+              0,
+            );
+          }
+        });
+
+        globalForPrisma.prismaPoolMiddlewareRegistered = true;
+      } else {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Prisma $use is not available, connection pool monitoring will be limited');
+        }
+        // Mark as registered even if we couldn't set up middleware to avoid retrying
+        globalForPrisma.prismaPoolMiddlewareRegistered = true;
+      }
     } catch (error) {
       // If middleware setup fails, log but don't throw
       if (process.env.NODE_ENV === 'development') {
         console.warn('Failed to set up Prisma middleware:', error);
       }
+      // Mark as registered to avoid infinite retries
+      globalForPrisma.prismaPoolMiddlewareRegistered = true;
     }
   }
 

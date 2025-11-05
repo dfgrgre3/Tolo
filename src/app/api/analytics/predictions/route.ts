@@ -9,6 +9,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
     
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'userId required', success: false },
+        { status: 400 }
+      );
+    }
+    
     // In production, this would:
     // 1. Analyze user's historical performance data
     // 2. Use ML models to predict future performance

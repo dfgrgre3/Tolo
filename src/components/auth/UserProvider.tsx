@@ -225,6 +225,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         saveUserToStorage(userData);
         setUser(userData);
         
+        // Show welcome message
+        toast.success(`مرحباً ${userData.name || userData.email}! تم تسجيل الدخول بنجاح`, { 
+          duration: 4000,
+          description: 'يمكنك الآن الوصول إلى جميع الميزات'
+        });
+        
         // Show verification warnings if needed (non-blocking)
         if (!userData.emailVerified && userData.provider === 'local') {
           toast.warning('يرجى تفعيل بريدك الإلكتروني', { duration: 5000 });

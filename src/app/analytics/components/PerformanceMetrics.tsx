@@ -63,8 +63,12 @@ export default function PerformanceMetrics({
 		// Growth Rate
 		const firstHalf = dailyMinutes.slice(0, Math.floor(dailyMinutes.length / 2));
 		const secondHalf = dailyMinutes.slice(Math.floor(dailyMinutes.length / 2));
-		const firstAvg = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length || 0;
-		const secondAvg = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length || 0;
+		const firstAvg = firstHalf.length > 0 
+			? firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length 
+			: 0;
+		const secondAvg = secondHalf.length > 0
+			? secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length
+			: 0;
 		const growthRate = firstAvg > 0 
 			? Math.round(((secondAvg - firstAvg) / firstAvg) * 100)
 			: 0;

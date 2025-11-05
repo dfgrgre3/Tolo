@@ -11,13 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/UserProvider";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { User as UserIcon, Shield as ShieldIcon, Bell as BellIcon, Palette as PaletteIcon, Globe as GlobeIcon, Clock as ClockIcon, Loader2 } from "lucide-react";
 import { SettingsData, SubjectEnrollment, FocusStrategy, SubjectType } from "@/types/settings";
 import { ensureUser } from "@/lib/user-utils";
 import { getTokenFromStorage } from "@/lib/auth-client";
 import TimeSettings from "@/app/time/components/TimeSettings";
 
-export default function SettingsPage() {
+function SettingsPage() {
 	const { user } = useAuth();
 	const [userId, setUserId] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState("general");
@@ -757,3 +758,14 @@ export default function SettingsPage() {
 		</div>
 	);
 }
+
+// Wrap with AuthGuard
+const SettingsPageWithAuth = () => {
+	return (
+		<AuthGuard>
+			<SettingsPage />
+		</AuthGuard>
+	);
+};
+
+export default SettingsPageWithAuth;

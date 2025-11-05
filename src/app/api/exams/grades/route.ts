@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { gamificationService } from "@/lib/gamification-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -94,6 +95,14 @@ export async function POST(request: NextRequest) {
           examResultId: examResult.id
         }
       });
+    }
+
+    // Trigger gamification for exam completion
+    try {
+      await gamificationService.updateUserProgress(userId, 'exam_completed', { score });
+    } catch (gamificationError) {
+      console.error('Error updating gamification for exam:', gamificationError);
+      // Don't fail the request if gamification fails
     }
 
     return NextResponse.json({

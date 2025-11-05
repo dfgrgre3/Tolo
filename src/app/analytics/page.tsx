@@ -5,6 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Button } from "@/shared/button";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { 
 	BarChart3, 
 	TrendingUp, 
@@ -52,7 +53,7 @@ type PredictionsData = {
 	recommendations: string[];
 };
 
-export default function AnalyticsPage() {
+function AnalyticsPage() {
 	const [activeTab, setActiveTab] = useState("overview");
 	const [isLoading, setIsLoading] = useState(true);
 	const [summary, setSummary] = useState<SummaryData | null>(null);
@@ -76,25 +77,41 @@ export default function AnalyticsPage() {
 			]);
 
 			if (summaryRes?.ok) {
-				const summaryData = await summaryRes.json();
-				setSummary(summaryData);
+				try {
+					const summaryData = await summaryRes.json();
+					setSummary(summaryData);
+				} catch (e) {
+					console.error('Error parsing summary data:', e);
+				}
 			}
 
 			if (weeklyRes?.ok) {
-				const weeklyData = await weeklyRes.json();
-				setWeekly(weeklyData);
+				try {
+					const weeklyData = await weeklyRes.json();
+					setWeekly(weeklyData);
+				} catch (e) {
+					console.error('Error parsing weekly data:', e);
+				}
 			}
 
 			if (predictionsRes?.ok) {
-				const predictionsData = await predictionsRes.json();
-				if (predictionsData.success) {
-					setPredictions(predictionsData.predictions || []);
+				try {
+					const predictionsData = await predictionsRes.json();
+					if (predictionsData.success) {
+						setPredictions(predictionsData.predictions || []);
+					}
+				} catch (e) {
+					console.error('Error parsing predictions data:', e);
 				}
 			}
 
 			if (performanceRes?.ok) {
-				const performanceData = await performanceRes.json();
-				setPerformanceMetrics(performanceData);
+				try {
+					const performanceData = await performanceRes.json();
+					setPerformanceMetrics(performanceData);
+				} catch (e) {
+					console.error('Error parsing performance data:', e);
+				}
 			}
 		} catch (err: any) {
 			console.error('Error fetching analytics:', err);
@@ -269,3 +286,14 @@ export default function AnalyticsPage() {
 		</PageContainer>
 	);
 }
+
+// Wrap with AuthGuard
+const AnalyticsPageWithAuth = () => {
+	return (
+		<AuthGuard>
+			<AnalyticsPage />
+		</AuthGuard>
+	);
+};
+
+export default AnalyticsPageWithAuth;

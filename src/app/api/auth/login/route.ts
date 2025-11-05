@@ -9,6 +9,8 @@ import { deviceManagerService } from '@/lib/security/device-manager';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { captchaService } from '@/lib/security/captcha-service';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
+import { randomBytes } from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 import type { LoginRequest, LoginResponse, LoginErrorResponse } from '@/types/api/auth';
 import { 
   setAuthCookies, 
@@ -199,7 +201,8 @@ const createSuccessResponse = (
   refreshToken: string,
   sessionId: string,
   riskAssessment: any,
-  isNewDevice: boolean
+  isNewDevice: boolean,
+  accountWasCreated?: boolean
 ): LoginResponse => {
   // Validate inputs
   if (!user || !user.id || !user.email) {
@@ -224,7 +227,9 @@ const createSuccessResponse = (
   }
 
   return {
-    message: 'تم تسجيل الدخول بنجاح.',
+    message: accountWasCreated 
+      ? 'تم إنشاء الحساب وتسجيل الدخول بنجاح!' 
+      : 'تم تسجيل الدخول بنجاح.',
     token: accessToken,
     refreshToken,
     sessionId,
@@ -246,6 +251,7 @@ const createSuccessResponse = (
       score: riskAssessment.score || 0,
     },
     isNewDevice: isNewDevice || false,
+    accountWasCreated: accountWasCreated || false,
   };
 };
 
@@ -487,14 +493,122 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // ==================== VERIFY USER EXISTS ====================
-    if (!user || !user.passwordHash) {
+    // ==================== VERIFY USER EXISTS OR CREATE ACCOUNT ====================
+    let accountWasCreated = false;
+    // Only auto-create if user doesn't exist at all
+    // If user exists but has no passwordHash, they're an OAuth user and should not be auto-created
+    if (!user) {
+      // Auto-create account if user doesn't exist
+      try {
+        // Hash password
+        const passwordHash = await AuthService.hashPassword(password);
+        
+        // Generate email verification token
+        const emailVerificationToken = randomBytes(32).toString('hex');
+        const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+        
+        // Generate unique user ID
+        const userId = uuidv4();
+        
+        // Extract name from email (optional, can be improved)
+        const emailName = normalizedEmail.split('@')[0];
+        const normalizedName = emailName || null;
+        
+        // Create new user with all required fields and defaults
+        user = await prisma.user.create({
+          data: {
+            id: userId,
+            email: normalizedEmail,
+            passwordHash,
+            name: normalizedName,
+            emailVerificationToken,
+            emailVerificationExpires,
+            emailVerified: false, // Explicitly set to false
+            emailNotifications: true, // Default to true
+            smsNotifications: false, // Default to false
+            twoFactorEnabled: false, // Default to false
+            biometricEnabled: false, // Default to false
+            biometricCredentials: [], // Default empty array
+            // Gamification defaults
+            totalXP: 0,
+            level: 1,
+            currentStreak: 0,
+            longestStreak: 0,
+            totalStudyTime: 0,
+            tasksCompleted: 0,
+            examsPassed: 0,
+            pomodoroSessions: 0,
+            deepWorkSessions: 0,
+            // Focus strategy default
+            focusStrategy: 'POMODORO',
+          },
+        });
+        
+        accountWasCreated = true;
+        
+        // Log account creation event
+        await authService.logSecurityEvent(user.id, 'account_auto_created', ip, {
+          userAgent,
+          email: normalizedEmail,
+        }).catch((logError) => {
+          console.warn('Failed to log account creation event:', logError);
+        });
+        
+        // Continue with login flow for the newly created user
+      } catch (createError: any) {
+        console.error('Error auto-creating account during login:', createError);
+        
+        // Handle unique constraint violation (race condition)
+        if (createError.code === 'P2002' || createError.message?.includes('unique')) {
+          // User was created by another request, try to find them again
+          try {
+            user = await authService.findUserByEmail(normalizedEmail);
+            if (!user || !user.passwordHash) {
+              return await handleFailedLogin(
+                clientId,
+                null,
+                ip,
+                userAgent,
+                'user_not_found',
+                normalizedEmail,
+                rateLimitService,
+                captchaService
+              );
+            }
+          } catch (findError) {
+            return await handleFailedLogin(
+              clientId,
+              null,
+              ip,
+              userAgent,
+              'user_not_found',
+              normalizedEmail,
+              rateLimitService,
+              captchaService
+            );
+          }
+        } else {
+          // Other database errors
+          return NextResponse.json(
+            {
+              error: 'حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى.',
+              code: 'ACCOUNT_CREATION_ERROR',
+            },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
+    // ==================== CHECK PASSWORD HASH EXISTS ====================
+    // If user exists but has no passwordHash, they're an OAuth user
+    if (!user.passwordHash || user.passwordHash === 'oauth_user') {
       return await handleFailedLogin(
         clientId,
-        null,
+        user.id,
         ip,
         userAgent,
-        'user_not_found',
+        'oauth_user_no_password',
         normalizedEmail,
         rateLimitService,
         captchaService
@@ -896,7 +1010,8 @@ export async function POST(request: NextRequest) {
       refreshToken,
       session.id,
       riskAssessment,
-      isNewDevice
+      isNewDevice,
+      accountWasCreated
     );
     
     // Validate response structure before sending

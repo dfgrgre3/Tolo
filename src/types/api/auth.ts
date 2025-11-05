@@ -47,6 +47,7 @@ export interface LoginResponse {
   user: User;
   riskAssessment?: RiskAssessment;
   isNewDevice?: boolean;
+  accountWasCreated?: boolean; // Indicates if account was auto-created during login
   requiresTwoFactor?: boolean;
   loginAttemptId?: string;
   expiresAt?: string;

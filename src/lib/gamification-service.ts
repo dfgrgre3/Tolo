@@ -303,10 +303,22 @@ export class GamificationService {
         // XP for study time (1 XP per 6 minutes)
         xpGained = Math.floor(studyTime / 6);
 
-        // Check for deep work session
+        // Track deep work sessions (sessions >= 60 minutes)
         if (studyTime >= 60) {
-          const deepWorkAchievement = this.checkAchievement(user, 'deep_work', { deepWorkSessions: (user.deepWorkSessions || 0) + 1 });
-          if (deepWorkAchievement) newAchievements.push(deepWorkAchievement.key);
+          const currentDeepWorkCount = (user.deepWorkSessions || 0) + 1;
+          updates.deepWorkSessions = currentDeepWorkCount;
+          
+          // Check for deep work achievement
+          if (currentDeepWorkCount >= 5) {
+            const progress = await this.getUserProgress(userId);
+            if (!progress.achievements.includes('deep_work')) {
+              const achievement = this.achievements.get('deep_work');
+              if (achievement) {
+                await this.unlockAchievement(userId, achievement);
+                newAchievements.push('deep_work');
+              }
+            }
+          }
         }
         break;
 
@@ -321,12 +333,19 @@ export class GamificationService {
         xpGained = Math.floor(score / 2); // XP based on score
 
         // Check for high score achievements
-        if (score >= 90) {
-          const highScoreAchievement = this.checkAchievement(user, 'exam_90_percent', { examScore: score });
-          if (highScoreAchievement) newAchievements.push(highScoreAchievement.key);
-        } else if (score >= 80) {
-          const goodScoreAchievement = this.checkAchievement(user, 'exam_80_percent', { examScore: score });
-          if (goodScoreAchievement) newAchievements.push(goodScoreAchievement.key);
+        const progress = await this.getUserProgress(userId);
+        if (score >= 90 && !progress.achievements.includes('exam_90_percent')) {
+          const achievement = this.achievements.get('exam_90_percent');
+          if (achievement) {
+            await this.unlockAchievement(userId, achievement);
+            newAchievements.push('exam_90_percent');
+          }
+        } else if (score >= 80 && !progress.achievements.includes('exam_80_percent')) {
+          const achievement = this.achievements.get('exam_80_percent');
+          if (achievement) {
+            await this.unlockAchievement(userId, achievement);
+            newAchievements.push('exam_80_percent');
+          }
         }
         break;
 
@@ -337,8 +356,14 @@ export class GamificationService {
 
         // Check for pomodoro master achievement
         if (pomodoroCount >= 10) {
-          const pomodoroAchievement = this.checkAchievement(user, 'pomodoro_master', { pomodoroSessions: pomodoroCount });
-          if (pomodoroAchievement) newAchievements.push(pomodoroAchievement.key);
+          const progress = await this.getUserProgress(userId);
+          if (!progress.achievements.includes('pomodoro_master')) {
+            const achievement = this.achievements.get('pomodoro_master');
+            if (achievement) {
+              await this.unlockAchievement(userId, achievement);
+              newAchievements.push('pomodoro_master');
+            }
+          }
         }
         break;
     }
@@ -525,9 +550,46 @@ export class GamificationService {
   }
 
   private async calculateStreak(userId: string): Promise<number> {
-    // This would implement streak calculation based on study sessions
-    // For now, return a placeholder
-    return 1;
+    // Calculate streak based on consecutive days with study sessions
+    const sessions = await prisma.studySession.findMany({
+      where: { userId },
+      orderBy: { startTime: 'desc' },
+      take: 100 // Check last 100 sessions
+    });
+
+    if (sessions.length === 0) return 0;
+
+    // Group sessions by day
+    const sessionsByDay = new Map<string, boolean>();
+    sessions.forEach(session => {
+      const date = new Date(session.startTime);
+      const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+      sessionsByDay.set(dayKey, true);
+    });
+
+    // Calculate consecutive days from today backwards
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    while (true) {
+      const dayKey = `${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}`;
+      
+      if (sessionsByDay.has(dayKey)) {
+        streak++;
+        // Move to previous day
+        currentDate.setDate(currentDate.getDate() - 1);
+      } else {
+        // If today has no session, check yesterday
+        if (streak === 0 && currentDate.getTime() === new Date().setHours(0, 0, 0, 0)) {
+          currentDate.setDate(currentDate.getDate() - 1);
+          continue;
+        }
+        break;
+      }
+    }
+
+    return streak;
   }
 
   private async getCachedProgress(key: string): Promise<UserProgress | null> {

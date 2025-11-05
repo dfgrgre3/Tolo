@@ -9,7 +9,7 @@ import { useAuth } from "@/components/auth/UserProvider";
 import { Badge } from "@/shared/badge";
 import { Progress } from "@/shared/progress";
 import { Card, CardContent } from "@/shared/card";
-import { Clock, Target, CheckCircle2, Flame, ChevronDown, TrendingUp, Zap, BookOpen, Users, Brain, Calendar, Award, Star, ArrowRight, Sparkles, BarChart3, MessageSquare, FileText, Trophy, Lightbulb, Rocket } from "lucide-react";
+import { Clock, Target, CheckCircle2, Flame, ChevronDown, TrendingUp, Zap, BookOpen, Users, Brain, Calendar, Award, Star, ArrowRight, Sparkles, BarChart3, MessageSquare, FileText, Trophy, Lightbulb, Rocket, User } from "lucide-react";
 import { LazyLoadSection } from "@/components/ui/LazyLoadSection";
 import { ProgressiveComponent, createProgressiveSection } from "@/components/ui/ProgressiveComponent";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
@@ -164,7 +164,7 @@ const Home = () => {
 	const [summary, setSummary] = useState<{ totalMinutes: number; averageFocus: number; tasksCompleted: number; streakDays: number } | null>(null);
 	const [isLoading, setIsLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const { user } = useAuth();
+	const { user, isLoading: authLoading } = useAuth();
 	const isHydrated = useHydrationFix();
 	const dashboardRef = useRef<HTMLDivElement>(null);
 	const LOCAL_USER_KEY = "tw_user_id";
@@ -455,22 +455,168 @@ const Home = () => {
 		}
 	];
 
-	// Don't render anything until hydrated to prevent hydration mismatch
-	if (!isHydrated) {
+	// Show loading skeleton while checking authentication
+	if (!isHydrated || authLoading) {
 		return (
 			<Layout>
-				<div className="min-h-screen bg-background animate-pulse">
+				<div className="min-h-screen bg-background">
 					<div className="flex flex-col items-center justify-center h-screen">
-						<div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+						<SkeletonLoader className="h-16 w-16 rounded-full" />
+						<p className="mt-4 text-muted-foreground">جارٍ التحقق من حالة تسجيل الدخول...</p>
 					</div>
 				</div>
 			</Layout>
 		);
 	}
 
+	// If user is authenticated, show enhanced Dashboard with personalized content
+	if (user) {
+		return (
+			<Layout>
+				<motion.div 
+					className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ duration: 0.5 }}
+				>
+					{/* Enhanced background effects */}
+					<div className="pointer-events-none absolute inset-0 -z-10">
+						<div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
+						<div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-blue-200/20 blur-3xl" />
+						<div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-purple-200/20 blur-3xl" />
+					</div>
+					
+					<div className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10 md:px-8 md:py-12 lg:px-10 lg:py-16">
+						{/* Welcome Section */}
+						<motion.div
+							initial={{ opacity: 0, y: -20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.5 }}
+							className="mb-8"
+						>
+							<div className={`${sectionShell} bg-gradient-to-br from-white via-white/95 to-primary/5 ring-2 ring-primary/20 shadow-xl`}>
+								<div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5 rounded-3xl" />
+								<div className="relative z-10">
+									<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+										<div className="flex items-center gap-4">
+											<motion.div 
+												className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 text-primary-foreground shadow-lg ring-4 ring-primary/20"
+												whileHover={{ scale: 1.05, rotate: 5 }}
+												transition={{ type: "spring", stiffness: 300 }}
+											>
+												<User className="h-8 w-8" />
+											</motion.div>
+											<div>
+												<motion.h2 
+													className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent"
+													initial={{ opacity: 0, x: -20 }}
+													animate={{ opacity: 1, x: 0 }}
+													transition={{ delay: 0.2 }}
+												>
+													مرحباً {user.name || user.email}
+												</motion.h2>
+												<p className="text-sm text-muted-foreground mt-1">لوحة التحكم الشخصية - ابدأ رحلتك التعليمية</p>
+											</div>
+										</div>
+										<div className="flex items-center gap-3">
+											<Badge className="bg-gradient-to-r from-green-500/10 to-emerald-500/10 text-green-700 border-green-500/30 shadow-sm px-4 py-1.5">
+												<CheckCircle2 className="h-4 w-4 mr-1" />
+												مسجل دخول
+											</Badge>
+										</div>
+									</div>
+									
+									{/* Quick Stats Preview */}
+									{summary && (
+										<motion.div
+											initial={{ opacity: 0, y: 20 }}
+											animate={{ opacity: 1, y: 0 }}
+											transition={{ delay: 0.3 }}
+											className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6"
+										>
+											<Card className="border-primary/20 bg-gradient-to-br from-blue-50 to-blue-100/50">
+												<CardContent className="pt-4 pb-3">
+													<div className="flex items-center justify-between">
+														<div>
+															<p className="text-xs text-muted-foreground mb-1">وقت الدراسة</p>
+															<p className="text-xl font-bold text-blue-700">
+																{Math.round(summary.totalMinutes / 60)}س
+															</p>
+														</div>
+														<Clock className="h-8 w-8 text-blue-500 opacity-60" />
+													</div>
+												</CardContent>
+											</Card>
+											<Card className="border-primary/20 bg-gradient-to-br from-purple-50 to-purple-100/50">
+												<CardContent className="pt-4 pb-3">
+													<div className="flex items-center justify-between">
+														<div>
+															<p className="text-xs text-muted-foreground mb-1">المهام</p>
+															<p className="text-xl font-bold text-purple-700">
+																{summary.tasksCompleted}
+															</p>
+														</div>
+														<CheckCircle2 className="h-8 w-8 text-purple-500 opacity-60" />
+													</div>
+												</CardContent>
+											</Card>
+											<Card className="border-primary/20 bg-gradient-to-br from-orange-50 to-orange-100/50">
+												<CardContent className="pt-4 pb-3">
+													<div className="flex items-center justify-between">
+														<div>
+															<p className="text-xs text-muted-foreground mb-1">أيام متتالية</p>
+															<p className="text-xl font-bold text-orange-700">
+																{summary.streakDays}
+															</p>
+														</div>
+														<Flame className="h-8 w-8 text-orange-500 opacity-60" />
+													</div>
+												</CardContent>
+											</Card>
+											<Card className="border-primary/20 bg-gradient-to-br from-green-50 to-green-100/50">
+												<CardContent className="pt-4 pb-3">
+													<div className="flex items-center justify-between">
+														<div>
+															<p className="text-xs text-muted-foreground mb-1">نسبة الالتزام</p>
+															<p className="text-xl font-bold text-green-700">
+																{summary.averageFocus}%
+															</p>
+														</div>
+														<Target className="h-8 w-8 text-green-500 opacity-60" />
+													</div>
+												</CardContent>
+											</Card>
+										</motion.div>
+									)}
+								</div>
+							</div>
+						</motion.div>
+
+						{/* Dashboard Section */}
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.4, duration: 0.5 }}
+						>
+							<Suspense fallback={<SkeletonLoader className="h-64 rounded-lg" />}>
+								<Dashboard />
+							</Suspense>
+						</motion.div>
+					</div>
+				</motion.div>
+			</Layout>
+		);
+	}
+
+	// If user is not authenticated, show marketing content
 	return (
 		<Layout>
-			<div className="relative min-h-screen overflow-hidden bg-slate-50">
+			<motion.div 
+				className="relative min-h-screen overflow-hidden bg-slate-50"
+				initial={{ opacity: 0 }}
+				animate={{ opacity: 1 }}
+				transition={{ duration: 0.5 }}
+			>
 				<div className="pointer-events-none absolute inset-0 -z-10">
 					<div className="absolute inset-x-0 top-0 h-[540px] bg-gradient-to-b from-blue-100 via-transparent to-transparent opacity-80 blur-2xl" />
 					<div className="absolute left-[18%] top-[20%] h-72 w-72 -translate-x-1/2 rounded-full bg-indigo-200/30 blur-3xl" />
@@ -577,73 +723,81 @@ const Home = () => {
 						</section>
 					</LazyLoadSection>
 
-					{/* Enhanced Statistics Overview Section */}
-					<LazyLoadSection>
-						<section className={`${sectionShell} ring-1 ring-cyan-100/60`}>
-							<div className="absolute inset-0 bg-gradient-to-br from-cyan-200/25 via-transparent to-blue-200/25" />
-							<div className="relative z-10">
-								<motion.div
-									initial={{ opacity: 0, y: 20 }}
-									whileInView={{ opacity: 1, y: 0 }}
-									viewport={{ once: true }}
-									transition={{ duration: 0.5 }}
-									className="text-center mb-12"
-								>
-									<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2"><span>لوحة الأداء الأسبوعي</span>
-										<Award className="h-8 w-8 text-yellow-500" />
-									</h2>
-									<p className="text-muted-foreground max-w-2xl mx-auto text-lg">راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام.</p>
-								</motion.div>
-
-								<motion.div
-									variants={scrollVariants.staggerChildren}
-									initial="initial"
-									whileInView="whileInView"
-									className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
-								>
-									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<Clock className="h-8 w-8 text-blue-600" />}
-									title="إجمالي وقت الدراسة"
-									value={summary ? Math.round(summary.totalMinutes / 60) : 0}
-									unit="ساعة"
-									color="from-blue-100 to-blue-200"
-								/>
+					{/* Statistics section for non-authenticated users */}
+						<LazyLoadSection>
+							<section className={`${sectionShell} ring-1 ring-cyan-100/60`}>
+								<div className="absolute inset-0 bg-gradient-to-br from-cyan-200/25 via-transparent to-blue-200/25" />
+								<div className="relative z-10">
+									<motion.div
+										initial={{ opacity: 0, y: 20 }}
+										whileInView={{ opacity: 1, y: 0 }}
+										viewport={{ once: true }}
+										transition={{ duration: 0.5 }}
+										className="text-center mb-12"
+									>
+										<h2 className="text-3xl md:text-4xl font-bold mb-4 text-primary flex items-center justify-center gap-2">
+											<span>لوحة الأداء الأسبوعي</span>
+											<Award className="h-8 w-8 text-yellow-500" />
+										</h2>
+										<p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+											سجل الدخول لمتابعة إحصائياتك الشخصية. راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام.
+										</p>
+										<div className="mt-6">
+											<Button asChild className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary">
+												{!user && <Link href="/login">سجل الدخول الآن</Link>}
+											</Button>
+										</div>
 									</motion.div>
 
-									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<Flame className="h-8 w-8 text-orange-600" />}
-									title="أيام الإنجاز المتتالية"
-									value={summary?.streakDays ?? 0}
-									unit="يوم"
-									color="from-orange-100 to-orange-200"
-								/>
-									</motion.div>
+									<motion.div
+										variants={scrollVariants.staggerChildren}
+										initial="initial"
+										whileInView="whileInView"
+										className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4"
+									>
+										<motion.div variants={scrollVariants.staggerItem}>
+											<StatCard
+												icon={<Clock className="h-8 w-8 text-blue-600" />}
+												title="إجمالي وقت الدراسة"
+												value={summary ? Math.round(summary.totalMinutes / 60) : 0}
+												unit="ساعة"
+												color="from-blue-100 to-blue-200"
+											/>
+										</motion.div>
 
-									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<CheckCircle2 className="h-8 w-8 text-purple-600" />}
-									title="المهام المكتملة"
-									value={summary?.tasksCompleted ?? 0}
-									unit="مهمة"
-									color="from-purple-100 to-purple-200"
-								/>
-									</motion.div>
+										<motion.div variants={scrollVariants.staggerItem}>
+											<StatCard
+												icon={<Flame className="h-8 w-8 text-orange-600" />}
+												title="أيام الإنجاز المتتالية"
+												value={summary?.streakDays ?? 0}
+												unit="يوم"
+												color="from-orange-100 to-orange-200"
+											/>
+										</motion.div>
 
-									<motion.div variants={scrollVariants.staggerItem}>
-																		<StatCard
-									icon={<Target className="h-8 w-8 text-green-600" />}
-									title="نسبة الالتزام الأسبوعية"
-									value={summary?.averageFocus ?? 0}
-									unit="%"
-									color="from-green-100 to-green-200"
-								/>
+										<motion.div variants={scrollVariants.staggerItem}>
+											<StatCard
+												icon={<CheckCircle2 className="h-8 w-8 text-purple-600" />}
+												title="المهام المكتملة"
+												value={summary?.tasksCompleted ?? 0}
+												unit="مهمة"
+												color="from-purple-100 to-purple-200"
+											/>
+										</motion.div>
+
+										<motion.div variants={scrollVariants.staggerItem}>
+											<StatCard
+												icon={<Target className="h-8 w-8 text-green-600" />}
+												title="نسبة الالتزام الأسبوعية"
+												value={summary?.averageFocus ?? 0}
+												unit="%"
+												color="from-green-100 to-green-200"
+											/>
+										</motion.div>
 									</motion.div>
-								</motion.div>
-							</div>
-						</section>
-					</LazyLoadSection>
+								</div>
+							</section>
+						</LazyLoadSection>
 
 					{/* Enhanced Features Section */}
 					<LazyLoadSection>
@@ -862,7 +1016,7 @@ const Home = () => {
 						</section>
 					</LazyLoadSection>
 				</div>
-			</div>
+			</motion.div>
 		</Layout>
 	);
 }

@@ -129,10 +129,16 @@ export default function WeeklyChart({ weekly }: WeeklyChartProps) {
 
 	const totalMinutes = chartData.days.data.reduce((a, b) => a + b, 0);
 	const totalHours = (totalMinutes / 60).toFixed(1);
-	const averageMinutes = Math.round(totalMinutes / chartData.days.data.length);
-	const maxDayIndex = chartData.days.data.indexOf(Math.max(...chartData.days.data));
+	const averageMinutes = chartData.days.data.length > 0 
+		? Math.round(totalMinutes / chartData.days.data.length)
+		: 0;
+	const maxDayIndex = chartData.days.data.length > 0
+		? chartData.days.data.indexOf(Math.max(...chartData.days.data))
+		: -1;
 	// استخدام تنسيق آمن للتاريخ - نفس التنسيق المستخدم في labels
-	const bestDay = chartData.days.labels[maxDayIndex] || '';
+	const bestDay = maxDayIndex >= 0 && chartData.days.labels[maxDayIndex] 
+		? chartData.days.labels[maxDayIndex] 
+		: '';
 
 	return (
 		<div className="space-y-6">
@@ -194,13 +200,13 @@ export default function WeeklyChart({ weekly }: WeeklyChartProps) {
 											display: false
 										},
 										tooltip: {
-										callbacks: {
-											label: (context) => {
-												const minutes = context.parsed.y ?? 0;
-												const hours = (minutes / 60).toFixed(1);
-												return `${minutes} دقيقة (${hours} ساعة)`;
+											callbacks: {
+												label: (context) => {
+													const minutes = context.parsed.y ?? 0;
+													const hours = (minutes / 60).toFixed(1);
+													return `${minutes} دقيقة (${hours} ساعة)`;
+												}
 											}
-										}
 										}
 									},
 									scales: {
@@ -241,13 +247,13 @@ export default function WeeklyChart({ weekly }: WeeklyChartProps) {
 											display: false
 										},
 										tooltip: {
-										callbacks: {
-											label: (context) => {
-												const minutes = context.parsed.y ?? 0;
-												const hours = (minutes / 60).toFixed(1);
-												return `${minutes} دقيقة (${hours} ساعة)`;
+											callbacks: {
+												label: (context) => {
+													const minutes = context.parsed.y ?? 0;
+													const hours = (minutes / 60).toFixed(1);
+													return `${minutes} دقيقة (${hours} ساعة)`;
+												}
 											}
-										}
 										}
 									},
 									scales: {

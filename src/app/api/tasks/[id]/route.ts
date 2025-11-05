@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth-unified";
+import { gamificationService } from "@/lib/gamification-service";
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -49,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     // Whitelist allowed fields to prevent mass assignment vulnerability
-    const allowedFields = ['title', 'description', 'completed', 'priority', 'dueAt', 'subject', 'category'];
+    const allowedFields = ['title', 'description', 'completed', 'status', 'priority', 'dueAt', 'subject', 'category'];
     const updates: any = {};
 
     for (const field of allowedFields) {
@@ -71,10 +72,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Cannot change task ownership' }, { status: 400 });
     }
 
+    // Check if task is being marked as completed
+    const isCompleting = (updates.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') ||
+                         (updates.completed === true && !existingTask.completed);
+
     const updated = await prisma.task.update({
       where: { id },
       data: updates,
     });
+
+    // Trigger gamification if task is being completed
+    if (isCompleting) {
+      try {
+        await gamificationService.updateUserProgress(authUser.userId, 'task_completed');
+      } catch (gamificationError) {
+        console.error('Error updating gamification for task:', gamificationError);
+        // Don't fail the request if gamification fails
+      }
+    }
+
     return NextResponse.json(updated);
   } catch (e: any) {
     return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });

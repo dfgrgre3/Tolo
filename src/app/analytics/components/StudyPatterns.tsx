@@ -28,11 +28,11 @@ export default function StudyPatterns({ weekly }: StudyPatternsProps) {
 
 		// Calculate consistency
 		const activeDays = days.filter(d => d.minutes > 0).length;
-		const consistencyRate = (activeDays / days.length) * 100;
+		const consistencyRate = days.length > 0 ? (activeDays / days.length) * 100 : 0;
 
 		// Calculate average session length (assuming multiple sessions per day)
 		const totalMinutes = days.reduce((sum, d) => sum + d.minutes, 0);
-		const averageDailyMinutes = totalMinutes / days.length;
+		const averageDailyMinutes = days.length > 0 ? totalMinutes / days.length : 0;
 
 		// Find study streak
 		let currentStreak = 0;
@@ -48,8 +48,10 @@ export default function StudyPatterns({ weekly }: StudyPatternsProps) {
 
 		// Calculate variability
 		const minutes = days.map(d => d.minutes);
-		const mean = minutes.reduce((a, b) => a + b, 0) / minutes.length;
-		const variance = minutes.reduce((sum, m) => sum + Math.pow(m - mean, 2), 0) / minutes.length;
+		const mean = minutes.length > 0 ? minutes.reduce((a, b) => a + b, 0) / minutes.length : 0;
+		const variance = minutes.length > 0 
+			? minutes.reduce((sum, m) => sum + Math.pow(m - mean, 2), 0) / minutes.length
+			: 0;
 		const stdDev = Math.sqrt(variance);
 		const variability = mean > 0 ? (stdDev / mean) * 100 : 0;
 

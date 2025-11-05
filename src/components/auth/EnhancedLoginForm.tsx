@@ -200,6 +200,7 @@ export default function EnhancedLoginForm() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ email?: string; password?: string }>({});
+  const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [lockoutSeconds, setLockoutSeconds] = useState<number | null>(null);
   const emailInputRef = useRef<HTMLInputElement>(null);
   const passwordInputRef = useRef<HTMLInputElement>(null);
@@ -395,8 +396,12 @@ export default function EnhancedLoginForm() {
         }
       }
       
-      // Show success message
-      toast.success('تم تسجيل الدخول بنجاح!', { duration: 3000 });
+      // Show success message - different message if account was just created
+      if (data.accountWasCreated) {
+        toast.success('تم إنشاء الحساب وتسجيل الدخول بنجاح! مرحباً بك!', { duration: 4000 });
+      } else {
+        toast.success('تم تسجيل الدخول بنجاح!', { duration: 3000 });
+      }
       
       // Refresh user data from server to ensure we have the latest information
       // Do this in parallel with navigation to avoid blocking
@@ -605,10 +610,16 @@ export default function EnhancedLoginForm() {
     }
 
     setIsLoading(true);
+    setIsCreatingAccount(false); // Reset account creation state
 
     try {
       // Normalize email input
       const normalizedEmail = formData.email.trim().toLowerCase();
+      
+      // Show account creation message if user doesn't exist (will be handled by backend)
+      // The backend will auto-create the account if it doesn't exist
+      setIsCreatingAccount(true);
+      toast.info('جارٍ التحقق من الحساب وإنشاءه إذا لزم الأمر...', { duration: 2500 });
       
       // Use the centralized API client with improved error handling
       let data;
@@ -620,7 +631,19 @@ export default function EnhancedLoginForm() {
           deviceFingerprint,
           captchaToken: requiresCaptcha && captchaToken ? captchaToken : undefined,
         });
+        
+        // If we get here, account exists or was created successfully
+        setIsCreatingAccount(false);
       } catch (apiError: any) {
+        setIsCreatingAccount(false);
+        
+        // Check if error is about invalid credentials (user might not exist)
+        // The backend will auto-create, but if it fails, show error
+        if (apiError?.code === 'INVALID_CREDENTIALS' || apiError?.code === 'USER_NOT_FOUND') {
+          // Backend will auto-create, but if it fails, we'll show error
+          // Continue to throw to show error
+        }
+        
         // The API client already handles most errors, but we catch here to ensure proper state management
         throw apiError;
       }
