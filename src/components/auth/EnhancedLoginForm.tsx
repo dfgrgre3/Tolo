@@ -105,16 +105,42 @@ export default function EnhancedLoginForm() {
   }, []);
   
   // Get redirect parameter from URL
+  // Priority: 1. URL redirect parameter, 2. Stored path, 3. Home page
   const getRedirectPath = () => {
+    // Helper to validate and sanitize redirect paths
+    const isValidRedirectPath = (path: string): boolean => {
+      if (!path || typeof path !== 'string') return false;
+      
+      // Must be a relative path (starts with /)
+      if (!path.startsWith('/')) return false;
+      
+      // Must not be an external URL (no //)
+      if (path.startsWith('//')) return false;
+      
+      // Must not be auth pages (to prevent redirect loops)
+      if (path.startsWith('/login') || path.startsWith('/register') || path.startsWith('/auth/')) {
+        return false;
+      }
+      
+      // Must not contain dangerous characters or patterns
+      if (path.includes('<') || path.includes('>') || path.includes('javascript:') || path.includes('data:')) {
+        return false;
+      }
+      
+      return true;
+    };
+
+    // 1. Check URL redirect parameter (highest priority)
     const redirectFromUrl = safeWindow((w) => {
       const urlParams = new URLSearchParams(w.location.search);
       const redirectParam = urlParams.get('redirect');
       if (redirectParam) {
         try {
           const decoded = decodeURIComponent(redirectParam);
-          // Validate that redirect is a relative path (security measure)
-          if (decoded.startsWith('/') && !decoded.startsWith('//')) {
-            return decoded;
+          // Extract path only (remove query params for validation, then add them back)
+          const [pathOnly, queryParams] = decoded.split('?');
+          if (isValidRedirectPath(pathOnly)) {
+            return queryParams ? `${pathOnly}?${queryParams}` : pathOnly;
           }
         } catch (e) {
           console.error('Failed to decode redirect parameter:', e);
@@ -125,19 +151,13 @@ export default function EnhancedLoginForm() {
 
     if (redirectFromUrl) return redirectFromUrl;
 
+    // 2. Check stored redirect path (from AuthGuard or previous navigation)
     try {
       const storedRedirect =
         safeGetItem(LAST_VISITED_PATH_KEY, { storageType: 'session', fallback: null }) ??
         safeGetItem(LAST_VISITED_PATH_KEY, { storageType: 'local', fallback: null });
 
-      if (
-        storedRedirect &&
-        typeof storedRedirect === 'string' &&
-        storedRedirect.startsWith('/') &&
-        !storedRedirect.startsWith('//') &&
-        !storedRedirect.startsWith('/login') &&
-        !storedRedirect.startsWith('/register')
-      ) {
+      if (storedRedirect && isValidRedirectPath(storedRedirect)) {
         return storedRedirect;
       }
     } catch (storageError) {
@@ -146,6 +166,7 @@ export default function EnhancedLoginForm() {
       }
     }
     
+    // 3. Default to home page
     return '/';
   };
 
@@ -417,10 +438,11 @@ export default function EnhancedLoginForm() {
       // Reset loading state immediately
       setIsLoading(false);
       
-      // Get redirect path from URL or default to home
+      // Get redirect path - prioritize URL parameter, then stored path, then home
       const redirectPath = getRedirectPath();
       clearStoredRedirect();
 
+      // Redirect after successful login
       // Use replace instead of push to prevent back navigation to login
       // Small delay to ensure state is updated and cookies are set by server
       setTimeout(() => {
@@ -1198,12 +1220,11 @@ export default function EnhancedLoginForm() {
           toast.success('تم تسجيل الدخول بنجاح!');
           setIsLoading(false);
           
-          // Get redirect path from URL or default to home
+          // Get redirect path - prioritize URL parameter, then stored path, then home
           const redirectPath = getRedirectPath();
-          
           clearStoredRedirect();
 
-          // Use replace and force navigation
+          // Redirect after successful login
           setTimeout(() => {
             router.replace(redirectPath);
           }, 500);
@@ -1771,10 +1792,11 @@ export default function EnhancedLoginForm() {
               whileTap={{ scale: 0.98 }}
               type="button"
               onClick={() => {
+                // Get redirect path before clearing - preserve user's intended destination
                 const redirectPath = getRedirectPath();
                 clearStoredRedirect();
                 safeWindow((w) => {
-                  w.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath || '/')}`;
+                  w.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
                 }, undefined);
               }}
               disabled={isLoading}

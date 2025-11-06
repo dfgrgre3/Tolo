@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ensureUser } from "@/lib/user-utils";
 import { safeDocument } from "@/lib/safe-client-utils";
 
@@ -71,8 +72,9 @@ export default function ExamsPage() {
 	}
 
 	return (
-		<div className="px-4">
-			<section className="mx-auto max-w-7xl py-8 space-y-6">
+		<AuthGuard>
+			<div className="px-4">
+				<section className="mx-auto max-w-7xl py-8 space-y-6">
 				<h1 className="text-2xl md:text-3xl font-bold">الامتحانات التجريبية</h1>
 				<div className="grid gap-4 md:grid-cols-2">
 					<div className="rounded-lg border p-4">
@@ -115,7 +117,8 @@ export default function ExamsPage() {
 						))}
 					</ul>
 				</div>
-			</section>
-		</div>
+				</section>
+			</div>
+		</AuthGuard>
 	);
 } 

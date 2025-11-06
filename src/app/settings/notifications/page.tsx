@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/card';
 import { Button } from '@/shared/button';
 import { Switch } from '@/components/ui/switch';
@@ -116,7 +117,8 @@ export default function NotificationSettings() {
   }
 
   return (
-    <div className="space-y-6">
+    <AuthGuard>
+      <div className="space-y-6">
       <Card>
         <CardHeader>
           <CardTitle>إعدادات الإشعارات</CardTitle>
@@ -202,6 +204,7 @@ export default function NotificationSettings() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }

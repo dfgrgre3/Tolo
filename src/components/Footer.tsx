@@ -9,9 +9,9 @@ export default function Footer() {
 	const { user } = useAuth();
 	
 	return (
-		<footer className={`border-t bg-background transition-all duration-300 ${user ? 'bg-gradient-to-br from-primary/5 via-background to-primary/5' : ''}`}>
-			<div className="mx-auto max-w-7xl px-4 py-6 text-sm text-muted-foreground flex flex-col md:flex-row gap-2 items-center justify-between">
-				<div className="flex flex-col md:flex-row gap-2 items-center">
+		<footer className={`border-t bg-background transition-all duration-300 ${user ? 'bg-gradient-to-br from-primary/5 via-background to-primary/5' : ''}`} suppressHydrationWarning>
+			<div className="mx-auto max-w-7xl px-4 py-6 text-sm text-muted-foreground flex flex-col md:flex-row gap-2 items-center justify-between" suppressHydrationWarning>
+				<div className="flex flex-col md:flex-row gap-2 items-center" suppressHydrationWarning>
 					<p>© {new Date().getFullYear()} ثانوية بذكاء</p>
 					{user && (
 						<motion.div

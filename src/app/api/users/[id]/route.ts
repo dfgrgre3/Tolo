@@ -36,7 +36,11 @@ export async function GET(
         bio: true,
         grade: true,
         school: true,
-        createdAt: true
+        createdAt: true,
+        emailVerified: true,
+        phone: true,
+        phoneVerified: true,
+        provider: true
       }
     });
 
@@ -109,6 +113,48 @@ export async function PATCH(
     console.error("Error updating user:", error);
     return NextResponse.json(
       { error: "حدث خطأ في تحديث بيانات المستخدم" },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE user account
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    // Verify authentication
+    const decodedToken = verifyToken(request);
+    if (!decodedToken) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    // Users can only delete their own account
+    if (decodedToken.userId !== id) {
+      return NextResponse.json(
+        { error: "Access denied" },
+        { status: 403 }
+      );
+    }
+
+    // Delete user account and all related data
+    // Note: This will cascade delete related records based on Prisma schema
+    await prisma.user.delete({
+      where: { id }
+    });
+
+    return NextResponse.json({ 
+      message: "تم حذف الحساب بنجاح" 
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    return NextResponse.json(
+      { error: "حدث خطأ في حذف الحساب" },
       { status: 500 }
     );
   }

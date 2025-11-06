@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Brain, Bot, MessageSquare, FileText, Search, Lightbulb, BookOpen, Zap } from 'lucide-react';
 import AIAssistant from '@/components/ai/AIAssistant';
 import ExamGenerator from '@/components/ai/ExamGenerator';
@@ -32,7 +33,8 @@ export default function AILearningPage() {
   const years = [1, 2, 3];
 
   return (
-    <PageContainer size="xl" spacing="lg">
+    <AuthGuard>
+      <PageContainer size="xl" spacing="lg">
       <div className="mb-8 sm:mb-10 md:mb-12 text-center">
         <div className="flex items-center justify-center gap-3 sm:gap-4 mb-4 sm:mb-6">
           <div className="p-3 sm:p-4 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl sm:rounded-2xl shadow-lg">
@@ -126,6 +128,7 @@ export default function AILearningPage() {
           />
         </TabsContent>
       </Tabs>
-    </PageContainer>
+      </PageContainer>
+    </AuthGuard>
   );
 }

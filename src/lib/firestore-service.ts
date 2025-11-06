@@ -9,7 +9,7 @@ import {
   collection,
   query,
   orderBy,
-  limit,
+  limit as limitQuery,
   where,
   Unsubscribe
 } from 'firebase/firestore';
@@ -97,14 +97,14 @@ export class FirestoreService {
   // Real-time leaderboard updates
   async subscribeToLeaderboard(
     type: 'global' | 'friends' = 'global',
-    limit: number = 50,
+    limitCount: number = 50,
     callback: (leaderboard: FirestoreLeaderboardEntry[]) => void
   ): Promise<Unsubscribe> {
     const collectionRef = collection(db, 'leaderboard');
     const q = query(
       collectionRef,
       orderBy('totalXP', 'desc'),
-      limit(limit)
+      limitQuery(limitCount)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -124,7 +124,7 @@ export class FirestoreService {
       callback(leaderboard);
     });
 
-    this.listeners.set(`leaderboard:${type}:${limit}`, unsubscribe);
+    this.listeners.set(`leaderboard:${type}:${limitCount}`, unsubscribe);
     return unsubscribe;
   }
 
@@ -188,7 +188,7 @@ export class FirestoreService {
       notificationsRef,
       where('userId', '==', userId),
       orderBy('timestamp', 'desc'),
-      limit(10)
+      limitQuery(10)
     );
 
     const unsubscribe = onSnapshot(q, (querySnapshot) => {

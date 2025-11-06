@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import {
@@ -223,7 +224,8 @@ export default function ActivityLogPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6">
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
@@ -403,7 +405,8 @@ export default function ActivityLogPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }
 

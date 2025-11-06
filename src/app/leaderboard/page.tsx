@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useGamification } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 
@@ -34,20 +35,26 @@ export default function LeaderboardPage() {
 
   const userRank = getUserRank();
 
+  // Ensure leaderboard is always an array
+  const safeLeaderboard = Array.isArray(leaderboard) ? leaderboard : [];
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex justify-center items-center py-20">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+      <AuthGuard>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-center items-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+            </div>
           </div>
         </div>
-      </div>
+      </AuthGuard>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <AuthGuard>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
         <motion.div
@@ -157,12 +164,12 @@ export default function LeaderboardPage() {
           </div>
 
           <div className="divide-y divide-gray-200">
-            {leaderboard.length === 0 ? (
+            {safeLeaderboard.length === 0 ? (
               <div className="p-8 text-center text-gray-500">
                 لا توجد بيانات متاحة بعد
               </div>
             ) : (
-              leaderboard.map((entry, index) => (
+              safeLeaderboard.map((entry, index) => (
                 <motion.div
                   key={entry.userId}
                   initial={{ opacity: 0, x: -20 }}
@@ -221,13 +228,15 @@ export default function LeaderboardPage() {
         >
           <div className="bg-white rounded-lg p-6 shadow-md text-center">
             <div className="text-2xl font-bold text-indigo-600 mb-2">
-              {leaderboard.length}
+              {safeLeaderboard.length}
             </div>
             <div className="text-gray-600">مشارك</div>
           </div>
           <div className="bg-white rounded-lg p-6 shadow-md text-center">
             <div className="text-2xl font-bold text-green-600 mb-2">
-              {Math.max(...leaderboard.map(l => l.totalXP)).toLocaleString()}
+              {safeLeaderboard.length > 0 
+                ? Math.max(...safeLeaderboard.map(l => l.totalXP)).toLocaleString() 
+                : '0'}
             </div>
             <div className="text-gray-600">أعلى نقاط</div>
           </div>
@@ -240,11 +249,12 @@ export default function LeaderboardPage() {
         </motion.div>
       </div>
 
-      {/* Achievement Toast */}
-      <AchievementToast
-        achievement={currentAchievement}
-        onClose={clearAchievementNotification}
-      />
-    </div>
+        {/* Achievement Toast */}
+        <AchievementToast
+          achievement={currentAchievement}
+          onClose={clearAchievementNotification}
+        />
+      </div>
+    </AuthGuard>
   );
 }

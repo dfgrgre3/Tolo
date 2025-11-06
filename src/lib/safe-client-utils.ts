@@ -622,6 +622,18 @@ export async function safeFetch<T = any>(
     
     // إذا كانت الاستجابة غير ناجحة
     if (!response.ok) {
+      // إذا كان data هو fallback (يعني أن الـ response لم تكن JSON صالحة)
+      // يجب التحقق من ذلك أولاً قبل محاولة استخراج رسالة الخطأ
+      if (data === fallback) {
+        return {
+          data: fallback,
+          error: new Error(
+            `HTTP ${response.status}: ${response.statusText} - Server returned non-JSON response`
+          ),
+          response
+        };
+      }
+      
       // محاولة استخراج رسالة خطأ من البيانات إذا كانت موجودة
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       
@@ -634,17 +646,6 @@ export async function safeFetch<T = any>(
         } else if ('details' in data && typeof data.details === 'string') {
           errorMessage = `${errorMessage} - ${data.details}`;
         }
-      }
-      
-      // إذا كان data هو fallback (يعني أن الـ response لم تكن JSON صالحة)
-      if (data === fallback) {
-        return {
-          data: fallback,
-          error: new Error(
-            `HTTP ${response.status}: ${response.statusText} - Server returned non-JSON response`
-          ),
-          response
-        };
       }
       
       // إذا كان data ليس fallback، يعني أننا حصلنا على JSON (حتى لو كانت error response)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ensureUser } from "@/lib/user-utils";
 
 type Teacher = { id: string; name: string; subject: string; onlineUrl?: string | null };
@@ -73,8 +74,9 @@ export default function TeachersPage() {
 	}
 
 	return (
-		<div className="px-4">
-			<section className="mx-auto max-w-7xl py-8 space-y-6">
+		<AuthGuard>
+			<div className="px-4">
+				<section className="mx-auto max-w-7xl py-8 space-y-6">
 				<h1 className="text-2xl md:text-3xl font-bold">أفضل المدرسين والدروس الأوفلاين</h1>
 				<div className="rounded-lg border p-4">
 					<h2 className="font-semibold mb-2">المدرسون</h2>
@@ -117,6 +119,7 @@ export default function TeachersPage() {
 					</ul>
 				</div>
 			</section>
-		</div>
+			</div>
+		</AuthGuard>
 	);
 } 

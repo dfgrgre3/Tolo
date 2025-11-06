@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // GET a single blog post by ID
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     const post = await prisma.blogPost.findUnique({
       where: { id },
@@ -57,10 +57,10 @@ export async function GET(
 // POST to increment view count
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     await prisma.blogPost.update({
       where: { id },

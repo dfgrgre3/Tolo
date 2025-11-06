@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "build:safe": "powershell -ExecutionPolicy Bypass -File ./scripts/build-safe.ps1",
+    "fix:prisma": "powershell -ExecutionPolicy Bypass -File ./scripts/fix-prisma-lock.ps1",
     "start": "next start",
     "clean": "node -e \"require('fs').rmSync('.next', {recursive: true, force: true})\"",
     "lint": "eslint",

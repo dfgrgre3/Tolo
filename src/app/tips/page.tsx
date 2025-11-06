@@ -43,6 +43,7 @@ export default function TipsPage() {
 					</div>
 				</div>
 			</section>
-		</div>
+			</div>
+		</AuthGuard>
 	);
 } 

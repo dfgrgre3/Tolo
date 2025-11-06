@@ -109,8 +109,12 @@ export function MegaMenuItem({
 				
 				{/* Icon container with enhanced animations */}
 				<motion.div
-					whileHover={{ scale: 1.12, rotate: [0, -8, 8, 0] }}
+					whileHover={{ scale: 1.12, rotate: [0, -8] }}
 					whileTap={{ scale: 0.9 }}
+					transition={{
+						scale: { type: "spring", stiffness: 400, damping: 17 },
+						rotate: { type: "tween", duration: 0.3, ease: "easeInOut" }
+					}}
 					className={cn(
 						"relative rounded-xl transition-all duration-300 flex-shrink-0 z-10",
 						"bg-gradient-to-br from-accent/60 via-accent/40 to-accent/30",
@@ -130,17 +134,19 @@ export function MegaMenuItem({
 						transition={{ 
 							duration: 2, 
 							repeat: isActive ? Infinity : 0,
-							repeatDelay: 3
+							repeatDelay: 3,
+							type: "tween",
+							ease: "easeInOut"
 						}}
-						className={cn(
-							"text-muted-foreground transition-all duration-300 block",
-							"group-hover/item:text-primary",
-							isActive && "text-primary",
-							hasSearchMatch && !isActive && "text-primary/90",
-							isCompact ? "h-3 w-3" : "h-3.5 w-3.5"
-						)}
-					>
-						{item.icon}
+					className={cn(
+						"text-muted-foreground transition-all duration-300 block",
+						"group-hover/item:text-primary",
+						isActive && "text-primary",
+						hasSearchMatch && !isActive && "text-primary/90",
+						isCompact ? "h-3 w-3" : "h-3.5 w-3.5"
+					)}
+				>
+						<item.icon className={isCompact ? "h-3 w-3" : "h-3.5 w-3.5"} />
 					</motion.div>
 				</motion.div>
 

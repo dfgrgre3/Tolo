@@ -1,9 +1,10 @@
 import React from "react";
+import type { LucideIcon } from "lucide-react";
 
 export interface NavItem {
 	href: string;
 	label: string;
-	icon: React.ReactNode;
+	icon: LucideIcon;
 	badge?: string;
 	description?: string;
 }
@@ -18,5 +19,6 @@ export interface MegaMenuProps {
 	isOpen: boolean;
 	onClose: () => void;
 	activeRoute?: (href: string) => boolean;
+	user?: any;
 }
 

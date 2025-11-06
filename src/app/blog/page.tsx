@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
@@ -76,8 +77,9 @@ export default function BlogPage() {
   });
 
   return (
-    <Layout>
-      <div className="space-y-6">
+    <AuthGuard>
+      <Layout>
+        <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">المدونة التعليمية</h1>
@@ -221,7 +223,8 @@ export default function BlogPage() {
             <p className="text-muted-foreground">جرب تغيير التصنيف أو معايير البحث</p>
           </div>
         )}
-    </div>
-    </Layout>
+        </div>
+      </Layout>
+    </AuthGuard>
   );
 }

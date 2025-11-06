@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // GET all conversations for a user
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ userId: string }> }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const { userId } = await context.params;
+    const { userId } = await params;
 
     // Get all messages where the user is either sender or receiver
     const messages = await prisma.message.findMany({

@@ -388,7 +388,39 @@ class ErrorLogger {
           const hasOtherData = Object.keys(consoleLogData).length > 1; // More than just message
           const hasValidData = hasValidMessage && hasOtherData;
           
+          // Additional check: Skip if error message is just "Unauthorized" and we're in development
+          // This prevents logging expected 401 errors that Next.js devtools might intercept
+          const isUnauthorizedOnly = hasValidMessage && 
+            (consoleLogData.message === 'Unauthorized' || 
+             consoleLogData.message.trim() === 'Unauthorized' ||
+             consoleLogData.message.includes('Unauthorized') && consoleLogData.message.length < 50);
+          
+          // Skip logging if it's a minimal "Unauthorized" error in development to prevent devtools interception
+          if (isUnauthorizedOnly && process.env.NODE_ENV === 'development') {
+            return logEntry.id;
+          }
+          
           if (hasValidData) {
+            // Check if we're being called from Next.js devtools to prevent recursion
+            // Skip stack check for "Unauthorized" errors in development to prevent devtools interception
+            let currentStack = '';
+            if (!isUnauthorizedOnly || process.env.NODE_ENV !== 'development') {
+              try {
+                currentStack = new Error().stack || '';
+              } catch (e) {
+                // Silently ignore stack creation errors
+                currentStack = '';
+              }
+            }
+            if (currentStack && (currentStack.includes('next-devtools') || 
+                currentStack.includes('intercept-console-error') ||
+                currentStack.includes('console-error.ts') ||
+                currentStack.includes('createConsoleError') ||
+                currentStack.includes('handleConsoleError'))) {
+              // Silently skip to prevent infinite loops
+              return logEntry.id;
+            }
+            
             // Use a different console method or format to avoid Next.js interception
             // in development, or use a more structured log
             const logMessage = `[${consoleLogData.severity || 'MEDIUM'}] ${consoleLogData.message}`;
@@ -399,14 +431,24 @@ class ErrorLogger {
             if (Object.keys(logDetails).length > 0) {
               // Use a try-catch around console.error to prevent recursion
               try {
-                console.error(logMessage, logDetails);
+                // In development, use console.warn instead of console.error to avoid Next.js interception
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn(logMessage, logDetails);
+                } else {
+                  console.error(logMessage, logDetails);
+                }
               } catch (e) {
                 // If console.error itself throws, skip silently
                 return logEntry.id;
               }
             } else {
               try {
-                console.error(logMessage);
+                // In development, use console.warn instead of console.error to avoid Next.js interception
+                if (process.env.NODE_ENV === 'development') {
+                  console.warn(logMessage);
+                } else {
+                  console.error(logMessage);
+                }
               } catch (e) {
                 // If console.error itself throws, skip silently
                 return logEntry.id;

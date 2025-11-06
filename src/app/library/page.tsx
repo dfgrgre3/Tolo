@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -77,8 +78,9 @@ export default function LibraryPage() {
   });
 
   return (
-    <div className="px-4">
-      <section className="mx-auto max-w-7xl py-8 space-y-6">
+    <AuthGuard>
+      <div className="px-4">
+        <section className="mx-auto max-w-7xl py-8 space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">المكتبة الرقمية</h1>
@@ -226,7 +228,8 @@ export default function LibraryPage() {
             <p className="text-muted-foreground">جرب تغيير التصنيف أو معايير البحث</p>
           </div>
         )}
-      </section>
-    </div>
+        </section>
+      </div>
+    </AuthGuard>
   );
 }

@@ -144,6 +144,13 @@ class ErrorManager {
   ): string {
     const errorObj = typeof error === 'string' ? new Error(error) : error;
 
+    // Check if error is empty or just "Unauthorized" - handle gracefully to prevent devtools interception
+    const errorMessage = errorObj.message || '';
+    const isUnauthorizedOnly = errorMessage.trim() === 'Unauthorized' || 
+                               errorMessage.trim() === '{}' ||
+                               (errorMessage.includes('Unauthorized') && errorMessage.length < 50) ||
+                               errorMessage.includes('401');
+
     // Check if it's a connection error
     const isConnectionError = 
       errorObj.message.includes('fetch') ||
@@ -153,8 +160,16 @@ class ErrorManager {
       errorObj.message.includes('Connection') ||
       errorObj.name === 'TypeError';
 
+    // For "Unauthorized" errors, use lower severity to reduce console noise
+    const severity = isUnauthorizedOnly ? 'medium' : 'high';
+
+    // Skip logging "Unauthorized" errors in development to prevent devtools interception
+    const shouldLogError = !(isUnauthorizedOnly && process.env.NODE_ENV === 'development');
+    const finalLogError = shouldLogError ? (config.logError !== undefined ? config.logError : true) : false;
+
     return this.handleError(errorObj, {
-      severity: 'high',
+      severity,
+      logError: finalLogError,
       context: {
         endpoint,
         type: 'network',

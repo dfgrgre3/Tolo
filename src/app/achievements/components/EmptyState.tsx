@@ -14,8 +14,15 @@ export function EmptyState() {
 			className="text-center py-16"
 		>
 			<motion.div
-				animate={{ rotate: [0, 10, -10, 0] }}
-				transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
+				animate={{ rotate: [0, 10] }}
+				transition={{ 
+					duration: 2, 
+					repeat: Infinity, 
+					repeatDelay: 3,
+					repeatType: "reverse",
+					type: "tween",
+					ease: "easeInOut"
+				}}
 				className="text-7xl mb-6"
 			>
 				🏆

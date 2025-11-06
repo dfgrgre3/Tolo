@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Button } from "@/shared/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
 import { Label } from "@/components/ui/label";
@@ -23,8 +24,9 @@ export default function AppearanceSettings() {
 	}
 
 	return (
-		<div className="px-4">
-			<section className="mx-auto max-w-7xl py-8 space-y-6">
+		<AuthGuard>
+			<div className="px-4">
+				<section className="mx-auto max-w-7xl py-8 space-y-6">
 				<h1 className="text-2xl md:text-3xl font-bold">إعدادات المظهر</h1>
 
 				<div className="space-y-6">
@@ -156,6 +158,7 @@ export default function AppearanceSettings() {
 					</div>
 				</div>
 			</section>
-		</div>
+			</div>
+		</AuthGuard>
 	);
 }

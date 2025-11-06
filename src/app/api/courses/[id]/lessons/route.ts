@@ -5,10 +5,10 @@ import { getOrSetEnhanced } from "@/lib/cache-service-unified";
 // GET lessons for a course (now topics for a subject)
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> } // subject ID
+  { params }: { params: Promise<{ id: string }> } // subject ID
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 
@@ -78,10 +78,10 @@ export async function GET(
 // POST to create a new lesson (now subtopic)
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> } // subject ID
+  { params }: { params: Promise<{ id: string }> } // subject ID
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     const { title, description, topicId, order } = await request.json();
 
     // Check if subject exists

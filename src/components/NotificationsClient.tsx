@@ -127,17 +127,17 @@ export default function NotificationsClient() {
 	// Prevent hydration mismatch by returning consistent content
 	if (!mounted || typeof Notification === "undefined") {
 		return (
-			<div className="mx-auto max-w-7xl px-4 py-2 text-xs text-muted-foreground opacity-0">
+			<div className="mx-auto max-w-7xl px-4 py-2 text-xs text-muted-foreground opacity-0" suppressHydrationWarning>
 				{/* Placeholder to prevent hydration mismatch */}
-				<div className="h-6"></div>
+				<div className="h-6" suppressHydrationWarning></div>
 			</div>
 		);
 	}
 
 	if (Notification.permission !== "granted") {
 		return (
-			<div className="mx-auto max-w-7xl px-4 py-2 text-xs text-muted-foreground">
-				<button className="px-2 py-1 border rounded-md" onClick={requestPermission} aria-label="تفعيل الإشعارات">تفعيل إشعارات التذكيرات</button>
+			<div className="mx-auto max-w-7xl px-4 py-2 text-xs text-muted-foreground" suppressHydrationWarning>
+				<button className="px-2 py-1 border rounded-md" onClick={requestPermission} aria-label="تفعيل الإشعارات" suppressHydrationWarning>تفعيل إشعارات التذكيرات</button>
 			</div>
 		);
 	}

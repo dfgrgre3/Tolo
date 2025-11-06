@@ -45,6 +45,14 @@ model User {
   examsPassed             Int         @default(0)
   pomodoroSessions        Int         @default(0)
   deepWorkSessions        Int         @default(0)
+  
+  // Multi-layer points system
+  studyXP                 Int         @default(0)
+  taskXP                  Int         @default(0)
+  examXP                  Int         @default(0)
+  challengeXP             Int         @default(0)
+  questXP                 Int         @default(0)
+  seasonXP                Int         @default(0)
 
   subjectEnrollments      SubjectEnrollment[]
   studySessions           StudySession[]
@@ -57,6 +65,21 @@ model User {
   customGoals             CustomGoal[]
   examResults             ExamResult[]
   notifications           Notification[]
+  
+  // Advanced gamification relations
+  seasonParticipations    SeasonParticipation[]
+  challengeCompletions    ChallengeCompletion[]
+  questProgresses         QuestProgress[]
+  userRewards             UserReward[]
+  leaderboardEntries      LeaderboardEntry[]
+  
+  // AI & ML relations
+  sentimentAnalyses       SentimentAnalysis[]
+  aiChatMessages          AiChatMessage[]
+  aiGeneratedContent      AiGeneratedContent[]
+  userInteractions        UserInteraction[]
+  contentPreferences      ContentPreference[]
+  mlRecommendations       MlRecommendation[]
 }
 
 model SubjectEnrollment {
@@ -204,15 +227,18 @@ model Achievement {
   icon        String
   category    String   // 'study', 'tasks', 'exams', 'time', 'streak'
   difficulty  String   // 'easy', 'medium', 'hard', 'expert'
+  rarity      String   @default("common") // 'common', 'rare', 'epic', 'legendary'
   xpReward    Int
   requirements Json
   isSecret    Boolean  @default(false)
+  unlockedCount Int    @default(0) // Track how many users unlocked it
   createdAt   DateTime @default(now())
 
   users       UserAchievement[]
 
   @@index([category])
   @@index([difficulty])
+  @@index([rarity])
 }
 
 model UserAchievement {
@@ -291,4 +317,324 @@ model Notification {
   @@index([userId])
   @@index([userId, createdAt])
   @@index([isRead])
+}
+
+// Advanced Gamification Models
+
+// Season Model for Seasonal Championships
+model Season {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  rewards     Json?    // Rewards for top performers
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  participations SeasonParticipation[]
+  leaderboards   LeaderboardEntry[]
+
+  @@index([isActive])
+  @@index([startDate, endDate])
+}
+
+model SeasonParticipation {
+  id          String   @id @default(cuid())
+  userId      String
+  seasonId    String
+  seasonXP    Int      @default(0)
+  rank        Int?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season      Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  joinedAt    DateTime @default(now())
+  lastUpdated DateTime @updatedAt
+
+  @@unique([userId, seasonId])
+  @@index([seasonId])
+  @@index([userId])
+  @@index([seasonId, seasonXP])
+}
+
+// Challenge Model for Daily/Weekly Challenges
+model Challenge {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  type        String   // 'daily', 'weekly', 'monthly'
+  category    String   // 'study', 'tasks', 'exams', 'streak', 'mixed'
+  difficulty  String   // 'easy', 'medium', 'hard'
+  xpReward    Int
+  requirements Json    // Requirements to complete challenge
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean  @default(true)
+  subject     String?  // Optional subject filter
+  levelRange  Json?    // Optional level range [min, max]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  completions ChallengeCompletion[]
+
+  @@index([type])
+  @@index([isActive])
+  @@index([startDate, endDate])
+  @@index([category])
+}
+
+model ChallengeCompletion {
+  id          String   @id @default(cuid())
+  userId      String
+  challengeId String
+  completedAt DateTime @default(now())
+  progress    Float    @default(0) // 0-100
+  isCompleted Boolean  @default(false)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, challengeId])
+  @@index([userId])
+  @@index([challengeId])
+  @@index([isCompleted])
+}
+
+// Quest System Models
+model QuestChain {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  category    String   // 'study', 'tasks', 'exams', 'mixed'
+  difficulty  String   // 'easy', 'medium', 'hard', 'expert'
+  totalQuests Int      @default(1)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quests      Quest[]
+  progresses  QuestProgress[]
+
+  @@index([isActive])
+  @@index([category])
+}
+
+model Quest {
+  id          String   @id @default(cuid())
+  chainId     String
+  title       String
+  description String
+  order       Int      // Order in the chain
+  xpReward    Int
+  requirements Json    // Requirements to complete
+  prerequisites Json?  // Previous quests that must be completed
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  chain       QuestChain @relation(fields: [chainId], references: [id], onDelete: Cascade)
+  progresses  QuestProgress[]
+
+  @@index([chainId])
+  @@index([order])
+}
+
+model QuestProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  questId     String
+  chainId     String
+  progress    Float    @default(0) // 0-100
+  isCompleted Boolean  @default(false)
+  completedAt DateTime?
+  startedAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quest       Quest    @relation(fields: [questId], references: [id], onDelete: Cascade)
+  chain       QuestChain @relation(fields: [chainId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questId])
+  @@index([userId])
+  @@index([questId])
+  @@index([chainId])
+  @@index([isCompleted])
+}
+
+// Reward System (Virtual Rewards & NFTs)
+model Reward {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  type        String   // 'virtual', 'nft', 'badge', 'title'
+  rarity      String   // 'common', 'rare', 'epic', 'legendary'
+  imageUrl    String?
+  metadata    Json?    // NFT metadata, badge info, etc.
+  isTradeable Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRewards UserReward[]
+
+  @@index([type])
+  @@index([rarity])
+  @@index([isActive])
+}
+
+model UserReward {
+  id          String   @id @default(cuid())
+  userId      String
+  rewardId    String
+  earnedAt    DateTime @default(now())
+  source      String?  // 'achievement', 'quest', 'challenge', 'season', 'marketplace'
+  nftTokenId  String?  // For NFT rewards
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reward      Reward   @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, rewardId])
+  @@index([userId])
+  @@index([rewardId])
+  @@index([earnedAt])
+}
+
+// Advanced Leaderboard System
+model LeaderboardEntry {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // 'global', 'daily', 'weekly', 'monthly', 'season', 'subject', 'level'
+  period      String?  // Date string for daily/weekly/monthly (YYYY-MM-DD, YYYY-WW, YYYY-MM)
+  subject     String?  // For subject-specific leaderboards
+  levelRange  String?  // For level-specific leaderboards (e.g., "1-10", "11-20")
+  seasonId    String?  // For season-specific leaderboards
+  totalXP     Int      @default(0)
+  studyXP     Int      @default(0)
+  taskXP      Int      @default(0)
+  examXP      Int      @default(0)
+  challengeXP Int      @default(0)
+  questXP     Int      @default(0)
+  rank        Int?
+  level       Int      @default(1)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  season      Season?  @relation(fields: [seasonId], references: [id], onDelete: Cascade)
+  lastUpdated DateTime @updatedAt
+
+  @@unique([userId, type, period, subject, levelRange, seasonId])
+  @@index([type])
+  @@index([type, period])
+  @@index([type, subject])
+  @@index([type, seasonId])
+  @@index([type, totalXP])
+  @@index([userId])
+}
+
+// AI & ML Models
+
+// Sentiment Analysis Model
+model SentimentAnalysis {
+  id          String   @id @default(cuid())
+  userId     String
+  text       String
+  sentiment  String   // 'positive', 'negative', 'neutral', 'frustrated', 'tired'
+  score      Float    // -1.0 to 1.0
+  confidence Float    // 0.0 to 1.0
+  emotions   Json?    // Detected emotions (frustration, fatigue, etc.)
+  context    String?  // Context where sentiment was detected (chat, task, etc.)
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([sentiment])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+// AI Chat Messages with Context
+model AiChatMessage {
+  id          String   @id @default(cuid())
+  userId      String
+  role        String   // 'user', 'assistant'
+  content     String
+  sentiment   String?  // Sentiment of the message
+  metadata    Json?    // Additional context, voice input data, etc.
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+}
+
+// AI Generated Content
+model AiGeneratedContent {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // 'summary', 'flashcard', 'study_plan', 'practice_question'
+  title       String
+  content     String   // JSON string for structured content
+  subject     String?
+  metadata    Json?    // Additional metadata (difficulty, topics, etc.)
+  isUsed      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([subject])
+  @@index([createdAt])
+}
+
+// User Interactions for ML Recommendations
+model UserInteraction {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String   // 'view', 'click', 'complete', 'like', 'dislike', 'bookmark'
+  itemType    String   // 'resource', 'course', 'exam', 'content', 'teacher'
+  itemId      String
+  metadata    Json?    // Additional interaction data
+  timestamp   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([itemType])
+  @@index([timestamp])
+  @@index([userId, timestamp])
+}
+
+// Content Preferences for ML
+model ContentPreference {
+  id          String   @id @default(cuid())
+  userId      String
+  itemType    String   // 'subject', 'format', 'difficulty', 'teacher'
+  itemValue   String
+  weight      Float    @default(1.0) // Preference weight
+  source      String?  // How preference was learned (explicit, implicit)
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, itemType, itemValue])
+  @@index([userId])
+  @@index([itemType])
+}
+
+// ML Recommendations
+model MlRecommendation {
+  id              String   @id @default(cuid())
+  userId          String
+  itemType        String   // 'resource', 'course', 'exam', 'content', 'teacher'
+  itemId          String
+  score           Float    // Recommendation score (0.0 to 1.0)
+  algorithm       String   // 'collaborative', 'content_based', 'hybrid', 'deep_learning'
+  reason          String?  // Explanation for the recommendation
+  shownAt         DateTime?
+  clickedAt       DateTime?
+  completedAt     DateTime?
+  feedback        String?  // User feedback (positive, negative)
+  createdAt       DateTime @default(now())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([itemType])
+  @@index([score])
+  @@index([createdAt])
+  @@index([userId, createdAt])
 }

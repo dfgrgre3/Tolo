@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // GET messages between two users
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ senderId: string; receiverId: string }> }
+  { params }: { params: Promise<{ senderId: string; receiverId: string }> }
 ) {
   try {
-    const { senderId, receiverId } = await context.params;
+    const { senderId, receiverId } = await params;
 
     const messages = await prisma.message.findMany({
       where: {

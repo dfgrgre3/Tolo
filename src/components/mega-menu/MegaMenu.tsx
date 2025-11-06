@@ -22,12 +22,13 @@ export function MegaMenu({
 	activeRoute,
 	label,
 	className,
-	onOpen
+	onOpen,
+	user
 }: MegaMenuComponentProps) {
 	const megaMenuRef = useRef<HTMLDivElement>(null);
 
 	return (
-		<div className="relative group" ref={megaMenuRef}>
+		<div className="relative group" ref={megaMenuRef} suppressHydrationWarning>
 			<Button
 				variant="ghost"
 				className={cn(
@@ -49,6 +50,7 @@ export function MegaMenu({
 					}
 				}}
 				data-mega-menu-trigger
+				suppressHydrationWarning
 			>
 				<span className="font-medium">{label}</span>
 				<ChevronDown
@@ -62,6 +64,7 @@ export function MegaMenu({
 						className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
 						layoutId={`megaMenuIndicator-${label}`}
 						initial={false}
+						style={{ transform: 'none' }}
 						transition={{ type: "spring", stiffness: 380, damping: 30 }}
 					/>
 				)}
@@ -75,6 +78,7 @@ export function MegaMenu({
 							isOpen={isOpen}
 							onClose={onClose}
 							activeRoute={activeRoute}
+							user={user}
 						/>
 					</div>
 				)}

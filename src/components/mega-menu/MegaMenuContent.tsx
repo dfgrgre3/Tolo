@@ -2,9 +2,10 @@
 
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
-import { X, Search, Filter, Sparkles, TrendingUp, Command, Zap, ArrowRight } from "lucide-react";
+import { X, Search, Filter, Sparkles, TrendingUp, Command, Zap, ArrowRight, Bell } from "lucide-react";
 import { Button } from "@/shared/button";
 import { Input } from "@/components/ui/input";
+import Link from "next/link";
 import type { MegaMenuProps } from "./types";
 import { MegaMenuCategory } from "./MegaMenuCategory";
 import { cn } from "@/lib/utils";
@@ -13,13 +14,38 @@ export function MegaMenuContent({
 	categories, 
 	isOpen, 
 	onClose, 
-	activeRoute 
+	activeRoute,
+	user
 }: MegaMenuProps) {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isSearchFocused, setIsSearchFocused] = useState(false);
 	const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+	const [notificationCount, setNotificationCount] = useState(0);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const menuRef = useRef<HTMLDivElement>(null);
+
+	// Fetch notification count for authenticated users
+	useEffect(() => {
+		if (!user) {
+			setNotificationCount(0);
+			return;
+		}
+		
+		fetch("/api/notifications/unread-count")
+			.then(async (res) => {
+				if (!res.ok) {
+					throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+				}
+				const data = await res.json();
+				if (data.count !== undefined) {
+					setNotificationCount(data.count);
+				}
+			})
+			.catch((error) => {
+				console.debug("Failed to fetch notification count:", error);
+				setNotificationCount(0);
+			});
+	}, [user]);
 	
 	// Mouse tracking for interactive effects
 	const mouseX = useMotionValue(0);
@@ -136,6 +162,7 @@ export function MegaMenuContent({
 				onMouseEnter={() => {}}
 				onMouseLeave={onClose}
 				data-mega-menu-content
+				suppressHydrationWarning
 			>
 				{/* Advanced glassmorphism container */}
 				<div className="relative bg-gradient-to-br from-popover/98 via-popover/95 to-popover/98 backdrop-blur-2xl rounded-b-3xl border border-border/60 shadow-2xl shadow-black/50 overflow-hidden">
@@ -197,8 +224,12 @@ export function MegaMenuContent({
 							<div className="flex-1 relative group/search">
 								{/* Search icon with animation */}
 								<motion.div
-									animate={isSearchFocused ? { scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] } : {}}
-									transition={{ duration: 0.5 }}
+									animate={isSearchFocused ? { scale: [1, 1.2, 1], rotate: [0, 10] } : {}}
+									transition={{ 
+										duration: 0.5,
+										type: "tween",
+										ease: "easeInOut"
+									}}
 								>
 									<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within/search:text-primary transition-all duration-300 z-10" />
 								</motion.div>
@@ -264,6 +295,34 @@ export function MegaMenuContent({
 									</motion.div>
 									<span>{totalItems} نتيجة</span>
 								</motion.div>
+							)}
+
+							{/* Notifications button - only show for authenticated users */}
+							{user && (
+								<Link
+									href="/notifications"
+									onClick={onClose}
+									className="relative h-10 w-10 rounded-xl hover:bg-gradient-to-br hover:from-primary/20 hover:to-primary/10 hover:text-primary transition-all duration-300 hover:scale-110 active:scale-95 border border-transparent hover:border-primary/30 hover:shadow-lg hover:shadow-primary/20 flex items-center justify-center"
+									aria-label="الإشعارات"
+								>
+									<motion.div
+										whileHover={{ rotate: 12, scale: 1.1 }}
+										transition={{ duration: 0.3 }}
+									>
+										<Bell className="h-4 w-4" />
+									</motion.div>
+									{notificationCount > 0 && (
+										<motion.span
+											initial={false}
+											animate={{ scale: 1 }}
+											style={{ transform: 'none' }}
+											className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-destructive via-destructive to-destructive/80 text-destructive-foreground text-[10px] font-bold shadow-lg ring-2 ring-background"
+											suppressHydrationWarning
+										>
+											{notificationCount > 9 ? "9+" : notificationCount}
+										</motion.span>
+									)}
+								</Link>
 							)}
 
 							{/* Close button with enhanced design */}

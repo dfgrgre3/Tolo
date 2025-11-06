@@ -5,10 +5,10 @@ import { getOrSetEnhanced } from "@/lib/cache-service-unified";
 // GET a specific subject by ID
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     // Try to get from cache first
     const subject = await getOrSetEnhanced(
@@ -59,10 +59,10 @@ export async function GET(
 // DELETE a subject
 export async function DELETE(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
     // Check if subject exists
     const subject = await prisma.subject.findUnique({
@@ -97,10 +97,10 @@ export async function DELETE(
 // PUT to update a subject
 export async function PUT(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     const data = await request.json();
 
     // Update the subject

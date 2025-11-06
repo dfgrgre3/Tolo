@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -208,8 +209,9 @@ export default function EventPage() {
   const categoryInfo = getCategoryInfo(event.category);
 
   return (
-    <div className="px-4">
-      <section className="mx-auto max-w-4xl py-8 space-y-6">
+    <AuthGuard>
+      <div className="px-4">
+        <section className="mx-auto max-w-4xl py-8 space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/events" className="hover:text-primary">الإعلانات والمناسبات</Link>
           <span>/</span>
@@ -362,7 +364,8 @@ export default function EventPage() {
             </div>
           )}
         </div>
-      </section>
-    </div>
+        </section>
+      </div>
+    </AuthGuard>
   );
 }

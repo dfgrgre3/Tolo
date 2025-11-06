@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
@@ -169,8 +170,9 @@ export default function ChatPage() {
   };
 
   return (
-    <Layout>
-      <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6">
+    <AuthGuard>
+      <Layout>
+        <div className="h-[calc(100vh-8rem)] flex flex-col md:flex-row gap-6">
         {/* Conversations List */}
         <div className="w-full md:w-1/3 flex flex-col border rounded-lg overflow-hidden">
           <div className="p-4 border-b flex justify-between items-center">
@@ -341,7 +343,8 @@ export default function ChatPage() {
             </div>
           )}
         </div>
-    </div>
-    </Layout>
+        </div>
+      </Layout>
+    </AuthGuard>
   );
 }

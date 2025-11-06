@@ -168,7 +168,7 @@ export default function SubjectDistribution({ weekly }: SubjectDistributionProps
 										tooltip: {
 											callbacks: {
 												label: (context) => {
-													const hours = context.parsed.y;
+													const hours = context.parsed.y ?? 0;
 													const minutes = hours * 60;
 													return `${hours.toFixed(1)} ساعة (${Math.round(minutes)} دقيقة)`;
 												}

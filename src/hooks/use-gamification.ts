@@ -106,7 +106,13 @@ export function useGamification({
 
       // Load leaderboard from API
       const leaderboardRes = await fetch(`/api/gamification/leaderboard?type=global&limit=50`);
-      const leaderboard = leaderboardRes.ok ? await leaderboardRes.json() : [];
+      let leaderboard: LeaderboardEntry[] = [];
+      if (leaderboardRes.ok) {
+        const leaderboardData = await leaderboardRes.json();
+        // API returns { leaderboard: [...], ... }, so extract the leaderboard array
+        leaderboard = Array.isArray(leaderboardData.leaderboard) ? leaderboardData.leaderboard : 
+                      (Array.isArray(leaderboardData) ? leaderboardData : []);
+      }
 
       setState(prev => ({
         ...prev,
@@ -163,9 +169,11 @@ export function useGamification({
           'global',
           50,
           (leaderboard: FirestoreLeaderboardEntry[]) => {
+            // Ensure leaderboard is always an array
+            const leaderboardArray = Array.isArray(leaderboard) ? leaderboard : [];
             setState(prev => ({
               ...prev,
-              leaderboard: leaderboard.map(entry => ({
+              leaderboard: leaderboardArray.map(entry => ({
                 userId: entry.userId,
                 username: entry.username,
                 totalXP: entry.totalXP,
@@ -359,7 +367,7 @@ export function useGamification({
 
     // Utilities
     getUserRank: () => {
-      if (!state.userProgress) return null;
+      if (!state.userProgress || !Array.isArray(state.leaderboard)) return null;
       const userEntry = state.leaderboard.find(entry => entry.userId === userId);
       return userEntry?.rank || null;
     },

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useAchievements } from './hooks/useAchievements';
 import { AchievementStats } from './components/AchievementStats';
 import { AchievementFilters } from './components/AchievementFilters';
@@ -41,8 +42,9 @@ export default function AchievementsPage() {
 	}, [achievements]);
 
 	return (
-		<div className="min-h-screen bg-background">
-			<div className="container mx-auto px-4 py-8 max-w-7xl">
+		<AuthGuard>
+			<div className="min-h-screen bg-background">
+				<div className="container mx-auto px-4 py-8 max-w-7xl">
 				{/* Header */}
 				<motion.div
 					initial={{ opacity: 0, y: -20 }}
@@ -53,8 +55,15 @@ export default function AchievementsPage() {
 					<div className="flex items-center justify-between mb-4">
 						<div className="flex items-center gap-3">
 							<motion.div
-								animate={{ rotate: [0, 10, -10, 0] }}
-								transition={{ duration: 2, repeat: Infinity, repeatDelay: 5 }}
+								animate={{ rotate: [0, 10] }}
+								transition={{ 
+									duration: 2, 
+									repeat: Infinity, 
+									repeatDelay: 5,
+									repeatType: "reverse",
+									type: "tween",
+									ease: "easeInOut"
+								}}
 							>
 								<Trophy className="h-10 w-10 text-yellow-500" />
 							</motion.div>
@@ -261,7 +270,8 @@ export default function AchievementsPage() {
 						</Card>
 					</>
 				)}
+				</div>
 			</div>
-		</div>
+		</AuthGuard>
 	);
 }

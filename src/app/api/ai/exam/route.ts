@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -121,6 +122,7 @@ export async function POST(request: NextRequest) {
       // حفظ الامتحان في قاعدة البيانات
       const exam = await prisma.exam.create({
         data: {
+          id: randomUUID(),
           subject: subject as any,
           title: `امتحان ${subject} - ${year} - ${lesson}`,
           year: parseInt(year),

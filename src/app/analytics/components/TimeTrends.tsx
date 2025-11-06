@@ -225,11 +225,12 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 										callbacks: {
 											label: (context) => {
 												if (context.datasetIndex === 0) {
-													const minutes = context.parsed.y;
+													const minutes = context.parsed.y ?? 0;
 													const hours = (minutes / 60).toFixed(1);
 													return `${context.dataset.label}: ${minutes} دقيقة (${hours} ساعة)`;
 												}
-												return `${context.dataset.label}: ${context.parsed.y.toFixed(1)} دقيقة`;
+												const minutes = context.parsed.y ?? 0;
+												return `${context.dataset.label}: ${minutes.toFixed(1)} دقيقة`;
 											}
 										}
 									}

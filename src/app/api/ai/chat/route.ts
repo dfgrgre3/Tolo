@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { analyzeSentiment } from "@/lib/ai/sentiment-analysis";
+import { prisma } from "@/lib/prisma";
+import { verifyToken } from "@/lib/auth-unified";
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
   try {
-    const { messages, provider } = await req.json();
+    const { messages, provider, userId } = await req.json();
+    
+    // Try to get userId from token if not provided
+    let actualUserId = userId;
+    if (!actualUserId) {
+      const decodedToken = verifyToken(req);
+      if (decodedToken) {
+        actualUserId = decodedToken.userId;
+      }
+    }
 
     // تحديد مقدم الخدمة
     const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
@@ -24,10 +36,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // إضافة رسالة النظام لتعريف شخصية المساعد
+    // Analyze sentiment of the last user message
+    let sentiment = null;
+    let sentimentAwareContext = "";
+    
+    if (actualUserId && messages.length > 0) {
+      const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+      if (lastUserMessage) {
+        try {
+          sentiment = await analyzeSentiment(lastUserMessage.content, actualUserId, 'chat');
+          
+          // Add sentiment-aware context
+          if (sentiment.sentiment === 'frustrated' || sentiment.sentiment === 'tired') {
+            sentimentAwareContext = `ملاحظة مهمة: المستخدم يبدو ${sentiment.sentiment === 'frustrated' ? 'محبطاً' : 'متعباً'}. يجب أن تكون أكثر تفهماً وتقديم دعم إضافي. `;
+            if (sentiment.suggestions && sentiment.suggestions.length > 0) {
+              sentimentAwareContext += `اقتراحات الدعم: ${sentiment.suggestions.join(', ')}. `;
+            }
+          }
+          
+          // Save chat message with sentiment
+          await prisma.aiChatMessage.create({
+            data: {
+              userId: actualUserId,
+              role: 'user',
+              content: lastUserMessage.content,
+              sentiment: sentiment.sentiment,
+              metadata: {
+                score: sentiment.score,
+                confidence: sentiment.confidence,
+                emotions: sentiment.emotions
+              }
+            }
+          });
+        } catch (error) {
+          console.error('Error analyzing sentiment:', error);
+        }
+      }
+    }
+
+    // إضافة رسالة النظام لتعريف شخصية المساعد مع تحليل المشاعر
     const systemMessage = {
       role: "system",
-      content: "أنت مساعد ذكاء اصطناعي متخصص في التعليم والإرشاد الأكاديمي لمنصة ثناوي. مهمتك هي مساعدة الطلاب في دراستهم والإجابة على أسئلتهم بطريقة واضحة ومفيدة. يجب أن تكون إجاباتك دقيقة ومتناسبة مع المستوى التعليمي للطالب. إذا لم تكن متأكداً من إجابة سؤال ما، فمن الأفضل أن تعترف بذلك بدلاً من تقديم معلومات خاطئة."
+      content: `${sentimentAwareContext}أنت مساعد ذكاء اصطناعي متخصص في التعليم والإرشاد الأكاديمي لمنصة ثناوي. مهمتك هي مساعدة الطلاب في دراستهم والإجابة على أسئلتهم بطريقة واضحة ومفيدة. يجب أن تكون إجاباتك دقيقة ومتناسبة مع المستوى التعليمي للطالب. إذا لم تكن متأكداً من إجابة سؤال ما، فمن الأفضل أن تعترف بذلك بدلاً من تقديم معلومات خاطئة. كن دائماً داعماً ومشجعاً، خاصة إذا كان المستخدم يبدو محبطاً أو متعباً.`
     };
 
     let aiMessage = "";
@@ -96,7 +146,29 @@ export async function POST(request: NextRequest) {
       aiMessage = data.candidates[0].content.parts[0].text;
     }
 
-    return NextResponse.json({ message: aiMessage });
+    // Save assistant message if userId exists
+    if (actualUserId) {
+      await prisma.aiChatMessage.create({
+        data: {
+          userId: actualUserId,
+          role: 'assistant',
+          content: aiMessage,
+          metadata: {
+            provider: selectedProvider.name,
+            sentiment: sentiment?.sentiment || null
+          }
+        }
+      });
+    }
+
+    return NextResponse.json({ 
+      message: aiMessage,
+      sentiment: sentiment ? {
+        sentiment: sentiment.sentiment,
+        score: sentiment.score,
+        suggestions: sentiment.suggestions
+      } : null
+    });
   } catch (error) {
     console.error("Error in AI chat API:", error);
     return NextResponse.json(

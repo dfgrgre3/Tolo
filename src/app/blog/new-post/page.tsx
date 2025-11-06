@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
@@ -90,8 +91,9 @@ export default function NewBlogPostPage() {
   };
 
   return (
-    <Layout>
-      <div className="max-w-3xl mx-auto space-y-6">
+    <AuthGuard>
+      <Layout>
+        <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/blog" className="hover:text-primary">المدونة التعليمية</Link>
           <span>/</span>
@@ -238,7 +240,8 @@ export default function NewBlogPostPage() {
             </button>
           </div>
         </form>
-    </div>
-    </Layout>
+        </div>
+      </Layout>
+    </AuthGuard>
   );
 }

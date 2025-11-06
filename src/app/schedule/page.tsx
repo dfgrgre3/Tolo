@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, memo } from "react";
 import { useRouter } from "next/navigation";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Modal } from "@/components/ui/modal";
 import { useDrag, useDrop, DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
@@ -197,13 +198,17 @@ export default function SchedulePage() {
 		(async () => {
 			try {
 				setLoadingSchedule(true);
-				const { data: sch, error: scheduleError } = await safeFetch<Schedule>(
+				const { data: sch, error: scheduleError, response } = await safeFetch<Schedule>(
 					`/api/schedule?userId=${userId}`,
 					undefined,
 					{ id: '', planJson: '{}', version: 0 }
 				);
 				if (scheduleError) {
-					errorManager.handleNetworkError(scheduleError, `/api/schedule?userId=${userId}`, {}, {
+					// For 401 Unauthorized errors, skip logging in development to prevent devtools interception
+					const isUnauthorized = response?.status === 401;
+					errorManager.handleNetworkError(scheduleError, `/api/schedule?userId=${userId}`, {
+						showToast: !isUnauthorized, // Don't show toast for expected 401 errors
+					}, {
 						title: "خطأ في الاتصال",
 						description: "حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى."
 					});
@@ -489,11 +494,12 @@ export default function SchedulePage() {
 	}
 
 	return (
-		<>
-			{userId && (
-				<WebSocketProvider userId={userId}>
-					<DndProvider backend={HTML5Backend}>
-						<div className="px-4">
+		<AuthGuard>
+			<>
+				{userId && (
+					<WebSocketProvider userId={userId}>
+						<DndProvider backend={HTML5Backend}>
+							<div className="px-4">
 							{(loadingUser || loadingSchedule || loadingTasks || loadingExams || saving) && (
 								<div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
 									<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
@@ -602,5 +608,6 @@ export default function SchedulePage() {
 				</WebSocketProvider>
 			)}
 		</>
+		</AuthGuard>
 	);
 }

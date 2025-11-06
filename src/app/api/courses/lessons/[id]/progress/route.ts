@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma";
 // POST to update lesson progress
 export async function POST(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params; // lesson ID
+    const { id } = await params; // lesson ID
     const { userId, completed, subject } = await request.json();
 
     if (!userId || completed === undefined || !subject) {
@@ -101,10 +101,10 @@ export async function POST(
 // GET lesson progress
 export async function GET(
   request: NextRequest,
-  context: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
 

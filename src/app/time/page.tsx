@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WeeklySchedule from "@/components/time/WeeklySchedule";
 import TaskManagement from "@/components/time/TaskManagement";
@@ -199,23 +200,26 @@ export default function TimeManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto p-4 text-center min-h-screen flex items-center justify-center">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="relative">
-            <RefreshCw className="h-8 w-8 animate-spin text-primary" />
-            <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
-          </div>
-          <div className="space-y-2">
-            <p className="text-lg font-semibold">جاري التحميل...</p>
-            <p className="text-sm text-muted-foreground">يرجى الانتظار بينما نقوم بتحميل بياناتك</p>
+      <AuthGuard>
+        <div className="container mx-auto p-4 text-center min-h-screen flex items-center justify-center">
+          <div className="flex flex-col items-center justify-center space-y-4">
+            <div className="relative">
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary/20"></div>
+            </div>
+            <div className="space-y-2">
+              <p className="text-lg font-semibold">جاري التحميل...</p>
+              <p className="text-sm text-muted-foreground">يرجى الانتظار بينما نقوم بتحميل بياناتك</p>
+            </div>
           </div>
         </div>
-      </div>
+      </AuthGuard>
     );
   }
 
   return (
-    <div className="container mx-auto p-4 rtl" dir="rtl">
+    <AuthGuard>
+      <div className="container mx-auto p-4 rtl" dir="rtl">
       <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
         <TimeManagementHeader
           isTimerRunning={isTimerRunning}
@@ -490,6 +494,7 @@ export default function TimeManagementPage() {
         </TabsContent>
 
       </Tabs>
-    </div>
+      </div>
+    </AuthGuard>
   );
 }
