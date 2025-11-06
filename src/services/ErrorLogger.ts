@@ -111,7 +111,48 @@ class ErrorLogger {
       if (typeof window !== 'undefined') {
         // Catch unhandled JavaScript errors
         window.addEventListener('error', (event) => {
-          this.logError(event.error || new Error(event.message), {
+          // Skip errors from Next.js devtools to prevent infinite loops
+          const filename = event.filename || '';
+          const errorStack = event.error?.stack || '';
+          const errorMessage = event.message || '';
+          
+          // Check filename first
+          if (filename && (
+            filename.includes('next-devtools') ||
+            filename.includes('console-error.ts') ||
+            filename.includes('intercept-console-error') ||
+            filename.includes('createConsoleError') ||
+            filename.includes('handleConsoleError')
+          )) {
+            return;
+          }
+
+          // Also check error stack trace
+          if (errorStack && (
+            errorStack.includes('next-devtools') ||
+            errorStack.includes('console-error.ts') ||
+            errorStack.includes('intercept-console-error') ||
+            errorStack.includes('createConsoleError') ||
+            errorStack.includes('handleConsoleError') ||
+            errorStack.includes('ErrorLogger.logError')
+          )) {
+            return;
+          }
+
+          // Skip if error message is empty or just an empty object representation
+          if (!errorMessage || !errorMessage.trim() || errorMessage.trim() === '{}') {
+            return;
+          }
+
+          // Skip if error object is empty or has no meaningful content
+          if (event.error && typeof event.error === 'object') {
+            const errorKeys = Object.keys(event.error);
+            if (errorKeys.length === 0 || (errorKeys.length === 1 && errorKeys[0] === 'message' && !event.error.message)) {
+              return;
+            }
+          }
+
+          this.logError(event.error || new Error(errorMessage), {
             source: 'Global Error Handler',
             filename: event.filename,
             lineno: event.lineno,
@@ -121,7 +162,38 @@ class ErrorLogger {
 
         // Catch unhandled promise rejections
         window.addEventListener('unhandledrejection', (event) => {
-          this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), {
+          // Skip if reason is empty or from devtools
+          if (!event.reason) {
+            return;
+          }
+
+          const reasonString = String(event.reason);
+          if (!reasonString || reasonString.trim() === '' || reasonString.trim() === '{}') {
+            return;
+          }
+
+          // Check stack trace for devtools
+          if (event.reason instanceof Error && event.reason.stack) {
+            const stack = event.reason.stack;
+            if (stack.includes('next-devtools') ||
+                stack.includes('console-error.ts') ||
+                stack.includes('intercept-console-error') ||
+                stack.includes('createConsoleError') ||
+                stack.includes('handleConsoleError') ||
+                stack.includes('ErrorLogger.logError')) {
+              return;
+            }
+          }
+
+          // Skip if error message is from ErrorLogger to prevent recursion
+          if (event.reason instanceof Error && event.reason.message) {
+            if (event.reason.message.includes('ErrorLogger') || 
+                event.reason.message.includes('Error logged: {}')) {
+              return;
+            }
+          }
+
+          this.logError(event.reason instanceof Error ? event.reason : new Error(reasonString), {
             source: 'Unhandled Promise Rejection',
           });
         });
@@ -204,38 +276,83 @@ class ErrorLogger {
       // Log to console if enabled
       if (this.config.enableConsoleLog) {
         try {
+          // Skip logging if this is from Next.js devtools console interception to prevent infinite loops
+          const stackTrace = error instanceof Error ? error.stack : '';
+          const errorMessageStr = error instanceof Error ? error.message : String(error || '');
+          
+          // Check if error is from Next.js devtools or is an empty/meaningless error
+          if (stackTrace && (
+            stackTrace.includes('next-devtools') || 
+            stackTrace.includes('intercept-console-error') ||
+            stackTrace.includes('console-error.ts') ||
+            stackTrace.includes('createConsoleError') ||
+            stackTrace.includes('handleConsoleError')
+          )) {
+            // Silently skip to prevent infinite loops from console.error interception
+            return logEntry.id;
+          }
+          
+          // Skip if error message is empty or just an empty object representation
+          if (!errorMessageStr || errorMessageStr.trim() === '' || errorMessageStr.trim() === '{}') {
+            return logEntry.id;
+          }
+
+          // Ensure logEntry exists and has required properties
+          if (!logEntry || !logEntry.message || !logEntry.timestamp) {
+            return logEntry.id;
+          }
+
           // Build console log data with guaranteed values
           const consoleLogData: Record<string, any> = {};
           
           // Always include message (guaranteed to exist from earlier validation)
-          const safeMessage = String(logEntry?.message || errorMessage || 'Unknown error').trim();
-          consoleLogData.message = safeMessage || 'Unknown error';
+          const safeMessage = String(logEntry.message || errorMessage || 'Unknown error').trim();
+          if (!safeMessage || safeMessage === 'Unknown error') {
+            // Skip if no meaningful message
+            return logEntry.id;
+          }
+          consoleLogData.message = safeMessage;
           
           // Always include source
-          const safeSource = String(logEntry?.source || context?.source || 'Unknown').trim();
-          consoleLogData.source = safeSource || 'Unknown';
+          const safeSource = String(logEntry.source || context?.source || 'Unknown').trim();
+          if (safeSource && safeSource !== 'Unknown') {
+            consoleLogData.source = safeSource;
+          }
           
           // Always include severity
-          const safeSeverity = String(logEntry?.severity || context?.severity || 'medium').trim();
-          consoleLogData.severity = safeSeverity || 'medium';
+          const safeSeverity = String(logEntry.severity || context?.severity || 'medium').trim();
+          if (safeSeverity) {
+            consoleLogData.severity = safeSeverity;
+          }
 
-          // Include timestamp
-          if (logEntry?.timestamp) {
+          // Include timestamp (logEntry is guaranteed to exist at this point)
+          if (logEntry.timestamp) {
             consoleLogData.timestamp = logEntry.timestamp;
           }
 
           // Include error ID
-          if (logEntry?.id) {
+          if (logEntry.id) {
             consoleLogData.id = logEntry.id;
           }
 
           // Include stack if available
-          if (logEntry?.stack && typeof logEntry.stack === 'string' && logEntry.stack.trim()) {
-            consoleLogData.stack = logEntry.stack.substring(0, 500); // Limit stack length
+          if (logEntry.stack && typeof logEntry.stack === 'string' && logEntry.stack.trim()) {
+            // Filter out Next.js devtools from stack to prevent recursion
+            const cleanStack = logEntry.stack
+              .split('\n')
+              .filter(line => !line.includes('next-devtools') && 
+                           !line.includes('intercept-console-error') &&
+                           !line.includes('console-error.ts') &&
+                           !line.includes('createConsoleError'))
+              .join('\n');
+            
+            if (cleanStack.trim()) {
+              consoleLogData.stack = cleanStack.substring(0, 500); // Limit stack length
+            }
           }
 
           // Include additional data if available
-          if (logEntry?.additionalData && typeof logEntry.additionalData === 'object') {
+          if (logEntry.additionalData && typeof logEntry.additionalData === 'object') {
             const cleanAdditionalData: Record<string, any> = {};
             try {
               Object.entries(logEntry.additionalData).forEach(([key, value]) => {
@@ -260,39 +377,49 @@ class ErrorLogger {
               }
             } catch (additionalDataError) {
               // Skip additional data if it causes issues
-              if (process.env.NODE_ENV === 'development') {
-                console.warn('Failed to process additional data:', additionalDataError);
-              }
             }
           }
 
-          // Verify consoleLogData has at least one meaningful property
-          const hasValidData = Object.keys(consoleLogData).length > 0 && 
-            (consoleLogData.message || consoleLogData.source || consoleLogData.severity);
+          // Final validation: ensure we have meaningful data before logging
+          // Must have at least a message and one other property
+          const hasValidMessage = consoleLogData.message && 
+            consoleLogData.message.trim() !== '' && 
+            consoleLogData.message !== 'Unknown error';
+          const hasOtherData = Object.keys(consoleLogData).length > 1; // More than just message
+          const hasValidData = hasValidMessage && hasOtherData;
           
           if (hasValidData) {
-            console.error('Error logged:', consoleLogData);
+            // Use a different console method or format to avoid Next.js interception
+            // in development, or use a more structured log
+            const logMessage = `[${consoleLogData.severity || 'MEDIUM'}] ${consoleLogData.message}`;
+            const logDetails = { ...consoleLogData };
+            delete logDetails.message; // Already in the message
+            
+            // Ensure logDetails is not empty before including it
+            if (Object.keys(logDetails).length > 0) {
+              // Use a try-catch around console.error to prevent recursion
+              try {
+                console.error(logMessage, logDetails);
+              } catch (e) {
+                // If console.error itself throws, skip silently
+                return logEntry.id;
+              }
+            } else {
+              try {
+                console.error(logMessage);
+              } catch (e) {
+                // If console.error itself throws, skip silently
+                return logEntry.id;
+              }
+            }
           } else {
-            // Fallback if somehow consoleLogData is empty
-            console.error('Error logged:', {
-              message: errorMessage || 'Unknown error',
-              source: context?.source || 'Unknown',
-              severity: 'medium',
-              timestamp: new Date().toISOString(),
-              fallback: true
-            });
+            // If we don't have valid data, skip logging entirely to prevent empty object logs
+            return logEntry.id;
           }
         } catch (consoleError) {
-          // Ultimate fallback if console logging completely fails
-          try {
-            console.error('Error logged:', errorMessage || (error instanceof Error ? error.message : String(error)) || 'Unknown error');
-          } catch {
-            // If even that fails, log a basic message
-            console.error('Error occurred but logging failed');
-          }
-          if (process.env.NODE_ENV === 'development') {
-            console.error('Console logging error:', consoleError);
-          }
+          // If console logging fails completely, just return the log entry ID
+          // Don't try to log the error as that could cause recursion
+          return logEntry.id;
         }
       }
 

@@ -171,9 +171,16 @@ function ExamsSectionComponent() {
                     []
                 );
 
-                if (examsError) {
-                    console.error("Error fetching exams:", examsError);
-                    setError("فشل تحميل الامتحانات");
+                if (examsError || !examsData) {
+                    // فقط في وضع التطوير نعرض الخطأ الكامل في console
+                    if (process.env.NODE_ENV === 'development') {
+                        console.error("Error fetching exams:", examsError);
+                    }
+                    // عرض رسالة خطأ واضحة للمستخدم
+                    const errorMessage = examsError?.message || "فشل تحميل الامتحانات";
+                    setError(errorMessage.includes("HTTP 500") 
+                        ? "حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً." 
+                        : errorMessage);
                     setLoading(false);
                     return;
                 }
@@ -224,12 +231,21 @@ function ExamsSectionComponent() {
                 const totalQuestions = examsData?.reduce((sum: number, exam: any) => 
                     sum + (exam.questionCount || 0), 0) || 0;
                 
-                // Get user count from API if available
-                const { data: statsData } = await safeFetch<{ totalStudents: number; totalQuestions: number }>(
-                    "/api/users/stats",
-                    undefined,
-                    { totalStudents: 0, totalQuestions: 0 }
-                );
+                // Get user count from API if available (optional, don't fail if it errors)
+                let statsData = { totalStudents: 0, totalQuestions: 0 };
+                try {
+                    const statsResult = await safeFetch<{ totalStudents: number; totalQuestions: number }>(
+                        "/api/users/stats",
+                        undefined,
+                        { totalStudents: 0, totalQuestions: 0 }
+                    );
+                    if (!statsResult.error && statsResult.data) {
+                        statsData = statsResult.data;
+                    }
+                } catch (statsError) {
+                    // Silently fail for stats - it's optional data
+                    console.warn("Failed to fetch user stats (optional):", statsError);
+                }
 
                 setStats([
                     { icon: "📄", value: `${totalExams}+`, label: "نموذج امتحان" },

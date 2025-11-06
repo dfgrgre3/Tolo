@@ -171,12 +171,16 @@ const nextConfig = {
   // Enable ISR revalidation
   staticPageGenerationTimeout: 600,
 
-  // Enable CDN support
-  // When using a CDN, assets will be served from the CDN instead of the origin server
-  assetPrefix: process.env.CDN_URL || '',
-
-  // Enable browser source map generation for better debugging
-  productionBrowserSourceMaps: true,
+  // Enable browser source map generation only in development
+  // Disable in production for better performance and security
+  productionBrowserSourceMaps: process.env.NODE_ENV === 'development',
 };
+
+// Enable CDN support conditionally
+// When using a CDN, assets will be served from the CDN instead of the origin server
+// Only set assetPrefix if CDN_URL is explicitly provided (not empty string)
+if (process.env.CDN_URL && process.env.CDN_URL.trim()) {
+  nextConfig.assetPrefix = process.env.CDN_URL;
+}
 
 module.exports = nextConfig;

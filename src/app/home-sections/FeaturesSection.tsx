@@ -174,7 +174,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
-                {/* Show user avatar if authenticated, register button if not */}
+                {/* Show user avatar if authenticated, hide register button if authenticated */}
                 {user ? (
                   <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/5 transition-colors">
                     <Avatar className="h-10 w-10 border-2 border-primary/20">
@@ -189,14 +189,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
                     </Avatar>
                     <span className="text-sm font-medium text-primary">{user.name || user.email}</span>
                   </Link>
-                ) : (
-                  <Link href="/login?view=register">
-                    <Button size="lg" className="px-8 py-6 text-lg shadow hover:shadow-lg transition-shadow w-full sm:w-auto group">
-                      إنشاء حساب
-                      <Play className="mr-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                )}
+                ) : null}
                 <Link href="/demo">
                   <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-2 hover:bg-primary/5 w-full sm:w-auto">
                     مشاهدة العرض التوضيحي

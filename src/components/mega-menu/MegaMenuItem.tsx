@@ -68,20 +68,21 @@ export function MegaMenuItem({
 			whileHover={{ scale: 1.02, x: 2 }}
 			whileTap={{ scale: 0.98 }}
 		>
-			<Link
-				href={item.href}
-				onClick={onClick}
-				className={cn(
-					"relative flex items-center gap-2.5 rounded-xl transition-all duration-300 group/item overflow-hidden",
-					"hover:bg-gradient-to-r hover:from-primary/12 hover:via-primary/8 hover:to-primary/6",
-					"hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5",
-					"border border-border/30 hover:border-primary/40",
-					"backdrop-blur-sm",
-					isActive && "bg-gradient-to-r from-primary/20 via-primary/15 to-primary/10 border-primary/50 shadow-lg shadow-primary/25",
-					hasSearchMatch && !isActive && "bg-gradient-to-r from-primary/8 via-primary/5 to-primary/8 border-primary/30",
-					isCompact ? "p-2" : "p-2.5 md:p-3"
-				)}
-			>
+		<Link
+			href={item.href}
+			onClick={onClick}
+			className={cn(
+				"relative flex items-center gap-2.5 rounded-xl transition-all duration-300 group/item overflow-hidden",
+				"hover:bg-gradient-to-r hover:from-primary/12 hover:via-primary/8 hover:to-primary/6",
+				"hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5",
+				"border border-border/30 hover:border-primary/40",
+				"backdrop-blur-sm",
+				isActive && "bg-gradient-to-r from-primary/20 via-primary/15 to-primary/10 border-primary/50 shadow-lg shadow-primary/25",
+				hasSearchMatch && !isActive && "bg-gradient-to-r from-primary/8 via-primary/5 to-primary/8 border-primary/30",
+				isCompact ? "p-2" : "p-2.5 md:p-3"
+			)}
+			suppressHydrationWarning
+		>
 				{/* Animated background glow */}
 				<motion.div
 					className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 opacity-0 group-hover/item:opacity-100 transition-opacity duration-500 blur-xl"

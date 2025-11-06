@@ -226,23 +226,26 @@ const CalendarScheduler: React.FC<CalendarSchedulerProps> = ({
                     </span>
                   </div>
                   <div className="space-y-1 overflow-y-auto max-h-20">
-                    {dayEvents.slice(0, 3).map(event => (
-                      <div
-                        key={event.id}
-                        className={`text-xs p-1 rounded truncate ${event.completed ? 'opacity-50' : ''}`}
-                        style={{ backgroundColor: categoryColors[event.category as keyof typeof categoryColors].replace('100', '200') }}
-                      >
-                        <div className="flex justify-between">
-                          <span className="font-medium truncate">{event.title}</span>
-                          <span className="ml-1">{formatTime(event.startTime)}</span>
+                    {dayEvents.slice(0, 3).map(event => {
+                      const categoryKey = event.category as keyof typeof categoryColors;
+                      const bgColor = categoryColors[categoryKey]?.replace('100', '200') || 'bg-gray-200';
+                      return (
+                        <div
+                          key={event.id}
+                          className={`text-xs p-1 rounded truncate ${event.completed ? 'opacity-50' : ''} ${bgColor}`}
+                        >
+                          <div className="flex justify-between">
+                            <span className="font-medium truncate">{event.title}</span>
+                            <span className="ml-1">{formatTime(event.startTime)}</span>
+                          </div>
+                          <div className="flex justify-between mt-1">
+                            <Badge className={`text-xs ${priorityColors[event.priority]}`}>
+                              {event.priority}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="flex justify-between mt-1">
-                          <Badge className={`text-xs ${priorityColors[event.priority]}`}>
-                            {event.priority}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                     {dayEvents.length > 3 && (
                       <div className="text-xs text-gray-500 text-center">
                         +{dayEvents.length - 3} more
@@ -265,53 +268,63 @@ const CalendarScheduler: React.FC<CalendarSchedulerProps> = ({
           <CardContent>
             <form onSubmit={handleEventSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
+                <label htmlFor="event-title" className="block text-sm font-medium mb-1">Title</label>
                 <input
+                  id="event-title"
                   type="text"
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                   className="w-full p-2 border rounded"
                   required
+                  aria-label="Event title"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Description</label>
+                <label htmlFor="event-description" className="block text-sm font-medium mb-1">Description</label>
                 <textarea
+                  id="event-description"
                   value={newEvent.description}
                   onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
                   className="w-full p-2 border rounded"
                   rows={3}
+                  aria-label="Event description"
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Start Date & Time</label>
+                  <label htmlFor="event-start-time" className="block text-sm font-medium mb-1">Start Date & Time</label>
                   <input
+                    id="event-start-time"
                     type="datetime-local"
                     value={newEvent.startTime.toISOString().slice(0, 16)}
                     onChange={(e) => setNewEvent({ ...newEvent, startTime: new Date(e.target.value) })}
                     className="w-full p-2 border rounded"
                     required
+                    aria-label="Event start date and time"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">End Date & Time</label>
+                  <label htmlFor="event-end-time" className="block text-sm font-medium mb-1">End Date & Time</label>
                   <input
+                    id="event-end-time"
                     type="datetime-local"
                     value={newEvent.endTime.toISOString().slice(0, 16)}
                     onChange={(e) => setNewEvent({ ...newEvent, endTime: new Date(e.target.value) })}
                     className="w-full p-2 border rounded"
                     required
+                    aria-label="Event end date and time"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <label htmlFor="event-category" className="block text-sm font-medium mb-1">Category</label>
                   <select
+                    id="event-category"
                     value={newEvent.category}
                     onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
                     className="w-full p-2 border rounded"
+                    aria-label="Event category"
                   >
                     <option value="work">Work</option>
                     <option value="personal">Personal</option>
@@ -321,11 +334,13 @@ const CalendarScheduler: React.FC<CalendarSchedulerProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Priority</label>
+                  <label htmlFor="event-priority" className="block text-sm font-medium mb-1">Priority</label>
                   <select
+                    id="event-priority"
                     value={newEvent.priority}
                     onChange={(e) => setNewEvent({ ...newEvent, priority: e.target.value as 'high' | 'medium' | 'low' })}
                     className="w-full p-2 border rounded"
+                    aria-label="Event priority"
                   >
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
@@ -361,11 +376,13 @@ const CalendarScheduler: React.FC<CalendarSchedulerProps> = ({
             </div>
           ) : (
             <div className="space-y-3">
-              {getEventsForDay(selectedDate).map(event => (
+              {getEventsForDay(selectedDate).map(event => {
+                const categoryKey = event.category as keyof typeof categoryColors;
+                const bgColor = categoryColors[categoryKey]?.replace('100', '50') || 'bg-gray-50';
+                return (
                 <div
                   key={event.id}
-                  className={`p-3 rounded-lg border ${event.completed ? 'opacity-70' : ''}`}
-                  style={{ backgroundColor: categoryColors[event.category as keyof typeof categoryColors].replace('100', '50') }}
+                  className={`p-3 rounded-lg border ${event.completed ? 'opacity-70' : ''} ${bgColor}`}
                 >
                   <div className="flex justify-between items-start">
                     <div>
@@ -395,7 +412,8 @@ const CalendarScheduler: React.FC<CalendarSchedulerProps> = ({
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

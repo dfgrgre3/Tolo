@@ -146,7 +146,7 @@ export function HeroSectionEnhanced({
 									شاهد العرض التوضيحي
 								</Button>
 							</Link>
-							{/* Show user avatar if authenticated, login link if not */}
+							{/* Show user avatar if authenticated, hide login link if authenticated */}
 							{user ? (
 								<Link
 									href="/profile"
@@ -164,15 +164,7 @@ export function HeroSectionEnhanced({
 									</Avatar>
 									<span className="hidden sm:inline">{user.name || user.email}</span>
 								</Link>
-							) : (
-								<Link
-									href="/login"
-									className="flex items-center justify-end gap-2 text-sm font-medium text-blue-700 transition-colors hover:text-blue-800"
-								>
-									<LogIn className="h-4 w-4" />
-									تسجيل الدخول للطلاب
-								</Link>
-							)}
+							) : null}
 						</div>
 					</div>
 

@@ -36,6 +36,7 @@ import {
 	BarChart3,
 } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
+import SecurityTab from "@/components/profile/SecurityTab";
 
 type User = {
 	id: string;
@@ -394,12 +395,13 @@ export default function ProfilePage() {
 				{/* Profile Content */}
 				<div className="lg:col-span-2">
 					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-						<TabsList className="grid w-full grid-cols-4 mb-6">
-							<TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-							<TabsTrigger value="stats">الإحصائيات</TabsTrigger>
-							<TabsTrigger value="achievements">الإنجازات</TabsTrigger>
-							<TabsTrigger value="activity">النشاط</TabsTrigger>
-						</TabsList>
+					<TabsList className="grid w-full grid-cols-5 mb-6">
+						<TabsTrigger value="overview">نظرة عامة</TabsTrigger>
+						<TabsTrigger value="stats">الإحصائيات</TabsTrigger>
+						<TabsTrigger value="achievements">الإنجازات</TabsTrigger>
+						<TabsTrigger value="activity">النشاط</TabsTrigger>
+						<TabsTrigger value="security">الأمان</TabsTrigger>
+					</TabsList>
 
 						<TabsContent value="overview" className="space-y-6">
 							{isEditing ? (
@@ -671,6 +673,10 @@ export default function ProfilePage() {
 									</div>
 								</CardContent>
 							</Card>
+						</TabsContent>
+
+						<TabsContent value="security" className="space-y-6">
+							<SecurityTab userId={userId} />
 						</TabsContent>
 					</Tabs>
 				</div>

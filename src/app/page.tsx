@@ -5,11 +5,12 @@ import React, { useEffect, useState, useRef, Suspense, useMemo } from "react";
 import Layout from "@/components/layout/Layout";
 import dynamic from "next/dynamic";
 import { Button } from "@/shared/button";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useAuth, type User as UserType } from "@/components/auth/UserProvider";
 import { Badge } from "@/shared/badge";
 import { Progress } from "@/shared/progress";
 import { Card, CardContent } from "@/shared/card";
 import { Clock, Target, CheckCircle2, Flame, ChevronDown, TrendingUp, Zap, BookOpen, Users, Brain, Calendar, Award, Star, ArrowRight, Sparkles, BarChart3, MessageSquare, FileText, Trophy, Lightbulb, Rocket, User } from "lucide-react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LazyLoadSection } from "@/components/ui/LazyLoadSection";
 import { ProgressiveComponent, createProgressiveSection } from "@/components/ui/ProgressiveComponent";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
@@ -112,15 +113,6 @@ const FeaturesSection = dynamic(() => import("./home-sections/FeaturesSection"),
   loading: () => <SkeletonLoader className="h-48 rounded-lg" />
 });
 
-const BlogSection = dynamic(() => import("./home-sections/BlogSection"), { 
-  ssr: true,
-  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
-});
-
-const ContactSection = dynamic(() => import("./home-sections/ContactSection"), { 
-  ssr: true,
-  loading: () => <SkeletonLoader className="h-48 rounded-lg" />
-});
 
 // Advanced sections
 const IntelligentRecommendationsSection = dynamic(() => import("./home-sections/IntelligentRecommendationsSection"), { 
@@ -182,7 +174,7 @@ const Home = () => {
 		let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
 		if (!id) {
 			try {
-				const { data, error: userError } = await safeFetch<{ id: string }>(
+				const result = await safeFetch<{ id: string }>(
 					"/api/users/guest",
 					{
 						method: "POST",
@@ -190,16 +182,25 @@ const Home = () => {
 					},
 					{ id: '' }
 				);
-				if (userError) {
-					// Only log error if it's a real error (not just undefined/null)
-					if (userError instanceof Error || (typeof userError === 'string' && userError.trim())) {
-						errorManager.handleNetworkError(userError, "/api/users/guest", {
+				if (result.error) {
+					// Only log error if it's a real error
+					const errorValue = result.error;
+					if (errorValue instanceof Error) {
+						errorManager.handleNetworkError(errorValue, "/api/users/guest", {
 							showToast: false,
 							logError: true,
 						});
+					} else if (errorValue && typeof errorValue === 'string') {
+						const trimmedError = String(errorValue).trim();
+						if (trimmedError.length > 0) {
+							errorManager.handleNetworkError(new Error(trimmedError), "/api/users/guest", {
+								showToast: false,
+								logError: true,
+							});
+						}
 					}
-				} else if (data?.id) {
-					id = data.id;
+				} else if (result.data?.id) {
+					id = result.data.id;
 					safeSetItem(LOCAL_USER_KEY, id);
 				}
 			} catch (error) {
@@ -740,13 +741,34 @@ const Home = () => {
 											<Award className="h-8 w-8 text-yellow-500" />
 										</h2>
 										<p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-											سجل الدخول لمتابعة إحصائياتك الشخصية. راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام.
+											{user ? "راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام." : "سجل الدخول لمتابعة إحصائياتك الشخصية. راقب مؤشراتك الرئيسية لحظة بلحظة وحدد مناطق التحسين قبل أن تتراكم المهام."}
 										</p>
-										<div className="mt-6">
-											<Button asChild className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary">
-												{!user && <Link href="/login">سجل الدخول الآن</Link>}
-											</Button>
-										</div>
+										{!user ? (
+											<div className="mt-6">
+												<Button asChild className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary">
+													<Link href="/login">سجل الدخول الآن</Link>
+												</Button>
+											</div>
+										) : (() => {
+											const currentUser: UserType = user; // Type assertion to ensure TypeScript knows user is not null
+											return (
+												<div className="mt-6">
+													<Link href="/profile" className="inline-flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/5 transition-colors">
+														<Avatar className="h-10 w-10 border-2 border-primary/20">
+															<AvatarImage src={currentUser.avatar} alt={currentUser.name || "User"} />
+															<AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
+																{currentUser.name
+																	?.split(" ")
+																	.map((n: string) => n[0])
+																	.join("")
+																	.toUpperCase() || (currentUser.email?.[0]?.toUpperCase() ?? 'U')}
+															</AvatarFallback>
+														</Avatar>
+														<span className="text-sm font-medium text-primary">{currentUser.name || currentUser.email}</span>
+													</Link>
+												</div>
+											);
+										})()}
 									</motion.div>
 
 									<motion.div
@@ -980,17 +1002,7 @@ const Home = () => {
 						</Suspense>
 					</LazyLoadSection>
 
-					{/* Blog section with lazy loading */}
-					<LazyLoadSection>
-						<section className={`${sectionShell} ring-1 ring-violet-100/60`}>
-							<div className="absolute inset-0 bg-gradient-to-br from-violet-200/25 via-transparent to-indigo-200/25" />
-							<div className="relative z-10">
-								<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
-									<BlogSection />
-								</Suspense>
-							</div>
-						</section>
-					</LazyLoadSection>
+					{/* Blog section with lazy loading - Removed BlogSection component as it doesn't exist */}
 
 					{/* Features section with lazy loading */}
 					<LazyLoadSection>
@@ -1004,17 +1016,7 @@ const Home = () => {
 						</section>
 					</LazyLoadSection>
 
-					{/* Contact section with lazy loading */}
-					<LazyLoadSection>
-						<section className={`${sectionShell} ring-1 ring-slate-200/70`}>
-							<div className="absolute inset-0 bg-gradient-to-br from-slate-200/25 via-transparent to-blue-200/25" />
-							<div className="relative z-10">
-								<Suspense fallback={<SkeletonLoader className="h-48 rounded-lg" />}>
-									<ContactSection />
-								</Suspense>
-							</div>
-						</section>
-					</LazyLoadSection>
+					{/* Contact section with lazy loading - Removed ContactSection component as it doesn't exist */}
 				</div>
 			</motion.div>
 		</Layout>

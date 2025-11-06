@@ -258,6 +258,11 @@ export default function Header() {
 	}, [logout, router]);
 
 	const isActiveRoute = useCallback((href: string) => {
+		// Ensure pathname is available before checking
+		// On server, pathname might not be available initially, so return false
+		if (!pathname) {
+			return false;
+		}
 		if (href === "/") {
 			return pathname === "/";
 		}
@@ -302,10 +307,11 @@ export default function Header() {
 					</Link>
 
 					{/* Desktop Navigation */}
-					<nav className="hidden lg:flex items-center gap-1 flex-1 justify-center">
+					<nav className="hidden lg:flex items-center gap-1 flex-1 justify-center" suppressHydrationWarning>
 						{mainNavItemsWithMegaMenu.map((item) => {
 							const menuKey = item.href;
 							const isOpen = openMegaMenu === menuKey;
+							const isActive = mounted && isActiveRoute(item.href);
 							
 							if (item.megaMenu && item.megaMenu.length > 0) {
 								return (
@@ -323,7 +329,7 @@ export default function Header() {
 											className={cn(
 												"relative flex items-center gap-2 px-4 py-2.5 transition-all duration-300",
 												"hover:bg-accent/80 hover:text-accent-foreground",
-												isActiveRoute(item.href) && "bg-primary/10 text-primary font-semibold shadow-sm",
+												isActive && "bg-primary/10 text-primary font-semibold shadow-sm",
 												isOpen && "bg-primary/15 text-primary shadow-sm"
 											)}
 										/>
@@ -332,7 +338,7 @@ export default function Header() {
 												{item.badge}
 											</span>
 										)}
-										{isActiveRoute(item.href) && !isOpen && (
+										{isActive && !isOpen && (
 											<motion.div
 												className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
 												layoutId={`activeIndicator-${item.href}`}
@@ -354,14 +360,15 @@ export default function Header() {
 										href={item.href}
 										className={cn(
 											"relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-accent/80 hover:text-accent-foreground group/nav",
-											isActiveRoute(item.href) &&
+											isActive &&
 												"bg-primary/10 text-primary font-semibold shadow-sm"
 										)}
+										suppressHydrationWarning
 									>
 										<span className={cn(
 											"transition-transform duration-300",
 											"group-hover/nav:scale-110 group-hover/nav:rotate-3",
-											isActiveRoute(item.href) && "text-primary"
+											isActive && "text-primary"
 										)}>
 											{item.icon}
 										</span>
@@ -375,7 +382,7 @@ export default function Header() {
 												{item.badge}
 											</motion.span>
 										)}
-										{isActiveRoute(item.href) && (
+										{isActive && (
 											<motion.div
 												className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
 												layoutId={`activeIndicator-${item.href}`}
@@ -799,58 +806,66 @@ export default function Header() {
 
 								{/* Mobile Navigation */}
 								<div className="space-y-2">
-									{mainNavItemsWithMegaMenu.map((item) => (
-										<Link
-											key={item.href}
-											href={item.href}
-											onClick={() => setIsMobileMenuOpen(false)}
-											className={cn(
-												"flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group/mobile",
-												isActiveRoute(item.href)
-													? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm border border-primary/20"
-													: "hover:bg-accent/80 active:scale-95"
-											)}
-										>
-											<span className={cn(
-												"transition-transform duration-300",
-												isActiveRoute(item.href) ? "text-primary scale-110" : "group-hover/mobile:scale-110"
-											)}>
-												{item.icon}
-											</span>
-											<span className="flex-1">{item.label}</span>
-											{item.badge && (
-												<span className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
-													{item.badge}
+									{mainNavItemsWithMegaMenu.map((item) => {
+										const isActive = mounted && isActiveRoute(item.href);
+										return (
+											<Link
+												key={item.href}
+												href={item.href}
+												onClick={() => setIsMobileMenuOpen(false)}
+												className={cn(
+													"flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group/mobile",
+													isActive
+														? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm border border-primary/20"
+														: "hover:bg-accent/80 active:scale-95"
+												)}
+												suppressHydrationWarning
+											>
+												<span className={cn(
+													"transition-transform duration-300",
+													isActive ? "text-primary scale-110" : "group-hover/mobile:scale-110"
+												)}>
+													{item.icon}
 												</span>
-											)}
-										</Link>
-									))}
-									{moreMegaMenu.flatMap((category) => category.items).map((item) => (
-										<Link
-											key={item.href}
-											href={item.href}
-											onClick={() => setIsMobileMenuOpen(false)}
-											className={cn(
-												"flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group/mobile",
-												isActiveRoute(item.href)
-													? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm border border-primary/20"
-													: "hover:bg-accent/80 active:scale-95"
-											)}
-										>
-											<span className={cn(
-												"transition-transform duration-300",
-												isActiveRoute(item.href) ? "text-primary scale-110" : "group-hover/mobile:scale-110"
-											)}>
-												{item.icon}
-											</span>
-											<span className="flex-1">{item.label}</span>
-											{item.badge && (
-												<span className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
-													{item.badge}
+												<span className="flex-1">{item.label}</span>
+												{item.badge && (
+													<span className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
+														{item.badge}
+													</span>
+												)}
+											</Link>
+										);
+									})}
+									{moreMegaMenu.flatMap((category) => category.items).map((item) => {
+										const isActive = mounted && isActiveRoute(item.href);
+										return (
+											<Link
+												key={item.href}
+												href={item.href}
+												onClick={() => setIsMobileMenuOpen(false)}
+												className={cn(
+													"flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group/mobile",
+													isActive
+														? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm border border-primary/20"
+														: "hover:bg-accent/80 active:scale-95"
+												)}
+												suppressHydrationWarning
+											>
+												<span className={cn(
+													"transition-transform duration-300",
+													isActive ? "text-primary scale-110" : "group-hover/mobile:scale-110"
+												)}>
+													{item.icon}
 												</span>
-											)}
-										</Link>
-									))}
+												<span className="flex-1">{item.label}</span>
+												{item.badge && (
+													<span className="bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[10px] px-2 py-0.5 rounded-full font-bold shadow-sm">
+														{item.badge}
+													</span>
+												)}
+											</Link>
+										);
+									})}
 								</div>
 
 								{/* Mobile User Section */}

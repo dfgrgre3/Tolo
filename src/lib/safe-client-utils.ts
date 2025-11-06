@@ -622,6 +622,20 @@ export async function safeFetch<T = any>(
     
     // إذا كانت الاستجابة غير ناجحة
     if (!response.ok) {
+      // محاولة استخراج رسالة خطأ من البيانات إذا كانت موجودة
+      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      
+      if (data && typeof data === 'object' && data !== null) {
+        // محاولة استخراج رسالة الخطأ من الـ response
+        if ('error' in data && typeof data.error === 'string') {
+          errorMessage = data.error;
+        } else if ('message' in data && typeof data.message === 'string') {
+          errorMessage = data.message;
+        } else if ('details' in data && typeof data.details === 'string') {
+          errorMessage = `${errorMessage} - ${data.details}`;
+        }
+      }
+      
       // إذا كان data هو fallback (يعني أن الـ response لم تكن JSON صالحة)
       if (data === fallback) {
         return {
@@ -634,9 +648,20 @@ export async function safeFetch<T = any>(
       }
       
       // إذا كان data ليس fallback، يعني أننا حصلنا على JSON (حتى لو كانت error response)
+      const error = new Error(errorMessage);
+      // فقط في وضع التطوير نعرض الخطأ في console
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`[Development] API Error (${url}):`, {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorMessage,
+          data: data
+        });
+      }
+      
       return {
         data,
-        error: new Error(`HTTP ${response.status}: ${response.statusText}`),
+        error,
         response
       };
     }
