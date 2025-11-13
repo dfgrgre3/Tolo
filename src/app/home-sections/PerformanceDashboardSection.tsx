@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
 import { Progress } from "@/shared/progress";
-import { safeFetch } from "@/lib/safe-client-utils";
+import { safeFetch } from "@/lib/safe-client-utils";import { logger } from '@/lib/logger';
+
 import { 
   Activity,
   Zap,
@@ -82,7 +83,7 @@ export const PerformanceDashboardSection = memo(function PerformanceDashboardSec
 
         setMetrics(transformedMetrics);
       } catch (error) {
-        console.error("Error fetching performance metrics:", error);
+        logger.error("Error fetching performance metrics:", error);
         setMetrics([]);
       } finally {
         setLoading(false);

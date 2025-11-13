@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { ensureUser } from '@/lib/user-utils';
 import { Achievement, UserProgress, AchievementFilters } from '../types';
 import { filterAchievements, calculateStats, getRarityByXP } from '../utils';
+import { logger } from '@/lib/logger';
 
 interface UseAchievementsReturn {
 	achievements: Achievement[];
@@ -39,7 +40,7 @@ export function useAchievements(): UseAchievementsReturn {
 			
 			// If no userId, try to continue with empty data
 			if (!userId || userId.trim() === '') {
-				console.warn('No user ID available, loading achievements without user progress');
+				logger.warn('No user ID available, loading achievements without user progress');
 			}
 
 			const url = new URL('/api/gamification/achievements', window.location.origin);
@@ -100,7 +101,7 @@ export function useAchievements(): UseAchievementsReturn {
 			setUserProgress(data.userProgress || null);
 			setError(null);
 		} catch (err) {
-			console.error('Error fetching achievements:', err);
+			logger.error('Error fetching achievements:', err);
 			const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
 			setError(errorMessage);
 			// Don't set achievements on error - let the UI show the error state

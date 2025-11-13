@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { CacheService } from "@/lib/cache-service-unified";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all announcements with caching
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get('limit') || '10');
     const category = searchParams.get('category');
 
@@ -51,27 +54,29 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(announcements);
   } catch (error) {
-    console.error("Error fetching announcements:", error);
+    logger.error("Error fetching announcements:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب الإعلانات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST create a new announcement
 export async function POST(request: NextRequest) {
-  try {
-    const { 
-      userId, 
-      title, 
-      content, 
-      imageUrl, 
-      expiresAt, 
-      priority, 
-      category, 
-      tags 
-    } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { 
+        userId, 
+        title, 
+        content, 
+        imageUrl, 
+        expiresAt, 
+        priority, 
+        category, 
+        tags 
+      } = await req.json();
 
     if (!userId || !title || !content || !priority || !category) {
       return NextResponse.json(
@@ -130,10 +135,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transformedAnnouncement, { status: 201 });
   } catch (error) {
-    console.error("Error creating announcement:", error);
+    logger.error("Error creating announcement:", error);
     return NextResponse.json(
       { error: "حدث خطأ في إنشاء الإعلان" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

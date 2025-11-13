@@ -151,6 +151,7 @@ const StatusIndicatorsSection = dynamic(() => import("./home-sections/StatusIndi
 });
 
 import Dashboard from "@/components/Dashboard";
+import { logger } from '@/lib/logger';
 
 const Home = () => {
 	const [summary, setSummary] = useState<{ totalMinutes: number; averageFocus: number; tasksCompleted: number; streakDays: number } | null>(null);
@@ -204,7 +205,7 @@ const Home = () => {
 					safeSetItem(LOCAL_USER_KEY, id);
 				}
 			} catch (error) {
-				console.warn("Failed to create guest user:", error);
+				logger.warn("Failed to create guest user:", error);
 				// Only log if error is meaningful
 				if (error instanceof Error || (typeof error === 'string' && error.trim())) {
 					errorManager.handleNetworkError(
@@ -225,7 +226,7 @@ const Home = () => {
 	const fetchSummary = async () => {
 		// Prevent concurrent executions and early returns
 		if (fetchInProgressRef.current) {
-			console.log("Fetch already in progress, skipping");
+			logger.info("Fetch already in progress, skipping");
 			return;
 		}
 
@@ -246,7 +247,7 @@ const Home = () => {
 
 			// Check if userId exists before making the API call
 			if (!userId) {
-				console.warn("No user ID available, skipping summary fetch");
+				logger.warn("No user ID available, skipping summary fetch");
 				updateState({
 					totalMinutes: 0,
 					averageFocus: 0,
@@ -268,7 +269,7 @@ const Home = () => {
 					}
 				});
 			} catch (fetchError) {
-				console.warn("Failed to fetch progress summary:", fetchError);
+				logger.warn("Failed to fetch progress summary:", fetchError);
 				updateState({
 					totalMinutes: 0,
 					averageFocus: 0,
@@ -290,7 +291,7 @@ const Home = () => {
 							streakDays: Number(data.streakDays) || 0
 						}, false, null);
 					} else {
-						console.warn("Invalid data structure received from API");
+						logger.warn("Invalid data structure received from API");
 						updateState({
 							totalMinutes: 0,
 							averageFocus: 0,
@@ -299,7 +300,7 @@ const Home = () => {
 						}, false, null);
 					}
 				} catch (jsonError) {
-					console.warn("Error parsing API response:", jsonError);
+					logger.warn("Error parsing API response:", jsonError);
 					updateState({
 						totalMinutes: 0,
 						averageFocus: 0,
@@ -308,7 +309,7 @@ const Home = () => {
 					}, false, "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ظ„ظٹظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ");
 				}
 			} else if (res) {
-				console.warn(`API returned status ${res.status}, using default values`);
+				logger.warn(`API returned status ${res.status}, using default values`);
 				updateState({
 					totalMinutes: 0,
 					averageFocus: 0,
@@ -324,7 +325,7 @@ const Home = () => {
 				}, false, null);
 			}
 		} catch (err) {
-			console.error("Error in fetchSummary:", err);
+			logger.error("Error in fetchSummary:", err);
 			updateState({
 				totalMinutes: 0,
 				averageFocus: 0,

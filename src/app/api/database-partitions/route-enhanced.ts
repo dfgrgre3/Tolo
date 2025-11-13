@@ -1,26 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import DataPartitioningService from '@/lib/data-partitioning-service'
-// Removed next-auth import - using custom auth system
 import { 
   createErrorResponse, 
   createSuccessResponse 
 } from '@/lib/api-utils'
+import { withAuth } from '@/lib/middleware/auth-middleware'
+import { logger } from '@/lib/logger'
 
 // Authentication middleware for admin-only access
-// Note: Using custom auth system - auth() returns null, need to implement proper auth check
 async function authenticateAdmin(request: NextRequest): Promise<{ authorized: boolean; userId?: string }> {
   try {
-    // TODO: Implement proper authentication using custom auth system
-    // For now, using token from cookies or headers
-    const token = request.cookies.get('authToken')?.value || request.headers.get('authorization')?.replace('Bearer ', '');
-    if (token) {
-      // TODO: Verify token and check admin role
-      // Temporary: allow if token exists
-      return { authorized: true, userId: 'temp-user-id' };
+    const authResult = await withAuth(request, {
+      requireAuth: true,
+      requiredRoles: ['admin'],
+    });
+    if (authResult.success) {
+      return { authorized: true, userId: authResult.user.id };
     }
     return { authorized: false };
   } catch (error) {
-    console.error('Authentication error:', error);
+    logger.error('Authentication error in database-partitions', error instanceof Error ? error : new Error(String(error)));
     return { authorized: false };
   }
 }
@@ -54,7 +53,7 @@ export async function GET(request: NextRequest) {
         )
     }
   } catch (error) {
-    console.error('Database partitions API error:', error)
+    logger.error('Database partitions API error:', error)
     return createErrorResponse(
       'Internal server error', 
       500, 
@@ -116,7 +115,7 @@ export async function POST(request: NextRequest) {
         )
     }
   } catch (error) {
-    console.error('Database partitions POST API error:', error)
+    logger.error('Database partitions POST API error:', error)
     return createErrorResponse(
       'Internal server error', 
       500, 
@@ -131,7 +130,7 @@ async function getPartitionHealth() {
     const report = await DataPartitioningService.getPartitionHealthReport()
     return createSuccessResponse(report)
   } catch (error) {
-    console.error('Error getting partition health:', error)
+    logger.error('Error getting partition health:', error)
     return createErrorResponse(
       'Failed to get partition health report', 
       500, 
@@ -150,14 +149,14 @@ async function getPartitionInfo() {
       try {
         info[tableName] = await DataPartitioningService.getPartitionInfo(tableName)
       } catch (tableError) {
-        console.error(`Error getting partition info for ${tableName}:`, tableError)
+        logger.error(`Error getting partition info for ${tableName}:`, tableError)
         info[tableName] = { error: 'Failed to fetch partition info' }
       }
     }
 
     return createSuccessResponse({ partitionInfo: info })
   } catch (error) {
-    console.error('Error getting partition info:', error)
+    logger.error('Error getting partition info:', error)
     return createErrorResponse(
       'Failed to get partition information', 
       500, 
@@ -172,7 +171,7 @@ async function getPartitioningEfficiency() {
     const report = await DataPartitioningService.verifyPartitioningEfficiency()
     return createSuccessResponse(report)
   } catch (error) {
-    console.error('Error getting partitioning efficiency:', error)
+    logger.error('Error getting partitioning efficiency:', error)
     return createErrorResponse(
       'Failed to get partitioning efficiency report', 
       500, 
@@ -187,7 +186,7 @@ async function checkAndExtendPartitions() {
     const result = await DataPartitioningService.checkAndExtendPartitionsIfNeeded()
     return createSuccessResponse(result)
   } catch (error) {
-    console.error('Error checking and extending partitions:', error)
+    logger.error('Error checking and extending partitions:', error)
     return createErrorResponse(
       'Failed to check and extend partitions', 
       500, 
@@ -202,7 +201,7 @@ async function createPartitions(tableName: string, startDate: Date, endDate: Dat
     await DataPartitioningService.createMonthlyPartitions(tableName, startDate, endDate)
     return createSuccessResponse({ message: `Partitions created successfully for ${tableName}` })
   } catch (error) {
-    console.error(`Error creating partitions for ${tableName}:`, error)
+    logger.error(`Error creating partitions for ${tableName}:`, error)
     return createErrorResponse(
       `Failed to create partitions for ${tableName}`, 
       500, 
@@ -217,7 +216,7 @@ async function cleanupPartitions() {
     const result = await DataPartitioningService.cleanupOldPartitions()
     return createSuccessResponse(result)
   } catch (error) {
-    console.error('Error cleaning up partitions:', error)
+    logger.error('Error cleaning up partitions:', error)
     return createErrorResponse(
       'Failed to clean up old partitions', 
       500, 
@@ -238,7 +237,7 @@ async function maintainPartitions() {
       message: 'Partition maintenance completed successfully'
     })
   } catch (error) {
-    console.error('Error maintaining partitions:', error)
+    logger.error('Error maintaining partitions:', error)
     return createErrorResponse(
       'Failed to maintain partitions', 
       500, 

@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gamificationService } from '@/lib/gamification-service';
 import { prisma as db } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     const category = searchParams.get('category');
     const difficulty = searchParams.get('difficulty');
@@ -44,7 +47,7 @@ export async function GET(request: NextRequest) {
       };
     } catch (progressError: any) {
       // If user doesn't exist or other error, continue with empty progress
-      console.warn('Could not fetch user progress, using defaults:', progressError?.message || progressError);
+      logger.warn('Could not fetch user progress, using defaults:', progressError?.message || progressError);
       // Continue with default values
     }
 
@@ -74,7 +77,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Error fetching achievements:', error);
+    logger.error('Error fetching achievements:', error);
     
     // Return a safe fallback response
     const allAchievements = gamificationService.getAllAchievements();
@@ -92,12 +95,14 @@ export async function GET(request: NextRequest) {
         totalAchievements: allAchievements.length
       }
     }, { status: 500 });
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { userId, action, data } = body;
 
     if (!userId || !action) {
@@ -133,10 +138,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('Error in achievements API:', error);
+    logger.error('Error in achievements API:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

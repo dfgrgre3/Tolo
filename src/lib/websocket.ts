@@ -1,10 +1,11 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { IncomingMessage } from 'http';
 import { URLSearchParams } from 'url';
+import { logger } from '@/lib/logger';
 
 type WsMessage = {
   type: 'notification' | 'data' | 'ping' | 'pong';
-  payload?: any;
+  payload?: Record<string, unknown>;
   timestamp?: number;
 };
 
@@ -15,13 +16,13 @@ export class WSService {
 
   constructor(port: number = 3001) {
     this.wss = new WebSocketServer({ port });
-    console.log(`[WebSocket] Server started on port ${port}`);
+    logger.info(`[WebSocket] Server started on port ${port}`);
     this.setupEvents();
   }
 
   private setupEvents() {
     this.wss.on('connection', (ws: WebSocket, req: IncomingMessage) => {
-      console.log('[WebSocket] New connection from:', req.socket.remoteAddress);
+      logger.info('[WebSocket] New connection from:', req.socket.remoteAddress);
       const userId = this.getUserIdFromRequest(req);
       if (userId) {
         this.clients.set(userId, ws);
@@ -37,7 +38,7 @@ export class WSService {
         if (userId) {
           const message: WsMessage = JSON.parse(data.toString());
           if (message.type === 'pong') {
-            console.log('[WebSocket] Received pong');
+            logger.info('[WebSocket] Received pong');
           } else {
             this.handleMessage(userId, message);
           }
@@ -62,14 +63,14 @@ export class WSService {
     // Handle incoming messages
   }
 
-  sendToUser(userId: string, message: any) {
+  sendToUser(userId: string, message: WsMessage | Record<string, unknown>) {
     const ws = this.clients.get(userId);
     if (ws) {
       ws.send(JSON.stringify(message));
     }
   }
 
-  broadcast(message: any) {
+  broadcast(message: WsMessage | Record<string, unknown>) {
     this.wss.clients.forEach((client: WebSocket) => {
       if (client.readyState === client.OPEN) {
         client.send(JSON.stringify(message));

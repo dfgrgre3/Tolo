@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 export default function NewEventPage() {
   const router = useRouter();
@@ -69,7 +70,7 @@ export default function NewEventPage() {
         alert("حدث خطأ أثناء إنشاء المناسبة");
       }
     } catch (error) {
-      console.error("Error creating event:", error);
+      logger.error("Error creating event:", error);
       alert("حدث خطأ أثناء إنشاء المناسبة");
     } finally {
       setIsSubmitting(false);

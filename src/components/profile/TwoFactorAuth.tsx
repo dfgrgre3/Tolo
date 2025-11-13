@@ -12,6 +12,7 @@ import { Shield, Smartphone, Key, Copy, CheckCircle2, AlertCircle, RefreshCw } f
 import { Separator } from "@/components/ui/separator";
 import { TOTPSetup } from '@/components/auth/TOTPSetup';
 import RecoveryCodesDisplay from '@/components/auth/RecoveryCodesDisplay';
+import { logger } from '@/lib/logger';
 
 interface TwoFactorAuthProps {
   userId: string;
@@ -48,7 +49,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
         setIsEnabled(data.enabled || false);
       }
     } catch (error) {
-      console.error('Error loading 2FA status:', error);
+      logger.error('Error loading 2FA status:', error);
     } finally {
       setIsLoading(false);
     }
@@ -75,7 +76,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
         toast.error('فشل في إعداد TOTP');
       }
     } catch (error) {
-      console.error('Error setting up TOTP:', error);
+      logger.error('Error setting up TOTP:', error);
       toast.error('حدث خطأ أثناء إعداد TOTP');
     }
   };
@@ -107,7 +108,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
         toast.error(error.error || 'رمز التحقق غير صحيح');
       }
     } catch (error) {
-      console.error('Error verifying TOTP:', error);
+      logger.error('Error verifying TOTP:', error);
       toast.error('حدث خطأ أثناء التحقق');
     }
   };
@@ -142,7 +143,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
         toast.error(error.error || 'فشل في تعطيل المصادقة الثنائية');
       }
     } catch (error) {
-      console.error('Error disabling 2FA:', error);
+      logger.error('Error disabling 2FA:', error);
       toast.error('حدث خطأ أثناء تعطيل المصادقة الثنائية');
     }
   };
@@ -168,7 +169,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
         toast.error('فشل في إنشاء رموز الاسترداد');
       }
     } catch (error) {
-      console.error('Error generating recovery codes:', error);
+      logger.error('Error generating recovery codes:', error);
       toast.error('حدث خطأ أثناء إنشاء رموز الاسترداد');
     }
   };

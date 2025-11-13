@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { logger } from '@/lib/logger';
 
 // POST to update lesson progress
 export async function POST(
@@ -90,7 +91,7 @@ export async function POST(
 
     return NextResponse.json(progressRecord);
   } catch (error) {
-    console.error("Error updating lesson progress:", error);
+    logger.error("Error updating lesson progress:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء معالجة الطلب" },
       { status: 500 }
@@ -126,7 +127,7 @@ export async function GET(
 
     return NextResponse.json(progress || { completed: false });
   } catch (error) {
-    console.error("Error fetching lesson progress:", error);
+    logger.error("Error fetching lesson progress:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء معالجة الطلب" },
       { status: 500 }

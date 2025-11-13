@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAndSendMagicLink } from '@/lib/passwordless/magic-link-service';
 import { authService } from '@/lib/auth-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/magic-link
  * طلب رابط سحري لتسجيل الدخول
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { email } = body;
 
     if (!email) {
@@ -27,8 +30,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
 
     const result = await createAndSendMagicLink(email, ip, userAgent);
 
@@ -38,11 +41,12 @@ export async function POST(request: NextRequest) {
       expiresIn: result.expiresIn,
     });
   } catch (error) {
-    console.error('Magic link error:', error);
+    logger.error('Magic link error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء إرسال رابط تسجيل الدخول' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

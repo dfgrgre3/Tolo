@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { getLoginAnalytics, getLoginTrends } from '@/lib/login-analytics';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/auth/analytics
  * الحصول على إحصائيات تسجيل الدخول
  */
 export async function GET(request: NextRequest) {
-  try {
-    // التحقق من التوكن
-    const authHeader = request.headers.get('Authorization');
+  return opsWrapper(request, async (req) => {
+    try {
+      // التحقق من التوكن
+      const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'غير مصرح' },
@@ -27,8 +30,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
+      // Get query parameters
+      const searchParams = req.nextUrl.searchParams;
     const period = (searchParams.get('period') as any) || 'month';
     const userId = searchParams.get('userId') || verification.user.id;
     const includeTrends = searchParams.get('trends') === 'true';
@@ -48,11 +51,12 @@ export async function GET(request: NextRequest) {
       ...(trends && { trends }),
     });
   } catch (error) {
-    console.error('Analytics error:', error);
+    logger.error('Analytics error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء جلب الإحصائيات' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

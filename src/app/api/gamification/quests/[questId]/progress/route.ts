@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { advancedGamificationService } from '@/lib/advanced-gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // POST /api/gamification/quests/[questId]/progress - Update quest progress
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ questId: string }> }
 ) {
-  try {
-    const { questId } = await params;
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { questId } = await params;
+      const body = await req.json();
     const { userId, progress } = body;
 
     if (!userId || progress === undefined) {
@@ -36,11 +39,12 @@ export async function POST(
       message: 'تم تحديث تقدم المهمة بنجاح' 
     });
   } catch (error: any) {
-    console.error('Error updating quest progress:', error);
+    logger.error('Error updating quest progress:', error);
     return NextResponse.json(
       { error: 'Failed to update quest progress', details: error.message },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

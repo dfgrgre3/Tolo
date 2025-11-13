@@ -2,10 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { webAuthnService } from '@/lib/security/webauthn';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { email } = body;
 
     if (!email) {
@@ -67,9 +70,9 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Log security event
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Log security event
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
     await authService.logSecurityEvent(user.id, 'biometric_authentication_initiated', ip, {
       userAgent,
     }).catch(() => {
@@ -81,17 +84,19 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to generate biometric authentication options:', error);
+    logger.error('Failed to generate biometric authentication options:', error);
     return NextResponse.json(
       { error: 'فشل إنشاء خيارات المصادقة البيومترية' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function PUT(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { credential, challenge, email } = body;
 
     if (!credential || !challenge || !email) {
@@ -170,8 +175,8 @@ export async function PUT(request: NextRequest) {
 
     if (!verificationResult.verified) {
       // Log failed authentication attempt
-      const ip = authService.getClientIP(request);
-      const userAgent = authService.getUserAgent(request);
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
       await authService.logSecurityEvent(user.id, 'biometric_authentication_failed', ip, {
         userAgent,
       }).catch(() => {
@@ -206,9 +211,9 @@ export async function PUT(request: NextRequest) {
       data: { used: true },
     });
 
-    // Create session and tokens
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Create session and tokens
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
     
     await authService.updateLastLogin(user.id);
     const session = await authService.createSession(user.id, userAgent, ip);
@@ -260,11 +265,12 @@ export async function PUT(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Failed to authenticate with biometric:', error);
+    logger.error('Failed to authenticate with biometric:', error);
     return NextResponse.json(
       { error: 'فشل المصادقة البيومترية' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

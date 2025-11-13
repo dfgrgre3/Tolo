@@ -17,6 +17,7 @@ import { SettingsData, SubjectEnrollment, FocusStrategy, SubjectType } from "@/t
 import { ensureUser } from "@/lib/user-utils";
 import { getTokenFromStorage } from "@/lib/auth-client";
 import TimeSettings from "@/app/time/components/TimeSettings";
+import { logger } from '@/lib/logger';
 
 function SettingsPage() {
 	const { user } = useAuth();
@@ -117,7 +118,7 @@ function SettingsPage() {
 					}
 				}
 			} catch (error: any) {
-				console.error("Error fetching settings:", error);
+				logger.error("Error fetching settings:", error);
 				const errorMessage = error?.message || "فشل في تحميل الإعدادات";
 				toast.error(errorMessage);
 				setRecs([]);
@@ -173,7 +174,7 @@ function SettingsPage() {
 				
 				try {
 					const errorData = await response.json();
-					console.error("API Error Response:", errorData);
+					logger.error("API Error Response:", errorData);
 					
 					if (errorData.error) {
 						errorMessage = errorData.error;
@@ -182,13 +183,13 @@ function SettingsPage() {
 					// Include details in development mode
 					if (errorData.details && process.env.NODE_ENV === 'development') {
 						errorDetails = errorData.details;
-						console.error("Error Details:", errorDetails);
+						logger.error("Error Details:", errorDetails);
 					}
 				} catch (parseError) {
 					// If response is not JSON, use status text
-					console.error("Failed to parse error response:", parseError);
+					logger.error("Failed to parse error response:", parseError);
 					const responseText = await response.text().catch(() => '');
-					console.error("Response text:", responseText);
+					logger.error("Response text:", responseText);
 					
 					errorMessage = response.status === 401 
 						? "غير مصرح - يرجى تسجيل الدخول مرة أخرى"
@@ -220,14 +221,14 @@ function SettingsPage() {
 
 			toast.success("تم حفظ الإعدادات بنجاح");
 		} catch (error: any) {
-			console.error("Error saving settings:", error);
-			console.error("Error details:", error?.details);
+			logger.error("Error saving settings:", error);
+			logger.error("Error details:", error?.details);
 			
 			let errorMessage = error?.message || "حدث خطأ أثناء حفظ الإعدادات";
 			
 			// Show more details in development
 			if (error?.details && process.env.NODE_ENV === 'development') {
-				console.error("Full error:", {
+				logger.error("Full error:", {
 					message: errorMessage,
 					details: error.details,
 					stack: error.stack

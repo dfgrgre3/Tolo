@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/shared/button';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'already' | 'error' | 'expired';
 
@@ -102,7 +103,7 @@ export default function VerifyEmailPageImproved() {
           router.push('/');
         }, 3000);
       } catch (error) {
-        console.error('Verify email request failed:', error);
+        logger.error('Verify email request failed:', error);
         setStatus('error');
         setMessage('حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.');
       }
@@ -126,7 +127,7 @@ export default function VerifyEmailPageImproved() {
       
       // Check if response is HTML (error page)
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('Server returned HTML instead of JSON');
+        logger.error('Server returned HTML instead of JSON');
         toast.error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
         setIsResending(false);
         return;
@@ -137,7 +138,7 @@ export default function VerifyEmailPageImproved() {
       try {
         data = JSON.parse(text);
       } catch (error) {
-        console.error('Error parsing JSON:', error);
+        logger.error('Error parsing JSON:', error);
         toast.error('فشل في معالجة استجابة الخادم');
         setIsResending(false);
         return;
@@ -150,7 +151,7 @@ export default function VerifyEmailPageImproved() {
         toast.error(data.error || 'فشل إرسال رابط التفعيل');
       }
     } catch (error) {
-      console.error('Resend verification error:', error);
+      logger.error('Resend verification error:', error);
       toast.error('حدث خطأ أثناء إرسال رابط التفعيل');
     } finally {
       setIsResending(false);

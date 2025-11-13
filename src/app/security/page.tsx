@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface Session {
   id: string;
@@ -155,7 +156,7 @@ export default function SecurityDashboardPage() {
       }
 
     } catch (error) {
-      console.error('Failed to load security data:', error);
+      logger.error('Failed to load security data:', error);
       toast.error('فشل تحميل بيانات الأمان');
     } finally {
       setIsLoading(false);
@@ -190,7 +191,7 @@ export default function SecurityDashboardPage() {
         toast.error('فشل إلغاء الجلسة');
       }
     } catch (error) {
-      console.error('Failed to revoke session:', error);
+      logger.error('Failed to revoke session:', error);
       toast.error('حدث خطأ أثناء إلغاء الجلسة');
     }
   };
@@ -212,7 +213,7 @@ export default function SecurityDashboardPage() {
         toast.error('فشل إلغاء الجلسات');
       }
     } catch (error) {
-      console.error('Failed to revoke all sessions:', error);
+      logger.error('Failed to revoke all sessions:', error);
       toast.error('حدث خطأ أثناء إلغاء الجلسات');
     }
   };
@@ -242,7 +243,7 @@ export default function SecurityDashboardPage() {
         toast.error('فشل تحديث الإعداد');
       }
     } catch (error) {
-      console.error('Failed to update setting:', error);
+      logger.error('Failed to update setting:', error);
       toast.error('حدث خطأ أثناء تحديث الإعداد');
     }
   };

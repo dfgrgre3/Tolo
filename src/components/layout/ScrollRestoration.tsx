@@ -3,6 +3,7 @@
 import { useEffect, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { safeGetItem, safeSetItem, isBrowser, safeWindow, safeDocument } from "@/lib/safe-client-utils";
+import { logger } from '@/lib/logger';
 
 type ScrollPosition = {
 	x: number;
@@ -23,7 +24,7 @@ const ScrollRestoration = () => {
 				paramsString = searchParams.toString();
 			} catch (error) {
 				// Avoid breaking rendering if serialization fails
-				console.warn("Failed to serialize search params for scroll restoration:", error);
+				logger.warn("Failed to serialize search params for scroll restoration:", error);
 			}
 		}
 

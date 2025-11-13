@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all replies for a forum post
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
+  return opsWrapper(request, async () => {
+    try {
     const { id } = await params;
 
     // Check if post exists
@@ -41,12 +44,13 @@ export async function GET(
 
     return NextResponse.json(transformedReplies);
   } catch (error) {
-    console.error("Error fetching forum replies:", error);
+    logger.error("Error fetching forum replies:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب الردود" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST create a new reply for a forum post
@@ -54,9 +58,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const { userId, content } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      const { userId, content } = await req.json();
 
     if (!userId || !content) {
       return NextResponse.json(
@@ -112,10 +117,11 @@ export async function POST(
 
     return NextResponse.json(transformedReply, { status: 201 });
   } catch (error) {
-    console.error("Error creating forum reply:", error);
+    logger.error("Error creating forum reply:", error);
     return NextResponse.json(
       { error: "حدث خطأ في إنشاء الرد" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

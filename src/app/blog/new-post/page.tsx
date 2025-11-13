@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type BlogCategory = {
   id: string;
@@ -83,7 +84,7 @@ export default function NewBlogPostPage() {
         alert("حدث خطأ أثناء إنشاء المقال");
       }
     } catch (error) {
-      console.error("Error creating post:", error);
+      logger.error("Error creating post:", error);
       alert("حدث خطأ أثناء إنشاء المقال");
     } finally {
       setIsSubmitting(false);

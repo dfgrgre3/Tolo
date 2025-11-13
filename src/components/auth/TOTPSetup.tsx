@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
-import { getSafeAuthToken } from '@/lib/safe-client-utils';
+import { getSafeAuthToken } from '@/lib/safe-client-utils';import { logger } from '@/lib/logger';
+
 import {
   Shield,
   Smartphone,
@@ -52,7 +53,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
       
       // Check if response is HTML (error page)
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('Server returned HTML instead of JSON');
+        logger.error('Server returned HTML instead of JSON');
         toast.error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
         return;
       }
@@ -62,7 +63,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
       try {
         data = JSON.parse(text);
       } catch (error) {
-        console.error('Error parsing JSON:', error);
+        logger.error('Error parsing JSON:', error);
         toast.error('فشل في معالجة استجابة الخادم');
         return;
       }
@@ -78,7 +79,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
       setStep('verify');
       toast.success('تم إنشاء QR Code بنجاح');
     } catch (error) {
-      console.error('Setup error:', error);
+      logger.error('Setup error:', error);
       toast.error('حدث خطأ أثناء الإعداد');
     } finally {
       setIsLoading(false);
@@ -113,7 +114,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
       
       // Check if response is HTML (error page)
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('Server returned HTML instead of JSON');
+        logger.error('Server returned HTML instead of JSON');
         toast.error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
         return;
       }
@@ -123,7 +124,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
       try {
         data = JSON.parse(text);
       } catch (error) {
-        console.error('Error parsing JSON:', error);
+        logger.error('Error parsing JSON:', error);
         toast.error('فشل في معالجة استجابة الخادم');
         return;
       }
@@ -136,7 +137,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
       setStep('recovery');
       toast.success('تم تفعيل المصادقة الثنائية بنجاح!');
     } catch (error) {
-      console.error('Verify error:', error);
+      logger.error('Verify error:', error);
       toast.error('حدث خطأ أثناء التحقق');
     } finally {
       setIsLoading(false);

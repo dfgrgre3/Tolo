@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET a single event by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
     const event = await prisma.event.findUnique({
       where: { id },
@@ -48,10 +51,11 @@ export async function GET(
 
     return NextResponse.json(transformedEvent);
   } catch (error) {
-    console.error("Error fetching event:", error);
+    logger.error("Error fetching event:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب بيانات المناسبة" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

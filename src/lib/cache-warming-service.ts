@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { cacheMultipleEducationalItems } from "@/lib/educational-cache-service";
 import { CacheService } from "@/lib/cache-service-unified";
+import { logger } from '@/lib/logger';
 
 /**
  * Cache Warming Service
@@ -10,7 +11,7 @@ import { CacheService } from "@/lib/cache-service-unified";
 // Warm educational content cache
 export async function warmEducationalContentCache(): Promise<void> {
   try {
-    console.log('Starting educational content cache warming...');
+    logger.info('Starting educational content cache warming...');
     
     // Fetch frequently accessed subjects
     const subjects = await prisma.subject.findMany({
@@ -72,16 +73,16 @@ export async function warmEducationalContentCache(): Promise<void> {
     // Cache courses
     await cacheMultipleEducationalItems(courseCacheItems);
     
-    console.log(`Warmed cache with ${subjects.length} subjects and ${courses.length} courses`);
+    logger.info(`Warmed cache with ${subjects.length} subjects and ${courses.length} courses`);
   } catch (error) {
-    console.error('Error warming educational content cache:', error);
+    logger.error('Error warming educational content cache:', error);
   }
 }
 
 // Warm user analytics cache
 export async function warmUserAnalyticsCache(): Promise<void> {
   try {
-    console.log('Starting user analytics cache warming...');
+    logger.info('Starting user analytics cache warming...');
     
     // Find active users (users with recent study sessions)
     const activeUsers = await prisma.user.findMany({
@@ -124,20 +125,20 @@ export async function warmUserAnalyticsCache(): Promise<void> {
           900 // 15 minutes
         );
       } catch (userError) {
-        console.error(`Error warming cache for user ${user.id}:`, userError);
+        logger.error(`Error warming cache for user ${user.id}:`, userError);
       }
     }
     
-    console.log(`Warmed analytics cache for ${activeUsers.length} active users`);
+    logger.info(`Warmed analytics cache for ${activeUsers.length} active users`);
   } catch (error) {
-    console.error('Error warming user analytics cache:', error);
+    logger.error('Error warming user analytics cache:', error);
   }
 }
 
 // Warm system-wide statistics
 export async function warmSystemStatsCache(): Promise<void> {
   try {
-    console.log('Starting system statistics cache warming...');
+    logger.info('Starting system statistics cache warming...');
     
     // Cache total user count
     const userCount = await prisma.user.count();
@@ -151,15 +152,15 @@ export async function warmSystemStatsCache(): Promise<void> {
     const subjectCount = await prisma.subject.count();
     await CacheService.set('system:stats:subject_count', subjectCount, 3600); // 1 hour
     
-    console.log('Warmed system statistics cache');
+    logger.info('Warmed system statistics cache');
   } catch (error) {
-    console.error('Error warming system statistics cache:', error);
+    logger.error('Error warming system statistics cache:', error);
   }
 }
 
 // Main cache warming function
 export async function warmAllCache(): Promise<void> {
-  console.log('Starting full cache warming process...');
+  logger.info('Starting full cache warming process...');
   
   const start = Date.now();
   
@@ -171,7 +172,7 @@ export async function warmAllCache(): Promise<void> {
   ]);
   
   const duration = Date.now() - start;
-  console.log(`Cache warming completed in ${duration}ms`);
+  logger.info(`Cache warming completed in ${duration}ms`);
 }
 
 export class CacheWarmingService {

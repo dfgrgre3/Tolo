@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth-unified";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET user stats by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
-    // Authenticate user and ensure they can only access their own stats
-    const authUser = verifyToken(request);
+      // Authenticate user and ensure they can only access their own stats
+      const authUser = verifyToken(req);
     if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -79,10 +82,11 @@ export async function GET(
 
     return NextResponse.json(stats);
   } catch (error) {
-    console.error("Error fetching user stats:", error);
+    logger.error("Error fetching user stats:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب إحصائيات المستخدم" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

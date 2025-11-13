@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrSetEnhanced } from "@/lib/cache-service-unified";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET lessons for a course (now topics for a subject)
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> } // subject ID
 ) {
-  try {
-    const { id } = await params;
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
     // Check if subject exists
@@ -67,12 +70,13 @@ export async function GET(
       progress: lessonProgress
     });
   } catch (error) {
-    console.error("Error fetching subject lessons:", error);
+    logger.error("Error fetching subject lessons:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء معالجة الطلب" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST to create a new lesson (now subtopic)
@@ -80,9 +84,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> } // subject ID
 ) {
-  try {
-    const { id } = await params;
-    const { title, description, topicId, order } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      const { title, description, topicId, order } = await req.json();
 
     // Check if subject exists
     const subject = await prisma.subject.findUnique({
@@ -111,10 +116,11 @@ export async function POST(
 
     return NextResponse.json(newLesson);
   } catch (error) {
-    console.error("Error creating lesson:", error);
+    logger.error("Error creating lesson:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء معالجة الطلب" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

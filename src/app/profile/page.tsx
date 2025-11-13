@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
 import SecurityTab from "@/components/profile/SecurityTab";
+import { logger } from '@/lib/logger';
 
 type User = {
 	id: string;
@@ -99,7 +100,7 @@ export default function ProfilePage() {
 					});
 				}
 			} catch (error) {
-				console.error("Error fetching user data:", error);
+				logger.error("Error fetching user data:", error);
 			}
 		};
 
@@ -111,7 +112,7 @@ export default function ProfilePage() {
 					setStats(statsData);
 				}
 			} catch (error) {
-				console.error("Error fetching user stats:", error);
+				logger.error("Error fetching user stats:", error);
 			}
 		};
 
@@ -145,7 +146,7 @@ export default function ProfilePage() {
 				alert(errorData.error || "حدث خطأ أثناء تحديث الملف الشخصي");
 			}
 		} catch (error) {
-			console.error("Error updating user profile:", error);
+			logger.error("Error updating user profile:", error);
 			alert("حدث خطأ أثناء تحديث الملف الشخصي");
 		} finally {
 			setIsSaving(false);
@@ -177,7 +178,7 @@ export default function ProfilePage() {
 				alert("حدث خطأ أثناء رفع الصورة");
 			}
 		} catch (error) {
-			console.error("Error uploading avatar:", error);
+			logger.error("Error uploading avatar:", error);
 			alert("حدث خطأ أثناء رفع الصورة");
 		}
 	};

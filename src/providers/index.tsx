@@ -5,6 +5,7 @@ import { AuthProvider } from '@/components/auth/UserProvider';
 import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/app/ClientLayoutProvider';
+import { logger } from '@/lib/logger';
 
 type GlobalProvidersProps = {
   children: React.ReactNode;
@@ -30,7 +31,7 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
       </AuthProvider>
     );
   } catch (error) {
-    console.error('GlobalProviders error:', error);
+    logger.error('GlobalProviders error:', error);
     return <>{children}</>; // Fallback rendering
   }
 }

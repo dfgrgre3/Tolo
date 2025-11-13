@@ -2,19 +2,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const { notificationIds, all } = await request.json();
+      const { notificationIds, all } = await req.json();
 
     if (!notificationIds && !all) {
       return NextResponse.json(
@@ -67,10 +70,11 @@ export async function POST(request: NextRequest) {
       unreadCount 
     });
   } catch (error) {
-    console.error('Error marking notifications as read:', error);
+    logger.error('Error marking notifications as read:', error);
     return NextResponse.json(
       { error: 'Failed to mark notifications as read' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

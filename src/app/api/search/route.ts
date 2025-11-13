@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 type SearchScope = "all" | "courses" | "teachers" | "forum" | "exams";
 
@@ -14,8 +16,9 @@ interface SearchResult {
 }
 
 export async function GET(request: NextRequest) {
-	try {
-		const { searchParams } = new URL(request.url);
+	return opsWrapper(request, async (req) => {
+		try {
+			const { searchParams } = new URL(req.url);
 		const query = searchParams.get("q") || "";
 		const scope = (searchParams.get("scope") || "all") as SearchScope;
 		const limit = parseInt(searchParams.get("limit") || "10");
@@ -70,7 +73,7 @@ export async function GET(request: NextRequest) {
 					});
 				});
 			} catch (error) {
-				console.error("Error searching courses:", error);
+				logger.error("Error searching courses:", error);
 			}
 		}
 
@@ -115,7 +118,7 @@ export async function GET(request: NextRequest) {
 					});
 				});
 			} catch (error) {
-				console.error("Error searching teachers:", error);
+				logger.error("Error searching teachers:", error);
 			}
 		}
 
@@ -160,7 +163,7 @@ export async function GET(request: NextRequest) {
 					});
 				});
 			} catch (error) {
-				console.error("Error searching forum posts:", error);
+				logger.error("Error searching forum posts:", error);
 			}
 		}
 
@@ -196,7 +199,7 @@ export async function GET(request: NextRequest) {
 					});
 				});
 			} catch (error) {
-				console.error("Error searching exams:", error);
+				logger.error("Error searching exams:", error);
 			}
 		}
 
@@ -212,10 +215,11 @@ export async function GET(request: NextRequest) {
 			scope,
 		});
 	} catch (error) {
-		console.error("Error in search API:", error);
+		logger.error("Error in search API:", error);
 		return NextResponse.json(
 			{ error: "حدث خطأ في البحث", results: [], total: 0 },
 			{ status: 500 }
 		);
-	}
+		}
+	});
 }

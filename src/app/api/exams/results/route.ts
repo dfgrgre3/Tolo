@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { gamificationService } from "@/lib/gamification-service";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest) {
-	try {
-		const { searchParams } = new URL(req.url);
+	return opsWrapper(req, async (request) => {
+		try {
+			const { searchParams } = new URL(request.url);
 		const userId = searchParams.get("userId");
 		if (!userId) return NextResponse.json({ error: "userId required" }, { status: 400 });
 		const results = await prisma.examResult.findMany({ 
@@ -16,13 +19,15 @@ export async function GET(req: NextRequest) {
 		});
 		return NextResponse.json(results);
 	} catch (e: any) {
-		return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
-	}
+			return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+		}
+	});
 }
 
 export async function POST(req: NextRequest) {
-	try {
-		const body = await req.json();
+	return opsWrapper(req, async (request) => {
+		try {
+			const body = await request.json();
 		const { userId, examId, score, takenAt, teacherId } = body;
 		if (!userId || !examId || typeof score !== "number") return NextResponse.json({ error: "userId, examId, score required" }, { status: 400 });
 		const result = await prisma.examResult.create({ 
@@ -42,12 +47,13 @@ export async function POST(req: NextRequest) {
 		try {
 			await gamificationService.updateUserProgress(userId, 'exam_completed', { score });
 		} catch (gamificationError) {
-			console.error('Error updating gamification for exam:', gamificationError);
+			logger.error('Error updating gamification for exam:', gamificationError);
 			// Don't fail the request if gamification fails
 		}
 
 		return NextResponse.json(result);
 	} catch (e: any) {
-		return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
-	}
+			return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+		}
+	});
 } 

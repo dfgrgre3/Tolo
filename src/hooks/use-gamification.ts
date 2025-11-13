@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { firestoreService, FirestoreUserProgress, FirestoreLeaderboardEntry } from '@/lib/firestore-service';
+import { logger } from '@/lib/logger';
 
 // Types (copied from gamification-service to avoid import)
 export interface UserProgress {
@@ -123,7 +124,7 @@ export function useGamification({
       }));
 
     } catch (error) {
-      console.error('Error loading gamification data:', error);
+      logger.error('Error loading gamification data:', error);
       setState(prev => ({
         ...prev,
         error: 'فشل في تحميل بيانات نظام النقاط',
@@ -206,7 +207,7 @@ export function useGamification({
           );
         }
       } catch (error) {
-        console.error('Error setting up real-time subscriptions:', error);
+        logger.error('Error setting up real-time subscriptions:', error);
       }
     };
 
@@ -269,7 +270,7 @@ export function useGamification({
 
       return updatedProgress;
     } catch (error) {
-      console.error('Error updating progress:', error);
+      logger.error('Error updating progress:', error);
       setState(prev => ({
         ...prev,
         error: 'فشل في تحديث التقدم'
@@ -301,7 +302,7 @@ export function useGamification({
 
       return newGoal;
     } catch (error) {
-      console.error('Error creating custom goal:', error);
+      logger.error('Error creating custom goal:', error);
       setState(prev => ({
         ...prev,
         error: 'فشل في إنشاء الهدف'
@@ -332,7 +333,7 @@ export function useGamification({
 
       return updatedGoal;
     } catch (error) {
-      console.error('Error updating custom goal:', error);
+      logger.error('Error updating custom goal:', error);
       setState(prev => ({
         ...prev,
         error: 'فشل في تحديث الهدف'

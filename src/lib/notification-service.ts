@@ -1,6 +1,7 @@
 
 import { NotificationType } from '@/types/notification';
 import { getTokenFromStorage } from '@/lib/auth-client';
+import { logger } from '@/lib/logger';
 
 // دالة لإرسال إشعار للمستخدم الحالي
 export async function sendNotification(
@@ -31,10 +32,10 @@ export async function sendNotification(
     });
 
     if (!response.ok) {
-      console.error('Failed to send notification');
+      logger.error('Failed to send notification', undefined, { status: response.status });
     }
   } catch (error) {
-    console.error('Error sending notification:', error);
+    logger.error('Error sending notification', error);
   }
 }
 
@@ -62,10 +63,10 @@ export async function sendBulkNotifications(
     });
 
     if (!response.ok) {
-      console.error('Failed to send bulk notifications');
+      logger.error('Failed to send bulk notifications', undefined, { status: response.status });
     }
   } catch (error) {
-    console.error('Error sending bulk notifications:', error);
+    logger.error('Error sending bulk notifications', error);
   }
 }
 
@@ -217,13 +218,13 @@ export const notificationTemplates = {
 // دالة لإرسال إشعار باستخدام القوالب
 export function sendTemplatedNotification(
   templateKey: keyof typeof notificationTemplates,
-  ...args: any[]
+  ...args: unknown[]
 ) {
   const template = notificationTemplates[templateKey];
   if (!template) return;
 
-  // @ts-ignore - Dynamic function call
-  const notification = template(...args);
+  // Type-safe dynamic function call
+  const notification = (template as (...args: unknown[]) => ReturnType<typeof template>)(...args);
   return sendNotification(notification.title, notification.message, notification.type, {
     actionUrl: notification.actionUrl,
     icon: notification.icon,

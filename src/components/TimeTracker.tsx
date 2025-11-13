@@ -8,6 +8,7 @@ import { Badge } from '../shared/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Pause, Square, BarChart3, Target, Clock } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/use-local-storage-state';
+import { logger } from '@/lib/logger';
 
 interface TimeSession {
   id: string;
@@ -143,7 +144,7 @@ const TimeTracker: React.FC<TimeTrackerProps> = ({
           }
         }
       } catch (error) {
-        console.error("Error saving study session:", error);
+        logger.error("Error saving study session:", error);
       }
     }
 

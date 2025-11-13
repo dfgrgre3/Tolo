@@ -1,6 +1,7 @@
 import { createClient, Cluster } from 'redis';
 import { perfConfig, PerfMonitor } from './perf-config.js';
 import { recordCacheMetric } from './db-monitor';
+import { logger } from '@/lib/logger';
 
 class RedisService {
   private client: any;
@@ -28,7 +29,7 @@ class RedisService {
     }
 
     this.client.on('error', (err: Error) => {
-      console.error('Redis error:', err);
+      logger.error('Redis error:', err);
     });
   }
 
@@ -40,9 +41,9 @@ class RedisService {
       } else {
         await this.client.connect();
       }
-      console.log('Connected to Redis');
+      logger.info('Connected to Redis');
     } catch (error) {
-      console.error('Failed to connect to Redis:', error);
+      logger.error('Failed to connect to Redis:', error);
     }
   }
 
@@ -85,7 +86,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('get', duration, false);
-      console.error('Error getting data from cache:', error);
+      logger.error('Error getting data from cache:', error);
       return null;
     }
   }
@@ -106,7 +107,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('set', duration, false);
-      console.error('Error setting data in cache:', error);
+      logger.error('Error setting data in cache:', error);
     }
   }
 
@@ -119,7 +120,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('del', duration, false);
-      console.error('Error deleting data from cache:', error);
+      logger.error('Error deleting data from cache:', error);
     }
   }
 
@@ -128,7 +129,7 @@ class RedisService {
       const result = await this.client.exists(key);
       return result > 0;
     } catch (error) {
-      console.error('Error checking if key exists in cache:', error);
+      logger.error('Error checking if key exists in cache:', error);
       return false;
     }
   }
@@ -152,7 +153,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('mget', duration, false);
-      console.error('Error getting multiple keys from cache:', error);
+      logger.error('Error getting multiple keys from cache:', error);
       return keys.map(() => null);
     }
   }
@@ -176,7 +177,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('mset', duration, false);
-      console.error('Error setting multiple keys in cache:', error);
+      logger.error('Error setting multiple keys in cache:', error);
     }
   }
 
@@ -191,7 +192,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('mdel', duration, false);
-      console.error('Error deleting multiple keys from cache:', error);
+      logger.error('Error deleting multiple keys from cache:', error);
     }
   }
 
@@ -204,7 +205,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('flushAll', duration, false);
-      console.error('Error flushing cache:', error);
+      logger.error('Error flushing cache:', error);
     }
   }
 
@@ -228,7 +229,7 @@ class RedisService {
       
       return freshData;
     } catch (error) {
-      console.warn(`Cache error for key ${key}:`, error);
+      logger.warn(`Cache error for key ${key}:`, error);
       // If cache fails, just fetch the data without caching
       return fetchFn();
     }
@@ -258,7 +259,7 @@ class RedisService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('invalidatePattern', duration, false);
-      console.error('Error invalidating cache pattern:', error);
+      logger.error('Error invalidating cache pattern:', error);
     }
   }
 
@@ -297,7 +298,7 @@ class RedisService {
       
       return this.isConnected();
     } catch (error) {
-      console.error('Failed to ensure Redis connection:', error);
+      logger.error('Failed to ensure Redis connection:', error);
       // Return false but don't throw - allow the app to continue without Redis
       return false;
     }
@@ -320,7 +321,7 @@ export async function getRedisClient() {
   // The rate limiting service will handle connection errors gracefully
   const connected = await redisService.ensureConnected();
   if (!connected) {
-    console.warn('Redis is not connected, but returning client anyway. Rate limiting may not work.');
+    logger.warn('Redis is not connected, but returning client anyway. Rate limiting may not work.');
   }
   return redisService.getClient();
 }

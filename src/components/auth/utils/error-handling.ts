@@ -1,6 +1,8 @@
 /**
  * Shared error handling utilities for auth components
  */
+import { logger } from '@/lib/logger';
+
 
 export interface ApiError {
   error: string;
@@ -49,7 +51,7 @@ export async function parseApiError(response: Response): Promise<ApiError | null
     };
   } catch (jsonError) {
     if (process.env.NODE_ENV === 'development') {
-      console.error('JSON parsing error:', jsonError);
+      logger.error('JSON parsing error:', jsonError);
     }
     return {
       error: `خطأ في الاتصال: ${response.status} ${response.statusText}`,

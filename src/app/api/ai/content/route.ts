@@ -8,6 +8,7 @@ import {
 } from "@/lib/ai/content-generation";
 import { verifyToken } from "@/lib/auth-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
         content: result
       });
     } catch (error) {
-      console.error("Error generating content:", error);
+      logger.error("Error generating content:", error);
       return NextResponse.json(
         { error: "فشل في إنشاء المحتوى" },
         { status: 500 }
@@ -139,7 +140,7 @@ export async function GET(request: NextRequest) {
         count: content.length
       });
     } catch (error) {
-      console.error("Error fetching content:", error);
+      logger.error("Error fetching content:", error);
       return NextResponse.json(
         { error: "فشل في جلب المحتوى", content: [] },
         { status: 500 }

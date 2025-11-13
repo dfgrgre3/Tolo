@@ -3,15 +3,18 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authService } from '@/lib/auth-service';
 import { isConnectionError } from '../_helpers';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 const tokenParamSchema = z.string().min(1, 'رمز التحقق مطلوب');
 
 export async function GET(request: NextRequest) {
-  const ip = authService.getClientIP(request);
-  const userAgent = authService.getUserAgent(request);
+  return opsWrapper(request, async (req) => {
+    const ip = authService.getClientIP(req);
+    const userAgent = authService.getUserAgent(req);
 
-  try {
-    const token = request.nextUrl.searchParams.get('token');
+    try {
+      const token = req.nextUrl.searchParams.get('token');
 
     if (!token) {
       return NextResponse.json(
@@ -51,7 +54,7 @@ export async function GET(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error('Database error while finding user:', dbError);
+      logger.error('Database error while finding user:', dbError);
       
       if (isConnectionError(dbError)) {
         return NextResponse.json(
@@ -128,7 +131,7 @@ export async function GET(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error('Database error while updating user:', dbError);
+      logger.error('Database error while updating user:', dbError);
       
       if (isConnectionError(dbError)) {
         return NextResponse.json(
@@ -154,7 +157,7 @@ export async function GET(request: NextRequest) {
       message: 'تم تفعيل البريد الإلكتروني بنجاح.',
     });
   } catch (error) {
-    console.error('Email verification error:', error);
+    logger.error('Email verification error:', error);
     
     // Log security event safely
     try {
@@ -163,7 +166,7 @@ export async function GET(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     } catch (logError) {
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     }
 
     return NextResponse.json(
@@ -174,5 +177,6 @@ export async function GET(request: NextRequest) {
       },
       { status: 500 }
     );
-  }
+    }
+  });
 }

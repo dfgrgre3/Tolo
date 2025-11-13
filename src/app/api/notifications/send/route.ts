@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-unified';
 import { sendMultiChannelNotification } from '@/lib/notification-sender-new';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -87,7 +88,7 @@ export async function POST(request: NextRequest) {
       message: 'تم إرسال الإشعار بنجاح'
     }, { status: 201 });
   } catch (error: any) {
-    console.error('Error sending notification:', error);
+    logger.error('Error sending notification:', error);
     
     // Provide more specific error messages
     if (error.message?.includes('المستخدم غير موجود')) {

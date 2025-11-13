@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authService } from '@/lib/auth-service';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { setAuthCookies, clearAuthCookies, createErrorResponse, isConnectionError } from '../_helpers';
+import { logger } from '@/lib/logger';
 
 const refreshTokenSchema = z.object({
   refreshToken: z.string().min(1, 'رمز التحديث مطلوب').optional(),
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     try {
       tokens = await authService.refreshAccessToken(refreshToken, userAgent, ip);
     } catch (tokenError) {
-      console.error('Token refresh error:', tokenError);
+      logger.error('Token refresh error:', tokenError);
       
       // Log failed refresh attempt
       await authService.logSecurityEvent(null, 'refresh_token_error', ip, {
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (logError) {
       // Don't fail if logging fails
-      console.warn('Failed to log token refresh event:', logError);
+      logger.warn('Failed to log token refresh event:', logError);
     }
 
     const response = NextResponse.json({
@@ -119,7 +120,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error:', error);
     
     // Log security event safely
     try {
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     } catch (logError) {
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     }
 
     const response = createErrorResponse(

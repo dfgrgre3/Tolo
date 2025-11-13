@@ -21,6 +21,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import errorManager from "@/services/ErrorManager";
 import { useToast } from "@/contexts/toast-context";
+import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
+import { VirtualList } from "@/components/ui/VirtualList";
+import { registerServiceWorker, preCacheSearch } from "@/lib/service-worker";
+import { logger } from '@/lib/logger';
 
 interface HeaderSearchProps {
 	isMobile?: boolean;
@@ -32,7 +36,15 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
-	const [searchResults, setSearchResults] = useState<any[]>([]);
+	interface SearchResult {
+		id: string;
+		title: string;
+		url: string;
+		type: string;
+		description?: string;
+	}
+
+	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 	const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
 	const [searchScope, setSearchScope] = useState<"all" | "courses" | "teachers" | "forum" | "exams">("all");
 	const [isSearching, setIsSearching] = useState(false);
@@ -41,9 +53,17 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
 	const [mounted, setMounted] = useState(false);
 	const searchInputRef = useRef<HTMLInputElement>(null);
-	const searchTimeoutRef = useRef<NodeJS.Timeout>();
-	const searchCacheRef = useRef<Map<string, { results: any[]; timestamp: number }>>(new Map());
+	const searchCacheRef = useRef<Map<string, { results: SearchResult[]; timestamp: number }>>(new Map());
 	const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+	// Register service worker on mount
+	useEffect(() => {
+		if (mounted && typeof window !== "undefined") {
+			registerServiceWorker().catch(() => {
+				// Silently fail if service worker registration fails
+			});
+		}
+	}, [mounted]);
 
 	// Handle mount
 	useEffect(() => {
@@ -80,117 +100,129 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		try {
 			safeSetItem("header_search_scope", searchScope);
 		} catch (error) {
-			console.debug("Error saving search scope preference:", error);
+			logger.debug("Error saving search scope preference:", error);
 		}
 	}, [searchScope, mounted]);
 
-	// Instant search with API
-	useEffect(() => {
-		if (!mounted) return;
-
-		if (searchTimeoutRef.current) {
-			clearTimeout(searchTimeoutRef.current);
-		}
-
-		if (!searchQuery.trim()) {
+	// Perform search with adaptive debounce
+	const performSearch = useCallback(async (query: string, scope: string) => {
+		if (!query.trim()) {
 			setSearchResults([]);
 			setShowSearchSuggestions(false);
 			setSelectedResultIndex(-1);
 			return;
 		}
 
-		searchTimeoutRef.current = setTimeout(async () => {
-			const cacheKey = `${searchQuery.trim()}_${searchScope}`;
-			const cached = searchCacheRef.current.get(cacheKey);
-			
-			if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-				setSearchResults(cached.results);
-				setShowSearchSuggestions(cached.results.length > 0);
-				setIsSearching(false);
-				return;
-			}
+		const cacheKey = `${query.trim()}_${scope}`;
+		const cached = searchCacheRef.current.get(cacheKey);
+		
+		if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+			setSearchResults(cached.results);
+			setShowSearchSuggestions(cached.results.length > 0);
+			setIsSearching(false);
+			return;
+		}
 
-			setIsSearching(true);
-			try {
-				const response = await fetch(
-					`/api/search?q=${encodeURIComponent(searchQuery.trim())}&scope=${searchScope}&limit=8`
-				);
-				if (response.ok) {
-					const data = await response.json();
-					const results = data.results || [];
-					
-					searchCacheRef.current.set(cacheKey, {
-						results,
-						timestamp: Date.now(),
-					});
-					
-					if (searchCacheRef.current.size > 50) {
-						const firstKey = searchCacheRef.current.keys().next().value;
-						if (firstKey) {
-							searchCacheRef.current.delete(firstKey);
-						}
+		setIsSearching(true);
+		try {
+			const response = await fetch(
+				`/api/search?q=${encodeURIComponent(query.trim())}&scope=${scope}&limit=8`
+			);
+			if (response.ok) {
+				const data = await response.json();
+				const results = data.results || [];
+				
+				searchCacheRef.current.set(cacheKey, {
+					results,
+					timestamp: Date.now(),
+				});
+				
+				if (searchCacheRef.current.size > 50) {
+					const firstKey = searchCacheRef.current.keys().next().value;
+					if (firstKey) {
+						searchCacheRef.current.delete(firstKey);
 					}
-					
-					setSearchResults(results);
-					setShowSearchSuggestions(results.length > 0);
-					
-					if (searchQuery.trim() && !recentSearches.includes(searchQuery.trim())) {
-						const updated = [searchQuery.trim(), ...recentSearches.slice(0, 4)];
-						setRecentSearches(updated);
-						try {
-							safeSetItem("header_recent_searches", updated);
-						} catch (error) {
-							console.debug("Error saving recent searches:", error);
-						}
-					}
-				} else {
-					setSearchResults([]);
-					setShowSearchSuggestions(false);
 				}
-			} catch (error) {
-				const errorMessage = error instanceof Error 
-					? error.message 
-					: "فشل في جلب نتائج البحث";
 				
-				errorManager.handleError(
-					error instanceof Error ? error : new Error(errorMessage),
-					{
-						showToast: true,
-						logError: true,
-						severity: "medium",
-						context: {
-							source: "Header_Search",
-							query: searchQuery.trim(),
-							scope: searchScope,
-						}
-					},
-					{
-						title: "خطأ في البحث",
-						description: "تعذر جلب نتائج البحث. يرجى المحاولة مرة أخرى.",
-						action: {
-							label: "إعادة المحاولة",
-							onClick: () => {
-								setSearchQuery("");
-								setTimeout(() => setSearchQuery(searchQuery.trim()), 100);
-							}
-						},
-						duration: 5000
+				setSearchResults(results);
+				setShowSearchSuggestions(results.length > 0);
+				
+				// Pre-cache for service worker
+				if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+					preCacheSearch(query.trim(), scope).catch(() => {
+						// Silently fail
+					});
+				}
+				
+				if (query.trim() && !recentSearches.includes(query.trim())) {
+					const updated = [query.trim(), ...recentSearches.slice(0, 4)];
+					setRecentSearches(updated);
+					try {
+						safeSetItem("header_recent_searches", updated);
+					} catch (error) {
+						logger.debug("Error saving recent searches:", error);
 					}
-				);
-				
+				}
+			} else {
 				setSearchResults([]);
 				setShowSearchSuggestions(false);
-			} finally {
-				setIsSearching(false);
 			}
-		}, 300);
+		} catch (error) {
+			const errorMessage = error instanceof Error 
+				? error.message 
+				: "فشل في جلب نتائج البحث";
+			
+			errorManager.handleError(
+				error instanceof Error ? error : new Error(errorMessage),
+				{
+					showToast: true,
+					logError: true,
+					severity: "medium",
+					context: {
+						source: "Header_Search",
+						query: query.trim(),
+						scope: scope,
+					}
+				},
+				{
+					title: "خطأ في البحث",
+					description: "تعذر جلب نتائج البحث. يرجى المحاولة مرة أخرى.",
+					action: {
+						label: "إعادة المحاولة",
+						onClick: () => {
+							setSearchQuery("");
+							setTimeout(() => setSearchQuery(query.trim()), 100);
+						}
+					},
+					duration: 5000
+				}
+			);
+			
+			setSearchResults([]);
+			setShowSearchSuggestions(false);
+		} finally {
+			setIsSearching(false);
+		}
+	}, [recentSearches]);
 
-		return () => {
-			if (searchTimeoutRef.current) {
-				clearTimeout(searchTimeoutRef.current);
-			}
-		};
-	}, [searchQuery, searchScope, mounted, recentSearches]);
+	// Use adaptive debounce for search
+	const { debouncedCallback: debouncedSearch } = useAdaptiveDebounce(
+		useCallback((query: string, scope: string) => {
+			performSearch(query, scope);
+		}, [performSearch]),
+		{
+			minDelay: 150,
+			maxDelay: 600,
+			initialDelay: 300,
+		}
+	);
+
+	// Trigger search when query or scope changes
+	useEffect(() => {
+		if (!mounted) return;
+		debouncedSearch(searchQuery, searchScope);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [searchQuery, searchScope, mounted]);
 
 	// Focus search input when opened
 	useEffect(() => {
@@ -203,7 +235,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		return () => clearTimeout(timer);
 	}, [isSearchOpen, mounted]);
 
-	const handleSearchResultClick = useCallback((result: any) => {
+	const handleSearchResultClick = useCallback((result: SearchResult) => {
 		router.push(result.url);
 		setIsSearchOpen(false);
 		setSearchQuery("");

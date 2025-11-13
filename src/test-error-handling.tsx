@@ -7,6 +7,7 @@ import React from 'react';
 import errorManager from './services/ErrorManager';
 import ErrorBoundary from './components/ErrorBoundary';
 import ErrorPage from './components/ErrorPages';
+import { logger } from '@/lib/logger';
 
 // Test component that throws an error
 const ErrorThrowingComponent: React.FC = () => {
@@ -123,31 +124,31 @@ export const TestErrorPages: React.FC = () => {
 
 // Export test functions
 export const testErrorManager = () => {
-  console.log('Testing ErrorManager...');
+  logger.info('Testing ErrorManager...');
 
   // Test basic error handling
   const errorId1 = errorManager.handleError('Test error');
-  console.log('Basic error logged with ID:', errorId1);
+  logger.info('Basic error logged with ID:', errorId1);
 
   // Test network error
   const errorId2 = errorManager.handleNetworkError('Network failed', '/api/test');
-  console.log('Network error logged with ID:', errorId2);
+  logger.info('Network error logged with ID:', errorId2);
 
   // Test auth error
   const errorId3 = errorManager.handleAuthError('Session expired');
-  console.log('Auth error logged with ID:', errorId3);
+  logger.info('Auth error logged with ID:', errorId3);
 
   // Test validation error
   const errorId4 = errorManager.handleValidationError('Invalid input');
-  console.log('Validation error logged with ID:', errorId4);
+  logger.info('Validation error logged with ID:', errorId4);
 
   // Test permission error
   const errorId5 = errorManager.handlePermissionError('admin');
-  console.log('Permission error logged with ID:', errorId5);
+  logger.info('Permission error logged with ID:', errorId5);
 
   // Get error stats
   const stats = errorManager.getErrorStats();
-  console.log('Error stats:', stats);
+  logger.info('Error stats:', stats);
 
   return { errorId1, errorId2, errorId3, errorId4, errorId5, stats };
 };

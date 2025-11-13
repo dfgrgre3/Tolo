@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { getSafeAuthToken } from "@/lib/safe-client-utils";
+import { logger } from '@/lib/logger';
 
 async function getUserId(): Promise<string | null> {
 	// Get user ID from auth token - only run on client side
@@ -20,7 +21,7 @@ async function getUserId(): Promise<string | null> {
 		const data = await res.json();
 		return data.user.id;
 	} catch (error) {
-		console.error("Error getting user ID:", error);
+		logger.error("Error getting user ID:", error);
 		return null;
 	}
 }

@@ -3,6 +3,8 @@ import { prisma } from '@/lib/prisma';
 import { AuthService } from '@/lib/auth-service';
 import { v4 as uuidv4 } from 'uuid';
 import { randomBytes } from 'crypto';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * Create test account endpoint
@@ -10,18 +12,19 @@ import { randomBytes } from 'crypto';
  * Only available in development mode or when NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS is true
  */
 export async function POST(request: NextRequest) {
-  // Only allow in development or when explicitly enabled
-  if (
-    process.env.NODE_ENV === 'production' &&
-    process.env.NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS !== 'true'
-  ) {
-    return NextResponse.json(
-      { error: 'Test accounts are not available in production' },
-      { status: 403 }
-    );
-  }
+  return opsWrapper(request, async () => {
+    // Only allow in development or when explicitly enabled
+    if (
+      process.env.NODE_ENV === 'production' &&
+      process.env.NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS !== 'true'
+    ) {
+      return NextResponse.json(
+        { error: 'Test accounts are not available in production' },
+        { status: 403 }
+      );
+    }
 
-  try {
+    try {
     const testEmail = 'test@example.com';
     const testPassword = 'Test123!@#';
     const testName = 'مستخدم تجريبي';
@@ -102,7 +105,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error: any) {
-    console.error('Error creating test account:', error);
+    logger.error('Error creating test account:', error);
 
     // Handle unique constraint violation
     if (error.code === 'P2002' || error.message?.includes('unique')) {
@@ -123,6 +126,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

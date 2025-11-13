@@ -71,7 +71,6 @@ export function CaptchaWidget({
 
       try {
         if (provider === 'hcaptcha') {
-          // @ts-ignore - hCaptcha is loaded dynamically
           if (window.hcaptcha) {
             widgetRef.current = window.hcaptcha.render(containerRef.current, {
               sitekey: siteKey,
@@ -81,7 +80,7 @@ export function CaptchaWidget({
                 setIsLoading(false);
                 onVerify(token);
               },
-              'error-callback': (err: any) => {
+              'error-callback': (err: unknown) => {
                 setIsLoading(false);
                 const errorMsg = 'فشل التحقق من CAPTCHA';
                 setError(errorMsg);
@@ -91,7 +90,6 @@ export function CaptchaWidget({
             setIsLoading(false);
           }
         } else if (provider === 'recaptcha') {
-          // @ts-ignore - reCAPTCHA is loaded dynamically
           if (window.grecaptcha) {
             widgetRef.current = window.grecaptcha.render(containerRef.current, {
               sitekey: siteKey,
@@ -123,7 +121,6 @@ export function CaptchaWidget({
     return () => {
       if (widgetRef.current && provider === 'hcaptcha') {
         try {
-          // @ts-ignore
           window.hcaptcha?.reset(widgetRef.current);
         } catch (err) {
           // Ignore cleanup errors
@@ -161,15 +158,31 @@ export function CaptchaWidget({
 }
 
 // Type declarations for CAPTCHA libraries
+interface HCaptchaOptions {
+  sitekey: string;
+  theme?: 'light' | 'dark';
+  size?: 'normal' | 'compact';
+  callback?: (token: string) => void;
+  'error-callback'?: (err: unknown) => void;
+}
+
+interface ReCaptchaOptions {
+  sitekey: string;
+  theme?: 'light' | 'dark';
+  size?: 'normal' | 'compact';
+  callback?: (token: string) => void;
+  'error-callback'?: () => void;
+}
+
 declare global {
   interface Window {
     hcaptcha?: {
-      render: (container: HTMLElement, options: any) => string;
+      render: (container: HTMLElement, options: HCaptchaOptions) => string;
       reset: (widgetId: string) => void;
       execute: (widgetId: string) => void;
     };
     grecaptcha?: {
-      render: (container: HTMLElement, options: any) => string;
+      render: (container: HTMLElement, options: ReCaptchaOptions) => string;
       reset: (widgetId: string) => void;
       execute: (widgetId: string) => Promise<string>;
     };

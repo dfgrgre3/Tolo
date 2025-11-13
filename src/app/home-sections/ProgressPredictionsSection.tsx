@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
 import { Progress } from "@/shared/progress";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { getSafeUserId } from "@/lib/safe-client-utils";
+import { getSafeUserId } from "@/lib/safe-client-utils";import { logger } from '@/lib/logger';
+
 import { 
   TrendingUp,
   Target,
@@ -44,7 +45,7 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
         );
 
         if (error || !data) {
-          console.warn("Failed to fetch predictions:", error);
+          logger.warn("Failed to fetch predictions:", error);
           setPredictions([]);
           setLoading(false);
           return;
@@ -52,7 +53,7 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
 
         setPredictions(data.predictions || []);
       } catch (error) {
-        console.error("Error fetching predictions:", error);
+        logger.error("Error fetching predictions:", error);
         setPredictions([]);
       } finally {
         setLoading(false);

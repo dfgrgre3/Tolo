@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all contests
-export async function GET() {
-  try {
+export async function GET(request: NextRequest) {
+  return opsWrapper(request, async () => {
+    try {
     const contests = await prisma.contest.findMany({
       include: {
         organizer: {
@@ -35,28 +38,30 @@ export async function GET() {
 
     return NextResponse.json(transformedContests);
   } catch (error) {
-    console.error("Error fetching contests:", error);
+    logger.error("Error fetching contests:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المسابقات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST create a new contest
 export async function POST(request: NextRequest) {
-  try {
-    const { 
-      userId, 
-      title, 
-      description, 
-      imageUrl, 
-      startDate, 
-      endDate, 
-      prize, 
-      category, 
-      tags 
-    } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { 
+        userId, 
+        title, 
+        description, 
+        imageUrl, 
+        startDate, 
+        endDate, 
+        prize, 
+        category, 
+        tags 
+      } = await req.json();
 
     if (!userId || !title || !description || !startDate || !endDate || !category) {
       return NextResponse.json(
@@ -116,10 +121,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transformedContest, { status: 201 });
   } catch (error) {
-    console.error("Error creating contest:", error);
+    logger.error("Error creating contest:", error);
     return NextResponse.json(
       { error: "حدث خطأ في إنشاء المسابقة" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

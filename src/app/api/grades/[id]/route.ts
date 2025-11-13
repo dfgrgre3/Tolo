@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -25,10 +28,11 @@ export async function DELETE(
       message: "تم حذف الدرجة بنجاح"
     });
   } catch (error) {
-    console.error("Error deleting grade:", error);
+    logger.error("Error deleting grade:", error);
     return NextResponse.json(
       { error: "حدث خطأ في حذف الدرجة" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

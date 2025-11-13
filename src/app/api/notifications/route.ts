@@ -2,26 +2,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    // Get query parameters
-    const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const unreadOnly = searchParams.get('unreadOnly') === 'true';
+      // Get query parameters
+      const { searchParams } = new URL(req.url);
+      const limit = parseInt(searchParams.get('limit') || '10');
+      const offset = parseInt(searchParams.get('offset') || '0');
+      const unreadOnly = searchParams.get('unreadOnly') === 'true';
 
-    // Build where clause
-    const where: any = { userId: decodedToken.userId };
+      // Build where clause
+      const where: any = { userId: decodedToken.userId };
     if (unreadOnly) {
       where.isRead = false;
     }
@@ -48,36 +51,38 @@ export async function GET(request: NextRequest) {
       hasMore: notifications.length === limit 
     });
   } catch (error) {
-    console.error('Error fetching notifications:', error);
+    logger.error('Error fetching notifications:', error);
     return NextResponse.json(
       { error: 'Failed to fetch notifications' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const { title, message, type, actionUrl, icon } = await request.json();
+      const { title, message, type, actionUrl, icon } = await req.json();
 
-    if (!title || !message) {
-      return NextResponse.json(
-        { error: 'Title and message are required' },
-        { status: 400 }
-      );
-    }
+      if (!title || !message) {
+        return NextResponse.json(
+          { error: 'Title and message are required' },
+          { status: 400 }
+        );
+      }
 
-    // Create notification
-    const notification = await prisma.notification.create({
+      // Create notification
+      const notification = await prisma.notification.create({
       data: {
         userId: decodedToken.userId,
         title,
@@ -91,10 +96,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ notification }, { status: 201 });
   } catch (error) {
-    console.error('Error creating notification:', error);
+    logger.error('Error creating notification:', error);
     return NextResponse.json(
       { error: 'Failed to create notification' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth-unified";
 import { gamificationService } from "@/lib/gamification-service";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    // Authenticate user
-    const authUser = verifyToken(req);
+  return opsWrapper(req, async (request) => {
+    try {
+      const { id } = await params;
+      // Authenticate user
+      const authUser = verifyToken(request);
     if (!authUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -22,20 +25,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     return NextResponse.json(task);
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });
-  }
+      return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });
+    }
+  });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    // Authenticate user
-    const authUser = verifyToken(req);
-    if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  return opsWrapper(req, async (request) => {
+    try {
+      const { id } = await params;
+      // Authenticate user
+      const authUser = verifyToken(request);
+      if (!authUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
 
-    const data = await req.json();
+      const data = await request.json();
 
     // Validate that the task belongs to the authenticated user
     const existingTask = await prisma.task.findFirst({
@@ -86,41 +91,44 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       try {
         await gamificationService.updateUserProgress(authUser.userId, 'task_completed');
       } catch (gamificationError) {
-        console.error('Error updating gamification for task:', gamificationError);
+        logger.error('Error updating gamification for task:', gamificationError);
         // Don't fail the request if gamification fails
       }
     }
 
     return NextResponse.json(updated);
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });
-  }
+      return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });
+    }
+  });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try {
-    const { id } = await params;
-    // Authenticate user
-    const authUser = verifyToken(req);
-    if (!authUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // Validate that the task belongs to the authenticated user before deletion
-    const existingTask = await prisma.task.findFirst({
-      where: {
-        id,
-        userId: authUser.userId
+  return opsWrapper(req, async (request) => {
+    try {
+      const { id } = await params;
+      // Authenticate user
+      const authUser = verifyToken(request);
+      if (!authUser) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-    });
 
-    if (!existingTask) {
-      return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      // Validate that the task belongs to the authenticated user before deletion
+      const existingTask = await prisma.task.findFirst({
+        where: {
+          id,
+          userId: authUser.userId
+        }
+      });
+
+      if (!existingTask) {
+        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+      }
+
+      await prisma.task.delete({ where: { id } });
+      return NextResponse.json({ ok: true });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });
     }
-
-    await prisma.task.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? 'Server error' }, { status: 500 });
-  }
+  });
 }

@@ -2,15 +2,18 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { SubjectType, ExamType } from "@/types/settings";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
-export async function GET() {
-	try {
-		const exams = await prisma.exam.findMany({ orderBy: [{ year: "desc" }, { createdAt: "desc" }] });
-		return NextResponse.json(exams);
-	} catch (error) {
+export async function GET(request: NextRequest) {
+	return opsWrapper(request, async () => {
+		try {
+			const exams = await prisma.exam.findMany({ orderBy: [{ year: "desc" }, { createdAt: "desc" }] });
+			return NextResponse.json(exams);
+		} catch (error) {
 		// تسجيل الخطأ بشكل أكثر تفصيلاً في وضع التطوير
 		if (process.env.NODE_ENV === 'development') {
-			console.error("Error fetching exams:", error);
+			logger.error("Error fetching exams:", error);
 		}
 		
 		// تحديد رسالة الخطأ المناسبة
@@ -39,22 +42,23 @@ export async function GET() {
 			},
 			{ status: 500 }
 		);
-	}
+		}
+	});
 }
 
 export async function POST(request: NextRequest) {
-	try {
-		const { subject, title, year, url, type = ExamType.OTHER } = await request.json();
+	return opsWrapper(request, async (req) => {
+		try {
+			const { subject, title, year, url, type = ExamType.OTHER } = await req.json();
+			if (!subject || !title || !year) {
+				return NextResponse.json(
+					{ error: "البيانات المطلوبة غير مكتملة" },
+					{ status: 400 }
+				);
+			}
 
-		if (!subject || !title || !year) {
-			return NextResponse.json(
-				{ error: "البيانات المطلوبة غير مكتملة" },
-				{ status: 400 }
-			);
-		}
-
-		// إنشاء امتحان جديد
-		const newExam = await prisma.exam.create({
+			// إنشاء امتحان جديد
+			const newExam = await prisma.exam.create({
 			data: {
 				subject,
 				title,
@@ -66,13 +70,14 @@ export async function POST(request: NextRequest) {
 
 		return NextResponse.json({
 			success: true,
-			exam: newExam
-		});
-	} catch (error) {
-		console.error("Error creating exam:", error);
-		return NextResponse.json(
-			{ error: "حدث خطأ في إنشاء الامتحان" },
-			{ status: 500 }
-		);
-	}
+				exam: newExam
+			});
+		} catch (error) {
+			logger.error("Error creating exam:", error);
+			return NextResponse.json(
+				{ error: "حدث خطأ في إنشاء الامتحان" },
+				{ status: 500 }
+			);
+		}
+	});
 } 

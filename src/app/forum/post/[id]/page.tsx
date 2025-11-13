@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type ForumPost = {
   id: string;
@@ -57,7 +58,7 @@ export default function ForumPostPage() {
           router.push("/forum");
         }
       } catch (error) {
-        console.error("Error fetching post:", error);
+        logger.error("Error fetching post:", error);
         router.push("/forum");
       }
     };
@@ -70,7 +71,7 @@ export default function ForumPostPage() {
           setReplies(repliesData);
         }
       } catch (error) {
-        console.error("Error fetching replies:", error);
+        logger.error("Error fetching replies:", error);
       }
     };
 
@@ -78,7 +79,7 @@ export default function ForumPostPage() {
       try {
         await fetch(`/api/forum/posts/${postId}/view`, { method: "POST" });
       } catch (error) {
-        console.error("Error incrementing views:", error);
+        logger.error("Error incrementing views:", error);
       }
     };
 
@@ -122,7 +123,7 @@ export default function ForumPostPage() {
         alert("حدث خطأ أثناء إضافة الرد");
       }
     } catch (error) {
-      console.error("Error adding reply:", error);
+      logger.error("Error adding reply:", error);
       alert("حدث خطأ أثناء إضافة الرد");
     } finally {
       setIsSubmittingReply(false);

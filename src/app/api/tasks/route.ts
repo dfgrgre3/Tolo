@@ -8,6 +8,7 @@ import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 import { gamificationService } from '@/lib/gamification-service';
 import { firestoreService } from '@/lib/firestore-service';
 import { rateLimit, handleApiError, badRequestResponse, unauthorizedResponse, successResponse } from '@/lib/api-utils';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 // Validation schemas
 const TaskCreateSchema = z.object({
@@ -35,7 +36,9 @@ const MUTATION_RATE_LIMIT = 50; // 50 requests per window
 
 // Handle GET requests - fetch tasks
 export async function GET(request: NextRequest) {
-  return withAuthCache(request, handleGetRequest, 'tasks', 300); // Cache for 5 minutes
+  return opsWrapper(request, async (req) => {
+    return withAuthCache(req, handleGetRequest, 'tasks', 300); // Cache for 5 minutes
+  });
 }
 
 async function handleGetRequest(req: NextRequest) {
@@ -111,22 +114,23 @@ async function handleGetRequest(req: NextRequest) {
 
 // Handle POST requests - create task
 export async function POST(request: NextRequest) {
-  try {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimit(request, MUTATION_RATE_LIMIT, 'create_task');
-    if (rateLimitResult) {
-      return rateLimitResult;
-    }
+  return opsWrapper(request, async (req) => {
+      try {
+      // Apply rate limiting
+      const rateLimitResult = await rateLimit(req, MUTATION_RATE_LIMIT, 'create_task');
+      if (rateLimitResult) {
+        return rateLimitResult;
+      }
 
-    // Verify authentication using the unified AuthService
-    const verification = await authService.verifyTokenFromRequest(request);
-    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
-    if (!decodedToken) {
-      return unauthorizedResponse();
-    }
+      // Verify authentication using the unified AuthService
+      const verification = await authService.verifyTokenFromRequest(req);
+      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
+      if (!decodedToken) {
+        return unauthorizedResponse();
+      }
 
-    // Parse and validate request body
-    const body = await request.json();
+      // Parse and validate request body
+      const body = await req.json();
     const parsedBody = TaskCreateSchema.safeParse(body);
 
     if (!parsedBody.success) {
@@ -154,135 +158,140 @@ export async function POST(request: NextRequest) {
     // Trigger gamification
     await gamificationService.updateUserProgress(decodedToken.userId, 'task_created');
 
-    // Return successful response
-    return successResponse(task, 'Task created successfully', 201);
-  } catch (error) {
-    return handleApiError(error);
-  }
+      // Return successful response
+      return successResponse(task, 'Task created successfully', 201);
+    } catch (error) {
+      return handleApiError(error);
+    }
+  });
 }
 
 // Handle PUT requests - update task
 export async function PUT(request: NextRequest) {
-  try {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimit(request, MUTATION_RATE_LIMIT, 'update_task');
-    if (rateLimitResult) {
-      return rateLimitResult;
+  return opsWrapper(request, async (req) => {
+    try {
+      // Apply rate limiting
+      const rateLimitResult = await rateLimit(req, MUTATION_RATE_LIMIT, 'update_task');
+      if (rateLimitResult) {
+        return rateLimitResult;
+      }
+
+      // Verify authentication using the unified AuthService
+      const verification = await authService.verifyTokenFromRequest(req);
+      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
+      if (!decodedToken) {
+        return unauthorizedResponse();
+      }
+
+      // Parse and validate request body
+      const body = await req.json();
+      const parsedBody = TaskUpdateSchema.safeParse(body);
+
+      if (!parsedBody.success) {
+        return badRequestResponse(`Invalid request body: ${parsedBody.error.message}`, 'VALIDATION_ERROR');
+      }
+
+      const { id, title, description, dueDate, priority, subjectId, status } = parsedBody.data;
+
+      // Check if task belongs to user
+      const existingTask = await prisma.task.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!existingTask) {
+        return badRequestResponse('Task not found', 'TASK_NOT_FOUND');
+      }
+
+      if (existingTask.userId !== decodedToken.userId) {
+        return unauthorizedResponse('You do not have permission to update this task');
+      }
+
+      // Update task in database
+      const task = await prisma.task.update({
+        where: {
+          id,
+        },
+        data: {
+          title,
+          description,
+          dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
+          priority: priority || undefined,
+          status: status || undefined,
+          subjectId: subjectId !== undefined ? subjectId : undefined,
+        },
+      });
+
+      // Invalidate cache
+      await invalidateUserCache(decodedToken.userId);
+
+      // Trigger gamification for completion
+      if (task.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
+        await gamificationService.updateUserProgress(decodedToken.userId, 'task_completed');
+      }
+
+      // Return successful response
+      return successResponse(task, 'Task updated successfully');
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    // Verify authentication using the unified AuthService
-    const verification = await authService.verifyTokenFromRequest(request);
-    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
-    if (!decodedToken) {
-      return unauthorizedResponse();
-    }
-
-    // Parse and validate request body
-    const body = await request.json();
-    const parsedBody = TaskUpdateSchema.safeParse(body);
-
-    if (!parsedBody.success) {
-      return badRequestResponse(`Invalid request body: ${parsedBody.error.message}`, 'VALIDATION_ERROR');
-    }
-
-    const { id, title, description, dueDate, priority, subjectId, status } = parsedBody.data;
-
-    // Check if task belongs to user
-    const existingTask = await prisma.task.findUnique({
-      where: {
-        id,
-      },
-    });
-
-    if (!existingTask) {
-      return badRequestResponse('Task not found', 'TASK_NOT_FOUND');
-    }
-
-    if (existingTask.userId !== decodedToken.userId) {
-      return unauthorizedResponse('You do not have permission to update this task');
-    }
-
-    // Update task in database
-    const task = await prisma.task.update({
-      where: {
-        id,
-      },
-      data: {
-        title,
-        description,
-        dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
-        priority: priority || undefined,
-        status: status || undefined,
-        subjectId: subjectId !== undefined ? subjectId : undefined,
-      },
-    });
-
-    // Invalidate cache
-    await invalidateUserCache(decodedToken.userId);
-
-    // Trigger gamification for completion
-    if (task.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
-      await gamificationService.updateUserProgress(decodedToken.userId, 'task_completed');
-    }
-
-    // Return successful response
-    return successResponse(task, 'Task updated successfully');
-  } catch (error) {
-    return handleApiError(error);
-  }
+  });
 }
 
 // Handle DELETE requests - delete task
 export async function DELETE(request: NextRequest) {
-  try {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimit(request, MUTATION_RATE_LIMIT, 'delete_task');
-    if (rateLimitResult) {
-      return rateLimitResult;
+  return opsWrapper(request, async (req) => {
+    try {
+      // Apply rate limiting
+      const rateLimitResult = await rateLimit(req, MUTATION_RATE_LIMIT, 'delete_task');
+      if (rateLimitResult) {
+        return rateLimitResult;
+      }
+
+      // Verify authentication using the unified AuthService
+      const verification = await authService.verifyTokenFromRequest(req);
+      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
+      if (!decodedToken) {
+        return unauthorizedResponse();
+      }
+
+      const { searchParams } = new URL(req.url);
+      const taskId = searchParams.get('id');
+
+      if (!taskId) {
+        return badRequestResponse('Task ID is required', 'MISSING_TASK_ID');
+      }
+
+      // Check if task belongs to user
+      const existingTask = await prisma.task.findUnique({
+        where: {
+          id: taskId,
+        },
+      });
+
+      if (!existingTask) {
+        return badRequestResponse('Task not found', 'TASK_NOT_FOUND');
+      }
+
+      if (existingTask.userId !== decodedToken.userId) {
+        return unauthorizedResponse('You do not have permission to delete this task');
+      }
+
+      // Delete task from database
+      await prisma.task.delete({
+        where: {
+          id: taskId,
+        },
+      });
+
+      // Invalidate cache
+      await invalidateUserCache(decodedToken.userId);
+
+      // Return successful response
+      return successResponse(null, 'Task deleted successfully');
+    } catch (error) {
+      return handleApiError(error);
     }
-
-    // Verify authentication using the unified AuthService
-    const verification = await authService.verifyTokenFromRequest(request);
-    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
-    if (!decodedToken) {
-      return unauthorizedResponse();
-    }
-
-    const { searchParams } = new URL(request.url);
-    const taskId = searchParams.get('id');
-
-    if (!taskId) {
-      return badRequestResponse('Task ID is required', 'MISSING_TASK_ID');
-    }
-
-    // Check if task belongs to user
-    const existingTask = await prisma.task.findUnique({
-      where: {
-        id: taskId,
-      },
-    });
-
-    if (!existingTask) {
-      return badRequestResponse('Task not found', 'TASK_NOT_FOUND');
-    }
-
-    if (existingTask.userId !== decodedToken.userId) {
-      return unauthorizedResponse('You do not have permission to delete this task');
-    }
-
-    // Delete task from database
-    await prisma.task.delete({
-      where: {
-        id: taskId,
-      },
-    });
-
-    // Invalidate cache
-    await invalidateUserCache(decodedToken.userId);
-
-    // Return successful response
-    return successResponse(null, 'Task deleted successfully');
-  } catch (error) {
-    return handleApiError(error);
-  }
+  });
 }

@@ -19,7 +19,7 @@ export class WebhookService {
     this.webhooks.set(id, config);
   }
 
-  async trigger(event: WebhookEvent, payload: any) {
+  async trigger(event: WebhookEvent, payload: Record<string, unknown>) {
     const promises = Array.from(this.webhooks.values())
       .filter(config => config.events.includes(event))
       .map(config => {
@@ -38,7 +38,7 @@ export class WebhookService {
     return Promise.allSettled(promises);
   }
 
-  private generateSignature(secret: string, payload: any): string {
+  private generateSignature(secret: string, payload: Record<string, unknown>): string {
     // Implementation for generating secure signature
     return '';
   }

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gamificationService } from '@/lib/gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     const category = searchParams.get('category');
     const status = searchParams.get('status'); // 'active', 'completed', 'all'
@@ -41,17 +44,19 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching custom goals:', error);
+    logger.error('Error fetching custom goals:', error);
     return NextResponse.json(
       { error: 'Failed to fetch custom goals' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { userId, title, description, targetValue, currentValue = 0, unit, category } = body;
 
     if (!userId || !title || targetValue === undefined) {
@@ -71,10 +76,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result);
 
   } catch (error) {
-    console.error('Error in custom goals API:', error);
+    logger.error('Error in custom goals API:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

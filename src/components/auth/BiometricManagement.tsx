@@ -12,6 +12,7 @@ import { Loader2, AlertCircle, Fingerprint, Smartphone, Trash2, Plus } from 'luc
 import { toast } from 'sonner';
 import { useEnhancedAuth } from '@/lib/auth-hook-enhanced';
 import { getSafeAuthToken } from '@/lib/safe-client-utils';
+import { logger } from '@/lib/logger';
 
 interface BiometricCredential {
   id: string;
@@ -45,7 +46,7 @@ export default function BiometricManagement() {
         setCredentials(data.credentials || []);
       }
     } catch (error) {
-      console.error('Error fetching biometric credentials:', error);
+      logger.error('Error fetching biometric credentials:', error);
     }
   };
 

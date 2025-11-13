@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { getPasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
 import type { PasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
 import type { User } from '@/components/auth/UserProvider';
+import { logger } from '@/lib/logger';
 
 interface RegisterFormData {
   name: string;
@@ -49,7 +50,7 @@ export default function EnhancedRegisterForm() {
           setIsGoogleOAuthEnabled(data.providers?.google?.enabled ?? false);
         }
       } catch (error) {
-        console.error('Failed to check OAuth status:', error);
+        logger.error('Failed to check OAuth status:', error);
         // If check fails, default to false for safety
         setIsGoogleOAuthEnabled(false);
       }
@@ -71,7 +72,7 @@ export default function EnhancedRegisterForm() {
             return decoded;
           }
         } catch (e) {
-          console.error('Failed to decode redirect parameter:', e);
+          logger.error('Failed to decode redirect parameter:', e);
         }
       }
     }
@@ -266,7 +267,7 @@ export default function EnhancedRegisterForm() {
               return;
             } catch (jsonError) {
               if (process.env.NODE_ENV === 'development') {
-                console.error('JSON parsing error:', jsonError);
+                logger.error('JSON parsing error:', jsonError);
               }
               throw new Error(`خطأ في الاتصال: ${response.status} ${response.statusText}`);
             }
@@ -297,7 +298,7 @@ export default function EnhancedRegisterForm() {
           data = await response.json();
         } catch (jsonError) {
           if (process.env.NODE_ENV === 'development') {
-            console.error('JSON parsing error:', jsonError);
+            logger.error('JSON parsing error:', jsonError);
           }
           throw new Error('فشل في معالجة استجابة الخادم.');
         }
@@ -334,7 +335,7 @@ export default function EnhancedRegisterForm() {
 
       // Verify user data exists
       if (!data.user.id || !data.user.email) {
-        console.error('Invalid user data in registration response:', data);
+        logger.error('Invalid user data in registration response:', data);
         toast.error('حدث خطأ في بيانات الحساب. يرجى المحاولة مرة أخرى');
         setIsLoading(false);
         return;
@@ -345,7 +346,7 @@ export default function EnhancedRegisterForm() {
       
       // Show verification link in development only
       if (data.verificationLink && process.env.NODE_ENV === 'development') {
-        console.log('Verification link:', data.verificationLink);
+        logger.info('Verification link:', data.verificationLink);
       }
       
       // Auto login after registration - with better error handling and retry logic
@@ -400,7 +401,7 @@ export default function EnhancedRegisterForm() {
                   if (errorCode === 'CONNECTION_ERROR' || errorCode === 'FETCH_ERROR') {
                     // Retry on connection errors
                     if (attempt < maxRetries) {
-                      console.log(`Login attempt ${attempt} failed with connection error, retrying...`);
+                      logger.info(`Login attempt ${attempt} failed with connection error, retrying...`);
                       continue;
                     }
                     toast.error('خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.');
@@ -422,7 +423,7 @@ export default function EnhancedRegisterForm() {
               
               // If it's a temporary error and we haven't exhausted retries, retry
               if (loginResponse.status >= 500 && attempt < maxRetries) {
-                console.log(`Login attempt ${attempt} failed with server error, retrying...`);
+                logger.info(`Login attempt ${attempt} failed with server error, retrying...`);
                 lastLoginError = { message: errorMessage, code: errorCode };
                 continue;
               }
@@ -443,7 +444,7 @@ export default function EnhancedRegisterForm() {
             if (!isLoginJson) {
               // Server returned HTML instead of JSON
               if (attempt < maxRetries) {
-                console.log(`Login attempt ${attempt} returned non-JSON, retrying...`);
+                logger.info(`Login attempt ${attempt} returned non-JSON, retrying...`);
                 continue;
               }
               toast.error('حدث خطأ في الاستجابة. يرجى تسجيل الدخول يدوياً.');
@@ -457,7 +458,7 @@ export default function EnhancedRegisterForm() {
             try {
               loginData = await loginResponse.json();
             } catch (jsonError) {
-              console.error('JSON parsing error:', jsonError);
+              logger.error('JSON parsing error:', jsonError);
               if (attempt < maxRetries) {
                 continue;
               }
@@ -469,7 +470,7 @@ export default function EnhancedRegisterForm() {
 
             // Validate login response
             if (!loginData.token || !loginData.user) {
-              console.error('Invalid login response:', loginData);
+              logger.error('Invalid login response:', loginData);
               if (attempt < maxRetries) {
                 continue;
               }
@@ -531,7 +532,7 @@ export default function EnhancedRegisterForm() {
                !navigator.onLine) &&
               attempt < maxRetries
             ) {
-              console.log(`Login attempt ${attempt} failed with network error, retrying...`);
+              logger.info(`Login attempt ${attempt} failed with network error, retrying...`);
               continue;
             }
             
@@ -585,7 +586,7 @@ export default function EnhancedRegisterForm() {
       }
 
     } catch (error: any) {
-      console.error('Registration error:', error);
+      logger.error('Registration error:', error);
       
       if (
         error?.message?.includes('Failed to fetch') ||

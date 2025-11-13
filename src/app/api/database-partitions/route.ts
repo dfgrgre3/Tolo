@@ -1,29 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import DataPartitioningService from '@/lib/data-partitioning-service'
 // Removed next-auth import - using custom auth system
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { withAuth } from '@/lib/middleware/auth-middleware';
+import { logger } from '@/lib/logger';
 
 // Authentication middleware for admin-only access
-// Note: Using custom auth system - auth() returns null, need to implement proper auth check
 async function authenticateAdmin(request: NextRequest): Promise<boolean> {
   try {
-    // TODO: Implement proper authentication using custom auth system
-    // For now, using token from cookies or headers
-    const token = request.cookies.get('authToken')?.value || request.headers.get('authorization')?.replace('Bearer ', '');
-    // TODO: Verify token and check admin role
-    return !!token; // Temporary: allow if token exists
+    const authResult = await withAuth(request, {
+      requireAuth: true,
+      requiredRoles: ['admin'],
+    });
+    return authResult.success;
   } catch {
-    return false
+    return false;
   }
 }
 
 export async function GET(request: NextRequest) {
-  try {
-    // Validate admin access
-    if (!(await authenticateAdmin(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Validate admin access
+      if (!(await authenticateAdmin(req))) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
 
-    const { searchParams } = new URL(request.url)
+      const { searchParams } = new URL(req.url)
     const action = searchParams.get('action')
 
     switch (action) {
@@ -41,21 +44,23 @@ export async function GET(request: NextRequest) {
         }, { status: 400 })
     }
   } catch (error) {
-    console.error('Database partitions API error:', error)
+    logger.error('Database partitions API error:', error)
     return NextResponse.json({
       error: 'Internal server error'
     }, { status: 500 })
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    // Validate admin access
-    if (!(await authenticateAdmin(request))) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Validate admin access
+      if (!(await authenticateAdmin(req))) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+      }
 
-    const body = await request.json()
+      const body = await req.json()
     const { action, tableName, startDate, endDate } = body
 
     switch (action) {
@@ -79,11 +84,12 @@ export async function POST(request: NextRequest) {
         }, { status: 400 })
     }
   } catch (error) {
-    console.error('Database partitions POST API error:', error)
+    logger.error('Database partitions POST API error:', error)
     return NextResponse.json({
       error: 'Internal server error'
     }, { status: 500 })
-  }
+    }
+  });
 }
 
 async function getPartitionHealth() {
@@ -116,7 +122,7 @@ async function checkAndExtendPartitions() {
       ...(result.errors && { errors: result.errors })
     })
   } catch (error) {
-    console.error('Failed to check and extend partitions:', error)
+    logger.error('Failed to check and extend partitions:', error)
     return NextResponse.json({
       error: `Failed to check and extend partitions: ${error}`
     }, { status: 500 })
@@ -131,7 +137,7 @@ async function createPartitions(tableName: string, startDate: Date, endDate: Dat
       message: `Partitions created successfully for ${tableName}`
     })
   } catch (error) {
-    console.error('Failed to create partitions:', error)
+    logger.error('Failed to create partitions:', error)
     return NextResponse.json({
       error: `Failed to create partitions: ${error}`
     }, { status: 500 })
@@ -147,7 +153,7 @@ async function cleanupPartitions() {
       ...(result.error && { warnings: [result.error] })
     })
   } catch (error) {
-    console.error('Failed to cleanup partitions:', error)
+    logger.error('Failed to cleanup partitions:', error)
     return NextResponse.json({
       error: `Failed to cleanup partitions: ${error}`
     }, { status: 500 })
@@ -191,7 +197,7 @@ async function maintainPartitions() {
       healthReport: health
     })
   } catch (error) {
-    console.error('Failed to perform partition maintenance:', error)
+    logger.error('Failed to perform partition maintenance:', error)
     return NextResponse.json({
       error: `Failed to perform partition maintenance: ${error}`
     }, { status: 500 })

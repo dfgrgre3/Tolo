@@ -1,16 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth-unified";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET user by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    // Verify authentication
-    const decodedToken = verifyToken(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      // Verify authentication
+      const decodedToken = verifyToken(req);
     if (!decodedToken) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -41,24 +44,25 @@ export async function GET(
         phone: true,
         phoneVerified: true,
         provider: true
-      }
-    });
+        }
+      });
 
-    if (!user) {
+      if (!user) {
+        return NextResponse.json(
+          { error: "المستخدم غير موجود" },
+          { status: 404 }
+        );
+      }
+
+      return NextResponse.json(user);
+    } catch (error) {
+      logger.error("Error fetching user:", error);
       return NextResponse.json(
-        { error: "المستخدم غير موجود" },
-        { status: 404 }
+        { error: "حدث خطأ في جلب بيانات المستخدم" },
+        { status: 500 }
       );
     }
-
-    return NextResponse.json(user);
-  } catch (error) {
-    console.error("Error fetching user:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في جلب بيانات المستخدم" },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // PATCH update user profile
@@ -66,26 +70,27 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
 
-    // Users can only update their own profile
-    if (decodedToken.userId !== id) {
-      return NextResponse.json(
-        { error: "Access denied" },
-        { status: 403 }
-      );
-    }
+      // Users can only update their own profile
+      if (decodedToken.userId !== id) {
+        return NextResponse.json(
+          { error: "Access denied" },
+          { status: 403 }
+        );
+      }
 
-    const { name, email, bio, grade, school } = await request.json();
+      const { name, email, bio, grade, school } = await req.json();
 
     const updatedUser = await prisma.user.update({
       where: { id },
@@ -106,16 +111,17 @@ export async function PATCH(
         school: true,
         createdAt: true
       }
-    });
+      });
 
-    return NextResponse.json(updatedUser);
-  } catch (error) {
-    console.error("Error updating user:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في تحديث بيانات المستخدم" },
-      { status: 500 }
-    );
-  }
+      return NextResponse.json(updatedUser);
+    } catch (error) {
+      logger.error("Error updating user:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ في تحديث بيانات المستخدم" },
+        { status: 500 }
+      );
+    }
+  });
 }
 
 // DELETE user account
@@ -123,39 +129,41 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+
+      // Users can only delete their own account
+      if (decodedToken.userId !== id) {
+        return NextResponse.json(
+          { error: "Access denied" },
+          { status: 403 }
+        );
+      }
+
+      // Delete user account and all related data
+      // Note: This will cascade delete related records based on Prisma schema
+      await prisma.user.delete({
+        where: { id }
+      });
+
+      return NextResponse.json({ 
+        message: "تم حذف الحساب بنجاح" 
+      });
+    } catch (error) {
+      logger.error("Error deleting user:", error);
       return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
+        { error: "حدث خطأ في حذف الحساب" },
+        { status: 500 }
       );
     }
-
-    // Users can only delete their own account
-    if (decodedToken.userId !== id) {
-      return NextResponse.json(
-        { error: "Access denied" },
-        { status: 403 }
-      );
-    }
-
-    // Delete user account and all related data
-    // Note: This will cascade delete related records based on Prisma schema
-    await prisma.user.delete({
-      where: { id }
-    });
-
-    return NextResponse.json({ 
-      message: "تم حذف الحساب بنجاح" 
-    });
-  } catch (error) {
-    console.error("Error deleting user:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في حذف الحساب" },
-      { status: 500 }
-    );
-  }
+  });
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Copy, Download, AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 interface RecoveryCodesDisplayProps {
   codes: string[];
@@ -52,7 +53,7 @@ export default function RecoveryCodesDisplay({
     try {
       await onRegenerate();
     } catch (error) {
-      console.error('Regenerate error:', error);
+      logger.error('Regenerate error:', error);
       toast.error('فشل إعادة توليد الرموز');
     } finally {
       setIsRegenerating(false);

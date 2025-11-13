@@ -1,4 +1,5 @@
 import { PrismaClient } from '@prisma/client'
+import { logger } from '@/lib/logger';
 
 const prisma = new PrismaClient()
 
@@ -56,9 +57,9 @@ export class DataPartitioningService {
         await this.createPartitionForMonth(tableName, month)
       }
 
-      console.log(`Created ${months.length} partitions for ${tableName}`)
+      logger.info(`Created ${months.length} partitions for ${tableName}`)
     } catch (error) {
-      console.error(`Failed to create partitions for ${tableName}:`, error)
+      logger.error(`Failed to create partitions for ${tableName}:`, error)
       throw error
     }
   }
@@ -96,7 +97,7 @@ export class DataPartitioningService {
         $$;
       `
     } catch (error) {
-      console.error(`Failed to create partition ${partitionName} for ${tableName}:`, error)
+      logger.error(`Failed to create partition ${partitionName} for ${tableName}:`, error)
       throw error
     }
   }
@@ -151,7 +152,7 @@ export class DataPartitioningService {
 
       return partitions.filter(p => !p.partitionName.includes('_default'))
     } catch (error) {
-      console.error(`Failed to get partition info for ${tableName}:`, error)
+      logger.error(`Failed to get partition info for ${tableName}:`, error)
       return []
     }
   }
@@ -196,7 +197,7 @@ export class DataPartitioningService {
             await prisma.$executeRaw`DROP TABLE IF EXISTS ${policy.tableName}.${partition.partition_name} CASCADE;`
             deletedPartitions.push(`${policy.tableName}.${partition.partition_name}`)
           } catch (dropError) {
-            console.error(`Failed to drop partition ${partition.partition_name}:`, dropError)
+            logger.error(`Failed to drop partition ${partition.partition_name}:`, dropError)
             errorMessage = errorMessage || `Failed to drop some partitions: ${dropError}`
           }
         }
@@ -206,7 +207,7 @@ export class DataPartitioningService {
       await this.archiveOperationalData()
 
     } catch (error) {
-      console.error('Error during partition cleanup:', error)
+      logger.error('Error during partition cleanup:', error)
       errorMessage = `Partition cleanup failed: ${error}`
     }
 
@@ -249,7 +250,7 @@ export class DataPartitioningService {
         ON CONFLICT (user_id, year, month) DO NOTHING;
       `
     } catch (error) {
-      console.error('Error archiving operational data:', error)
+      logger.error('Error archiving operational data:', error)
       // Don't throw - archiving failure shouldn't stop cleanup
     }
   }
@@ -349,7 +350,7 @@ export class DataPartitioningService {
                 ? `${row_count} rows (> ${threshold.maxRows})`
                 : `${size_pretty} (> ${threshold.maxSizeInMB}MB)`
 
-            console.log(`Table ${threshold.tableName} size large: ${reason}, extending partitions by ${threshold.autoExtendMonths} months`)
+            logger.info(`Table ${threshold.tableName} size large: ${reason}, extending partitions by ${threshold.autoExtendMonths} months`)
 
             // Get latest partition to extend from
             const partitions = await this.getPartitionInfo(threshold.tableName)
@@ -373,12 +374,12 @@ export class DataPartitioningService {
             }
           }
         } catch (tableError) {
-          console.error(`Error checking table ${threshold.tableName}:`, tableError)
+          logger.error(`Error checking table ${threshold.tableName}:`, tableError)
           errors.push(`Failed to check ${threshold.tableName}: ${tableError}`)
         }
       }
     } catch (error) {
-      console.error('Error in checkAndExtendPartitionsIfNeeded:', error)
+      logger.error('Error in checkAndExtendPartitionsIfNeeded:', error)
       errors.push(`General error: ${error}`)
     }
 

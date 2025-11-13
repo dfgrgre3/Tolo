@@ -2,6 +2,7 @@
 
 import React, { useEffect } from "react";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
+import { logger } from '@/lib/logger';
 
 /**
  * Error fallback component for ErrorBoundary
@@ -70,7 +71,7 @@ function useWebpackErrorHandler() {
         errorMessage.includes('next-auth') ||
         errorMessage.includes('HMR update')
       ) {
-        console.error('Module loading error detected:', error);
+        logger.error('Module loading error detected:', error);
         // Clear any cached module references and reload
         if (typeof window !== 'undefined') {
           setTimeout(() => {
@@ -91,7 +92,7 @@ function useWebpackErrorHandler() {
         errorMessage.includes('next-auth') ||
         errorMessage.includes('HMR update')
       ) {
-        console.error('Unhandled promise rejection (module error):', error);
+        logger.error('Unhandled promise rejection (module error):', error);
         if (typeof window !== 'undefined') {
           setTimeout(() => {
             window.location.reload();
@@ -129,10 +130,12 @@ export function ClientLayoutWrapper({
         <ErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} />
       )}
       onError={(error: Error, info: { componentStack: string }) => {
-        console.error('Layout Error:', error, info.componentStack);
-        // Log to error tracking service if needed
+        // Log error - in production, this should be sent to error tracking service
         if (process.env.NODE_ENV === 'production') {
-          // TODO: Send to error tracking service
+          // Error tracking service integration would go here
+          // Example: errorTracker.captureException(error, { extra: info });
+        } else {
+          logger.error('Layout Error:', error, info.componentStack);
         }
       }}
       onReset={() => {

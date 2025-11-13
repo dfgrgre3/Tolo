@@ -50,6 +50,8 @@ const nextConfig = {
     ],
     // Enable webpack 5 for better performance
     webpackBuildWorker: true,
+    // Enable instrumentation hook for environment validation
+    instrumentationHook: true,
   },
 
   // Configure webpack to handle path aliases

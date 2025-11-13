@@ -1,5 +1,6 @@
 import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export interface SentimentResult {
   sentiment: 'positive' | 'negative' | 'neutral' | 'frustrated' | 'tired';
@@ -139,7 +140,7 @@ export async function analyzeSentiment(
 
     return result;
   } catch (error) {
-    console.error('Error analyzing sentiment:', error);
+    logger.error('Error analyzing sentiment:', error);
     // Fallback to simple analysis
     return simpleSentimentAnalysis(text);
   }
@@ -216,7 +217,7 @@ function parseSentimentResponse(content: string): SentimentResult {
       suggestions: parsed.suggestions || []
     };
   } catch (error) {
-    console.error('Error parsing sentiment response:', error);
+    logger.error('Error parsing sentiment response:', error);
     return simpleSentimentAnalysis(content);
   }
 }

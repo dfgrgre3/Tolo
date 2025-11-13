@@ -1,11 +1,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
+      const userId = searchParams.get('userId');
 
     if (!userId) {
       return NextResponse.json(
@@ -36,29 +39,31 @@ export async function GET(request: NextRequest) {
       averages: subjectAverages
     });
   } catch (error) {
-    console.error("Error fetching grades:", error);
+    logger.error("Error fetching grades:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب البيانات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const { 
-      userId, 
-      subject, 
-      grade, 
-      maxGrade = 100, 
-      date, 
-      notes, 
-      isOnline = false,
-      teacherId,
-      assignmentType 
-    } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { 
+        userId, 
+        subject, 
+        grade, 
+        maxGrade = 100, 
+        date, 
+        notes, 
+        isOnline = false,
+        teacherId,
+        assignmentType 
+      } = await req.json();
 
-    if (!userId || !subject || grade === undefined) {
+      if (!userId || !subject || grade === undefined) {
       return NextResponse.json(
         { error: "البيانات المطلوبة غير مكتملة" },
         { status: 400 }
@@ -85,10 +90,11 @@ export async function POST(request: NextRequest) {
       grade: newGrade
     });
   } catch (error) {
-    console.error("Error saving grade:", error);
+    logger.error("Error saving grade:", error);
     return NextResponse.json(
       { error: "حدث خطأ في حفظ البيانات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

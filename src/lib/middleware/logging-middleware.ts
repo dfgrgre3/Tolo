@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { logger } from '@/lib/logging/elk-logger';
+import { logger } from '@/lib/logger';
 
 export async function loggingMiddleware(
   request: NextRequest,

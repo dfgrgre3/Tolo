@@ -2,10 +2,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig, verifyState, generateToken } from '@/lib/oauth';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
@@ -17,8 +20,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify state parameter to prevent CSRF attacks
-    const savedState = request.cookies.get('oauth_state')?.value;
+      // Verify state parameter to prevent CSRF attacks
+      const savedState = req.cookies.get('oauth_state')?.value;
     if (!state || !savedState || !verifyState(state, savedState)) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_state`
@@ -98,11 +101,12 @@ export async function GET(request: NextRequest) {
       path: '/',
     });
 
-    return response;
-  } catch (error) {
-    console.error('Error in Facebook OAuth callback:', error);
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=server_error`
-    );
-  }
+      return response;
+    } catch (error) {
+      logger.error('Error in Facebook OAuth callback:', error);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=server_error`
+      );
+    }
+  });
 }

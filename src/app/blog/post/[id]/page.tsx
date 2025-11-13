@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type BlogPost = {
   id: string;
@@ -50,7 +51,7 @@ export default function BlogPostPage() {
           router.push("/blog");
         }
       } catch (error) {
-        console.error("Error fetching post:", error);
+        logger.error("Error fetching post:", error);
         router.push("/blog");
       }
     };
@@ -59,7 +60,7 @@ export default function BlogPostPage() {
       try {
         await fetch(`/api/blog/posts/${postId}/view`, { method: "POST" });
       } catch (error) {
-        console.error("Error incrementing views:", error);
+        logger.error("Error incrementing views:", error);
       }
     };
 

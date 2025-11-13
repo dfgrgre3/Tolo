@@ -5,6 +5,7 @@
  */
 
 import { AuthChallengesCleanupService } from './auth-challenges-service';
+import { logger } from '@/lib/logger';
 
 /**
  * Main cleanup function
@@ -19,14 +20,14 @@ export async function cleanupExpiredChallenges(): Promise<{
 
     const total = result.twoFactor + result.biometric;
 
-    console.log(`Cleanup completed: ${total} expired challenges removed (${result.twoFactor} 2FA, ${result.biometric} biometric)`);
+    logger.info(`Cleanup completed: ${total} expired challenges removed (${result.twoFactor} 2FA, ${result.biometric} biometric)`);
 
     return {
       ...result,
       total
     };
   } catch (error) {
-    console.error('Failed to cleanup expired challenges:', error);
+    logger.error('Failed to cleanup expired challenges:', error);
     throw error;
   }
 }

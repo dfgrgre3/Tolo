@@ -3,9 +3,13 @@ import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  return withAuthCache(request, handleGetRequest, 'progress', 300); // Cache for 5 minutes
+  return opsWrapper(request, async (req) => {
+    return withAuthCache(req, handleGetRequest, 'progress', 300); // Cache for 5 minutes
+  });
 }
 
 async function handleGetRequest(request: NextRequest) {
@@ -103,7 +107,7 @@ async function handleGetRequest(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching progress:', error);
+    logger.error('Error fetching progress:', error);
     return NextResponse.json(
       { error: 'Failed to fetch progress' },
       { status: 500 }

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { analyzeSentiment, getUserSentimentTrends } from "@/lib/ai/sentiment-analysis";
 import { verifyToken } from "@/lib/auth-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
         sentiment
       });
     } catch (error) {
-      console.error("Error analyzing sentiment:", error);
+      logger.error("Error analyzing sentiment:", error);
       return NextResponse.json(
         { error: "فشل في تحليل المشاعر" },
         { status: 500 }
@@ -62,7 +63,7 @@ export async function GET(request: NextRequest) {
         trends
       });
     } catch (error) {
-      console.error("Error fetching sentiment trends:", error);
+      logger.error("Error fetching sentiment trends:", error);
       return NextResponse.json(
         { error: "فشل في جلب اتجاهات المشاعر" },
         { status: 500 }

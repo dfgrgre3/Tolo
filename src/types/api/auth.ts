@@ -22,7 +22,7 @@ export interface RiskAssessment {
     newDevice?: boolean;
     newLocation?: boolean;
     unusualTime?: boolean;
-    [key: string]: any;
+    [key: string]: unknown;
   };
   recommendations?: string[];
   requireAdditionalAuth?: boolean;

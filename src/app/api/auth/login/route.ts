@@ -11,7 +11,8 @@ import { captchaService } from '@/lib/security/captcha-service';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
-import type { LoginRequest, LoginResponse, LoginErrorResponse } from '@/types/api/auth';
+import type { LoginRequest, LoginResponse, LoginErrorResponse } from '@/types/api/auth';import { logger } from '@/lib/logger';
+
 import { 
   setAuthCookies, 
   createErrorResponse, 
@@ -80,7 +81,7 @@ const generateTwoFactorCode = (): string => {
     return code.toString();
   } catch (error) {
     // Fallback to Math.random if crypto fails (shouldn't happen in Node.js)
-    console.warn('Failed to use crypto for 2FA code generation, using fallback:', error);
+    logger.warn('Failed to use crypto for 2FA code generation, using fallback:', error);
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 };
@@ -98,7 +99,7 @@ const getUpdatedAttempts = async (
       return (updatedRateLimitStatus.attempts || 0) + 1;
     }
   } catch (redisError) {
-    console.warn('Redis unavailable for rate limit check:', redisError);
+    logger.warn('Redis unavailable for rate limit check:', redisError);
   }
   return 1; // Default to 1 attempt
 };
@@ -219,7 +220,7 @@ const createSuccessResponse = (
 
   // Validate risk assessment
   if (!riskAssessment || !riskAssessment.level) {
-    console.warn('Risk assessment missing or invalid, using default');
+    logger.warn('Risk assessment missing or invalid, using default');
     riskAssessment = {
       level: 'low' as const,
       score: 0,
@@ -266,7 +267,7 @@ export async function POST(request: NextRequest) {
   // Validate JWT_SECRET early to provide better error messages
   const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
   if (!jwtSecret || jwtSecret === 'your-secret-key' || jwtSecret.trim().length < 32) {
-    console.error('JWT_SECRET validation failed:', {
+    logger.error('JWT_SECRET validation failed:', {
       hasSecret: !!jwtSecret,
       isDefault: jwtSecret === 'your-secret-key',
       length: jwtSecret?.length || 0,
@@ -295,7 +296,7 @@ export async function POST(request: NextRequest) {
       initialRateLimitStatus = await rateLimitService.checkRateLimit(clientId);
     } catch (redisError) {
       // If Redis is unavailable, allow the request but log the error
-      console.warn('Redis unavailable, proceeding without rate limiting:', redisError);
+      logger.warn('Redis unavailable, proceeding without rate limiting:', redisError);
       // Continue with default status that allows the request
     }
 
@@ -320,7 +321,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (ipBlockError) {
       // If IP blocking service fails, continue with normal flow
-      console.warn('IP blocking check failed:', ipBlockError);
+      logger.warn('IP blocking check failed:', ipBlockError);
     }
 
     // ==================== CHECK RATE LIMITING ====================
@@ -403,7 +404,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(errorResponse, { status: 400 });
       }
     } catch (parseError) {
-      console.error('Error parsing request body:', parseError);
+      logger.error('Error parsing request body:', parseError);
       const errorResponse: LoginErrorResponse = {
         error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.',
         code: 'INVALID_REQUEST_BODY',
@@ -464,7 +465,7 @@ export async function POST(request: NextRequest) {
     try {
       user = await authService.findUserByEmail(normalizedEmail);
     } catch (dbError: any) {
-      console.error('Database error while finding user:', dbError);
+      logger.error('Database error while finding user:', dbError);
       
       // Check if it's a connection error
       if (isConnectionError(dbError)) {
@@ -551,12 +552,12 @@ export async function POST(request: NextRequest) {
           userAgent,
           email: normalizedEmail,
         }).catch((logError) => {
-          console.warn('Failed to log account creation event:', logError);
+          logger.warn('Failed to log account creation event:', logError);
         });
         
         // Continue with login flow for the newly created user
       } catch (createError: any) {
-        console.error('Error auto-creating account during login:', createError);
+        logger.error('Error auto-creating account during login:', createError);
         
         // Handle unique constraint violation (race condition)
         if (createError.code === 'P2002' || createError.message?.includes('unique')) {
@@ -624,7 +625,7 @@ export async function POST(request: NextRequest) {
         user.passwordHash,
       );
     } catch (passwordError) {
-      console.error('Password comparison error:', passwordError);
+      logger.error('Password comparison error:', passwordError);
       // Even if comparison fails, we should still record the failed attempt
       return await handleFailedLogin(
         clientId,
@@ -670,7 +671,7 @@ export async function POST(request: NextRequest) {
         take: 50,
       });
     } catch (dbError) {
-      console.warn('Failed to fetch login history for risk assessment:', dbError);
+      logger.warn('Failed to fetch login history for risk assessment:', dbError);
       // Continue with login even if we can't fetch history
       loginHistory = [];
     }
@@ -698,7 +699,7 @@ export async function POST(request: NextRequest) {
         }))
       );
     } catch (riskError) {
-      console.warn('Failed to perform risk assessment:', riskError);
+      logger.warn('Failed to perform risk assessment:', riskError);
       // Use default low-risk assessment if risk assessment fails
       riskAssessment = {
         level: 'low' as const,
@@ -716,7 +717,7 @@ export async function POST(request: NextRequest) {
       riskScore: riskAssessment.score,
       factors: riskAssessment.factors,
     }).catch((logError) => {
-      console.warn('Failed to log risk assessment:', logError);
+      logger.warn('Failed to log risk assessment:', logError);
       // Continue with login even if logging fails
     });
 
@@ -728,7 +729,7 @@ export async function POST(request: NextRequest) {
         riskLevel: riskAssessment.level,
         riskScore: riskAssessment.score,
       }).catch((logError) => {
-        console.warn('Failed to log high-risk login:', logError);
+        logger.warn('Failed to log high-risk login:', logError);
       });
 
       // Send notification (non-blocking)
@@ -737,7 +738,7 @@ export async function POST(request: NextRequest) {
         riskAssessment,
         ip
       ).catch((notifyError) => {
-        console.warn('Failed to send security notification:', notifyError);
+        logger.warn('Failed to send security notification:', notifyError);
       });
 
       const errorResponse: LoginErrorResponse = {
@@ -758,7 +759,7 @@ export async function POST(request: NextRequest) {
         fingerprintData,
         ip
       ).catch((notifyError) => {
-        console.warn('Failed to send new device notification:', notifyError);
+        logger.warn('Failed to send new device notification:', notifyError);
       });
     }
 
@@ -768,7 +769,7 @@ export async function POST(request: NextRequest) {
       fingerprintData,
       ip
     ).catch((deviceError) => {
-      console.warn('Failed to register device:', deviceError);
+      logger.warn('Failed to register device:', deviceError);
       // Continue with login even if device registration fails
     });
 
@@ -787,7 +788,7 @@ export async function POST(request: NextRequest) {
       );
 
       if (process.env.NODE_ENV !== 'production') {
-        console.info(`[Auth] 2FA code for ${user.email}: ${code}`);
+        logger.info(`[Auth] 2FA code for ${user.email}: ${code}`);
       }
 
       await authService.logSecurityEvent(
@@ -832,7 +833,7 @@ export async function POST(request: NextRequest) {
           throw new Error('Failed to create 2FA challenge');
         }
       } catch (challengeError) {
-        console.error('Failed to create 2FA challenge:', challengeError);
+        logger.error('Failed to create 2FA challenge:', challengeError);
         return createErrorResponse(
           challengeError,
           'فشل إنشاء تحدي المصادقة بخطوتين. يرجى المحاولة مرة أخرى.'
@@ -840,7 +841,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (process.env.NODE_ENV !== 'production') {
-        console.info(`[Auth] 2FA code for ${user.email}: ${code}`);
+        logger.info(`[Auth] 2FA code for ${user.email}: ${code}`);
       }
 
       await authService.logSecurityEvent(
@@ -858,7 +859,7 @@ export async function POST(request: NextRequest) {
       
       // Validate 2FA response
       if (!response.loginAttemptId || !response.requiresTwoFactor) {
-        console.error('Invalid 2FA response structure');
+        logger.error('Invalid 2FA response structure');
         return createErrorResponse(
           new Error('استجابة المصادقة بخطوتين غير صحيحة'),
           'فشل إنشاء استجابة المصادقة بخطوتين. يرجى المحاولة مرة أخرى.'
@@ -872,7 +873,7 @@ export async function POST(request: NextRequest) {
     
     // Reset rate limit on successful login (non-blocking)
     authService.resetRateLimit(clientId).catch((rateLimitError) => {
-      console.warn('Failed to reset rate limit:', rateLimitError);
+      logger.warn('Failed to reset rate limit:', rateLimitError);
     });
 
     // Create session first (critical for login)
@@ -882,14 +883,14 @@ export async function POST(request: NextRequest) {
       
       // Validate session was created
       if (!session || !session.id) {
-        console.error('Invalid session created:', session);
+        logger.error('Invalid session created:', session);
         return createErrorResponse(
           new Error('فشل إنشاء جلسة صحيحة'),
           'فشل إنشاء جلسة تسجيل الدخول. يرجى المحاولة مرة أخرى.'
         );
       }
     } catch (sessionError) {
-      console.error('Failed to create session:', sessionError);
+      logger.error('Failed to create session:', sessionError);
       
       // Check if it's a connection error
       if (isConnectionError(sessionError)) {
@@ -925,7 +926,7 @@ export async function POST(request: NextRequest) {
       
       // Validate tokens were created
       if (!tokens || !tokens.accessToken || !tokens.refreshToken) {
-        console.error('Invalid tokens created:', tokens);
+        logger.error('Invalid tokens created:', tokens);
         return createErrorResponse(
           new Error('فشل إنشاء رموز المصادقة'),
           'فشل إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.'
@@ -935,7 +936,7 @@ export async function POST(request: NextRequest) {
       accessToken = tokens.accessToken;
       refreshToken = tokens.refreshToken;
     } catch (tokenError) {
-      console.error('Failed to generate tokens:', tokenError);
+      logger.error('Failed to generate tokens:', tokenError);
       
       // Check if it's a connection error
       if (isConnectionError(tokenError)) {
@@ -958,7 +959,7 @@ export async function POST(request: NextRequest) {
     // Use transaction-like approach but don't fail login if this fails
     Promise.all([
       authService.updateLastLogin(user.id).catch((updateError) => {
-        console.warn('Failed to update last login:', updateError);
+        logger.warn('Failed to update last login:', updateError);
       }),
       prisma.user.update({
         where: { id: user.id },
@@ -967,7 +968,7 @@ export async function POST(request: NextRequest) {
           lastLogin: new Date(),
         },
       }).catch((dbError) => {
-        console.warn('Failed to update user in database:', dbError);
+        logger.warn('Failed to update user in database:', dbError);
       }),
     ]).catch(() => {
       // Silent fail - login can still proceed
@@ -980,13 +981,13 @@ export async function POST(request: NextRequest) {
       riskLevel: riskAssessment.level,
       isNewDevice,
     }).catch((logError) => {
-      console.warn('Failed to log security event:', logError);
+      logger.warn('Failed to log security event:', logError);
       // Continue with login even if logging fails
     });
 
     // Validate tokens before sending response
     if (!accessToken || !refreshToken) {
-      console.error('Failed to generate tokens');
+      logger.error('Failed to generate tokens');
       return createErrorResponse(
         new Error('فشل إنشاء رموز المصادقة'),
         'فشل إنشاء رموز المصادقة. يرجى المحاولة مرة أخرى.'
@@ -996,7 +997,7 @@ export async function POST(request: NextRequest) {
     // Validate token format (basic JWT check)
     const accessTokenParts = accessToken.split('.');
     if (accessTokenParts.length !== 3) {
-      console.error('Invalid access token format');
+      logger.error('Invalid access token format');
       return createErrorResponse(
         new Error('تنسيق رمز المصادقة غير صحيح'),
         'فشل إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.'
@@ -1016,7 +1017,7 @@ export async function POST(request: NextRequest) {
     
     // Validate response structure before sending
     if (!loginResponse.token || !loginResponse.user || !loginResponse.user.id) {
-      console.error('Invalid login response structure');
+      logger.error('Invalid login response structure');
       return createErrorResponse(
         new Error('استجابة تسجيل الدخول غير صحيحة'),
         'حدث خطأ أثناء إنشاء استجابة تسجيل الدخول. يرجى المحاولة مرة أخرى.'
@@ -1045,7 +1046,7 @@ export async function POST(request: NextRequest) {
       errorCode: error && typeof error === 'object' && 'code' in error ? (error as any).code : undefined,
     };
     
-    console.error('Login error details:', errorDetails);
+    logger.error('Login error details:', errorDetails);
     
     // Handle different error types
     let errorCode = 'SERVER_ERROR';
@@ -1118,7 +1119,7 @@ export async function POST(request: NextRequest) {
       errorType: error instanceof Error ? error.constructor.name : typeof error,
       errorCode,
     }).catch((logError) => {
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     });
     
     // Return proper error response

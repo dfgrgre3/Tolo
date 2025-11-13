@@ -7,6 +7,7 @@ import { Eye, EyeOff, Lock, Loader2, CheckCircle2, XCircle } from 'lucide-react'
 import { getPasswordStrengthDisplay } from './utils/password-strength';
 import { parseApiError, handleNetworkError, createFetchWithTimeout } from './utils/error-handling';
 import { getTokenFromStorage } from '@/lib/auth-client';
+import { logger } from '@/lib/logger';
 
 export default function ChangePassword() {
   const { user } = useAuth();
@@ -99,7 +100,7 @@ export default function ChangePassword() {
       
       // Check if response is HTML (error page)
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('Server returned HTML instead of JSON');
+        logger.error('Server returned HTML instead of JSON');
         toast.error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
         setIsLoading(false);
         return;
@@ -118,12 +119,12 @@ export default function ChangePassword() {
         });
         setPasswordStrength(getPasswordStrengthDisplay(''));
       } catch (parseError) {
-        console.error('Error parsing JSON:', parseError);
+        logger.error('Error parsing JSON:', parseError);
         toast.error('فشل في معالجة استجابة الخادم');
       }
     } catch (error) {
       const networkError = handleNetworkError(error);
-      console.error('Change password error:', error);
+      logger.error('Change password error:', error);
       toast.error(networkError.error);
     } finally {
       setIsLoading(false);

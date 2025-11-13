@@ -5,6 +5,8 @@
 
 import { authService } from '../auth-service';
 
+import { logger as elkLogger } from '@/lib/logging/elk-logger';
+
 export enum AuthLogLevel {
   INFO = 'info',
   WARN = 'warn',
@@ -78,26 +80,42 @@ export class AuthLogger {
       });
     } catch (dbError) {
       // Don't fail if DB logging fails, but log it
-      console.error('Failed to log to database:', dbError);
+      elkLogger.error('Failed to log to database', dbError instanceof Error ? dbError : new Error(String(dbError)), {
+        context: 'auth-logger',
+        userId,
+        event,
+        ip,
+      });
     }
 
-    // Console logging based on level
-    const logMessage = `[Auth ${level.toUpperCase()}] ${event}${userId ? ` - User: ${userId}` : ''} - IP: ${ip}`;
+    // Log to ELK logger based on level
+    const logMeta = {
+      type: 'authentication',
+      event,
+      userId,
+      ip,
+      userAgent: metadata?.userAgent,
+      ...metadata,
+    };
     
     switch (level) {
       case AuthLogLevel.ERROR:
-        console.error(logMessage, error || metadata);
+        elkLogger.error(
+          `[Auth] ${event}${userId ? ` - User: ${userId}` : ''} - IP: ${ip}`,
+          error ? new Error(error) : undefined,
+          logMeta
+        );
         break;
       case AuthLogLevel.WARN:
-        console.warn(logMessage, metadata);
+        elkLogger.warn(`[Auth] ${event}${userId ? ` - User: ${userId}` : ''} - IP: ${ip}`, logMeta);
         break;
       case AuthLogLevel.DEBUG:
         if (process.env.NODE_ENV === 'development') {
-          console.debug(logMessage, metadata);
+          elkLogger.debug(`[Auth] ${event}${userId ? ` - User: ${userId}` : ''} - IP: ${ip}`, logMeta);
         }
         break;
       default:
-        console.log(logMessage, metadata);
+        elkLogger.info(`[Auth] ${event}${userId ? ` - User: ${userId}` : ''} - IP: ${ip}`, logMeta);
     }
   }
 

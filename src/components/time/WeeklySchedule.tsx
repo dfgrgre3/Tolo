@@ -15,6 +15,7 @@ import { TimeGrid } from './WeeklySchedule/TimeGrid';
 import { AgendaView } from './WeeklySchedule/AgendaView';
 import { BlockFormDialog } from './WeeklySchedule/BlockFormDialog';
 import { SettingsDialog } from './WeeklySchedule/SettingsDialog';
+import { logger } from '@/lib/logger';
 
 export default function WeeklySchedule({ 
   schedule, 
@@ -97,14 +98,14 @@ export default function WeeklySchedule({
       const data = JSON.parse(schedule.planJson);
       setTimeBlocks(Array.isArray(data.timeBlocks) ? data.timeBlocks : []);
     } catch (error) {
-      console.error('Error parsing schedule data:', error);
+      logger.error('Error parsing schedule data:', error);
       setTimeBlocks([]);
     }
   }, [schedule]);
 
   const saveSchedule = useCallback(async () => {
     if (!userId) {
-      console.warn('Cannot save schedule: userId is missing');
+      logger.warn('Cannot save schedule: userId is missing');
       return;
     }
 
@@ -135,7 +136,7 @@ export default function WeeklySchedule({
       const savedSchedule = await response.json();
       onScheduleUpdate?.(savedSchedule);
     } catch (error) {
-      console.error('Error saving schedule:', error);
+      logger.error('Error saving schedule:', error);
       // You can add toast notification here if needed
     }
   }, [timeBlocks, userId, schedule, onScheduleUpdate]);
@@ -181,7 +182,7 @@ export default function WeeklySchedule({
     
     // Validate time range
     if (formData.startTime >= formData.endTime) {
-      console.error('Start time must be before end time');
+      logger.error('Start time must be before end time');
       return;
     }
 
@@ -301,7 +302,7 @@ export default function WeeklySchedule({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting schedule:', error);
+      logger.error('Error exporting schedule:', error);
     }
   }, [timeBlocks, weekStats, currentWeek]);
 
@@ -316,14 +317,14 @@ export default function WeeklySchedule({
         if (Array.isArray(data.timeBlocks)) {
           setTimeBlocks(data.timeBlocks);
         } else {
-          console.error('Invalid schedule format');
+          logger.error('Invalid schedule format');
         }
       } catch (error) {
-        console.error('Error importing schedule:', error);
+        logger.error('Error importing schedule:', error);
       }
     };
     reader.onerror = () => {
-      console.error('Error reading file');
+      logger.error('Error reading file');
     };
     reader.readAsText(file);
   }, []);

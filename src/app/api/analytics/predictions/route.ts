@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/analytics/predictions
  * Get AI-powered progress predictions
  */
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
     
     if (!userId) {
@@ -61,11 +64,12 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error generating predictions:', error);
+    logger.error('Error generating predictions:', error);
     return NextResponse.json(
       { error: 'Failed to generate predictions' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

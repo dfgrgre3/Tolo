@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET messages between two users
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ senderId: string; receiverId: string }> }
 ) {
-  try {
+  return opsWrapper(request, async () => {
+    try {
     const { senderId, receiverId } = await params;
 
     const messages = await prisma.message.findMany({
@@ -35,10 +38,11 @@ export async function GET(
 
     return NextResponse.json(messages);
   } catch (error) {
-    console.error("Error fetching messages:", error);
+    logger.error("Error fetching messages:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب الرسائل" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gamificationService } from '@/lib/gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ goalId: string }> }
 ) {
-  try {
-    const { goalId } = await params;
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { goalId } = await params;
+      const body = await req.json();
     const { currentValue } = body;
 
     if (currentValue === undefined) {
@@ -18,7 +21,7 @@ export async function PATCH(
     return NextResponse.json(updatedGoal);
 
   } catch (error: any) {
-    console.error('Error updating custom goal:', error);
+    logger.error('Error updating custom goal:', error);
     if (error.message?.includes('not found')) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }
@@ -26,20 +29,22 @@ export async function PATCH(
       { error: 'Failed to update custom goal' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ goalId: string }> }
 ) {
-  try {
-    const { goalId } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { goalId } = await params;
     await gamificationService.deleteCustomGoal(goalId);
     return NextResponse.json({ message: 'Goal deleted successfully' });
 
   } catch (error: any) {
-    console.error('Error deleting custom goal:', error);
+    logger.error('Error deleting custom goal:', error);
     if (error.message?.includes('not found')) {
       return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
     }
@@ -47,6 +52,7 @@ export async function DELETE(
       { error: 'Failed to delete custom goal' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

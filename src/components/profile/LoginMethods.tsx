@@ -10,6 +10,7 @@ import { Badge } from "@/shared/badge";
 import { toast } from 'sonner';
 import { Mail, Link as LinkIcon, Unlink, CheckCircle2, Globe, Smartphone, Building2, Code } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { logger } from '@/lib/logger';
 
 interface LoginMethodsProps {
   userId: string;
@@ -52,7 +53,7 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
         setConnectedAccounts(data.accounts || []);
       }
     } catch (error) {
-      console.error('Error loading connected accounts:', error);
+      logger.error('Error loading connected accounts:', error);
     }
   };
 
@@ -71,7 +72,7 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
       }
     } catch (error) {
       // Endpoint might not exist yet, that's okay
-      console.log('Magic link settings endpoint not available');
+      logger.info('Magic link settings endpoint not available');
     }
   };
 
@@ -81,7 +82,7 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
       const redirectUrl = `${window.location.origin}/api/auth/${provider}`;
       window.location.href = redirectUrl;
     } catch (error) {
-      console.error('Error connecting provider:', error);
+      logger.error('Error connecting provider:', error);
       toast.error('فشل في الاتصال بالمزود');
     }
   };
@@ -109,7 +110,7 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
         toast.error('فشل في فك الربط');
       }
     } catch (error) {
-      console.error('Error disconnecting provider:', error);
+      logger.error('Error disconnecting provider:', error);
       toast.error('حدث خطأ أثناء فك الربط');
     }
   };
@@ -138,7 +139,7 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
         toast.error(error.error || 'فشل في إرسال رابط تسجيل الدخول');
       }
     } catch (error) {
-      console.error('Error sending magic link:', error);
+      logger.error('Error sending magic link:', error);
       toast.error('حدث خطأ أثناء إرسال رابط تسجيل الدخول');
     } finally {
       setIsSendingMagicLink(false);

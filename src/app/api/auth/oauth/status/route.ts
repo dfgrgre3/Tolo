@@ -1,12 +1,15 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig } from '@/lib/oauth';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * API endpoint to check OAuth provider status
  * Used by client components to determine if OAuth buttons should be shown
  */
-export async function GET() {
-  try {
+export async function GET(request: NextRequest) {
+  return opsWrapper(request, async () => {
+    try {
     const providers = {
       google: {
         enabled: oauthConfig.google.isConfigured(),
@@ -21,7 +24,7 @@ export async function GET() {
       providers,
     });
   } catch (error) {
-    console.error('Error checking OAuth status:', error);
+    logger.error('Error checking OAuth status:', error);
     return NextResponse.json(
       {
         success: false,
@@ -32,6 +35,7 @@ export async function GET() {
       },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

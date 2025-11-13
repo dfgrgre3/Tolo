@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET a single forum post by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
     const post = await prisma.forumPost.findUnique({
       where: { id },
@@ -45,14 +48,15 @@ export async function GET(
       isPinned: post.isPinned
     };
 
-    return NextResponse.json(transformedPost);
-  } catch (error) {
-    console.error("Error fetching forum post:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في جلب الموضوع" },
-      { status: 500 }
-    );
-  }
+      return NextResponse.json(transformedPost);
+    } catch (error) {
+      logger.error("Error fetching forum post:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ في جلب الموضوع" },
+        { status: 500 }
+      );
+    }
+  });
 }
 
 // POST to increment view count
@@ -60,24 +64,26 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
-    await prisma.forumPost.update({
-      where: { id },
-      data: {
-        views: {
-          increment: 1
+      await prisma.forumPost.update({
+        where: { id },
+        data: {
+          views: {
+            increment: 1
+          }
         }
-      }
-    });
+      });
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error("Error incrementing view count:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في تحديث عدد المشاهدات" },
-      { status: 500 }
-    );
-  }
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      logger.error("Error incrementing view count:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ في تحديث عدد المشاهدات" },
+        { status: 500 }
+      );
+    }
+  });
 }

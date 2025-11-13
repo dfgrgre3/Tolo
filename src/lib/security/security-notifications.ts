@@ -6,6 +6,7 @@
 import { prisma } from '@/lib/prisma';
 import { RiskAssessment } from './risk-assessment';
 import { DeviceFingerprint } from './device-fingerprint';
+import { logger } from '@/lib/logger';
 
 export interface SecurityNotification {
   id: string;
@@ -352,7 +353,7 @@ export class SecurityNotificationService {
       //   data: notification,
       // });
     } catch (error) {
-      console.error('Failed to send real-time notification:', error);
+      logger.error('Failed to send real-time notification:', error);
     }
   }
 
@@ -429,7 +430,7 @@ export class SecurityNotificationService {
         text: `${notification.title}\n\n${notification.message}\n\nالوقت: ${new Date(notification.createdAt).toLocaleString('ar-EG')}`,
       });
     } catch (error) {
-      console.error('Failed to send email notification:', error);
+      logger.error('Failed to send email notification:', error);
       // Don't throw - we don't want to break the main flow if email fails
     }
   }

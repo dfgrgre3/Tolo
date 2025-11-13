@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // واجهة برمجة تطبيقات اليوتيب للبحث عن القنوات التعليمية
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
 
     // التحقق من مفتاح API
     if (!validateApiKey(selectedProvider === AI_PROVIDERS.OPENAI ? 'OPENAI' : 'GEMINI')) {
-      console.error(`API key for ${selectedProvider.name} is not configured`);
+      logger.error(`API key for ${selectedProvider.name} is not configured`);
       return NextResponse.json(
         { error: `مفتاح API لـ ${selectedProvider.name} غير مهيأ. يرجى التواصل مع فريق الدعم لإضافة مفتاح API صالح.` },
         { status: 500 }
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // التحقق من مفتاح YouTube API إذا كان مطلوبًا
     if ((!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("يوتيوب")) && !YOUTUBE_API_KEY) {
-      console.error("YouTube API key is not configured");
+      logger.error("YouTube API key is not configured");
       return NextResponse.json(
         { error: "مفتاح YouTube API غير مهيأ. يرجى التواصل مع فريق الدعم." },
         { status: 500 }
@@ -49,7 +50,7 @@ export async function POST(request: NextRequest) {
         }
       });
     } catch (dbError) {
-      console.error("Error fetching teachers from database:", dbError);
+      logger.error("Error fetching teachers from database:", dbError);
       // استمر حتى لو فشل البحث في قاعدة البيانات
     }
 
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
           }
         }
       } catch (error) {
-        console.error("Error searching YouTube:", error);
+        logger.error("Error searching YouTube:", error);
       }
     }
 
@@ -158,16 +159,16 @@ export async function POST(request: NextRequest) {
                   }
                 });
               } catch (dbError) {
-                console.error("Error saving teacher to database:", dbError);
+                logger.error("Error saving teacher to database:", dbError);
               }
             }
           } catch (parseError) {
-            console.error("Error parsing teachers JSON:", parseError);
+            logger.error("Error parsing teachers JSON:", parseError);
           }
         }
       }
     } catch (aiError) {
-      console.error("Error with AI provider:", aiError);
+      logger.error("Error with AI provider:", aiError);
       // استمر حتى لو فشل الذكاء الاصطناعي
     }
 
@@ -183,7 +184,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error("Error in AI teachers search API:", error);
+    logger.error("Error in AI teachers search API:", error);
     let errorMessage = "حدث خطأ في معالجة طلبك";
 
     // تحديد رسالة الخطأ بناءً على نوع الخطأ

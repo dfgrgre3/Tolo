@@ -18,7 +18,8 @@ import {
   MessageSquare,
   Bell
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";import { logger } from '@/lib/logger';
+
 // Note: Arabic locale may not be available in all date-fns versions
 // Fallback to English if Arabic locale is not found
 
@@ -86,7 +87,7 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
           }
         }
       } catch (error) {
-        console.error("Error fetching activities:", error);
+        logger.error("Error fetching activities:", error);
         // Keep empty array instead of showing fake data
         setActivities([]);
       }

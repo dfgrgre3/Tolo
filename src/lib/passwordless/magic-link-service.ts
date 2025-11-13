@@ -107,7 +107,7 @@ export async function createAndSendMagicLink(
       expiresIn: MAGIC_LINK_EXPIRY_MINUTES * 60, // in seconds
     };
   } catch (error) {
-    console.error('Magic link creation error:', error);
+    logger.error('Magic link creation error:', error);
     throw error;
   }
 }
@@ -180,7 +180,7 @@ export async function verifyMagicLink(
       },
     };
   } catch (error) {
-    console.error('Magic link verification error:', error);
+    logger.error('Magic link verification error:', error);
     return {
       valid: false,
       error: 'حدث خطأ أثناء التحقق من الرابط',

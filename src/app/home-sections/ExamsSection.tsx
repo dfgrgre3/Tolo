@@ -1,6 +1,33 @@
 import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
 import Link from "next/link";
 import { safeFetch } from "@/lib/safe-client-utils";
+import { logger } from '@/lib/logger';
+
+// --- Type Definitions ---
+
+interface Exam {
+  id: string;
+  title: string;
+  duration: number;
+  questionCount: number;
+  difficulty: "سهل" | "متوسط" | "صعب";
+  subject?: string;
+  year?: number;
+  type?: string;
+}
+
+interface SubjectWithExams {
+  id: string;
+  name: string;
+  emoji: string;
+  exams: Exam[];
+}
+
+interface Stat {
+  icon: string;
+  value: string;
+  label: string;
+}
 
 // --- Skeleton Components for Loading State ---
 
@@ -81,7 +108,7 @@ StatCard.displayName = "StatCard";
 
 // --- New Modal Component for Exams ---
 
-const ExamsModal = memo(({ subject, onClose }: { subject: any; onClose: () => void }) => {
+const ExamsModal = memo(({ subject, onClose }: { subject: SubjectWithExams | null; onClose: () => void }) => {
     const handleEsc = useCallback((event: KeyboardEvent) => {
         if (event.key === 'Escape') onClose();
     }, [onClose]);
@@ -122,7 +149,7 @@ const ExamsModal = memo(({ subject, onClose }: { subject: any; onClose: () => vo
                     </button>
                 </div>
                 <div className="space-y-4">
-                    {subject.exams.map((exam: any) => (
+                    {subject.exams.map((exam: Exam) => (
                         <div key={exam.id} className="bg-gray-50 rounded-lg p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border border-gray-200">
                             <div>
                                 <h4 className="font-semibold text-gray-800">{exam.title}</h4>
@@ -151,10 +178,10 @@ ExamsModal.displayName = "ExamsModal";
 
 function ExamsSectionComponent() {
     const [loading, setLoading] = useState(true);
-    const [subjects, setSubjects] = useState<any[]>([]);
-    const [stats, setStats] = useState<any[]>([]);
+    const [subjects, setSubjects] = useState<SubjectWithExams[]>([]);
+    const [stats, setStats] = useState<Stat[]>([]);
     const [searchTerm, setSearchTerm] = useState("");
-    const [selectedSubject, setSelectedSubject] = useState<any>(null);
+    const [selectedSubject, setSelectedSubject] = useState<SubjectWithExams | null>(null);
     const [error, setError] = useState<string | null>(null);
 
     // Fetch real data from API
@@ -165,30 +192,37 @@ function ExamsSectionComponent() {
             
             try {
                 // Fetch exams from API
-                const { data: examsData, error: examsError } = await safeFetch<any[]>(
+                const { data: examsData, error: examsError } = await safeFetch<Exam[]>(
                     "/api/exams",
                     undefined,
                     []
                 );
 
-                if (examsError || !examsData) {
+                if (examsError) {
                     // فقط في وضع التطوير نعرض الخطأ الكامل في console
                     if (process.env.NODE_ENV === 'development') {
-                        console.error("Error fetching exams:", examsError);
+                        logger.error("Error fetching exams:", examsError);
                     }
                     // عرض رسالة خطأ واضحة للمستخدم
                     const errorMessage = examsError?.message || "فشل تحميل الامتحانات";
                     setError(errorMessage.includes("HTTP 500") 
                         ? "حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً." 
-                        : errorMessage);
+                        : "حدث خطأ في جلب الامتحانات");
+                    setLoading(false);
+                    return;
+                }
+
+                // التحقق من أن البيانات موجودة وصالحة
+                if (!examsData || !Array.isArray(examsData)) {
+                    setError("حدث خطأ في جلب الامتحانات");
                     setLoading(false);
                     return;
                 }
 
                 // Group exams by subject
-                const subjectMap = new Map<string, any>();
+                const subjectMap = new Map<string, SubjectWithExams>();
                 
-                examsData?.forEach((exam: any) => {
+                examsData?.forEach((exam: Exam) => {
                     const subjectName = exam.subject || "غير محدد";
                     if (!subjectMap.has(subjectName)) {
                         // Get emoji based on subject
@@ -228,7 +262,7 @@ function ExamsSectionComponent() {
 
                 // Calculate stats from real data
                 const totalExams = examsData?.length || 0;
-                const totalQuestions = examsData?.reduce((sum: number, exam: any) => 
+                const totalQuestions = examsData?.reduce((sum: number, exam: Exam) => 
                     sum + (exam.questionCount || 0), 0) || 0;
                 
                 // Get user count from API if available (optional, don't fail if it errors)
@@ -244,7 +278,7 @@ function ExamsSectionComponent() {
                     }
                 } catch (statsError) {
                     // Silently fail for stats - it's optional data
-                    console.warn("Failed to fetch user stats (optional):", statsError);
+                    logger.warn("Failed to fetch user stats (optional):", statsError);
                 }
 
                 setStats([
@@ -254,7 +288,7 @@ function ExamsSectionComponent() {
                 ]);
 
             } catch (err) {
-                console.error("Error fetching exams data:", err);
+                logger.error("Error fetching exams data:", err);
                 setError("حدث خطأ أثناء تحميل البيانات");
             } finally {
                 setLoading(false);

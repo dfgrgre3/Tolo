@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Fingerprint, Chrome, Sparkles } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 interface AlternativeLoginMethodsProps {
   onBiometricLogin: () => void;
@@ -33,7 +34,7 @@ export function AlternativeLoginMethods({
           setIsGoogleOAuthEnabled(data.providers?.google?.enabled ?? false);
         }
       } catch (error) {
-        console.error('Failed to check OAuth status:', error);
+        logger.error('Failed to check OAuth status:', error);
         // If check fails, default to false for safety
         setIsGoogleOAuthEnabled(false);
       }

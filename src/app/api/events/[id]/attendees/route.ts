@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all attendees for an event
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
     // Check if event exists
     const event = await prisma.event.findUnique({
@@ -47,12 +50,13 @@ export async function GET(
 
     return NextResponse.json(transformedAttendees);
   } catch (error) {
-    console.error("Error fetching event attendees:", error);
+    logger.error("Error fetching event attendees:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المشاركين" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST to join an event
@@ -60,9 +64,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const { userId } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      const { userId } = await req.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -137,12 +142,13 @@ export async function POST(
       joinedAt: newAttendee.joinedAt.toISOString()
     }, { status: 201 });
   } catch (error) {
-    console.error("Error joining event:", error);
+    logger.error("Error joining event:", error);
     return NextResponse.json(
       { error: "حدث خطأ في الانضمام للمناسبة" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // DELETE to leave an event
@@ -150,9 +156,10 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const { userId } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      const { userId } = await req.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -190,10 +197,11 @@ export async function DELETE(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error leaving event:", error);
+    logger.error("Error leaving event:", error);
     return NextResponse.json(
       { error: "حدث خطأ في مغادرة المناسبة" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

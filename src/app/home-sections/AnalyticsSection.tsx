@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { safeFetch } from '@/lib/safe-client-utils';
 import { getSafeUserId } from '@/lib/safe-client-utils';
+import { logger } from '@/lib/logger';
 
 /**
  * @typedef {Object} DailyData
@@ -99,7 +100,7 @@ const fetchAnalyticsData = async (path: string) => {
             lastUpdate: new Date(data.timestamp).toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         };
     } catch (err) {
-        console.error('Error fetching analytics data:', err);
+        logger.error('Error fetching analytics data:', err);
         throw new Error("فشل جلب التحليلات بسبب خطأ في الخادم.");
     }
 };
@@ -275,7 +276,7 @@ function AnalyticsSectionComponent() {
             const fetchedData = await fetchAnalyticsData(path); 
             setData(fetchedData);
         } catch (err) {
-            console.error("Failed to fetch analytics data:", err);
+            logger.error("Failed to fetch analytics data:", err);
             setError((err instanceof Error ? err.message : String(err)) || "فشل تحميل البيانات. الرجاء التحقق من اتصالك وإعادة المحاولة.");
         } finally {
             setIsLoading(false);

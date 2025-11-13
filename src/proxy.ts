@@ -1,8 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { logger } from '@/lib/logger';
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // Handle /ar route - redirect to home (i18n is handled in components, not routes)
+  if (pathname === '/ar') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/';
+    return NextResponse.redirect(url);
+  }
 
   // Get auth token from cookies
   const accessToken = request.cookies.get('access_token')?.value;
@@ -28,7 +36,7 @@ export function proxy(request: NextRequest) {
         }
       } catch (e) {
         // If decoding fails, fall back to home
-        console.error('Failed to decode redirect parameter:', e);
+        logger.error('Failed to decode redirect parameter:', e);
       }
     }
     

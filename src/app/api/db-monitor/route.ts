@@ -1,26 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbMonitor } from '@/lib/db-monitor';
 import { verifyToken } from '@/lib/auth-unified';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/db-monitor
  * Get database monitoring information
  */
 export async function GET(request: NextRequest) {
-  try {
-    // In a real implementation, you would verify the user has admin privileges
-    // For now, we'll just check if the user is authenticated
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    // Verify token (in a real implementation, check for admin role)
-    const decoded = verifyToken(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // In a real implementation, you would verify the user has admin privileges
+      // For now, we'll just check if the user is authenticated
+      const token = req.headers.get('authorization')?.replace('Bearer ', '');
+      
+      if (!token) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      
+      // Verify token (in a real implementation, check for admin role)
+      const decoded = verifyToken(req);
     if (!decoded) {
       return NextResponse.json(
         { error: 'Invalid token' },
@@ -33,12 +36,13 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(healthReport);
   } catch (error) {
-    console.error('Database monitoring error:', error);
+    logger.error('Database monitoring error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 /**
@@ -46,28 +50,29 @@ export async function GET(request: NextRequest) {
  * Reset database monitoring statistics
  */
 export async function POST(request: NextRequest) {
-  try {
-    // In a real implementation, you would verify the user has admin privileges
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-    
-    // Verify token (in a real implementation, check for admin role)
-    const decoded = verifyToken(request);
-    if (!decoded) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-    
-    // Check if this is a reset request
-    const { action } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      // In a real implementation, you would verify the user has admin privileges
+      const token = req.headers.get('authorization')?.replace('Bearer ', '');
+      
+      if (!token) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+      
+      // Verify token (in a real implementation, check for admin role)
+      const decoded = verifyToken(req);
+      if (!decoded) {
+        return NextResponse.json(
+          { error: 'Invalid token' },
+          { status: 401 }
+        );
+      }
+      
+      // Check if this is a reset request
+      const { action } = await req.json();
     
     if (action === 'reset') {
       dbMonitor.resetStats();
@@ -79,10 +84,11 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
-    console.error('Database monitoring error:', error);
+    logger.error('Database monitoring error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

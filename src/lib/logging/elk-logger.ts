@@ -44,9 +44,15 @@ const jsonFormat = winston.format.combine(
 
 // Console transport للتطوير
 const consoleTransport = new winston.transports.Console({
+  level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
+    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+    winston.format.errors({ stack: true }),
     winston.format.colorize(),
-    winston.format.simple()
+    winston.format.printf(({ timestamp, level, message, ...meta }) => {
+      const metaString = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
+      return `${timestamp} [${level}]: ${message}${metaString ? '\n' + metaString : ''}`;
+    })
   ),
 });
 
@@ -80,6 +86,7 @@ if (process.env.ELASTICSEARCH_ENABLED !== 'false') {
       flushInterval: 2000,
     });
   } catch (error) {
+    // Use console.error as fallback to avoid circular dependency
     console.error('Failed to initialize Elasticsearch transport:', error);
   }
 }
@@ -116,33 +123,53 @@ export const elkLogger = winston.createLogger({
 // Helper functions للاستخدام السهل
 export const logger = {
   info: (message: string, meta?: Record<string, any>) => {
-    elkLogger.info(message, meta);
+    try {
+      elkLogger.info(message, meta || {});
+    } catch (error) {
+      // Fallback to console if ELK logger fails
+      console.info(`[ELK Logger Error] ${message}`, meta, error);
+    }
   },
 
   error: (message: string, error?: Error | unknown, meta?: Record<string, any>) => {
-    const errorMeta = {
-      ...meta,
-      ...(error instanceof Error
-        ? {
-            error: {
-              message: error.message,
-              stack: error.stack,
-              name: error.name,
-            },
-          }
-        : error
-        ? { error: String(error) }
-        : {}),
-    };
-    elkLogger.error(message, errorMeta);
+    try {
+      const errorMeta = {
+        ...meta,
+        ...(error instanceof Error
+          ? {
+              error: {
+                message: error.message,
+                stack: error.stack,
+                name: error.name,
+              },
+            }
+          : error
+          ? { error: String(error) }
+          : {}),
+      };
+      elkLogger.error(message, errorMeta);
+    } catch (err) {
+      // Fallback to console if ELK logger fails
+      console.error(`[ELK Logger Error] ${message}`, meta, error, err);
+    }
   },
 
   warn: (message: string, meta?: Record<string, any>) => {
-    elkLogger.warn(message, meta);
+    try {
+      elkLogger.warn(message, meta || {});
+    } catch (error) {
+      // Fallback to console if ELK logger fails
+      console.warn(`[ELK Logger Error] ${message}`, meta, error);
+    }
   },
 
   debug: (message: string, meta?: Record<string, any>) => {
-    elkLogger.debug(message, meta);
+    try {
+      elkLogger.debug(message, meta || {});
+    } catch (error) {
+      // Fallback to console if ELK logger fails
+      console.debug(`[ELK Logger Error] ${message}`, meta, error);
+    }
   },
 
   // Log HTTP requests
@@ -155,16 +182,21 @@ export const logger = {
     userAgent?: string;
     userId?: string;
   }) => {
-    elkLogger.info('HTTP Request', {
-      type: 'http',
-      method: req.method,
-      url: req.url,
-      statusCode: req.statusCode,
-      duration: req.duration,
-      ip: req.ip,
-      userAgent: req.userAgent,
-      userId: req.userId,
-    });
+    try {
+      elkLogger.info('HTTP Request', {
+        type: 'http',
+        method: req.method,
+        url: req.url,
+        statusCode: req.statusCode,
+        duration: req.duration,
+        ip: req.ip,
+        userAgent: req.userAgent,
+        userId: req.userId,
+      });
+    } catch (error) {
+      // Fallback to console if ELK logger fails
+      console.info(`[ELK Logger Error] HTTP Request`, req, error);
+    }
   },
 
   // Log database queries
@@ -175,15 +207,24 @@ export const logger = {
     success: boolean;
     error?: string;
   }) => {
-    const level = query.success ? 'info' : 'error';
-    elkLogger.log(level, 'Database Query', {
-      type: 'database',
-      operation: query.operation,
-      table: query.table,
-      duration: query.duration,
-      success: query.success,
-      error: query.error,
-    });
+    try {
+      const level = query.success ? 'info' : 'error';
+      elkLogger.log(level, 'Database Query', {
+        type: 'database',
+        operation: query.operation,
+        table: query.table,
+        duration: query.duration,
+        success: query.success,
+        error: query.error,
+      });
+    } catch (error) {
+      // Fallback to console if ELK logger fails
+      if (query.success) {
+        console.info(`[ELK Logger Error] Database Query`, query, error);
+      } else {
+        console.error(`[ELK Logger Error] Database Query`, query, error);
+      }
+    }
   },
 
   // Log authentication events
@@ -195,16 +236,25 @@ export const logger = {
     method?: string;
     error?: string;
   }) => {
-    const level = event.success ? 'info' : 'warn';
-    elkLogger.log(level, 'Authentication Event', {
-      type: 'authentication',
-      eventType: event.type,
-      userId: event.userId,
-      ip: event.ip,
-      success: event.success,
-      method: event.method,
-      error: event.error,
-    });
+    try {
+      const level = event.success ? 'info' : 'warn';
+      elkLogger.log(level, 'Authentication Event', {
+        type: 'authentication',
+        eventType: event.type,
+        userId: event.userId,
+        ip: event.ip,
+        success: event.success,
+        method: event.method,
+        error: event.error,
+      });
+    } catch (error) {
+      // Fallback to console if ELK logger fails
+      if (event.success) {
+        console.info(`[ELK Logger Error] Authentication Event`, event, error);
+      } else {
+        console.warn(`[ELK Logger Error] Authentication Event`, event, error);
+      }
+    }
   },
 };
 

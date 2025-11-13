@@ -4,19 +4,22 @@ import { writeFile } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    // تحقق من التوثيق
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // تحقق من التوثيق
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const data = await request.formData();
+      const data = await req.formData();
     const fileEntry = data.get('file');
 
     if (!(fileEntry instanceof Blob)) {
@@ -53,10 +56,11 @@ export async function POST(request: NextRequest) {
       fileType: fileEntry.type
     });
   } catch (error) {
-    console.error('Error uploading file:', error);
+    logger.error('Error uploading file:', error);
     return NextResponse.json(
       { error: 'فشل رفع الملف' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

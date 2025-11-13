@@ -5,6 +5,7 @@
 
 import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 // Base32 encoding functions (needed for TOTP)
 const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -92,7 +93,7 @@ export function generateTOTP(secret: string, timeStep: number = 30): string {
     
     return totp;
   } catch (error) {
-    console.error('TOTP generation error:', error);
+    logger.error('TOTP generation error:', error);
     throw new Error('Failed to generate TOTP code');
   }
 }
@@ -276,7 +277,7 @@ export async function disableTOTP(userId: string): Promise<boolean> {
 
     return true;
   } catch (error) {
-    console.error('Failed to disable TOTP:', error);
+    logger.error('Failed to disable TOTP:', error);
     return false;
   }
 }

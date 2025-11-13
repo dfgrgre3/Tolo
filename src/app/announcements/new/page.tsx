@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 export default function NewAnnouncementPage() {
   const router = useRouter();
@@ -63,7 +64,7 @@ export default function NewAnnouncementPage() {
         alert("حدث خطأ أثناء إنشاء الإعلان");
       }
     } catch (error) {
-      console.error("Error creating announcement:", error);
+      logger.error("Error creating announcement:", error);
       alert("حدث خطأ أثناء إنشاء الإعلان");
     } finally {
       setIsSubmitting(false);

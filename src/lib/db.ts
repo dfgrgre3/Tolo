@@ -1,4 +1,5 @@
 import { prisma as prismaClient, enhancedPrisma as enhancedPrismaClient } from './db-unified';
+import { logger } from '@/lib/logger';
 
 // Database connection configuration with pooling settings
 export const databaseConfig = {
@@ -215,7 +216,7 @@ async function retryDatabaseOperation<T>(
       
       // Calculate delay with exponential backoff
       const delay = initialDelay * Math.pow(2, attempt - 1);
-      console.warn(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, {
+      logger.warn(`Database operation failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, {
         error: error instanceof Error ? error.message : String(error),
         attempt,
         maxRetries
@@ -247,13 +248,13 @@ export const checkDatabaseHealth = async (retry: boolean = true): Promise<boolea
         await fsPromises.access(fullPath);
       } catch (accessError) {
         // If database file doesn't exist, try to create it
-        console.warn(`Database file not found at ${fullPath}, attempting to create directory structure...`);
+        logger.warn(`Database file not found at ${fullPath}, attempting to create directory structure...`);
         try {
           const dir = pathModule.dirname(fullPath);
           await fsPromises.mkdir(dir, { recursive: true });
           // File will be created by Prisma when we try to connect
         } catch (mkdirError) {
-          console.error(`Failed to create database directory:`, mkdirError);
+          logger.error(`Failed to create database directory:`, mkdirError);
           throw new Error(`Database file not accessible and cannot create directory: ${fullPath}`);
         }
       }
@@ -272,7 +273,7 @@ export const checkDatabaseHealth = async (retry: boolean = true): Promise<boolea
       return await operation();
     }
   } catch (error) {
-    console.error('Database health check failed:', {
+    logger.error('Database health check failed:', {
       error: error instanceof Error ? error.message : String(error),
       code: (error as any)?.code,
       databaseUrl: process.env.DATABASE_URL ? '***' : 'not set'
@@ -289,7 +290,7 @@ export const ensureDatabaseConnection = async (): Promise<boolean> => {
   try {
     // First check if Prisma client is available
     if (!prisma) {
-      console.error('Prisma client is not available');
+      logger.error('Prisma client is not available');
       return false;
     }
 
@@ -299,7 +300,7 @@ export const ensureDatabaseConnection = async (): Promise<boolean> => {
     } catch (connectError) {
       // If already connected, this might throw, but it's okay
       if (!isConnectionError(connectError)) {
-        console.warn('Connection attempt:', connectError instanceof Error ? connectError.message : String(connectError));
+        logger.warn('Connection attempt:', connectError instanceof Error ? connectError.message : String(connectError));
       }
     }
 
@@ -307,7 +308,7 @@ export const ensureDatabaseConnection = async (): Promise<boolean> => {
     const isHealthy = await checkDatabaseHealth(true);
     return isHealthy;
   } catch (error) {
-    console.error('Failed to ensure database connection:', error);
+    logger.error('Failed to ensure database connection:', error);
     return false;
   }
 };
@@ -321,12 +322,12 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DB_STATS === 't
       const isHealthy = await checkDatabaseHealth();
       if (isHealthy) {
         await prisma.$queryRaw`SELECT 1`;
-        console.log('Database connection pool is active');
+        logger.info('Database connection pool is active');
       } else {
-        console.warn('Database connection pool health check skipped due to connection issues');
+        logger.warn('Database connection pool health check skipped due to connection issues');
       }
     } catch (error) {
-      console.error('Database connection pool health check failed:', error);
+      logger.error('Database connection pool health check failed:', error);
       // Don't crash the application if health check fails
       // This can happen when the database file is temporarily inaccessible
     }
@@ -335,5 +336,5 @@ if (process.env.NODE_ENV === 'development' || process.env.ENABLE_DB_STATS === 't
 
 if (process.env.NODE_ENV !== 'production') {
   // In non-production environments, enable additional logging
-  console.log('Database module loaded in development mode');
+  logger.info('Database module loaded in development mode');
 }

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { securityLogger } from '@/lib/security-logger';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/auth/security-logs
  * الحصول على سجلات الأمان للمستخدم
  */
 export async function GET(request: NextRequest) {
-  try {
-    // التحقق من التوكن
-    const authHeader = request.headers.get('Authorization');
+  return opsWrapper(request, async (req) => {
+    try {
+      // التحقق من التوكن
+      const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'غير مصرح' },
@@ -27,8 +30,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // الحصول على معاملات البحث
-    const searchParams = request.nextUrl.searchParams;
+      // الحصول على معاملات البحث
+      const searchParams = req.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     const eventType = searchParams.get('eventType');
@@ -53,11 +56,12 @@ export async function GET(request: NextRequest) {
       total: logs.length,
     });
   } catch (error) {
-    console.error('Security logs error:', error);
+    logger.error('Security logs error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء جلب السجلات' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

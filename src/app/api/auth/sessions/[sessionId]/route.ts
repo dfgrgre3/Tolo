@@ -1,17 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  try {
-    // Await params in Next.js 16
-    const { sessionId } = await params;
-    
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Await params in Next.js 16
+      const { sessionId } = await params;
+      
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
     
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -42,9 +45,9 @@ export async function DELETE(
       where: { id: sessionId },
     });
 
-    // Log security event
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Log security event
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
     await authService.logSecurityEvent(
       userId,
       'session_revoked',
@@ -61,11 +64,12 @@ export async function DELETE(
     });
 
   } catch (error) {
-    console.error('Failed to revoke session:', error);
+    logger.error('Failed to revoke session:', error);
     return NextResponse.json(
       { error: 'فشل إلغاء الجلسة' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

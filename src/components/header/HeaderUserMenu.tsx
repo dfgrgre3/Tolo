@@ -25,8 +25,10 @@ import {
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { LazyAvatar } from "@/components/ui/LazyAvatar";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/auth/UserProvider";
+import { logger } from '@/lib/logger';
 
 export function HeaderUserMenu() {
 	const router = useRouter();
@@ -37,7 +39,7 @@ export function HeaderUserMenu() {
 			await logout();
 			router.push("/");
 		} catch (error) {
-			console.error("Logout error:", error);
+			logger.error("Logout error:", error);
 		}
 	}, [logout, router]);
 
@@ -54,16 +56,18 @@ export function HeaderUserMenu() {
 					<DropdownMenuTrigger asChild>
 						<Button variant="ghost" className="flex items-center gap-2 h-auto p-1.5 hover:bg-primary/10 transition-all duration-300 group">
 							<div className="relative">
-								<Avatar className="h-9 w-9 border-2 border-primary/20 transition-all duration-300 group-hover:border-primary/40 group-hover:scale-105">
-									<AvatarImage src={user.avatar} alt={user.name || "User"} />
-									<AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
-										{user.name
-											?.split(" ")
-											.map((n) => n[0])
-											.join("")
-											.toUpperCase() || user.email[0].toUpperCase()}
-									</AvatarFallback>
-								</Avatar>
+								<LazyAvatar
+									src={user.avatar}
+									alt={user.name || "User"}
+									fallback={user.name
+										?.split(" ")
+										.map((n) => n[0])
+										.join("")
+										.toUpperCase() || user.email[0].toUpperCase()}
+									size="md"
+									priority={false}
+									className="h-9 w-9 border-2 border-primary/20 transition-all duration-300 group-hover:border-primary/40 group-hover:scale-105"
+								/>
 								<span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-background rounded-full shadow-sm" title="متصل" />
 							</div>
 							<span className="hidden md:block text-sm font-medium max-w-[100px] truncate">
@@ -76,16 +80,18 @@ export function HeaderUserMenu() {
 						<DropdownMenuLabel className="px-3 py-3">
 							<div className="flex items-center gap-3">
 								<div className="relative">
-									<Avatar className="h-12 w-12 border-2 border-primary/20">
-										<AvatarImage src={user.avatar} alt={user.name || "User"} />
-										<AvatarFallback className="bg-gradient-to-br from-primary to-primary/80">
-											{user.name
-												?.split(" ")
-												.map((n) => n[0])
-												.join("")
-												.toUpperCase() || user.email[0].toUpperCase()}
-										</AvatarFallback>
-									</Avatar>
+									<LazyAvatar
+										src={user.avatar}
+										alt={user.name || "User"}
+										fallback={user.name
+											?.split(" ")
+											.map((n) => n[0])
+											.join("")
+											.toUpperCase() || user.email[0].toUpperCase()}
+										size="lg"
+										priority={true}
+										className="h-12 w-12 border-2 border-primary/20"
+									/>
 									<span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-background rounded-full shadow-sm" />
 								</div>
 								<div className="flex flex-col space-y-1 flex-1 min-w-0">

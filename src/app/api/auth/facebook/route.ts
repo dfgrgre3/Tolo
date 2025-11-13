@@ -1,9 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig, generateState } from '@/lib/oauth';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
+  return opsWrapper(request, async (req) => {
+    try {
     // Generate a random state for CSRF protection
     const state = generateState();
 
@@ -26,11 +29,12 @@ export async function GET(request: NextRequest) {
       path: '/',
     });
 
-    return response;
-  } catch (error) {
-    console.error('Error initiating Facebook OAuth:', error);
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_failed`
-    );
-  }
+      return response;
+    } catch (error) {
+      logger.error('Error initiating Facebook OAuth:', error);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_failed`
+      );
+    }
+  });
 }

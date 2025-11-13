@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * Enhanced custom hook that runs an effect only on the client side.
@@ -49,7 +50,7 @@ export function useClientEffect(
         cleanupRef.current = effect();
       }
     } catch (error) {
-      console.error('useClientEffect: Error in effect function:', error);
+      logger.error('useClientEffect: Error in effect function:', error);
       if (options?.errorBoundary) {
         // Could integrate with error reporting service here
       }
@@ -61,7 +62,7 @@ export function useClientEffect(
         try {
           cleanupRef.current();
         } catch (error) {
-          console.error('useClientEffect: Error in cleanup function:', error);
+          logger.error('useClientEffect: Error in cleanup function:', error);
         }
         cleanupRef.current = undefined;
       }

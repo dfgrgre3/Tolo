@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // POST to enroll in a subject
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
-    const { userId, subject } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
+      const { userId, subject } = await req.json();
 
     if (!userId || !subject) {
       return NextResponse.json(
@@ -57,12 +60,13 @@ export async function POST(
 
     return NextResponse.json(enrollment);
   } catch (error) {
-    console.error("Error enrolling in course:", error);
+    logger.error("Error enrolling in course:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء معالجة الطلب" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // GET to check enrollment status
@@ -70,9 +74,10 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params; // This would be the subject
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params; // This would be the subject
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
     if (!userId) {
@@ -103,12 +108,13 @@ export async function GET(
       enrollment
     });
   } catch (error) {
-    console.error("Error checking enrollment status:", error);
+    logger.error("Error checking enrollment status:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء معالجة الطلب" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // DELETE to unenroll from a subject
@@ -116,54 +122,56 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params; // This would be the subject
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params; // This would be the subject
+      const { searchParams } = new URL(req.url);
+      const userId = searchParams.get("userId");
 
-    if (!userId) {
+      if (!userId) {
+        return NextResponse.json(
+          { error: "معرف المستخدم مطلوب" },
+          { status: 400 }
+        );
+      }
+
+      // Check if enrollment exists
+      const enrollment = await prisma.subjectEnrollment.findUnique({
+        where: {
+          userId_subject: {
+            userId,
+            subject: id
+          }
+        }
+      });
+
+      if (!enrollment) {
+        return NextResponse.json(
+          { error: "التسجيل غير موجود" },
+          { status: 404 }
+        );
+      }
+
+      // Delete enrollment
+      await prisma.subjectEnrollment.delete({
+        where: {
+          userId_subject: {
+            userId,
+            subject: id
+          }
+        }
+      });
+
       return NextResponse.json(
-        { error: "معرف المستخدم مطلوب" },
-        { status: 400 }
+        { message: "تم إلغاء التسجيل بنجاح" },
+        { status: 200 }
+      );
+    } catch (error) {
+      logger.error("Error unenrolling from course:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ أثناء معالجة الطلب" },
+        { status: 500 }
       );
     }
-
-    // Check if enrollment exists
-    const enrollment = await prisma.subjectEnrollment.findUnique({
-      where: {
-        userId_subject: {
-          userId,
-          subject: id
-        }
-      }
-    });
-
-    if (!enrollment) {
-      return NextResponse.json(
-        { error: "التسجيل غير موجود" },
-        { status: 404 }
-      );
-    }
-
-    // Delete enrollment
-    await prisma.subjectEnrollment.delete({
-      where: {
-        userId_subject: {
-          userId,
-          subject: id
-        }
-      }
-    });
-
-    return NextResponse.json(
-      { message: "تم إلغاء التسجيل بنجاح" },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error("Error unenrolling from course:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ أثناء معالجة الطلب" },
-      { status: 500 }
-    );
-  }
+  });
 }

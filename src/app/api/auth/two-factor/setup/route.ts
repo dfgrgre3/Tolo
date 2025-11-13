@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    // In a real implementation, you would use proper authentication
-    // For now, we'll just simulate the endpoint
-    const { enable, userId } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      // In a real implementation, you would use proper authentication
+      // For now, we'll just simulate the endpoint
+      const { enable, userId } = await req.json();
 
     if (!userId) {
       return NextResponse.json(
@@ -41,10 +44,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error updating two-factor authentication:', error);
+    logger.error('Error updating two-factor authentication:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

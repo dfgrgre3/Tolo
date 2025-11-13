@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 const API_KEY = process.env.OPENAI_API_KEY;
 const API_URL = "https://api.openai.com/v1/chat/completions";
 
 export async function POST(request: NextRequest) {
-  // تحقق من تهيئة مفتاح API
-  if (!API_KEY) {
-    console.error("مفتاح OpenAI API غير مضبوط");
-    return NextResponse.json(
-      { error: "مفتاح OpenAI API غير مضبوط. يرجى التواصل مع الدعم." },
-      { status: 500 }
-    );
-  }
+  return opsWrapper(request, async (req) => {
+    // تحقق من تهيئة مفتاح API
+    if (!API_KEY) {
+      logger.error("مفتاح OpenAI API غير مضبوط");
+      return NextResponse.json(
+        { error: "مفتاح OpenAI API غير مضبوط. يرجى التواصل مع الدعم." },
+        { status: 500 }
+      );
+    }
 
-  try {
-    const { subject, grade, topic, studentChallenges } = await request.json();
+    try {
+      const { subject, grade, topic, studentChallenges } = await req.json();
     
     const systemMessage = {
       role: "system",
@@ -62,7 +65,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Error from OpenAI:", errorData);
+      logger.error("Error from OpenAI:", errorData);
       
       return NextResponse.json({
         error: "عذراً، يواجه النظام بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً."
@@ -74,10 +77,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ tipsContent });
   } catch (error) {
-    console.error("Error in tips generation API:", error);
+    logger.error("Error in tips generation API:", error);
     return NextResponse.json(
       { error: "حدث خطأ في معالجة طلبك" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

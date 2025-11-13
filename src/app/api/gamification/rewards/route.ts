@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { advancedGamificationService } from '@/lib/advanced-gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET /api/gamification/rewards - Get user rewards
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 
     if (!userId) {
@@ -18,18 +21,20 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ rewards });
   } catch (error: any) {
-    console.error('Error fetching rewards:', error);
+    logger.error('Error fetching rewards:', error);
     return NextResponse.json(
       { error: 'Failed to fetch rewards', details: error.message },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST /api/gamification/rewards - Award a reward
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { userId, rewardId, source, nftTokenId } = body;
 
     if (!userId || !rewardId || !source) {
@@ -51,11 +56,12 @@ export async function POST(request: NextRequest) {
       message: 'تم منح المكافأة بنجاح' 
     });
   } catch (error: any) {
-    console.error('Error awarding reward:', error);
+    logger.error('Error awarding reward:', error);
     return NextResponse.json(
       { error: 'Failed to award reward', details: error.message },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

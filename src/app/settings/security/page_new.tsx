@@ -14,6 +14,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Shield, Key, Smartphone, Mail, Lock, AlertTriangle, CheckCircle, History, Globe, Monitor } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/components/auth/UserProvider';
+import { logger } from '@/lib/logger';
 
 export default function SecuritySettingsPage() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export default function SecuritySettingsPage() {
         setActiveSessions(sessionsData.sessions || []);
       }
     } catch (error) {
-      console.error('Error fetching security data:', error);
+      logger.error('Error fetching security data:', error);
     }
   };
 

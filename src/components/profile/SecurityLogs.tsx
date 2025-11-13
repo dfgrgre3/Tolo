@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, CheckCircle2, XCircle, Shield, Lock, Key, Mail, Bell } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { logger } from '@/lib/logger';
 
 interface SecurityEvent {
   id: string;
@@ -84,10 +85,10 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
         const data = await response.json();
         setEvents(data.logs || []);
       } else {
-        console.error('Failed to load security events');
+        logger.error('Failed to load security events');
       }
     } catch (error) {
-      console.error('Error loading security events:', error);
+      logger.error('Error loading security events:', error);
     } finally {
       setLoading(false);
     }
@@ -122,7 +123,7 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
         }
       }
     } catch (error) {
-      console.error('Error checking for alerts:', error);
+      logger.error('Error checking for alerts:', error);
     }
   };
 

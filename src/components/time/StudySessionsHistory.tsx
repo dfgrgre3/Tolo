@@ -53,6 +53,7 @@ import {
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, subDays, subWeeks, subMonths, differenceInDays, parseISO } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { logger } from '@/lib/logger';
 
 interface StudySession {
   id: string;
@@ -498,7 +499,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (error) {
-      console.error('Error exporting data:', error);
+      logger.error('Error exporting data:', error);
     }
   }, [filteredSessions, stats, chartData, timePeriod, selectedSubject, selectedMood, searchQuery]);
 

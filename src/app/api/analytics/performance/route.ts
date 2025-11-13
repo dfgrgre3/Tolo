@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import redisClient, { CacheService } from '@/lib/redis';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // In-memory store for performance metrics if Redis is not available
 const performanceMetrics: Record<string, number[]> = {};
@@ -8,8 +10,9 @@ const performanceMetrics: Record<string, number[]> = {};
  * Get performance metrics
  */
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const hours = parseInt(searchParams.get('hours') || '24');
     
     // Try to get metrics from Redis first
@@ -22,7 +25,7 @@ export async function GET(request: NextRequest) {
         metrics = cachedMetrics;
       }
     } catch (error) {
-      console.warn('Could not connect to Redis for performance metrics:', error);
+      logger.warn('Could not connect to Redis for performance metrics:', error);
       // Fallback to in-memory store
       metrics = performanceMetrics;
     }
@@ -81,20 +84,22 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error fetching performance metrics:', error);
+    logger.error('Error fetching performance metrics:', error);
     return NextResponse.json(
       { error: 'Failed to fetch performance metrics' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 /**
  * Record a performance metric
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { metric, value } = body;
     
     if (!metric || value === undefined) {
@@ -123,7 +128,7 @@ export async function POST(request: NextRequest) {
       
       await CacheService.set('perf:metrics', existingMetrics, 86400); // Cache for 24 hours
     } catch (error) {
-      console.warn('Could not store metrics in Redis, using in-memory store:', error);
+      logger.warn('Could not store metrics in Redis, using in-memory store:', error);
       // Fallback to in-memory store
       if (!performanceMetrics[metric]) {
         performanceMetrics[metric] = [];
@@ -139,10 +144,11 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error recording performance metric:', error);
+    logger.error('Error recording performance metric:', error);
     return NextResponse.json(
       { error: 'Failed to record performance metric' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

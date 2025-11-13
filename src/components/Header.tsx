@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/shared/button";
@@ -10,39 +11,113 @@ import { HeaderLogo } from "./header/HeaderLogo";
 import { HeaderSearch } from "./header/HeaderSearch";
 import { HeaderNavigation } from "./header/HeaderNavigation";
 import { HeaderNotifications } from "./header/HeaderNotifications";
+import { EnhancedNotifications } from "./header/EnhancedNotifications";
 import { HeaderUserMenu } from "./header/HeaderUserMenu";
 import { HeaderMobileMenu } from "./header/HeaderMobileMenu";
+import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
 import { useAuth } from "@/components/auth/UserProvider";
 import { useMegaMenuState } from "./header/useMegaMenuState";
+import { useKeyboardShortcuts } from "@/app/time/hooks/useKeyboardShortcuts";
+import { HeaderCustomization, useHeaderPreferences } from "./header/HeaderCustomization";
+import ProgressIndicator from "./header/ProgressIndicator";
+
+// Dynamic imports for better performance (Next.js code splitting)
+// Using robust error handling to prevent HMR issues
+const CommandPalette = dynamic(
+	() => import("./header/CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
+	{ ssr: false, loading: () => null }
+);
+
+const QuickActions = dynamic(
+	() => import("./header/QuickActions").then((mod) => ({ default: mod.QuickActions })).catch(() => ({ default: () => null })),
+	{ ssr: false, loading: () => null }
+);
+
+const ActivityWidget = dynamic(
+	() => import("./header/ActivityWidget").then((mod) => ({ default: mod.ActivityWidget })).catch(() => ({ default: () => null })),
+	{ ssr: false, loading: () => null }
+);
+
+const ContextualHelp = dynamic(
+	() => import("./header/ContextualHelp").then((mod) => ({ default: mod.ContextualHelp })).catch(() => ({ default: () => null })),
+	{ ssr: false, loading: () => null }
+);
+
+const KeyboardShortcutsDisplay = dynamic(
+	() => import("./header/KeyboardShortcutsDisplay").then((mod) => ({ default: mod.KeyboardShortcutsDisplay })).catch(() => ({ default: () => null })),
+	{ ssr: false, loading: () => null }
+);
+
+const SmartNavigationSuggestions = dynamic(
+	() => import("./header/SmartNavigationSuggestions").then((mod) => ({ default: mod.SmartNavigationSuggestions })).catch(() => ({ default: () => null })),
+	{ ssr: false, loading: () => null }
+);
+
+const LanguageSwitch = dynamic(
+	() => import("./header/LanguageSwitch").then((mod) => ({ default: mod.LanguageSwitch })).catch(() => ({ default: () => null })),
+	{ ssr: false, loading: () => null }
+);
+
+// Throttle function for scroll optimization
+function throttle<T extends (...args: unknown[]) => unknown>(
+	func: T,
+	limit: number
+): (...args: Parameters<T>) => void {
+	let inThrottle: boolean;
+	return function (this: unknown, ...args: Parameters<T>) {
+		if (!inThrottle) {
+			func.apply(this, args);
+			inThrottle = true;
+			setTimeout(() => (inThrottle = false), limit);
+		}
+	};
+}
 
 export default function Header() {
 	const pathname = usePathname();
 	const { user } = useAuth();
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+	const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+	const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 	
 	// استخدام hook مشترك لإدارة حالة Mega Menu
 	const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
+	
+	// Header preferences
+	const { preferences: headerPreferences } = useHeaderPreferences();
 
-	// Handle scroll effect
+	// Handle scroll effect with throttling for better performance
 	useEffect(() => {
-		if (!mounted) return;
+		if (!mounted || typeof window === "undefined") return;
 		
-		const handleScroll = () => {
-			setIsScrolled(window.scrollY > 10);
-		};
+		const handleScroll = throttle(() => {
+			const scrolled = window.scrollY > 10;
+			setIsScrolled(scrolled);
+		}, 16); // ~60fps
 		
+		// Initial check
 		handleScroll();
 		
-		window.addEventListener("scroll", handleScroll);
-		return () => window.removeEventListener("scroll", handleScroll);
+		// Add scroll listener with passive option for better performance
+		window.addEventListener("scroll", handleScroll, { passive: true });
+		
+		// Cleanup
+		return () => {
+			window.removeEventListener("scroll", handleScroll);
+			if (scrollTimeoutRef.current) {
+				clearTimeout(scrollTimeoutRef.current);
+			}
+		};
 	}, [mounted]);
 
 	// إغلاق القائمة المحمولة عند تغيير المسار
 	useEffect(() => {
 		setIsMobileMenuOpen(false);
-	}, [pathname]);
+		setOpenMegaMenu(null);
+	}, [pathname, setOpenMegaMenu]);
 
+	// Memoized active route checker
 	const isActiveRoute = useCallback((href: string) => {
 		if (!pathname) {
 			return false;
@@ -53,18 +128,89 @@ export default function Header() {
 		return pathname.startsWith(href);
 	}, [pathname]);
 
+	// Keyboard shortcuts handler
+	useKeyboardShortcuts({
+		mounted,
+		isMobileMenuOpen,
+		setIsMobileMenuOpen,
+	});
+
+	// Command Palette keyboard shortcut
+	useEffect(() => {
+		if (!mounted) return;
+
+		const handleKeyDown = (e: KeyboardEvent) => {
+			// Ignore if typing in input/textarea
+			const target = e.target as HTMLElement;
+			if (
+				target.tagName === "INPUT" ||
+				target.tagName === "TEXTAREA" ||
+				target.isContentEditable
+			) {
+				return;
+			}
+
+			// Ctrl/Cmd + K for command palette
+			if ((e.ctrlKey || e.metaKey) && e.key === "k" && !e.shiftKey && !e.altKey) {
+				e.preventDefault();
+				setIsCommandPaletteOpen((prev) => !prev);
+			}
+		};
+
+		window.addEventListener("keydown", handleKeyDown);
+		return () => window.removeEventListener("keydown", handleKeyDown);
+	}, [mounted]);
+
+	// Toggle mobile menu with better state management
+	const toggleMobileMenu = useCallback(() => {
+		setIsMobileMenuOpen((prev) => {
+			const newState = !prev;
+			// Prevent body scroll when menu is open
+			if (typeof document !== "undefined") {
+				if (newState) {
+					document.body.style.overflow = "hidden";
+				} else {
+					document.body.style.overflow = "";
+				}
+			}
+			return newState;
+		});
+	}, []);
+
+	// Cleanup body overflow on unmount
+	useEffect(() => {
+		return () => {
+			if (typeof document !== "undefined") {
+				document.body.style.overflow = "";
+			}
+		};
+	}, []);
+
+	// Memoized header classes for better performance
+	const headerClasses = useMemo(
+		() =>
+			cn(
+				"sticky top-0 z-50 w-full border-b transition-all duration-500 ease-in-out",
+				"bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70",
+				mounted &&
+					isScrolled &&
+					"shadow-xl shadow-black/10 dark:shadow-black/30 border-b-border/50",
+				user &&
+					"border-primary/20 dark:border-primary/30 bg-gradient-to-r from-primary/5 via-background/80 to-primary/5 dark:from-primary/10 dark:via-background/70 dark:to-primary/10 shadow-primary/10",
+				headerPreferences.compactMode && "h-12"
+			),
+		[mounted, isScrolled, user, headerPreferences.compactMode]
+	);
+
 	return (
 		<header
-			className={cn(
-				"sticky top-0 z-50 w-full border-b transition-all duration-500",
-				"bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70",
-				mounted && isScrolled && "shadow-xl shadow-black/10 dark:shadow-black/30 border-b-border/50",
-				user && "border-primary/20 dark:border-primary/30 bg-gradient-to-r from-primary/5 via-background/80 to-primary/5 dark:from-primary/10 dark:via-background/70 dark:to-primary/10 shadow-primary/10"
-			)}
+			className={headerClasses}
 			suppressHydrationWarning
+			role="banner"
+			aria-label="رأس الصفحة الرئيسي"
 		>
 			<div className="container mx-auto px-4">
-				<div className="flex h-16 items-center justify-between gap-4">
+				<div className={cn("flex items-center justify-between gap-4", headerPreferences.compactMode ? "h-12" : "h-16")}>
 					{/* Logo */}
 					<HeaderLogo />
 
@@ -78,9 +224,30 @@ export default function Header() {
 					/>
 
 					{/* Right Side Actions */}
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-2" role="toolbar" aria-label="أدوات الرأس">
+						{/* Progress Indicator */}
+						{headerPreferences.showProgress && <ProgressIndicator />}
+
+						{/* Smart Navigation Suggestions */}
+						{headerPreferences.showSuggestions && <SmartNavigationSuggestions />}
+
 						{/* Search */}
 						<HeaderSearch />
+
+						{/* Quick Actions */}
+						<QuickActions />
+
+						{/* Activity Widget */}
+						{headerPreferences.showActivity && <ActivityWidget />}
+
+						{/* Contextual Help */}
+						<ContextualHelp />
+
+						{/* Keyboard Shortcuts Display */}
+						<KeyboardShortcutsDisplay />
+
+						{/* Header Customization */}
+						<HeaderCustomization />
 
 						{/* Theme Toggle */}
 						{mounted && (
@@ -90,7 +257,7 @@ export default function Header() {
 						)}
 
 						{/* Notifications Dropdown */}
-						<HeaderNotifications user={user} mounted={mounted} />
+						<EnhancedNotifications user={user} mounted={mounted} />
 
 						{/* User Menu / Login */}
 						<HeaderUserMenu />
@@ -100,18 +267,24 @@ export default function Header() {
 							variant="ghost"
 							size="icon"
 							className="lg:hidden"
-							onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+							onClick={toggleMobileMenu}
+							aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
+							aria-expanded={isMobileMenuOpen}
+							aria-controls="mobile-menu"
 							data-mobile-menu-trigger
 						>
 							{isMobileMenuOpen ? (
-								<X className="h-5 w-5" />
+								<X className="h-5 w-5" aria-hidden="true" />
 							) : (
-								<Menu className="h-5 w-5" />
+								<Menu className="h-5 w-5" aria-hidden="true" />
 							)}
 						</Button>
 					</div>
 				</div>
 			</div>
+
+			{/* Breadcrumbs */}
+			<HeaderBreadcrumbs />
 
 			{/* Mobile Menu */}
 			<HeaderMobileMenu
@@ -120,6 +293,9 @@ export default function Header() {
 				isActiveRoute={isActiveRoute}
 				mounted={mounted}
 			/>
+
+			{/* Command Palette */}
+			<CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
 		</header>
 	);
 }

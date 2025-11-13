@@ -1,12 +1,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // This would normally use a service like Twilio for SMS and SendGrid/Nodemailer for email
 // For this example, we'll simulate the sending process
 
 export async function POST(request: NextRequest) {
-  try {
-    const { type, email, phone } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { type, email, phone } = await req.json();
 
     if (!type || (!email && !phone)) {
       return NextResponse.json(
@@ -24,7 +27,7 @@ export async function POST(request: NextRequest) {
 
     if (type === 'email' && email) {
       // Simulate sending email verification
-      console.log(`Email verification code ${verificationCode} sent to ${email}`);
+      logger.info(`Email verification code ${verificationCode} sent to ${email}`);
 
       // In a real app, you would use something like:
       // await sendEmail({
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest) {
       // });
     } else if (type === 'phone' && phone) {
       // Simulate sending SMS verification
-      console.log(`SMS verification code ${verificationCode} sent to ${phone}`);
+      logger.info(`SMS verification code ${verificationCode} sent to ${phone}`);
 
       // In a real app, you would use something like:
       // await sendSMS({
@@ -51,10 +54,11 @@ export async function POST(request: NextRequest) {
       code: verificationCode // Remove this in production
     });
   } catch (error) {
-    console.error('Error sending verification code:', error);
+    logger.error('Error sending verification code:', error);
     return NextResponse.json(
       { error: 'Failed to send verification code' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema } from 'zod';
 import { redis } from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
 // Rate limiting configuration
 interface RateLimitConfig {
@@ -81,7 +82,7 @@ export class RateLimiter {
         remainingTime: undefined
       };
     } catch (error) {
-      console.error('Rate limiting check error:', error);
+      logger.error('Rate limiting check error:', error);
       // Fail open - don't block requests if rate limiting fails
       return {
         allowed: true,
@@ -121,7 +122,7 @@ export class RateLimiter {
         await redis.setEx(lockoutKey, Math.ceil(config.lockoutMs / 1000), lockoutUntil.toString());
       }
     } catch (error) {
-      console.error('Failed to record failed attempt:', error);
+      logger.error('Failed to record failed attempt:', error);
     }
   }
 
@@ -136,7 +137,7 @@ export class RateLimiter {
     try {
       await redis.del(key, lockoutKey);
     } catch (error) {
-      console.error('Failed to reset rate limit:', error);
+      logger.error('Failed to reset rate limit:', error);
     }
   }
 }
@@ -199,7 +200,7 @@ export class ApiError extends Error {
 
 // Unified error handler function that creates standardized responses
 export function handleApiError(error: unknown): NextResponse<APIError> {
-  console.error('API Error:', error);
+  logger.error('API Error:', error);
 
   // If it's our custom ApiError
   if (error instanceof ApiError) {
@@ -483,7 +484,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<any | 
     // For now, return null
     return null;
   } catch (error) {
-    console.error('Authentication error:', error);
+    logger.error('Authentication error:', error);
     return null;
   }
 }

@@ -12,6 +12,7 @@ import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/n
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/UserProvider";
 import { HeaderSearch } from "./HeaderSearch";
+import { logger } from '@/lib/logger';
 
 interface HeaderMobileMenuProps {
 	isMobileMenuOpen: boolean;
@@ -66,7 +67,7 @@ export function HeaderMobileMenu({
 			setIsMobileMenuOpen(false);
 			setExpandedMenus(new Set());
 		} catch (error) {
-			console.error("Logout error:", error);
+			logger.error("Logout error:", error);
 		}
 	};
 
@@ -168,6 +169,7 @@ export function HeaderMobileMenu({
 																				<Link
 																					key={subItem.href}
 																					href={subItem.href}
+																					prefetch={true}
 																					onClick={() => {
 																						setIsMobileMenuOpen(false);
 																						setExpandedMenus(new Set());
@@ -206,18 +208,19 @@ export function HeaderMobileMenu({
 									}
 
 									return (
-										<Link
-											key={item.href}
-											href={item.href}
-											onClick={() => setIsMobileMenuOpen(false)}
-											className={cn(
-												"flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group/mobile",
-												isActive
-													? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm border border-primary/20"
-													: "hover:bg-accent/80 active:scale-95"
-											)}
-											suppressHydrationWarning
-										>
+									<Link
+										key={item.href}
+										href={item.href}
+										prefetch={true}
+										onClick={() => setIsMobileMenuOpen(false)}
+										className={cn(
+											"flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all duration-300 group/mobile",
+											isActive
+												? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm border border-primary/20"
+												: "hover:bg-accent/80 active:scale-95"
+										)}
+										suppressHydrationWarning
+									>
 											<span className={cn(
 												"transition-transform duration-300",
 												isActive ? "text-primary scale-110" : "group-hover/mobile:scale-110"
@@ -274,6 +277,7 @@ export function HeaderMobileMenu({
 																	<Link
 																		key={subItem.href}
 																		href={subItem.href}
+																		prefetch={true}
 																		onClick={() => {
 																			setIsMobileMenuOpen(false);
 																			setExpandedMenus(new Set());
@@ -316,13 +320,13 @@ export function HeaderMobileMenu({
 									<div className="space-y-2">
 										<div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-accent/50 to-accent/30 border border-border/50">
 											<Avatar className="h-12 w-12 border-2 border-primary/20 shadow-md">
-												<AvatarImage src={user.avatar} alt={user.name || "User"} />
+												<AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
 												<AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
 													{user.name
 														?.split(" ")
 														.map((n) => n[0])
 														.join("")
-														.toUpperCase() || user.email[0].toUpperCase()}
+														.toUpperCase() || (user.email ? user.email[0].toUpperCase() : 'U')}
 												</AvatarFallback>
 											</Avatar>
 											<div className="flex-1 min-w-0">

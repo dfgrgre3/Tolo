@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { CacheService } from './redis';
+import { logger } from '@/lib/logger';
 
 /**
  * Generate a cache key based on request URL and user context
@@ -114,14 +115,14 @@ export async function withCache(
         response.headers.set('X-Cache', 'MISS');
         response.headers.set('X-Cache-Key', cacheKey);
       } catch (cacheError) {
-        console.warn('Error caching response data:', cacheError);
+        logger.warn('Error caching response data:', cacheError);
         // Don't fail the request if caching fails
       }
     }
     
     return response;
   } catch (error) {
-    console.error('Cache middleware error:', error);
+    logger.error('Cache middleware error:', error);
     // Fall back to direct processing if cache fails
     return handler(req);
   }
@@ -183,14 +184,14 @@ export async function withAuthCache(
         response.headers.set('X-Cache', 'MISS');
         response.headers.set('X-Cache-Key', cacheKey);
       } catch (cacheError) {
-        console.warn('Error caching response data:', cacheError);
+        logger.warn('Error caching response data:', cacheError);
         // Don't fail the request if caching fails
       }
     }
     
     return response;
   } catch (error) {
-    console.error('Auth cache middleware error:', error);
+    logger.error('Auth cache middleware error:', error);
     // Fall back to direct processing if cache fails
     return handler(req);
   }

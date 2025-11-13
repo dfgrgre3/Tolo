@@ -2,19 +2,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const { notifications } = await request.json();
+      const { notifications } = await req.json();
 
     if (!notifications || !Array.isArray(notifications) || notifications.length === 0) {
       return NextResponse.json(
@@ -56,10 +59,11 @@ export async function POST(request: NextRequest) {
       notifications: createdNotifications 
     }, { status: 201 });
   } catch (error) {
-    console.error('Error creating bulk notifications:', error);
+    logger.error('Error creating bulk notifications:', error);
     return NextResponse.json(
       { error: 'Failed to create notifications' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { getTokenFromStorage, setAuthToken, clearAuthState } from './auth-client';
+import { logger } from '@/lib/logger';
 
 interface DecodedToken {
   exp: number;
@@ -24,7 +25,7 @@ function decodeTokenPayload(token: string): DecodedToken | null {
     
     return decoded as DecodedToken;
   } catch (error) {
-    console.error('Error decoding token:', error);
+    logger.error('Error decoding token:', error);
     return null;
   }
 }
@@ -40,7 +41,7 @@ function getTokenExpirationTime(token: string): number | null {
     const expirationTime = decoded.exp * 1000; // Convert to milliseconds
     return expirationTime;
   } catch (error) {
-    console.error('Error getting token expiration:', error);
+    logger.error('Error getting token expiration:', error);
     return null;
   }
 }
@@ -104,7 +105,7 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
     if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
       // فقط في وضع التطوير نُظهر الخطأ التفصيلي
       if (process.env.NODE_ENV === 'development') {
-        console.warn(
+        logger.warn(
           '[Development] Token refresh: Server returned HTML error page instead of JSON:',
           {
             status: response.status,
@@ -134,7 +135,7 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
       if (isJson) {
         try {
           const errorData = JSON.parse(text);
-          console.error('Token refresh failed:', errorData);
+          logger.error('Token refresh failed:', errorData);
         } catch {
           // لا بأس إذا فشل تحليل JSON
         }
@@ -148,7 +149,7 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
     try {
       data = JSON.parse(text);
     } catch (parseError) {
-      console.error('Failed to parse token refresh response as JSON:', text.substring(0, 100));
+      logger.error('Failed to parse token refresh response as JSON:', text.substring(0, 100));
       return null;
     }
     
@@ -159,7 +160,7 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
     
     return null;
   } catch (error) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error:', error);
     
     // إذا كان التوكن منتهي بالفعل، امسح الحالة
     const timeUntilExpiration = getTimeUntilExpiration(token);
@@ -214,7 +215,7 @@ export function setupAutoTokenRefresh(
           cleanup();
         }
       } catch (error) {
-        console.error('Auto refresh error:', error);
+        logger.error('Auto refresh error:', error);
         onRefreshFailed?.();
         cleanup();
       } finally {

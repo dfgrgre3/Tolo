@@ -5,16 +5,34 @@ import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Button } from "@/shared/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { VirtualList } from "@/components/ui/VirtualList";
+import { logger } from '@/lib/logger';
+
+interface User {
+	id: string;
+	email: string;
+	name?: string;
+	role?: string;
+}
+
+interface Notification {
+	id: string;
+	title: string;
+	message: string;
+	type: string;
+	isRead: boolean;
+	createdAt: string;
+}
 
 interface HeaderNotificationsProps {
-	user: any;
+	user: User | null;
 	mounted: boolean;
 }
 
 export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps) {
 	const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 	const [notificationCount, setNotificationCount] = useState(0);
-	const [notifications, setNotifications] = useState<any[]>([]);
+	const [notifications, setNotifications] = useState<Notification[]>([]);
 	const notificationRef = useRef<HTMLDivElement>(null);
 
 	// Fetch notification count and recent notifications
@@ -33,7 +51,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 				}
 			})
 			.catch((error) => {
-				console.debug("Failed to fetch notification count:", error);
+				logger.debug("Failed to fetch notification count:", error);
 				setNotificationCount(0);
 			});
 
@@ -48,7 +66,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 				}
 			})
 			.catch((error) => {
-				console.debug("Failed to fetch notifications:", error);
+				logger.debug("Failed to fetch notifications:", error);
 			});
 	}, [user, mounted]);
 
@@ -125,15 +143,18 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 								عرض الكل
 							</Link>
 						</div>
-						<div className="overflow-y-auto flex-1">
+						<div className="flex-1" style={{ height: "calc(24rem - 4rem)" }}>
 							{notifications.length > 0 ? (
-								<div className="divide-y divide-border">
-									{notifications.map((notification, index) => (
+								<VirtualList
+									items={notifications}
+									itemHeight={100}
+									containerHeight={384 - 64}
+									keyExtractor={(item, index) => item.id || index}
+									renderItem={(notification, index) => (
 										<Link
-											key={index}
 											href={notification.link || "/notifications"}
 											onClick={() => setIsNotificationOpen(false)}
-											className="block p-4 hover:bg-accent transition-colors"
+											className="block p-4 hover:bg-accent transition-colors border-b border-border last:border-0"
 										>
 											<div className="flex items-start gap-3">
 												<div className="flex-shrink-0 mt-1">
@@ -154,8 +175,9 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 												</div>
 											</div>
 										</Link>
-									))}
-								</div>
+									)}
+									overscan={2}
+								/>
 							) : (
 								<div className="p-8 text-center text-muted-foreground">
 									<Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />

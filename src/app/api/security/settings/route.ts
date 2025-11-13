@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
     
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -46,18 +49,20 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to fetch security settings:', error);
+    logger.error('Failed to fetch security settings:', error);
     return NextResponse.json(
       { error: 'فشل جلب إعدادات الأمان' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function PATCH(request: NextRequest) {
-  try {
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
     
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -66,8 +71,8 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    const userId = verification.user.id;
-    const body = await request.json();
+      const userId = verification.user.id;
+      const body = await req.json();
 
     // Validate allowed fields
     const allowedFields = [
@@ -98,9 +103,9 @@ export async function PATCH(request: NextRequest) {
       data: updateData,
     });
 
-    // Log security event
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Log security event
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
     await authService.logSecurityEvent(
       userId,
       'security_settings_updated',
@@ -114,11 +119,12 @@ export async function PATCH(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to update security settings:', error);
+    logger.error('Failed to update security settings:', error);
     return NextResponse.json(
       { error: 'فشل تحديث إعدادات الأمان' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

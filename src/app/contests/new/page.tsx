@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 export default function NewContestPage() {
   const router = useRouter();
@@ -65,7 +66,7 @@ export default function NewContestPage() {
         alert("حدث خطأ أثناء إنشاء المسابقة");
       }
     } catch (error) {
-      console.error("Error creating contest:", error);
+      logger.error("Error creating contest:", error);
       alert("حدث خطأ أثناء إنشاء المسابقة");
     } finally {
       setIsSubmitting(false);

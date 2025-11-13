@@ -3,29 +3,32 @@ import { verifyToken, DecodedToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
 import { OpenAI } from 'openai';
 import { rateLimit } from '@/lib/api-utils';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(request: NextRequest) {
-  try {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimit(request, 10, 'generate_test'); // 10 requests per window
-    if (rateLimitResult) {
-      return rateLimitResult;
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Apply rate limiting
+      const rateLimitResult = await rateLimit(req, 10, 'generate_test'); // 10 requests per window
+      if (rateLimitResult) {
+        return rateLimitResult;
+      }
 
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const { subject, difficulty, questionCount, questionTypes, timeLimit, lesson } = await request.json();
+      const { subject, difficulty, questionCount, questionTypes, timeLimit, lesson } = await req.json();
 
     if (!subject) {
       return NextResponse.json(
@@ -133,12 +136,13 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ test: examWithQuestions });
   } catch (error) {
-    console.error('Error generating test:', error);
+    logger.error('Error generating test:', error);
     return NextResponse.json(
       { error: 'Failed to generate test' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 function getSubjectName(subjectValue: string): string {

@@ -1,6 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { redis } from '@/lib/redis';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
+
 import 'server-only';
 
 /**
@@ -11,7 +14,8 @@ import 'server-only';
  * 
  * هذا endpoint يجب أن يكون سريعاً ولا يعتمد على خدمات خارجية معقدة
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  return opsWrapper(request, async () => {
   try {
     // فحص بسيط للتأكد من أن التطبيق يعمل
     const health = {
@@ -27,7 +31,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Health check failed:', error);
+    logger.error('Health check failed:', error);
     
     return NextResponse.json(
       {
@@ -37,7 +41,8 @@ export async function GET() {
       },
       { status: 503 }
     );
-  }
+    }
+  });
 }
 
 export const dynamic = 'force-dynamic';

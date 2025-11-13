@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { createErrorResponse, isConnectionError } from '../_helpers';
 import { withAuth } from '@/lib/middleware/auth-middleware';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error('Database error while finding user:', dbError);
+      logger.error('Database error while finding user:', dbError);
       
       if (isConnectionError(dbError)) {
         return NextResponse.json(
@@ -78,7 +79,7 @@ export async function GET(request: NextRequest) {
       sessionId: authResult.sessionId,
     });
   } catch (error) {
-    console.error('Auth verification error:', error);
+    logger.error('Auth verification error:', error);
     
     // Log security event safely
     try {
@@ -90,7 +91,7 @@ export async function GET(request: NextRequest) {
         });
       }
     } catch (logError) {
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     }
 
     return createErrorResponse(

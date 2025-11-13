@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { getSafeAuthToken } from '@/lib/safe-client-utils';
+import { logger } from '@/lib/logger';
 
 export default function NotificationSettings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -39,7 +40,7 @@ export default function NotificationSettings() {
         setSmsNotifications(data.smsNotifications);
         setPhoneNumber(data.phone || '');
       } catch (error) {
-        console.error('Error fetching notification settings:', error);
+        logger.error('Error fetching notification settings:', error);
         toast.error('فشل في جلب إعدادات الإشعارات');
       } finally {
         setIsLoading(false);
@@ -73,7 +74,7 @@ export default function NotificationSettings() {
 
       toast.success('تم حفظ إعدادات الإشعارات بنجاح');
     } catch (error) {
-      console.error('Error saving notification settings:', error);
+      logger.error('Error saving notification settings:', error);
       toast.error('فشل في حفظ إعدادات الإشعارات');
     } finally {
       setIsSaving(false);
@@ -103,7 +104,7 @@ export default function NotificationSettings() {
 
       toast.success(`تم إرسال رسالة الاختبار عبر ${channel === 'email' ? 'البريد الإلكتروني' : 'الرسالة النصية'}`);
     } catch (error) {
-      console.error(`Error sending ${channel} notification:`, error);
+      logger.error(`Error sending ${channel} notification:`, error);
       toast.error(`فشل في إرسال رسالة الاختبار عبر ${channel === 'email' ? 'البريد الإلكتروني' : 'الرسالة النصية'}`);
     }
   };

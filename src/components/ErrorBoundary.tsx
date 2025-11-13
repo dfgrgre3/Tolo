@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, Home, MessageCircle } from 'lucide-react';
 import errorLogger from '../services/ErrorLogger';
 import errorManager from '../services/ErrorManager';
 import ErrorPage, { ErrorType } from './ErrorPages';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -64,7 +65,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log error to console
-    console.error('Error caught by ErrorBoundary:', error, errorInfo);
+    logger.error('Error caught by ErrorBoundary:', error, errorInfo);
 
     // Update state with error info
     this.setState({
@@ -95,11 +96,11 @@ class ErrorBoundary extends Component<Props, State> {
       // Update state with the logger's error ID for consistency
       this.setState({ errorId });
 
-      console.log('Error logged to ErrorLogger service with ID:', errorId);
+      logger.info('Error logged to ErrorLogger service with ID:', errorId);
     } catch (e) {
-      console.error('Failed to log error to ErrorLogger service:', e);
+      logger.error('Failed to log error to ErrorLogger service:', e);
       // Fallback to basic logging if ErrorLogger fails
-      console.error('ErrorBoundary error:', error, errorInfo);
+      logger.error('ErrorBoundary error:', error, errorInfo);
     }
   };
 

@@ -7,6 +7,7 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type User = {
   id: string;
@@ -65,7 +66,7 @@ export default function ChatPage() {
           setConversations(data);
         }
       } catch (error) {
-        console.error("Error fetching conversations:", error);
+        logger.error("Error fetching conversations:", error);
       }
     };
 
@@ -92,7 +93,7 @@ export default function ChatPage() {
           setMessages(messagesData);
         }
       } catch (error) {
-        console.error("Error fetching messages:", error);
+        logger.error("Error fetching messages:", error);
       } finally {
         setLoading(false);
       }
@@ -138,7 +139,7 @@ export default function ChatPage() {
         alert("حدث خطأ أثناء إرسال الرسالة");
       }
     } catch (error) {
-      console.error("Error sending message:", error);
+      logger.error("Error sending message:", error);
       alert("حدث خطأ أثناء إرسال الرسالة");
     } finally {
       setSending(false);

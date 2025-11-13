@@ -9,6 +9,7 @@ import Link from "next/link";
 import type { MegaMenuProps } from "./types";
 import { MegaMenuCategory } from "./MegaMenuCategory";
 import { cn } from "@/lib/utils";
+import { logger } from '@/lib/logger';
 
 export function MegaMenuContent({ 
 	categories, 
@@ -42,7 +43,7 @@ export function MegaMenuContent({
 				}
 			})
 			.catch((error) => {
-				console.debug("Failed to fetch notification count:", error);
+				logger.debug("Failed to fetch notification count:", error);
 				setNotificationCount(0);
 			});
 	}, [user]);

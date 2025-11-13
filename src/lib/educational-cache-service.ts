@@ -1,4 +1,5 @@
 import { getOrSetEnhanced, batchGetOrSet, CacheService } from "@/lib/cache-service-unified";
+import { logger } from '@/lib/logger';
 
 /**
  * Educational Content Cache Service
@@ -25,7 +26,7 @@ export async function cacheEducationalContent<T>(
   try {
     await CacheService.set(`educational:${key}`, data, ttl);
   } catch (error) {
-    console.error(`Error caching educational content for key ${key}:`, error);
+    logger.error(`Error caching educational content for key ${key}:`, error);
   }
 }
 
@@ -38,7 +39,7 @@ export async function getEducationalContent<T>(key: string): Promise<T | null> {
   try {
     return await CacheService.get<T>(`educational:${key}`);
   } catch (error) {
-    console.error(`Error getting educational content for key ${key}:`, error);
+    logger.error(`Error getting educational content for key ${key}:`, error);
     return null;
   }
 }
@@ -195,7 +196,7 @@ export async function invalidateEducationalContent(key: string): Promise<void> {
   try {
     await CacheService.del(`educational:${key}`);
   } catch (error) {
-    console.error(`Error invalidating educational content for key ${key}:`, error);
+    logger.error(`Error invalidating educational content for key ${key}:`, error);
   }
 }
 
@@ -207,7 +208,7 @@ export async function invalidateEducationalContentPattern(pattern: string): Prom
   try {
     await CacheService.invalidatePattern(`educational:${pattern}`);
   } catch (error) {
-    console.error(`Error invalidating educational content pattern ${pattern}:`, error);
+    logger.error(`Error invalidating educational content pattern ${pattern}:`, error);
   }
 }
 

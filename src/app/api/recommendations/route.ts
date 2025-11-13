@@ -3,20 +3,23 @@ import { prisma } from '@/lib/prisma';
 import { gamificationService } from '@/lib/gamification-service';
 import { startOfWeek, endOfWeek, subDays, startOfDay, differenceInDays } from 'date-fns';
 import { verifyToken } from '@/lib/auth-unified';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/recommendations
  * Get AI-powered personalized recommendations based on user's actual data
  */
 export async function GET(request: NextRequest) {
-  try {
-    // Try to get userId from query params first (for backward compatibility)
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Try to get userId from query params first (for backward compatibility)
+      const { searchParams } = new URL(req.url);
     let userId = searchParams.get('userId');
     
-    // If not in query params, try to get from authenticated user
-    if (!userId) {
-      const decodedToken = verifyToken(request);
+      // If not in query params, try to get from authenticated user
+      if (!userId) {
+        const decodedToken = verifyToken(req);
       if (decodedToken) {
         userId = decodedToken.userId;
       }
@@ -85,12 +88,13 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
   } catch (error) {
-    console.error('Error fetching recommendations:', error);
+    logger.error('Error fetching recommendations:', error);
     return NextResponse.json(
       { error: 'Failed to fetch recommendations', recommendations: [] },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 interface RecommendationData {

@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect, useMemo } from 'react';
 import ErrorToast, { ErrorToastProps } from './ErrorToast';
 import errorManager, { ErrorDisplayOptions } from '../services/ErrorManager';
+import { logger } from '@/lib/logger';
 
 type ToastCallback = (options: ErrorDisplayOptions & { variant: 'destructive' | 'warning' | 'info' }) => void;
 
@@ -39,7 +40,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
 
   const showToast = useCallback((toast: Omit<ErrorToastProps, 'id' | 'onDismiss'>) => {
     if (!toast.title && !toast.description) {
-      console.warn('Toast must have at least title or description');
+      logger.warn('Toast must have at least title or description');
       return '';
     }
     
@@ -81,7 +82,7 @@ export const ToastProvider: React.FC<ToastProviderProps> = ({ children }) => {
           action: options.action
         });
       } catch (error) {
-        console.error('Error in toast callback:', error);
+        logger.error('Error in toast callback:', error);
       }
     };
 

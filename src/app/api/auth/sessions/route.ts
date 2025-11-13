@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
     
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -71,18 +74,20 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to fetch sessions:', error);
+    logger.error('Failed to fetch sessions:', error);
     return NextResponse.json(
       { error: 'فشل جلب الجلسات' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function DELETE(request: NextRequest) {
-  try {
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
     
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -102,9 +107,9 @@ export async function DELETE(request: NextRequest) {
       },
     });
 
-    // Log security event
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Log security event
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
     await authService.logSecurityEvent(
       userId,
       'all_sessions_revoked',
@@ -122,12 +127,13 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to revoke sessions:', error);
+    logger.error('Failed to revoke sessions:', error);
     return NextResponse.json(
       { error: 'فشل إلغاء الجلسات' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // Helper functions

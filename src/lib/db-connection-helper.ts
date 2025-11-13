@@ -3,6 +3,7 @@ import 'server-only';
 
 import { prisma, checkDatabaseHealth, ensureDatabaseConnection } from './db';
 import { databaseConfig } from './database';
+import { logger } from '@/lib/logger';
 
 /**
  * Database connection helper utilities
@@ -118,14 +119,14 @@ export async function testDatabaseConnection(maxRetries: number = 3): Promise<bo
     try {
       const isConnected = await ensureDatabaseConnection();
       if (isConnected) {
-        console.log(`Database connection test successful (attempt ${attempt}/${maxRetries})`);
+        logger.info(`Database connection test successful (attempt ${attempt}/${maxRetries})`);
         return true;
       }
     } catch (error) {
-      console.warn(`Database connection test failed (attempt ${attempt}/${maxRetries}):`, error);
+      logger.warn(`Database connection test failed (attempt ${attempt}/${maxRetries}):`, error);
       
       if (attempt === maxRetries) {
-        console.error('All database connection attempts failed');
+        logger.error('All database connection attempts failed');
         return false;
       }
       
@@ -177,25 +178,25 @@ export async function getDatabaseConnectionStatus(): Promise<{
  */
 export async function initializeDatabaseConnection(): Promise<boolean> {
   try {
-    console.log('Initializing database connection...');
+    logger.info('Initializing database connection...');
     
     // First, ensure connection
     const isConnected = await ensureDatabaseConnection();
     
     if (isConnected) {
-      console.log('Database connection initialized successfully');
+      logger.info('Database connection initialized successfully');
       return true;
     } else {
-      console.error('Failed to initialize database connection');
+      logger.error('Failed to initialize database connection');
       
       // Try to diagnose the issue
       const diagnostics = await diagnoseDatabaseConnection();
-      console.error('Database connection diagnostics:', diagnostics);
+      logger.error('Database connection diagnostics:', diagnostics);
       
       return false;
     }
   } catch (error) {
-    console.error('Error initializing database connection:', error);
+    logger.error('Error initializing database connection:', error);
     return false;
   }
 }

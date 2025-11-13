@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type Event = {
   id: string;
@@ -61,7 +62,7 @@ export default function EventPage() {
           router.push("/events");
         }
       } catch (error) {
-        console.error("Error fetching event:", error);
+        logger.error("Error fetching event:", error);
         router.push("/events");
       }
     };
@@ -79,7 +80,7 @@ export default function EventPage() {
           }
         }
       } catch (error) {
-        console.error("Error fetching attendees:", error);
+        logger.error("Error fetching attendees:", error);
       }
     };
 
@@ -125,7 +126,7 @@ export default function EventPage() {
         alert("حدث خطأ أثناء الانضمام للمناسبة");
       }
     } catch (error) {
-      console.error("Error joining event:", error);
+      logger.error("Error joining event:", error);
       alert("حدث خطأ أثناء الانضمام للمناسبة");
     } finally {
       setActionLoading(false);
@@ -160,7 +161,7 @@ export default function EventPage() {
         alert("حدث خطأ أثناء مغادرة المناسبة");
       }
     } catch (error) {
-      console.error("Error leaving event:", error);
+      logger.error("Error leaving event:", error);
       alert("حدث خطأ أثناء مغادرة المناسبة");
     } finally {
       setActionLoading(false);

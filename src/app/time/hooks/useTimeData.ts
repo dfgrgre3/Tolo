@@ -3,6 +3,7 @@ import { safeFetch } from "@/lib/safe-client-utils";
 import errorManager from "@/services/ErrorManager";
 import { ensureUser } from "@/lib/user-utils";
 import type { Schedule, SubjectEnrollment, Task, StudySession, Reminder, SubjectType } from '../types';
+import { logger } from '@/lib/logger';
 
 interface UseTimeDataReturn {
   userId: string | null;
@@ -26,7 +27,7 @@ export function useTimeData(): UseTimeDataReturn {
 
   const fetchData = useCallback(async () => {
     if (!userId || userId.trim() === '' || userId === 'undefined') {
-      console.warn('Invalid userId, skipping data fetch');
+      logger.warn('Invalid userId, skipping data fetch');
       setIsLoading(false);
       return;
     }
@@ -152,10 +153,10 @@ export function useTimeData(): UseTimeDataReturn {
         );
       } else if (criticalFailures.length > 0) {
         // Partial failure - show warning but continue
-        console.warn(`Failed to load ${criticalFailures.length} out of ${results.length} data sources`);
+        logger.warn(`Failed to load ${criticalFailures.length} out of ${results.length} data sources`);
       }
     } catch (error) {
-      console.error("Error fetching data:", error);
+      logger.error("Error fetching data:", error);
       errorManager.handleNetworkError(
         error instanceof Error ? error : new Error(String(error)),
         "fetchData",
@@ -177,11 +178,11 @@ export function useTimeData(): UseTimeDataReturn {
         if (id && id.trim() !== '' && id !== 'undefined') {
           setUserId(id);
         } else {
-          console.warn('Failed to get valid userId');
+          logger.warn('Failed to get valid userId');
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Error ensuring user:', error);
+        logger.error('Error ensuring user:', error);
         setIsLoading(false);
       }
     })();

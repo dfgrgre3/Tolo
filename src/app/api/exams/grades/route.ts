@@ -2,10 +2,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { gamificationService } from "@/lib/gamification-service";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 
     if (!userId) {
@@ -39,17 +42,19 @@ export async function GET(request: NextRequest) {
       grades: userGrades
     });
   } catch (error) {
-    console.error("Error fetching exam grades:", error);
+    logger.error("Error fetching exam grades:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب البيانات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const { userId, examId, score, teacherId, isOnline, notes } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { userId, examId, score, teacherId, isOnline, notes } = await req.json();
 
     if (!userId || !examId || score === undefined) {
       return NextResponse.json(
@@ -101,7 +106,7 @@ export async function POST(request: NextRequest) {
     try {
       await gamificationService.updateUserProgress(userId, 'exam_completed', { score });
     } catch (gamificationError) {
-      console.error('Error updating gamification for exam:', gamificationError);
+      logger.error('Error updating gamification for exam:', gamificationError);
       // Don't fail the request if gamification fails
     }
 
@@ -110,10 +115,11 @@ export async function POST(request: NextRequest) {
       examResult
     });
   } catch (error) {
-    console.error("Error saving exam grade:", error);
+    logger.error("Error saving exam grade:", error);
     return NextResponse.json(
       { error: "حدث خطأ في حفظ البيانات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { logger } from '@/lib/logger';
 
 interface SecurityEvent {
   id: string;
@@ -86,7 +87,7 @@ export default function ActivityLogPage() {
         toast.error('فشل تحميل سجل النشاطات');
       }
     } catch (error) {
-      console.error('Failed to load activity log:', error);
+      logger.error('Failed to load activity log:', error);
       toast.error('حدث خطأ أثناء تحميل السجل');
     } finally {
       setIsLoading(false);
@@ -189,7 +190,7 @@ export default function ActivityLogPage() {
 
       toast.success('تم تصدير السجل بنجاح');
     } catch (error) {
-      console.error('Failed to export activity log:', error);
+      logger.error('Failed to export activity log:', error);
       toast.error('فشل تصدير السجل');
     }
   };

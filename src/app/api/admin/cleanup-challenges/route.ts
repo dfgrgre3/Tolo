@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { manualCleanup } from '@/lib/cleanup-expired-challenges';
+import { logger } from '@/lib/logger';
 
 /**
  * Admin API route for manually cleaning up expired authentication challenges
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error) {
-    console.error('Manual cleanup error:', error);
+    logger.error('Manual cleanup error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
       note: 'Use POST method to manually trigger cleanup'
     });
   } catch (error) {
-    console.error('Status check error:', error);
+    logger.error('Status check error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

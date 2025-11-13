@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
 import { Badge } from "@/shared/badge";
 import { Icons } from '@/components/ui/icons';
+import { logger } from '@/lib/logger';
 
 interface SecurityEvent {
   id: string;
@@ -68,7 +69,7 @@ export default function SecurityLog() {
       
       setEvents(mockEvents);
     } catch (error) {
-      console.error('Error loading security events:', error);
+      logger.error('Error loading security events:', error);
     } finally {
       setLoading(false);
     }

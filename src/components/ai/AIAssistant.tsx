@@ -4,6 +4,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, Bot, User, Zap } from 'lucide-react';
 import { getGeminiInfo } from '@/lib/ai-config';
+import { logger } from '@/lib/logger';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -88,7 +89,7 @@ export default function AIAssistant({
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
 
       // إضافة رسالة خطأ
       const errorMessage: Message = {

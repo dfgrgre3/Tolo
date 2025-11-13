@@ -1,20 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 const API_KEY = process.env.OPENAI_API_KEY;
 const API_URL = "https://api.openai.com/v1/chat/completions";
 
 export async function POST(request: NextRequest) {
-  // Check if API key is configured
-  if (!API_KEY) {
-    console.error("OpenAI API key is not configured");
-    return NextResponse.json(
-      { error: "OpenAI API key is not configured. Please contact support." },
-      { status: 500 }
-    );
-  }
+  return opsWrapper(request, async (req) => {
+    // Check if API key is configured
+    if (!API_KEY) {
+      logger.error("OpenAI API key is not configured");
+      return NextResponse.json(
+        { error: "OpenAI API key is not configured. Please contact support." },
+        { status: 500 }
+      );
+    }
 
-  try {
-    const { subject, grade, platform } = await request.json();
+    try {
+      const { subject, grade, platform } = await req.json();
     
     if (!subject) {
       return NextResponse.json(
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error("Error from OpenAI:", errorData);
+      logger.error("Error from OpenAI:", errorData);
       
       return NextResponse.json({
         error: "عذراً، يواجه النظام بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً."
@@ -75,10 +78,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ teachersContent });
   } catch (error) {
-    console.error("Error in teachers search API:", error);
+    logger.error("Error in teachers search API:", error);
     return NextResponse.json(
       { error: "حدث خطأ في معالجة طلبك" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

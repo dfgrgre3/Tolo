@@ -3,6 +3,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useGamification } from './use-gamification';
 import { firestoreService } from '@/lib/firestore-service';
+import { logger } from '@/lib/logger';
 
 interface UseMemoryOptimizedGamificationOptions {
   userId: string;
@@ -39,7 +40,7 @@ export function useMemoryOptimizedGamification({
     // Clear the listeners tracking
     listenersRef.current = [];
 
-    console.log(`Cleaned up gamification listeners for user: ${userId}`);
+    logger.info(`Cleaned up gamification listeners for user: ${userId}`);
   }, [userId]);
 
   // Set up cleanup on unmount

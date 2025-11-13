@@ -4,6 +4,8 @@ import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { authService } from '@/lib/auth-service';
 import { createErrorResponse, emailSchema, RESET_TOKEN_EXPIRY_MS, isConnectionError } from '../_helpers';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 const forgotPasswordSchema = z.object({
   email: emailSchema,
@@ -13,11 +15,12 @@ const buildClientId = (ip: string, userAgent: string) =>
   `${ip || 'unknown'}-${userAgent || 'unknown'}`;
 
 export async function POST(request: NextRequest) {
-  const ip = authService.getClientIP(request);
-  const userAgent = authService.getUserAgent(request);
-  const clientId = buildClientId(ip, userAgent);
+  return opsWrapper(request, async (req) => {
+    const ip = authService.getClientIP(req);
+    const userAgent = authService.getUserAgent(req);
+    const clientId = buildClientId(ip, userAgent);
 
-  try {
+    try {
     // Rate limiting check
     try {
       const { RateLimitingService } = await import('@/lib/rate-limiting-service');
@@ -54,10 +57,10 @@ export async function POST(request: NextRequest) {
       }
     } catch (redisError) {
       // If Redis is unavailable, log but continue
-      console.warn('Redis unavailable for rate limiting:', redisError);
+      logger.warn('Redis unavailable for rate limiting:', redisError);
     }
 
-    const body = await request.json().catch(() => ({}));
+      const body = await req.json().catch(() => ({}));
     const parsed = forgotPasswordSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -87,7 +90,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error('Database error while finding user:', dbError);
+      logger.error('Database error while finding user:', dbError);
       
       if (isConnectionError(dbError)) {
         return NextResponse.json(
@@ -135,7 +138,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error('Database error while updating reset token:', dbError);
+      logger.error('Database error while updating reset token:', dbError);
       
       if (isConnectionError(dbError)) {
         return NextResponse.json(
@@ -162,7 +165,7 @@ export async function POST(request: NextRequest) {
       message: 'إذا كان بريدك الإلكتروني مسجلاً لدينا، ستتلقى رابط إعادة تعيين كلمة المرور.',
     });
   } catch (error) {
-    console.error('Forgot password error:', error);
+    logger.error('Forgot password error:', error);
     
     // Log security event safely
     try {
@@ -171,12 +174,13 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Unknown error',
       });
     } catch (logError) {
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     }
 
     return createErrorResponse(
       error,
       'حدث خطأ غير متوقع أثناء معالجة طلب إعادة تعيين كلمة المرور. حاول مرة أخرى لاحقاً.'
     );
-  }
+    }
+  });
 }

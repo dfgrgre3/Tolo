@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { clearAuthCookies, createErrorResponse } from '@/app/api/auth/_helpers';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.error('Logout error:', error);
     return createErrorResponse(
       error,
       'حدث خطأ غير متوقع أثناء معالجة طلب تسجيل الخروج. حاول مرة أخرى لاحقاً.'

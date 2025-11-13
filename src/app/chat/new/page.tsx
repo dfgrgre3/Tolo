@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type User = {
   id: string;
@@ -43,7 +44,7 @@ export default function NewChatPage() {
           setFilteredUsers(otherUsers);
         }
       } catch (error) {
-        console.error("Error fetching users:", error);
+        logger.error("Error fetching users:", error);
       } finally {
         setLoading(false);
       }

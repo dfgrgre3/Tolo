@@ -13,6 +13,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from "@/shared/badge";
 import { AlertCircle, CheckCircle, Clock, BookOpen, Brain, Lightbulb, Award } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { logger } from '@/lib/logger';
 
 interface Question {
   id: string;
@@ -152,7 +153,7 @@ export default function TestPage() {
       setTestState('in-progress');
       setGenerationProgress(100);
     } catch (error) {
-      console.error('Error generating test:', error);
+      logger.error('Error generating test:', error);
       alert('حدث خطأ أثناء إنشاء الاختبار. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsGenerating(false);
@@ -229,7 +230,7 @@ export default function TestPage() {
       setTestState('completed');
       setGenerationProgress(100);
     } catch (error) {
-      console.error('Error evaluating test:', error);
+      logger.error('Error evaluating test:', error);
       alert('حدث خطأ أثناء تقييم الاختبار. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsGenerating(false);

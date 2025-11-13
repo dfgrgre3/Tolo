@@ -19,6 +19,7 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 interface SearchResult {
   id: string;
@@ -148,7 +149,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
         safeSetItem("recent_searches", updated);
       }
     } catch (error) {
-      console.error("Error performing search:", error);
+      logger.error("Error performing search:", error);
       setResults([]);
     } finally {
       setIsSearching(false);

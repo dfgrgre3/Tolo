@@ -25,11 +25,11 @@ import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 import { useTimeData } from './hooks/useTimeData';
 import { useTimeStats } from './hooks/useTimeStats';
 import { useTimeFilters } from './hooks/useTimeFilters';
-import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useOverdueNotifications } from './hooks/useOverdueNotifications';
 
 // Types
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
+import { logger } from '@/lib/logger';
 
 export default function TimeManagementPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -151,7 +151,7 @@ export default function TimeManagementPage() {
   // Handle notifications
   const handleNotification = (message: string, type: 'warning' | 'error') => {
     // You can integrate with your notification system here
-    console.log(`[${type.toUpperCase()}] ${message}`);
+    logger.info(`[${type.toUpperCase()}] ${message}`);
     // Example: toast notification
     if (typeof window !== 'undefined' && (window as any).toast) {
       (window as any).toast({
@@ -161,15 +161,6 @@ export default function TimeManagementPage() {
       });
     }
   };
-
-  // Keyboard shortcuts
-  useKeyboardShortcuts({
-    onTabChange: setActiveTab,
-    onTimerToggle: () => handleTimerToggle(),
-    onRefresh: fetchData,
-    onNewTask: () => setActiveTab('tasks'),
-    onNewReminder: () => setActiveTab('reminders')
-  });
 
   // Overdue notifications
   useOverdueNotifications({
@@ -354,7 +345,7 @@ export default function TimeManagementPage() {
                   className="pl-8 w-full sm:w-40 transition-all focus:ring-2 focus:ring-primary/20"
                 />
               </div>
-              <Select value={taskFilter} onValueChange={(value: any) => setTaskFilter(value)}>
+              <Select value={taskFilter} onValueChange={(value: "all" | "pending" | "in_progress" | "completed") => setTaskFilter(value)}>
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="تصفية حسب الحالة" />
                 </SelectTrigger>
@@ -433,7 +424,7 @@ export default function TimeManagementPage() {
               <p className="text-sm text-muted-foreground mt-1">راجع تاريخ جلسات المذاكرة وتحليل أدائك</p>
             </div>
             <div className="flex gap-2">
-              <Select value={sessionFilter} onValueChange={(value: any) => setSessionFilter(value)}>
+              <Select value={sessionFilter} onValueChange={(value: "all" | "today" | "week" | "month") => setSessionFilter(value)}>
                 <SelectTrigger className="w-full sm:w-32">
                   <SelectValue placeholder="تصفية حسب التاريخ" />
                 </SelectTrigger>

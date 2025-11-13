@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Shield, MapPin, AlertTriangle, CheckCircle2, X, Plus, Trash2, Globe, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { CaptchaWidget } from '@/components/auth/CaptchaWidget';
+import { logger } from '@/lib/logger';
 
 interface AdvancedProtectionProps {
   userId: string;
@@ -56,7 +57,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
         setIpWhitelistEnabled(data.ipWhitelistEnabled || false);
       }
     } catch (error) {
-      console.error('Error loading protection settings:', error);
+      logger.error('Error loading protection settings:', error);
     }
   };
 
@@ -74,7 +75,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
         setIpWhitelist(data.ips || []);
       }
     } catch (error) {
-      console.error('Error loading IP whitelist:', error);
+      logger.error('Error loading IP whitelist:', error);
     }
   };
 
@@ -87,7 +88,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
         setCurrentLocation(`${data.city || ''}, ${data.country_name || ''}`);
       }
     } catch (error) {
-      console.error('Error detecting location:', error);
+      logger.error('Error detecting location:', error);
     }
   };
 
@@ -114,7 +115,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
         toast.error('فشل في حفظ الإعدادات');
       }
     } catch (error) {
-      console.error('Error saving protection settings:', error);
+      logger.error('Error saving protection settings:', error);
       toast.error('حدث خطأ أثناء حفظ الإعدادات');
     }
   };
@@ -156,7 +157,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
         toast.error('فشل في إضافة عنوان IP');
       }
     } catch (error) {
-      console.error('Error adding IP:', error);
+      logger.error('Error adding IP:', error);
       toast.error('حدث خطأ أثناء إضافة عنوان IP');
     }
   };
@@ -178,7 +179,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
         toast.error('فشل في إزالة عنوان IP');
       }
     } catch (error) {
-      console.error('Error removing IP:', error);
+      logger.error('Error removing IP:', error);
       toast.error('حدث خطأ أثناء إزالة عنوان IP');
     }
   };
@@ -216,7 +217,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
           {recaptchaEnabled && (
             <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
               <CaptchaWidget onVerify={(token) => {
-                console.log('reCAPTCHA verified:', token);
+                logger.info('reCAPTCHA verified:', token);
                 toast.success('تم التحقق من reCAPTCHA');
               }} />
             </div>

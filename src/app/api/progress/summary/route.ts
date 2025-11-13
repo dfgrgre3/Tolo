@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getCachedOrFetch, invalidateCache } from '@/lib/db-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 
     if (!userId || userId === 'undefined') {
@@ -107,18 +110,20 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(summary);
   } catch (error) {
-    console.error('Error fetching progress summary:', error);
+    logger.error('Error fetching progress summary:', error);
     return NextResponse.json(
       { error: 'Failed to fetch progress summary' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // Add POST method for cache invalidation
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { userId, action } = body;
 
     if (!userId) {
@@ -144,10 +149,11 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   } catch (error) {
-    console.error('Error invalidating progress summary cache:', error);
+    logger.error('Error invalidating progress summary cache:', error);
     return NextResponse.json(
       { error: 'Failed to invalidate cache' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useHydrationFix } from '@/hydration-fix';
 import { setSafeAuthToken } from '@/lib/safe-client-utils';
 import { setupAutoTokenRefresh } from '@/lib/token-refresh-interceptor';
+import { logger } from '@/lib/logger';
 
 export interface User {
   id: string;
@@ -93,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearTimeout(timeoutId);
           
           if (fetchError.name === 'AbortError') {
-            console.warn('Auth check request timed out');
+            logger.warn('Auth check request timed out');
             removeTokenFromStorage();
             setUser(null);
             setIsLoading(false);
@@ -105,13 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             fetchError.message?.includes('Failed to fetch') ||
             !navigator.onLine
           ) {
-            console.warn('Network error during auth check, keeping cached user');
+            logger.warn('Network error during auth check, keeping cached user');
             setIsLoading(false);
             return;
           }
           
           // Other errors - clear auth state
-          console.error('Error during auth check:', fetchError);
+          logger.error('Error during auth check:', fetchError);
           removeTokenFromStorage();
           setUser(null);
           setIsLoading(false);
@@ -129,13 +130,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               setUser(userData.user);
               saveUserToStorage(userData.user);
             } catch (error) {
-              console.error('Error parsing user data:', error);
+              logger.error('Error parsing user data:', error);
               removeTokenFromStorage();
               setUser(null);
             }
           } else {
             // Response is not JSON (likely HTML error page)
-            console.error('Server returned non-JSON response');
+            logger.error('Server returned non-JSON response');
             removeTokenFromStorage();
             setUser(null);
           }
@@ -145,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
         }
       } catch (error) {
-        console.error('Authentication error:', error);
+        logger.error('Authentication error:', error);
         removeTokenFromStorage();
         setUser(null);
       } finally {
@@ -164,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       (newToken) => {
         // Token refreshed successfully
         if (process.env.NODE_ENV === 'development') {
-          console.log('Token auto-refreshed successfully');
+          logger.info('Token auto-refreshed successfully');
         }
       },
       () => {
@@ -184,7 +185,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Validate token
       if (!token || typeof token !== 'string' || token.trim().length === 0) {
-        console.error('Invalid token provided to login function');
+        logger.error('Invalid token provided to login function');
         toast.error('رمز المصادقة غير صالح');
         return;
       }
@@ -192,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Validate token format (basic JWT check)
       const tokenParts = token.split('.');
       if (tokenParts.length !== 3) {
-        console.error('Invalid token format');
+        logger.error('Invalid token format');
         toast.error('تنسيق رمز المصادقة غير صحيح');
         return;
       }
@@ -200,7 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Save token using safe method
       const tokenSaved = setSafeAuthToken(token);
       if (!tokenSaved) {
-        console.error('Failed to save token to storage');
+        logger.error('Failed to save token to storage');
         toast.error('فشل حفظ رمز المصادقة');
         return;
       }
@@ -208,7 +209,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userData) {
         // Validate user data
         if (!userData.id || !userData.email) {
-          console.error('Invalid user data provided:', userData);
+          logger.error('Invalid user data provided:', userData);
           toast.error('بيانات المستخدم غير صحيحة');
           return;
         }
@@ -216,7 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(userData.email)) {
-          console.error('Invalid email format in user data');
+          logger.error('Invalid email format in user data');
           toast.error('تنسيق البريد الإلكتروني غير صحيح');
           return;
         }
@@ -240,7 +241,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Error in login function:', error);
+      logger.error('Error in login function:', error);
       toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
       
       // Try to clean up on error
@@ -248,7 +249,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         removeTokenFromStorage();
         setUser(null);
       } catch (cleanupError) {
-        console.error('Error during cleanup:', cleanupError);
+        logger.error('Error during cleanup:', cleanupError);
       }
     }
   }, []);
@@ -270,13 +271,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }).catch((error) => {
               // Silently fail - we'll clear local state anyway
               if (process.env.NODE_ENV === 'development') {
-                console.warn('Logout API call failed:', error);
+                logger.warn('Logout API call failed:', error);
               }
             });
           } catch (error) {
             // Silently fail
             if (process.env.NODE_ENV === 'development') {
-              console.warn('Error calling logout API:', error);
+              logger.warn('Error calling logout API:', error);
             }
           }
         }
@@ -292,7 +293,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Navigate to home page
       router.push('/');
     } catch (error) {
-      console.error('Error during logout:', error);
+      logger.error('Error during logout:', error);
       // Even if there's an error, clear local state
       if (typeof window !== 'undefined') {
         removeTokenFromStorage();
@@ -328,7 +329,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Validate token format before making request
       const tokenParts = token.split('.');
       if (tokenParts.length !== 3) {
-        console.warn('Invalid token format, clearing auth state');
+        logger.warn('Invalid token format, clearing auth state');
         removeTokenFromStorage();
         setUser(null);
         return;
@@ -364,7 +365,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               if (userData?.user) {
                 // Validate user data structure
                 if (!userData.user.id || !userData.user.email) {
-                  console.error('Invalid user data structure received');
+                  logger.error('Invalid user data structure received');
                   return;
                 }
                 
@@ -377,37 +378,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   saveUserToStorage(userData.user);
                 }
               } else {
-                console.warn('No user data in response');
+                logger.warn('No user data in response');
               }
             } catch (error) {
-              console.error('Error parsing user data:', error);
+              logger.error('Error parsing user data:', error);
               // Don't clear auth state on parse error, might be temporary
             }
           } else {
-            console.error('Server returned non-JSON response');
+            logger.error('Server returned non-JSON response');
             // Don't clear auth state, might be temporary issue
           }
         } else if (response.status === 401) {
           // Token expired or invalid, clear auth state
-          console.warn('Token expired or invalid, clearing auth state');
+          logger.warn('Token expired or invalid, clearing auth state');
           removeTokenFromStorage();
           setUser(null);
         } else if (response.status === 403) {
           // Forbidden - might be temporary, don't clear auth state
-          console.warn('Forbidden access while refreshing user');
+          logger.warn('Forbidden access while refreshing user');
         } else if (response.status >= 500) {
           // Server error - don't clear auth state, just log
-          console.warn('Server error while refreshing user:', response.status);
+          logger.warn('Server error while refreshing user:', response.status);
         } else {
           // Other errors - log but don't clear auth state
-          console.warn('Unexpected status while refreshing user:', response.status);
+          logger.warn('Unexpected status while refreshing user:', response.status);
         }
       } catch (fetchError: any) {
         clearTimeout(timeoutId);
         
         // Handle abort/timeout errors
         if (fetchError.name === 'AbortError') {
-          console.warn('User refresh request timed out');
+          logger.warn('User refresh request timed out');
           // Don't clear auth state on timeout, might be network issue
           return;
         }
@@ -418,16 +419,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           fetchError.message?.includes('NetworkError') ||
           !navigator.onLine
         ) {
-          console.warn('Network error while refreshing user:', fetchError);
+          logger.warn('Network error while refreshing user:', fetchError);
           // Don't clear auth state on network errors
           return;
         }
         
-        console.error('Error refreshing user data:', fetchError);
+        logger.error('Error refreshing user data:', fetchError);
         // Don't clear auth state on unexpected errors
       }
     } catch (error) {
-      console.error('Unexpected error in refreshUser:', error);
+      logger.error('Unexpected error in refreshUser:', error);
       // On unexpected errors, don't clear auth state
       // The token refresh interceptor will handle token expiration
     }

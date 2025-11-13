@@ -11,6 +11,7 @@ import {
   MailQuestion,
 } from 'lucide-react';
 import { Button } from '@/shared/button';
+import { logger } from '@/lib/logger';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'already' | 'error';
 
@@ -68,7 +69,7 @@ export default function VerifyEmailPage() {
             : 'تم تفعيل البريد الإلكتروني بنجاح.',
         );
       } catch (error) {
-        console.error('Verify email request failed:', error);
+        logger.error('Verify email request failed:', error);
         setStatus('error');
         setMessage('حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.');
       }

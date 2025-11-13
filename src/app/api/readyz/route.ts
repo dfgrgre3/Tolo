@@ -1,6 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import redisService from '@/lib/redis';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
+
 import 'server-only';
 
 /**
@@ -11,7 +14,8 @@ import 'server-only';
  * 
  * هذا endpoint يتحقق من الاتصال بقاعدة البيانات و Redis
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  return opsWrapper(request, async () => {
   const checks = {
     database: false,
     redis: false,
@@ -23,7 +27,7 @@ export async function GET() {
       await prisma.$queryRaw`SELECT 1`;
       checks.database = true;
     } catch (dbError) {
-      console.error('Database readiness check failed:', dbError);
+      logger.error('Database readiness check failed:', dbError);
       checks.database = false;
     }
 
@@ -39,7 +43,7 @@ export async function GET() {
         checks.redis = false;
       }
     } catch (redisError) {
-      console.error('Redis readiness check failed:', redisError);
+      logger.error('Redis readiness check failed:', redisError);
       checks.redis = false;
     }
 
@@ -70,7 +74,7 @@ export async function GET() {
       );
     }
   } catch (error) {
-    console.error('Readiness check failed:', error);
+    logger.error('Readiness check failed:', error);
     
     return NextResponse.json(
       {
@@ -81,7 +85,8 @@ export async function GET() {
       },
       { status: 503 }
     );
-  }
+    }
+  });
 }
 
 export const dynamic = 'force-dynamic';

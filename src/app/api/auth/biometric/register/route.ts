@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { webAuthnService } from '@/lib/security/webauthn';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
     
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -68,18 +71,20 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to generate biometric registration options:', error);
+    logger.error('Failed to generate biometric registration options:', error);
     return NextResponse.json(
       { error: 'فشل إنشاء خيارات التسجيل البيومتري' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function PUT(request: NextRequest) {
-  try {
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
     
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -88,8 +93,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    const user = verification.user;
-    const body = await request.json();
+      const user = verification.user;
+      const body = await req.json();
     const { credential, challenge } = body;
 
     if (!credential || !challenge) {
@@ -177,11 +182,12 @@ export async function PUT(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to register biometric:', error);
+    logger.error('Failed to register biometric:', error);
     return NextResponse.json(
       { error: 'فشل تسجيل المصادقة البيومترية' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

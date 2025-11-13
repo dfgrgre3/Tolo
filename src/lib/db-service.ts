@@ -1,6 +1,7 @@
 import { prisma, closeDatabaseConnection, checkDatabaseHealth, ensureDatabaseConnection } from './db';
 import { CacheService } from './redis';
 import { Prisma } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // Type for paginated results
 export interface PaginatedResult<T> {
@@ -57,7 +58,7 @@ export async function executeQuery<T>(
       if (attempt === 1) {
         const isConnected = await ensureDatabaseConnection();
         if (!isConnected && retry) {
-          console.warn('Database connection not established, will retry...');
+          logger.warn('Database connection not established, will retry...');
         }
       }
       
@@ -67,14 +68,14 @@ export async function executeQuery<T>(
       
       // Log specific Prisma errors
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        console.error(`Prisma error code: ${error.code}`);
-        console.error(`Prisma error meta:`, error.meta);
+        logger.error(`Prisma error code: ${error.code}`);
+        logger.error(`Prisma error meta:`, error.meta);
       }
       
       // Only retry on connection errors
       if (retry && isConnectionError(error) && attempt < maxRetries) {
         const delay = 1000 * Math.pow(2, attempt - 1); // Exponential backoff
-        console.warn(`${errorMessage} (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, {
+        logger.warn(`${errorMessage} (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms...`, {
           error: error instanceof Error ? error.message : String(error)
         });
         await new Promise(resolve => setTimeout(resolve, delay));
@@ -82,7 +83,7 @@ export async function executeQuery<T>(
       }
       
       // If not retrying or max retries reached, log and return null
-      console.error(`${errorMessage}:`, error);
+      logger.error(`${errorMessage}:`, error);
       return null;
     }
   }
@@ -107,12 +108,12 @@ export async function executeTransaction<T>(
       maxWait: 5000,  // 5 seconds max wait time
     });
   } catch (error) {
-    console.error(`${errorMessage}:`, error);
+    logger.error(`${errorMessage}:`, error);
     
     // Log specific Prisma errors
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
-      console.error(`Prisma error code: ${error.code}`);
-      console.error(`Prisma error meta:`, error.meta);
+      logger.error(`Prisma error code: ${error.code}`);
+      logger.error(`Prisma error meta:`, error.meta);
     }
     
     return null;
@@ -179,7 +180,7 @@ export async function batchUpdate<T extends keyof typeof prisma>(
     
     return result.count;
   } catch (error) {
-    console.error(`Batch update failed for model ${String(model)}:`, error);
+    logger.error(`Batch update failed for model ${String(model)}:`, error);
     return 0;
   }
 }
@@ -201,7 +202,7 @@ export async function batchDelete<T extends keyof typeof prisma>(
     
     return result.count;
   } catch (error) {
-    console.error(`Batch delete failed for model ${String(model)}:`, error);
+    logger.error(`Batch delete failed for model ${String(model)}:`, error);
     return 0;
   }
 }
@@ -233,7 +234,7 @@ export async function findOrCreate<T extends keyof typeof prisma>(
     
     return record;
   } catch (error) {
-    console.error(`Find or create failed for model ${String(model)}:`, error);
+    logger.error(`Find or create failed for model ${String(model)}:`, error);
     return null;
   }
 }

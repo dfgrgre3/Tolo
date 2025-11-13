@@ -1,5 +1,6 @@
 import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export interface GeneratedContent {
   id: string;
@@ -364,7 +365,7 @@ function parseJSONResponse(text: string): any {
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
     return JSON.parse(jsonStr);
   } catch (error) {
-    console.error('Error parsing JSON response:', error);
+    logger.error('Error parsing JSON response:', error);
     // Return a fallback structure
     return {
       title: 'محتوى منشأ',

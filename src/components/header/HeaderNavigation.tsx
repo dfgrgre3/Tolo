@@ -8,12 +8,19 @@ import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/n
 import { createIcon } from "@/components/mega-menu/iconFactory";
 import { cn } from "@/lib/utils";
 
+interface User {
+	id: string;
+	email: string;
+	name?: string;
+	role?: string;
+}
+
 interface HeaderNavigationProps {
 	openMegaMenu: string | null;
 	setOpenMegaMenu: (key: string | null) => void;
 	isActiveRoute: (href: string) => boolean;
 	mounted: boolean;
-	user?: any;
+	user?: User | null;
 }
 
 export function HeaderNavigation({
@@ -86,15 +93,16 @@ export function HeaderNavigation({
 						whileHover={{ scale: 1.02 }}
 						whileTap={{ scale: 0.98 }}
 					>
-						<Link
-							href={item.href}
-							className={cn(
-								"relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-accent/80 hover:text-accent-foreground group/nav",
-								isActive &&
-									"bg-primary/10 text-primary font-semibold shadow-sm"
-							)}
-							suppressHydrationWarning
-						>
+					<Link
+						href={item.href}
+						prefetch={true}
+						className={cn(
+							"relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-accent/80 hover:text-accent-foreground group/nav",
+							isActive &&
+								"bg-primary/10 text-primary font-semibold shadow-sm"
+						)}
+						suppressHydrationWarning
+					>
 							{item.icon ? (
 								<span className={cn(
 									"transition-transform duration-300",

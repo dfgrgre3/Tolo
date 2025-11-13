@@ -1,6 +1,7 @@
 'use client';
 
 import { safeGetItem, safeSetItem, safeRemoveItem } from './safe-client-utils';
+import { logger } from '@/lib/logger';
 
 export interface AuthTokens {
   token: string;
@@ -118,7 +119,7 @@ export async function refreshToken(): Promise<string | null> {
     if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
       // فقط في وضع التطوير نُظهر الخطأ التفصيلي
       if (process.env.NODE_ENV === 'development') {
-        console.warn(
+        logger.warn(
           '[Development] Token refresh: Server returned HTML error page instead of JSON:',
           {
             status: response.status,
@@ -135,7 +136,7 @@ export async function refreshToken(): Promise<string | null> {
       if (isJson) {
         try {
           const errorData = JSON.parse(text);
-          console.error('Token refresh failed:', errorData);
+          logger.error('Token refresh failed:', errorData);
         } catch {
           // لا بأس إذا فشل تحليل JSON
         }
@@ -149,7 +150,7 @@ export async function refreshToken(): Promise<string | null> {
     try {
       data = JSON.parse(text);
     } catch (parseError) {
-      console.error('Failed to parse token refresh response as JSON:', text.substring(0, 100));
+      logger.error('Failed to parse token refresh response as JSON:', text.substring(0, 100));
       clearAuthState();
       return null;
     }
@@ -161,7 +162,7 @@ export async function refreshToken(): Promise<string | null> {
 
     return null;
   } catch (error) {
-    console.error('Token refresh error:', error);
+    logger.error('Token refresh error:', error);
     clearAuthState();
     return null;
   }
@@ -178,7 +179,7 @@ export async function logout(): Promise<void> {
       },
     });
   } catch (error) {
-    console.error('Logout error:', error);
+    logger.error('Logout error:', error);
   } finally {
     clearAuthState();
   }

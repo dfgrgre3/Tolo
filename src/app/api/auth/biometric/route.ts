@@ -16,6 +16,7 @@ import type {
   AuthenticationResponseJSON,
   RegistrationResponseJSON
 } from '@simplewebauthn/typescript-types';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { BiometricChallengeService } from '@/lib/auth-challenges-service';
 
@@ -28,32 +29,34 @@ function validateEnvironment() {
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const { action, ...data } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { action, ...data } = await req.json();
 
-    logger.info(`Biometric API request: ${action}`, { ip: request.headers.get('x-forwarded-for') });
+      logger.info(`Biometric API request: ${action}`, { ip: req.headers.get('x-forwarded-for') });
 
-    switch (action) {
-      case 'register':
-        return handleBiometricRegistration(request, data);
-      case 'authenticate':
-        return handleBiometricAuthentication(request, data);
-      case 'options':
-        return handleAuthenticationOptions(request, data);
-      default:
-        logger.warn(`Invalid biometric action: ${action}`);
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          { status: 400 }
-        );
+      switch (action) {
+        case 'register':
+          return handleBiometricRegistration(req, data);
+        case 'authenticate':
+          return handleBiometricAuthentication(req, data);
+        case 'options':
+          return handleAuthenticationOptions(req, data);
+        default:
+          logger.warn(`Invalid biometric action: ${action}`);
+          return NextResponse.json(
+            { error: 'Invalid action' },
+            { status: 400 }
+          );
+      }
+    } catch (error) {
+      logger.error('Biometric authentication error:', error);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
     }
-  } catch (error) {
-    logger.error('Biometric authentication error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 async function handleBiometricRegistration(
@@ -108,7 +111,7 @@ async function handleBiometricRegistration(
       expectedRPID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
     });
   } catch (error) {
-    console.error('Registration verification failed:', error);
+    logger.error('Registration verification failed:', error);
     return NextResponse.json(
       { error: 'Registration verification failed' },
       { status: 400 }
@@ -239,7 +242,7 @@ async function handleBiometricAuthentication(
       expectedUserIDs: [user.id],
     } as any);
   } catch (error) {
-    console.error('Authentication verification failed:', error);
+    logger.error('Authentication verification failed:', error);
     return NextResponse.json(
       { error: 'Authentication verification failed' },
       { status: 400 }

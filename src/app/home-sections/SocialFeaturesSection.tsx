@@ -21,6 +21,7 @@ import {
   Target
 } from "lucide-react";
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 interface LeaderboardEntry {
   rank: number;
@@ -107,7 +108,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           setRecentAchievements([]);
         }
       } catch (error) {
-        console.error("Error fetching social data:", error);
+        logger.error("Error fetching social data:", error);
         setLeaderboard([]);
         setRecentAchievements([]);
       } finally {

@@ -6,6 +6,7 @@
  */
 
 import { safeGetItem, safeSetItem } from './safe-client-utils';
+import { logger } from '@/lib/logger';
 
 const LOCAL_USER_KEY = 'tw_user_id';
 
@@ -30,10 +31,10 @@ export async function ensureUser(): Promise<string> {
           safeSetItem(LOCAL_USER_KEY, id);
         }
       } else {
-        console.warn('Failed to create guest user:', res.statusText);
+        logger.warn('Failed to create guest user:', res.statusText);
       }
     } catch (error) {
-      console.warn('Error creating guest user:', error);
+      logger.warn('Error creating guest user:', error);
     }
   }
   

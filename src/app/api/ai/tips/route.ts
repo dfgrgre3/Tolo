@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AI_PROVIDERS, getDefaultProvider } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error from OpenAI:", errorData);
+        logger.error("Error from OpenAI:", errorData);
         return NextResponse.json({
           error: "عذراً، يواجه النظام بعض الصعوبات التقنية في تقديم النصائح حالياً. يرجى المحاولة مرة أخرى لاحقاً."
         }, { status: 500 });
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error from Gemini:", errorData);
+        logger.error("Error from Gemini:", errorData);
         return NextResponse.json({
           error: "عذراً، يواجه النظام بعض الصعوبات التقنية في تقديم النصائح حالياً. يرجى المحاولة مرة أخرى لاحقاً."
         }, { status: 500 });
@@ -154,7 +155,7 @@ export async function POST(request: NextRequest) {
               }
             });
           } catch (dbError) {
-            console.error("Error saving recommendation to database:", dbError);
+            logger.error("Error saving recommendation to database:", dbError);
           }
         }
       }
@@ -164,7 +165,7 @@ export async function POST(request: NextRequest) {
         provider: selectedProvider.name
       });
     } catch (parseError) {
-      console.error("Error parsing tips JSON:", parseError);
+      logger.error("Error parsing tips JSON:", parseError);
 
       // إذا فشل تحليل JSON، قم بإرجاع المحتوى الخام
       return NextResponse.json({ 
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
       });
     }
   } catch (error) {
-    console.error("Error in AI tips API:", error);
+    logger.error("Error in AI tips API:", error);
       return NextResponse.json(
         { error: "حدث خطأ في معالجة طلبك" },
         { status: 500 }

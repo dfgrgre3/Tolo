@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { logger } from '@/lib/logger';
 
 interface WebAuthnConfig {
   rpId: string;
@@ -22,7 +23,19 @@ async function getRegistrationOptions(userId: string, userName: string) {
   return response.data;
 }
 
-async function createCredential(options: any) {
+interface PublicKeyCredentialCreationOptions {
+  challenge: BufferSource;
+  rp: PublicKeyCredentialRpEntity;
+  user: PublicKeyCredentialUserEntity;
+  pubKeyCredParams: PublicKeyCredentialParameters[];
+  timeout?: number;
+  attestation?: AttestationConveyancePreference;
+  excludeCredentials?: PublicKeyCredentialDescriptor[];
+  authenticatorSelection?: AuthenticatorSelectionCriteria;
+  extensions?: AuthenticationExtensionsClientInputs;
+}
+
+async function createCredential(options: PublicKeyCredentialCreationOptions) {
   return await navigator.credentials.create({ publicKey: options }) as PublicKeyCredential;
 }
 
@@ -68,12 +81,21 @@ async function register(userId: string, userName: string): Promise<Credential> {
     await verifyRegistration(credential, userId);
     return credential;
   } catch (error) {
-    console.error('فشل التسجيل:', error);
+    logger.error('فشل التسجيل:', error);
     throw new Error('فشل في عملية التسجيل البيومتري');
   }
 }
 
-async function authenticate(): Promise<{token: string, user: any}> {
+interface AuthResult {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    name?: string;
+  };
+}
+
+async function authenticate(): Promise<AuthResult> {
   // 1. Get authentication options from server
   const optionsResponse = await axios.post(`${config.apiBaseUrl}/authenticate/options`);
   

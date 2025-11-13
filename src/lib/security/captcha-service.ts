@@ -2,6 +2,8 @@
  * CAPTCHA Service
  * Handles CAPTCHA verification and tracking failed login attempts
  */
+import { logger } from '@/lib/logger';
+
 
 interface CaptchaConfig {
   enabled: boolean;
@@ -60,7 +62,7 @@ class CaptchaService {
    */
   private async verifyHcaptcha(token: string, remoteIp?: string): Promise<boolean> {
     if (!this.config.secretKey) {
-      console.warn('hCaptcha secret key not configured');
+      logger.warn('hCaptcha secret key not configured');
       return true; // Allow if not configured (development)
     }
 
@@ -80,7 +82,7 @@ class CaptchaService {
       const data = await response.json();
       return data.success === true;
     } catch (error) {
-      console.error('hCaptcha verification error:', error);
+      logger.error('hCaptcha verification error:', error);
       return false;
     }
   }
@@ -90,7 +92,7 @@ class CaptchaService {
    */
   private async verifyRecaptcha(token: string, remoteIp?: string): Promise<boolean> {
     if (!this.config.secretKey) {
-      console.warn('reCAPTCHA secret key not configured');
+      logger.warn('reCAPTCHA secret key not configured');
       return true;
     }
 
@@ -110,7 +112,7 @@ class CaptchaService {
       const data = await response.json();
       return data.success === true;
     } catch (error) {
-      console.error('reCAPTCHA verification error:', error);
+      logger.error('reCAPTCHA verification error:', error);
       return false;
     }
   }

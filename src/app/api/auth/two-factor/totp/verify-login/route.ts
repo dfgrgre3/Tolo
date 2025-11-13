@@ -3,14 +3,17 @@ import { verifyTOTPLogin, verifyTOTP } from '@/lib/two-factor/totp-service';
 import { verifyAndConsumeRecoveryCode } from '@/lib/two-factor/recovery-codes';
 import { prisma } from '@/lib/prisma';
 import { authService } from '@/lib/auth-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/two-factor/totp/verify-login
  * التحقق من رمز TOTP أثناء تسجيل الدخول
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { userId, code, useRecoveryCode } = body;
 
     if (!userId) {
@@ -61,9 +64,9 @@ export async function POST(request: NextRequest) {
       isValid = verifyTOTP(user.twoFactorSecret, code);
     }
 
-    // Get IP and User Agent for logging
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Get IP and User Agent for logging
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
 
     if (!isValid) {
       // Log failed verification attempt
@@ -93,11 +96,12 @@ export async function POST(request: NextRequest) {
       message: 'تم التحقق بنجاح',
     });
   } catch (error) {
-    console.error('TOTP login verify error:', error);
+    logger.error('TOTP login verify error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء التحقق' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

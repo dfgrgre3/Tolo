@@ -2,14 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyMagicLink } from '@/lib/passwordless/magic-link-service';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/magic-link/verify
  * التحقق من رابط سحري وتسجيل الدخول
  */
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { token, email } = body;
 
     if (!token || !email) {
@@ -19,8 +22,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
 
     const result = await verifyMagicLink(token, email, ip, userAgent);
 
@@ -102,11 +105,12 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Magic link verify error:', error);
+    logger.error('Magic link verify error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء التحقق من رابط تسجيل الدخول' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

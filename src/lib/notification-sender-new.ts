@@ -5,6 +5,7 @@
 import { prisma } from '@/lib/prisma';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
+import { logger } from '@/lib/logger';
 
 // إرسال إشعار عبر البريد الإلكتروني
 export async function sendEmailNotification(options: {
@@ -17,11 +18,11 @@ export async function sendEmailNotification(options: {
   try {
     const { to, subject, text, html, from = 'noreply@thanawy.com' } = options;
 
-    console.log(`إرسال بريد إلكتروني إلى ${to}: ${subject}`);
+    logger.info(`إرسال بريد إلكتروني إلى ${to}: ${subject}`);
 
     // التحقق من وجود متغيرات البيئة اللازمة
     if (!process.env.SMTP_HOST || !process.env.SMTP_PORT || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
-      console.warn('متغيرات بيئة SMTP غير مكتملة، سيتم استخدام محاكاة الإرسال');
+      logger.warn('متغيرات بيئة SMTP غير مكتملة، سيتم استخدام محاكاة الإرسال');
       return { success: true, simulated: true };
     }
 
@@ -49,10 +50,10 @@ export async function sendEmailNotification(options: {
       html: emailHtml,
     });
 
-    console.log('تم إرسال البريد الإلكتروني:', info.messageId);
+    logger.info('تم إرسال البريد الإلكتروني:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('خطأ في إرسال البريد الإلكتروني:', error);
+    logger.error('خطأ في إرسال البريد الإلكتروني:', error);
     throw error;
   }
 }
@@ -66,11 +67,11 @@ export async function sendSMSNotification(options: {
   try {
     const { to, body, from = 'Thanawy' } = options;
 
-    console.log(`إرسال رسالة نصية إلى ${to}: ${body}`);
+    logger.info(`إرسال رسالة نصية إلى ${to}: ${body}`);
 
     // التحقق من وجود متغيرات البيئة اللازمة
     if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
-      console.warn('متغيرات ��يئة Twilio غير مكتملة، سيتم استخدام محاكاة الإرسال');
+      logger.warn('متغيرات ��يئة Twilio غير مكتملة، سيتم استخدام محاكاة الإرسال');
       return { success: true, simulated: true };
     }
 
@@ -86,10 +87,10 @@ export async function sendSMSNotification(options: {
       to,
     });
 
-    console.log('تم إرسال الرسالة النصية:', message.sid);
+    logger.info('تم إرسال الرسالة النصية:', message.sid);
     return { success: true, messageId: message.sid };
   } catch (error) {
-    console.error('خطأ في إرسال الرسالة النصية:', error);
+    logger.error('خطأ في إرسال الرسالة النصية:', error);
     throw error;
   }
 }
@@ -156,7 +157,7 @@ export async function sendMultiChannelNotification(options: {
           }
         });
       } catch (error) {
-        console.error('خطأ في إنشاء إشعار التطبيق:', error);
+        logger.error('خطأ في إنشاء إشعار التطبيق:', error);
       }
     }
 
@@ -187,7 +188,7 @@ export async function sendMultiChannelNotification(options: {
           `
         });
       } catch (error) {
-        console.error('خطأ في إرسال البريد الإلكتروني:', error);
+        logger.error('خطأ في إرسال البريد الإلكتروني:', error);
       }
     }
 
@@ -199,13 +200,13 @@ export async function sendMultiChannelNotification(options: {
           body: `[ثناوي] ${title}: ${message}${actionUrl ? ` رابط: ${actionUrl}` : ''}`
         });
       } catch (error) {
-        console.error('خطأ في إرسال الرسالة النصية:', error);
+        logger.error('خطأ في إرسال الرسالة النصية:', error);
       }
     }
 
     return results;
   } catch (error) {
-    console.error('خطأ في إرسال الإشعار متعدد القنوات:', error);
+    logger.error('خطأ في إرسال الإشعار متعدد القنوات:', error);
     throw error;
   }
 }

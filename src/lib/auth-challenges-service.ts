@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 /**
  * Service for managing temporary authentication challenges
@@ -280,9 +281,9 @@ export class AuthChallengesCleanupService {
     return setInterval(async () => {
       try {
         await this.cleanupAllExpired();
-        console.log('Auth challenges cleanup completed');
+        logger.info('Auth challenges cleanup completed');
       } catch (error) {
-        console.error('Auth challenges cleanup failed:', error);
+        logger.error('Auth challenges cleanup failed:', error);
       }
     }, intervalMinutes * 60 * 1000);
   }

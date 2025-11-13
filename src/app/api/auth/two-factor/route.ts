@@ -11,12 +11,15 @@ import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorResponse } from '@/types/api/auth';
 import { setAuthCookies, createErrorResponse } from '@/app/api/auth/_helpers';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key');
 
 // Generate a new 2FA verification code
 export async function GET(request: NextRequest) {
-  try {
+  return opsWrapper(request, async (req) => {
+    try {
     // Generate a 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -31,18 +34,20 @@ export async function GET(request: NextRequest) {
       // Removed code from response for security - it should only be sent via email/SMS
     });
   } catch (error) {
-    console.error('Error generating 2FA code:', error);
+    logger.error('Error generating 2FA code:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // Combined POST handler for both 2FA login verification and management
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { loginAttemptId, code, action, userId, backupCode } = body;
 
     // If loginAttemptId is provided, this is a login verification request
@@ -94,8 +99,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(errorResponse, { status: 404 });
       }
 
-      const ip = authService.getClientIP(request);
-      const userAgent = authService.getUserAgent(request);
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
       const clientId = `${ip}-${userAgent}`;
       const rememberDevice = Boolean(body.trustDevice);
       const loginTimestamp = new Date();
@@ -160,7 +165,7 @@ export async function POST(request: NextRequest) {
     // Get user ID from token if not provided
     let targetUserId = userId;
     if (!targetUserId) {
-      const authHeader = request.headers.get('authorization');
+      const authHeader = req.headers.get('authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return NextResponse.json(
           { error: 'Authentication required' },
@@ -191,11 +196,11 @@ export async function POST(request: NextRequest) {
       case 'setup':
         return await handleSetup2FA(user);
       case 'verify':
-        return await handleVerify2FA(user, code, request);
+        return await handleVerify2FA(user, code, req);
       case 'disable':
-        return await handleDisable2FA(user, code, request);
+        return await handleDisable2FA(user, code, req);
       case 'backup-code':
-        return await handleBackupCode(user, backupCode, request);
+        return await handleBackupCode(user, backupCode, req);
       default:
         return NextResponse.json(
           { error: 'Invalid action' },
@@ -203,12 +208,13 @@ export async function POST(request: NextRequest) {
         );
     }
   } catch (error) {
-    console.error('Two-factor authentication error:', error);
+    logger.error('Two-factor authentication error:', error);
     return createErrorResponse(
       error,
       'حدث خطأ غير متوقع أثناء معالجة طلب التحقق ثنائي العامل. حاول مرة أخرى لاحقاً.'
     );
-  }
+    }
+  });
 }
 
 // Handle 2FA setup
@@ -241,7 +247,7 @@ async function handleSetup2FA(user: any) {
       message: '2FA setup initiated. Please verify with your authenticator app.'
     });
   } catch (error) {
-    console.error('2FA setup error:', error);
+    logger.error('2FA setup error:', error);
     return NextResponse.json(
       { error: 'Failed to setup 2FA' },
       { status: 500 }
@@ -324,7 +330,7 @@ async function handleVerify2FA(user: any, code: string, request: NextRequest) {
       message: 'تم تفعيل المصادقة الثنائية بنجاح'
     });
   } catch (error) {
-    console.error('2FA verification error:', error);
+    logger.error('2FA verification error:', error);
     return NextResponse.json(
       { error: 'Failed to verify 2FA' },
       { status: 500 }
@@ -410,7 +416,7 @@ async function handleDisable2FA(user: any, code: string, request: NextRequest) {
       message: 'تم إلغاء تفعيل المصادقة الثنائية بنجاح'
     });
   } catch (error) {
-    console.error('2FA disable error:', error);
+    logger.error('2FA disable error:', error);
     return NextResponse.json(
       { error: 'Failed to disable 2FA' },
       { status: 500 }
@@ -508,7 +514,7 @@ async function handleBackupCode(user: any, backupCode: string, request: NextRequ
       remainingBackupCodes: remainingCodes
     });
   } catch (error) {
-    console.error('Backup code verification error:', error);
+    logger.error('Backup code verification error:', error);
     return NextResponse.json(
       { error: 'Failed to verify backup code' },
       { status: 500 }

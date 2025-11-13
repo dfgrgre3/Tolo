@@ -1,5 +1,7 @@
 import { prisma } from './prisma';
 
+import { logger as elkLogger } from '@/lib/logging/elk-logger';
+
 export type SecurityEventType =
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
@@ -78,10 +80,16 @@ export class SecurityLogger {
       });
     } catch (error) {
       // لا نرمي خطأ حتى لا نؤثر على التدفق الرئيسي
-      // لكن نسجله في console في وضع التطوير
-      if (process.env.NODE_ENV === 'development') {
-        console.error('Failed to log security event:', error);
-      }
+      // لكن نسجله في ELK logger
+      elkLogger.error(
+        'Failed to log security event',
+        error instanceof Error ? error : new Error(String(error)),
+        {
+          context: 'security-logger',
+          eventType: data.eventType,
+          userId: data.userId,
+        }
+      );
     }
   }
 
@@ -255,7 +263,11 @@ export class SecurityLogger {
         metadata: log.metadata ? JSON.parse(log.metadata) : null,
       }));
     } catch (error) {
-      console.error('Failed to get security logs:', error);
+      elkLogger.error(
+        'Failed to get security logs',
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'security-logger', userId }
+      );
       return [];
     }
   }
@@ -284,7 +296,11 @@ export class SecurityLogger {
         metadata: log.metadata ? JSON.parse(log.metadata) : null,
       }));
     } catch (error) {
-      console.error('Failed to get logs by event type:', error);
+      elkLogger.error(
+        'Failed to get logs by event type',
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'security-logger', userId, eventType }
+      );
       return [];
     }
   }
@@ -313,7 +329,11 @@ export class SecurityLogger {
         metadata: log.metadata ? JSON.parse(log.metadata) : null,
       };
     } catch (error) {
-      console.error('Failed to get last event:', error);
+      elkLogger.error(
+        'Failed to get last event',
+        error instanceof Error ? error : new Error(String(error)),
+        { context: 'security-logger', userId, eventType }
+      );
       return null;
     }
   }

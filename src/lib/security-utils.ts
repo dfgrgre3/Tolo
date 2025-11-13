@@ -1,5 +1,6 @@
 
 import { UAParser } from 'ua-parser-js';
+import { logger } from '@/lib/logger';
 
 // Get device information from user agent
 export async function getDeviceInfo(userAgent: string) {
@@ -17,7 +18,7 @@ export async function getDeviceInfo(userAgent: string) {
       userAgent
     };
   } catch (error) {
-    console.error('Error parsing user agent:', error);
+    logger.error('Error parsing user agent:', error);
     return {
       type: 'unknown',
       browser: 'unknown',
@@ -45,13 +46,13 @@ export async function getLocationFromIP(ip: string) {
     const data = await response.json();
 
     if (data.error) {
-      console.error('IP geolocation error:', data.error);
+      logger.error('IP geolocation error:', data.error);
       return 'Unknown';
     }
 
     return `${data.city}, ${data.region}, ${data.country_name}`;
   } catch (error) {
-    console.error('Error getting location from IP:', error);
+    logger.error('Error getting location from IP:', error);
     return 'Unknown';
   }
 }

@@ -6,20 +6,21 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '@/lib/logger';
 
 // ==================== Type Definitions ====================
 
 export type StorageType = 'local' | 'session';
 
-export interface SafeStorageOptions {
+export interface SafeStorageOptions<T = unknown> {
   /** قيمة افتراضية في حالة عدم توفر التخزين */
-  fallback?: any;
+  fallback?: T;
   /** نوع التخزين */
   storageType?: StorageType;
   /** تحليل القيمة المخزنة */
-  parser?: (value: string) => any;
+  parser?: (value: string) => T;
   /** تحويل القيمة قبل التخزين */
-  serializer?: (value: any) => string;
+  serializer?: (value: T) => string;
 }
 
 // ==================== Storage Safety Checks ====================
@@ -66,7 +67,7 @@ function getStorage(type: StorageType = 'local'): Storage | null {
   try {
     return type === 'local' ? window.localStorage : window.sessionStorage;
   } catch (e) {
-    console.warn(`Failed to access ${type}Storage:`, e);
+    logger.warn(`Failed to access ${type}Storage:`, e);
     return null;
   }
 }
@@ -77,10 +78,10 @@ function getStorage(type: StorageType = 'local'): Storage | null {
  * قراءة قيمة من التخزين بشكل آمن
  * Safely read a value from storage
  */
-export function safeGetItem(
+export function safeGetItem<T = unknown>(
   key: string,
-  options: SafeStorageOptions = {}
-): any {
+  options: SafeStorageOptions<T> = {}
+): T | null {
   const { fallback = null, storageType = 'local', parser } = options;
   
   const storage = getStorage(storageType);
@@ -101,7 +102,7 @@ export function safeGetItem(
       return item;
     }
   } catch (e) {
-    console.warn(`Failed to get item "${key}" from ${storageType}Storage:`, e);
+    logger.warn(`Failed to get item "${key}" from ${storageType}Storage:`, e);
     return fallback;
   }
 }
@@ -110,10 +111,10 @@ export function safeGetItem(
  * كتابة قيمة إلى التخزين بشكل آمن
  * Safely write a value to storage
  */
-export function safeSetItem(
+export function safeSetItem<T = unknown>(
   key: string,
-  value: any,
-  options: SafeStorageOptions = {}
+  value: T,
+  options: SafeStorageOptions<T> = {}
 ): boolean {
   const { storageType = 'local', serializer } = options;
   
@@ -130,7 +131,7 @@ export function safeSetItem(
     storage.setItem(key, stringValue);
     return true;
   } catch (e) {
-    console.warn(`Failed to set item "${key}" in ${storageType}Storage:`, e);
+    logger.warn(`Failed to set item "${key}" in ${storageType}Storage:`, e);
     return false;
   }
 }
@@ -152,7 +153,7 @@ export function safeRemoveItem(
     storage.removeItem(key);
     return true;
   } catch (e) {
-    console.warn(`Failed to remove item "${key}" from ${storageType}Storage:`, e);
+    logger.warn(`Failed to remove item "${key}" from ${storageType}Storage:`, e);
     return false;
   }
 }
@@ -169,7 +170,7 @@ export function safeClearStorage(storageType: StorageType = 'local'): boolean {
     storage.clear();
     return true;
   } catch (e) {
-    console.warn(`Failed to clear ${storageType}Storage:`, e);
+    logger.warn(`Failed to clear ${storageType}Storage:`, e);
     return false;
   }
 }
@@ -206,7 +207,7 @@ export function useSafeLocalStorage<T = any>(
       setStoredValue(valueToStore);
       safeSetItem(key, valueToStore);
     } catch (error) {
-      console.warn(`Error setting localStorage key "${key}":`, error);
+      logger.warn(`Error setting localStorage key "${key}":`, error);
     }
   }, [key, storedValue]);
   
@@ -240,7 +241,7 @@ export function useSafeSessionStorage<T = any>(
       setStoredValue(valueToStore);
       safeSetItem(key, valueToStore, { storageType: 'session' });
     } catch (error) {
-      console.warn(`Error setting sessionStorage key "${key}":`, error);
+      logger.warn(`Error setting sessionStorage key "${key}":`, error);
     }
   }, [key, storedValue]);
   
@@ -270,7 +271,7 @@ export function safeWindow<T>(
   try {
     return accessor(window);
   } catch (e) {
-    console.warn('Failed to access window:', e);
+    logger.warn('Failed to access window:', e);
     return fallback;
   }
 }
@@ -288,7 +289,7 @@ export function safeDocument<T>(
   try {
     return accessor(document);
   } catch (e) {
-    console.warn('Failed to access document:', e);
+    logger.warn('Failed to access document:', e);
     return fallback;
   }
 }
@@ -367,7 +368,7 @@ export function useSafeMediaQuery(query: string): boolean {
         return () => media.removeListener(listener);
       }
     } catch (e) {
-      console.warn('Failed to setup media query:', e);
+      logger.warn('Failed to setup media query:', e);
     }
   }, [query]);
   
@@ -528,7 +529,7 @@ export async function safeJsonParse<T = any>(
     } catch (textError) {
       // إذا فشل قراءة النص (مثلاً إذا تم استهلاك response بالفعل)
       if (process.env.NODE_ENV === 'development') {
-        console.warn('[Development] Failed to read response text:', textError);
+        logger.warn('[Development] Failed to read response text:', textError);
       }
       return fallback;
     }
@@ -543,7 +544,7 @@ export async function safeJsonParse<T = any>(
       // فقط في وضع التطوير نُظهر الخطأ التفصيلي
       if (process.env.NODE_ENV === 'development') {
         const url = response.url || 'Unknown URL';
-        console.warn(
+        logger.warn(
           `[Development] Server returned HTML error page instead of JSON:`,
           {
             status: response.status,
@@ -565,7 +566,7 @@ export async function safeJsonParse<T = any>(
       } catch (parseError) {
         // إذا فشل تحليل JSON، رجوع للـ fallback
         if (process.env.NODE_ENV === 'development') {
-          console.warn(
+          logger.warn(
             `[Development] Failed to parse error response as JSON:`,
             {
               status: response.status,
@@ -585,7 +586,7 @@ export async function safeJsonParse<T = any>(
     } catch (parseError) {
       // فقط في وضع التطوير نُظهر تفاصيل الخطأ
       if (process.env.NODE_ENV === 'development') {
-        console.warn(
+        logger.warn(
           `[Development] Failed to parse response as JSON:`,
           {
             error: parseError,
@@ -599,7 +600,7 @@ export async function safeJsonParse<T = any>(
   } catch (error) {
     // فقط في وضع التطوير نُظهر تفاصيل الخطأ
     if (process.env.NODE_ENV === 'development') {
-      console.error('[Development] Error parsing JSON response:', error);
+      logger.error('[Development] Error parsing JSON response:', error);
     }
     return fallback;
   }
@@ -624,35 +625,48 @@ export async function safeFetch<T = any>(
     if (!response.ok) {
       // إذا كان data هو fallback (يعني أن الـ response لم تكن JSON صالحة)
       // يجب التحقق من ذلك أولاً قبل محاولة استخراج رسالة الخطأ
-      if (data === fallback) {
+      const isFallback = data === fallback;
+      
+      if (isFallback) {
+        const errorMessage = `HTTP ${response.status}: ${response.statusText} - Server returned non-JSON response`;
         return {
           data: fallback,
-          error: new Error(
-            `HTTP ${response.status}: ${response.statusText} - Server returned non-JSON response`
-          ),
+          error: new Error(errorMessage),
           response
         };
       }
       
       // محاولة استخراج رسالة خطأ من البيانات إذا كانت موجودة
-      let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+      let errorMessage: string = `HTTP ${response.status}: ${response.statusText}`;
       
-      if (data && typeof data === 'object' && data !== null) {
-        // محاولة استخراج رسالة الخطأ من الـ response
-        if ('error' in data && typeof data.error === 'string') {
-          errorMessage = data.error;
-        } else if ('message' in data && typeof data.message === 'string') {
-          errorMessage = data.message;
-        } else if ('details' in data && typeof data.details === 'string') {
-          errorMessage = `${errorMessage} - ${data.details}`;
+      try {
+        if (data && typeof data === 'object' && data !== null) {
+          // محاولة استخراج رسالة الخطأ من الـ response
+          if ('error' in data && typeof data.error === 'string') {
+            errorMessage = data.error;
+          } else if ('message' in data && typeof data.message === 'string') {
+            errorMessage = data.message;
+          } else if ('details' in data && typeof data.details === 'string') {
+            errorMessage = `${errorMessage} - ${data.details}`;
+          }
         }
+      } catch (extractError) {
+        // في حالة فشل استخراج رسالة الخطأ، نستخدم الرسالة الافتراضية
+        if (process.env.NODE_ENV === 'development') {
+          logger.warn('[Development] Failed to extract error message:', extractError);
+        }
+      }
+      
+      // التأكد من أن errorMessage ليس فارغاً أو undefined
+      if (!errorMessage || typeof errorMessage !== 'string' || errorMessage.trim().length === 0) {
+        errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       }
       
       // إذا كان data ليس fallback، يعني أننا حصلنا على JSON (حتى لو كانت error response)
       const error = new Error(errorMessage);
       // فقط في وضع التطوير نعرض الخطأ في console
       if (process.env.NODE_ENV === 'development') {
-        console.warn(`[Development] API Error (${url}):`, {
+        logger.warn(`[Development] API Error (${url}):`, {
           status: response.status,
           statusText: response.statusText,
           error: errorMessage,
@@ -671,7 +685,7 @@ export async function safeFetch<T = any>(
   } catch (error) {
     // فقط في وضع التطوير نُظهر تفاصيل الخطأ
     if (process.env.NODE_ENV === 'development') {
-      console.error('[Development] Fetch error:', error);
+      logger.error('[Development] Fetch error:', error);
     }
     return {
       data: fallback,

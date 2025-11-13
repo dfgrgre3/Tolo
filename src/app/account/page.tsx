@@ -48,7 +48,8 @@ import { ensureUser } from "@/lib/user-utils";
 import { useAuth } from "@/components/auth/UserProvider";
 import { toast } from "sonner";
 import SecurityTab from "@/components/profile/SecurityTab";
-import LoginMethods from "@/components/profile/LoginMethods";
+import LoginMethods from "@/components/profile/LoginMethods";import { logger } from '@/lib/logger';
+
 import {
 	Dialog,
 	DialogContent,
@@ -146,7 +147,7 @@ export default function AccountPage() {
 					});
 				}
 			} catch (error) {
-				console.error("Error fetching user data:", error);
+				logger.error("Error fetching user data:", error);
 			} finally {
 				setLoading(false);
 			}
@@ -165,7 +166,7 @@ export default function AccountPage() {
 					}));
 				}
 			} catch (error) {
-				console.error("Error fetching settings:", error);
+				logger.error("Error fetching settings:", error);
 			}
 		};
 
@@ -195,7 +196,7 @@ export default function AccountPage() {
 				toast.error(errorData.error || "حدث خطأ أثناء تحديث الحساب");
 			}
 		} catch (error) {
-			console.error("Error updating user account:", error);
+			logger.error("Error updating user account:", error);
 			toast.error("حدث خطأ أثناء تحديث الحساب");
 		} finally {
 			setIsSaving(false);
@@ -228,7 +229,7 @@ export default function AccountPage() {
 				toast.error("حدث خطأ أثناء رفع الصورة");
 			}
 		} catch (error) {
-			console.error("Error uploading avatar:", error);
+			logger.error("Error uploading avatar:", error);
 			toast.error("حدث خطأ أثناء رفع الصورة");
 		}
 	};
@@ -265,7 +266,7 @@ export default function AccountPage() {
 				toast.error(errorData.error || "حدث خطأ أثناء حذف الحساب");
 			}
 		} catch (error) {
-			console.error("Error deleting account:", error);
+			logger.error("Error deleting account:", error);
 			toast.error("حدث خطأ أثناء حذف الحساب");
 		}
 	};
@@ -297,7 +298,7 @@ export default function AccountPage() {
 				toast.error("حدث خطأ أثناء حفظ الإعدادات");
 			}
 		} catch (error) {
-			console.error("Error saving notification settings:", error);
+			logger.error("Error saving notification settings:", error);
 			toast.error("حدث خطأ أثناء حفظ الإعدادات");
 		} finally {
 			setIsSaving(false);
@@ -345,7 +346,7 @@ export default function AccountPage() {
 				toast.error("حدث خطأ أثناء حفظ الإعدادات");
 			}
 		} catch (error) {
-			console.error("Error saving privacy settings:", error);
+			logger.error("Error saving privacy settings:", error);
 			toast.error("حدث خطأ أثناء حفظ الإعدادات");
 		} finally {
 			setIsSaving(false);

@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/auth-unified";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all users
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
     if (!decodedToken) {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -29,10 +32,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(users);
   } catch (error) {
-    console.error("Error fetching users:", error);
+    logger.error("Error fetching users:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المستخدمين" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

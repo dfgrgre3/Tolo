@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all forum posts
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const categoryId = searchParams.get("categoryId");
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
+      const categoryId = searchParams.get("categoryId");
 
     const where = categoryId ? { categoryId } : {};
 
@@ -44,28 +47,30 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(transformedPosts);
   } catch (error) {
-    console.error("Error fetching forum posts:", error);
+    logger.error("Error fetching forum posts:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المواضيع" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST create a new forum post
 export async function POST(request: NextRequest) {
-  try {
-    const { userId, title, content, categoryId } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { userId, title, content, categoryId } = await req.json();
 
-    if (!userId || !title || !content || !categoryId) {
-      return NextResponse.json(
-        { error: "جميع الحقول مطلوبة" },
-        { status: 400 }
-      );
-    }
+      if (!userId || !title || !content || !categoryId) {
+        return NextResponse.json(
+          { error: "جميع الحقول مطلوبة" },
+          { status: 400 }
+        );
+      }
 
-    // Check if user exists
-    const user = await prisma.user.findUnique({
+      // Check if user exists
+      const user = await prisma.user.findUnique({
       where: { id: userId }
     });
 
@@ -107,10 +112,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newPost, { status: 201 });
   } catch (error) {
-    console.error("Error creating forum post:", error);
+    logger.error("Error creating forum post:", error);
     return NextResponse.json(
       { error: "حدث خطأ في إنشاء الموضوع" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

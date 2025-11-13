@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { Smartphone, Monitor, Tablet, MapPin, Clock, Edit, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { logger } from '@/lib/logger';
 
 interface Session {
   id: string;
@@ -74,7 +75,7 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
         toast.error('فشل في تحميل الجلسات');
       }
     } catch (error) {
-      console.error('Error loading sessions:', error);
+      logger.error('Error loading sessions:', error);
       toast.error('حدث خطأ أثناء تحميل الجلسات');
     } finally {
       setLoading(false);
@@ -106,7 +107,7 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
         }
       }
     } catch (error) {
-      console.error('Token refresh check failed:', error);
+      logger.error('Token refresh check failed:', error);
     }
   };
 
@@ -129,7 +130,7 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
         toast.error('فشل في إنهاء الجلسة');
       }
     } catch (error) {
-      console.error('Error revoking session:', error);
+      logger.error('Error revoking session:', error);
       toast.error('حدث خطأ أثناء إنهاء الجلسة');
     } finally {
       setRevokingId(null);
@@ -157,7 +158,7 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
         toast.error('فشل في إنهاء الجلسات');
       }
     } catch (error) {
-      console.error('Error revoking all sessions:', error);
+      logger.error('Error revoking all sessions:', error);
       toast.error('حدث خطأ أثناء إنهاء الجلسات');
     }
   };
@@ -185,7 +186,7 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
         toast.error('فشل في تحديث اسم الجهاز');
       }
     } catch (error) {
-      console.error('Error updating device name:', error);
+      logger.error('Error updating device name:', error);
       toast.error('حدث خطأ أثناء تحديث اسم الجهاز');
     }
   };

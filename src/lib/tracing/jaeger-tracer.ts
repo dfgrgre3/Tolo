@@ -15,6 +15,7 @@ import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
+import { logger } from '@/lib/logger';
 
 // متغيرات التكوين
 const JAEGER_ENABLED = process.env.JAEGER_ENABLED !== 'false';
@@ -28,7 +29,7 @@ let provider: NodeTracerProvider | null = null;
 // تهيئة Tracer
 export function initializeTracer(): void {
   if (!JAEGER_ENABLED) {
-    console.log('Jaeger tracing is disabled');
+    logger.info('Jaeger tracing is disabled');
     return;
   }
 
@@ -77,9 +78,9 @@ export function initializeTracer(): void {
     // الحصول على Tracer
     tracer = trace.getTracer(SERVICE_NAME);
 
-    console.log('Jaeger tracing initialized successfully');
+    logger.info('Jaeger tracing initialized successfully');
   } catch (error) {
-    console.error('Failed to initialize Jaeger tracing:', error);
+    logger.error('Failed to initialize Jaeger tracing:', error);
     // لا نرمي خطأ حتى لا نؤثر على التطبيق
   }
 }
@@ -105,8 +106,8 @@ export function startSpan(name: string, options?: { attributes?: Record<string, 
 // إنشاء Span مع context
 export function startSpanWithContext(
   name: string,
-  parentContext: any,
-  options?: { attributes?: Record<string, any> }
+  parentContext: unknown,
+  options?: { attributes?: Record<string, unknown> }
 ): Span {
   const tracerInstance = getTracer();
   const span = tracerInstance.startSpan(name, {

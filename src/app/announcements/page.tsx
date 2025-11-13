@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type Announcement = {
   id: string;
@@ -57,7 +58,7 @@ export default function AnnouncementsPage() {
           setAnnouncements(data);
         }
       } catch (error) {
-        console.error("Error fetching announcements:", error);
+        logger.error("Error fetching announcements:", error);
       }
     };
 
@@ -69,7 +70,7 @@ export default function AnnouncementsPage() {
           setContests(data);
         }
       } catch (error) {
-        console.error("Error fetching contests:", error);
+        logger.error("Error fetching contests:", error);
       }
     };
 

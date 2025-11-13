@@ -32,6 +32,7 @@ import PredictionsSection from "./components/PredictionsSection";
 import SubjectDistribution from "./components/SubjectDistribution";
 import TimeTrends from "./components/TimeTrends";
 import StudyPatterns from "./components/StudyPatterns";
+import { logger } from '@/lib/logger';
 
 type WeeklyData = { 
 	bySubject: Record<string, number>; 
@@ -81,7 +82,7 @@ function AnalyticsPage() {
 					const summaryData = await summaryRes.json();
 					setSummary(summaryData);
 				} catch (e) {
-					console.error('Error parsing summary data:', e);
+					logger.error('Error parsing summary data:', e);
 				}
 			}
 
@@ -90,7 +91,7 @@ function AnalyticsPage() {
 					const weeklyData = await weeklyRes.json();
 					setWeekly(weeklyData);
 				} catch (e) {
-					console.error('Error parsing weekly data:', e);
+					logger.error('Error parsing weekly data:', e);
 				}
 			}
 
@@ -101,7 +102,7 @@ function AnalyticsPage() {
 						setPredictions(predictionsData.predictions || []);
 					}
 				} catch (e) {
-					console.error('Error parsing predictions data:', e);
+					logger.error('Error parsing predictions data:', e);
 				}
 			}
 
@@ -110,11 +111,11 @@ function AnalyticsPage() {
 					const performanceData = await performanceRes.json();
 					setPerformanceMetrics(performanceData);
 				} catch (e) {
-					console.error('Error parsing performance data:', e);
+					logger.error('Error parsing performance data:', e);
 				}
 			}
 		} catch (err: any) {
-			console.error('Error fetching analytics:', err);
+			logger.error('Error fetching analytics:', err);
 			setError(err?.message || 'حدث خطأ أثناء تحميل البيانات');
 		} finally {
 			setIsLoading(false);

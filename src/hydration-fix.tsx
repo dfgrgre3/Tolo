@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * دالة لإصلاح مشاكل الترطيب (hydration) في Next.js
@@ -55,7 +56,7 @@ export function useLocalStorage(key: string, initialValue: any = null) {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Error reading localStorage key "${key}":`, error);
+      logger.error(`Error reading localStorage key "${key}":`, error);
       return initialValue;
     }
   });
@@ -67,7 +68,7 @@ export function useLocalStorage(key: string, initialValue: any = null) {
       }
       setValue(newValue);
     } catch (error) {
-      console.error(`Error setting localStorage key "${key}":`, error);
+      logger.error(`Error setting localStorage key "${key}":`, error);
     }
   };
 
@@ -89,7 +90,7 @@ export function useSessionStorage(key: string, initialValue: any = null) {
       const item = window.sessionStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
-      console.error(`Error reading sessionStorage key "${key}":`, error);
+      logger.error(`Error reading sessionStorage key "${key}":`, error);
       return initialValue;
     }
   });
@@ -101,7 +102,7 @@ export function useSessionStorage(key: string, initialValue: any = null) {
       }
       setValue(newValue);
     } catch (error) {
-      console.error(`Error setting sessionStorage key "${key}":`, error);
+      logger.error(`Error setting sessionStorage key "${key}":`, error);
     }
   };
 
@@ -120,7 +121,7 @@ export function useBrowserOnlyValue<T>(getValue: () => T, defaultValue: T): T {
       try {
         setValue(getValue());
       } catch (error) {
-        console.error('Error getting browser-only value:', error);
+        logger.error('Error getting browser-only value:', error);
         setValue(defaultValue);
       }
     }

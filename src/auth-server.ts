@@ -1,4 +1,6 @@
 // Server-only auth configuration
+import { logger } from '@/lib/logger';
+
 // Note: This file previously used next-auth, but we've migrated to a custom auth system
 // This file is kept for backward compatibility but no longer uses next-auth
 import 'server-only';
@@ -16,7 +18,7 @@ export const auth = async () => {
     // This function is kept for backward compatibility
     return null
   } catch (error) {
-    console.error('Auth error:', error)
+    logger.error('Auth error:', error)
     return null
   }
 }

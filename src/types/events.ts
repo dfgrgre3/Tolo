@@ -1,3 +1,3 @@
-type EventHandler = (payload: any) => Promise<void> | void;
+type EventHandler = (payload: Record<string, unknown>) => Promise<void> | void;
 
 export type { EventHandler };

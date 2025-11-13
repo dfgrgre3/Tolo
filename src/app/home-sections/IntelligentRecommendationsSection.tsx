@@ -31,6 +31,7 @@ const iconMap: Record<string, React.ReactNode> = {
   sparkles: <Sparkles className="h-5 w-5" />
 };
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 interface Recommendation {
   id: string;
@@ -61,14 +62,14 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
         );
 
         if (error || !data) {
-          console.warn("Failed to fetch recommendations:", error);
+          logger.warn("Failed to fetch recommendations:", error);
           setRecommendations([]);
           return;
         }
 
         setRecommendations(data.recommendations || []);
       } catch (error) {
-        console.error("Error fetching recommendations:", error);
+        logger.error("Error fetching recommendations:", error);
         setRecommendations([]);
       } finally {
         setLoading(false);

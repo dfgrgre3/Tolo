@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { Key, AlertTriangle, CheckCircle2, Eye, EyeOff, Shield, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { getPasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
+import { logger } from '@/lib/logger';
 
 interface PasswordManagementProps {
   userId: string;
@@ -72,7 +73,7 @@ export default function PasswordManagement({ userId }: PasswordManagementProps) 
         toast.error(error.error || 'فشل في تغيير كلمة المرور');
       }
     } catch (error) {
-      console.error('Error changing password:', error);
+      logger.error('Error changing password:', error);
       toast.error('حدث خطأ أثناء تغيير كلمة المرور');
     } finally {
       setIsChanging(false);
@@ -110,7 +111,7 @@ export default function PasswordManagement({ userId }: PasswordManagementProps) 
         toast.success('✓ كلمة المرور آمنة ولم يتم العثور عليها في قواعد البيانات المسربة');
       }
     } catch (error) {
-      console.error('Error checking leaked password:', error);
+      logger.error('Error checking leaked password:', error);
       toast.error('حدث خطأ أثناء التحقق من كلمة المرور');
     } finally {
       setIsCheckingLeak(false);

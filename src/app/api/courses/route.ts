@@ -23,12 +23,12 @@ export async function getCachedOrFetch<T>(
     // Try to get data from cache
     const cachedData = await redis.get(key);
     if (cachedData) {
-      console.log(`Cache hit for key: ${key}`);
+      logger.info(`Cache hit for key: ${key}`);
       return JSON.parse(cachedData);
     }
 
     // Fetch data if not in cache
-    console.log(`Cache miss for key: ${key}, fetching data...`);
+    logger.info(`Cache miss for key: ${key}, fetching data...`);
     const freshData = await fetchFn();
 
     // Store in cache with TTL
@@ -36,7 +36,7 @@ export async function getCachedOrFetch<T>(
     
     return freshData;
   } catch (error) {
-    console.warn(`Cache error for key ${key}:`, error);
+    logger.warn(`Cache error for key ${key}:`, error);
     // If cache fails, just fetch the data
     return fetchFn();
   }
@@ -49,9 +49,9 @@ export async function getCachedOrFetch<T>(
 export async function invalidateCache(key: string): Promise<void> {
   try {
     await redis.del(key);
-    console.log(`Cache invalidated for key: ${key}`);
+    logger.info(`Cache invalidated for key: ${key}`);
   } catch (error) {
-    console.error(`Error invalidating cache for key ${key}:`, error);
+    logger.error(`Error invalidating cache for key ${key}:`, error);
   }
 }
 
@@ -65,102 +65,110 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 
+import { logger } from '@/lib/logger';
+
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+
 // GET all courses (now subjects)
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+      try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
     
-    // Get all subjects
-    const subjects = await getOrSetEnhanced(
-      'subjects:all',
-      async () => {
-        return await prisma.subject.findMany({
+      // Get all subjects
+      const subjects = await getOrSetEnhanced(
+        'subjects:all',
+        async () => {
+          return await prisma.subject.findMany({
+            where: {
+              isActive: true
+            },
+            orderBy: {
+              name: 'asc'
+            }
+          });
+        }
+      );
+
+      // If userId is provided, get enrollment information
+      let enrollments = {};
+      if (userId) {
+        const userEnrollments = await prisma.subjectEnrollment.findMany({
           where: {
-            isActive: true
-          },
-          orderBy: {
-            name: 'asc'
+            userId
           }
         });
+        
+        enrollments = userEnrollments.reduce((acc: any, enrollment: any) => {
+          acc[enrollment.subject] = enrollment;
+          return acc;
+        }, {});
       }
-    );
 
-    // If userId is provided, get enrollment information
-    let enrollments = {};
-    if (userId) {
-      const userEnrollments = await prisma.subjectEnrollment.findMany({
-        where: {
-          userId
-        }
+      return NextResponse.json({
+        subjects,
+        enrollments
       });
-      
-      enrollments = userEnrollments.reduce((acc: any, enrollment: any) => {
-        acc[enrollment.subject] = enrollment;
-        return acc;
-      }, {});
+    } catch (error) {
+      logger.error("Error fetching subjects:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ أثناء معالجة الطلب" },
+        { status: 500 }
+      );
     }
-
-    return NextResponse.json({
-      subjects,
-      enrollments
-    });
-  } catch (error) {
-    console.error("Error fetching subjects:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ أثناء معالجة الطلب" },
-      { status: 500 }
-    );
-  }
+  });
 }
 
 // POST to create a new course (now subject)
 export async function POST(request: NextRequest) {
-  try {
-    const { name, nameAr, code, description, color, icon } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { name, nameAr, code, description, color, icon } = await req.json();
 
-    // Validate required fields
-    if (!name || !nameAr || !code) {
-      return NextResponse.json(
-        { error: "الاسم والرمز مطلوبان" },
-        { status: 400 }
-      );
-    }
-
-    // Check if subject with this code already exists
-    const existingSubject = await prisma.subject.findUnique({
-      where: { code }
-    });
-
-    if (existingSubject) {
-      return NextResponse.json(
-        { error: "توجد مادة بنفس الرمز بالفعل" },
-        { status: 400 }
-      );
-    }
-
-    // Create new subject
-    const newSubject = await prisma.subject.create({
-      data: {
-        name,
-        nameAr,
-        code,
-        description,
-        color: color || '#3b82f6',
-        icon: icon || 'BookOpen',
-        isActive: true
+      // Validate required fields
+      if (!name || !nameAr || !code) {
+        return NextResponse.json(
+          { error: "الاسم والرمز مطلوبان" },
+          { status: 400 }
+        );
       }
-    });
 
-    // Invalidate cache
-    // In a real implementation, you might want to invalidate related caches as well
+      // Check if subject with this code already exists
+      const existingSubject = await prisma.subject.findUnique({
+        where: { code }
+      });
 
-    return NextResponse.json(newSubject);
-  } catch (error) {
-    console.error("Error creating subject:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ أثناء معالجة الطلب" },
-      { status: 500 }
-    );
-  }
+      if (existingSubject) {
+        return NextResponse.json(
+          { error: "توجد مادة بنفس الرمز بالفعل" },
+          { status: 400 }
+        );
+      }
+
+      // Create new subject
+      const newSubject = await prisma.subject.create({
+        data: {
+          name,
+          nameAr,
+          code,
+          description,
+          color: color || '#3b82f6',
+          icon: icon || 'BookOpen',
+          isActive: true
+        }
+      });
+
+      // Invalidate cache
+      // In a real implementation, you might want to invalidate related caches as well
+
+      return NextResponse.json(newSubject);
+    } catch (error) {
+      logger.error("Error creating subject:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ أثناء معالجة الطلب" },
+        { status: 500 }
+      );
+    }
+  });
 }

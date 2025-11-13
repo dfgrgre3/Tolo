@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { advancedGamificationService } from '@/lib/advanced-gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET /api/gamification/advanced-leaderboard - Get advanced leaderboard
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const type = (searchParams.get('type') || 'global') as 
       'global' | 'daily' | 'weekly' | 'monthly' | 'season' | 'subject' | 'level';
     const period = searchParams.get('period') || undefined;
@@ -31,11 +34,12 @@ export async function GET(request: NextRequest) {
       totalEntries: leaderboard.length
     });
   } catch (error: any) {
-    console.error('Error fetching advanced leaderboard:', error);
+    logger.error('Error fetching advanced leaderboard:', error);
     return NextResponse.json(
       { error: 'Failed to fetch leaderboard', details: error.message },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

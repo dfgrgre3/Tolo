@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getHybridRecommendations, trackInteraction } from "@/lib/ai/ml-recommendations";
 import { verifyToken } from "@/lib/auth-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
         count: recommendations.length
       });
     } catch (error) {
-      console.error("Error fetching recommendations:", error);
+      logger.error("Error fetching recommendations:", error);
       return NextResponse.json(
         { error: "فشل في جلب التوصيات", recommendations: [] },
         { status: 500 }
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
         message: "تم تسجيل التفاعل بنجاح"
       });
     } catch (error) {
-      console.error("Error tracking interaction:", error);
+      logger.error("Error tracking interaction:", error);
       return NextResponse.json(
         { error: "فشل في تسجيل التفاعل" },
         { status: 500 }

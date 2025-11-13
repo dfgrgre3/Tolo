@@ -5,15 +5,19 @@ import { SettingsUpdateRequest } from "@/types/settings";
 import { verifyToken } from "@/lib/auth-unified";
 import { randomUUID } from "crypto";
 
-export async function GET(req: NextRequest) {
-	try {
-		// Authenticate user
-		const authUser = verifyToken(req);
-		if (!authUser) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
+import { logger } from '@/lib/logger';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
-		const { searchParams } = new URL(req.url);
+export async function GET(req: NextRequest) {
+	return opsWrapper(req, async (request) => {
+		try {
+			// Authenticate user
+			const authUser = verifyToken(request);
+			if (!authUser) {
+				return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+			}
+
+			const { searchParams } = new URL(request.url);
 		const userId = searchParams.get("userId");
 
 		// If userId is provided in query, ensure it matches the authenticated user
@@ -24,40 +28,42 @@ export async function GET(req: NextRequest) {
 		// Use authenticated user's ID if no userId provided in query
 		const targetUserId = userId || authUser.userId;
 
-		const user = await prisma.user.findUnique({
-			where: { id: targetUserId },
-			select: { id: true, wakeUpTime: true, sleepTime: true, focusStrategy: true }
-		});
+			const user = await prisma.user.findUnique({
+				where: { id: targetUserId },
+				select: { id: true, wakeUpTime: true, sleepTime: true, focusStrategy: true }
+			});
 
-		const subjects = await prisma.subjectEnrollment.findMany({
-			where: { userId: targetUserId },
-			orderBy: { subject: "asc" }
-		});
+			const subjects = await prisma.subjectEnrollment.findMany({
+				where: { userId: targetUserId },
+				orderBy: { subject: "asc" }
+			});
 
-		return NextResponse.json({ user, subjects });
-	} catch (e: any) {
-		return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
-	}
+			return NextResponse.json({ user, subjects });
+		} catch (e: any) {
+			return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+		}
+	});
 }
 
 export async function POST(req: NextRequest) {
-	try {
-		// Authenticate user
-		const authUser = verifyToken(req);
-		if (!authUser) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
+	return opsWrapper(req, async (request) => {
+		try {
+			// Authenticate user
+			const authUser = verifyToken(request);
+			if (!authUser) {
+				return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+			}
 
-		const body: SettingsUpdateRequest = await req.json();
-		const { userId, wakeUpTime, sleepTime, focusStrategy, subjects } = body;
+			const body: SettingsUpdateRequest = await request.json();
+			const { userId, wakeUpTime, sleepTime, focusStrategy, subjects } = body;
 
-		// If userId is provided in body, ensure it matches the authenticated user
-		if (userId && userId !== authUser.userId) {
-			return NextResponse.json({ error: "Forbidden: Can only update your own settings" }, { status: 403 });
-		}
+			// If userId is provided in body, ensure it matches the authenticated user
+			if (userId && userId !== authUser.userId) {
+				return NextResponse.json({ error: "Forbidden: Can only update your own settings" }, { status: 403 });
+			}
 
-		// Use authenticated user's ID if no userId provided in body
-		const targetUserId = userId || authUser.userId;
+			// Use authenticated user's ID if no userId provided in body
+			const targetUserId = userId || authUser.userId;
 
 		// Verify user exists
 		const userExists = await prisma.user.findUnique({
@@ -108,7 +114,7 @@ export async function POST(req: NextRequest) {
 				for (const s of subjects) {
 					// Validate subject type
 					if (!Object.values(SubjectType).includes(s.subject as SubjectType)) {
-						console.warn(`Invalid subject type: ${s.subject}, skipping`);
+						logger.warn(`Invalid subject type: ${s.subject}, skipping`);
 						continue;
 					}
 
@@ -125,7 +131,7 @@ export async function POST(req: NextRequest) {
 								where: { id: existingEnrollment.id },
 								data: { targetWeeklyHours: hours }
 							}).catch((err) => {
-								console.error(`Error updating enrollment for ${s.subject}:`, err);
+								logger.error(`Error updating enrollment for ${s.subject}:`, err);
 								throw err;
 							})
 						);
@@ -140,7 +146,7 @@ export async function POST(req: NextRequest) {
 									targetWeeklyHours: hours
 								}
 							}).catch(async (err) => {
-								console.error(`Error creating enrollment for ${s.subject}:`, err);
+								logger.error(`Error creating enrollment for ${s.subject}:`, err);
 								// If creation fails due to duplicate, try to update instead
 								if (err?.code === 'P2002' || err?.message?.includes('Unique constraint') || err?.message?.includes('UNIQUE constraint')) {
 									const existing = await prisma.subjectEnrollment.findFirst({
@@ -154,7 +160,7 @@ export async function POST(req: NextRequest) {
 									}
 								}
 								// For other errors, log but don't fail the whole operation
-								console.error(`Failed to create/update enrollment for ${s.subject} after retry`);
+								logger.error(`Failed to create/update enrollment for ${s.subject} after retry`);
 								return null; // Return null to indicate skipped
 							})
 						);
@@ -167,15 +173,15 @@ export async function POST(req: NextRequest) {
 				// Log any failures
 				results.forEach((result, index) => {
 					if (result.status === 'rejected') {
-						console.error(`Failed to process subject enrollment ${index}:`, result.reason);
+						logger.error(`Failed to process subject enrollment ${index}:`, result.reason);
 					}
 				});
 			} catch (subjectError: any) {
-				console.error("Error updating subject enrollments:", subjectError);
+				logger.error("Error updating subject enrollments:", subjectError);
 				// Don't throw - user settings were updated successfully
 				// Just log the error
 				if (process.env.NODE_ENV === 'development') {
-					console.error("Subject enrollment error details:", {
+					logger.error("Subject enrollment error details:", {
 						message: subjectError?.message,
 						code: subjectError?.code,
 						stack: subjectError?.stack
@@ -184,18 +190,19 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-		return NextResponse.json({ ok: true, message: "Settings updated successfully" });
-	} catch (e: any) {
-		console.error("Error updating settings:", e);
-		// Log detailed error for debugging
-		const errorMessage = e?.message || "Server error";
-		const errorDetails = process.env.NODE_ENV === 'development' 
-			? { message: errorMessage, stack: e?.stack, name: e?.name }
-			: { message: errorMessage };
-		
-		return NextResponse.json({ 
-			error: errorMessage,
-			...(process.env.NODE_ENV === 'development' && { details: errorDetails })
-		}, { status: 500 });
-	}
+			return NextResponse.json({ ok: true, message: "Settings updated successfully" });
+		} catch (e: any) {
+			logger.error("Error updating settings:", e);
+			// Log detailed error for debugging
+			const errorMessage = e?.message || "Server error";
+			const errorDetails = process.env.NODE_ENV === 'development' 
+				? { message: errorMessage, stack: e?.stack, name: e?.name }
+				: { message: errorMessage };
+			
+			return NextResponse.json({ 
+				error: errorMessage,
+				...(process.env.NODE_ENV === 'development' && { details: errorDetails })
+			}, { status: 500 });
+		}
+	});
 }

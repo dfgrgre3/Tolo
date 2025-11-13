@@ -1,9 +1,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig, generateState } from '@/lib/oauth';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
+  return opsWrapper(request, async (req) => {
+    try {
     // Validate OAuth configuration
     if (!oauthConfig.google.isConfigured()) {
       const missingFields: string[] = [];
@@ -14,7 +17,7 @@ export async function GET(request: NextRequest) {
         missingFields.push('GOOGLE_CLIENT_SECRET');
       }
       
-      console.error('Google OAuth: Missing configuration', { missingFields });
+      logger.error('Google OAuth: Missing configuration', { missingFields });
       
       const errorMessage = missingFields.length > 0
         ? `إعدادات Google OAuth غير مكتملة. المتغيرات المفقودة: ${missingFields.join(', ')}. يرجى إضافة هذه المتغيرات إلى ملف .env.local`
@@ -27,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // Validate redirect URI
     if (!oauthConfig.google.redirectUri || oauthConfig.google.redirectUri.trim() === '') {
-      console.error('Google OAuth: Redirect URI is not configured');
+      logger.error('Google OAuth: Redirect URI is not configured');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_not_configured&message=${encodeURIComponent('عنوان إعادة التوجيه غير مُعد بشكل صحيح.')}`
       );
@@ -36,13 +39,13 @@ export async function GET(request: NextRequest) {
     // Generate a random state for CSRF protection
     const state = generateState();
     
-    // Get redirect parameter from query string to preserve after OAuth
-    const { searchParams } = new URL(request.url);
+      // Get redirect parameter from query string to preserve after OAuth
+      const { searchParams } = new URL(req.url);
     const redirectParam = searchParams.get('redirect');
     const redirectPath = redirectParam || '/';
 
     // Log configuration for debugging
-    console.log('Google OAuth Configuration:', {
+    logger.info('Google OAuth Configuration:', {
       clientId: oauthConfig.google.clientId.substring(0, 20) + '...',
       redirectUri: oauthConfig.google.redirectUri,
       baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
@@ -62,7 +65,7 @@ export async function GET(request: NextRequest) {
     });
 
     const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${authParams.toString()}`;
-    console.log('Google OAuth URL:', authUrl.replace(/client_secret=[^&]+/g, 'client_secret=***'));
+    logger.info('Google OAuth URL:', authUrl.replace(/client_secret=[^&]+/g, 'client_secret=***'));
 
     // Store state in a cookie for later verification
     const response = NextResponse.redirect(authUrl);
@@ -87,11 +90,12 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    return response;
-  } catch (error) {
-    console.error('Error initiating Google OAuth:', error);
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_failed`
-    );
-  }
+      return response;
+    } catch (error) {
+      logger.error('Error initiating Google OAuth:', error);
+      return NextResponse.redirect(
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_failed`
+      );
+    }
+  });
 }

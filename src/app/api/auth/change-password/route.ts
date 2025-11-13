@@ -5,6 +5,8 @@ import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { prisma } from '@/lib/prisma';
 import { createErrorResponse, passwordSchema, isConnectionError } from '../_helpers';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/change-password
@@ -16,12 +18,13 @@ const changePasswordSchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
-  const ip = authService.getClientIP(request);
-  const userAgent = authService.getUserAgent(request);
+  return opsWrapper(request, async (req) => {
+    const ip = authService.getClientIP(req);
+    const userAgent = authService.getUserAgent(req);
 
-  try {
-    // التحقق من التوكن
-    const authHeader = request.headers.get('Authorization');
+    try {
+      // التحقق من التوكن
+      const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         {
@@ -47,8 +50,8 @@ export async function POST(request: NextRequest) {
 
     const userId = verification.user.id;
 
-    // التحقق من صحة البيانات المدخلة
-    const body = await request.json().catch(() => ({}));
+      // التحقق من صحة البيانات المدخلة
+      const body = await req.json().catch(() => ({}));
     const parsed = changePasswordSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -76,7 +79,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error('Database error while finding user:', dbError);
+      logger.error('Database error while finding user:', dbError);
       
       if (isConnectionError(dbError)) {
         return NextResponse.json(
@@ -152,7 +155,7 @@ export async function POST(request: NextRequest) {
     try {
       newPasswordHash = await AuthService.hashPassword(newPassword);
     } catch (hashError) {
-      console.error('Password hashing error:', hashError);
+      logger.error('Password hashing error:', hashError);
       return NextResponse.json(
         {
           error: 'حدث خطأ أثناء معالجة كلمة المرور. حاول مرة أخرى.',
@@ -172,7 +175,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (dbError) {
-      console.error('Database error while updating password:', dbError);
+      logger.error('Database error while updating password:', dbError);
       
       if (isConnectionError(dbError)) {
         return NextResponse.json(
@@ -196,7 +199,7 @@ export async function POST(request: NextRequest) {
       await securityNotificationService.notifyPasswordChanged(userId, ip);
     } catch (notificationError) {
       // لا نفشل العملية إذا فشل الإشعار
-      console.error('Failed to send password change notification:', notificationError);
+      logger.error('Failed to send password change notification:', notificationError);
     }
 
     return NextResponse.json({
@@ -204,7 +207,7 @@ export async function POST(request: NextRequest) {
       success: true,
     });
   } catch (error) {
-    console.error('Change password error:', error);
+    logger.error('Change password error:', error);
     
     // Log security event safely
     try {
@@ -220,13 +223,14 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (logError) {
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     }
 
     return createErrorResponse(
       error,
       'حدث خطأ غير متوقع أثناء تغيير كلمة المرور. حاول مرة أخرى لاحقاً.'
     );
-  }
+    }
+  });
 }
 

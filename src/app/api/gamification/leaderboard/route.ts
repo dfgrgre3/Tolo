@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gamificationService } from '@/lib/gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const type = searchParams.get('type') as 'global' | 'friends' || 'global';
     const limit = parseInt(searchParams.get('limit') || '50');
     const userId = searchParams.get('userId'); // To highlight current user
@@ -37,10 +40,11 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Error fetching leaderboard:', error);
+    logger.error('Error fetching leaderboard:', error);
     return NextResponse.json(
       { error: 'Failed to fetch leaderboard' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

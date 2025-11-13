@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all conversations for a user
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  try {
+  return opsWrapper(request, async () => {
+    try {
     const { userId } = await params;
 
     // Get all messages where the user is either sender or receiver
@@ -72,10 +75,11 @@ export async function GET(
 
     return NextResponse.json(conversations);
   } catch (error) {
-    console.error("Error fetching conversations:", error);
+    logger.error("Error fetching conversations:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المحادثات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

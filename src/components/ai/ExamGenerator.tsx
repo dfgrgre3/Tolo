@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { FileText, BookOpen, Calendar, Brain, Loader2, CheckCircle, Zap } from 'lucide-react';
 import { getGeminiInfo } from '@/lib/ai-config';
+import { logger } from '@/lib/logger';
 
 interface Question {
   question: string;
@@ -68,7 +69,7 @@ export default function ExamGenerator({
       const data = await response.json();
       setExamData(data);
     } catch (err) {
-      console.error('Error generating exam:', err);
+      logger.error('Error generating exam:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ غير معروف');
     } finally {
       setIsGenerating(false);

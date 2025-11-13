@@ -3,15 +3,18 @@ import { authService } from '@/lib/auth-service';
 import { setupTOTP } from '@/lib/two-factor/totp-service';
 import { generateAndStoreRecoveryCodes } from '@/lib/two-factor/recovery-codes';
 import { securityLogger } from '@/lib/security-logger';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/two-factor/totp/setup
  * إعداد TOTP للمستخدم
  */
 export async function POST(request: NextRequest) {
-  try {
-    // التحقق من التوكن
-    const authHeader = request.headers.get('Authorization');
+  return opsWrapper(request, async (req) => {
+    try {
+      // التحقق من التوكن
+      const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'غير مصرح' },
@@ -40,9 +43,9 @@ export async function POST(request: NextRequest) {
       10
     );
 
-    // Log event
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Log event
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
     await securityLogger.logEvent({
       userId: verification.user.id,
       eventType: 'TWO_FACTOR_SETUP',
@@ -59,11 +62,12 @@ export async function POST(request: NextRequest) {
       message: 'تم إعداد المصادقة الثنائية. يرجى التحقق باستخدام تطبيق المصادقة.',
     });
   } catch (error) {
-    console.error('TOTP setup error:', error);
+    logger.error('TOTP setup error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء إعداد المصادقة الثنائية' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

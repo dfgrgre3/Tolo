@@ -1,5 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getMetrics } from '@/lib/metrics/prometheus';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
+
 import 'server-only';
 
 /**
@@ -11,7 +14,8 @@ import 'server-only';
  * في Kubernetes، يجب أن يكون هذا endpoint متاحاً على المسار /metrics
  * كما هو محدد في k8s/monitoring.yml
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
+  return opsWrapper(request, async () => {
   try {
     const metrics = await getMetrics();
     
@@ -23,7 +27,7 @@ export async function GET() {
       },
     });
   } catch (error) {
-    console.error('Error generating metrics:', error);
+    logger.error('Error generating metrics:', error);
     
     // في حالة الخطأ، نعيد استجابة فارغة بدلاً من خطأ
     // لأن Prometheus قد يحاول الوصول إلى هذا endpoint بشكل متكرر
@@ -33,7 +37,8 @@ export async function GET() {
         'Content-Type': 'text/plain',
       },
     });
-  }
+    }
+  });
 }
 
 // منع التخزين المؤقت لهذا endpoint

@@ -1,5 +1,7 @@
 
-// Performance monitoring configuration
+// Performance monitoring configurati
+import { logger } from '@/lib/logger';
+on
 const getPerfConfig = () => {
   const isDevelopment =
     typeof window !== "undefined" ?
@@ -64,20 +66,20 @@ const PerfMonitor = {
     try {
       const result = await fn();
       const duration = Date.now() - start;
-      console.log(`Performance: ${label} took ${duration}ms`);
+      logger.info(`Performance: ${label} took ${duration}ms`);
       return result;
     } catch (error: any) {
       const duration = Date.now() - start;
-      console.error(`Performance error in ${label}: ${error.message} (${duration}ms)`);
+      logger.error(`Performance error in ${label}: ${error.message} (${duration}ms)`);
       throw error;
     }
   },
   logCacheMetric: (key: string, hit: boolean, duration: number) => {
     // Simple logging - can be enhanced with proper metrics collection
     if (hit) {
-      console.log(`Cache hit for ${key}`);
+      logger.info(`Cache hit for ${key}`);
     } else {
-      console.log(`Cache miss for ${key}`);
+      logger.info(`Cache miss for ${key}`);
     }
   }
 };

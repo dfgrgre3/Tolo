@@ -9,6 +9,7 @@ import { HTML5Backend } from "react-dnd-html5-backend";
 import { WebSocketProvider, useWebSocket } from "@/contexts/websocket-context";
 import { safeGetItem, safeSetItem, safeJsonParse, safeFetch } from "@/lib/safe-client-utils";
 import errorManager from "@/services/ErrorManager";
+import { logger } from '@/lib/logger';
 
 type DragItem = {
   id: string;
@@ -180,7 +181,7 @@ export default function SchedulePage() {
 					setUserId(id);
 				}
 			} catch (error) {
-				console.error("Failed to load user:", error);
+				logger.error("Failed to load user:", error);
 				errorManager.handleNetworkError(
 					error instanceof Error ? error : new Error(String(error)),
 					"/api/users/guest"
@@ -248,7 +249,7 @@ export default function SchedulePage() {
 					setTasks(ts);
 				}
 			} catch (error) {
-				console.error("Failed to load tasks:", error);
+				logger.error("Failed to load tasks:", error);
 			} finally {
 				setLoadingTasks(false);
 			}
@@ -268,7 +269,7 @@ export default function SchedulePage() {
 					setExams(ex);
 				}
 			} catch (error) {
-				console.error("Failed to load exams:", error);
+				logger.error("Failed to load exams:", error);
 			} finally {
 				setLoadingExams(false);
 			}
@@ -288,11 +289,11 @@ export default function SchedulePage() {
 						setPlan(parsed);
 						setJsonText(JSON.stringify(parsed, null, 2));
 					} catch (parseError) {
-						console.error('Failed to parse schedule update:', parseError);
+						logger.error('Failed to parse schedule update:', parseError);
 					}
 				}
 			} catch (parseError) {
-				console.error('Failed to parse WebSocket message:', parseError);
+				logger.error('Failed to parse WebSocket message:', parseError);
 			}
 		};
 
@@ -350,7 +351,7 @@ export default function SchedulePage() {
 							setJsonText(JSON.stringify(parsed, null, 2));
 							setSchedule(updated);
 						} catch (parseError) {
-							console.error('Failed to parse latest schedule:', parseError);
+							logger.error('Failed to parse latest schedule:', parseError);
 							setError("حدث خطأ في تحميل أحدث نسخة");
 							errorManager.handleError(
 								parseError instanceof Error ? parseError : new Error(String(parseError)),
@@ -384,7 +385,7 @@ export default function SchedulePage() {
 				);
 			}
 		} catch (error) {
-			console.error("Error persisting schedule:", error);
+			logger.error("Error persisting schedule:", error);
 			setError("حدث خطأ أثناء الحفظ");
 			errorManager.handleNetworkError(
 				error instanceof Error ? error : new Error(String(error)),

@@ -4,6 +4,7 @@
  */
 
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 export interface WebAuthnCredential {
   id: string;
@@ -136,8 +137,17 @@ export class WebAuthnService {
   /**
    * Verify registration response
    */
+  interface RegistrationResponse {
+    id: string;
+    rawId: ArrayBuffer | Uint8Array;
+    response?: {
+      attestationObject?: ArrayBuffer | Uint8Array | string;
+      clientDataJSON?: ArrayBuffer | Uint8Array | string;
+    };
+  }
+
   async verifyRegistration(
-    response: any,
+    response: RegistrationResponse,
     expectedChallenge: string
   ): Promise<{
     verified: boolean;
@@ -179,7 +189,7 @@ export class WebAuthnService {
         },
       };
     } catch (error) {
-      console.error('WebAuthn registration verification error:', error);
+      logger.error('WebAuthn registration verification error', error, { operation: 'registration_verification' });
       return {
         verified: false,
         error: 'Verification failed',
@@ -190,8 +200,18 @@ export class WebAuthnService {
   /**
    * Verify authentication response
    */
+  interface AuthenticationResponse {
+    id: string;
+    rawId: ArrayBuffer | Uint8Array;
+    response?: {
+      authenticatorData?: ArrayBuffer | Uint8Array | string;
+      clientDataJSON?: ArrayBuffer | Uint8Array | string;
+      signature?: ArrayBuffer | Uint8Array | string;
+    };
+  }
+
   async verifyAuthentication(
-    response: any,
+    response: AuthenticationResponse,
     expectedChallenge: string,
     credential: WebAuthnCredential
   ): Promise<{
@@ -232,7 +252,7 @@ export class WebAuthnService {
         newCounter,
       };
     } catch (error) {
-      console.error('WebAuthn authentication verification error:', error);
+      logger.error('WebAuthn authentication verification error', error, { operation: 'authentication_verification' });
       return {
         verified: false,
         error: 'Verification failed',
@@ -357,7 +377,7 @@ export const WebAuthnClient = {
       const credential = await navigator.credentials.create({ publicKey });
       return credential;
     } catch (error) {
-      console.error('WebAuthn registration error:', error);
+      logger.error('WebAuthn registration error', error, { operation: 'registration' });
       throw error;
     }
   },
@@ -389,7 +409,7 @@ export const WebAuthnClient = {
       const credential = await navigator.credentials.get({ publicKey });
       return credential;
     } catch (error) {
-      console.error('WebAuthn authentication error:', error);
+      logger.error('WebAuthn authentication error', error, { operation: 'authentication' });
       throw error;
     }
   },

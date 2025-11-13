@@ -1,4 +1,5 @@
 import { CacheService } from "./redis";
+import { logger } from '@/lib/logger';
 
 /**
  * Cache Invalidation Service
@@ -92,7 +93,7 @@ export async function invalidateMultiplePatterns(patterns: string[]): Promise<vo
       await CacheService.invalidatePattern(pattern);
     }
   } catch (error) {
-    console.error('Error invalidating multiple cache patterns:', error);
+    logger.error('Error invalidating multiple cache patterns:', error);
   }
 }
 

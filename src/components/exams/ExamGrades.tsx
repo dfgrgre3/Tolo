@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from "@/shared/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Clock, BookOpen, User, Award, TrendingUp, PlusCircle, Edit } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface ExamResult {
   id: string;
@@ -122,7 +123,7 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
         setSubjectAverages(gradesData.averages || []);
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      logger.error('Error fetching data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -166,10 +167,10 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
         // إعادة جلب البيانات
         fetchData();
       } else {
-        console.error('Failed to add grade');
+        logger.error('Failed to add grade');
       }
     } catch (error) {
-      console.error('Error adding grade:', error);
+      logger.error('Error adding grade:', error);
     }
   };
 
@@ -205,10 +206,10 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
         // إعادة جلب البيانات
         fetchData();
       } else {
-        console.error('Failed to add exam result');
+        logger.error('Failed to add exam result');
       }
     } catch (error) {
-      console.error('Error adding exam result:', error);
+      logger.error('Error adding exam result:', error);
     }
   };
 

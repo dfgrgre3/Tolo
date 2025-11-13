@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useClientEffect } from '@/hooks/use-client-effect';
+import { logger } from '@/lib/logger';
 
 /**
  * Check if code is running on the client side
@@ -66,7 +67,7 @@ export function useBrowserAPI<T>(
       setValue(apiValue);
       setIsReady(true);
     } catch (error) {
-      console.warn('Failed to access browser API:', error);
+      logger.warn('Failed to access browser API:', error);
       setIsReady(true);
     }
   }, [], options);
@@ -137,7 +138,7 @@ export function useProgressiveEnhancement<T>(
       setValue(enhancedValue);
       setIsEnhanced(true);
     } catch (error) {
-      console.error('Progressive enhancement failed:', error);
+      logger.error('Progressive enhancement failed:', error);
       options?.onError?.(error as Error);
     }
   }, []);
@@ -181,7 +182,7 @@ export function useClientOnlyEffect(
     try {
       cleanupRef.current = effect();
     } catch (error) {
-      console.error('Client-only effect failed:', error);
+      logger.error('Client-only effect failed:', error);
       options?.onError?.(error as Error);
     }
 
@@ -190,7 +191,7 @@ export function useClientOnlyEffect(
         try {
           cleanupRef.current();
         } catch (error) {
-          console.error('Client-only effect cleanup failed:', error);
+          logger.error('Client-only effect cleanup failed:', error);
         }
         cleanupRef.current = undefined;
       }
@@ -216,7 +217,7 @@ export async function safeDynamicImport<T>(
     try {
       return await importFn();
     } catch (error) {
-      console.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
+      logger.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
 
       if (attempt === retries) {
         onError?.(error as Error);
@@ -388,7 +389,7 @@ export const clientServerPerf = {
         const measure = performance.getEntriesByName(`client-server:${name}`, 'measure')[0];
         return measure?.duration;
       } catch (error) {
-        console.warn('Performance measurement failed:', error);
+        logger.warn('Performance measurement failed:', error);
       }
     }
     return null;

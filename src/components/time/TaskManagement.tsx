@@ -64,6 +64,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { format, isToday, isTomorrow, isThisWeek, isPast, differenceInDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { logger } from '@/lib/logger';
 
 // Locally define SubjectType values for client-side validation
 const SUBJECT_TYPE_VALUES = [
@@ -317,7 +318,7 @@ export default function TaskManagement({
       
       handleFinished();
     } catch (error) {
-      console.error("Error saving task:", error);
+      logger.error("Error saving task:", error);
     }
   }, [taskToEdit, userId, onTaskUpdate, onTaskCreate, handleFinished]);
 
@@ -333,7 +334,7 @@ export default function TaskManagement({
       setTasks(prev => prev.filter(t => t.id !== taskId));
       onTaskDelete?.(taskId);
     } catch (error) {
-      console.error("Error deleting task:", error);
+      logger.error("Error deleting task:", error);
     }
   }, [onTaskDelete]);
 
@@ -363,7 +364,7 @@ export default function TaskManagement({
         setTimerSeconds(0);
       }
     } catch (error) {
-      console.error("Error updating task status:", error);
+      logger.error("Error updating task status:", error);
     }
   };
 
@@ -401,7 +402,7 @@ export default function TaskManagement({
       setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
       if (onTaskUpdate) onTaskUpdate(updatedTask);
     } catch (error) {
-      console.error("Error updating task:", error);
+      logger.error("Error updating task:", error);
     }
   };
 

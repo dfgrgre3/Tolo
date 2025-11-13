@@ -28,6 +28,8 @@ import { loginUser, verifyTwoFactor } from '@/lib/api/auth-client';
 import type { LoginErrorResponse } from '@/types/api/auth';
 import { safeGetItem, safeRemoveItem, safeWindow, isBrowser } from '@/lib/safe-client-utils';
 
+import { logger } from '@/lib/logger';
+
 const formVariants = {
   initial: { opacity: 0, y: 20, x: 0 },
   steady: {
@@ -69,7 +71,7 @@ export default function EnhancedLoginForm() {
           setIsGoogleOAuthEnabled(data.providers?.google?.enabled ?? false);
         }
       } catch (error) {
-        console.error('Failed to check OAuth status:', error);
+        logger.error('Failed to check OAuth status:', error);
         // If check fails, default to false for safety
         setIsGoogleOAuthEnabled(false);
       }
@@ -91,7 +93,7 @@ export default function EnhancedLoginForm() {
             ? decodeURIComponent(message) 
             : 'حدث خطأ أثناء تسجيل الدخول بجوجل. يرجى المحاولة مرة أخرى.';
           
-          setFormErrorMessage(errorMessage);
+          setFormErrorMessage(errorMessage || null);
           setFormErrorCode(error);
           setIsShaking(true);
           toast.error(errorMessage, { duration: 5000 });
@@ -143,7 +145,7 @@ export default function EnhancedLoginForm() {
             return queryParams ? `${pathOnly}?${queryParams}` : pathOnly;
           }
         } catch (e) {
-          console.error('Failed to decode redirect parameter:', e);
+          logger.error('Failed to decode redirect parameter:', e);
         }
       }
       return null;
@@ -162,7 +164,7 @@ export default function EnhancedLoginForm() {
       }
     } catch (storageError) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Unable to read stored redirect path:', storageError);
+        logger.warn('Unable to read stored redirect path:', storageError);
       }
     }
     
@@ -238,7 +240,7 @@ export default function EnhancedLoginForm() {
   useEffect(() => {
     getClientDeviceFingerprint()
       .then(setDeviceFingerprint)
-      .catch(console.error);
+      .catch((error) => logger.error('Failed to get device fingerprint', error));
   }, []);
 
   // Keyboard shortcuts
@@ -355,7 +357,17 @@ export default function EnhancedLoginForm() {
    * Handle successful login
    * Improved with better validation and error handling
    */
-  const handleLoginSuccess = async (data: any) => {
+  interface LoginResponse {
+    token: string;
+    user: {
+      id: string;
+      email: string;
+      name?: string;
+      role?: string;
+    };
+  }
+
+  const handleLoginSuccess = async (data: LoginResponse) => {
     // Reset CAPTCHA state on successful login
     setRequiresCaptcha(false);
     setCaptchaToken(null);
@@ -364,7 +376,7 @@ export default function EnhancedLoginForm() {
 
     // Validate response data
     if (!data || !data.token || !data.user) {
-      console.error('Invalid login response data:', data);
+      logger.error('Invalid login response data:', data);
       toast.error('استجابة تسجيل الدخول غير صحيحة');
       setIsLoading(false);
       return;
@@ -373,7 +385,7 @@ export default function EnhancedLoginForm() {
     // Validate token format
     const tokenParts = data.token.split('.');
     if (tokenParts.length !== 3) {
-      console.error('Invalid token format received');
+      logger.error('Invalid token format received');
       toast.error('رمز المصادقة المستلم غير صحيح');
       setIsLoading(false);
       return;
@@ -381,7 +393,7 @@ export default function EnhancedLoginForm() {
 
     // Validate user data
     if (!data.user.id || !data.user.email) {
-      console.error('Invalid user data in response:', data.user);
+      logger.error('Invalid user data in response:', data.user);
       toast.error('بيانات المستخدم غير صحيحة');
       setIsLoading(false);
       return;
@@ -412,7 +424,7 @@ export default function EnhancedLoginForm() {
           storage.setItem('refresh_token', data.refreshToken);
         } catch (storageError) {
           if (process.env.NODE_ENV === 'development') {
-            console.warn('Failed to save refresh token:', storageError);
+            logger.warn('Failed to save refresh token:', storageError);
           }
         }
       }
@@ -429,7 +441,7 @@ export default function EnhancedLoginForm() {
       refreshUser().catch((refreshError) => {
         // Non-critical error - user data was already set from login response
         if (process.env.NODE_ENV === 'development') {
-          console.warn('Failed to refresh user data:', refreshError);
+          logger.warn('Failed to refresh user data:', refreshError);
         }
       });
       
@@ -451,7 +463,7 @@ export default function EnhancedLoginForm() {
       }, 500);
     } catch (loginError) {
       // If login function fails, show error and reset loading
-      console.error('Error in login function:', loginError);
+      logger.error('Error in login function:', loginError);
       toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
       setIsLoading(false);
       
@@ -466,9 +478,16 @@ export default function EnhancedLoginForm() {
    * Handle login errors
    * Ensures all errors are properly formatted and never empty
    */
-  const handleLoginError = (error: any) => {
+  interface ApiError {
+    error?: string;
+    message?: string;
+    code?: string;
+    status?: number;
+  }
+
+  const handleLoginError = (error: unknown) => {
     // Helper to safely check if object is empty
-    const isEmpty = (obj: any): boolean => {
+    const isEmpty = (obj: unknown): boolean => {
       if (!obj || typeof obj !== 'object') return false;
       try {
         return Object.keys(obj).length === 0;
@@ -541,7 +560,7 @@ export default function EnhancedLoginForm() {
       const formattedMessage = `${errorMessage} (${formattedCountdown})`;
       toast.error(formattedMessage, { duration: 5000 });
       setFormErrorMessage(formattedMessage);
-      setFormErrorCode(errorCode);
+      setFormErrorCode(errorCode || null);
       setIsShaking(true);
       setIsLoading(false);
       return;
@@ -554,7 +573,7 @@ export default function EnhancedLoginForm() {
       const captchaMessage = 'يرجى إكمال التحقق من CAPTCHA للمتابعة';
       toast.warning(captchaMessage, { duration: 4000 });
       setFormErrorMessage(captchaMessage);
-      setFormErrorCode(errorCode);
+      setFormErrorCode(errorCode || null);
       setIsShaking(true);
       setIsLoading(false);
       return;
@@ -571,8 +590,8 @@ export default function EnhancedLoginForm() {
       !navigator.onLine
     ) {
       toast.error(errorMessage, { duration: 5000 });
-      setFormErrorMessage(errorMessage);
-      setFormErrorCode(errorCode);
+      setFormErrorMessage(errorMessage || null);
+      setFormErrorCode(errorCode || null);
       setIsShaking(true);
     } else {
       // Regular error - increment failed attempts
@@ -597,8 +616,8 @@ export default function EnhancedLoginForm() {
       
       setFieldErrors(errors);
       toast.error(errorMessage);
-      setFormErrorMessage(errorMessage);
-      setFormErrorCode(errorCode);
+      setFormErrorMessage(errorMessage || null);
+      setFormErrorCode(errorCode || null);
       setIsShaking(true);
     }
   };
@@ -656,7 +675,7 @@ export default function EnhancedLoginForm() {
         
         // If we get here, account exists or was created successfully
         setIsCreatingAccount(false);
-      } catch (apiError: any) {
+      } catch (apiError: unknown) {
         setIsCreatingAccount(false);
         
         // Check if error is about invalid credentials (user might not exist)
@@ -673,7 +692,7 @@ export default function EnhancedLoginForm() {
       // Validate response structure
       if (!data || typeof data !== 'object') {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Invalid login response structure:', data);
+          logger.error('Invalid login response structure:', data);
         }
         toast.error('استجابة غير صحيحة من الخادم. يرجى المحاولة مرة أخرى.');
         setIsLoading(false);
@@ -684,7 +703,7 @@ export default function EnhancedLoginForm() {
       if (data.requiresTwoFactor) {
         // Validate 2FA response structure
         if (!data.loginAttemptId) {
-          console.error('2FA required but missing loginAttemptId');
+          logger.error('2FA required but missing loginAttemptId');
           toast.error('خطأ في استجابة التحقق بخطوتين. يرجى المحاولة مرة أخرى.');
           setIsLoading(false);
           return;
@@ -712,7 +731,7 @@ export default function EnhancedLoginForm() {
       // Successful login - verify data exists
       if (!data.token || !data.user) {
         if (process.env.NODE_ENV === 'development') {
-          console.error('Invalid login response:', data);
+          logger.error('Invalid login response:', data);
         }
         toast.error('استجابة غير صحيحة من الخادم. يرجى المحاولة مرة أخرى.');
         setIsLoading(false);
@@ -722,13 +741,13 @@ export default function EnhancedLoginForm() {
       // Handle successful login
       await handleLoginSuccess(data);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       // First, normalize the error to ensure it has proper structure
       // This prevents empty objects from being logged
       let normalizedError: LoginErrorResponse;
       
       // Helper function to safely get object keys
-      const getObjectKeys = (obj: any): string[] => {
+      const getObjectKeys = (obj: unknown): string[] => {
         try {
           if (obj && typeof obj === 'object') {
             return Object.keys(obj);
@@ -800,145 +819,24 @@ export default function EnhancedLoginForm() {
       // Enhanced error logging in development mode only
       if (process.env.NODE_ENV === 'development') {
         try {
-          // Extract values safely with multiple fallbacks
-          const timestamp = new Date().toISOString();
-          const errorMessage = (normalizedError as any)?.error || 
-                              (normalizedError as any)?.message || 
-                              'Unknown error';
-          const errorCode = (normalizedError as any)?.code || 
-                           (normalizedError as any)?.errorCode || 
-                           'UNKNOWN_CODE';
-          
-          // Double-check that we have valid values (not empty strings or default values)
-          const hasValidMessage = errorMessage && errorMessage !== 'Unknown error' && errorMessage.trim().length > 0;
-          const hasValidCode = errorCode && errorCode !== 'UNKNOWN_CODE' && errorCode.trim().length > 0;
-          
-          if (!hasValidMessage || !hasValidCode) {
-            // If we still don't have good values, create a safe fallback
-            console.error('Login error (normalization failed):', {
+          // Log the normalized error directly, as it's already structured
+          if (normalizedError && normalizedError.error && normalizedError.code) {
+            logger.error('Login error:', { ...normalizedError, timestamp: new Date().toISOString() });
+          } else {
+            // Fallback for unexpected cases where normalization fails
+            logger.error('Login error (fallback):', {
               timestamp: new Date().toISOString(),
               error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول',
               code: 'UNEXPECTED_ERROR',
-              note: 'Error object normalization completely failed',
-              originalErrorType: typeof error,
-              normalizedErrorType: typeof normalizedError,
-              normalizedErrorIsNull: normalizedError === null,
-              normalizedErrorIsUndefined: normalizedError === undefined,
-              extractedErrorMessage: errorMessage,
-              extractedErrorCode: errorCode,
+              originalError: error, // Log original error for inspection
             });
-          } else {
-            // Build log object step by step to ensure it's never empty
-            const logObject: Record<string, any> = {};
-            logObject.timestamp = timestamp;
-            logObject.error = errorMessage;
-            logObject.code = errorCode;
-            
-            // Add normalized error info if available
-            if (normalizedError) {
-              if (normalizedError.status !== undefined) {
-                logObject.status = normalizedError.status;
-              }
-              if (normalizedError.retryAfterSeconds !== undefined) {
-                logObject.retryAfterSeconds = normalizedError.retryAfterSeconds;
-              }
-              if (normalizedError.requiresCaptcha !== undefined) {
-                logObject.requiresCaptcha = normalizedError.requiresCaptcha;
-              }
-              if (normalizedError.failedAttempts !== undefined) {
-                logObject.failedAttempts = normalizedError.failedAttempts;
-              }
-            }
-            
-            // Add additional debug info safely
-            if (error && typeof error === 'object' && !isEmptyObject) {
-              try {
-                const errorKeys = getObjectKeys(error);
-                const errorType = typeof error;
-                const errorConstructor = error.constructor?.name || 'Unknown';
-                const hasErrorProp = 'error' in error;
-                const hasCodeProp = 'code' in error;
-                
-                // Build originalError object step by step to ensure it's never empty
-                const originalErrorInfo: Record<string, any> = {};
-                originalErrorInfo.type = errorType || 'unknown';
-                originalErrorInfo.constructor = errorConstructor;
-                originalErrorInfo.keys = Array.isArray(errorKeys) ? errorKeys : [];
-                originalErrorInfo.hasError = Boolean(hasErrorProp);
-                originalErrorInfo.hasCode = Boolean(hasCodeProp);
-                
-                // Only add if we have valid info
-                if (originalErrorInfo.type && originalErrorInfo.constructor) {
-                  logObject.originalError = originalErrorInfo;
-                } else {
-                  logObject.originalErrorExtractionFailed = true;
-                  logObject.originalErrorNote = 'Failed to extract error info safely';
-                }
-              } catch (e) {
-                // If we can't extract original error, at least note it
-                logObject.originalErrorExtractionFailed = true;
-                logObject.extractionError = e instanceof Error ? e.message : String(e);
-              }
-            }
-            
-            // Final safety check - ensure logObject has at least the required fields
-            // Check that logObject is not empty and has required properties
-            const logObjectKeys = Object.keys(logObject);
-            const hasRequiredFields = logObject.error && logObject.code && logObject.timestamp;
-            
-            if (!hasRequiredFields || logObjectKeys.length === 0) {
-              // If logObject is somehow incomplete or empty, create a minimal safe version
-              console.error('Login error (fallback):', {
-                timestamp: new Date().toISOString(),
-                error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول',
-                code: 'UNEXPECTED_ERROR',
-                note: 'Error normalization failed - logObject was incomplete',
-                logObjectKeys: logObjectKeys,
-                hasError: !!logObject.error,
-                hasCode: !!logObject.code,
-                hasTimestamp: !!logObject.timestamp,
-                normalizedErrorType: typeof normalizedError,
-                normalizedErrorKeys: normalizedError ? Object.keys(normalizedError) : [],
-              });
-            } else {
-              // Verify logObject is not empty before logging
-              const safeLogObject: Record<string, any> = {
-                timestamp: logObject.timestamp || new Date().toISOString(),
-                error: logObject.error || 'حدث خطأ أثناء تسجيل الدخول',
-                code: logObject.code || 'UNEXPECTED_ERROR',
-              };
-              
-              // Add optional fields only if they exist and are not empty
-              if (logObject.status !== undefined) {
-                safeLogObject.status = logObject.status;
-              }
-              if (logObject.retryAfterSeconds !== undefined) {
-                safeLogObject.retryAfterSeconds = logObject.retryAfterSeconds;
-              }
-              if (logObject.requiresCaptcha !== undefined) {
-                safeLogObject.requiresCaptcha = logObject.requiresCaptcha;
-              }
-              if (logObject.failedAttempts !== undefined) {
-                safeLogObject.failedAttempts = logObject.failedAttempts;
-              }
-              if (logObject.originalError && typeof logObject.originalError === 'object' && Object.keys(logObject.originalError).length > 0) {
-                safeLogObject.originalError = logObject.originalError;
-              }
-              if (logObject.originalErrorExtractionFailed) {
-                safeLogObject.originalErrorExtractionFailed = logObject.originalErrorExtractionFailed;
-              }
-              
-              // Log the properly formatted error
-              console.error('Login error:', safeLogObject);
-            }
           }
         } catch (logError) {
-          // If even logging fails, use a minimal safe log
-          console.error('Login error (logging failed):', {
+          // If logging itself fails, provide a minimal, safe log
+          logger.error('Login error (logging failed):', {
             timestamp: new Date().toISOString(),
             error: 'حدث خطأ أثناء تسجيل الدخول',
             code: 'LOG_ERROR',
-            loggingError: logError instanceof Error ? logError.message : String(logError),
             originalErrorType: typeof error,
           });
         }
@@ -984,12 +882,22 @@ export default function EnhancedLoginForm() {
       // Successful 2FA verification - use the same success handler
       await handleLoginSuccess(data);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Normalize error first to ensure it has proper structure
-      let normalizedError: any = error;
+      let normalizedError: LoginErrorResponse;
       
-      // Check if error is empty object or invalid
-      if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+      // Type guard to check if error is LoginErrorResponse
+      const isLoginErrorResponse = (err: unknown): err is LoginErrorResponse => {
+        return (
+          typeof err === 'object' &&
+          err !== null &&
+          ('error' in err || 'code' in err)
+        );
+      };
+      
+      if (isLoginErrorResponse(error)) {
+        normalizedError = error;
+      } else if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
         normalizedError = {
           error: 'رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.',
           code: 'TWO_FACTOR_UNEXPECTED_ERROR',
@@ -1018,7 +926,7 @@ export default function EnhancedLoginForm() {
       
       // Enhanced error logging in development mode only
       if (process.env.NODE_ENV === 'development') {
-        console.error('2FA verification error:', {
+        logger.error('2FA verification error:', {
           timestamp: new Date().toISOString(),
           error: normalizedError.error,
           code: normalizedError.code,
@@ -1030,8 +938,8 @@ export default function EnhancedLoginForm() {
       const errorCode = normalizedError.code || 'TWO_FACTOR_UNEXPECTED_ERROR';
       
       toast.error(errorMessage);
-      setFormErrorMessage(errorMessage);
-      setFormErrorCode(errorCode);
+      setFormErrorMessage(errorMessage || null);
+      setFormErrorCode(errorCode || null);
       setIsShaking(true);
       setTwoFactorCode(''); // Clear the code on error
     } finally {
@@ -1101,23 +1009,24 @@ export default function EnhancedLoginForm() {
           challenge = challengeData.challenge;
         } catch (jsonError) {
           if (process.env.NODE_ENV === 'development') {
-            console.error('JSON parsing error:', jsonError);
+            logger.error('JSON parsing error:', jsonError);
           }
           throw new Error('فشل في معالجة استجابة الخادم.');
         }
         clearTimeout(challengeTimeout);
-      } catch (fetchError: any) {
+      } catch (fetchError: unknown) {
         clearTimeout(challengeTimeout);
         
-        if (fetchError.name === 'AbortError' || fetchError.message?.includes('aborted')) {
+        const error = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
           toast.error('انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.', { duration: 5000 });
           setIsLoading(false);
           return;
         }
 
         if (
-          fetchError.message?.includes('Failed to fetch') ||
-          fetchError.message?.includes('NetworkError') ||
+          error.message?.includes('Failed to fetch') ||
+          error.message?.includes('NetworkError') ||
           !navigator.onLine
         ) {
           toast.error('خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.', { duration: 5000 });
@@ -1125,13 +1034,13 @@ export default function EnhancedLoginForm() {
           return;
         }
 
-        toast.error(fetchError.message || 'فشلت المصادقة البيومترية', { duration: 5000 });
+        toast.error(error.message || 'فشلت المصادقة البيومترية', { duration: 5000 });
         setIsLoading(false);
         return;
       }
 
       // Request credential
-      let credential: any;
+      let credential: PublicKeyCredential | null = null;
       try {
         credential = await navigator.credentials.get({
           publicKey: {
@@ -1146,8 +1055,9 @@ export default function EnhancedLoginForm() {
           setIsLoading(false);
           return;
         }
-      } catch (credError: any) {
-        if (credError.name === 'NotAllowedError' || credError.name === 'NotSupportedError') {
+      } catch (credError: unknown) {
+        const error = credError instanceof Error ? credError : new Error(String(credError));
+        if (error.name === 'NotAllowedError' || error.name === 'NotSupportedError') {
           toast.error('تم إلغاء المصادقة البيومترية أو غير مدعومة');
         } else {
           toast.error('فشلت المصادقة البيومترية');
@@ -1208,7 +1118,7 @@ export default function EnhancedLoginForm() {
           data = await verifyResponse.json();
         } catch (jsonError) {
           if (process.env.NODE_ENV === 'development') {
-            console.error('JSON parsing error:', jsonError);
+            logger.error('JSON parsing error:', jsonError);
           }
           throw new Error('فشل في معالجة استجابة الخادم.');
         }
@@ -1230,22 +1140,23 @@ export default function EnhancedLoginForm() {
           }, 500);
         } catch (loginError) {
           // If login function fails, show error and reset loading
-          console.error('Error in login function:', loginError);
+          logger.error('Error in login function:', loginError);
           toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
           setIsLoading(false);
         }
-      } catch (verifyError: any) {
+      } catch (verifyError: unknown) {
         clearTimeout(verifyTimeout);
         
-        if (verifyError.name === 'AbortError' || verifyError.message?.includes('aborted')) {
+        const error = verifyError instanceof Error ? verifyError : new Error(String(verifyError));
+        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
           toast.error('انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.', { duration: 5000 });
           setIsLoading(false);
           return;
         }
 
         if (
-          verifyError.message?.includes('Failed to fetch') ||
-          verifyError.message?.includes('NetworkError') ||
+          error.message?.includes('Failed to fetch') ||
+          error.message?.includes('NetworkError') ||
           !navigator.onLine
         ) {
           toast.error('خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.', { duration: 5000 });
@@ -1253,25 +1164,26 @@ export default function EnhancedLoginForm() {
           return;
         }
 
-        toast.error(verifyError.message || 'فشلت المصادقة');
+        toast.error(error.message || 'فشلت المصادقة');
         setIsLoading(false);
         return;
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('Biometric login error:', error);
+        logger.error('Biometric login error:', error);
       }
       
+      const err = error instanceof Error ? error : new Error(String(error));
       if (
-        error?.message?.includes('Failed to fetch') ||
-        error?.message?.includes('NetworkError') ||
-        error?.name === 'TypeError' ||
+        err.message?.includes('Failed to fetch') ||
+        err.message?.includes('NetworkError') ||
+        err.name === 'TypeError' ||
         !navigator.onLine
       ) {
         toast.error('خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.', { duration: 5000 });
       } else {
-        toast.error(error?.message || 'فشلت المصادقة البيومترية');
+        toast.error(err.message || 'فشلت المصادقة البيومترية');
       }
     } finally {
       setIsLoading(false);
@@ -1887,7 +1799,7 @@ export default function EnhancedLoginForm() {
                           }
                         }
                       } catch (createError) {
-                        console.error('Failed to create test account:', createError);
+                        logger.error('Failed to create test account:', createError);
                       }
                       
                       toast.error('فشل تسجيل الدخول بالحساب التجريبي. يرجى المحاولة يدوياً.');
@@ -1907,16 +1819,17 @@ export default function EnhancedLoginForm() {
                     } else {
                       toast.error('بيانات تسجيل الدخول غير صحيحة');
                     }
-                  } catch (fetchError: any) {
+                  } catch (fetchError: unknown) {
                     clearTimeout(loginTimeout);
-                    if (fetchError.name !== 'AbortError') {
+                    const error = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
+                    if (error.name !== 'AbortError') {
                       toast.error('حدث خطأ أثناء تسجيل الدخول');
                     }
                   } finally {
                     setIsLoading(false);
                   }
                 } catch (error) {
-                  console.error('Test account login error:', error);
+                  logger.error('Test account login error:', error);
                   toast.error('حدث خطأ أثناء تسجيل الدخول بالحساب التجريبي');
                   setIsLoading(false);
                 }

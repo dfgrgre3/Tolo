@@ -3,6 +3,7 @@ import 'server-only';
 
 import { PrismaClient } from '@prisma/client';
 import { databaseConfig, getDatabaseConfig } from './database';
+import { logger } from '@/lib/logger';
 
 type ConnectionPoolStats = {
   totalConnections: number;
@@ -46,7 +47,7 @@ This will generate the Prisma Client based on your schema.prisma file.
     
     // Validate DATABASE_URL format
     if (!databaseUrl) {
-      console.warn('DATABASE_URL is not set, using default SQLite database');
+      logger.warn('DATABASE_URL is not set, using default SQLite database');
     }
 
     const prisma = new PrismaClient({
@@ -70,13 +71,13 @@ This will generate the Prisma Client based on your schema.prisma file.
 
     // Add error handler for connection errors
     prisma.$on('error' as any, (e: any) => {
-      console.error('Prisma error event:', e);
+      logger.error('Prisma error event:', e);
     });
 
     if (databaseConfig.common.logSlowQueries) {
       prisma.$on('query' as any, async (e: any) => {
         if (e.duration > databaseConfig.common.slowQueryThreshold) {
-          console.warn('Slow query detected:', {
+          logger.warn('Slow query detected:', {
             duration: e.duration,
             query: e.query,
             timestamp: e.timestamp,
@@ -96,7 +97,7 @@ This will generate the Prisma Client based on your schema.prisma file.
               error?.message?.includes('Connection') ||
               error?.message?.includes('ECONNREFUSED') ||
               error?.message?.includes('ETIMEDOUT')) {
-            console.error('Database connection error:', {
+            logger.error('Database connection error:', {
               code: error.code,
               message: error.message,
               databaseUrl: databaseUrl ? '***' : 'not set'
@@ -118,15 +119,15 @@ This will generate the Prisma Client based on your schema.prisma file.
                 
                 // Try to reconnect
                 await prisma.$connect();
-                console.log(`Database reconnected successfully (attempt ${attempt})`);
+                logger.info(`Database reconnected successfully (attempt ${attempt})`);
                 reconnectSuccess = true;
                 
                 // Retry the operation once after successful reconnection
                 return await next(params);
               } catch (reconnectError: any) {
-                console.warn(`Reconnection attempt ${attempt} failed:`, reconnectError.message);
+                logger.warn(`Reconnection attempt ${attempt} failed:`, reconnectError.message);
                 if (attempt === 3) {
-                  console.error('Failed to reconnect to database after all attempts');
+                  logger.error('Failed to reconnect to database after all attempts');
                   throw error; // Throw original error
                 }
               }
@@ -141,7 +142,7 @@ This will generate the Prisma Client based on your schema.prisma file.
       });
     } else {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Prisma $use is not available, connection error handling middleware will be limited');
+        logger.warn('Prisma $use is not available, connection error handling middleware will be limited');
       }
     }
 
@@ -178,7 +179,7 @@ Solutions:
 Original error: ${error.message}
       `.trim();
       
-      console.error(errorMessage);
+      logger.error(errorMessage);
       throw new Error(errorMessage);
     }
     
@@ -316,7 +317,7 @@ const initializePrismaWithMiddleware = () => {
         globalForPrisma.prismaPoolMiddlewareRegistered = true;
       } else {
         if (process.env.NODE_ENV === 'development') {
-          console.warn('Prisma $use is not available, connection pool monitoring will be limited');
+          logger.warn('Prisma $use is not available, connection pool monitoring will be limited');
         }
         // Mark as registered even if we couldn't set up middleware to avoid retrying
         globalForPrisma.prismaPoolMiddlewareRegistered = true;
@@ -324,7 +325,7 @@ const initializePrismaWithMiddleware = () => {
     } catch (error) {
       // If middleware setup fails, log but don't throw
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Failed to set up Prisma middleware:', error);
+        logger.warn('Failed to set up Prisma middleware:', error);
       }
       // Mark as registered to avoid infinite retries
       globalForPrisma.prismaPoolMiddlewareRegistered = true;
@@ -369,7 +370,7 @@ const getEnhancedPrisma = () => {
   } catch (error) {
     // If extension fails, return base prisma client
     if (process.env.NODE_ENV === 'development') {
-      console.warn('Failed to create enhanced Prisma client, using base client:', error);
+      logger.warn('Failed to create enhanced Prisma client, using base client:', error);
     }
     return prisma;
   }

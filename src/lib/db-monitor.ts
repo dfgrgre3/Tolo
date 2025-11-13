@@ -1,6 +1,7 @@
 import { prisma, enhancedPrisma } from './db';
 import redisClient, { CacheService } from './redis';
 import { ConnectionPoolStats, defaultPoolStats, getDatabaseConfig } from './db';
+import { logger } from '@/lib/logger';
 
 type PrismaMonitoringClient = typeof enhancedPrisma & {
   getConnectionPoolStats?: () => ConnectionPoolStats;
@@ -88,7 +89,7 @@ export class DatabaseMonitor {
             
             // Log slow queries
             if (duration > this.slowQueryThreshold) {
-              console.warn(`Slow query detected: ${params.model}.${params.action} took ${duration}ms`);
+              logger.warn(`Slow query detected: ${params.model}.${params.action} took ${duration}ms`);
             }
             
             return result;
@@ -96,7 +97,7 @@ export class DatabaseMonitor {
             const after = Date.now();
             const duration = after - before;
             
-            console.error(`Error in query ${params.model}.${params.action} after ${duration}ms:`, error);
+            logger.error(`Error in query ${params.model}.${params.action} after ${duration}ms:`, error);
             
             // Re-throw the error so it can be handled by the calling function
             throw error;
@@ -106,13 +107,13 @@ export class DatabaseMonitor {
         // If $use is not available, use $extends instead for monitoring
         // Note: This is a fallback - monitoring will be handled via event listeners
         if (process.env.NODE_ENV === 'development') {
-          console.warn('Prisma $use is not available, query monitoring will be limited');
+          logger.warn('Prisma $use is not available, query monitoring will be limited');
         }
       }
     } catch (error) {
       // If middleware setup fails, log but don't throw
       if (process.env.NODE_ENV === 'development') {
-        console.warn('Failed to set up Prisma query monitoring middleware:', error);
+        logger.warn('Failed to set up Prisma query monitoring middleware:', error);
       }
     }
   }
@@ -367,7 +368,7 @@ export class DatabaseMonitor {
       await prisma.$queryRaw`SELECT 1`;
       return true;
     } catch (error) {
-      console.error('Database connection check failed:', error);
+      logger.error('Database connection check failed:', error);
       return false;
     }
   }

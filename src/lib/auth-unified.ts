@@ -6,6 +6,8 @@ import { prisma } from './prisma';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitingService } from './rate-limiting-service';
+import { getJWTSecret } from './env-validation';
+import { logger } from './logger';
 
 // SessionData interface - exported for use in other modules
 export interface SessionData {
@@ -17,17 +19,31 @@ export interface SessionData {
   createdAt: Date;
 }
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 
-  process.env.NEXTAUTH_SECRET ||
-  (() => {
-    console.error('JWT_SECRET is not defined in environment variables');
-    return 'fallback-jwt-secret-for-dev-only'; // Only for development
-  })()
-);
+// Get validated JWT_SECRET (throws error in production if invalid)
+let JWT_SECRET: Uint8Array;
+let JWT_SECRET_STRING: string;
 
-const JWT_SECRET_STRING = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'fallback-jwt-secret-for-dev-only';
-const SESSION_DURATION = parseInt(process.env.SESSION_DURATION || '2592000'); // 30 days in seconds
+// Lazy initialization to avoid throwing errors during module load
+function getJWTSecretSafe(): { secret: Uint8Array; secretString: string } {
+  if (!JWT_SECRET || !JWT_SECRET_STRING) {
+    try {
+      JWT_SECRET_STRING = getJWTSecret();
+      JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+    } catch (error) {
+      // In development, use a warning but allow continuation
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('JWT_SECRET not properly configured. Using fallback for development only.');
+        JWT_SECRET_STRING = 'fallback-jwt-secret-for-dev-only-PLEASE-SET-IN-PRODUCTION';
+        JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+      } else {
+        throw error;
+      }
+    }
+  }
+  return { secret: JWT_SECRET, secretString: JWT_SECRET_STRING };
+}
+
+const SESSION_DURATION = parseInt(process.env.SESSION_DURATION || '2592000', 10); // 30 days in seconds
 
 // Rate limiting constants
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -65,25 +81,27 @@ export class AuthService {
     };
 
     // Create access token (1 hour expiration)
+    const { secret } = getJWTSecretSafe();
     const accessToken = await new SignJWT(tokenPayload)
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('1h')
-      .sign(JWT_SECRET);
+      .sign(secret);
 
     // Create refresh token (30 days expiration)
     const refreshToken = await new SignJWT({ userId: user.id, sessionId })
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('30d')
-      .sign(JWT_SECRET);
+      .sign(secret);
 
     return { accessToken, refreshToken };
   }
 
   static async verifyToken(token: string): Promise<AuthUser | null> {
     try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const { secret } = getJWTSecretSafe();
+      const { payload } = await jwtVerify(token, secret);
       return {
         id: payload.userId as string,
         email: payload.email as string,
@@ -91,7 +109,7 @@ export class AuthService {
         role: payload.role as string | undefined,
       };
     } catch (error) {
-      console.error('Token verification failed:', error);
+      logger.error('Token verification failed', error);
       return null;
     }
   }
@@ -99,7 +117,8 @@ export class AuthService {
   static async verifyAccessToken(token: string): Promise<AuthUser | null> {
     try {
       // First try to verify with jose
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const { secret } = getJWTSecretSafe();
+      const { payload } = await jwtVerify(token, secret);
       
       // Validate required fields
       if (!payload.userId || !payload.email) {
@@ -113,14 +132,15 @@ export class AuthService {
         role: payload.role as string | undefined,
       };
     } catch (error) {
-      console.error('Access token verification failed:', error);
+      logger.error('Access token verification failed', error);
       return null;
     }
   }
 
   static async verifyRefreshToken(token: string): Promise<{ userId: string; sessionId?: string } | null> {
     try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const { secret } = getJWTSecretSafe();
+      const { payload } = await jwtVerify(token, secret);
       
       if (!payload.userId) {
         return null;
@@ -131,7 +151,7 @@ export class AuthService {
         sessionId: payload.sessionId as string | undefined,
       };
     } catch (error) {
-      console.error('Refresh token verification failed:', error);
+      logger.error('Refresh token verification failed', error);
       return null;
     }
   }
@@ -189,7 +209,7 @@ export class AuthService {
       
       return true;
     } catch (error) {
-      console.error('Session validation failed:', error);
+      logger.error('Session validation failed', error);
       return false;
     }
   }
@@ -201,7 +221,7 @@ export class AuthService {
         data: { isActive: false },
       });
     } catch (error) {
-      console.error('Session invalidation failed:', error);
+      logger.error('Session invalidation failed', error);
     }
   }
 
@@ -212,7 +232,7 @@ export class AuthService {
         data: { isActive: false },
       });
     } catch (error) {
-      console.error('All user sessions invalidation failed:', error);
+      logger.error('All user sessions invalidation failed', error);
     }
   }
 
@@ -255,7 +275,7 @@ export class AuthService {
 
       return { accessToken, newRefreshToken };
     } catch (error) {
-      console.error('Session refresh failed:', error);
+      logger.error('Session refresh failed', error);
       return null;
     }
   }
@@ -273,7 +293,7 @@ export class AuthService {
         remainingTime: rateLimitResult.remainingTime,
       };
     } catch (error) {
-      console.error('Rate limiting check failed:', error);
+      logger.error('Rate limiting check failed', error);
       // In case of Redis failure, allow the request but log it
       return { allowed: true };
     }
@@ -283,7 +303,7 @@ export class AuthService {
     try {
       await rateLimitingService.incrementAttempts(identifier);
     } catch (error) {
-      console.error('Rate limiting increment failed:', error);
+      logger.error('Rate limiting increment failed', error);
     }
   }
 
@@ -291,7 +311,7 @@ export class AuthService {
     try {
       await rateLimitingService.resetAttempts(identifier);
     } catch (error) {
-      console.error('Rate limiting reset failed:', error);
+      logger.error('Rate limiting reset failed', error);
     }
   }
 
@@ -349,12 +369,13 @@ function extractToken(input: NextRequest | string | null | undefined): string | 
  */
 export function verifyToken(input: NextRequest | string | null | undefined): DecodedToken | null {
   const token = extractToken(input);
-  if (!token || !JWT_SECRET_STRING) {
+  if (!token) {
     return null;
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET_STRING) as JwtPayload & DecodedToken;
+    const { secretString } = getJWTSecretSafe();
+    const decoded = jwt.verify(token, secretString) as JwtPayload & DecodedToken;
 
     if (!decoded || !decoded.userId) {
       return null;
@@ -368,7 +389,7 @@ export function verifyToken(input: NextRequest | string | null | undefined): Dec
       sessionId: decoded.sessionId,
     };
   } catch (error) {
-    console.error('JWT verification failed:', error);
+    logger.error('JWT verification failed', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

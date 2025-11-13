@@ -4,6 +4,7 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { analyzeSentiment } from "@/lib/ai/sentiment-analysis";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth-unified";
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
             }
           });
         } catch (error) {
-          console.error('Error analyzing sentiment:', error);
+          logger.error('Error analyzing sentiment:', error);
         }
       }
     }
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error from OpenAI:", errorData);
+        logger.error("Error from OpenAI:", errorData);
         return NextResponse.json({
           message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم."
         });
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error("Error from Gemini:", errorData);
+        logger.error("Error from Gemini:", errorData);
         return NextResponse.json({
           message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم."
         });
@@ -170,7 +171,7 @@ export async function POST(request: NextRequest) {
       } : null
     });
   } catch (error) {
-    console.error("Error in AI chat API:", error);
+    logger.error("Error in AI chat API:", error);
     return NextResponse.json(
       { message: "حدث خطأ في معالجة طلبك" },
       { status: 500 }

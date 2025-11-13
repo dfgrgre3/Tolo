@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { advancedGamificationService } from '@/lib/advanced-gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // POST /api/gamification/seasons/[seasonId]/join - Join a season
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ seasonId: string }> }
 ) {
-  try {
-    const { seasonId } = await params;
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { seasonId } = await params;
+      const body = await req.json();
     const { userId } = body;
 
     if (!userId) {
@@ -25,11 +28,12 @@ export async function POST(
       message: 'تم الانضمام للموسم بنجاح' 
     });
   } catch (error: any) {
-    console.error('Error joining season:', error);
+    logger.error('Error joining season:', error);
     return NextResponse.json(
       { error: 'Failed to join season', details: error.message },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

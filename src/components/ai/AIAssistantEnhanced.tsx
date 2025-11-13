@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, Bot, User, Zap, Mic, MicOff, AlertCircle, Heart } from 'lucide-react';
+import { logger } from '@/lib/logger';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -59,7 +60,7 @@ export default function AIAssistantEnhanced({
       };
 
       recognition.onerror = (event: any) => {
-        console.error('Speech recognition error:', event.error);
+        logger.error('Speech recognition error:', event.error);
         setIsListening(false);
       };
 
@@ -163,7 +164,7 @@ export default function AIAssistantEnhanced({
       };
       setMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
+      logger.error('Error sending message:', error);
 
       // Add error message
       const errorMessage: Message = {

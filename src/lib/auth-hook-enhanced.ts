@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { safeGetItem } from './safe-client-utils';
+import { logger } from '@/lib/logger';
 
 interface User {
   id: string;
@@ -356,7 +357,7 @@ export function useEnhancedAuth(): AuthHookResult {
         } catch (jsonError) {
           clearTimeout(timeoutId);
           if (process.env.NODE_ENV === 'development') {
-            console.error('JSON parsing error:', jsonError);
+            logger.error('JSON parsing error:', jsonError);
           }
           throw new Error('فشل في معالجة استجابة الخادم. يرجى المحاولة مرة أخرى.');
         }
@@ -517,7 +518,7 @@ export function useEnhancedAuth(): AuthHookResult {
         } catch (jsonError) {
           clearTimeout(timeoutId);
           if (process.env.NODE_ENV === 'development') {
-            console.error('JSON parsing error:', jsonError);
+            logger.error('JSON parsing error:', jsonError);
           }
           throw new Error('فشل في معالجة استجابة الخادم.');
         }

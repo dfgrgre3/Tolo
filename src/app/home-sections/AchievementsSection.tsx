@@ -22,6 +22,7 @@ import { Badge } from "@/shared/badge";
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
+import { logger } from '@/lib/logger';
 
 // Default achievement structure used as template when initializing Firebase collections
 // Real data comes from Firebase Firestore
@@ -114,7 +115,7 @@ export function App() {
                       currentUserId = credentials.user.uid;
                   }
               } catch (error) {
-                  console.error("Firebase Auth Error: Failed to sign in.", error);
+                  logger.error("Firebase Auth Error: Failed to sign in.", error);
                   // Fallback to anonymous or random ID if sign-in fails
                   currentUserId = auth.currentUser?.uid || crypto.randomUUID();
               }
@@ -124,7 +125,7 @@ export function App() {
           setIsAuthReady(true);
       });
     } catch (error) {
-      console.error("Firebase initialization error:", error);
+      logger.error("Firebase initialization error:", error);
       setLoading(false);
     }
 
@@ -181,7 +182,7 @@ export function App() {
             })
           );
           Promise.all(initPromises).catch((error) => {
-            console.error("Error initializing achievements:", error);
+            logger.error("Error initializing achievements:", error);
           });
         } else {
           // IMPROVEMENT: Sort data on client-side for stable UI and better UX
@@ -190,7 +191,7 @@ export function App() {
         }
         setLoading(false);
       }, (error) => {
-        console.error("Error fetching achievements:", error);
+        logger.error("Error fetching achievements:", error);
         setLoading(false);
       });
 
@@ -217,7 +218,7 @@ export function App() {
               setDoc(statsDocRef, initialData, { merge: true });
           }
       }, (error) => {
-        console.error("Error fetching stats:", error);
+        logger.error("Error fetching stats:", error);
       });
 
       // CRITICAL for memory consumption: Clean up Firestore listeners on unmount
@@ -226,7 +227,7 @@ export function App() {
           unsubscribeStats();
       };
     } catch (error) {
-      console.error("Firestore error:", error);
+      logger.error("Firestore error:", error);
       // Fallback to static data on error
       setUserAchievements(ACHIEVEMENTS_STRUCTURE);
       setUserStats(STATS_STRUCTURE);

@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import type { RegisterRequest, RegisterResponse, RegisterErrorResponse } from '@/types/api/auth';
 import { createErrorResponse, isConnectionError } from '@/app/api/auth/_helpers';
+import { logger } from '@/lib/logger';
 
 const registerSchema = z.object({
   email: z
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
     try {
       passwordHash = await AuthService.hashPassword(password);
     } catch (hashError) {
-      console.error('Password hashing error:', hashError);
+      logger.error('Password hashing error:', hashError);
       return NextResponse.json(
         {
           error: 'حدث خطأ أثناء معالجة كلمة المرور. حاول مرة أخرى.',
@@ -126,7 +127,7 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (dbError: any) {
-      console.error('Database error during registration:', dbError);
+      logger.error('Database error during registration:', dbError);
       
       // Handle unique constraint violation
       if (dbError.code === 'P2002' || dbError.message?.includes('unique')) {
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
       });
     } catch (logError) {
       // Don't fail registration if logging fails, but log it
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     }
 
     // Generate verification link
@@ -188,7 +189,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!verifiedUser) {
-        console.error('User was not found in database after creation');
+        logger.error('User was not found in database after creation');
         return NextResponse.json(
           {
             error: 'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.',
@@ -215,7 +216,7 @@ export async function POST(request: NextRequest) {
       };
       return NextResponse.json(registerResponse, { status: 201 });
     } catch (verifyError: any) {
-      console.error('Error verifying user creation:', verifyError);
+      logger.error('Error verifying user creation:', verifyError);
       // Even if verification fails, user was created, so return success
       // but log the error for investigation
       return NextResponse.json(
@@ -238,7 +239,7 @@ export async function POST(request: NextRequest) {
       );
     }
   } catch (error: any) {
-    console.error('Registration error:', error);
+    logger.error('Registration error:', error);
     
     // Try to log security event
     try {
@@ -247,7 +248,7 @@ export async function POST(request: NextRequest) {
         error: error?.message || 'Unknown error',
       });
     } catch (logError) {
-      console.error('Failed to log security event:', logError);
+      logger.error('Failed to log security event:', logError);
     }
 
     // Return appropriate error response

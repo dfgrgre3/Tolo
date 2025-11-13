@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import { perfConfig, PerfMonitor } from './perf-config';
 import { recordCacheMetric } from './db-monitor';
+import { logger } from '@/lib/logger';
 
 // Create Redis client with enhanced configuration for better performance and reliability
 const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
@@ -19,16 +20,16 @@ const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379',
 
 // Handle Redis errors
 redisClient.on('error', (err) => {
-  console.error('Redis error:', err);
+  logger.error('Redis error:', err);
 });
 
 // Connect to Redis
 const connectRedis = async () => {
   try {
     await redisClient.connect();
-    console.log('Connected to Redis');
+    logger.info('Connected to Redis');
   } catch (error) {
-    console.error('Failed to connect to Redis:', error);
+    logger.error('Failed to connect to Redis:', error);
   }
 };
 
@@ -75,7 +76,7 @@ export class CacheService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('get', duration, false);
-      console.error('Error getting data from cache:', error);
+      logger.error('Error getting data from cache:', error);
       return null;
     }
   }
@@ -102,7 +103,7 @@ export class CacheService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('set', duration, false);
-      console.error('Error setting data in cache:', error);
+      logger.error('Error setting data in cache:', error);
     }
   }
 
@@ -119,7 +120,7 @@ export class CacheService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('del', duration, false);
-      console.error('Error deleting data from cache:', error);
+      logger.error('Error deleting data from cache:', error);
     }
   }
 
@@ -145,7 +146,7 @@ export class CacheService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('mget', duration, false);
-      console.error('Error getting multiple data from cache:', error);
+      logger.error('Error getting multiple data from cache:', error);
       return keys.map(() => null);
     }
   }
@@ -179,7 +180,7 @@ export class CacheService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('mset', duration, false);
-      console.error('Error setting multiple data in cache:', error);
+      logger.error('Error setting multiple data in cache:', error);
     }
   }
 
@@ -196,7 +197,7 @@ export class CacheService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('mdel', duration, false);
-      console.error('Error deleting multiple data from cache:', error);
+      logger.error('Error deleting multiple data from cache:', error);
     }
   }
 
@@ -238,7 +239,7 @@ export class CacheService {
     } catch (error) {
       const duration = Date.now() - start;
       recordCacheMetric('invalidatePattern', duration, false);
-      console.error('Error invalidating cache pattern:', error);
+      logger.error('Error invalidating cache pattern:', error);
     }
   }
 
@@ -257,7 +258,7 @@ export class CacheService {
     try {
       await redisClient.quit();
     } catch (error) {
-      console.error('Error disconnecting from Redis:', error);
+      logger.error('Error disconnecting from Redis:', error);
     }
   }
 }

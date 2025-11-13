@@ -6,13 +6,33 @@ import { prisma } from './prisma';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitingService } from './rate-limiting-service';
+import { getJWTSecret } from './env-validation';
 
-// Use NEXTAUTH_SECRET if available for compatibility with NextAuth
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key'
-);
-const JWT_SECRET_STRING = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key';
-const SESSION_DURATION = parseInt(process.env.SESSION_DURATION || '2592000'); // 30 days in seconds
+// Get validated JWT_SECRET (throws error in production if invalid)
+let JWT_SECRET: Uint8Array;
+let JWT_SECRET_STRING: string;
+
+// Lazy initialization to avoid throwing errors during module load
+function getJWTSecretSafe(): { secret: Uint8Array; secretString: string } {
+  if (!JWT_SECRET || !JWT_SECRET_STRING) {
+    try {
+      JWT_SECRET_STRING = getJWTSecret();
+      JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+    } catch (error) {
+      // In development, use a warning but allow continuation
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('JWT_SECRET not properly configured. Using fallback for development only.');
+        JWT_SECRET_STRING = 'fallback-jwt-secret-for-dev-only-PLEASE-SET-IN-PRODUCTION';
+        JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
+      } else {
+        throw error;
+      }
+    }
+  }
+  return { secret: JWT_SECRET, secretString: JWT_SECRET_STRING };
+}
+
+const SESSION_DURATION = parseInt(process.env.SESSION_DURATION || '2592000', 10); // 30 days in seconds
 
 // Rate limiting constants
 const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
@@ -92,12 +112,8 @@ export class AuthService {
    * Improved with better validation and error handling
    */
   async createTokens(user: AuthUser, sessionId?: string): Promise<{ accessToken: string; refreshToken: string }> {
-    // Validate JWT_SECRET before proceeding
-    const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
-    if (!jwtSecret || jwtSecret === 'your-secret-key' || jwtSecret.trim().length < 32) {
-      console.error('JWT_SECRET validation failed in createTokens');
-      throw new Error('JWT_SECRET is not configured properly. Please set a valid JWT_SECRET in environment variables.');
-    }
+    // Get validated JWT_SECRET
+    const { secret: jwtSecret, secretString: jwtSecretString } = getJWTSecretSafe();
 
     // Validate user data
     if (!user || !user.id || !user.email) {
@@ -129,7 +145,7 @@ export class AuthService {
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('1h')
-        .sign(JWT_SECRET);
+        .sign(jwtSecret);
 
       // Validate access token was created
       if (!accessToken || accessToken.split('.').length !== 3) {
@@ -144,7 +160,7 @@ export class AuthService {
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('30d')
-        .sign(JWT_SECRET);
+        .sign(jwtSecret);
 
       // Validate refresh token was created
       if (!refreshToken || refreshToken.split('.').length !== 3) {
@@ -153,10 +169,8 @@ export class AuthService {
 
       return { accessToken, refreshToken };
     } catch (error: unknown) {
-      console.error('Error creating tokens:', {
-        error,
+      logger.error('Error creating tokens', error instanceof Error ? error : new Error(String(error)), {
         errorType: typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
         hasUser: !!user,
         userId: user?.id,
       });
@@ -196,7 +210,8 @@ export class AuthService {
     }
 
     try {
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const { secret } = getJWTSecretSafe();
+      const { payload } = await jwtVerify(token, secret);
 
       // Validate payload structure
       if (!payload || !payload.userId || !payload.email) {
@@ -262,7 +277,8 @@ export class AuthService {
    */
   async refreshAccessToken(refreshToken: string, userAgent: string, ip: string): Promise<TokenVerificationResult & { accessToken?: string; refreshToken?: string }> {
     try {
-      const { payload } = await jwtVerify(refreshToken, JWT_SECRET);
+      const { secret } = getJWTSecretSafe();
+      const { payload } = await jwtVerify(refreshToken, secret);
       const userId = payload.userId as string;
       const sessionId = payload.sessionId as string;
 
@@ -332,7 +348,7 @@ export class AuthService {
       }
     } catch (cacheError) {
       // Cache not available, continue with DB query
-      console.warn('Cache not available, using database:', cacheError);
+      logger.warn('Cache not available, using database', undefined, { cacheError });
     }
 
     // Fetch from database
@@ -663,7 +679,7 @@ export class AuthService {
   /**
    * Log security event
    */
-  async logSecurityEvent(userId: string | null, event: string, ip: string, metadata?: any): Promise<void> {
+  async logSecurityEvent(userId: string | null, event: string, ip: string, metadata?: Record<string, unknown>): Promise<void> {
     try {
       await prisma.securityLog.create({
         data: {
@@ -676,7 +692,7 @@ export class AuthService {
         },
       });
     } catch (error) {
-      console.error('Failed to log security event:', error);
+      logger.error('Failed to log security event', error instanceof Error ? error : new Error(String(error)));
     }
   }
 
@@ -747,7 +763,7 @@ export class AuthService {
         sessionId
       };
     } catch (error) {
-      console.error('Token verification error:', error);
+      logger.error('Token verification error', error instanceof Error ? error : new Error(String(error)));
       return {
         isValid: false,
         error: 'Invalid or expired token'
@@ -804,7 +820,7 @@ export class AuthService {
           sessionId
         };
       } catch (error) {
-        console.error('Token verification error:', error);
+        logger.error('Token verification error', error instanceof Error ? error : new Error(String(error)));
         return {
           isValid: false,
           error: 'Invalid or expired token'
@@ -891,12 +907,13 @@ export const comparePasswords = AuthService.comparePasswords;
 // Token operations
 export function verifyToken(input: NextRequest | string | null | undefined): DecodedToken | null {
   const token = authService.extractToken(input);
-  if (!token || !JWT_SECRET_STRING) {
+  if (!token) {
     return null;
   }
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET_STRING) as JwtPayload & DecodedToken;
+    const { secretString } = getJWTSecretSafe();
+    const decoded = jwt.verify(token, secretString) as JwtPayload & DecodedToken;
 
     if (!decoded || !decoded.userId) {
       return null;
@@ -912,7 +929,7 @@ export function verifyToken(input: NextRequest | string | null | undefined): Dec
       iat: decoded.iat
     };
   } catch (error) {
-    console.error('JWT verification failed:', error);
+    logger.error('JWT verification failed', error instanceof Error ? error : new Error(String(error)));
     return null;
   }
 }

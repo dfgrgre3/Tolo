@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { EventBus } from '@/lib/event-bus';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all events
-export async function GET() {
-  try {
+export async function GET(request: NextRequest) {
+  return opsWrapper(request, async () => {
+    try {
     const events = await prisma.event.findMany({
       include: {
         organizer: {
@@ -39,31 +42,33 @@ export async function GET() {
 
     return NextResponse.json(transformedEvents);
   } catch (error) {
-    console.error("Error fetching events:", error);
+    logger.error("Error fetching events:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المناسبات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST create a new event
 export async function POST(request: NextRequest) {
-  try {
-    const eventBus = new EventBus();
-    const { 
-      userId, 
-      title, 
-      description, 
-      location, 
-      startDate, 
-      endDate, 
-      imageUrl, 
-      category, 
-      isPublic, 
-      maxAttendees, 
-      tags 
-    } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const eventBus = new EventBus();
+      const { 
+        userId, 
+        title, 
+        description, 
+        location, 
+        startDate, 
+        endDate, 
+        imageUrl, 
+        category, 
+        isPublic, 
+        maxAttendees, 
+        tags 
+      } = await req.json();
 
     if (!userId || !title || !description || !startDate || !endDate || !category) {
       return NextResponse.json(
@@ -130,10 +135,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(transformedEvent, { status: 201 });
   } catch (error) {
-    console.error("Error creating event:", error);
+    logger.error("Error creating event:", error);
     return NextResponse.json(
       { error: "حدث خطأ في إنشاء المناسبة" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

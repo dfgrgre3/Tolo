@@ -2,11 +2,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
     if (!decodedToken) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -50,10 +53,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ events });
   } catch (error) {
-    console.error('Error fetching upcoming events:', error);
+    logger.error('Error fetching upcoming events:', error);
     return NextResponse.json(
       { error: 'Failed to fetch upcoming events' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -2,6 +2,8 @@
  * IP Blocking Service
  * Provides IP-based blocking for security purposes
  */
+import { logger } from '@/lib/logger';
+
 
 interface BlockedIP {
   ip: string;
@@ -84,7 +86,7 @@ export class IPBlockingService {
     // Mark as suspicious if threshold reached
     if (suspicious.count >= this.SUSPICIOUS_THRESHOLD) {
       // Log suspicious activity (could be extended to notify admins)
-      console.warn(`Suspicious activity detected from IP: ${ip} (${suspicious.count} attempts)`);
+      logger.warn(`Suspicious activity detected from IP: ${ip} (${suspicious.count} attempts)`);
     }
   }
 
@@ -104,7 +106,7 @@ export class IPBlockingService {
     // Clear suspicious tracking since IP is now blocked
     this.suspiciousIPs.delete(ip);
     
-    console.warn(`IP blocked: ${ip} until ${new Date(blockedUntil).toISOString()}. Reason: ${reason}`);
+    logger.warn(`IP blocked: ${ip} until ${new Date(blockedUntil).toISOString()}. Reason: ${reason}`);
   }
 
   /**

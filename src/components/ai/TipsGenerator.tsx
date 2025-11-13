@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Lightbulb, BookOpen, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw, Zap } from 'lucide-react';
 import { getGeminiInfo } from '@/lib/ai-config';
+import { logger } from '@/lib/logger';
 
 interface Tip {
   category: 'استراتيجيات الدراسة' | 'التغلب على التحديات' | 'المصادر التعليمية' | 'الخطة الدراسية' | 'تحسين الأداء';
@@ -61,7 +62,7 @@ export default function TipsGenerator({
       const data = await response.json();
       setTipsData(data);
     } catch (err) {
-      console.error('Error generating tips:', err);
+      logger.error('Error generating tips:', err);
       setError(err instanceof Error ? err.message : 'حدث خطأ غير معروف');
     } finally {
       setIsGenerating(false);

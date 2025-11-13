@@ -23,7 +23,9 @@
     "prisma:generate": "prisma generate",
     "create-test-account": "ts-node scripts/create-test-account.ts",
     "seed": "ts-node prisma/seed/main.ts",
-    "test:login": "tsx scripts/test-login-system.ts"
+    "test:login": "tsx scripts/test-login-system.ts",
+    "migrate:logs": "node scripts/replace-console-logs.js",
+    "migrate:logs:dry": "node scripts/replace-console-logs.js --dry-run"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",

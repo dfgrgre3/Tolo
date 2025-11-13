@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type Course = {
   id: string;
@@ -66,7 +67,7 @@ export default function CourseDetailPage() {
           router.push("/courses");
         }
       } catch (error) {
-        console.error("Error fetching course:", error);
+        logger.error("Error fetching course:", error);
         router.push("/courses");
       }
     };
@@ -82,7 +83,7 @@ export default function CourseDetailPage() {
           }
         }
       } catch (error) {
-        console.error("Error fetching lessons:", error);
+        logger.error("Error fetching lessons:", error);
       }
     };
 
@@ -114,7 +115,7 @@ export default function CourseDetailPage() {
         alert("حدث خطأ أثناء التسجيل في الدورة");
       }
     } catch (error) {
-      console.error("Error enrolling in course:", error);
+      logger.error("Error enrolling in course:", error);
       alert("حدث خطأ أثناء التسجيل في الدورة");
     }
   };
@@ -138,7 +139,7 @@ export default function CourseDetailPage() {
         alert("حدث خطأ أثناء إلغاء التسجيل من الدورة");
       }
     } catch (error) {
-      console.error("Error unenrolling from course:", error);
+      logger.error("Error unenrolling from course:", error);
       alert("حدث خطأ أثناء إلغاء التسجيل من الدورة");
     }
   };
@@ -169,7 +170,7 @@ export default function CourseDetailPage() {
         alert("حدث خطأ أثناء تحديث تقدم الدرس");
       }
     } catch (error) {
-      console.error("Error updating lesson progress:", error);
+      logger.error("Error updating lesson progress:", error);
       alert("حدث خطأ أثناء تحديث تقدم الدرس");
     }
   };

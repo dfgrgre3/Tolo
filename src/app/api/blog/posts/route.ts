@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all blog posts
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const categoryId = searchParams.get("categoryId");
 
     const where = categoryId ? { categoryId } : {};
@@ -43,18 +46,20 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(transformedPosts);
   } catch (error) {
-    console.error("Error fetching blog posts:", error);
+    logger.error("Error fetching blog posts:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المقالات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST create a new blog post
 export async function POST(request: NextRequest) {
-  try {
-    const { userId, title, excerpt, content, categoryId, coverImageUrl, tags } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { userId, title, excerpt, content, categoryId, coverImageUrl, tags } = await req.json();
 
     if (!userId || !title || !excerpt || !content || !categoryId) {
       return NextResponse.json(
@@ -114,10 +119,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newPost, { status: 201 });
   } catch (error) {
-    console.error("Error creating blog post:", error);
+    logger.error("Error creating blog post:", error);
     return NextResponse.json(
       { error: "حدث خطأ في إنشاء المقال" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

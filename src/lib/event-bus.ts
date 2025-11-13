@@ -1,4 +1,5 @@
 import { EventHandler } from '../types';
+import { logger } from '@/lib/logger';
 
 export class EventBus {
   private handlers = new Map<string, EventHandler[]>();
@@ -17,9 +18,9 @@ export class EventBus {
       handlers.map(handler => {
         try {
           return Promise.resolve(handler(payload))
-            .catch(err => console.error(`Error handling event ${event}:`, err));
+            .catch(err => logger.error(`Error handling event ${event}:`, err));
         } catch (err) {
-          console.error(`Sync error handling event ${event}:`, err);
+          logger.error(`Sync error handling event ${event}:`, err);
           return Promise.resolve();
         }
       })

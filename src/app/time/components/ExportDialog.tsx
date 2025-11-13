@@ -9,6 +9,7 @@ import { exportToCSV, exportToJSON, generatePDFReport, downloadFile, printPDFRep
 import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import type { Task, StudySession, Reminder } from '../types';
+import { logger } from '@/lib/logger';
 
 interface ExportDialogProps {
   tasks: Task[];
@@ -113,7 +114,7 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
           break;
       }
     } catch (error) {
-      console.error('Error exporting data:', error);
+      logger.error('Error exporting data:', error);
       alert('حدث خطأ أثناء التصدير. يرجى المحاولة مرة أخرى.');
     } finally {
       setIsExporting(false);

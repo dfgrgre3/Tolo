@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // POST create a new message
 export async function POST(request: NextRequest) {
-  try {
-    const { senderId, receiverId, content } = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const { senderId, receiverId, content } = await req.json();
 
     if (!senderId || !receiverId || !content) {
       return NextResponse.json(
@@ -47,10 +50,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(newMessage, { status: 201 });
   } catch (error) {
-    console.error("Error creating message:", error);
+    logger.error("Error creating message:", error);
     return NextResponse.json(
       { error: "حدث خطأ في إرسال الرسالة" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gamificationService } from '@/lib/gamification-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const userId = searchParams.get('userId');
 
     if (!userId) {
@@ -14,17 +17,19 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(progress);
 
   } catch (error) {
-    console.error('Error fetching user progress:', error);
+    logger.error('Error fetching user progress:', error);
     return NextResponse.json(
       { error: 'Failed to fetch user progress' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  return opsWrapper(request, async (req) => {
+    try {
+      const body = await req.json();
     const { userId, action, data } = body;
 
     if (!userId || !action) {
@@ -35,11 +40,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(updatedProgress);
 
   } catch (error) {
-    console.error('Error updating user progress:', error);
+    logger.error('Error updating user progress:', error);
     return NextResponse.json(
       { error: 'Failed to update user progress' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

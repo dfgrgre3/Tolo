@@ -5,14 +5,17 @@ import {
   regenerateRecoveryCodes,
 } from '@/lib/two-factor/recovery-codes';
 import { securityLogger } from '@/lib/security-logger';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/auth/two-factor/recovery-codes
  * الحصول على عدد رموز الاسترداد المتبقية
  */
 export async function GET(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('Authorization');
+  return opsWrapper(request, async (req) => {
+    try {
+      const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'غير مصرح' },
@@ -36,12 +39,13 @@ export async function GET(request: NextRequest) {
       count,
     });
   } catch (error) {
-    console.error('Recovery codes count error:', error);
+    logger.error('Recovery codes count error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء جلب عدد رموز الاسترداد' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 /**
@@ -49,8 +53,9 @@ export async function GET(request: NextRequest) {
  * إعادة توليد رموز الاسترداد
  */
 export async function POST(request: NextRequest) {
-  try {
-    const authHeader = request.headers.get('Authorization');
+  return opsWrapper(request, async (req) => {
+    try {
+      const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'غير مصرح' },
@@ -68,7 +73,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+      const body = await req.json();
     const { count = 10 } = body;
 
     // Regenerate recovery codes
@@ -77,9 +82,9 @@ export async function POST(request: NextRequest) {
       count
     );
 
-    // Log event
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Log event
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
     await Promise.all([
       authService.logSecurityEvent(verification.user.id, 'recovery_codes_regenerated', ip, {
         userAgent,
@@ -102,11 +107,12 @@ export async function POST(request: NextRequest) {
       warning: 'هذه الرموز لن تظهر مرة أخرى. احفظها الآن!',
     });
   } catch (error) {
-    console.error('Recovery codes regenerate error:', error);
+    logger.error('Recovery codes regenerate error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء توليد رموز الاسترداد' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

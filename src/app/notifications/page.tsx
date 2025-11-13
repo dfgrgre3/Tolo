@@ -9,6 +9,7 @@ import { Badge } from "@/shared/badge";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getSafeAuthToken } from '@/lib/safe-client-utils';
+import { logger } from '@/lib/logger';
 
 interface Notification {
   id: string;
@@ -63,7 +64,7 @@ export default function NotificationsPage() {
       setUnreadCount(data.unreadCount);
       setHasMore(data.hasMore);
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      logger.error('Error fetching notifications:', error);
     } finally {
       setIsLoading(false);
     }
@@ -107,7 +108,7 @@ export default function NotificationsPage() {
 
       setUnreadCount(data.unreadCount);
     } catch (error) {
-      console.error('Error marking notifications as read:', error);
+      logger.error('Error marking notifications as read:', error);
     }
   };
 

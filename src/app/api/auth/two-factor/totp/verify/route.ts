@@ -3,15 +3,18 @@ import { authService } from '@/lib/auth-service';
 import { verifyAndEnableTOTP } from '@/lib/two-factor/totp-service';
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/two-factor/totp/verify
  * التحقق من رمز TOTP وتمكين المصادقة الثنائية
  */
 export async function POST(request: NextRequest) {
-  try {
-    // التحقق من التوكن
-    const authHeader = request.headers.get('Authorization');
+  return opsWrapper(request, async (req) => {
+    try {
+      // التحقق من التوكن
+      const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         { error: 'غير مصرح' },
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const body = await request.json();
+      const body = await req.json();
     const { code } = body;
 
     if (!code || code.length !== 6) {
@@ -45,9 +48,9 @@ export async function POST(request: NextRequest) {
       code
     );
 
-    // Get IP and User Agent for logging
-    const ip = authService.getClientIP(request);
-    const userAgent = authService.getUserAgent(request);
+      // Get IP and User Agent for logging
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
 
     if (!isValid) {
       // Log failed verification attempt
@@ -93,11 +96,12 @@ export async function POST(request: NextRequest) {
       message: 'تم تفعيل المصادقة الثنائية بنجاح',
     });
   } catch (error) {
-    console.error('TOTP verify error:', error);
+    logger.error('TOTP verify error:', error);
     return NextResponse.json(
       { error: 'حدث خطأ أثناء التحقق من المصادقة الثنائية' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

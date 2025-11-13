@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ErrorInfo } from 'react';
-import React from 'react';
+import React from 'react';import { logger } from '@/lib/logger';
+
 // import { useToast } from '@/contexts/toast-context'; // Not needed - WebSocket is disabled
 
 type WebSocketContextType = {
@@ -108,14 +109,14 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
           try {
             const data = JSON.parse(event.data);
             if (data.type === 'notification') {
-              console.log('WebSocket notification:', data.message);
+              logger.info('WebSocket notification:', data.message);
             } else if (data.type === 'SCHEDULE_CONFLICT') {
-              console.log('WebSocket: Schedule conflict detected');
+              logger.info('WebSocket: Schedule conflict detected');
             }
           } catch (error) {
             // Only log if WebSocket is enabled
             if (WEBSOCKET_ENABLED) {
-              console.warn('Error parsing WebSocket message:', error);
+              logger.warn('Error parsing WebSocket message:', error);
             }
           }
         };

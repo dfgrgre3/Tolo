@@ -60,6 +60,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { format, isToday, isTomorrow, isPast, isThisWeek, differenceInMinutes, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { logger } from '@/lib/logger';
 
 interface Reminder {
   id: string;
@@ -325,7 +326,7 @@ export default function Reminders({
     // Play sound if enabled
     if (reminder.soundEnabled && 'Audio' in window) {
       // You would play a notification sound here
-      console.log('Playing notification sound');
+      logger.info('Playing notification sound');
     }
     
     // Show browser notification
@@ -352,7 +353,7 @@ export default function Reminders({
           }
         }, 10000);
       } catch (error) {
-        console.error('Error showing notification:', error);
+        logger.error('Error showing notification:', error);
       }
     }
   }, [notificationPermission]);
@@ -422,12 +423,12 @@ export default function Reminders({
     e.preventDefault();
     
     if (!formData.title?.trim()) {
-      console.error('Title is required');
+      logger.error('Title is required');
       return;
     }
 
     if (!formData.remindAt) {
-      console.error('Remind time is required');
+      logger.error('Remind time is required');
       return;
     }
 
@@ -464,7 +465,7 @@ export default function Reminders({
       if (!response.ok) {
         // Check if response is HTML (error page)
         if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-          console.error('Server returned HTML instead of JSON');
+          logger.error('Server returned HTML instead of JSON');
           throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
         }
         throw new Error(`Failed to save reminder: ${response.status} ${response.statusText}`);
@@ -472,7 +473,7 @@ export default function Reminders({
       
       // Check if response is HTML (error page)
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('Server returned HTML instead of JSON');
+        logger.error('Server returned HTML instead of JSON');
         throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
       }
 
@@ -481,7 +482,7 @@ export default function Reminders({
       try {
         savedReminder = JSON.parse(text);
       } catch (error) {
-        console.error('Error parsing JSON:', error);
+        logger.error('Error parsing JSON:', error);
         throw new Error('فشل في معالجة استجابة الخادم');
       }
       
@@ -495,7 +496,7 @@ export default function Reminders({
       
       handleDialogClose();
     } catch (error) {
-      console.error("Error saving reminder:", error);
+      logger.error("Error saving reminder:", error);
       // You can add toast notification here if needed
     }
   }, [formData, reminderToEdit, userId, onReminderUpdate, onReminderCreate, handleDialogClose]);
@@ -535,7 +536,7 @@ export default function Reminders({
       setReminders(prev => prev.filter(r => r.id !== reminderId));
       onReminderDelete?.(reminderId);
     } catch (error) {
-      console.error("Error deleting reminder:", error);
+      logger.error("Error deleting reminder:", error);
     }
   }, [onReminderDelete]);
 
@@ -556,7 +557,7 @@ export default function Reminders({
       if (!response.ok) {
         // Check if response is HTML (error page)
         if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-          console.error('Server returned HTML instead of JSON');
+          logger.error('Server returned HTML instead of JSON');
           throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
         }
         throw new Error('Failed to complete reminder');
@@ -564,7 +565,7 @@ export default function Reminders({
       
       // Check if response is HTML (error page)
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('Server returned HTML instead of JSON');
+        logger.error('Server returned HTML instead of JSON');
         throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
       }
 
@@ -573,7 +574,7 @@ export default function Reminders({
       try {
         updatedReminder = JSON.parse(text);
       } catch (error) {
-        console.error('Error parsing JSON:', error);
+        logger.error('Error parsing JSON:', error);
         throw new Error('فشل في معالجة استجابة الخادم');
       }
       
@@ -583,7 +584,7 @@ export default function Reminders({
       // Remove from active reminders
       setActiveReminders(prev => prev.filter(id => id !== reminderId));
     } catch (error) {
-      console.error("Error completing reminder:", error);
+      logger.error("Error completing reminder:", error);
     }
   };
 
@@ -606,7 +607,7 @@ export default function Reminders({
       if (!response.ok) {
         // Check if response is HTML (error page)
         if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-          console.error('Server returned HTML instead of JSON');
+          logger.error('Server returned HTML instead of JSON');
           throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
         }
         throw new Error('Failed to snooze reminder');
@@ -614,7 +615,7 @@ export default function Reminders({
       
       // Check if response is HTML (error page)
       if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
-        console.error('Server returned HTML instead of JSON');
+        logger.error('Server returned HTML instead of JSON');
         throw new Error('خطأ في الخادم: تم إرجاع HTML بدلاً من JSON');
       }
 
@@ -623,7 +624,7 @@ export default function Reminders({
       try {
         updatedReminder = JSON.parse(text);
       } catch (error) {
-        console.error('Error parsing JSON:', error);
+        logger.error('Error parsing JSON:', error);
         throw new Error('فشل في معالجة استجابة الخادم');
       }
       
@@ -633,7 +634,7 @@ export default function Reminders({
       // Remove from active reminders
       setActiveReminders(prev => prev.filter(id => id !== reminderId));
     } catch (error) {
-      console.error("Error snoozing reminder:", error);
+      logger.error("Error snoozing reminder:", error);
     }
   };
 

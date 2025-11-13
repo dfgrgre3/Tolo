@@ -1,5 +1,6 @@
 import { sendTemplatedNotification } from './notification-service';
 import { getSafeAuthToken } from './safe-client-utils';
+import { logger } from '@/lib/logger';
 
 // دالة لفحص المهام القريبة الموعد وإرسال إشعارات
 export async function checkUpcomingTasks() {
@@ -43,7 +44,7 @@ export async function checkUpcomingTasks() {
       }
     }
   } catch (error) {
-    console.error('Error checking upcoming tasks:', error);
+    logger.error('Error checking upcoming tasks:', error);
   }
 }
 
@@ -77,7 +78,7 @@ export async function checkUpcomingTests() {
       }
     }
   } catch (error) {
-    console.error('Error checking upcoming tests:', error);
+    logger.error('Error checking upcoming tests:', error);
   }
 }
 
@@ -115,7 +116,7 @@ export async function checkSchedule() {
       }
     }
   } catch (error) {
-    console.error('Error checking schedule:', error);
+    logger.error('Error checking schedule:', error);
   }
 }
 
@@ -158,7 +159,7 @@ export async function checkProgressMilestones() {
       }
     }
   } catch (error) {
-    console.error('Error checking progress milestones:', error);
+    logger.error('Error checking progress milestones:', error);
   }
 }
 
@@ -192,7 +193,7 @@ export async function checkUpcomingEvents() {
       }
     }
   } catch (error) {
-    console.error('Error checking upcoming events:', error);
+    logger.error('Error checking upcoming events:', error);
   }
 }
 

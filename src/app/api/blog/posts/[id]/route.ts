@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET a single blog post by ID
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
     const post = await prisma.blogPost.findUnique({
       where: { id },
@@ -46,12 +49,13 @@ export async function GET(
 
     return NextResponse.json(transformedPost);
   } catch (error) {
-    console.error("Error fetching blog post:", error);
+    logger.error("Error fetching blog post:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب المقال" },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // POST to increment view count
@@ -59,8 +63,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const { id } = await params;
+  return opsWrapper(request, async (req) => {
+    try {
+      const { id } = await params;
 
     await prisma.blogPost.update({
       where: { id },
@@ -73,10 +78,11 @@ export async function POST(
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error incrementing view count:", error);
+    logger.error("Error incrementing view count:", error);
     return NextResponse.json(
       { error: "حدث خطأ في تحديث عدد المشاهدات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -4,6 +4,7 @@
 import React, { useState } from 'react';
 import { Search, User, Star, ExternalLink, Youtube, Loader2, BookOpen, Zap } from 'lucide-react';
 import { getGeminiInfo } from '@/lib/ai-config';
+import { logger } from '@/lib/logger';
 
 interface Teacher {
   name: string;
@@ -70,7 +71,7 @@ export default function TeacherSearch({
             errorMessage = errorData.error;
           }
         } catch (e) {
-          console.error('Error parsing error response:', e);
+          logger.error('Error parsing error response:', e);
           // إذا فشل تحليل استجابة الخطأ، استخدم رسالة عامة بناءً على رمز الحالة
           if (response.status === 401) {
             errorMessage = 'مشكلة في المصادقة. يرجى تسجيل الدخول والمحاولة مرة أخرى.';
@@ -108,13 +109,13 @@ export default function TeacherSearch({
         
         setTeachers(data);
       } catch (parseError) {
-        console.error('Error parsing response data:', parseError);
+        logger.error('Error parsing response data:', parseError);
         setError('حدث خطأ في تحليل بيانات الاستجابة. يرجى المحاولة مرة أخرى.');
         setIsSearching(false);
         return;
       }
     } catch (err) {
-      console.error('Error searching teachers:', err);
+      logger.error('Error searching teachers:', err);
       let errorMessage = 'حدث خطأ غير معروف';
       
       if (err instanceof Error) {

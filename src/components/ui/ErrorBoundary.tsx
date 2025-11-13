@@ -2,6 +2,7 @@
 
 import React, { Component, ReactNode, useState, useEffect } from 'react';
 import { useClientEffect } from '@/hooks/use-client-effect';
+import { logger } from '@/lib/logger';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -61,9 +62,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     // Log hydration errors differently
     if (isHydrationError) {
-      console.warn('Hydration mismatch detected:', error.message);
+      logger.warn('Hydration mismatch detected:', error.message);
     } else {
-      console.error('Error boundary caught an error:', error, errorInfo);
+      logger.error('Error boundary caught an error:', error, errorInfo);
     }
   }
 

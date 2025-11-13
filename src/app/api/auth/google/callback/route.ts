@@ -4,19 +4,22 @@ import { oauthConfig, verifyState, generateToken } from '@/lib/oauth';
 import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { isConnectionError } from '@/app/api/auth/_helpers';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
+  return opsWrapper(request, async (req) => {
+    try {
+      const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
     const error = searchParams.get('error');
 
     // Handle errors from Google
     if (error) {
-      console.error('Google OAuth error:', error);
-      console.error('Request URL:', request.url);
-      console.error('OAuth Config:', {
+      logger.error('Google OAuth error:', error);
+      logger.error('Request URL:', request.url);
+      logger.error('OAuth Config:', {
         clientId: oauthConfig.google.clientId?.substring(0, 20) + '...',
         redirectUri: oauthConfig.google.redirectUri,
         isConfigured: oauthConfig.google.isConfigured(),
@@ -50,17 +53,17 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Verify state parameter to prevent CSRF attacks
-    const savedState = request.cookies.get('oauth_state')?.value;
+      // Verify state parameter to prevent CSRF attacks
+      const savedState = req.cookies.get('oauth_state')?.value;
     if (!state || !savedState || !verifyState(state, savedState)) {
-      console.error('Google OAuth: Invalid state parameter', { state, savedState });
+      logger.error('Google OAuth: Invalid state parameter', { state, savedState });
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_state&message=${encodeURIComponent('فشل التحقق من الأمان. يرجى المحاولة مرة أخرى.')}`
       );
     }
 
     if (!code) {
-      console.error('Google OAuth: No authorization code received');
+      logger.error('Google OAuth: No authorization code received');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=no_code&message=${encodeURIComponent('لم يتم استلام رمز التفويض من Google. يرجى المحاولة مرة أخرى.')}`
       );
@@ -68,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     // Validate OAuth configuration before making token request
     if (!oauthConfig.google.isConfigured()) {
-      console.error('Google OAuth: Missing credentials in callback');
+      logger.error('Google OAuth: Missing credentials in callback');
       const missingFields: string[] = [];
       if (!oauthConfig.google.clientId || oauthConfig.google.clientId.trim() === '') {
         missingFields.push('GOOGLE_CLIENT_ID');
@@ -105,7 +108,7 @@ export async function GET(request: NextRequest) {
 
     if (!tokenResponse.ok) {
       const errorText = await tokenResponse.text();
-      console.error('Google OAuth token exchange failed:', {
+      logger.error('Google OAuth token exchange failed:', {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
         error: errorText,
@@ -133,7 +136,7 @@ export async function GET(request: NextRequest) {
     const tokenData = await tokenResponse.json();
 
     if (tokenData.error) {
-      console.error('Google OAuth token error:', tokenData);
+      logger.error('Google OAuth token error:', tokenData);
       let errorMessage = 'فشل الحصول على رمز الوصول من Google.';
       if (tokenData.error_description) {
         errorMessage = tokenData.error_description;
@@ -145,7 +148,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (!tokenData.access_token) {
-      console.error('Google OAuth: No access token in response');
+      logger.error('Google OAuth: No access token in response');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=token_error&message=${encodeURIComponent('لم يتم استلام رمز الوصول من Google. يرجى المحاولة مرة أخرى.')}`
       );
@@ -159,7 +162,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!userResponse.ok) {
-      console.error('Google OAuth: Failed to fetch user info', {
+      logger.error('Google OAuth: Failed to fetch user info', {
         status: userResponse.status,
         statusText: userResponse.statusText,
       });
@@ -171,7 +174,7 @@ export async function GET(request: NextRequest) {
     const userData = await userResponse.json();
 
     if (!userData.email) {
-      console.error('Google OAuth: No email in user data');
+      logger.error('Google OAuth: No email in user data');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=user_info_error&message=${encodeURIComponent('لم يتم استلام البريد الإلكتروني من Google. يرجى التأكد من منح التطبيق صلاحية الوصول إلى البريد الإلكتروني.')}`
       );
@@ -204,7 +207,7 @@ export async function GET(request: NextRequest) {
           
           return true;
         } catch (error: any) {
-          console.warn(`Database connection check failed (attempt ${attempt}/${maxRetries}):`, {
+          logger.warn(`Database connection check failed (attempt ${attempt}/${maxRetries}):`, {
             error: error.message,
             code: error.code,
           });
@@ -220,7 +223,7 @@ export async function GET(request: NextRequest) {
             // Wait before retrying (exponential backoff)
             await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
           } else {
-            console.error('Failed to establish database connection after all retries');
+            logger.error('Failed to establish database connection after all retries');
             return false;
           }
         }
@@ -231,7 +234,7 @@ export async function GET(request: NextRequest) {
     // Verify database connection before proceeding
     const isConnected = await ensureDatabaseConnection(3);
     if (!isConnected) {
-      console.error('Database is not connected, cannot proceed with OAuth');
+      logger.error('Database is not connected, cannot proceed with OAuth');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل الاتصال بقاعدة البيانات. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.')}`
       );
@@ -286,7 +289,7 @@ export async function GET(request: NextRequest) {
             throw error;
           }
           
-          console.warn(`${operationName} failed (attempt ${attempt}/${maxRetries}), retrying...`, {
+          logger.warn(`${operationName} failed (attempt ${attempt}/${maxRetries}), retrying...`, {
             error: error.message,
             code: error.code,
           });
@@ -308,7 +311,7 @@ export async function GET(request: NextRequest) {
         });
       }, 5, 1000, 'find user by email');
     } catch (dbError: any) {
-      console.error('Database error while finding user:', {
+      logger.error('Database error while finding user:', {
         error: dbError.message,
         code: dbError.code,
         meta: dbError.meta,
@@ -371,13 +374,13 @@ export async function GET(request: NextRequest) {
           });
         }, 5, 1000, 'create new user');
         
-        console.log('Google OAuth: Created new user', {
+        logger.info('Google OAuth: Created new user', {
           id: user.id,
           email: user.email,
           name: user.name,
         });
       } catch (createError: any) {
-        console.error('Database error while creating user:', {
+        logger.error('Database error while creating user:', {
           error: createError.message,
           code: createError.code,
           meta: createError.meta,
@@ -386,7 +389,7 @@ export async function GET(request: NextRequest) {
         
         // If user already exists (race condition or duplicate email), try to find them again
         if (createError.code === 'P2002') {
-          console.log('User already exists (race condition), finding user...');
+          logger.info('User already exists (race condition), finding user...');
             try {
             user = await retryDatabaseOperation(async () => {
               return await prisma.user.findUnique({
@@ -395,18 +398,18 @@ export async function GET(request: NextRequest) {
             }, 5, 1000, 'find user after duplicate error');
             
             if (!user) {
-              console.error('User not found after duplicate error');
+              logger.error('User not found after duplicate error');
               return NextResponse.redirect(
                 `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل العثور على المستخدم. يرجى المحاولة مرة أخرى.')}`
               );
             }
             
-            console.log('Google OAuth: Found existing user after race condition', {
+            logger.info('Google OAuth: Found existing user after race condition', {
               id: user.id,
               email: user.email,
             });
           } catch (findError: any) {
-            console.error('Error finding user after duplicate:', {
+            logger.error('Error finding user after duplicate:', {
               error: findError.message,
               code: findError.code,
               meta: findError.meta,
@@ -449,7 +452,7 @@ export async function GET(request: NextRequest) {
     
     // Ensure user exists before proceeding
     if (!user) {
-      console.error('Google OAuth: User is null after all attempts');
+      logger.error('Google OAuth: User is null after all attempts');
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل الحصول على معلومات المستخدم. يرجى المحاولة مرة أخرى.')}`
       );
@@ -458,8 +461,8 @@ export async function GET(request: NextRequest) {
     // Generate JWT token
     const token = await generateToken(user.id, user.email, user.name || undefined);
 
-    // Get redirect path from cookie (set during OAuth initiation)
-    const redirectPath = request.cookies.get('oauth_redirect')?.value || '/';
+      // Get redirect path from cookie (set during OAuth initiation)
+      const redirectPath = req.cookies.get('oauth_redirect')?.value || '/';
     
     // Validate redirect path (security measure)
     const safeRedirectPath = redirectPath.startsWith('/') && !redirectPath.startsWith('//') 
@@ -509,7 +512,7 @@ export async function GET(request: NextRequest) {
       errorCode: error && typeof error === 'object' && 'code' in error ? (error as any).code : undefined,
     };
     
-    console.error('Error in Google OAuth callback:', errorDetails);
+    logger.error('Error in Google OAuth callback:', errorDetails);
     
     let errorMessage = 'حدث خطأ غير متوقع أثناء تسجيل الدخول بجوجل. يرجى المحاولة مرة أخرى.';
     let errorCode = 'server_error';
@@ -591,6 +594,7 @@ export async function GET(request: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const redirectUrl = `${baseUrl}/login?error=${encodeURIComponent(errorCode)}&message=${encodeURIComponent(errorMessage)}`;
     
-    return NextResponse.redirect(redirectUrl);
-  }
+      return NextResponse.redirect(redirectUrl);
+    }
+  });
 }

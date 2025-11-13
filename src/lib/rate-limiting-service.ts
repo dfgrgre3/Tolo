@@ -1,5 +1,6 @@
 import { RedisClientType } from 'redis';
 import { redis } from './redis';
+import { logger } from '@/lib/logger';
 
 export interface RateLimitConfig {
   windowMs: number;        // Time window in milliseconds
@@ -80,7 +81,7 @@ export class RateLimitingService {
         remainingTime: undefined
       };
     } catch (error) {
-      console.error('Rate limiting check error:', error);
+      logger.error('Rate limiting check error:', error);
       // Fail open - don't block requests if rate limiting fails
       return {
         allowed: true,
@@ -120,7 +121,7 @@ export class RateLimitingService {
         await this.redisClient.setEx(lockoutKey, Math.ceil(config.lockoutMs / 1000), lockoutUntil.toString());
       }
     } catch (error) {
-      console.error('Failed to record failed attempt:', error);
+      logger.error('Failed to record failed attempt:', error);
     }
   }
 
@@ -144,7 +145,7 @@ export class RateLimitingService {
     try {
       await this.redisClient.del(key, lockoutKey);
     } catch (error) {
-      console.error('Failed to reset rate limit:', error);
+      logger.error('Failed to reset rate limit:', error);
     }
   }
 

@@ -1,23 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const verification = await authService.verifyTokenFromRequest(request);
-    
-    if (!verification.isValid || !verification.user) {
-      return NextResponse.json(
-        { error: 'غير مصرح' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const verification = await authService.verifyTokenFromRequest(req);
+      
+      if (!verification.isValid || !verification.user) {
+        return NextResponse.json(
+          { error: 'غير مصرح' },
+          { status: 401 }
+        );
+      }
 
-    const userId = verification.user.id;
+      const userId = verification.user.id;
 
-    // Get query parameters
-    const searchParams = request.nextUrl.searchParams;
+      // Get query parameters
+      const searchParams = req.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '50');
     const type = searchParams.get('type');
     const days = parseInt(searchParams.get('days') || '30');
@@ -70,11 +73,12 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Failed to fetch security events:', error);
+    logger.error('Failed to fetch security events:', error);
     return NextResponse.json(
       { error: 'فشل جلب الأحداث الأمنية' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 

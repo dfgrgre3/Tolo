@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type Course = {
   id: string;
@@ -105,7 +106,7 @@ export default function CoursesPage() {
         alert("حدث خطأ أثناء التسجيل في الدورة");
       }
     } catch (error) {
-      console.error("Error enrolling in course:", error);
+      logger.error("Error enrolling in course:", error);
       alert("حدث خطأ أثناء التسجيل في الدورة");
     }
   };
@@ -129,7 +130,7 @@ export default function CoursesPage() {
         alert("حدث خطأ أثناء إلغاء التسجيل من الدورة");
       }
     } catch (error) {
-      console.error("Error unenrolling from course:", error);
+      logger.error("Error unenrolling from course:", error);
       alert("حدث خطأ أثناء إلغاء التسجيل من الدورة");
     }
   };

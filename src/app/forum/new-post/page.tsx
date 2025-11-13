@@ -6,6 +6,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type ForumCategory = {
   id: string;
@@ -64,7 +65,7 @@ export default function NewPostPage() {
         alert("حدث خطأ أثناء إنشاء الموضوع");
       }
     } catch (error) {
-      console.error("Error creating post:", error);
+      logger.error("Error creating post:", error);
       alert("حدث خطأ أثناء إنشاء الموضوع");
     } finally {
       setIsSubmitting(false);

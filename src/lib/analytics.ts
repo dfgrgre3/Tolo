@@ -1,5 +1,6 @@
 import { EventBus } from './event-bus';
 import { WebhookService } from './webhooks';
+import { logger } from '@/lib/logger';
 
 type AnalyticsEvent = {
   type: string;
@@ -29,7 +30,7 @@ export class AnalyticsService {
 
   private async processEvent(event: AnalyticsEvent) {
     // Process and store analytics data
-    console.log('Processing analytics event:', event);
+    logger.info('Processing analytics event:', event);
   }
 
   async getRealTimeStats() {

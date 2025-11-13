@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
+import { logger } from '@/lib/logger';
 
 type Event = {
   id: string;
@@ -44,7 +45,7 @@ export default function EventsPage() {
           setEvents(data);
         }
       } catch (error) {
-        console.error("Error fetching events:", error);
+        logger.error("Error fetching events:", error);
       }
     };
 

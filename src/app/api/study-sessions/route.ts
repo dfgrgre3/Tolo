@@ -6,19 +6,22 @@ import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';
 import { gamificationService } from '@/lib/gamification-service';
 import { firestoreService } from '@/lib/firestore-service';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const { searchParams } = new URL(request.url);
+      const { searchParams } = new URL(req.url);
     const limit = searchParams.get('limit') || '10';
     const offset = searchParams.get('offset') || '0';
 
@@ -47,26 +50,28 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(sessions);
   } catch (error) {
-    console.error('Error fetching study sessions:', error);
+    logger.error('Error fetching study sessions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch study sessions' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const body = await request.json();
+      const body = await req.json();
     
     const session = await prisma.studySession.create({
       data: {
@@ -116,7 +121,7 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (gamificationError) {
-      console.error('Error updating gamification:', gamificationError);
+      logger.error('Error updating gamification:', gamificationError);
       // Don't fail the request if gamification fails
     }
 
@@ -134,10 +139,11 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(session);
   } catch (error) {
-    console.error('Error creating study session:', error);
+    logger.error('Error creating study session:', error);
     return NextResponse.json(
       { error: 'Failed to create study session' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

@@ -2,12 +2,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-unified';
 import { prisma } from '@/lib/prisma';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // جلب إعدادات الإشعارات
 export async function GET(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
     if (!decodedToken) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -38,27 +41,29 @@ export async function GET(request: NextRequest) {
       phone: user.phone
     });
   } catch (error) {
-    console.error('Error fetching notification settings:', error);
+    logger.error('Error fetching notification settings:', error);
     return NextResponse.json(
       { error: 'Failed to fetch notification settings' },
       { status: 500 }
     );
-  }
+    }
+  });
 }
 
 // تحديث إعدادات الإشعارات
 export async function PUT(request: NextRequest) {
-  try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // Verify authentication
+      const decodedToken = verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    const { emailNotifications, smsNotifications, phone } = await request.json();
+      const { emailNotifications, smsNotifications, phone } = await req.json();
 
     // Update user notification settings
     const updatedUser = await prisma.user.update({
@@ -83,10 +88,11 @@ export async function PUT(request: NextRequest) {
       phone: updatedUser.phone
     });
   } catch (error) {
-    console.error('Error updating notification settings:', error);
+    logger.error('Error updating notification settings:', error);
     return NextResponse.json(
       { error: 'Failed to update notification settings' },
       { status: 500 }
     );
-  }
+    }
+  });
 }

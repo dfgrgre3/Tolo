@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { logger } from '@/lib/logger';
 
 // GET all library categories
-export async function GET() {
-  try {
+export async function GET(request: NextRequest) {
+  return opsWrapper(request, async () => {
+    try {
     // Define categories for the library
     const categories = [
       { id: "MATH", name: "الرياضيات", icon: "🔢" },
@@ -20,10 +23,11 @@ export async function GET() {
 
     return NextResponse.json(categories);
   } catch (error) {
-    console.error("Error fetching library categories:", error);
+    logger.error("Error fetching library categories:", error);
     return NextResponse.json(
       { error: "حدث خطأ في جلب التصنيفات" },
       { status: 500 }
     );
-  }
+    }
+  });
 }

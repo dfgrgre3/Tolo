@@ -3,9 +3,12 @@ import { prisma } from "@/lib/prisma";
 import { withCache } from "@/lib/cache-middleware";
 import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 export async function GET(req: NextRequest) {
-  return withCache(req, handleGetRequest, 'subjects', 600); // Cache for 10 minutes
+  return opsWrapper(req, async (request) => {
+    return withCache(request, handleGetRequest, 'subjects', 600); // Cache for 10 minutes
+  });
 }
 
 async function handleGetRequest(req: NextRequest) {
@@ -41,73 +44,77 @@ async function handleGetRequest(req: NextRequest) {
 
 // POST - Enroll in a new subject
 export async function POST(req: NextRequest) {
-  try {
-    const { userId, subjectId } = await req.json();
+  return opsWrapper(req, async (request) => {
+    try {
+      const { userId, subjectId } = await request.json();
     
-    if (!userId || !subjectId) {
-      return NextResponse.json({ error: "userId and subjectId required" }, { status: 400 });
-    }
-    
-    // Check if already enrolled
-    const existingEnrollment = await prisma.subjectEnrollment.findUnique({
-      where: {
-        userId_subjectId: {
+      if (!userId || !subjectId) {
+        return NextResponse.json({ error: "userId and subjectId required" }, { status: 400 });
+      }
+      
+      // Check if already enrolled
+      const existingEnrollment = await prisma.subjectEnrollment.findUnique({
+        where: {
+          userId_subjectId: {
+            userId,
+            subjectId
+          }
+        }
+      });
+      
+      if (existingEnrollment) {
+        return NextResponse.json({ error: "Already enrolled in this subject" }, { status: 400 });
+      }
+      
+      // Create enrollment
+      const enrollment = await prisma.subjectEnrollment.create({
+        data: {
           userId,
           subjectId
+        },
+        include: {
+          subject: true
         }
-      }
-    });
-    
-    if (existingEnrollment) {
-      return NextResponse.json({ error: "Already enrolled in this subject" }, { status: 400 });
+      });
+      
+      // Invalidate user's subject cache
+      await invalidateUserCache(userId);
+      
+      return NextResponse.json(enrollment, { status: 201 });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
     }
-    
-    // Create enrollment
-    const enrollment = await prisma.subjectEnrollment.create({
-      data: {
-        userId,
-        subjectId
-      },
-      include: {
-        subject: true
-      }
-    });
-    
-    // Invalidate user's subject cache
-    await invalidateUserCache(userId);
-    
-    return NextResponse.json(enrollment, { status: 201 });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
-  }
+  });
 }
 
 // DELETE - Unenroll from a subject
 export async function DELETE(req: NextRequest) {
-  try {
-    const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-    const subjectId = searchParams.get("subjectId");
-    
-    if (!userId || !subjectId) {
-      return NextResponse.json({ error: "userId and subjectId required" }, { status: 400 });
-    }
-    
-    // Delete enrollment
-    await prisma.subjectEnrollment.delete({
-      where: {
-        userId_subjectId: {
-          userId,
-          subjectId
-        }
+  return opsWrapper(req, async (request) => {
+    try {
+      const { searchParams } = new URL(request.url);
+      const userId = searchParams.get("userId");
+      const subjectId = searchParams.get("subjectId");
+      
+      if (!userId || !subjectId) {
+        return NextResponse.json({ error: "userId and subjectId required" }, { status: 400 });
       }
-    });
-    
-    // Invalidate user's subject cache
-    await invalidateUserCache(userId);
-    
-    return NextResponse.json({ message: "Unenrolled successfully" });
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
-  }
+      
+      // Delete enrollment
+      await prisma.subjectEnrollment.delete({
+        where: {
+          userId_subjectId: {
+            userId,
+            subjectId
+          }
+        }
+      });
+      
+      // Invalidate user's subject cache
+      await invalidateUserCache(userId);
+      
+      return NextResponse.json({ message: "Unenrolled successfully" });
+    } catch (e: any) {
+      return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+    }
+  });
 }
