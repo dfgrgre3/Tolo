@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 const prisma = new PrismaClient()
 
@@ -44,7 +45,7 @@ export class DataPartitioningService {
   static async createMonthlyPartitions(tableName: string, startDate: Date, endDate: Date): Promise<void> {
     const months: Date[] = []
 
-    let currentDate = new Date(startDate)
+    const currentDate = new Date(startDate)
     currentDate.setDate(1) // Start of month
 
     while (currentDate <= endDate) {

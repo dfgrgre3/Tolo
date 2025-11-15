@@ -4,6 +4,7 @@ import { webAuthnService } from '@/lib/security/webauthn';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { getSecureCookieOptions } from '../../_helpers';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -246,20 +247,13 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    // Security: Use centralized secure cookie settings
     response.cookies.set('access_token', accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60,
-      path: '/',
+      ...getSecureCookieOptions({ maxAge: 60 * 60 }),
     });
 
     response.cookies.set('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 30 * 24 * 60 * 60,
-      path: '/',
+      ...getSecureCookieOptions({ maxAge: 30 * 24 * 60 * 60 }),
     });
 
     return response;

@@ -10,7 +10,7 @@ import TeacherSearch from '@/components/ai/TeacherSearch';
 import TipsGenerator from '@/components/ai/TipsGenerator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageContainer } from "@/components/ui/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function AILearningPage() {
   const [activeTab, setActiveTab] = useState('assistant');

@@ -2,9 +2,9 @@
 
 import { useState, useEffect, memo } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { getSafeUserId } from "@/lib/safe-client-utils";
 import { 
@@ -21,7 +21,8 @@ import {
   Target
 } from "lucide-react";
 import Link from "next/link";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface LeaderboardEntry {
   rank: number;

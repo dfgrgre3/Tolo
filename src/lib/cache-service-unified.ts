@@ -1,7 +1,13 @@
+// This file must only run on the server - prevent browser bundling
+if (typeof window !== 'undefined') {
+  throw new Error('cache-service-unified.ts can only be used on the server');
+}
+
 import Redis from 'ioredis';
 import { perfConfig, PerfMonitor } from './perf-config';
 import { recordCacheMetric } from './db-monitor';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // Create Redis client with enhanced configuration for better performance and reliability
 const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {

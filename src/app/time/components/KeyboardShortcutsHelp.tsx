@@ -1,9 +1,9 @@
 'use client';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { HelpCircle, Keyboard } from 'lucide-react';
-import { Badge } from "@/shared/badge";
+import { Badge } from "@/components/ui/badge";
 
 export default function KeyboardShortcutsHelp() {
   const shortcuts = [

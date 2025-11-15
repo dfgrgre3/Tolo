@@ -1,8 +1,8 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Progress } from "@/shared/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { BarChart3, TrendingUp, TrendingDown, Clock, Target, Calendar, Zap } from 'lucide-react';
 import type { Task, StudySession, Reminder } from '../types';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, subDays, subWeeks } from 'date-fns';

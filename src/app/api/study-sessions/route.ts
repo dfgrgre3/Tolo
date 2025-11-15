@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-unified';
+import { verifyToken } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { getCachedOrFetch, invalidateCachePattern } from '@/lib/db-service';
 import { CacheService } from '@/lib/cache-service-unified';

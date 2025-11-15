@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Progress } from "@/shared/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { 
   BarChart3, 
   TrendingUp, 
@@ -12,7 +12,7 @@ import {
   Activity,
   Download
 } from 'lucide-react';
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import type { Task, StudySession, Reminder, TimeStats } from '../types';
 
 interface AdvancedReportsProps {

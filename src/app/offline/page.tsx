@@ -2,7 +2,7 @@
 
 import React from "react";
 import { WifiOff, RefreshCw, Home } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -11,6 +11,11 @@ export default function OfflinePage() {
 	const [isOnline, setIsOnline] = React.useState(false);
 
 	React.useEffect(() => {
+		// Ensure we're on the client side
+		if (typeof window === "undefined" || typeof navigator === "undefined") {
+			return;
+		}
+
 		// Check if online
 		setIsOnline(navigator.onLine);
 
@@ -33,6 +38,8 @@ export default function OfflinePage() {
 	}, []);
 
 	const handleRetry = () => {
+		if (typeof window === "undefined") return;
+		
 		if (isOnline) {
 			router.refresh();
 			router.push("/");

@@ -1,16 +1,17 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/shared/badge";
+import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Mail, Link as LinkIcon, Unlink, CheckCircle2, Globe, Smartphone, Building2, Code } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface LoginMethodsProps {
   userId: string;
@@ -41,11 +42,9 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
 
   const loadConnectedAccounts = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/oauth/status', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -59,11 +58,9 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
 
   const loadMagicLinkSettings = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/magic-link/settings', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -93,13 +90,13 @@ export default function LoginMethods({ userId }: LoginMethodsProps) {
     }
 
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch(`/api/auth/oauth/disconnect`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ provider }),
       });
 

@@ -2,15 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { AuthGuard } from "@/components/auth/AuthGuard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/card';
-import { Button } from '@/shared/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
-import { getSafeAuthToken } from '@/lib/safe-client-utils';
-import { logger } from '@/lib/logger';
+// Token is in httpOnly cookie - no need to import getSafeAuthToken
+
+import { logger } from '@/lib/logger';
 
 export default function NotificationSettings() {
   const [emailNotifications, setEmailNotifications] = useState(true);
@@ -24,13 +25,12 @@ export default function NotificationSettings() {
     const fetchNotificationSettings = async () => {
       setIsLoading(true);
       try {
-        const token = getSafeAuthToken();
-        if (!token) return;
-
+        // Token is in httpOnly cookie - no need to send Authorization header
         const response = await fetch('/api/user/notification-settings', {
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
+          credentials: 'include',
         });
 
         if (!response.ok) throw new Error('Failed to fetch notification settings');
@@ -54,15 +54,13 @@ export default function NotificationSettings() {
   const saveNotificationSettings = async () => {
     setIsSaving(true);
     try {
-      const token = getSafeAuthToken();
-      if (!token) return;
-
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/user/notification-settings', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           emailNotifications,
           smsNotifications,
@@ -84,15 +82,13 @@ export default function NotificationSettings() {
   // اختبار إشعار
   const testNotification = async (channel: 'email' | 'sms') => {
     try {
-      const token = getSafeAuthToken();
-      if (!token) return;
-
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/notifications/send', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           title: 'رسالة اختبار',
           message: 'هذه رسالة اختبار للتحقق من إعدادات الإشعارات',

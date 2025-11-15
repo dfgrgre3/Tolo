@@ -4,15 +4,16 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Badge } from '@/shared/badge';
+import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Loader2, AlertCircle, Fingerprint, Smartphone, Trash2, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEnhancedAuth } from '@/lib/auth-hook-enhanced';
-import { getSafeAuthToken } from '@/lib/safe-client-utils';
-import { logger } from '@/lib/logger';
+// Token is in httpOnly cookie - no need to import getSafeAuthToken
+
+import { logger } from '@/lib/logger';
 
 interface BiometricCredential {
   id: string;
@@ -34,11 +35,9 @@ export default function BiometricManagement() {
   // Fetch biometric credentials
   const fetchCredentials = async () => {
     try {
-      const token = getSafeAuthToken();
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/biometric/credentials', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -66,11 +65,10 @@ export default function BiometricManagement() {
     try {
       // In a real implementation, this would use WebAuthn API
       // For now, we'll simulate it
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/biometric/setup', {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${getSafeAuthToken()}`
-        }
+        credentials: 'include',
       });
 
       if (!response.ok) {
@@ -98,12 +96,13 @@ export default function BiometricManagement() {
   const handleRemoveCredential = async (credentialId: string) => {
     setIsLoading(true);
     try {
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/biometric/credentials', {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${getSafeAuthToken()}`
         },
+        credentials: 'include',
         body: JSON.stringify({ credentialId })
       });
 
@@ -125,11 +124,10 @@ export default function BiometricManagement() {
   const handleDisableBiometric = async () => {
     setIsLoading(true);
     try {
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/biometric/setup', {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${getSafeAuthToken()}`
-        }
+        credentials: 'include',
       });
 
       if (!response.ok) {

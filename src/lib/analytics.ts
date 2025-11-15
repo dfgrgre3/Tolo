@@ -1,12 +1,13 @@
 import { EventBus } from './event-bus';
 import { WebhookService } from './webhooks';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 type AnalyticsEvent = {
   type: string;
   userId?: string;
   timestamp: Date;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 };
 
 export class AnalyticsService {

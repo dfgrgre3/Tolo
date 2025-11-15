@@ -10,11 +10,10 @@
  * - تسجيل أحداث المصادقة
  */
 
-import type { Logger as WinstonLogger } from 'winston';
-
 // Types
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogContext = Record<string, any>;
+export type LoggableContext = LogContext | unknown;
 
 export interface LogEntry {
   timestamp: string;
@@ -47,21 +46,59 @@ export interface LoggerConfig {
 // Check if we're on the server
 const isServer = typeof window === 'undefined';
 
+// Lazy load winston only on server-side
+let winstonLoggerInstance: any = null;
+
+async function getWinstonLogger() {
+  if (!isServer) return null;
+  
+  if (!winstonLoggerInstance) {
+    try {
+      const winstonModule = await import('winston');
+      // Winston can be imported as default or namespace
+      const winston = (winstonModule as any).default || winstonModule;
+      
+      winstonLoggerInstance = winston.createLogger({
+        level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
+        format: winston.format.combine(
+          winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+          winston.format.errors({ stack: true }),
+          winston.format.colorize(),
+          winston.format.printf(({ timestamp, level, message, ...meta }: any) => {
+            const metaString = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
+            return `${timestamp} [${level}]: ${message}${metaString ? '\n' + metaString : ''}`;
+          })
+        ),
+        transports: [
+          new winston.transports.Console({
+            silent: !isServer,
+          }),
+        ],
+      });
+    } catch (err) {
+      // If winston fails to load, return null
+      return null;
+    }
+  }
+  
+  return winstonLoggerInstance;
+}
+
 // Default configuration
 const defaultConfig: LoggerConfig = {
   level: (process.env.LOG_LEVEL as LogLevel) || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
   enableConsole: true,
   enableELK: process.env.ELASTICSEARCH_ENABLED !== 'false' && isServer,
   enableErrorLogger: true,
-  enableAuthLogger: true,
-  enableSecurityLogger: true,
+  enableAuthLogger: isServer, // Only enable on server
+  enableSecurityLogger: isServer, // Only enable on server - prevents client bundling
   serviceName: 'thanawy',
   environment: process.env.NODE_ENV || 'development',
 };
 
 class UnifiedLogger {
   private config: LoggerConfig;
-  private elkLogger: WinstonLogger | null = null;
+  private elkLogger: any = null;
   private errorLogger: any = null;
   private authLogger: any = null;
   private securityLogger: any = null;
@@ -105,10 +142,13 @@ class UnifiedLogger {
       }
 
       // Initialize Auth Logger (server-side only)
+      // Use loader to prevent client bundling of server-only code
       if (this.config.enableAuthLogger && isServer) {
         try {
-          const { authLogger } = await import('./auth-logger');
-          this.authLogger = authLogger;
+          // Use dynamic import with string literal to prevent static analysis
+          const loaderPath = './' + 'auth-logger-loader';
+          const { loadAuthLogger } = await import(loaderPath);
+          this.authLogger = await loadAuthLogger();
         } catch (error) {
           // Auth logger initialization failed, continue without it
           this.config.enableAuthLogger = false;
@@ -116,12 +156,16 @@ class UnifiedLogger {
       }
 
       // Initialize Security Logger (server-side only)
-      if (this.config.enableSecurityLogger && isServer) {
+      // Use a server-only loader to prevent client bundling
+      if (this.config.enableSecurityLogger && isServer && typeof window === 'undefined') {
         try {
-          const { securityLogger } = await import('@/lib/security-logger');
-          this.securityLogger = securityLogger;
+          // Dynamically construct the loader path to prevent static analysis
+          const loaderPath = './' + 'security-logger-loader';
+          const { loadSecurityLogger } = await import(loaderPath);
+          this.securityLogger = await loadSecurityLogger();
         } catch (error) {
           // Security logger initialization failed, continue without it
+          // This can happen if the module doesn't exist or has server-only dependencies
           this.config.enableSecurityLogger = false;
         }
       }
@@ -195,28 +239,72 @@ class UnifiedLogger {
   /**
    * Log to console
    */
-  private logToConsole(level: LogLevel, message: string, context?: LogContext, error?: Error | unknown): void {
+  private async logToConsole(level: LogLevel, message: string, context?: LogContext, error?: Error | unknown): Promise<void> {
     if (!this.config.enableConsole) return;
 
     const formattedMessage = this.formatMessage(level, message, context);
     const contextStr = context ? ` ${JSON.stringify(context)}` : '';
     const errorStr = error instanceof Error ? `\nError: ${error.message}${error.stack ? `\n${error.stack}` : ''}` : error ? `\nError: ${String(error)}` : '';
 
-    switch (level) {
-      case 'debug':
-        if (process.env.NODE_ENV === 'development') {
-          console.debug(formattedMessage + contextStr + errorStr);
+    const fullMessage = formattedMessage + contextStr + errorStr;
+
+    if (isServer) {
+      // Use winston on server-side
+      try {
+        const winstonLogger = await getWinstonLogger();
+        if (winstonLogger) {
+          switch (level) {
+            case 'debug':
+              if (process.env.NODE_ENV === 'development') {
+                winstonLogger.debug(fullMessage);
+              }
+              break;
+            case 'info':
+              winstonLogger.info(fullMessage);
+              break;
+            case 'warn':
+              winstonLogger.warn(fullMessage);
+              break;
+            case 'error':
+              winstonLogger.error(fullMessage);
+              break;
+          }
         }
-        break;
-      case 'info':
-        console.info(formattedMessage + contextStr + errorStr);
-        break;
-      case 'warn':
-        console.warn(formattedMessage + contextStr + errorStr);
-        break;
-      case 'error':
-        console.error(formattedMessage + contextStr + errorStr);
-        break;
+      } catch (err) {
+        // Fallback to console if winston fails
+        switch (level) {
+          case 'debug':
+            if (process.env.NODE_ENV === 'development') console.debug(fullMessage);
+            break;
+          case 'info':
+            console.info(fullMessage);
+            break;
+          case 'warn':
+            console.warn(fullMessage);
+            break;
+          case 'error':
+            console.error(fullMessage);
+            break;
+        }
+      }
+    } else {
+      // Use console on client-side
+      switch (level) {
+        case 'debug':
+          if (process.env.NODE_ENV === 'development') {
+            console.debug(fullMessage);
+          }
+          break;
+        case 'info':
+          console.info(fullMessage);
+          break;
+        case 'warn':
+          console.warn(fullMessage);
+          break;
+        case 'error':
+          console.error(fullMessage);
+          break;
+      }
     }
   }
 
@@ -344,44 +432,74 @@ class UnifiedLogger {
   /**
    * Main log method
    */
+  private normalizeContext(context?: LoggableContext): LogContext | undefined {
+    if (context === undefined || context === null) {
+      return undefined;
+    }
+
+    if (context instanceof Error) {
+      return {
+        error: {
+          message: context.message,
+          stack: context.stack,
+          name: context.name,
+        },
+      };
+    }
+
+    if (typeof context === 'object') {
+      if (Array.isArray(context)) {
+        return { data: context };
+      }
+
+      return context as LogContext;
+    }
+
+    return { value: context };
+  }
+
   private async log(
     level: LogLevel,
     message: string,
     error?: Error | unknown,
-    context?: LogContext
+    context?: LoggableContext
   ): Promise<void> {
     if (!this.shouldLog(level)) return;
 
-    const logEntry = this.createLogEntry(level, message, error, context);
+    const normalizedContext = this.normalizeContext(context);
 
-    // Log to console
-    this.logToConsole(level, message, context, error);
+    const logEntry = this.createLogEntry(level, message, error, normalizedContext);
+
+    // Log to console (async now)
+    this.logToConsole(level, message, normalizedContext, error).catch(() => {
+      // Silently handle async errors
+    });
 
     // Log to ELK (server-side, async)
-    this.logToELK(level, message, context, error).catch(() => {
+    this.logToELK(level, message, normalizedContext, error).catch(() => {
       // Silently handle async errors
     });
 
     // Log to Error Logger (client-side, async)
-    this.logToErrorLogger(level, message, error, context).catch(() => {
+    this.logToErrorLogger(level, message, error, normalizedContext).catch(() => {
       // Silently handle async errors
     });
 
     // Log to Auth Logger (server-side, async)
     if (isServer) {
-      await this.logToAuthLogger(level, message, context, error);
+      await this.logToAuthLogger(level, message, normalizedContext, error);
     }
 
     // Log to Security Logger (server-side, async)
     if (isServer) {
-      await this.logToSecurityLogger(level, message, context);
+      await this.logToSecurityLogger(level, message, normalizedContext);
     }
   }
 
   /**
    * Debug log
    */
-  debug(message: string, context?: LogContext): void {
+  debug(message: string, context?: LoggableContext): void {
     this.log('debug', message, undefined, context).catch(() => {
       // Silently handle async errors
     });
@@ -390,7 +508,7 @@ class UnifiedLogger {
   /**
    * Info log
    */
-  info(message: string, context?: LogContext): void {
+  info(message: string, context?: LoggableContext): void {
     this.log('info', message, undefined, context).catch(() => {
       // Silently handle async errors
     });
@@ -399,7 +517,7 @@ class UnifiedLogger {
   /**
    * Warn log
    */
-  warn(message: string, context?: LogContext): void {
+  warn(message: string, context?: LoggableContext): void {
     this.log('warn', message, undefined, context).catch(() => {
       // Silently handle async errors
     });
@@ -408,7 +526,7 @@ class UnifiedLogger {
   /**
    * Error log
    */
-  error(message: string, error?: Error | unknown, context?: LogContext): void {
+  error(message: string, error?: Error | unknown, context?: LoggableContext): void {
     this.log('error', message, error, context).catch(() => {
       // Silently handle async errors
     });

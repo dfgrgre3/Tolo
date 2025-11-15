@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { HelpCircle, X, BookOpen, Video, MessageCircle, ExternalLink } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,

@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from "@/shared/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   PlusCircle, 
   Clock, 

@@ -289,7 +289,7 @@ export class GamificationService {
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new Error('User not found');
 
-    let updates: any = {};
+    const updates: Record<string, any> = {};
     let xpGained = 0;
     const newAchievements: string[] = [];
 
@@ -569,7 +569,7 @@ export class GamificationService {
 
     // Calculate consecutive days from today backwards
     let streak = 0;
-    let currentDate = new Date();
+    const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
 
     while (true) {

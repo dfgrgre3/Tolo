@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/ui/PageContainer";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { 
 	BarChart3, 
@@ -32,7 +32,8 @@ import PredictionsSection from "./components/PredictionsSection";
 import SubjectDistribution from "./components/SubjectDistribution";
 import TimeTrends from "./components/TimeTrends";
 import StudyPatterns from "./components/StudyPatterns";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 type WeeklyData = { 
 	bySubject: Record<string, number>; 

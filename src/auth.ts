@@ -3,23 +3,22 @@
 // For client components, use client-side auth hooks instead
 // Note: next-auth has been removed, using custom auth system
 
-export { default } from './auth-server';
-// authOptions no longer exists - using custom auth system
+// Re-export auth function from auth-server (server-only)
+export { default, auth } from './auth-server';
 
-// Client-safe auth function (returns null for client components)
-export const auth = async () => {
-  // This is a client-safe version that returns null
-  // Server components should use auth-server.ts directly
-  return null;
-}
-
-// Export signIn and signOut functions (compatibility exports)
+// Compatibility exports for signIn and signOut
+// Note: These are placeholders for backward compatibility
+// Actual authentication should use the auth API routes directly
 export const signIn = async (...args: any[]) => {
-  // Placeholder - actual implementation would use NextAuth's signIn
-  return { error: 'Not implemented', ok: false }
+  // Placeholder for backward compatibility
+  // Use /api/auth/login API route instead
+  // Note: logger not used here as this is a client-safe export
+  return { error: 'Not implemented. Use /api/auth/login API route instead.', ok: false };
 }
 
 export const signOut = async (...args: any[]) => {
-  // Placeholder - actual implementation would use NextAuth's signOut
-  return { error: 'Not implemented', ok: false }
+  // Placeholder for backward compatibility
+  // Use /api/auth/logout API route instead
+  // Note: logger not used here as this is a client-safe export
+  return { error: 'Not implemented. Use /api/auth/logout API route instead.', ok: false };
 }

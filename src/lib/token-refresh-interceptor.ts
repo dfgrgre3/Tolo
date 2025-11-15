@@ -1,7 +1,8 @@
 'use client';
 
 import { getTokenFromStorage, setAuthToken, clearAuthState } from './auth-client';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface DecodedToken {
   exp: number;
@@ -72,18 +73,13 @@ export function isTokenExpiringSoon(token: string, bufferMinutes: number = 5): b
 
 /**
  * تحديث التوكن تلقائياً
+ * Note: Token is in httpOnly cookie, so we can't check expiration from client
+ * We'll rely on the server to handle token refresh based on the cookie
  */
 export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<string | null> {
-  const token = getTokenFromStorage();
-  
-  if (!token) {
-    return null;
-  }
-  
-  // التحقق من الحاجة للتحديث
-  if (!isTokenExpiringSoon(token, bufferMinutes)) {
-    return token; // التوكن لا يزال صالحاً
-  }
+  // Token is in httpOnly cookie - we can't read it from JavaScript
+  // Just call the refresh endpoint and let the server handle it
+  // The server will check the refresh_token cookie and update access_token cookie if needed
   
   try {
     const response = await fetch('/api/auth/refresh', {
@@ -91,7 +87,7 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
       headers: {
         'Content-Type': 'application/json',
       },
-      credentials: 'include',
+      credentials: 'include', // Important: include cookies for refresh
     });
     
     // التحقق من نوع المحتوى قبل تحليل JSON
@@ -114,28 +110,24 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
         );
       }
       
-      // إذا فشل التحديث والتوكن منتهي، امسح الحالة
-      const timeUntilExpiration = getTimeUntilExpiration(token);
-      if (timeUntilExpiration && timeUntilExpiration <= 0) {
-        clearAuthState();
-      }
-      
+      // If refresh failed, clear auth state
+      clearAuthState();
       return null;
     }
     
     if (!response.ok) {
-      // إذا فشل التحديث والتوكن منتهي، امسح الحالة
-      const timeUntilExpiration = getTimeUntilExpiration(token);
-      if (timeUntilExpiration && timeUntilExpiration <= 0) {
-        clearAuthState();
-        return null;
-      }
+      // If refresh failed, clear auth state
+      clearAuthState();
       
       // محاولة تحليل JSON للرسالة الخطأ
       if (isJson) {
         try {
           const errorData = JSON.parse(text);
-          logger.error('Token refresh failed:', errorData);
+          // تمرير errorData كـ context لضمان تسجيله بشكل صحيح
+          logger.error('Token refresh failed:', undefined, { 
+            status: response.status, 
+            errorData 
+          });
         } catch {
           // لا بأس إذا فشل تحليل JSON
         }
@@ -153,21 +145,16 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
       return null;
     }
     
-    if (data.token) {
-      setAuthToken(data.token);
-      return data.token;
+    // Token is updated in httpOnly cookie by server
+    // Return success indicator (token is in cookie, not accessible from JS)
+    if (data.token || response.ok) {
+      return 'token_refreshed'; // Return indicator that refresh succeeded
     }
     
     return null;
   } catch (error) {
     logger.error('Token refresh error:', error);
-    
-    // إذا كان التوكن منتهي بالفعل، امسح الحالة
-    const timeUntilExpiration = getTimeUntilExpiration(token);
-    if (timeUntilExpiration && timeUntilExpiration <= 0) {
-      clearAuthState();
-    }
-    
+    clearAuthState();
     return null;
   }
 }
@@ -198,29 +185,26 @@ export function setupAutoTokenRefresh(
     // تجنب التحديث المتزامن
     if (isRefreshing) return;
     
-    const token = getTokenFromStorage();
-    if (!token) {
-      cleanup();
-      return;
-    }
-    
-    if (isTokenExpiringSoon(token, bufferMinutes)) {
-      isRefreshing = true;
-      try {
-        const newToken = await refreshTokenIfNeeded(bufferMinutes);
-        if (newToken) {
-          onTokenRefreshed?.(newToken);
-        } else {
-          onRefreshFailed?.();
-          cleanup();
-        }
-      } catch (error) {
-        logger.error('Auto refresh error:', error);
+    // Token is in httpOnly cookie - we can't check expiration from client
+    // Just call refresh endpoint periodically and let server handle it
+    // Server will check refresh_token cookie and update access_token cookie if needed
+    isRefreshing = true;
+    try {
+      const result = await refreshTokenIfNeeded(bufferMinutes);
+      if (result) {
+        // Token was refreshed (in cookie)
+        onTokenRefreshed?.('token_refreshed');
+      } else {
+        // Refresh failed - token might be expired
         onRefreshFailed?.();
         cleanup();
-      } finally {
-        isRefreshing = false;
       }
+    } catch (error) {
+      logger.error('Auto refresh error:', error);
+      onRefreshFailed?.();
+      cleanup();
+    } finally {
+      isRefreshing = false;
     }
   };
   
@@ -238,46 +222,34 @@ export function setupAutoTokenRefresh(
 
 /**
  * Interceptor للـ fetch API لتحديث التوكن تلقائياً قبل الطلبات
+ * Note: Token is in httpOnly cookie, so we don't add Authorization header
+ * The server will read the token from the cookie automatically
  */
 export function createAuthFetchInterceptor() {
   const originalFetch = window.fetch;
   
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    // تحديث التوكن قبل إجراء الطلب إذا لزم الأمر
-    const refreshedToken = await refreshTokenIfNeeded();
+    // Try to refresh token before request (token is in cookie, server handles it)
+    await refreshTokenIfNeeded();
     
-    // إضافة التوكن إلى الـ headers إذا كان موجوداً
-    if (refreshedToken && (!init || !init.headers)) {
-      init = init || {};
-      init.headers = {
-        ...init.headers,
-        'Authorization': `Bearer ${refreshedToken}`,
-      };
-    } else if (refreshedToken && init?.headers) {
-      const headers = new Headers(init.headers);
-      headers.set('Authorization', `Bearer ${refreshedToken}`);
-      init.headers = headers;
+    // Ensure credentials are included for cookie-based auth
+    if (!init) {
+      init = { credentials: 'include' };
+    } else if (!init.credentials) {
+      init.credentials = 'include';
     }
     
-    // إجراء الطلب الأصلي
+    // إجراء الطلب الأصلي (لا حاجة لإضافة Authorization header - التوكن في cookie)
     let response = await originalFetch(input, init);
     
     // معالجة 401 Unauthorized - محاولة تحديث التوكن وإعادة الطلب
     if (response.status === 401) {
-      const token = getTokenFromStorage();
-      if (token && isTokenExpiringSoon(token, 0)) {
-        // التوكن منتهي، حاول التحديث
-        const newToken = await refreshTokenIfNeeded(0);
-        
-        if (newToken && newToken !== token) {
-          // إعادة الطلب بالتوكن الجديد
-          const newInit = { ...init };
-          const headers = new Headers(newInit?.headers);
-          headers.set('Authorization', `Bearer ${newToken}`);
-          newInit.headers = headers;
-          
-          response = await originalFetch(input, newInit);
-        }
+      // Token might be expired, try to refresh
+      const refreshResult = await refreshTokenIfNeeded(0);
+      
+      if (refreshResult) {
+        // Token was refreshed (in cookie), retry the request
+        response = await originalFetch(input, init);
       }
     }
     

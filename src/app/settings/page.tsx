@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import { Button } from "@/shared/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,9 +15,10 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { User as UserIcon, Shield as ShieldIcon, Bell as BellIcon, Palette as PaletteIcon, Globe as GlobeIcon, Clock as ClockIcon, Loader2 } from "lucide-react";
 import { SettingsData, SubjectEnrollment, FocusStrategy, SubjectType } from "@/types/settings";
 import { ensureUser } from "@/lib/user-utils";
-import { getTokenFromStorage } from "@/lib/auth-client";
+// Token is in httpOnly cookie - no need to import getTokenFromStorage
 import TimeSettings from "@/app/time/components/TimeSettings";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 function SettingsPage() {
 	const { user } = useAuth();
@@ -69,14 +70,11 @@ function SettingsPage() {
 		const fetchSettings = async () => {
 			setIsLoadingSettings(true);
 			try {
-				const token = getTokenFromStorage();
-				const headers: HeadersInit = {};
-				if (token) {
-					headers["Authorization"] = `Bearer ${token}`;
-				}
-
+				// Token is in httpOnly cookie - no need to send Authorization header
 				const res = await fetch(`/api/settings?userId=${userId}`, {
-					headers,
+					headers: {
+						'Content-Type': 'application/json',
+					},
 					credentials: "include",
 				});
 				
@@ -105,8 +103,11 @@ function SettingsPage() {
 				if (data.subjects?.length) setSubjects(data.subjects);
 				
 				// Fetch recommendations
+				// Token is in httpOnly cookie - no need to send Authorization header
 				const recRes = await fetch(`/api/recommendations?userId=${userId}`, {
-					headers: token ? { Authorization: `Bearer ${token}` } : {},
+					headers: {
+						'Content-Type': 'application/json',
+					},
 					credentials: "include",
 				});
 				if (recRes.ok) {
@@ -144,19 +145,12 @@ function SettingsPage() {
 
 		setIsSaving(true);
 		try {
-			const token = getTokenFromStorage();
-			const headers: HeadersInit = {
-				"Content-Type": "application/json",
-			};
-
-			// Add authorization token if available
-			if (token) {
-				headers["Authorization"] = `Bearer ${token}`;
-			}
-
+			// Token is in httpOnly cookie - no need to send Authorization header
 			const response = await fetch("/api/settings", {
 				method: "POST",
-				headers,
+				headers: {
+					"Content-Type": "application/json",
+				},
 				credentials: "include",
 				body: JSON.stringify({ 
 					userId, 
@@ -208,8 +202,11 @@ function SettingsPage() {
 			}
 
 			// Fetch updated recommendations
+			// Token is in httpOnly cookie - no need to send Authorization header
 			const recRes = await fetch(`/api/recommendations?userId=${userId}`, {
-				headers: token ? { Authorization: `Bearer ${token}` } : {},
+				headers: {
+					'Content-Type': 'application/json',
+				},
 				credentials: "include",
 			});
 			if (recRes.ok) {
@@ -252,17 +249,12 @@ function SettingsPage() {
 		setIsLoading(true);
 		
 		try {
-			const token = getTokenFromStorage();
-			const headers: HeadersInit = {
-				'Content-Type': 'application/json',
-			};
-			if (token) {
-				headers['Authorization'] = `Bearer ${token}`;
-			}
-
+			// Token is in httpOnly cookie - no need to send Authorization header
 			const response = await fetch('/api/auth/two-factor/setup', {
 				method: 'POST',
-				headers,
+				headers: {
+					'Content-Type': 'application/json',
+				},
 				credentials: 'include',
 				body: JSON.stringify({
 					userId: user.id,

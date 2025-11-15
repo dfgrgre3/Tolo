@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Bell, Eye, EyeOff } from 'lucide-react';
 import type { Reminder } from '../types';
 

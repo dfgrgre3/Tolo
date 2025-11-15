@@ -1,0 +1,367 @@
+src/app/ai/page.tsx(78,17): error TS2322: Type '{ children: Element[]; padding: string; shadow: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'padding' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/app/ai/page.tsx(79,25): error TS2322: Type '{ children: Element; padding: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'padding' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/app/ai/page.tsx(85,30): error TS2322: Type '{ children: string; size: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLHeadingElement> & RefAttributes<HTMLParagraphElement>'.
+  Property 'size' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLHeadingElement> & RefAttributes<HTMLParagraphElement>'.
+src/app/ai/page.tsx(93,26): error TS2322: Type '{ children: Element[]; padding: string; className: string; }' is not assignable to type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+  Property 'padding' does not exist on type 'IntrinsicAttributes & HTMLAttributes<HTMLDivElement> & RefAttributes<HTMLDivElement>'.
+src/app/api/ai/chat/route.ts(46,51): error TS2304: Cannot find name 'ChatMessage'.
+src/app/api/auth/facebook/callback/route.ts(7,40): error TS2307: Cannot find module '../_helpers' or its corresponding type declarations.
+src/app/api/auth/login/route.ts(72,11): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+  Type 'undefined' is not assignable to type 'string'.
+src/app/api/auth/register/route.ts(207,9): error TS2741: Property 'twoFactorEnabled' is missing in type '{ id: any; email: any; name: any; emailVerified: any; role: any; createdAt: any; }' but required in type 'User'.
+src/app/api/auth/two-factor/route.ts(319,11): error TS2820: Type '"TWO_FACTOR_VERIFY_FAILED"' is not assignable to type 'SecurityEventType'. Did you mean '"TWO_FACTOR_FAILED"'?
+src/app/api/auth/two-factor/route.ts(410,11): error TS2820: Type '"TWO_FACTOR_DISABLE_FAILED"' is not assignable to type 'SecurityEventType'. Did you mean '"TWO_FACTOR_DISABLED"'?
+src/app/api/auth/two-factor/route.ts(487,11): error TS2322: Type '"TWO_FACTOR_BACKUP_CODE_FAILED"' is not assignable to type 'SecurityEventType'.
+src/app/api/auth/two-factor/route.ts(519,9): error TS2322: Type '"TWO_FACTOR_BACKUP_CODE_USED"' is not assignable to type 'SecurityEventType'.
+src/app/api/auth/two-factor/route.ts(532,18): error TS2339: Property 'name' does not exist on type '{ id: string; email: string; twoFactorEnabled: boolean; twoFactorSecret: string | null; recoveryCodes: string | null; }'.
+src/app/api/auth/two-factor/route.ts(533,18): error TS2339: Property 'role' does not exist on type '{ id: string; email: string; twoFactorEnabled: boolean; twoFactorSecret: string | null; recoveryCodes: string | null; }'.
+src/app/api/progress/route.ts(101,34): error TS2724: '"D:/thanawy/node_modules/.prisma/client/index".Prisma' has no exported member named 'RecommendationGetPayload'. Did you mean 'MlRecommendationGetPayload'?
+src/app/api/progress/route.ts(107,64): error TS7006: Parameter 'goal' implicitly has an 'any' type.
+src/app/api/recommendations/route.ts(83,7): error TS2322: Type 'UserProgress | null' is not assignable to type '{ totalStudyMinutes: number; averageFocusScore: number; } | null'.
+  Type 'UserProgress' is missing the following properties from type '{ totalStudyMinutes: number; averageFocusScore: number; }': totalStudyMinutes, averageFocusScore
+src/app/api/recommendations/route.ts(146,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(177,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(204,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(217,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(238,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(254,29): error TS2339: Property 'subject' does not exist on type '{ userId: string; id: string; examId: string; score: number; takenAt: Date; teacherId: string | null; }'.
+src/app/api/recommendations/route.ts(258,41): error TS2339: Property 'grade' does not exist on type '{ userId: string; id: string; examId: string; score: number; takenAt: Date; teacherId: string | null; }'.
+src/app/api/recommendations/route.ts(265,11): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(282,36): error TS2339: Property 'currentStreak' does not exist on type '{ totalStudyMinutes: number; averageFocusScore: number; }'.
+src/app/api/recommendations/route.ts(286,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(299,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(316,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(338,9): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(355,7): error TS2353: Object literal may only specify known properties, and 'id' does not exist in type 'Recommendation'.
+src/app/api/recommendations/route.ts(369,23): error TS2339: Property 'impact' does not exist on type 'Recommendation'.
+src/app/api/recommendations/route.ts(369,34): error TS2339: Property 'impact' does not exist on type 'Recommendation'.
+src/app/api/search/route.ts(57,22): error TS7006: Parameter 'course' implicitly has an 'any' type.
+src/app/api/search/route.ts(106,23): error TS7006: Parameter 'teacher' implicitly has an 'any' type.
+src/app/api/search/route.ts(147,20): error TS7006: Parameter 'post' implicitly has an 'any' type.
+src/app/api/search/route.ts(184,20): error TS7006: Parameter 'exam' implicitly has an 'any' type.
+src/app/api/settings/route.ts(97,46): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/api/settings/route.ts(102,15): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/api/settings/route.ts(103,12): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/api/settings/route.ts(131,41): error TS2339: Property 'id' does not exist on type '{}'.
+src/app/api/settings/route.ts(133,18): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/app/api/settings/route.ts(148,24): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/app/home-sections/ExamsSection.tsx(241,53): error TS2345: Argument of type '{ emoji: string; name: string; exams: never[]; }' is not assignable to parameter of type 'SubjectWithExams'.
+  Property 'id' is missing in type '{ emoji: string; name: string; exams: never[]; }' but required in type 'SubjectWithExams'.
+src/app/home-sections/ExamsSection.tsx(249,21): error TS18048: 'subject' is possibly 'undefined'.
+src/app/schedule/page.tsx(7,10): error TS2305: Module '"react-dnd"' has no exported member 'useDrag'.
+src/app/schedule/page.tsx(7,19): error TS2305: Module '"react-dnd"' has no exported member 'useDrop'.
+src/app/schedule/page.tsx(7,28): error TS2305: Module '"react-dnd"' has no exported member 'DndProvider'.
+src/app/schedule/page.tsx(177,7): error TS2322: Type 'string' is not assignable to type 'null'.
+src/app/time/components/AdvancedReports.tsx(237,16): error TS2304: Cannot find name 'Bell'.
+src/app/time/components/AdvancedReports.tsx(278,18): error TS2304: Cannot find name 'BookOpen'.
+src/app/time/components/ExportDialog.tsx(79,21): error TS2349: This expression is not callable.
+  No constituent of type '"json" | "csv" | "pdf" | "print"' is callable.
+src/app/time/components/ExportDialog.tsx(81,18): error TS2349: This expression is not callable.
+  No constituent of type '"json" | "csv" | "pdf" | "print"' is callable.
+src/app/time/components/ExportDialog.tsx(82,16): error TS2349: This expression is not callable.
+  No constituent of type '"json" | "csv" | "pdf" | "print"' is callable.
+src/app/time/components/ExportDialog.tsx(86,53): error TS2349: This expression is not callable.
+  No constituent of type '"json" | "csv" | "pdf" | "print"' is callable.
+src/app/time/components/TimeAnalytics.tsx(155,52): error TS2304: Cannot find name 'now'.
+src/app/time/components/TimeAnalytics.tsx(237,39): error TS2304: Cannot find name 'now'.
+src/components/auth/AuthGuard.tsx(22,46): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(Component: FunctionComponent<AuthGuardProps>, propsAreEqual?: ((prevProps: Readonly<AuthGuardProps>, nextProps: Readonly<AuthGuardProps>) => boolean) | undefined): NamedExoticComponent<...>', gave the following error.
+    Argument of type '({ children, redirectTo, fallback }: AuthGuardProps) => string | number | true | Element | ReactFragment | null' is not assignable to parameter of type 'FunctionComponent<AuthGuardProps>'.
+      Type 'string | number | true | Element | ReactFragment | null' is not assignable to type 'ReactElement<any, any> | null'.
+        Type 'string' is not assignable to type 'ReactElement<any, any>'.
+  Overload 2 of 2, '(Component: ComponentType<any>, propsAreEqual?: ((prevProps: Readonly<any>, nextProps: Readonly<any>) => boolean) | undefined): MemoExoticComponent<ComponentType<any>>', gave the following error.
+    Argument of type '({ children, redirectTo, fallback }: AuthGuardProps) => string | number | true | Element | ReactFragment | null' is not assignable to parameter of type 'ComponentType<any>'.
+      Type '({ children, redirectTo, fallback }: AuthGuardProps) => string | number | true | Element | ReactFragment | null' is not assignable to type 'FunctionComponent<any>'.
+        Type 'string | number | true | Element | ReactFragment | null' is not assignable to type 'ReactElement<any, any> | null'.
+          Type 'string' is not assignable to type 'ReactElement<any, any>'.
+src/components/auth/BiometricManagement.tsx(13,33): error TS2307: Cannot find module '@/lib/auth-hook-enhanced' or its corresponding type declarations.
+src/components/auth/components/TwoFactorForm.tsx(53,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/components/auth/EnhancedLoginForm.tsx(408,32): error TS2339: Property 'emailVerified' does not exist on type '{ id: string; email: string; name?: string | undefined; role?: string | undefined; }'.
+src/components/auth/EnhancedLoginForm.tsx(409,35): error TS2339: Property 'twoFactorEnabled' does not exist on type '{ id: string; email: string; name?: string | undefined; role?: string | undefined; }'.
+src/components/auth/EnhancedLoginForm.tsx(410,28): error TS2339: Property 'lastLogin' does not exist on type '{ id: string; email: string; name?: string | undefined; role?: string | undefined; }'.
+src/components/auth/EnhancedLoginForm.tsx(411,29): error TS2339: Property 'lastLogin' does not exist on type '{ id: string; email: string; name?: string | undefined; role?: string | undefined; }'.
+src/components/auth/EnhancedLoginForm.tsx(411,64): error TS2339: Property 'lastLogin' does not exist on type '{ id: string; email: string; name?: string | undefined; role?: string | undefined; }'.
+src/components/auth/EnhancedLoginForm.tsx(411,86): error TS2339: Property 'lastLogin' does not exist on type '{ id: string; email: string; name?: string | undefined; role?: string | undefined; }'.
+src/components/auth/EnhancedLoginForm.tsx(424,16): error TS2339: Property 'accountWasCreated' does not exist on type 'LoginResponse'.
+src/components/auth/EnhancedLoginForm.tsx(514,34): error TS2339: Property 'error' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(514,49): error TS2339: Property 'message' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(515,31): error TS2339: Property 'code' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(521,19): error TS2339: Property 'status' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(521,59): error TS2339: Property 'status' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(522,19): error TS2339: Property 'retryAfterSeconds' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(522,81): error TS2339: Property 'retryAfterSeconds' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(523,19): error TS2339: Property 'requiresCaptcha' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(523,77): error TS2339: Property 'requiresCaptcha' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(524,19): error TS2339: Property 'failedAttempts' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(524,75): error TS2339: Property 'failedAttempts' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(528,35): error TS2339: Property 'message' does not exist on type '{}'.
+src/components/auth/EnhancedLoginForm.tsx(528,53): error TS2339: Property 'error' does not exist on type '{}'.
+src/components/auth/EnhancedLoginForm.tsx(531,22): error TS2339: Property 'code' does not exist on type '{}'.
+src/components/auth/EnhancedLoginForm.tsx(674,23): error TS2339: Property 'code' does not exist on type '{}'.
+src/components/auth/EnhancedLoginForm.tsx(674,67): error TS2339: Property 'code' does not exist on type '{}'.
+src/components/auth/EnhancedLoginForm.tsx(733,32): error TS2345: Argument of type 'import("D:/thanawy/src/types/api/auth").LoginResponse' is not assignable to parameter of type 'LoginResponse'.
+  The types of 'user.name' are incompatible between these types.
+    Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+src/components/auth/EnhancedLoginForm.tsx(776,36): error TS2339: Property 'error' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(776,51): error TS2339: Property 'message' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(777,33): error TS2339: Property 'code' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(782,21): error TS2339: Property 'status' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(782,61): error TS2339: Property 'status' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(783,21): error TS2339: Property 'retryAfterSeconds' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(783,83): error TS2339: Property 'retryAfterSeconds' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(784,21): error TS2339: Property 'requiresCaptcha' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(784,79): error TS2339: Property 'requiresCaptcha' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(785,21): error TS2339: Property 'failedAttempts' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(785,77): error TS2339: Property 'failedAttempts' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(874,32): error TS2345: Argument of type 'TwoFactorVerifyResponse' is not assignable to parameter of type 'LoginResponse'.
+  The types of 'user.name' are incompatible between these types.
+    Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+      Type 'null' is not assignable to type 'string | undefined'.
+src/components/auth/EnhancedLoginForm.tsx(908,24): error TS2339: Property 'error' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(908,39): error TS2339: Property 'message' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(909,23): error TS2339: Property 'code' does not exist on type 'object'.
+src/components/auth/EnhancedLoginForm.tsx(1036,9): error TS2322: Type 'Credential | null' is not assignable to type 'PublicKeyCredential | null'.
+  Type 'Credential' is missing the following properties from type 'PublicKeyCredential': authenticatorAttachment, rawId, response, getClientExtensionResults, toJSON
+src/components/auth/EnhancedRegisterForm.tsx(13,3): error TS2300: Duplicate identifier 'User'.
+src/components/auth/EnhancedRegisterForm.tsx(25,15): error TS2300: Duplicate identifier 'User'.
+src/components/auth/EnhancedRegisterForm.tsx(485,29): error TS2749: 'User' refers to a value, but is being used as a type here. Did you mean 'typeof User'?
+src/components/auth/login/useLoginFlow.ts(6,33): error TS2307: Cannot find module '@/lib/auth-hook-enhanced' or its corresponding type declarations.
+src/components/auth/register/useRegistrationFlow.ts(6,33): error TS2307: Cannot find module '@/lib/auth-hook-enhanced' or its corresponding type declarations.
+src/components/auth/SessionManager.tsx(8,33): error TS2307: Cannot find module '@/lib/auth-hook-enhanced' or its corresponding type declarations.
+src/components/auth/utils/loginApi.ts(21,24): error TS2304: Cannot find name 'LoginErrorResponse'.
+src/components/Dashboard.tsx(561,19): error TS2322: Type '{ activeTaskId: string | undefined; onSessionStart: (taskId: string) => void; onSessionEnd: (id: string) => void; sessions: TimeSession[]; }' is not assignable to type 'IntrinsicAttributes & TimeTrackerProps'.
+  Property 'activeTaskId' does not exist on type 'IntrinsicAttributes & TimeTrackerProps'.
+src/components/ErrorBoundary.tsx(43,43): error TS2345: Argument of type 'null' is not assignable to parameter of type '(error: Error, errorId: string) => void'.
+src/components/header/ActivityWidget.tsx(44,16): error TS2339: Property 'mounted' does not exist on type 'AuthContextType'.
+src/components/header/ActivityWidget.tsx(68,17): error TS2339: Property 'url' does not exist on type 'ActivityItem'.
+src/components/header/ActivityWidget.tsx(69,37): error TS2339: Property 'url' does not exist on type 'ActivityItem'.
+src/components/header/CommandPalette.tsx(393,69): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+src/components/header/CommandPalette.tsx(396,69): error TS2322: Type '{ className: string; title: string; }' is not assignable to type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+  Property 'title' does not exist on type 'IntrinsicAttributes & Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>'.
+src/components/header/EnhancedNotifications.tsx(95,21): error TS2345: Argument of type '(prev: Notification[]) => RealtimeNotification[]' is not assignable to parameter of type 'SetStateAction<Notification[]>'.
+  Type '(prev: Notification[]) => RealtimeNotification[]' is not assignable to type '(prevState: Notification[]) => Notification[]'.
+    Type 'RealtimeNotification[]' is not assignable to type 'Notification[]'.
+      Type 'RealtimeNotification' is missing the following properties from type 'Notification': isRead, createdAt
+src/components/header/HeaderNotifications.tsx(156,31): error TS2339: Property 'link' does not exist on type 'Notification'.
+src/components/header/HeaderNotifications.tsx(169,53): error TS2339: Property 'description' does not exist on type 'Notification'.
+src/components/header/HeaderNotifications.tsx(171,28): error TS2339: Property 'time' does not exist on type 'Notification'.
+src/components/header/HeaderNotifications.tsx(173,30): error TS2339: Property 'time' does not exist on type 'Notification'.
+src/components/header/HeaderSearch.tsx(87,20): error TS2345: Argument of type 'string' is not assignable to parameter of type 'SetStateAction<"all" | "exams" | "courses" | "teachers" | "forum">'.
+src/components/header/HeaderSearch.tsx(211,3): error TS2345: Argument of type '(query: string, scope: string) => void' is not assignable to parameter of type '(...args: unknown[]) => void'.
+  Types of parameters 'query' and 'args' are incompatible.
+    Type 'unknown' is not assignable to type 'string'.
+src/components/header/HeaderSearch.tsx(478,19): error TS2339: Property 'category' does not exist on type 'SearchResult'.
+src/components/header/HeaderSearch.tsx(480,21): error TS2339: Property 'category' does not exist on type 'SearchResult'.
+src/components/header/HeaderSearch.tsx(704,24): error TS2339: Property 'category' does not exist on type 'SearchResult'.
+src/components/header/HeaderSearch.tsx(706,26): error TS2339: Property 'category' does not exist on type 'SearchResult'.
+src/components/header/SmartNavigationSuggestions.tsx(40,16): error TS2339: Property 'mounted' does not exist on type 'AuthContextType'.
+src/components/profile/TwoFactorAuth.tsx(13,10): error TS2614: Module '"@/components/auth/TOTPSetup"' has no exported member 'TOTPSetup'. Did you mean to use 'import TOTPSetup from "@/components/auth/TOTPSetup"' instead?
+src/components/profile/TwoFactorAuth.tsx(314,23): error TS2322: Type '{ codes: string[]; onCopy: () => string | number; }' is not assignable to type 'IntrinsicAttributes & RecoveryCodesDisplayProps'.
+  Property 'onCopy' does not exist on type 'IntrinsicAttributes & RecoveryCodesDisplayProps'.
+src/components/tasks/TaskForm.tsx(24,75): error TS2322: Type 'string | FieldError | Merge<FieldError, FieldErrorsImpl<any>> | undefined' is not assignable to type 'ReactNode'.
+  Type 'FieldError' is not assignable to type 'ReactNode'.
+    Type 'FieldError' is missing the following properties from type 'ReactPortal': key, children, props
+src/components/theme-provider.tsx(6,41): error TS2307: Cannot find module 'next-themes/dist/types' or its corresponding type declarations.
+src/components/time/Reminders.tsx(221,7): error TS2448: Block-scoped variable 'checkDueReminders' used before its declaration.
+src/components/time/Reminders.tsx(221,7): error TS2454: Variable 'checkDueReminders' is used before being assigned.
+src/components/time/Reminders.tsx(503,77): error TS2448: Block-scoped variable 'handleDialogClose' used before its declaration.
+src/components/time/Reminders.tsx(503,77): error TS2454: Variable 'handleDialogClose' is used before being assigned.
+src/components/time/Reminders.tsx(1090,12): error TS2349: This expression is not callable.
+  Type 'string[]' has no call signatures.
+src/components/time/Reminders.tsx(1094,18): error TS2349: This expression is not callable.
+  Type 'string[]' has no call signatures.
+src/components/time/Reminders.tsx(1094,35): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+src/components/time/TaskManagement.tsx(857,12): error TS2349: This expression is not callable.
+  Type 'string[]' has no call signatures.
+src/components/time/TaskManagement.tsx(861,18): error TS2349: This expression is not callable.
+  Type 'string[]' has no call signatures.
+src/components/time/TaskManagement.tsx(861,35): error TS7006: Parameter 'tag' implicitly has an 'any' type.
+src/components/time/TaskManagement.tsx(1216,37): error TS2322: Type 'string' is not assignable to type 'number'.
+src/components/time/WeeklySchedule.tsx(70,7): error TS2448: Block-scoped variable 'loadScheduleData' used before its declaration.
+src/components/time/WeeklySchedule.tsx(70,7): error TS2454: Variable 'loadScheduleData' is used before being assigned.
+src/components/time/WeeklySchedule.tsx(90,29): error TS2448: Block-scoped variable 'saveSchedule' used before its declaration.
+src/components/time/WeeklySchedule.tsx(90,29): error TS2454: Variable 'saveSchedule' is used before being assigned.
+src/components/time/WeeklySchedule.tsx(206,30): error TS2448: Block-scoped variable 'handleDialogClose' used before its declaration.
+src/components/time/WeeklySchedule.tsx(206,30): error TS2454: Variable 'handleDialogClose' is used before being assigned.
+src/components/time/WeeklySchedule/utils.ts(53,19): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/time/WeeklySchedule/utils.ts(53,25): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/time/WeeklySchedule/utils.ts(59,19): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/time/WeeklySchedule/utils.ts(59,25): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/time/WeeklySchedule/utils.ts(75,19): error TS2362: The left-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/time/WeeklySchedule/utils.ts(75,25): error TS2363: The right-hand side of an arithmetic operation must be of type 'any', 'number', 'bigint' or an enum type.
+src/components/ui/alert-dialog.tsx(4,39): error TS2307: Cannot find module '@radix-ui/react-alert-dialog' or its corresponding type declarations.
+src/components/ui/dropdown-menu.tsx(26,13): error TS2339: Property 'asChild' does not exist on type '{ id?: string | undefined; name?: string | undefined; key?: Key | null | undefined; value?: string | number | readonly string[] | undefined; type?: "reset" | "submit" | "button" | undefined; ... 265 more ...; formTarget?: string | undefined; }'.
+src/components/ui/dropdown-menu.tsx(29,9): error TS2322: Type 'ForwardedRef<HTMLButtonElement>' is not assignable to type 'LegacyRef<HTMLDivElement> | undefined'.
+  Type '(instance: HTMLButtonElement | null) => void' is not assignable to type 'LegacyRef<HTMLDivElement> | undefined'.
+    Type '(instance: HTMLButtonElement | null) => void' is not assignable to type '(instance: HTMLDivElement | null) => void'.
+      Types of parameters 'instance' and 'instance' are incompatible.
+        Type 'HTMLDivElement | null' is not assignable to type 'HTMLButtonElement | null'.
+          Type 'HTMLDivElement' is missing the following properties from type 'HTMLButtonElement': disabled, form, formAction, formEnctype, and 15 more.
+src/components/ui/ErrorBoundary.tsx(193,22): error TS2304: Cannot find name 'useCallback'.
+src/components/ui/ErrorBoundary.tsx(198,24): error TS2304: Cannot find name 'useCallback'.
+src/components/ui/ProgressiveComponent.tsx(106,10): error TS2322: Type 'T' is not assignable to type 'IntrinsicAttributes & T'.
+  Type 'T' is not assignable to type 'IntrinsicAttributes'.
+src/components/ui/ProgressiveComponent.tsx(164,7): error TS2783: 'importFunc' is specified more than once, so this usage will be overwritten.
+src/components/ui/ProgressiveComponent.tsx(166,7): error TS2322: Type '{ ref: ForwardedRef<any>; importFunc: () => Promise<{ default: ComponentType<T>; }>; componentProps?: T | undefined; fallback?: ReactNode; ... 6 more ...; className?: string | undefined; }' is not assignable to type 'IntrinsicAttributes & ProgressiveComponentProps<T>'.
+  Property 'ref' does not exist on type 'IntrinsicAttributes & ProgressiveComponentProps<T>'.
+src/graphql/schema.ts(2,30): error TS2307: Cannot find module './resolvers/auth-resolver' or its corresponding type declarations.
+src/hooks/use-client-effect.ts(34,16): error TS2694: Namespace 'React' has no exported member 'DependencyArray'.
+src/hooks/use-client-effect.ts(108,16): error TS2694: Namespace 'React' has no exported member 'DependencyArray'.
+src/hooks/use-client-effect.ts(154,87): error TS2694: Namespace 'React' has no exported member 'DependencyArray'.
+src/lib/advanced-gamification-service.ts(172,43): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(173,41): error TS7006: Parameter 'g' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(265,32): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(265,35): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(299,27): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(354,51): error TS7006: Parameter 'c' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(360,31): error TS2339: Property 'progress' does not exist on type '{}'.
+src/lib/advanced-gamification-service.ts(361,34): error TS2339: Property 'isCompleted' does not exist on type '{}'.
+src/lib/advanced-gamification-service.ts(377,23): error TS7006: Parameter 'chain' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(384,32): error TS7006: Parameter 'q' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(416,48): error TS7006: Parameter 'p' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(418,29): error TS7006: Parameter 'quest' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(429,29): error TS2339: Property 'progress' does not exist on type '{}'.
+src/lib/advanced-gamification-service.ts(430,32): error TS2339: Property 'isCompleted' does not exist on type '{}'.
+src/lib/advanced-gamification-service.ts(522,27): error TS7006: Parameter 'entry' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(522,34): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(559,23): error TS7006: Parameter 'user' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(559,29): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(657,28): error TS7006: Parameter 'ur' implicitly has an 'any' type.
+src/lib/ai/content-generation.ts(155,46): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/lib/ai/content-generation.ts(397,22): error TS7006: Parameter 'item' implicitly has an 'any' type.
+src/lib/ai/ml-recommendations.ts(38,27): error TS7006: Parameter 'interaction' implicitly has an 'any' type.
+src/lib/ai/ml-recommendations.ts(95,19): error TS2345: Argument of type '{ itemId: string; itemType: "resource" | "course" | "exam" | "content" | "teacher"; score: number; algorithm: "collaborative"; reason: string; }' is not assignable to parameter of type 'Recommendation'.
+  Property 'title' is missing in type '{ itemId: string; itemType: "resource" | "course" | "exam" | "content" | "teacher"; score: number; algorithm: "collaborative"; reason: string; }' but required in type 'Recommendation'.
+src/lib/ai/ml-recommendations.ts(132,23): error TS7006: Parameter 'pref' implicitly has an 'any' type.
+src/lib/ai/ml-recommendations.ts(151,36): error TS2345: Argument of type '{ score: number; algorithm: "content_based"; reason: string; itemType: string; itemId: string; title: string; }' is not assignable to parameter of type 'Recommendation'.
+  Types of property 'itemType' are incompatible.
+    Type 'string' is not assignable to type '"content" | "resource" | "exam" | "course" | "teacher"'.
+src/lib/ai/ml-recommendations.ts(191,32): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/lib/ai/sentiment-analysis.ts(253,41): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+src/lib/ai/sentiment-analysis.ts(253,46): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/lib/ai/sentiment-analysis.ts(256,20): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/lib/ai/sentiment-analysis.ts(266,26): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/lib/analytics.ts(22,53): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/lib/auth-service.ts(364,69): error TS2554: Expected 1-2 arguments, but got 3.
+src/lib/cache-service-unified.ts(13,25): error TS2769: No overload matches this call.
+  Overload 1 of 8, '(path: string, options: RedisOptions): Redis', gave the following error.
+    Object literal may only specify known properties, and 'retryDelayOnFailover' does not exist in type 'RedisOptions'.
+  Overload 2 of 8, '(port: number, options: RedisOptions): Redis', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'number'.
+  Overload 3 of 8, '(port: number, host: string): Redis', gave the following error.
+    Argument of type 'string' is not assignable to parameter of type 'number'.
+src/lib/cache-warming-service.ts(2,10): error TS2614: Module '"@/lib/educational-cache-service"' has no exported member 'cacheMultipleEducationalItems'. Did you mean to use 'import cacheMultipleEducationalItems from "@/lib/educational-cache-service"' instead?
+src/lib/cache-warming-service.ts(36,44): error TS7006: Parameter 'subject' implicitly has an 'any' type.
+src/lib/cache-warming-service.ts(49,28): error TS7006: Parameter 's' implicitly has an 'any' type.
+src/lib/cache-warming-service.ts(68,42): error TS7006: Parameter 'course' implicitly has an 'any' type.
+src/lib/client-server-utils.tsx(159,19): error TS2345: Argument of type '() => Promise<void>' is not assignable to parameter of type '() => void | (() => void)'.
+  Type 'Promise<void>' is not assignable to type 'void | (() => void)'.
+src/lib/client-server-utils.tsx(202,16): error TS2694: Namespace 'React' has no exported member 'DependencyArray'.
+src/lib/data-partitioning-service.ts(136,17): error TS2339: Property 'bounds' does not exist on type 'PartitionInfo'.
+src/lib/data-partitioning-service.ts(136,32): error TS2339: Property 'bounds' does not exist on type 'PartitionInfo'.
+src/lib/data-partitioning-service.ts(138,29): error TS2339: Property 'bounds' does not exist on type 'PartitionInfo'.
+src/lib/db-monitor.ts(72,25): error TS2339: Property '$use' does not exist on type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+src/lib/db-monitor.ts(73,16): error TS2339: Property '$use' does not exist on type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+src/lib/db-monitor.ts(73,28): error TS7006: Parameter 'params' implicitly has an 'any' type.
+src/lib/db-monitor.ts(73,36): error TS7006: Parameter 'next' implicitly has an 'any' type.
+src/lib/db-service.ts(138,28): error TS2536: Type '0' cannot be used to index type 'Awaited<ReturnType<PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>[T]["findMany"]>>'.
+src/lib/db-service.ts(138,47): error TS2344: Type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>[T]["findMany"]' does not satisfy the constraint '(...args: any) => any'.
+src/lib/db-service.ts(138,47): error TS2536: Type '"findMany"' cannot be used to index type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>[T]'.
+src/lib/db-service.ts(145,19): error TS2339: Property 'findMany' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; } | ... 42 more ... | MlRecommendationDelegate<...>'.
+  Property 'findMany' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; }'.
+src/lib/db-service.ts(151,19): error TS2339: Property 'count' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; } | ... 42 more ... | MlRecommendationDelegate<...>'.
+  Property 'count' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; }'.
+src/lib/db-service.ts(177,40): error TS2339: Property 'updateMany' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; } | ... 42 more ... | MlRecommendationDelegate<...>'.
+  Property 'updateMany' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; }'.
+src/lib/db-service.ts(200,40): error TS2339: Property 'deleteMany' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; } | ... 42 more ... | MlRecommendationDelegate<...>'.
+  Property 'deleteMany' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; }'.
+src/lib/db-service.ts(222,31): error TS2344: Type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>[T]["findUnique"]' does not satisfy the constraint '(...args: any) => any'.
+src/lib/db-service.ts(222,31): error TS2536: Type '"findUnique"' cannot be used to index type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>[T]'.
+src/lib/db-service.ts(225,38): error TS2339: Property 'findUnique' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; } | ... 42 more ... | MlRecommendationDelegate<...>'.
+  Property 'findUnique' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; }'.
+src/lib/db-service.ts(231,36): error TS2339: Property 'create' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; } | ... 42 more ... | MlRecommendationDelegate<...>'.
+  Property 'create' does not exist on type '{ types: { payload: any; operations: { $executeRaw: { args: [query: TemplateStringsArray | Sql, ...values: any[]]; result: any; }; $executeRawUnsafe: { args: [query: string, ...values: any[]]; result: any; }; $queryRaw: { ...; }; $queryRawUnsafe: { ...; }; }; }; }'.
+src/lib/db-unified.ts(173,23): error TS2339: Property '$use' does not exist on type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+src/lib/db-unified.ts(174,14): error TS2339: Property '$use' does not exist on type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+src/lib/db-unified.ts(174,26): error TS7006: Parameter 'params' implicitly has an 'any' type.
+src/lib/db-unified.ts(174,34): error TS7006: Parameter 'next' implicitly has an 'any' type.
+src/lib/db-unified.ts(363,25): error TS2339: Property '$use' does not exist on type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+src/lib/db-unified.ts(364,16): error TS2339: Property '$use' does not exist on type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+src/lib/db-unified.ts(364,28): error TS7006: Parameter 'params' implicitly has an 'any' type.
+src/lib/db-unified.ts(364,36): error TS7006: Parameter 'next' implicitly has an 'any' type.
+src/lib/db-unified.ts(501,3): error TS2322: Type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs> | null' is not assignable to type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+  Type 'null' is not assignable to type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs>'.
+src/lib/db-unified.ts(522,3): error TS2322: Type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs> | DynamicClientExtensionThis<...> | null' is not assignable to type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs> | DynamicClientExtensionThis<...>'.
+  Type 'null' is not assignable to type 'PrismaClient<{ datasources: { db: { url: string; }; }; log: ({ level: "query"; emit: "event"; } | { level: "info"; emit: "event"; } | { level: "warn"; emit: "event"; } | { level: "error"; emit: "event"; })[]; }, "info" | "warn" | "error" | "query", DefaultArgs> | DynamicClientExtensionThis<...>'.
+src/lib/env-validation.ts(192,106): error TS2554: Expected 1-2 arguments, but got 3.
+src/lib/event-bus.ts(1,30): error TS2307: Cannot find module '../types' or its corresponding type declarations.
+src/lib/gamification-service.ts(267,43): error TS7006: Parameter 'a' implicitly has an 'any' type.
+src/lib/gamification-service.ts(268,41): error TS7006: Parameter 'g' implicitly has an 'any' type.
+src/lib/gamification-service.ts(532,56): error TS7006: Parameter 'user' implicitly has an 'any' type.
+src/lib/gamification-service.ts(532,62): error TS7006: Parameter 'index' implicitly has an 'any' type.
+src/lib/gamification-service.ts(564,22): error TS7006: Parameter 'session' implicitly has an 'any' type.
+src/lib/logging/elk-logger.ts(23,3): error TS2353: Object literal may only specify known properties, and 'ssl' does not exist in type 'ClientOptions'.
+src/lib/logging/elk-logger.ts(67,7): error TS2740: Type 'Client' is missing the following properties from type 'Client': extend, emit, on, once, and 29 more.
+src/lib/login-analytics.ts(90,6): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/lib/login-analytics.ts(96,6): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/lib/login-analytics.ts(100,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/lib/login-analytics.ts(116,24): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/lib/login-analytics.ts(232,19): error TS7006: Parameter 'event' implicitly has an 'any' type.
+src/lib/notification-sender-new.ts(6,24): error TS7016: Could not find a declaration file for module 'nodemailer'. 'D:/thanawy/node_modules/nodemailer/lib/nodemailer.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/nodemailer` if it exists or add a new declaration (.d.ts) file containing `declare module 'nodemailer';`
+src/lib/notification-service.ts(225,29): error TS2339: Property 'actionUrl' does not exist on type '{ title: string; message: string; type: NotificationType; actionUrl: string; icon: string; } | { title: string; message: string; type: NotificationType; actionUrl: string; icon: string; } | ... 14 more ... | { ...; }'.
+  Property 'actionUrl' does not exist on type '{ title: string; message: string; type: NotificationType; icon: string; }'.
+src/lib/notifications/push-notifications.ts(22,3): error TS2304: Cannot find name 'logger'.
+src/lib/notifications/push-notifications.ts(35,3): error TS2304: Cannot find name 'logger'.
+src/lib/notifications/push-notifications.ts(43,3): error TS2304: Cannot find name 'logger'.
+src/lib/notifications/push-notifications.ts(54,4): error TS2322: Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource | null | undefined'.
+  Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'ArrayBufferView<ArrayBuffer>'.
+    Types of property 'buffer' are incompatible.
+      Type 'ArrayBufferLike' is not assignable to type 'ArrayBuffer'.
+        Type 'SharedArrayBuffer' is missing the following properties from type 'ArrayBuffer': resizable, resize, detached, transfer, transferToFixedLength
+src/lib/notifications/push-notifications.ts(59,3): error TS2304: Cannot find name 'logger'.
+src/lib/notifications/push-notifications.ts(70,3): error TS2304: Cannot find name 'logger'.
+src/lib/notifications/push-notifications.ts(110,3): error TS2304: Cannot find name 'logger'.
+src/lib/notifications/sound-notifications.ts(62,5): error TS2304: Cannot find name 'logger'.
+src/lib/passwordless/magic-link-service.ts(110,5): error TS2304: Cannot find name 'logger'.
+src/lib/passwordless/magic-link-service.ts(183,5): error TS2304: Cannot find name 'logger'.
+src/lib/perf-config.ts(65,3): error TS2322: Type 'Logger | null' is not assignable to type 'Logger'.
+  Type 'null' is not assignable to type 'Logger'.
+src/lib/rate-limiting-service.ts(20,24): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+src/lib/rate-limiting-service.ts(24,18): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+src/lib/redis.ts(32,31): error TS7006: Parameter 'retries' implicitly has an 'any' type.
+src/lib/redis.ts(149,39): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/lib/redis.ts(152,26): error TS7006: Parameter 'result' implicitly has an 'any' type.
+src/lib/safe-client-utils.ts(103,7): error TS2322: Type 'string' is not assignable to type 'T'.
+  'T' could be instantiated with an arbitrary type which could be unrelated to 'string'.
+src/lib/safe-client-utils.ts(199,20): error TS2345: Argument of type 'T | null' is not assignable to parameter of type 'SetStateAction<T>'.
+  Type 'null' is not assignable to type 'SetStateAction<T>'.
+src/lib/safe-client-utils.ts(235,20): error TS2345: Argument of type 'T | null' is not assignable to parameter of type 'SetStateAction<T>'.
+  Type 'null' is not assignable to type 'SetStateAction<T>'.
+src/lib/security-logger.ts(298,24): error TS7006: Parameter 'log' implicitly has an 'any' type.
+src/lib/security-logger.ts(337,24): error TS7006: Parameter 'log' implicitly has an 'any' type.
+src/lib/security/device-manager.ts(123,26): error TS7006: Parameter 'session' implicitly has an 'any' type.
+src/lib/security/risk-assessment.ts(315,44): error TS2345: Argument of type 'string' is not assignable to parameter of type 'never'.
+src/lib/security/webauthn.ts(194,11): error TS2322: Type 'string | ArrayBuffer | Uint8Array<ArrayBufferLike>' is not assignable to type 'string'.
+  Type 'ArrayBuffer' is not assignable to type 'string'.
+src/lib/service-worker.ts(14,3): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(23,3): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(32,7): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(40,3): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(54,4): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(59,3): error TS2304: Cannot find name 'logger'.
+src/lib/services/login-service.ts(152,7): error TS2322: Type 'NextResponse<LoginErrorResponse>' is not assignable to type 'LoginErrorResponse | LoginResponse'.
+src/lib/services/login-service.ts(333,13): error TS2353: Object literal may only specify known properties, and 'blockedUntil' does not exist in type 'LoginErrorResponse | LoginResponse'.
+src/lib/services/login-service.ts(753,17): error TS7006: Parameter 'dbError' implicitly has an 'any' type.
+src/lib/tracing/jaeger-tracer.ts(129,5): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Attributes'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'AttributeValue | undefined'.
+src/types/settings.ts(110,18): error TS2320: Interface 'AppSettings' cannot simultaneously extend types 'UserSettings' and 'NotificationSettings'.
+  Named property 'emailNotifications' of types 'UserSettings' and 'NotificationSettings' are not identical.
+src/types/settings.ts(110,18): error TS2320: Interface 'AppSettings' cannot simultaneously extend types 'UserSettings' and 'SecuritySettings'.
+  Named property 'twoFactorEnabled' of types 'UserSettings' and 'SecuritySettings' are not identical.

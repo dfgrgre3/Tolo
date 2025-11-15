@@ -3,10 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { VirtualList } from "@/components/ui/VirtualList";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface User {
 	id: string;

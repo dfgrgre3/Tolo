@@ -2,9 +2,9 @@
 
 import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { 
   Sparkles, 
@@ -31,7 +31,8 @@ const iconMap: Record<string, React.ReactNode> = {
   sparkles: <Sparkles className="h-5 w-5" />
 };
 import Link from "next/link";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Recommendation {
   id: string;

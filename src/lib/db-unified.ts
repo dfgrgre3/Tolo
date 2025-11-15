@@ -1,9 +1,81 @@
 // This file must only run on the server - prevent browser bundling
-import 'server-only';
+// Note: We use runtime checks instead of 'server-only' to prevent build-time errors
+// when this file is imported through dynamic imports in client components
+
+// Runtime check to ensure this only runs on the server
+if (typeof window !== 'undefined') {
+  throw new Error('db-unified.ts can only be used on the server');
+}
 
 import { PrismaClient } from '@prisma/client';
 import { databaseConfig, getDatabaseConfig } from './database';
-import { logger } from '@/lib/logger';
+
+// Lazy load logger to prevent circular dependencies and client bundling issues
+// Use a synchronous wrapper that falls back to console if logger isn't loaded yet
+let loggerInstance: any = null;
+let loggerLoading: Promise<any> | null = null;
+
+function getLoggerSync() {
+  // If logger is already loaded, return it
+  if (loggerInstance) {
+    return loggerInstance;
+  }
+  
+  // If we're on the client, return a no-op logger
+  if (typeof window !== 'undefined') {
+    return {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+      debug: () => {},
+    };
+  }
+  
+  // If logger is being loaded, return a console-based logger temporarily
+  if (loggerLoading) {
+    return {
+      info: (...args: any[]) => console.info('[Logger not loaded yet]', ...args),
+      warn: (...args: any[]) => console.warn('[Logger not loaded yet]', ...args),
+      error: (...args: any[]) => console.error('[Logger not loaded yet]', ...args),
+      debug: (...args: any[]) => console.debug('[Logger not loaded yet]', ...args),
+    };
+  }
+  
+  // Start loading logger (async, but return sync wrapper)
+  loggerLoading = import('@/lib/logger').then(module => {
+    loggerInstance = module.logger;
+    return loggerInstance;
+  }).catch(() => {
+    // If loading fails, use console as fallback
+    loggerInstance = {
+      info: (...args: any[]) => console.info(...args),
+      warn: (...args: any[]) => console.warn(...args),
+      error: (...args: any[]) => console.error(...args),
+      debug: (...args: any[]) => console.debug(...args),
+    };
+    return loggerInstance;
+  });
+  
+  // Return console-based logger while loading
+  return {
+    info: (...args: any[]) => console.info('[Logger loading...]', ...args),
+    warn: (...args: any[]) => console.warn('[Logger loading...]', ...args),
+    error: (...args: any[]) => console.error('[Logger loading...]', ...args),
+    debug: (...args: any[]) => console.debug('[Logger loading...]', ...args),
+  };
+}
+
+// Export logger getter for synchronous use
+const logger = new Proxy({} as any, {
+  get: (target, prop) => {
+    const logger = getLoggerSync();
+    const method = (logger as any)[prop];
+    if (typeof method === 'function') {
+      return method.bind(logger);
+    }
+    return method;
+  }
+});
 
 type ConnectionPoolStats = {
   totalConnections: number;
@@ -45,9 +117,20 @@ This will generate the Prisma Client based on your schema.prisma file.
   try {
     const databaseUrl = process.env.DATABASE_URL || databaseConfig.sqlite.url;
     
-    // Validate DATABASE_URL format
+    // Validate DATABASE_URL format and detect database type
     if (!databaseUrl) {
       logger.warn('DATABASE_URL is not set, using default SQLite database');
+    } else {
+      // Detect database type from URL
+      if (databaseUrl.startsWith('postgresql://') || databaseUrl.startsWith('postgres://')) {
+        logger.info('PostgreSQL database detected');
+      } else if (databaseUrl.startsWith('file:')) {
+        logger.warn('SQLite database detected - not recommended for production');
+        if (process.env.NODE_ENV === 'production') {
+          logger.error('SQLite is not suitable for production environments like Vercel');
+          logger.error('Please migrate to PostgreSQL (Neon, Supabase, or custom PostgreSQL)');
+        }
+      }
     }
 
     const prisma = new PrismaClient({
@@ -71,7 +154,7 @@ This will generate the Prisma Client based on your schema.prisma file.
 
     // Add error handler for connection errors
     prisma.$on('error' as any, (e: any) => {
-      logger.error('Prisma error event:', e);
+      logger.error(`Prisma error event: ${e.message || JSON.stringify(e)}`, undefined, { details: e });
     });
 
     if (databaseConfig.common.logSlowQueries) {
@@ -440,20 +523,23 @@ This will generate the Prisma Client based on your prisma/schema.prisma file.
 };
 
 // Export lazy getters that create Prisma clients only when accessed
-export const prisma = new Proxy({} as ReturnType<typeof getPrisma>, {
+// Use PrismaClient type directly to ensure proper type inference
+export const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
     const instance = getPrismaLazy();
     const value = (instance as any)[prop];
     return typeof value === 'function' ? value.bind(instance) : value;
   }
-});
+}) as ReturnType<typeof getPrisma>;
 
-export const enhancedPrisma = new Proxy({} as ReturnType<typeof getEnhancedPrisma>, {
+// Export enhancedPrisma with proper type that includes all Prisma models
+// Using PrismaClient type directly ensures TypeScript recognizes all model properties
+export const enhancedPrisma: PrismaClient = new Proxy({} as any, {
   get: (target, prop) => {
     const instance = getEnhancedPrismaLazy();
     const value = (instance as any)[prop];
     return typeof value === 'function' ? value.bind(instance) : value;
   }
-});
+}) as any;
 
 export default prisma;

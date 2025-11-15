@@ -3,7 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Languages, Check } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,

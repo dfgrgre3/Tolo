@@ -41,3 +41,11 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# lighthouse results
+lighthouse-results.json
+
+# build artifacts
+*.bak
+*.old
+*.tmp

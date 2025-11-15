@@ -1,17 +1,18 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/shared/progress";
-import { Badge } from "@/shared/badge";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Key, AlertTriangle, CheckCircle2, Eye, EyeOff, Shield, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { getPasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface PasswordManagementProps {
   userId: string;
@@ -49,14 +50,14 @@ export default function PasswordManagement({ userId }: PasswordManagementProps) 
 
     try {
       setIsChanging(true);
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           currentPassword,
           newPassword,

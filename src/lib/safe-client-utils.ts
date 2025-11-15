@@ -6,7 +6,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // ==================== Type Definitions ====================
 
@@ -450,44 +451,59 @@ const AUTH_TOKEN_KEY = 'authToken';
 
 /**
  * الحصول على رمز المصادقة بشكل آمن
+ * DEPRECATED: Token is now stored in httpOnly cookie, not accessible from JavaScript
+ * This function is kept for backward compatibility but returns null
  * Safely get auth token
  */
 export function getSafeAuthToken(): string | null {
-  return safeGetItem(AUTH_TOKEN_KEY, { fallback: null });
+  // Token is in httpOnly cookie - not accessible from JavaScript
+  // Return null to indicate token should be read from cookie by server
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('getSafeAuthToken is deprecated. Token is now in httpOnly cookie.');
+  }
+  return null;
 }
 
 /**
  * تعيين رمز المصادقة بشكل آمن
+ * DEPRECATED: Token is now stored in httpOnly cookie by server, not in localStorage
+ * This function is kept for backward compatibility but does nothing
  * Safely set auth token
  */
 export function setSafeAuthToken(token: string): boolean {
-  return safeSetItem(AUTH_TOKEN_KEY, token);
+  // Token should not be saved to localStorage for security
+  // Only kept for backward compatibility
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('setSafeAuthToken is deprecated. Token is now in httpOnly cookie.');
+  }
+  // Don't actually save - token is in cookie
+  return false;
 }
 
 /**
  * حذف رمز المصادقة بشكل آمن
- * Safely remove auth token
+ * Safely remove auth token (for cleanup of legacy tokens)
  */
 export function removeSafeAuthToken(): boolean {
+  // Clean up any legacy tokens from localStorage
   return safeRemoveItem(AUTH_TOKEN_KEY);
 }
 
 /**
  * Hook لإدارة رمز المصادقة
+ * DEPRECATED: Token is now in httpOnly cookie, not accessible from JavaScript
+ * This hook is kept for backward compatibility but always returns null
  * Hook to manage auth token
  */
 export function useSafeAuthToken(): [string | null, (token: string) => void, () => void, boolean] {
-  const [token, setToken, mounted] = useSafeLocalStorage<string | null>(
-    AUTH_TOKEN_KEY,
-    null
-  );
-  
+  // Token is in httpOnly cookie - not accessible from JavaScript
+  // Always return null for token
   const removeToken = useCallback(() => {
-    setToken(null);
+    // Clean up any legacy tokens from localStorage
     removeSafeAuthToken();
-  }, [setToken]);
+  }, []);
   
-  return [token, setToken, removeToken, mounted];
+  return [null, () => {}, removeToken, true];
 }
 
 // ==================== Safe Fetch & JSON Parsing ====================
@@ -697,7 +713,7 @@ export async function safeFetch<T = any>(
 
 // ==================== Export All ====================
 
-export default {
+const safeClientUtils = {
   // Storage checks
   isLocalStorageAvailable,
   isSessionStorageAvailable,
@@ -736,4 +752,6 @@ export default {
   safeJsonParse,
   safeFetch,
 };
+
+export default safeClientUtils;
 

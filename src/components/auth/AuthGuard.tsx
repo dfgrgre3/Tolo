@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
-import { getTokenFromStorage } from '@/lib/auth-client';
+// Token is in httpOnly cookie - no need to import getTokenFromStorage
 import React from 'react';
 
 export interface AuthGuardProps {
@@ -29,16 +29,25 @@ export const AuthGuard = React.memo(function AuthGuard({
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const checkAuth = useCallback(() => {
+  const checkAuth = useCallback(async () => {
     // Early return for SSR
     if (typeof window === 'undefined') {
       setIsLoading(false);
       return;
     }
 
-    const token = getTokenFromStorage();
+    // Check authentication by calling the server
+    // Token is in httpOnly cookie - check with server
+    try {
+      const response = await fetch('/api/auth/me', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        cache: 'no-store',
+      });
 
-    if (!token) {
+      if (!response.ok) {
       // Save current pathname for redirect after login
       const currentPath = pathname || window.location.pathname;
       
@@ -48,8 +57,27 @@ export const AuthGuard = React.memo(function AuthGuard({
                           !currentPath.includes('/login') && 
                           !currentPath.includes('/register');
       
+        if (isValidPath) {
+          // Include search params if they exist
+          const searchParams = window.location.search;
+          const fullPath = currentPath + searchParams;
+          router.push(`${redirectTo}?redirect=${encodeURIComponent(fullPath)}`);
+        } else {
+          router.push(redirectTo);
+        }
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+      }
+    } catch (error) {
+      // Network error or other error - redirect to login
+      const currentPath = pathname || window.location.pathname;
+      const isValidPath = currentPath.startsWith('/') && 
+                          !currentPath.startsWith('//') &&
+                          !currentPath.includes('/login') && 
+                          !currentPath.includes('/register');
+      
       if (isValidPath) {
-        // Include search params if they exist
         const searchParams = window.location.search;
         const fullPath = currentPath + searchParams;
         router.push(`${redirectTo}?redirect=${encodeURIComponent(fullPath)}`);
@@ -57,8 +85,6 @@ export const AuthGuard = React.memo(function AuthGuard({
         router.push(redirectTo);
       }
       setIsAuthenticated(false);
-    } else {
-      setIsAuthenticated(true);
     }
 
     setIsLoading(false);

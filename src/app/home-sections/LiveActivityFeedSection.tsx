@@ -2,8 +2,8 @@
 
 import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/shared/card";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { getSafeUserId } from "@/lib/safe-client-utils";
 import { 
@@ -18,7 +18,8 @@ import {
   MessageSquare,
   Bell
 } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";import { logger } from '@/lib/logger';
+import { formatDistanceToNow } from "date-fns";
+import { logger } from '@/lib/logger';
 
 // Note: Arabic locale may not be available in all date-fns versions
 // Fallback to English if Arabic locale is not found

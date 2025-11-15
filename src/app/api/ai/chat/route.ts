@@ -3,8 +3,9 @@ import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-confi
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { analyzeSentiment } from "@/lib/ai/sentiment-analysis";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-unified";
-import { logger } from '@/lib/logger';
+import { verifyToken } from "@/lib/auth-service";
+
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -42,7 +43,7 @@ export async function POST(request: NextRequest) {
     let sentimentAwareContext = "";
     
     if (actualUserId && messages.length > 0) {
-      const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
+      const lastUserMessage = messages.filter((m: ChatMessage) => m.role === 'user').pop();
       if (lastUserMessage) {
         try {
           sentiment = await analyzeSentiment(lastUserMessage.content, actualUserId, 'chat');

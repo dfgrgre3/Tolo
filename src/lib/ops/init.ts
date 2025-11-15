@@ -6,7 +6,8 @@
 
 import { initializeTracer } from '@/lib/tracing/jaeger-tracer';
 import { validateOpsConfig } from './config';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 /**
  * تهيئة جميع خدمات Ops
@@ -21,12 +22,13 @@ export function initializeOps(): void {
 
   // تهيئة Jaeger Tracing
   if (process.env.JAEGER_ENABLED !== 'false') {
-    try {
-      initializeTracer();
-      logger.info('✅ Jaeger tracing initialized');
-    } catch (error) {
-      logger.error('❌ Failed to initialize Jaeger tracing:', error);
-    }
+    initializeTracer()
+      .then(() => {
+        logger.info('✅ Jaeger tracing initialized');
+      })
+      .catch((error) => {
+        logger.error('❌ Failed to initialize Jaeger tracing:', error);
+      });
   } else {
     logger.info('ℹ️  Jaeger tracing is disabled');
   }

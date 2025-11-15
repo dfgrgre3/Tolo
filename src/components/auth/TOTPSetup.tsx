@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
-import { getSafeAuthToken } from '@/lib/safe-client-utils';import { logger } from '@/lib/logger';
+// Token is in httpOnly cookie - no need to import getSafeAuthToken
+import { logger } from '@/lib/logger';
 
 import {
   Shield,
@@ -34,18 +35,13 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
   const handleSetup = async () => {
     setIsLoading(true);
     try {
-      const token = getSafeAuthToken();
-      if (!token) {
-        toast.error('غير مصرح');
-        return;
-      }
-
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/two-factor/totp/setup', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       // Read response text first to check if it's HTML
@@ -94,18 +90,13 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
 
     setIsLoading(true);
     try {
-      const token = getSafeAuthToken();
-      if (!token) {
-        toast.error('غير مصرح');
-        return;
-      }
-
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/two-factor/totp/verify', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ code: verificationCode }),
       });
 

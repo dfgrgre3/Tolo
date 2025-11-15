@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getCachedOrFetch, invalidateCache } from '@/lib/db-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -24,8 +25,8 @@ export async function GET(request: NextRequest) {
       const sessions = await prisma.studySession.findMany({
         where: { userId },
         select: {
-          duration: true,
-          focusRating: true,
+          durationMin: true,
+          focusScore: true,
           createdAt: true,
         },
         orderBy: {
@@ -33,20 +34,25 @@ export async function GET(request: NextRequest) {
         },
       });
 
+      // Type for selected study session fields
+      type StudySessionSummary = Pick<Prisma.StudySessionGetPayload<{
+        select: { durationMin: true; focusScore: true; createdAt: true }
+      }>, 'durationMin' | 'focusScore' | 'createdAt'>;
+
       // Calculate total minutes
       const totalMinutes = sessions.reduce(
-        (sum: number, session: any) => sum + (session.duration || 0),
+        (sum: number, session: StudySessionSummary) => sum + (session.durationMin || 0),
         0
       );
 
       // Calculate average focus
       const focusSessions = sessions.filter(
-        (session: any) => session.focusRating !== null
+        (session: StudySessionSummary) => session.focusScore !== null
       );
       const averageFocus =
         focusSessions.length > 0
           ? focusSessions.reduce(
-              (sum: number, session: any) => sum + (session.focusRating || 0),
+              (sum: number, session: StudySessionSummary) => sum + (session.focusScore || 0),
               0
             ) / focusSessions.length
           : 0;
@@ -55,7 +61,7 @@ export async function GET(request: NextRequest) {
       const tasksCompleted = await prisma.task.count({
         where: {
           userId,
-          completed: true,
+          status: 'COMPLETED',
         },
       });
 
@@ -72,7 +78,7 @@ export async function GET(request: NextRequest) {
         previousDate.setDate(previousDate.getDate() - 1);
 
         // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session: any) => {
+        const studiedToday = sessions.some((session: StudySessionSummary) => {
           const sessionDate = new Date(session.createdAt);
           sessionDate.setHours(0, 0, 0, 0);
           return sessionDate.getTime() === currentDate.getTime();
@@ -87,7 +93,7 @@ export async function GET(request: NextRequest) {
 
           while (found) {
             checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session: any) => {
+            found = sessions.some((session: StudySessionSummary) => {
               const sessionDate = new Date(session.createdAt);
               sessionDate.setHours(0, 0, 0, 0);
               return sessionDate.getTime() === checkDate.getTime();

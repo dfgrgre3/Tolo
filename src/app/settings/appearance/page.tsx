@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { AuthGuard } from "@/components/auth/AuthGuard";
-import { Button } from "@/shared/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

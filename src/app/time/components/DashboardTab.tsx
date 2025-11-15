@@ -7,7 +7,7 @@ import UpcomingRemindersCard from './UpcomingRemindersCard';
 import UpcomingTasksCard from './UpcomingTasksCard';
 import QuickActions from './QuickActions';
 import AdvancedReports from './AdvancedReports';
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { BarChart3, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { TimeStats, Task, Reminder, SubjectType, StudySession } from '../types';

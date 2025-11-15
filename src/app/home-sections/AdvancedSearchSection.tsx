@@ -2,10 +2,10 @@
 
 import { useState, useEffect, useRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Card, CardContent } from "@/shared/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/shared/button";
-import { Badge } from "@/shared/badge";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { safeFetch, safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import { 
   Search,
@@ -19,7 +19,8 @@ import {
   X
 } from "lucide-react";
 import Link from "next/link";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface SearchResult {
   id: string;

@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-unified";
+import { verifyToken } from "@/lib/auth-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import type { Prisma } from '@prisma/client';
+
+// Type for Prisma client with optional models
+type PrismaClientWithOptionalModels = typeof prisma & {
+  forumPost?: { count: (args: { where: { authorId: string } }) => Promise<number> };
+  blogPost?: { count: (args: { where: { authorId: string } }) => Promise<number> };
+};
 
 // GET user stats by ID
 export async function GET(
@@ -27,7 +34,7 @@ export async function GET(
     const completedTasks = await prisma.task.count({
       where: {
         userId: id,
-        completed: true
+        status: 'COMPLETED'
       }
     });
 
@@ -37,18 +44,24 @@ export async function GET(
         userId: id
       },
       select: {
-        duration: true
+        durationMin: true
       }
     });
 
-    const totalStudyTime = studySessions.reduce((total: number, session: any) => total + session.duration, 0);
+    type StudySessionDuration = Pick<Prisma.StudySessionGetPayload<{}>, 'durationMin'>;
+    const totalStudyTime = studySessions.reduce((total: number, session: StudySessionDuration) => total + (session.durationMin || 0), 0);
 
-    // Get courses enrolled count
-    const coursesEnrolled = await prisma.enrollment.count({
-      where: {
-        userId: id
-      }
-    });
+    // Get courses enrolled count (using SubjectEnrollment)
+    let coursesEnrolled = 0;
+    try {
+      coursesEnrolled = await prisma.subjectEnrollment.count({
+        where: {
+          userId: id
+        }
+      });
+    } catch (error) {
+      logger.warn("Error fetching subject enrollments:", error);
+    }
 
     // Get exams taken count
     const examsTaken = await prisma.examResult.count({
@@ -57,19 +70,51 @@ export async function GET(
       }
     });
 
-    // Get forum posts count
-    const forumPosts = await prisma.forumPost.count({
-      where: {
-        authorId: id
+    // Get forum posts count (if model exists)
+    // Note: forumPost model may not exist in schema
+    let forumPosts = 0;
+    try {
+      // Type assertion for optional model
+      const prismaClient = prisma as PrismaClientWithOptionalModels;
+      if ('forumPost' in prismaClient && typeof prismaClient.forumPost === 'object') {
+        forumPosts = await (prismaClient.forumPost as { count: (args: { where: { authorId: string } }) => Promise<number> }).count({
+          where: {
+            authorId: id
+          }
+        });
       }
-    });
+    } catch (error: unknown) {
+      // Model doesn't exist in schema or other error, return 0
+      const prismaError = error as { code?: string; message?: string };
+      if (prismaError?.code === 'P2001' || prismaError?.message?.includes('does not exist')) {
+        logger.debug("ForumPost model not available in schema");
+      } else {
+        logger.warn("Error fetching forum posts count:", error);
+      }
+    }
 
-    // Get blog posts count
-    const blogPosts = await prisma.blogPost.count({
-      where: {
-        authorId: id
+    // Get blog posts count (if model exists)
+    // Note: blogPost model may not exist in schema
+    let blogPosts = 0;
+    try {
+      // Type assertion for optional model
+      const prismaClient = prisma as PrismaClientWithOptionalModels;
+      if ('blogPost' in prismaClient && typeof prismaClient.blogPost === 'object') {
+        blogPosts = await (prismaClient.blogPost as { count: (args: { where: { authorId: string } }) => Promise<number> }).count({
+          where: {
+            authorId: id
+          }
+        });
       }
-    });
+    } catch (error: unknown) {
+      // Model doesn't exist in schema or other error, return 0
+      const prismaError = error as { code?: string; message?: string };
+      if (prismaError?.code === 'P2001' || prismaError?.message?.includes('does not exist')) {
+        logger.debug("BlogPost model not available in schema");
+      } else {
+        logger.warn("Error fetching blog posts count:", error);
+      }
+    }
 
     const stats = {
       completedTasks,

@@ -1,32 +1,45 @@
 import { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
 import { SignJWT, jwtVerify } from 'jose';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { prisma } from './prisma';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitingService } from './rate-limiting-service';
 import { getJWTSecret } from './env-validation';
+import { logger } from './logger';
+import type { PrismaClient } from './prisma';
+
+// Lazy load prisma to prevent server-only bundling issues
+let prismaInstance: PrismaClient | null = null;
+
+async function getPrisma() {
+  if (!prismaInstance) {
+    // Runtime check to ensure this only runs on the server
+    if (typeof window !== 'undefined') {
+      throw new Error('Prisma can only be used on the server');
+    }
+    // Use string concatenation to prevent webpack from statically analyzing the import
+    const prismaModule = await import('./' + 'prisma');
+    // Use getPrisma function instead of direct prisma access
+    prismaInstance = await prismaModule.getPrisma();
+  }
+  return prismaInstance;
+}
 
 // Get validated JWT_SECRET (throws error in production if invalid)
 let JWT_SECRET: Uint8Array;
 let JWT_SECRET_STRING: string;
 
 // Lazy initialization to avoid throwing errors during module load
+// Security: JWT_SECRET is required in all environments (no fallback)
 function getJWTSecretSafe(): { secret: Uint8Array; secretString: string } {
   if (!JWT_SECRET || !JWT_SECRET_STRING) {
     try {
       JWT_SECRET_STRING = getJWTSecret();
       JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
     } catch (error) {
-      // In development, use a warning but allow continuation
-      if (process.env.NODE_ENV === 'development') {
-        logger.warn('JWT_SECRET not properly configured. Using fallback for development only.');
-        JWT_SECRET_STRING = 'fallback-jwt-secret-for-dev-only-PLEASE-SET-IN-PRODUCTION';
-        JWT_SECRET = new TextEncoder().encode(JWT_SECRET_STRING);
-      } else {
-        throw error;
-      }
+      // JWT_SECRET is required in all environments - no fallback for security
+      logger.error('JWT_SECRET is not properly configured. This is required in all environments.', error instanceof Error ? error : new Error(String(error)));
+      throw new Error('JWT_SECRET environment variable is required but not set. Please set it in your .env file.');
     }
   }
   return { secret: JWT_SECRET, secretString: JWT_SECRET_STRING };
@@ -113,7 +126,7 @@ export class AuthService {
    */
   async createTokens(user: AuthUser, sessionId?: string): Promise<{ accessToken: string; refreshToken: string }> {
     // Get validated JWT_SECRET
-    const { secret: jwtSecret, secretString: jwtSecretString } = getJWTSecretSafe();
+    const { secret: jwtSecret } = getJWTSecretSafe();
 
     // Validate user data
     if (!user || !user.id || !user.email) {
@@ -283,7 +296,8 @@ export class AuthService {
       const sessionId = payload.sessionId as string;
 
       // Validate session exists and is not expired
-      const session = await prisma.session.findUnique({
+      const dbClient = await getPrisma();
+      const session = await dbClient.session.findUnique({
         where: { id: sessionId }
       });
 
@@ -294,7 +308,7 @@ export class AuthService {
         };
       }
 
-      const user = await prisma.user.findUnique({
+      const user = await dbClient.user.findUnique({
         where: { id: userId },
         select: { id: true, email: true, name: true, role: true }
       });
@@ -307,7 +321,7 @@ export class AuthService {
       }
 
       // Update session with new expiration
-      const updatedSession = await prisma.session.update({
+      await dbClient.session.update({
         where: { id: sessionId },
         data: {
           expiresAt: new Date(Date.now() + SESSION_DURATION * 1000),
@@ -346,13 +360,13 @@ export class AuthService {
       if (cached) {
         return cached;
       }
-    } catch (cacheError) {
+    } catch {
       // Cache not available, continue with DB query
-      logger.warn('Cache not available, using database', undefined, { cacheError });
     }
 
     // Fetch from database
-    const user = await prisma.user.findUnique({
+    const dbClient = await getPrisma();
+    const user = await dbClient.user.findUnique({
       where: { email },
     });
 
@@ -361,7 +375,7 @@ export class AuthService {
       try {
         const { authCache, CacheKeys } = await import('./cache/auth-cache');
         authCache.set(CacheKeys.userByEmail(email), user, 5 * 60 * 1000); // Cache for 5 minutes
-      } catch (cacheError) {
+      } catch {
         // Ignore cache errors
       }
     }
@@ -373,7 +387,8 @@ export class AuthService {
    * Find user by ID with full profile
    */
   async findUserById(id: string) {
-    return prisma.user.findUnique({
+    const dbClient = await getPrisma();
+    return dbClient.user.findUnique({
       where: { id },
       select: {
         id: true,
@@ -391,7 +406,8 @@ export class AuthService {
    * Update user's last login timestamp
    */
   async updateLastLogin(id: string) {
-    return prisma.user.update({
+    const dbClient = await getPrisma();
+    return dbClient.user.update({
       where: { id },
       data: { lastLogin: new Date() }
     });
@@ -406,7 +422,8 @@ export class AuthService {
     const sessionId = uuidv4();
     const expiresAt = new Date(Date.now() + SESSION_DURATION * 1000);
 
-    const session = await prisma.session.create({
+    const dbClient = await getPrisma();
+    const session = await dbClient.session.create({
       data: {
         id: sessionId,
         userId,
@@ -424,7 +441,8 @@ export class AuthService {
    */
   async deleteSession(sessionId: string): Promise<boolean> {
     try {
-      await prisma.session.delete({
+      const dbClient = await getPrisma();
+      await dbClient.session.delete({
         where: { id: sessionId }
       });
       
@@ -432,7 +450,7 @@ export class AuthService {
       try {
         const { authCache, CacheKeys } = await import('./cache/auth-cache');
         authCache.delete(CacheKeys.session(sessionId));
-      } catch (cacheError) {
+      } catch {
         // Ignore cache errors
       }
       
@@ -453,12 +471,13 @@ export class AuthService {
       if (cached) {
         return cached;
       }
-    } catch (cacheError) {
+    } catch {
       // Cache not available, continue with DB query
     }
 
     // Fetch from database
-    const session = await prisma.session.findUnique({
+    const dbClient = await getPrisma();
+    const session = await dbClient.session.findUnique({
       where: { id: sessionId }
     });
 
@@ -468,7 +487,7 @@ export class AuthService {
         const { authCache, CacheKeys } = await import('./cache/auth-cache');
         // Cache for shorter time since sessions can change
         authCache.set(CacheKeys.session(sessionId), session, 2 * 60 * 1000); // Cache for 2 minutes
-      } catch (cacheError) {
+      } catch {
         // Ignore cache errors
       }
     }
@@ -480,7 +499,8 @@ export class AuthService {
    * Delete all sessions for a user (logout from all devices)
    */
   async deleteAllUserSessions(userId: string): Promise<void> {
-    await prisma.session.deleteMany({
+    const dbClient = await getPrisma();
+    await dbClient.session.deleteMany({
       where: { userId }
     });
   }
@@ -562,7 +582,8 @@ export class AuthService {
 
     const hashedPassword = await AuthService.hashPassword(password);
 
-    const user = await prisma.user.create({
+    const dbClient = await getPrisma();
+    const user = await dbClient.user.create({
       data: {
         email,
         passwordHash: hashedPassword,
@@ -650,6 +671,8 @@ export class AuthService {
 
   /**
    * Extract token from various sources
+   * Priority: 1. Cookies (httpOnly cookies are more secure), 2. Authorization header
+   * This ensures cookies are checked first for better security and consistency
    */
   extractToken(input: NextRequest | string | null | undefined): string | null {
     if (!input) {
@@ -660,15 +683,18 @@ export class AuthService {
       return input;
     }
 
+    // Priority 1: Check cookies first (httpOnly cookies are more secure)
+    // Check access_token first (standard cookie name used by login and OAuth routes)
+    // Then check authToken for backward compatibility
+    const tokenCookie = input.cookies.get('access_token')?.value || input.cookies.get('authToken')?.value;
+    if (tokenCookie) {
+      return tokenCookie;
+    }
+
+    // Priority 2: Check Authorization header (fallback for API clients)
     const authHeader = input.headers.get('authorization');
     if (authHeader?.startsWith('Bearer ')) {
       return authHeader.substring(7);
-    }
-
-    // Support token passed via cookie for SSR utilities
-    const tokenCookie = input.cookies.get('authToken')?.value || input.cookies.get('access_token')?.value;
-    if (tokenCookie) {
-      return tokenCookie;
     }
 
     return null;
@@ -681,7 +707,8 @@ export class AuthService {
    */
   async logSecurityEvent(userId: string | null, event: string, ip: string, metadata?: Record<string, unknown>): Promise<void> {
     try {
-      await prisma.securityLog.create({
+      const dbClient = await getPrisma();
+      await dbClient.securityLog.create({
         data: {
           userId,
           eventType: event,
@@ -701,6 +728,7 @@ export class AuthService {
    * @param request NextRequest object
    * @param options Verification options
    * @returns TokenVerificationResult with user data or error
+   * Priority: 1. Cookies (httpOnly cookies are more secure), 2. Authorization header
    */
   async verifyTokenFromRequest(
     request: NextRequest,
@@ -709,19 +737,27 @@ export class AuthService {
     } = {}
   ): Promise<TokenVerificationResult> {
     try {
-      // Get token from Authorization header
-      const authHeader = request.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      // Priority 1: Get token from cookies first (httpOnly cookies are more secure)
+      let token = request.cookies.get('access_token')?.value || request.cookies.get('authToken')?.value;
+      
+      // Priority 2: Fallback to Authorization header (for API clients)
+      if (!token) {
+        const authHeader = request.headers.get('authorization');
+        if (authHeader?.startsWith('Bearer ')) {
+          token = authHeader.substring(7); // Remove "Bearer " prefix
+        }
+      }
+
+      if (!token) {
         return {
           isValid: false,
-          error: 'No valid authorization header'
+          error: 'No token provided in cookies or authorization header'
         };
       }
 
-      const token = authHeader.substring(7); // Remove "Bearer " prefix
-
       // Verify token signature using jose
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const { secret } = getJWTSecretSafe();
+      const { payload } = await jwtVerify(token, secret);
       
       const user: AuthUser = {
         id: payload.userId as string,
@@ -738,7 +774,8 @@ export class AuthService {
         
         // Optionally check session validity
         if (options.checkSession && sessionId) {
-          const session = await prisma.session.findUnique({
+          const dbClient = await getPrisma();
+          const session = await dbClient.session.findUnique({
             where: {
               id: sessionId,
               userId: user.id,
@@ -783,7 +820,8 @@ export class AuthService {
     // Handle string token
     if (typeof input === 'string') {
       try {
-        const { payload } = await jwtVerify(input, JWT_SECRET);
+        const { secret } = getJWTSecretSafe();
+        const { payload } = await jwtVerify(input, secret);
         
         const user: AuthUser = {
           id: payload.userId as string,
@@ -792,11 +830,12 @@ export class AuthService {
           role: payload.role as string,
         };
 
-        let sessionId: string | undefined = payload.sessionId as string;
+        const sessionId: string | undefined = payload.sessionId as string;
 
         // Check session validity if requested
         if (checkSession && sessionId) {
-          const session = await prisma.session.findUnique({
+          const dbClient = await getPrisma();
+          const session = await dbClient.session.findUnique({
             where: {
               id: sessionId,
               userId: user.id,
@@ -850,23 +889,38 @@ export class AuthService {
 
   /**
    * Get current user from server-side context
+   * Note: This function can only be used in Server Components or API Routes
+   * Checks cookies first (httpOnly cookies are more secure), then falls back to other sources
    */
   async getCurrentUser(): Promise<TokenVerificationResult> {
-    const cookieStore = await cookies();
-    const token =
-      cookieStore.get('authToken')?.value ||
-      cookieStore.get('access_token')?.value ||
-      null;
+    try {
+      // Dynamically import cookies to avoid Client Component issues
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      
+      // Priority 1: Check cookies first (httpOnly cookies are more secure)
+      // Check access_token first (standard cookie name used by login and OAuth routes)
+      // Then check authToken for backward compatibility
+      const token =
+        cookieStore.get('access_token')?.value ||
+        cookieStore.get('authToken')?.value ||
+        null;
 
-    if (!token) {
+      if (!token) {
+        return {
+          isValid: false,
+          error: 'No token provided in cookies',
+        };
+      }
+
+      // Verify token and check session validity
+      return this.verifyTokenFromInput(token, true);
+    } catch {
       return {
         isValid: false,
-        error: 'No token provided',
+        error: 'getCurrentUser can only be used in Server Components or API Routes',
       };
     }
-
-    // Verify token and check session validity
-    return this.verifyTokenFromInput(token, true);
   }
 
   /**

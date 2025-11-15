@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { gamificationService } from '@/lib/gamification-service';
 import { startOfWeek, endOfWeek, subDays, startOfDay, differenceInDays } from 'date-fns';
-import { verifyToken } from '@/lib/auth-unified';
+import { verifyToken } from '@/lib/auth-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import type { Prisma } from '@prisma/client';
 
 /**
  * GET /api/recommendations
@@ -98,17 +99,25 @@ export async function GET(request: NextRequest) {
 }
 
 interface RecommendationData {
-  user: any;
-  studySessions: any[];
-  tasks: any[];
-  examResults: any[];
-  userGrades: any[];
-  progress: any | null;
+  user: Prisma.UserGetPayload<{ select: { id: true; email: true; name: true } }>;
+  studySessions: Prisma.StudySessionGetPayload<{}>[];
+  tasks: Prisma.TaskGetPayload<{}>[];
+  examResults: Prisma.ExamResultGetPayload<{}>[];
+  userGrades: Prisma.ExamResultGetPayload<{}>[];
+  progress: { totalStudyMinutes: number; averageFocusScore: number } | null;
 }
 
-function generateRecommendations(data: RecommendationData): any[] {
+interface Recommendation {
+  type: string;
+  title: string;
+  description: string;
+  priority: 'high' | 'medium' | 'low';
+  actionUrl?: string;
+}
+
+function generateRecommendations(data: RecommendationData): Recommendation[] {
   const { user, studySessions, tasks, examResults, userGrades, progress } = data;
-  const recommendations: any[] = [];
+  const recommendations: Recommendation[] = [];
 
   // 1. Study Time Analysis
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 6 });

@@ -3,13 +3,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Bell, Check, CheckCheck, Trash2, ExternalLink, Clock } from 'lucide-react';
-import { Button } from "@/shared/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getSafeAuthToken } from '@/lib/safe-client-utils';
-import { logger } from '@/lib/logger';
+// Token is in httpOnly cookie - no need to import getSafeAuthToken
+
+import { logger } from '@/lib/logger';
 
 interface Notification {
   id: string;
@@ -34,9 +35,7 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async (reset = false) => {
     setIsLoading(true);
     try {
-      const token = getSafeAuthToken();
-      if (!token) return;
-
+      // Token is in httpOnly cookie - no need to send Authorization header
       const currentOffset = reset ? 0 : offset;
       const params = new URLSearchParams({
         limit: limit.toString(),
@@ -45,8 +44,9 @@ export default function NotificationsPage() {
 
       const response = await fetch(`/api/notifications?${params}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (!response.ok) throw new Error('Failed to fetch notifications');
@@ -78,15 +78,13 @@ export default function NotificationsPage() {
   // Mark notifications as read
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      const token = getSafeAuthToken();
-      if (!token) return;
-
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/notifications/mark-read', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
+        credentials: 'include',
         body: JSON.stringify({
           notificationIds,
           all,

@@ -1,13 +1,13 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/shared/badge";
+import { Badge } from "@/components/ui/badge";
 import { 
   Bell,
   Plus,
@@ -60,7 +60,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { cn } from '@/lib/utils';
 import { format, isToday, isTomorrow, isPast, isThisWeek, differenceInMinutes, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Reminder {
   id: string;

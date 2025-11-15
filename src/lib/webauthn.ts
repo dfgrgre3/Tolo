@@ -1,5 +1,7 @@
+'use client';
+
 import axios from 'axios';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 interface WebAuthnConfig {
   rpId: string;
@@ -8,14 +10,21 @@ interface WebAuthnConfig {
   timeout: number;
 }
 
-const config: WebAuthnConfig = {
-  rpId: window.location.hostname,
-  rpName: 'Thanawy System',
-  apiBaseUrl: '/api/auth/webauthn',
-  timeout: 60000
-};
+function getConfig(): WebAuthnConfig {
+  if (typeof window === 'undefined') {
+    throw new Error('WebAuthn can only be used on the client side');
+  }
+  
+  return {
+    rpId: window.location.hostname,
+    rpName: 'Thanawy System',
+    apiBaseUrl: '/api/auth/webauthn',
+    timeout: 60000
+  };
+}
 
 async function getRegistrationOptions(userId: string, userName: string) {
+  const config = getConfig();
   const response = await axios.post(`${config.apiBaseUrl}/options`, { 
     userId, 
     userName 
@@ -36,10 +45,14 @@ interface PublicKeyCredentialCreationOptions {
 }
 
 async function createCredential(options: PublicKeyCredentialCreationOptions) {
+  if (typeof window === 'undefined' || !navigator.credentials) {
+    throw new Error('WebAuthn is not available');
+  }
   return await navigator.credentials.create({ publicKey: options }) as PublicKeyCredential;
 }
 
 async function verifyRegistration(credential: PublicKeyCredential, userId: string) {
+  const config = getConfig();
   await axios.post(`${config.apiBaseUrl}/verify`, {
     userId,
     credential: {
@@ -55,13 +68,20 @@ async function verifyRegistration(credential: PublicKeyCredential, userId: strin
   });
 }
 
-export const WebAuthnService = {
-  isSupported,
-  register,
-  authenticate
-};
+interface AuthResult {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    name?: string;
+  };
+}
 
 async function isSupported(): Promise<boolean> {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+  
   try {
     return !!window.PublicKeyCredential && 
       await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
@@ -86,20 +106,17 @@ async function register(userId: string, userName: string): Promise<Credential> {
   }
 }
 
-interface AuthResult {
-  token: string;
-  user: {
-    id: string;
-    email: string;
-    name?: string;
-  };
-}
-
 async function authenticate(): Promise<AuthResult> {
+  const config = getConfig();
+  
   // 1. Get authentication options from server
   const optionsResponse = await axios.post(`${config.apiBaseUrl}/authenticate/options`);
   
   // 2. Get credential using browser API
+  if (typeof window === 'undefined' || !navigator.credentials) {
+    throw new Error('WebAuthn is not available');
+  }
+  
   const credential = await navigator.credentials.get({
     publicKey: optionsResponse.data
   }) as PublicKeyCredential;
@@ -111,3 +128,9 @@ async function authenticate(): Promise<AuthResult> {
 
   return authResponse.data;
 }
+
+export const WebAuthnService = {
+  isSupported,
+  register,
+  authenticate
+};

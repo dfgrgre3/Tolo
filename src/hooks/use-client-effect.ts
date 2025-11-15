@@ -1,5 +1,24 @@
 import React, { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
-import { logger } from '@/lib/logger';
+
+// Lazy load logger to prevent server-only bundling issues
+let loggerInstance: any = null;
+async function getLogger() {
+  if (!loggerInstance) {
+    try {
+      const loggerModule = await import('@/lib/logger');
+      loggerInstance = loggerModule.logger;
+    } catch (error) {
+      // Fallback to console if logger fails to load
+      loggerInstance = {
+        info: (...args: any[]) => console.info(...args),
+        warn: (...args: any[]) => console.warn(...args),
+        error: (...args: any[]) => console.error(...args),
+        debug: (...args: any[]) => console.debug(...args),
+      };
+    }
+  }
+  return loggerInstance;
+}
 
 /**
  * Enhanced custom hook that runs an effect only on the client side.
@@ -50,7 +69,11 @@ export function useClientEffect(
         cleanupRef.current = effect();
       }
     } catch (error) {
-      logger.error('useClientEffect: Error in effect function:', error);
+      getLogger().then(logger => {
+        logger.error('useClientEffect: Error in effect function:', error);
+      }).catch(() => {
+        console.error('useClientEffect: Error in effect function:', error);
+      });
       if (options?.errorBoundary) {
         // Could integrate with error reporting service here
       }
@@ -62,7 +85,11 @@ export function useClientEffect(
         try {
           cleanupRef.current();
         } catch (error) {
-          logger.error('useClientEffect: Error in cleanup function:', error);
+          getLogger().then(logger => {
+            logger.error('useClientEffect: Error in cleanup function:', error);
+          }).catch(() => {
+            console.error('useClientEffect: Error in cleanup function:', error);
+          });
         }
         cleanupRef.current = undefined;
       }

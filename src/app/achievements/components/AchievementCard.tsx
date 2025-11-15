@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Card, CardContent } from '@/shared/card';
-import { Badge } from '@/shared/badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Achievement } from '../types';
 import {
 	getCategoryIcon,

@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
     
     // Log security event safely
     try {
-      const authHeader = request.headers.get('Authorization');
+      const authHeader = req.headers.get('Authorization');
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
         const verification = await authService.verifyToken(token);

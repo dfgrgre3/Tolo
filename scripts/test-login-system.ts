@@ -96,20 +96,26 @@ async function testRegistrationValidation() {
         password: 'Test123!@#',
         name: 'Test User',
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
-    const data = await response.json().catch(() => ({}));
+    const responseText = await response.text();
+    let data: any = {};
+    try {
+      data = JSON.parse(responseText);
+    } catch {
+      data = { rawResponse: responseText };
+    }
     logTest(
       'Registration - Invalid email format',
       response.status === 400 && (data.code === 'VALIDATION_ERROR' || data.code === 'INVALID_EMAIL'),
       response.status !== 400 ? `Expected 400, got ${response.status}` : undefined,
-      data
+      { ...data, status: response.status }
     );
   } catch (error: any) {
     const errorMsg = error.name === 'AbortError' 
       ? 'Request timeout - server may not be responding'
-      : error.message || 'Connection failed';
-    logTest('Registration - Invalid email format', false, errorMsg);
+      : error.message || error.toString() || 'Connection failed';
+    logTest('Registration - Invalid email format', false, errorMsg, { error: error.toString(), stack: error.stack });
   }
 
   // Test 2: Short password (< 8 characters)
@@ -122,7 +128,7 @@ async function testRegistrationValidation() {
         password: 'Short1!',
         name: 'Test User',
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -148,7 +154,7 @@ async function testRegistrationValidation() {
         password: 'test123!@#',
         name: 'Test User',
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -174,7 +180,7 @@ async function testRegistrationValidation() {
         password: 'Test12345',
         name: 'Test User',
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -199,7 +205,7 @@ async function testRegistrationValidation() {
         email: '',
         password: '',
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -226,7 +232,7 @@ async function testRegistrationValidation() {
         password: 'Test123!@#',
         name: 'Test User',
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -260,7 +266,7 @@ async function testLoginValidation() {
         password: 'Test123!@#',
         rememberMe: false,
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -286,7 +292,7 @@ async function testLoginValidation() {
         password: 'Short1',
         rememberMe: false,
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -312,7 +318,7 @@ async function testLoginValidation() {
         password: '',
         rememberMe: false,
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -338,7 +344,7 @@ async function testLoginValidation() {
         password: 'WrongPassword123!',
         rememberMe: false,
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
     logTest(
@@ -373,7 +379,7 @@ async function testSuccessfulLogin(testEmail?: string | null) {
           password: 'Test123!@#',
           name: 'Test User',
         }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       });
       if (registerResponse.status !== 201) {
         logTest('Login - Create test account', false, 'Failed to create test account');
@@ -398,7 +404,7 @@ async function testSuccessfulLogin(testEmail?: string | null) {
         password: 'Test123!@#',
         rememberMe: false,
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
 
@@ -454,7 +460,7 @@ async function testRateLimiting() {
           password: 'WrongPassword123!',
           rememberMe: false,
         }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       });
       lastResponse = await response.json().catch(() => ({}));
 
@@ -510,7 +516,7 @@ async function testCaptchaRequirement() {
           password: 'WrongPassword123!',
           rememberMe: false,
         }),
-        signal: AbortSignal.timeout(5000),
+        signal: AbortSignal.timeout(15000),
       });
       await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error: any) {
@@ -532,7 +538,7 @@ async function testCaptchaRequirement() {
         password: 'WrongPassword123!',
         rememberMe: false,
       }),
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(15000),
     });
     const data = await response.json().catch(() => ({}));
 

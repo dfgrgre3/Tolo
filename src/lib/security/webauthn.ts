@@ -54,6 +54,25 @@ export interface WebAuthnAuthenticationOptions {
   }>;
 }
 
+interface WebAuthnRegistrationResponse {
+  id: string;
+  rawId: ArrayBuffer | Uint8Array;
+  response?: {
+    attestationObject?: ArrayBuffer | Uint8Array | string;
+    clientDataJSON?: ArrayBuffer | Uint8Array | string;
+  };
+}
+
+interface WebAuthnAuthenticationResponse {
+  id: string;
+  rawId: ArrayBuffer | Uint8Array;
+  response?: {
+    authenticatorData?: ArrayBuffer | Uint8Array | string;
+    clientDataJSON?: ArrayBuffer | Uint8Array | string;
+    signature?: ArrayBuffer | Uint8Array | string;
+  };
+}
+
 export class WebAuthnService {
   private static instance: WebAuthnService;
   private rpName: string;
@@ -134,20 +153,8 @@ export class WebAuthnService {
     return options;
   }
 
-  /**
-   * Verify registration response
-   */
-  interface RegistrationResponse {
-    id: string;
-    rawId: ArrayBuffer | Uint8Array;
-    response?: {
-      attestationObject?: ArrayBuffer | Uint8Array | string;
-      clientDataJSON?: ArrayBuffer | Uint8Array | string;
-    };
-  }
-
   async verifyRegistration(
-    response: RegistrationResponse,
+    response: WebAuthnRegistrationResponse,
     expectedChallenge: string
   ): Promise<{
     verified: boolean;
@@ -197,21 +204,8 @@ export class WebAuthnService {
     }
   }
 
-  /**
-   * Verify authentication response
-   */
-  interface AuthenticationResponse {
-    id: string;
-    rawId: ArrayBuffer | Uint8Array;
-    response?: {
-      authenticatorData?: ArrayBuffer | Uint8Array | string;
-      clientDataJSON?: ArrayBuffer | Uint8Array | string;
-      signature?: ArrayBuffer | Uint8Array | string;
-    };
-  }
-
   async verifyAuthentication(
-    response: AuthenticationResponse,
+    response: WebAuthnAuthenticationResponse,
     expectedChallenge: string,
     credential: WebAuthnCredential
   ): Promise<{

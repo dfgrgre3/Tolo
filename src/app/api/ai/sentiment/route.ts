@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { analyzeSentiment, getUserSentimentTrends } from "@/lib/ai/sentiment-analysis";
-import { verifyToken } from "@/lib/auth-unified";
+import { verifyToken } from "@/lib/auth-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {

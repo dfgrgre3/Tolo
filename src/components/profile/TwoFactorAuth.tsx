@@ -1,18 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/shared/badge";
+import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Shield, Smartphone, Key, Copy, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { TOTPSetup } from '@/components/auth/TOTPSetup';
 import RecoveryCodesDisplay from '@/components/auth/RecoveryCodesDisplay';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface TwoFactorAuthProps {
   userId: string;
@@ -36,12 +37,10 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
   const load2FAStatus = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/two-factor', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -57,14 +56,14 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
 
   const handleSetupTOTP = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/two-factor/totp/setup', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -83,14 +82,14 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
 
   const handleVerifyTOTP = async (code: string) => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/two-factor/totp/verify', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ code }),
       });
 
@@ -122,14 +121,14 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
       const code = prompt('أدخل رمز التحقق من تطبيق المصادقة لإلغاء التفعيل:');
       if (!code) return;
 
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/two-factor', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ action: 'disable', code }),
       });
 
@@ -150,14 +149,14 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
 
   const handleGenerateRecoveryCodes = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/two-factor/recovery-codes', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
 
       if (response.ok) {

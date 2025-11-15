@@ -5,6 +5,8 @@
  * Note: This service uses console.* directly to avoid circular dependencies
  * with the unified logger system, as it is used by the unified logger itself.
  */
+import { logger } from '@/lib/logger';
+
 
 
 export interface ErrorLogEntry {
@@ -90,7 +92,7 @@ class ErrorLogger {
       }
     } catch (error) {
       // Use console.error directly to avoid circular dependency
-      console.error('[ErrorLogger] Failed to load logs from localStorage:', error);
+      logger.error('[ErrorLogger] Failed to load logs from localStorage:', error);
     }
   }
 
@@ -207,7 +209,7 @@ class ErrorLogger {
       // Silently fail if error handlers cannot be set up
       if (process.env.NODE_ENV === 'development') {
         // Use console.warn directly to avoid circular dependency
-        console.warn('[ErrorLogger] Failed to setup global error handlers:', error);
+        logger.warn('[ErrorLogger] Failed to setup global error handlers:', error);
       }
     }
   }
@@ -439,9 +441,9 @@ class ErrorLogger {
               try {
                 // In development, use console.warn instead of console.error to avoid Next.js interception
                 if (process.env.NODE_ENV === 'development') {
-                  console.warn(logMessage, logDetails);
+                  logger.warn(logMessage, logDetails);
                 } else {
-                  console.error(logMessage, logDetails);
+                  logger.error(logMessage, logDetails);
                 }
               } catch (e) {
                 // If console itself throws, skip silently
@@ -451,9 +453,9 @@ class ErrorLogger {
               try {
                 // In development, use console.warn instead of console.error to avoid Next.js interception
                 if (process.env.NODE_ENV === 'development') {
-                  console.warn(logMessage);
+                  logger.warn(logMessage);
                 } else {
-                  console.error(logMessage);
+                  logger.error(logMessage);
                 }
               } catch (e) {
                 // If console itself throws, skip silently
@@ -484,8 +486,8 @@ class ErrorLogger {
       return logEntry.id;
     } catch (logError) {
       // Fallback logging if the main logging fails - use console directly to avoid circular dependency
-      console.error('[ErrorLogger] Failed to log error:', logError);
-      console.error('[ErrorLogger] Original error:', error);
+      logger.error('[ErrorLogger] Failed to log error:', logError);
+      logger.error('[ErrorLogger] Original error:', error);
       return `error-fallback-${Date.now()}`;
     }
   }
@@ -513,7 +515,7 @@ class ErrorLogger {
       });
     } catch (error) {
       // Use console.error directly to avoid circular dependency
-      console.error('[ErrorLogger] Failed to send error to remote endpoint:', error);
+      logger.error('[ErrorLogger] Failed to send error to remote endpoint:', error);
     }
   }
 

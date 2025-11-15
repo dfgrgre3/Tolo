@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, useMemo, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTokenFromStorage, removeTokenFromStorage, getUserFromStorage, saveUserToStorage } from '@/lib/auth-client';
+import { removeTokenFromStorage, getUserFromStorage, saveUserToStorage } from '@/lib/auth-client';
 import { toast } from 'sonner';
 import { useHydrationFix } from '@/hydration-fix';
-import { setSafeAuthToken } from '@/lib/safe-client-utils';
+// Token is in httpOnly cookie - no need to import setSafeAuthToken
 import { setupAutoTokenRefresh } from '@/lib/token-refresh-interceptor';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export interface User {
   id: string;
@@ -49,9 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   });
   const [isLoading, setIsLoading] = useState(() => {
-    // Start as loading only if we have cached data that needs verification
+    // Start as loading only if we have cached user data that needs verification
+    // Note: Token is in httpOnly cookie, not localStorage
     if (typeof window !== 'undefined') {
-      return !!getTokenFromStorage();
+      return !!getUserFromStorage();
     }
     return false;
   });
@@ -62,30 +64,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const checkAuth = async () => {
       try {
-        const token = getTokenFromStorage();
-
-        if (!token) {
-          setUser(null);
-          setIsLoading(false);
-          return;
-        }
-
-        // Try to get user from localStorage first
+        // Try to get user from localStorage first (for faster initial render)
+        // Note: Token is stored in httpOnly cookie, not localStorage
         const cachedUser = getUserFromStorage();
         if (cachedUser) {
           setUser(cachedUser);
         }
 
-        // Verify token with the server (with timeout)
+        // Always check with server - token is in httpOnly cookie
+        // The server will read from cookies automatically
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
         let response: Response;
         try {
+          // Don't send Authorization header - rely on httpOnly cookies only
+          // This ensures we use the secure cookie-based authentication
           response = await fetch('/api/auth/me', {
             headers: {
-              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
+            credentials: 'include', // Important: include cookies in request
             signal: controller.signal,
             cache: 'no-store',
           });
@@ -95,13 +94,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (fetchError.name === 'AbortError') {
             logger.warn('Auth check request timed out');
-            removeTokenFromStorage();
+            removeTokenFromStorage(); // Clean up any legacy tokens
             setUser(null);
             setIsLoading(false);
             return;
           }
           
-          // Network error - don't clear token, might be temporary
+          // Network error - don't clear user, might be temporary
           if (
             fetchError.message?.includes('Failed to fetch') ||
             !navigator.onLine
@@ -113,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           // Other errors - clear auth state
           logger.error('Error during auth check:', fetchError);
-          removeTokenFromStorage();
+          removeTokenFromStorage(); // Clean up any legacy tokens
           setUser(null);
           setIsLoading(false);
           return;
@@ -129,25 +128,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               const userData = await response.json();
               setUser(userData.user);
               saveUserToStorage(userData.user);
+              // Token is in httpOnly cookie - no need to store in localStorage
             } catch (error) {
               logger.error('Error parsing user data:', error);
-              removeTokenFromStorage();
+              removeTokenFromStorage(); // Clean up any legacy tokens
               setUser(null);
             }
           } else {
             // Response is not JSON (likely HTML error page)
             logger.error('Server returned non-JSON response');
-            removeTokenFromStorage();
+            removeTokenFromStorage(); // Clean up any legacy tokens
             setUser(null);
           }
         } else {
-          // Token is invalid, remove it
-          removeTokenFromStorage();
+          // Authentication failed - clear state
+          removeTokenFromStorage(); // Clean up any legacy tokens
           setUser(null);
         }
       } catch (error) {
         logger.error('Authentication error:', error);
-        removeTokenFromStorage();
+        removeTokenFromStorage(); // Clean up any legacy tokens
         setUser(null);
       } finally {
         setIsLoading(false);
@@ -183,27 +183,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback((token: string, userData?: User) => {
     try {
-      // Validate token
-      if (!token || typeof token !== 'string' || token.trim().length === 0) {
-        logger.error('Invalid token provided to login function');
-        toast.error('رمز المصادقة غير صالح');
-        return;
-      }
-
-      // Validate token format (basic JWT check)
-      const tokenParts = token.split('.');
-      if (tokenParts.length !== 3) {
-        logger.error('Invalid token format');
-        toast.error('تنسيق رمز المصادقة غير صحيح');
-        return;
-      }
-
-      // Save token using safe method
-      const tokenSaved = setSafeAuthToken(token);
-      if (!tokenSaved) {
-        logger.error('Failed to save token to storage');
-        toast.error('فشل حفظ رمز المصادقة');
-        return;
+      // Note: Token is already stored in httpOnly cookie by server
+      // We don't need to save token to localStorage for security
+      // Just validate token format for logging purposes
+      if (token && typeof token === 'string' && token.trim().length > 0) {
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) {
+          logger.warn('Invalid token format received (token is in cookie, this is just validation)');
+        }
       }
 
       if (userData) {
@@ -222,7 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        // Save user data
+        // Save user data to localStorage for faster initial render
+        // Token is in httpOnly cookie - no need to store in localStorage
         saveUserToStorage(userData);
         setUser(userData);
         
@@ -246,7 +234,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Try to clean up on error
       try {
-        removeTokenFromStorage();
+        removeTokenFromStorage(); // Clean up any legacy tokens
         setUser(null);
       } catch (cleanupError) {
         logger.error('Error during cleanup:', cleanupError);
@@ -258,31 +246,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Try to call logout API (non-blocking)
       if (typeof window !== 'undefined') {
-        const token = getTokenFromStorage();
-        if (token) {
-          try {
-            // Call logout endpoint but don't wait for it
-            fetch('/api/auth/logout', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${token}`,
-              },
-              credentials: 'include',
-            }).catch((error) => {
-              // Silently fail - we'll clear local state anyway
-              if (process.env.NODE_ENV === 'development') {
-                logger.warn('Logout API call failed:', error);
-              }
-            });
-          } catch (error) {
-            // Silently fail
+        try {
+          // Token is in httpOnly cookie - no need to send Authorization header
+          // Call logout endpoint but don't wait for it
+          fetch('/api/auth/logout', {
+            method: 'POST',
+            credentials: 'include',
+          }).catch((error) => {
+            // Silently fail - we'll clear local state anyway
             if (process.env.NODE_ENV === 'development') {
-              logger.warn('Error calling logout API:', error);
+              logger.warn('Logout API call failed:', error);
             }
+          });
+        } catch (error) {
+          // Silently fail
+          if (process.env.NODE_ENV === 'development') {
+            logger.warn('Error calling logout API:', error);
           }
         }
         
         // Clear local storage regardless of API call result
+        // Clean up any legacy tokens from localStorage
         removeTokenFromStorage();
       }
       
@@ -321,33 +305,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     try {
-      const token = getTokenFromStorage();
-      if (!token) {
-        return;
-      }
-
-      // Validate token format before making request
-      const tokenParts = token.split('.');
-      if (tokenParts.length !== 3) {
-        logger.warn('Invalid token format, clearing auth state');
-        removeTokenFromStorage();
-        setUser(null);
-        return;
-      }
+      // Token is in httpOnly cookie - no need to check localStorage
+      // Always check with server - server will read from cookies
 
       // Add timeout to prevent hanging requests
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
       try {
+        // Don't send Authorization header - rely on httpOnly cookies only
+        // This ensures we use the secure cookie-based authentication
         const response = await fetch('/api/auth/me', {
           headers: {
-            'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
           // Add cache control to prevent stale data
           cache: 'no-store',
-          credentials: 'include',
+          credentials: 'include', // Important: include cookies in request
           signal: controller.signal,
         });
 
@@ -391,7 +365,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else if (response.status === 401) {
           // Token expired or invalid, clear auth state
           logger.warn('Token expired or invalid, clearing auth state');
-          removeTokenFromStorage();
+          removeTokenFromStorage(); // Clean up any legacy tokens
           setUser(null);
         } else if (response.status === 403) {
           // Forbidden - might be temporary, don't clear auth state

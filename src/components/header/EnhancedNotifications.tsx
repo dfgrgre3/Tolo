@@ -17,12 +17,13 @@ import {
 	XCircle,
 	Filter,
 } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { VirtualList } from "@/components/ui/VirtualList";
 import { cn } from "@/lib/utils";
 import { soundNotificationManager, NotificationSound } from "@/lib/notifications/sound-notifications";
-import { useRealtimeNotifications } from "@/hooks/use-realtime-notifications";import { logger } from '@/lib/logger';
+import { useRealtimeNotifications } from "@/hooks/use-realtime-notifications";
+import { logger } from '@/lib/logger';
 
 import {
 	DropdownMenu,

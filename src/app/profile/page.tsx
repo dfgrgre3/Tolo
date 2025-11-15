@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { AuthGuard } from "@/components/auth/AuthGuard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/shared/progress";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
 	User,
@@ -37,7 +37,8 @@ import {
 } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
 import SecurityTab from "@/components/profile/SecurityTab";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 type User = {
 	id: string;

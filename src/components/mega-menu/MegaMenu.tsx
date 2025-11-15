@@ -3,7 +3,7 @@
 import React, { useRef } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { AnimatePresence } from "framer-motion";
 import { MegaMenuProps } from "./types";

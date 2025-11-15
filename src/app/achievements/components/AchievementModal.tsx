@@ -1,7 +1,7 @@
 "use client";
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Badge } from '@/shared/badge';
+import { Badge } from '@/components/ui/badge';
 import { Achievement } from '../types';
 import {
 	getCategoryIcon,

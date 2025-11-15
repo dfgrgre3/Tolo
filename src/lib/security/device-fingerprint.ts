@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * Advanced Device Fingerprinting Service
  * يوفر تتبع وتحليل الأجهزة بطريقة آمنة ومتقدمة

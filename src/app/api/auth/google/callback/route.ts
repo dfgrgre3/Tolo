@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig, verifyState, generateToken } from '@/lib/oauth';
 import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
-import { isConnectionError } from '@/app/api/auth/_helpers';
+import { isConnectionError, getSecureCookieOptions } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -475,29 +475,18 @@ export async function GET(request: NextRequest) {
       `${baseUrl}${safeRedirectPath}`
     );
 
-    // Set token in cookie
-    response.cookies.set('auth_token', token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
-      path: '/',
+    // Security: Use centralized secure cookie settings
+    // Set token in cookie - use access_token for consistency with login route
+    response.cookies.set('access_token', token, {
+      ...getSecureCookieOptions({ maxAge: 7 * 24 * 60 * 60 }), // 7 days
     });
 
     // Clear state and redirect cookies
     response.cookies.set('oauth_state', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/',
+      ...getSecureCookieOptions({ maxAge: 0 }),
     });
     response.cookies.set('oauth_redirect', '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/',
+      ...getSecureCookieOptions({ maxAge: 0 }),
     });
 
     return response;

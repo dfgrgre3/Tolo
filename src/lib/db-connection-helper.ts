@@ -1,9 +1,80 @@
 // This file must only run on the server - prevent browser bundling
-import 'server-only';
+// Note: We use runtime checks instead of 'server-only' to prevent build-time errors
+// when this file is imported through dynamic imports in client components
+
+// Runtime check to ensure this only runs on the server
+if (typeof window !== 'undefined') {
+  throw new Error('db-connection-helper.ts can only be used on the server');
+}
 
 import { prisma, checkDatabaseHealth, ensureDatabaseConnection } from './db';
 import { databaseConfig } from './database';
-import { logger } from '@/lib/logger';
+
+// Lazy load logger to prevent circular dependencies and client bundling issues
+let loggerInstance: any = null;
+let loggerLoading: Promise<any> | null = null;
+
+function getLoggerSync() {
+  // If logger is already loaded, return it
+  if (loggerInstance) {
+    return loggerInstance;
+  }
+  
+  // If we're on the client, return a no-op logger
+  if (typeof window !== 'undefined') {
+    return {
+      info: () => {},
+      warn: () => {},
+      error: () => {},
+      debug: () => {},
+    };
+  }
+  
+  // If logger is being loaded, return a console-based logger temporarily
+  if (loggerLoading) {
+    return {
+      info: (...args: any[]) => console.info('[Logger not loaded yet]', ...args),
+      warn: (...args: any[]) => console.warn('[Logger not loaded yet]', ...args),
+      error: (...args: any[]) => console.error('[Logger not loaded yet]', ...args),
+      debug: (...args: any[]) => console.debug('[Logger not loaded yet]', ...args),
+    };
+  }
+  
+  // Start loading logger (async, but return sync wrapper)
+  loggerLoading = import('@/lib/logger').then(module => {
+    loggerInstance = module.logger;
+    return loggerInstance;
+  }).catch(() => {
+    // If loading fails, use console as fallback
+    loggerInstance = {
+      info: (...args: any[]) => console.info(...args),
+      warn: (...args: any[]) => console.warn(...args),
+      error: (...args: any[]) => console.error(...args),
+      debug: (...args: any[]) => console.debug(...args),
+    };
+    return loggerInstance;
+  });
+  
+  // Return console-based logger while loading
+  return {
+    info: (...args: any[]) => console.info('[Logger loading...]', ...args),
+    warn: (...args: any[]) => console.warn('[Logger loading...]', ...args),
+    error: (...args: any[]) => console.error('[Logger loading...]', ...args),
+    debug: (...args: any[]) => console.debug('[Logger loading...]', ...args),
+  };
+}
+
+// Export logger getter for synchronous use
+const logger = new Proxy({} as any, {
+  get: (target, prop) => {
+    const logger = getLoggerSync();
+    const method = (logger as any)[prop];
+    if (typeof method === 'function') {
+      return method.bind(logger);
+    }
+    return method;
+  }
+});
 
 /**
  * Database connection helper utilities

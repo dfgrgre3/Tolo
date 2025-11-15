@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { AuthService } from '@/lib/auth-unified';
+import { authService } from '@/lib/auth-service';
 import { getDeviceInfo, getLocationFromIP } from '@/lib/security-utils';
 import {
   verifyAuthenticationResponse,
@@ -18,6 +18,7 @@ import type {
 } from '@simplewebauthn/typescript-types';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { getSecureCookieOptions } from '../_helpers';
 import { BiometricChallengeService } from '@/lib/auth-challenges-service';
 
 // Helper function to validate environment variables
@@ -281,10 +282,10 @@ async function handleBiometricAuthentication(
   });
 
   // Create session
-  const session = await AuthService.createSession(user.id, userAgent, ip);
+  const session = await authService.createSession(user.id, userAgent, ip);
 
   // Reset rate limiting on successful login
-  await AuthService.resetRateLimit(clientId);
+  await authService.resetRateLimit(clientId);
 
   // Update last login time
   await prisma.user.update({
@@ -293,7 +294,7 @@ async function handleBiometricAuthentication(
   });
 
   // Create authentication tokens
-  const tokensResult = await AuthService.createTokens(
+  const tokensResult = await authService.createTokens(
     {
       id: user.id,
       email: user.email,
@@ -333,12 +334,9 @@ async function handleBiometricAuthentication(
   });
 
   // Set refresh token in httpOnly cookie (ensure it's a string)
+  // Security: Use centralized secure cookie settings
   responseObj.cookies.set('refresh_token', refreshToken as string, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-    path: '/',
+    ...getSecureCookieOptions({ maxAge: 30 * 24 * 60 * 60 }), // 30 days in seconds
   });
 
   return responseObj;

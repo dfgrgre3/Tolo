@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '../shared/card';
-import { Button } from '../shared/button';
-import { Progress } from '../shared/progress';
-import { Badge } from '../shared/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Play, Pause, Square, BarChart3, Target, Clock } from 'lucide-react';
 import { useLocalStorageState } from '@/hooks/use-local-storage-state';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface TimeSession {
   id: string;

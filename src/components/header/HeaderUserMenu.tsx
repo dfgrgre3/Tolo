@@ -15,7 +15,7 @@ import {
 	HelpCircle,
 	Circle,
 } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -28,7 +28,8 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LazyAvatar } from "@/components/ui/LazyAvatar";
 import { motion } from "framer-motion";
 import { useAuth } from "@/components/auth/UserProvider";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export function HeaderUserMenu() {
 	const router = useRouter();

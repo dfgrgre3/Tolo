@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
     const where = subject ? { subject } : {};
 
-    const books = await prisma.book.findMany({
+    const books = await (prisma as any).book.findMany({
       where,
       orderBy: [
         { createdAt: "desc" },
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newBook = await prisma.book.create({
+    const newBook = await (prisma as any).book.create({
       data: {
         title,
         author,
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         subject,
         coverUrl,
         downloadUrl,
-        tags: tags || []
+        tags: Array.isArray(tags) ? tags : (tags ? [tags] : []) // Ensure tags is an array for JSON field
       }
     });
 

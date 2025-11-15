@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -89,6 +89,10 @@ model SubjectEnrollment {
   targetWeeklyHours Int      @default(0)
   createdAt         DateTime @default(now())
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subject])
+  @@index([subject])
+  @@index([userId, createdAt])
 }
 
 model StudySession {
@@ -103,6 +107,12 @@ model StudySession {
   strategy    String?
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, subject])
+  @@index([userId, startTime])
+  @@index([userId, createdAt])
+  @@index([subject])
+  @@index([startTime, endTime])
 }
 
 model Task {
@@ -119,6 +129,14 @@ model Task {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([userId, priority])
+  @@index([userId, dueAt])
+  @@index([userId, subject])
+  @@index([status])
+  @@index([status, dueAt])
+  @@index([userId, createdAt])
 }
 
 model Reminder {
@@ -130,6 +148,10 @@ model Reminder {
   repeat    String?
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, remindAt])
+  @@index([userId, createdAt])
+  @@index([remindAt])
 }
 
 model ProgressSnapshot {
@@ -159,6 +181,35 @@ model Resource {
   type        String
   source      String?
   createdAt   DateTime @default(now())
+
+  @@index([subject])
+  @@index([subject, type])
+  @@index([type])
+  @@index([createdAt])
+}
+
+// نموذج الكتب للمكتبة الرقمية
+model Book {
+  id          String   @id @default(cuid())
+  title       String
+  author      String
+  description String
+  subject     String
+  coverUrl    String?
+  downloadUrl String
+  rating      Float    @default(0)
+  views       Int      @default(0)
+  downloads   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tags        Json     @default("[]")  // Array of tags as JSON (SQLite compatibility)
+
+  @@index([subject])
+  @@index([subject, rating])
+  @@index([author])
+  @@index([createdAt])
+  @@index([downloads])
+  @@index([rating])
 }
 
 model Exam {
@@ -169,6 +220,10 @@ model Exam {
   url       String
   
   results   ExamResult[]
+
+  @@index([subject])
+  @@index([subject, year])
+  @@index([year])
 }
 
 model ExamResult {
@@ -182,7 +237,10 @@ model ExamResult {
   teacherId  String?
   
   @@index([userId])
+  @@index([userId, examId])
+  @@index([userId, takenAt])
   @@index([examId])
+  @@index([takenAt])
 }
 
 model Session {
@@ -198,7 +256,11 @@ model Session {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, isActive])
+  @@index([userId, expiresAt])
   @@index([expiresAt])
+  @@index([isActive, expiresAt])
+  @@index([userId, lastAccessed])
 }
 
 model SecurityLog {
@@ -214,8 +276,12 @@ model SecurityLog {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, eventType])
+  @@index([userId, createdAt])
   @@index([eventType])
+  @@index([eventType, createdAt])
   @@index([createdAt])
+  @@index([ip, createdAt])
 }
 
 // Gamification Models
@@ -269,6 +335,8 @@ model CustomGoal {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, isCompleted])
+  @@index([userId, category])
   @@index([category])
   @@index([isCompleted])
 }
@@ -284,6 +352,8 @@ model TwoFactorChallenge {
 
   @@index([expiresAt])
   @@index([userId])
+  @@index([userId, expiresAt])
+  @@index([expiresAt, used])
 }
 
 model BiometricChallenge {
@@ -298,6 +368,8 @@ model BiometricChallenge {
   @@index([expiresAt])
   @@index([type])
   @@index([userId])
+  @@index([userId, type])
+  @@index([expiresAt, used])
 }
 
 // نموذج الإشعارات
@@ -316,7 +388,11 @@ model Notification {
   // فهرس لتحسين أداء الاستعلامات
   @@index([userId])
   @@index([userId, createdAt])
+  @@index([userId, type])
+  @@index([userId, isRead])
+  @@index([userId, isRead, createdAt])
   @@index([isRead])
+  @@index([isRead, createdAt])
 }
 
 // Advanced Gamification Models
@@ -355,6 +431,8 @@ model SeasonParticipation {
   @@index([seasonId])
   @@index([userId])
   @@index([seasonId, seasonXP])
+  @@index([seasonId, rank])
+  @@index([userId, seasonId])
 }
 
 // Challenge Model for Daily/Weekly Challenges
@@ -540,7 +618,9 @@ model SentimentAnalysis {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, sentiment])
   @@index([sentiment])
+  @@index([sentiment, score])
   @@index([createdAt])
   @@index([userId, createdAt])
 }
@@ -557,6 +637,8 @@ model AiChatMessage {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, role])
+  @@index([userId, sentiment])
   @@index([createdAt])
   @@index([userId, createdAt])
 }
@@ -576,8 +658,12 @@ model AiGeneratedContent {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, type])
+  @@index([userId, type, isUsed])
   @@index([type])
   @@index([subject])
+  @@index([subject, type])
+  @@index([isUsed])
   @@index([createdAt])
 }
 
@@ -593,8 +679,13 @@ model UserInteraction {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, type])
+  @@index([userId, type, itemType])
+  @@index([userId, itemType])
+  @@index([userId, itemType, timestamp])
   @@index([type])
   @@index([itemType])
+  @@index([itemType, itemId])
   @@index([timestamp])
   @@index([userId, timestamp])
 }
@@ -613,6 +704,8 @@ model ContentPreference {
 
   @@unique([userId, itemType, itemValue])
   @@index([userId])
+  @@index([userId, itemType])
+  @@index([userId, itemType, weight])
   @@index([itemType])
 }
 
@@ -633,7 +726,13 @@ model MlRecommendation {
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, itemType])
+  @@index([userId, itemType, score])
+  @@index([userId, algorithm])
+  @@index([userId, shownAt])
   @@index([itemType])
+  @@index([itemType, itemId])
+  @@index([itemType, itemId, score])
   @@index([score])
   @@index([createdAt])
   @@index([userId, createdAt])

@@ -1,10 +1,10 @@
 import React from 'react';
 import { Task, TaskStatus } from '@/types/tasks';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/card';
-import { Button } from '@/shared/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Badge } from '@/shared/badge';
+import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Calendar, Clock } from 'lucide-react';
 
 interface TaskListProps {

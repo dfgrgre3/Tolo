@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema } from 'zod';
 import { redis } from '@/lib/redis';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // Rate limiting configuration
 interface RateLimitConfig {
@@ -174,13 +175,13 @@ export function extractClientInfo(request: NextRequest): {
 // Standardized error response format
 export interface APIError {
   error: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   code?: string;
   status: number;
 }
 
 // Standardized success response format
-export interface APISuccess<T = any> {
+export interface APISuccess<T = unknown> {
   data: T;
   message?: string;
   status: number;
@@ -191,7 +192,8 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public readonly status: number = 500,
-    public readonly code?: string
+    public readonly code?: string,
+    public readonly details?: Record<string, unknown>
   ) {
     super(message);
     this.name = 'ApiError';
@@ -215,7 +217,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
   }
 
   // Handle known error types
-  if (error instanceof SyntaxError && (error as any).message.includes('JSON')) {
+  if (error instanceof SyntaxError && error.message.includes('JSON')) {
     return NextResponse.json(
       {
         error: 'Invalid JSON in request body',
@@ -226,19 +228,19 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     );
   }
 
-  if ((error as any).name === 'ZodError') {
+  if ((error as {name: string}).name === 'ZodError') {
     return NextResponse.json(
       {
         error: 'Validation error',
         code: 'VALIDATION_ERROR',
-        details: (error as any).errors,
+        details: (error as {errors: unknown[]}).errors,
         status: 400
       },
       { status: 400 }
     );
   }
 
-  if ((error as any).code === 'P2002') {
+  if ((error as {code: string}).code === 'P2002') {
     return NextResponse.json(
       {
         error: 'Resource already exists',
@@ -249,7 +251,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     );
   }
 
-  if ((error as any).code === 'P2025') {
+  if ((error as {code: string}).code === 'P2025') {
     return NextResponse.json(
       {
         error: 'Resource not found',
@@ -397,7 +399,7 @@ export async function applyRateLimit(
  * @returns NextResponse if validation fails, null otherwise
  */
 export function validateRequiredParams(
-  params: Record<string, any>,
+  params: Record<string, unknown>,
   required: string[]
 ): NextResponse | null {
   for (const param of required) {
@@ -465,7 +467,7 @@ export function sanitizeInput(input: string): string {
  * @param request Next.js request object
  * @returns User object if authenticated, null otherwise
  */
-export async function getAuthenticatedUser(request: NextRequest): Promise<any | null> {
+export async function getAuthenticatedUser(request: NextRequest): Promise<unknown | null> {
   try {
     // This would depend on your authentication implementation
     // For example, you might extract a token from the Authorization header
@@ -474,8 +476,6 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<any | 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return null;
     }
-
-    const token = authHeader.substring(7);
 
     // Verify token and extract user information
     // This is just a placeholder - implement based on your auth system
@@ -512,7 +512,7 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
  * @param code Optional error code
  * @returns NextResponse with error
  */
-export function createErrorResponse(message: string, status: number = 500, details?: any, code?: string): NextResponse {
+export function createErrorResponse(message: string, status: number = 500, details?: unknown, code?: string): NextResponse {
   if (code) {
     return NextResponse.json(
       {

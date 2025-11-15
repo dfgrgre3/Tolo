@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/components/auth/UserProvider";
 import { CheckCircle2, User } from "lucide-react";
-import { Badge } from "@/shared/badge";
+import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
 export default function Footer() {

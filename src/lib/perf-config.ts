@@ -1,12 +1,98 @@
+// Performance monitoring configuration
+// Lazy load logger to prevent server-side bundling issues
+// This file must be safe for both client and server execution
 
-// Performance monitoring configurati
-import { logger } from '@/lib/logger';
-on
+// Define logger interface type
+interface Logger {
+  info: (...args: any[]) => void;
+  warn: (...args: any[]) => void;
+  error: (...args: any[]) => void;
+  debug: (...args: any[]) => void;
+}
+
+// Initialize logger instance safely
+// Never initialize on client side to prevent bundling issues
+let loggerInstance: Logger | null = null;
+
+// Create a console-based logger for client-side use
+const createConsoleLogger = () => ({
+  info: (...args: any[]) => {
+    if (typeof console !== 'undefined' && console.info) {
+      console.info(...args);
+    }
+  },
+  warn: (...args: any[]) => {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn(...args);
+    }
+  },
+  error: (...args: any[]) => {
+    if (typeof console !== 'undefined' && console.error) {
+      console.error(...args);
+    }
+  },
+  debug: (...args: any[]) => {
+    if (typeof console !== 'undefined' && console.debug) {
+      console.debug(...args);
+    }
+  },
+});
+
+async function getLogger(): Promise<Logger> {
+  // Always use console logger on client side to avoid bundling server-only code
+  // This prevents the bundler from trying to include server-only dependencies
+  const isClient = typeof window !== 'undefined';
+  
+  if (isClient) {
+    // On client, always return console logger immediately
+    return createConsoleLogger();
+  }
+  
+  // Server-side only: lazy load the actual logger
+  if (!loggerInstance) {
+    try {
+      // Build the import path dynamically to prevent bundler from analyzing it
+      // This ensures the logger module is never bundled for the client
+      const loggerPath = '@' + '/lib/' + 'logger';
+      const loggerModule = await import(loggerPath);
+      loggerInstance = loggerModule.logger || loggerModule.default || createConsoleLogger();
+    } catch (error) {
+      // Fallback to console if logger fails to load
+      loggerInstance = createConsoleLogger();
+    }
+  }
+  
+  return loggerInstance;
+}
+
 const getPerfConfig = () => {
-  const isDevelopment =
-    typeof window !== "undefined" ?
-      window.location.hostname === "localhost" :
-      process.env.NODE_ENV === "development";
+  // Safe check for development mode that works on both client and server
+  let isDevelopment = false;
+  try {
+    // Check if we're on the client side
+    const isClient = typeof window !== "undefined";
+    
+    if (isClient && typeof window.location !== "undefined") {
+      // Client-side: check hostname
+      isDevelopment = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    } else if (!isClient) {
+      // Server-side only: safely access process.env
+      // Wrap in try-catch and check each level separately
+      try {
+        const proc = typeof process !== "undefined" ? process : null;
+        if (proc && proc.env && typeof proc.env === "object") {
+          const nodeEnv = proc.env.NODE_ENV;
+          isDevelopment = nodeEnv === "development";
+        }
+      } catch {
+        // If process.env access fails, default to false
+        isDevelopment = false;
+      }
+    }
+  } catch (error) {
+    // Fallback to false if any error occurs
+    isDevelopment = false;
+  }
   const isProduction = !isDevelopment;
 
   return {
@@ -57,25 +143,44 @@ const getPerfConfig = () => {
 };
 
 // Export as PERF_CONFIG for compatibility
-const PERF_CONFIG = getPerfConfig();
+// Safe initialization with error handling
+let PERF_CONFIG: ReturnType<typeof getPerfConfig>;
+try {
+  PERF_CONFIG = getPerfConfig();
+} catch (error) {
+  // Fallback config if initialization fails (e.g., during client-side bundling)
+  PERF_CONFIG = {
+    cache: { logMetrics: false, slowOperationThreshold: 100, sampleRate: 0.1 },
+    api: { slowRequestThreshold: 1000, sampleRate: 0.1 },
+    database: { slowQueryThreshold: 500, sampleRate: 0.1 },
+    lazyLoading: {
+      intersectionObserver: { threshold: 0.1, rootMargin: "200px" },
+      priorityLoading: { enabled: true, useDisplayProperty: true }
+    }
+  };
+}
 
 // Stub PerfMonitor for compatibility (can be enhanced later)
 const PerfMonitor = {
-  measure: async (label: string, fn: Function) => {
+  measure: async <T>(label: string, fn: () => Promise<T> | T): Promise<T> => {
     const start = Date.now();
     try {
       const result = await fn();
       const duration = Date.now() - start;
+      const logger = await getLogger();
       logger.info(`Performance: ${label} took ${duration}ms`);
       return result;
-    } catch (error: any) {
+    } catch (error) {
       const duration = Date.now() - start;
-      logger.error(`Performance error in ${label}: ${error.message} (${duration}ms)`);
-      throw error;
+      const logger = await getLogger();
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      logger.error(`Performance error in ${label}: ${normalizedError.message} (${duration}ms)`);
+      throw normalizedError;
     }
   },
-  logCacheMetric: (key: string, hit: boolean, duration: number) => {
+  logCacheMetric: async (key: string, hit: boolean, duration: number) => {
     // Simple logging - can be enhanced with proper metrics collection
+    const logger = await getLogger();
     if (hit) {
       logger.info(`Cache hit for ${key}`);
     } else {

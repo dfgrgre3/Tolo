@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Icons } from '@/components/ui/icons';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface SecurityEvent {
   id: string;

@@ -11,8 +11,8 @@ import {
 	Legend
 } from "chart.js";
 import { Bar, Doughnut } from "react-chartjs-2";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Progress } from "@/shared/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { BookOpen, TrendingUp, Award } from 'lucide-react';
 
 ChartJS.register(

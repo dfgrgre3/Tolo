@@ -1,6 +1,6 @@
 import { Task } from '@/types/tasks';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/card';
-import { Progress } from '@/shared/progress';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
 
 interface TaskAnalyticsProps {
   tasks: Task[];

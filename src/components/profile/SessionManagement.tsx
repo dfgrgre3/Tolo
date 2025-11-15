@@ -1,15 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { Smartphone, Monitor, Tablet, MapPin, Clock, Edit, Trash2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Session {
   id: string;
@@ -60,12 +61,10 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
   const loadSessions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/sessions', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -84,27 +83,20 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
 
   const checkTokenRefresh = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
-      if (!token) return;
-
+      // Token is in httpOnly cookie - refresh endpoint will read from cookie
       // Check if token needs refresh (5 minutes before expiration)
       const response = await fetch('/api/auth/refresh', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
+        credentials: 'include',
       });
 
       if (response.ok) {
-        const data = await response.json();
-        if (data.accessToken) {
-          localStorage.setItem('authToken', data.accessToken);
-          if (data.refreshToken) {
-            localStorage.setItem('refreshToken', data.refreshToken);
-          }
-          // Silently refresh token without user notification
-        }
+        // Token refresh is handled by server via httpOnly cookies
+        // No need to manually store tokens
+        // Silently refresh token without user notification
       }
     } catch (error) {
       logger.error('Token refresh check failed:', error);
@@ -114,13 +106,11 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
   const handleRevokeSession = async (sessionId: string) => {
     try {
       setRevokingId(sessionId);
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch(`/api/auth/sessions/${sessionId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -141,13 +131,11 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
     if (!confirm('هل أنت متأكد من إنهاء جميع الجلسات الأخرى؟')) return;
 
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch('/api/auth/sessions', {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -165,14 +153,14 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
 
   const handleUpdateDeviceName = async (sessionId: string, name: string) => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const response = await fetch(`/api/auth/sessions/${sessionId}`, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({ deviceName: name }),
       });
 

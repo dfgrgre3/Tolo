@@ -14,15 +14,16 @@ import {
   Sparkles,
   Loader2
 } from "lucide-react";
-import { Card, CardContent } from "@/shared/card";
-import { Button } from "@/shared/button";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 // Firebase imports (Mandatory for real-world apps)
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // Default achievement structure used as template when initializing Firebase collections
 // Real data comes from Firebase Firestore

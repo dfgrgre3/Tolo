@@ -1,14 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { AlertTriangle, CheckCircle2, XCircle, Shield, Lock, Key, Mail, Bell } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface SecurityEvent {
   id: string;
@@ -67,7 +68,7 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
   const loadSecurityEvents = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       
       const params = new URLSearchParams();
       if (filter !== 'all') {
@@ -76,9 +77,7 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
       params.append('limit', '50');
 
       const response = await fetch(`/api/auth/security-logs?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -96,11 +95,9 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
 
   const checkForNewAlerts = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security-logs?eventType=SECURITY_ALERT&limit=1', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {

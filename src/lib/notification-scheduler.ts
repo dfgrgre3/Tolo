@@ -1,18 +1,18 @@
 import { sendTemplatedNotification } from './notification-service';
-import { getSafeAuthToken } from './safe-client-utils';
-import { logger } from '@/lib/logger';
+// Token is in httpOnly cookie - no need to import getSafeAuthToken
+
+import { logger } from '@/lib/logger';
 
 // دالة لفحص المهام القريبة الموعد وإرسال إشعارات
 export async function checkUpcomingTasks() {
   try {
-    const token = getSafeAuthToken();
-    if (!token) return;
-
+    // Token is in httpOnly cookie - no need to send Authorization header
     // جلب المهام القريبة الموعد (خلال 24 ساعة القادمة)
     const response = await fetch('/api/tasks/upcoming', {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     if (!response.ok) return;
@@ -51,14 +51,13 @@ export async function checkUpcomingTasks() {
 // دالة لفحص الاختبارات القريبة وإرسال إشعارات
 export async function checkUpcomingTests() {
   try {
-    const token = getSafeAuthToken();
-    if (!token) return;
-
+    // Token is in httpOnly cookie - no need to send Authorization header
     // جلب الاختبارات القريبة
     const response = await fetch('/api/tests/upcoming', {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     if (!response.ok) return;
@@ -85,15 +84,14 @@ export async function checkUpcomingTests() {
 // دالة لفحص الجدول الدراسي وإرسال إشعارات
 export async function checkSchedule() {
   try {
-    const token = getSafeAuthToken();
-    if (!token) return;
-
+    // Token is in httpOnly cookie - no need to send Authorization header
     // جلب الجدول الدراسي لليوم الحالي
     const today = new Date().toISOString().split('T')[0];
     const response = await fetch(`/api/schedule?date=${today}`, {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     if (!response.ok) return;
@@ -123,14 +121,13 @@ export async function checkSchedule() {
 // دالة لفحص التقدم وإرسال إشعارات عند تحقيق إنجازات
 export async function checkProgressMilestones() {
   try {
-    const token = getSafeAuthToken();
-    if (!token) return;
-
+    // Token is in httpOnly cookie - no need to send Authorization header
     // جلب بيانات التقدم
     const response = await fetch('/api/progress', {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     if (!response.ok) return;
@@ -149,11 +146,13 @@ export async function checkProgressMilestones() {
           sendTemplatedNotification('goalAchieved', goal.name);
 
           // تحديث الهدف لتمييزه بأنه تم إرسال إشعار له
+          // Token is in httpOnly cookie - no need to send Authorization header
           await fetch(`/api/goals/${goal.id}/notify`, {
             method: 'POST',
             headers: {
-              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
             },
+            credentials: 'include',
           });
         }
       }
@@ -166,14 +165,13 @@ export async function checkProgressMilestones() {
 // دالة لفحص المناسبات القريبة وإرسال إشعارات
 export async function checkUpcomingEvents() {
   try {
-    const token = getSafeAuthToken();
-    if (!token) return;
-
+    // Token is in httpOnly cookie - no need to send Authorization header
     // جلب المناسبات القريبة
     const response = await fetch('/api/events/upcoming', {
       headers: {
-        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
+      credentials: 'include',
     });
 
     if (!response.ok) return;

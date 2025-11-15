@@ -3,9 +3,10 @@
  * Provides structured logging for authentication events
  */
 
-import { authService } from '../auth-service';
+// Don't import auth-service directly to avoid server-only bundling issues
+// Will be lazy-loaded when needed (server-side only)
 
-import { logger as elkLogger } from '@/lib/logging/elk-logger';
+import { elkLoggerHelper as elkLogger } from '@/lib/logging/elk-logger';
 
 export enum AuthLogLevel {
   INFO = 'info',
@@ -71,21 +72,25 @@ export class AuthLogger {
       this.logs.shift(); // Remove oldest
     }
 
-    // Also log to security log (database)
-    try {
-      await authService.logSecurityEvent(userId, event, ip, {
-        ...metadata,
-        level,
-        error,
-      });
-    } catch (dbError) {
-      // Don't fail if DB logging fails, but log it
-      elkLogger.error('Failed to log to database', dbError instanceof Error ? dbError : new Error(String(dbError)), {
-        context: 'auth-logger',
-        userId,
-        event,
-        ip,
-      });
+    // Also log to security log (database) - lazy load to avoid server-only bundling
+    if (typeof window === 'undefined') {
+      try {
+        // Use string concatenation to prevent webpack from statically analyzing the import
+        const authServiceModule = await import('../' + 'auth-service');
+        await authServiceModule.authService.logSecurityEvent(userId, event, ip, {
+          ...metadata,
+          level,
+          error,
+        });
+      } catch (dbError) {
+        // Don't fail if DB logging fails, but log it
+        elkLogger.error('Failed to log to database', dbError instanceof Error ? dbError : new Error(String(dbError)), {
+          context: 'auth-logger',
+          userId,
+          event,
+          ip,
+        });
+      }
     }
 
     // Log to ELK logger based on level

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -13,8 +14,10 @@ export function proxy(request: NextRequest) {
   }
 
   // Get auth token from cookies
+  // Standard cookie name is access_token (used by login and OAuth routes)
+  // Check auth_token for backward compatibility during transition
   const accessToken = request.cookies.get('access_token')?.value;
-  const authToken = request.cookies.get('auth_token')?.value;
+  const authToken = request.cookies.get('auth_token')?.value; // Legacy support
   const hasToken = !!accessToken || !!authToken;
 
   // If user is authenticated and trying to access login/register, redirect

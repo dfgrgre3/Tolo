@@ -1,5 +1,6 @@
 import { CacheService } from "./redis";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 /**
  * Cache Invalidation Service
@@ -98,7 +99,7 @@ export async function invalidateMultiplePatterns(patterns: string[]): Promise<vo
 }
 
 // Export default for backward compatibility
-export default {
+const cacheInvalidationService = {
   CachePrefixes,
   invalidateUserCache,
   invalidateUserDataCache,
@@ -109,3 +110,5 @@ export default {
   invalidateAllCache,
   invalidateMultiplePatterns
 };
+
+export default cacheInvalidationService;

@@ -1,6 +1,37 @@
-import { prisma } from './prisma';
+// Lazy load prisma to prevent client bundling of server-only code
+let prismaInstance: any = null;
 
-import { logger as elkLogger } from '@/lib/logging/elk-logger';
+async function getPrisma() {
+  if (!prismaInstance) {
+    // Dynamic import to prevent bundler from analyzing server-only dependencies
+    if (typeof window !== 'undefined') {
+      throw new Error('Security logger can only be used on the server');
+    }
+    const prismaModule = await import('./prisma');
+    prismaInstance = await prismaModule.getPrisma();
+  }
+  return prismaInstance;
+}
+
+// Lazy load elkLogger to prevent client bundling of server-only code
+let elkLoggerInstance: any = null;
+
+async function getElkLogger() {
+  if (!elkLoggerInstance) {
+    if (typeof window !== 'undefined') {
+      // Return a no-op logger on client side
+      return {
+        error: () => {},
+        warn: () => {},
+        info: () => {},
+        debug: () => {},
+      };
+    }
+    const elkLoggerModule = await import('@/lib/logging/elk-logger');
+    elkLoggerInstance = elkLoggerModule.elkLoggerHelper;
+  }
+  return elkLoggerInstance;
+}
 
 export type SecurityEventType =
   | 'LOGIN_SUCCESS'
@@ -66,7 +97,8 @@ export class SecurityLogger {
    */
   async logEvent(data: SecurityLogData): Promise<void> {
     try {
-      await prisma.securityLog.create({
+      const dbClient = await getPrisma();
+      await dbClient.securityLog.create({
         data: {
           id: crypto.randomUUID(),
           userId: data.userId,
@@ -81,15 +113,20 @@ export class SecurityLogger {
     } catch (error) {
       // لا نرمي خطأ حتى لا نؤثر على التدفق الرئيسي
       // لكن نسجله في ELK logger
-      elkLogger.error(
-        'Failed to log security event',
-        error instanceof Error ? error : new Error(String(error)),
-        {
-          context: 'security-logger',
-          eventType: data.eventType,
-          userId: data.userId,
-        }
-      );
+      try {
+        const elkLogger = await getElkLogger();
+        elkLogger.error(
+          'Failed to log security event',
+          error instanceof Error ? error : new Error(String(error)),
+          {
+            context: 'security-logger',
+            eventType: data.eventType,
+            userId: data.userId,
+          }
+        );
+      } catch (loggerError) {
+        // Silently fail if logger can't be loaded
+      }
     }
   }
 
@@ -250,7 +287,8 @@ export class SecurityLogger {
     offset: number = 0
   ): Promise<any[]> {
     try {
-      const logs = await prisma.securityLog.findMany({
+      const dbClient = await getPrisma();
+      const logs = await dbClient.securityLog.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: limit,
@@ -263,11 +301,16 @@ export class SecurityLogger {
         metadata: log.metadata ? JSON.parse(log.metadata) : null,
       }));
     } catch (error) {
-      elkLogger.error(
-        'Failed to get security logs',
-        error instanceof Error ? error : new Error(String(error)),
-        { context: 'security-logger', userId }
-      );
+      try {
+        const elkLogger = await getElkLogger();
+        elkLogger.error(
+          'Failed to get security logs',
+          error instanceof Error ? error : new Error(String(error)),
+          { context: 'security-logger', userId }
+        );
+      } catch (loggerError) {
+        // Silently fail if logger can't be loaded
+      }
       return [];
     }
   }
@@ -281,7 +324,8 @@ export class SecurityLogger {
     limit: number = 50
   ): Promise<any[]> {
     try {
-      const logs = await prisma.securityLog.findMany({
+      const dbClient = await getPrisma();
+      const logs = await dbClient.securityLog.findMany({
         where: {
           userId,
           eventType,
@@ -296,11 +340,16 @@ export class SecurityLogger {
         metadata: log.metadata ? JSON.parse(log.metadata) : null,
       }));
     } catch (error) {
-      elkLogger.error(
-        'Failed to get logs by event type',
-        error instanceof Error ? error : new Error(String(error)),
-        { context: 'security-logger', userId, eventType }
-      );
+      try {
+        const elkLogger = await getElkLogger();
+        elkLogger.error(
+          'Failed to get logs by event type',
+          error instanceof Error ? error : new Error(String(error)),
+          { context: 'security-logger', userId, eventType }
+        );
+      } catch (loggerError) {
+        // Silently fail if logger can't be loaded
+      }
       return [];
     }
   }
@@ -313,7 +362,8 @@ export class SecurityLogger {
     eventType: SecurityEventType
   ): Promise<any | null> {
     try {
-      const log = await prisma.securityLog.findFirst({
+      const dbClient = await getPrisma();
+      const log = await dbClient.securityLog.findFirst({
         where: {
           userId,
           eventType,
@@ -329,11 +379,16 @@ export class SecurityLogger {
         metadata: log.metadata ? JSON.parse(log.metadata) : null,
       };
     } catch (error) {
-      elkLogger.error(
-        'Failed to get last event',
-        error instanceof Error ? error : new Error(String(error)),
-        { context: 'security-logger', userId, eventType }
-      );
+      try {
+        const elkLogger = await getElkLogger();
+        elkLogger.error(
+          'Failed to get last event',
+          error instanceof Error ? error : new Error(String(error)),
+          { context: 'security-logger', userId, eventType }
+        );
+      } catch (loggerError) {
+        // Silently fail if logger can't be loaded
+      }
       return null;
     }
   }

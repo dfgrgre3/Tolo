@@ -12,7 +12,7 @@ import {
 	Filler
 } from "chart.js";
 import { Line } from "react-chartjs-2";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Calendar, Clock, Activity } from 'lucide-react';
 import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';

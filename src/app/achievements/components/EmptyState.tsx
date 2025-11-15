@@ -1,7 +1,7 @@
 "use client";
 
 import Link from 'next/link';
-import { Button } from '@/shared/button';
+import { Button } from '@/components/ui/button';
 import { Trophy, Target, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 

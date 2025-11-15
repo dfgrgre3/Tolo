@@ -8,7 +8,32 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useClientEffect } from '@/hooks/use-client-effect';
-import { logger } from '@/lib/logger';
+
+type Logger = {
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+};
+
+let loggerInstance: Logger | null = null;
+async function getLogger() {
+  if (!loggerInstance) {
+    try {
+      const loggerModule = await import('@/lib/logger');
+      loggerInstance = loggerModule.logger;
+    } catch (error) {
+      // Fallback to console if logger fails to load
+      loggerInstance = {
+        info: (...args: unknown[]) => console.info(...args),
+        warn: (...args: unknown[]) => console.warn(...args),
+        error: (...args: unknown[]) => console.error(...args),
+        debug: (...args: unknown[]) => console.debug(...args),
+      };
+    }
+  }
+  return loggerInstance;
+}
 
 /**
  * Check if code is running on the client side
@@ -67,7 +92,11 @@ export function useBrowserAPI<T>(
       setValue(apiValue);
       setIsReady(true);
     } catch (error) {
-      logger.warn('Failed to access browser API:', error);
+      getLogger().then(logger => {
+        logger.warn('Failed to access browser API:', error);
+      }).catch(() => {
+        console.warn('Failed to access browser API:', error);
+      });
       setIsReady(true);
     }
   }, [], options);
@@ -104,7 +133,8 @@ export function useHydrationSafeState<T>(
       } else {
         // Store the server value for comparison
         if (typeof value === 'function') {
-          serverValueRef.current = (value as Function)(serverValueRef.current);
+          const updater = value as (previous: T) => T;
+          serverValueRef.current = updater(serverValueRef.current);
         } else {
           serverValueRef.current = value;
         }
@@ -130,15 +160,17 @@ export function useProgressiveEnhancement<T>(
   }
 ): T {
   const [value, setValue] = useState(serverValue);
-  const [isEnhanced, setIsEnhanced] = useState(false);
 
   useClientEffect(async () => {
     try {
       const enhancedValue = await clientEnhancer();
       setValue(enhancedValue);
-      setIsEnhanced(true);
     } catch (error) {
-      logger.error('Progressive enhancement failed:', error);
+      getLogger().then(logger => {
+        logger.error('Progressive enhancement failed:', error);
+      }).catch(() => {
+        console.error('Progressive enhancement failed:', error);
+      });
       options?.onError?.(error as Error);
     }
   }, []);
@@ -149,7 +181,7 @@ export function useProgressiveEnhancement<T>(
 /**
  * Utility for creating hydration-safe event handlers
  */
-export function createHydrationSafeHandler<T extends (...args: any[]) => any>(
+export function createHydrationSafeHandler<T extends (...args: unknown[]) => unknown>(
   handler: T,
   options?: {
     skipServer?: boolean;
@@ -182,7 +214,11 @@ export function useClientOnlyEffect(
     try {
       cleanupRef.current = effect();
     } catch (error) {
-      logger.error('Client-only effect failed:', error);
+      getLogger().then(logger => {
+        logger.error('Client-only effect failed:', error);
+      }).catch(() => {
+        console.error('Client-only effect failed:', error);
+      });
       options?.onError?.(error as Error);
     }
 
@@ -191,7 +227,11 @@ export function useClientOnlyEffect(
         try {
           cleanupRef.current();
         } catch (error) {
-          logger.error('Client-only effect cleanup failed:', error);
+          getLogger().then(logger => {
+            logger.error('Client-only effect cleanup failed:', error);
+          }).catch(() => {
+            console.error('Client-only effect cleanup failed:', error);
+          });
         }
         cleanupRef.current = undefined;
       }
@@ -217,7 +257,11 @@ export async function safeDynamicImport<T>(
     try {
       return await importFn();
     } catch (error) {
-      logger.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
+      getLogger().then(logger => {
+        logger.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
+      }).catch(() => {
+        console.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
+      });
 
       if (attempt === retries) {
         onError?.(error as Error);
@@ -275,8 +319,8 @@ export function useSafeDynamicImport<T>(
  * Utility for detecting hydration mismatches
  */
 export function detectHydrationMismatch(
-  serverValue: any,
-  clientValue: any,
+  serverValue: unknown,
+  clientValue: unknown,
   tolerance?: {
     ignoreFunctions?: boolean;
     ignoreUndefined?: boolean;
@@ -331,6 +375,7 @@ export function useHydrationStatus() {
     const startTime = performance.now();
     setIsHydrated(true);
     setHydrationTime(performance.now() - startTime);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return { isHydrated, hydrationTime };
@@ -389,7 +434,11 @@ export const clientServerPerf = {
         const measure = performance.getEntriesByName(`client-server:${name}`, 'measure')[0];
         return measure?.duration;
       } catch (error) {
-        logger.warn('Performance measurement failed:', error);
+        getLogger().then(logger => {
+          logger.warn('Performance measurement failed:', error);
+        }).catch(() => {
+          console.warn('Performance measurement failed:', error);
+        });
       }
     }
     return null;

@@ -1,10 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PlusCircle, Play, Pause, RefreshCw, Download, Settings, Calendar, Clock } from 'lucide-react';
-import { Badge } from "@/shared/badge";
+import { Badge } from "@/components/ui/badge";
 
 interface QuickStats {
   todayTasks: number;

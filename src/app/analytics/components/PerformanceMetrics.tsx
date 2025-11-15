@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Progress } from "@/shared/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { Target, TrendingUp, TrendingDown, Activity, Zap, Award } from 'lucide-react';
 
 type WeeklyData = { 

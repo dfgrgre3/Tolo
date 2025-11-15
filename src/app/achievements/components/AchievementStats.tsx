@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AchievementStats as StatsType } from '../types';
 import { getCategoryIcon, getCategoryLabel } from '../utils';
 import { Trophy, Target, Lock, TrendingUp, Award } from 'lucide-react';

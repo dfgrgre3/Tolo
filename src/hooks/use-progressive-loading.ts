@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useClientEffect, useClientEffectSafe } from './use-client-effect';
+import { useClientEffect } from './use-client-effect';
 
 interface ProgressiveLoadingOptions {
   priority?: boolean;
@@ -29,6 +29,8 @@ export function useProgressiveLoading<T>(
   loadFunction: () => Promise<T>,
   options: ProgressiveLoadingOptions = {}
 ) {
+  // Ensure options is an object to prevent destructuring errors
+  const safeOptions = options || {};
   const {
     priority = false,
     lazyLoad = true,
@@ -39,7 +41,7 @@ export function useProgressiveLoading<T>(
     onLoadComplete,
     onError,
     onRetry
-  } = options;
+  } = safeOptions;
 
   const [state, setState] = useState<ProgressiveLoadingState<T>>({
     data: null,
@@ -202,7 +204,9 @@ export function useProgressiveData<T>(
     staleWhileRevalidate?: boolean;
   } = {}
 ) {
-  const { cacheTime = 5 * 60 * 1000, staleWhileRevalidate = true, ...loadingOptions } = options;
+  // Ensure options is an object to prevent destructuring errors
+  const safeOptions = options || {};
+  const { cacheTime = 5 * 60 * 1000, staleWhileRevalidate = true, ...loadingOptions } = safeOptions;
 
   const loadFunction = useCallback(async () => {
     const { safeGetItem, safeSetItem, isBrowser } = require('@/lib/safe-client-utils');
@@ -273,7 +277,9 @@ export function useProgressiveImage(
     onError?: (error: Error) => void;
   } = {}
 ) {
-  const { priority = false, lazyLoad = true, placeholder, onLoad, onError } = options;
+  // Ensure options is an object to prevent destructuring errors
+  const safeOptions = options || {};
+  const { priority = false, lazyLoad = true, placeholder, onLoad, onError } = safeOptions;
 
   const [state, setState] = useState({
     currentSrc: placeholder || '',

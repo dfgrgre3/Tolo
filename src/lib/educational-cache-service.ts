@@ -1,5 +1,6 @@
 import { getOrSetEnhanced, batchGetOrSet, CacheService } from "@/lib/cache-service-unified";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 /**
  * Educational Content Cache Service
@@ -7,10 +8,8 @@ import { getOrSetEnhanced, batchGetOrSet, CacheService } from "@/lib/cache-servi
  */
 
 // Cache TTL constants (in seconds)
-const SHORT_TTL = 300;     // 5 minutes
 const MEDIUM_TTL = 600;    // 10 minutes
 const LONG_TTL = 3600;     // 1 hour
-const VERY_LONG_TTL = 86400; // 24 hours
 
 /**
  * Cache educational content with automatic expiration
@@ -64,7 +63,7 @@ export async function getOrSetEducationalContent<T>(
  * @param subjectId Subject ID
  * @param data Subject data
  */
-export async function cacheSubject(subjectId: string, data: any): Promise<void> {
+export async function cacheSubject(subjectId: string, data: unknown): Promise<void> {
   await cacheEducationalContent(`subject:${subjectId}`, data, MEDIUM_TTL);
 }
 
@@ -73,7 +72,7 @@ export async function cacheSubject(subjectId: string, data: any): Promise<void> 
  * @param subjectId Subject ID
  * @returns Subject data or null
  */
-export async function getCachedSubject(subjectId: string): Promise<any> {
+export async function getCachedSubject(subjectId: string): Promise<unknown> {
   return await getEducationalContent(`subject:${subjectId}`);
 }
 
@@ -85,8 +84,8 @@ export async function getCachedSubject(subjectId: string): Promise<any> {
  */
 export async function getOrSetSubject(
   subjectId: string,
-  fetchFn: () => Promise<any>
-): Promise<any> {
+  fetchFn: () => Promise<unknown>
+): Promise<unknown> {
   return getOrSetEducationalContent(`subject:${subjectId}`, fetchFn, MEDIUM_TTL);
 }
 
@@ -95,7 +94,7 @@ export async function getOrSetSubject(
  * @param courseId Course ID
  * @param data Course data
  */
-export async function cacheCourse(courseId: string, data: any): Promise<void> {
+export async function cacheCourse(courseId: string, data: unknown): Promise<void> {
   await cacheEducationalContent(`course:${courseId}`, data, MEDIUM_TTL);
 }
 
@@ -104,7 +103,7 @@ export async function cacheCourse(courseId: string, data: any): Promise<void> {
  * @param courseId Course ID
  * @returns Course data or null
  */
-export async function getCachedCourse(courseId: string): Promise<any> {
+export async function getCachedCourse(courseId: string): Promise<unknown> {
   return await getEducationalContent(`course:${courseId}`);
 }
 
@@ -116,8 +115,8 @@ export async function getCachedCourse(courseId: string): Promise<any> {
  */
 export async function getOrSetCourse(
   courseId: string,
-  fetchFn: () => Promise<any>
-): Promise<any> {
+  fetchFn: () => Promise<unknown>
+): Promise<unknown> {
   return getOrSetEducationalContent(`course:${courseId}`, fetchFn, MEDIUM_TTL);
 }
 
@@ -126,7 +125,7 @@ export async function getOrSetCourse(
  * @param lessonId Lesson ID
  * @param data Lesson data
  */
-export async function cacheLesson(lessonId: string, data: any): Promise<void> {
+export async function cacheLesson(lessonId: string, data: unknown): Promise<void> {
   await cacheEducationalContent(`lesson:${lessonId}`, data, MEDIUM_TTL);
 }
 
@@ -135,7 +134,7 @@ export async function cacheLesson(lessonId: string, data: any): Promise<void> {
  * @param lessonId Lesson ID
  * @returns Lesson data or null
  */
-export async function getCachedLesson(lessonId: string): Promise<any> {
+export async function getCachedLesson(lessonId: string): Promise<unknown> {
   return await getEducationalContent(`lesson:${lessonId}`);
 }
 
@@ -147,8 +146,8 @@ export async function getCachedLesson(lessonId: string): Promise<any> {
  */
 export async function getOrSetLesson(
   lessonId: string,
-  fetchFn: () => Promise<any>
-): Promise<any> {
+  fetchFn: () => Promise<unknown>
+): Promise<unknown> {
   return getOrSetEducationalContent(`lesson:${lessonId}`, fetchFn, MEDIUM_TTL);
 }
 
@@ -157,7 +156,7 @@ export async function getOrSetLesson(
  * @param curriculumId Curriculum ID
  * @param data Curriculum data
  */
-export async function cacheCurriculum(curriculumId: string, data: any): Promise<void> {
+export async function cacheCurriculum(curriculumId: string, data: unknown): Promise<void> {
   await cacheEducationalContent(`curriculum:${curriculumId}`, data, LONG_TTL);
 }
 
@@ -166,7 +165,7 @@ export async function cacheCurriculum(curriculumId: string, data: any): Promise<
  * @param curriculumId Curriculum ID
  * @returns Curriculum data or null
  */
-export async function getCachedCurriculum(curriculumId: string): Promise<any> {
+export async function getCachedCurriculum(curriculumId: string): Promise<unknown> {
   return await getEducationalContent(`curriculum:${curriculumId}`);
 }
 
@@ -175,7 +174,7 @@ export async function getCachedCurriculum(curriculumId: string): Promise<any> {
  * @param gradeLevelId Grade level ID
  * @param data Grade level data
  */
-export async function cacheGradeLevel(gradeLevelId: string, data: any): Promise<void> {
+export async function cacheGradeLevel(gradeLevelId: string, data: unknown): Promise<void> {
   await cacheEducationalContent(`grade:${gradeLevelId}`, data, LONG_TTL);
 }
 
@@ -184,7 +183,7 @@ export async function cacheGradeLevel(gradeLevelId: string, data: any): Promise<
  * @param gradeLevelId Grade level ID
  * @returns Grade level data or null
  */
-export async function getCachedGradeLevel(gradeLevelId: string): Promise<any> {
+export async function getCachedGradeLevel(gradeLevelId: string): Promise<unknown> {
   return await getEducationalContent(`grade:${gradeLevelId}`);
 }
 
@@ -228,7 +227,7 @@ export async function batchGetOrSetEducationalContent<T>(
   return batchGetOrSet<T>(enhancedItems);
 }
 
-export default {
+const educationalCacheService = {
   cacheEducationalContent,
   getEducationalContent,
   getOrSetEducationalContent,
@@ -249,3 +248,5 @@ export default {
   invalidateEducationalContentPattern,
   batchGetOrSetEducationalContent
 };
+
+export default educationalCacheService;

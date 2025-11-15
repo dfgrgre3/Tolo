@@ -1,4 +1,4 @@
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns';
 import { ar } from 'date-fns/locale';

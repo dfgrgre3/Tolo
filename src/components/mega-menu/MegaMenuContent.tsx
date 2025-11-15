@@ -3,13 +3,14 @@
 import React, { useMemo, useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { X, Search, Filter, Sparkles, TrendingUp, Command, Zap, ArrowRight, Bell } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import type { MegaMenuProps } from "./types";
 import { MegaMenuCategory } from "./MegaMenuCategory";
 import { cn } from "@/lib/utils";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export function MegaMenuContent({ 
 	categories, 

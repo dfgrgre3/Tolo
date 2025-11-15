@@ -73,8 +73,16 @@ async function handleGetRequest(req: NextRequest) {
       return badRequestResponse('Invalid offset parameter. Must be a non-negative integer.', 'INVALID_PARAMETER');
     }
 
-    // Build where clause
-    const where: any = {
+    // Build where clause with proper typing
+    type TaskWhereInput = {
+      userId: string;
+      completed?: boolean;
+      status?: string;
+      priority?: string;
+      subjectId?: string;
+    };
+
+    const where: TaskWhereInput = {
       userId: decodedToken.userId,
     };
 

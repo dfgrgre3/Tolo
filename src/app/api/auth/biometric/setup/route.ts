@@ -1,23 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyToken } from '@/lib/auth-unified';
+import { verifyToken } from '@/lib/auth-service';
 import { generateSecureToken } from '@/lib/security-utils';
-
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
-  try {
-    // التحقق من وجود هيدر التوثيق وصحته
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authorization header missing or invalid' },
-        { status: 401 }
-      );
-    }
+  return opsWrapper(request, async (req) => {
+    try {
+      // التحقق من وجود هيدر التوثيق وصحته
+      const authHeader = req.headers.get('authorization');
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return NextResponse.json(
+          { error: 'Authorization header missing or invalid' },
+          { status: 401 }
+        );
+      }
 
       const token = authHeader.slice(7);
-      const decoded = await verifyToken(token);
+      const decoded = verifyToken(token);
       if (!decoded || !decoded.userId) {
         return NextResponse.json(
           { error: 'Invalid or expired token' },
@@ -58,17 +59,17 @@ export async function POST(request: NextRequest) {
       data: { biometricEnabled: true }
     });
 
-    return NextResponse.json({
-      message: 'تم إعداد المصادقة البيومترية بنجاح',
-      credentialId,
-      challenge: generateSecureToken(32)
-    });
-  } catch (error) {
-    logger.error('Biometric setup error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+      return NextResponse.json({
+        message: 'تم إعداد المصادقة البيومترية بنجاح',
+        credentialId,
+        challenge: generateSecureToken(32)
+      });
+    } catch (error) {
+      logger.error('Biometric setup error:', error);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
     }
   });
 }
@@ -86,7 +87,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = await verifyToken(token);
+    const decoded = verifyToken(token);
     
     if (!decoded?.userId) {
       return NextResponse.json(

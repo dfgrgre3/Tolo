@@ -1,6 +1,6 @@
 
 import { NotificationType } from '@/types/notification';
-import { getTokenFromStorage } from '@/lib/auth-client';
+// Token is in httpOnly cookie - no need to import getTokenFromStorage
 import { logger } from '@/lib/logger';
 
 // دالة لإرسال إشعار للمستخدم الحالي
@@ -14,15 +14,13 @@ export async function sendNotification(
   }
 ) {
   try {
-    const token = getTokenFromStorage();
-    if (!token) return;
-
+    // Token is in httpOnly cookie - no need to send Authorization header
     const response = await fetch('/api/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
+      credentials: 'include',
       body: JSON.stringify({
         title,
         message,
@@ -50,15 +48,13 @@ export async function sendBulkNotifications(
   }>
 ) {
   try {
-    const token = getTokenFromStorage();
-    if (!token) return;
-
+    // Token is in httpOnly cookie - no need to send Authorization header
     const response = await fetch('/api/notifications/bulk', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
       },
+      credentials: 'include',
       body: JSON.stringify({ notifications }),
     });
 

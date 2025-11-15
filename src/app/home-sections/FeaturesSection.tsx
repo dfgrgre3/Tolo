@@ -3,9 +3,9 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { memo } from "react";
-import { Button } from "@/shared/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/UserProvider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Play, ChevronRight, Zap, Bell, Users, Bot, BarChart3, BookOpen, CalendarCheck, Headphones, Award, Globe } from 'lucide-react';

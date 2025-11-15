@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Card, CardContent } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import { Settings, Download, Upload, ChevronLeft, ChevronRight, Eye, EyeOff, CheckCircle, Circle } from 'lucide-react';
@@ -15,7 +15,8 @@ import { TimeGrid } from './WeeklySchedule/TimeGrid';
 import { AgendaView } from './WeeklySchedule/AgendaView';
 import { BlockFormDialog } from './WeeklySchedule/BlockFormDialog';
 import { SettingsDialog } from './WeeklySchedule/SettingsDialog';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export default function WeeklySchedule({ 
   schedule, 

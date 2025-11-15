@@ -2,7 +2,26 @@
 
 import React, { useEffect } from "react";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
-import { logger } from '@/lib/logger';
+
+// Lazy load logger to prevent server-only bundling issues
+let loggerInstance: any = null;
+async function getLogger() {
+  if (!loggerInstance) {
+    try {
+      const loggerModule = await import('@/lib/logger');
+      loggerInstance = loggerModule.logger;
+    } catch (error) {
+      // Fallback to console if logger fails to load
+      loggerInstance = {
+        info: (...args: any[]) => console.info(...args),
+        warn: (...args: any[]) => console.warn(...args),
+        error: (...args: any[]) => console.error(...args),
+        debug: (...args: any[]) => console.debug(...args),
+      };
+    }
+  }
+  return loggerInstance;
+}
 
 /**
  * Error fallback component for ErrorBoundary
@@ -71,7 +90,11 @@ function useWebpackErrorHandler() {
         errorMessage.includes('next-auth') ||
         errorMessage.includes('HMR update')
       ) {
-        logger.error('Module loading error detected:', error);
+        getLogger().then(logger => {
+          logger.error('Module loading error detected:', error);
+        }).catch(() => {
+          console.error('Module loading error detected:', error);
+        });
         // Clear any cached module references and reload
         if (typeof window !== 'undefined') {
           setTimeout(() => {
@@ -92,7 +115,11 @@ function useWebpackErrorHandler() {
         errorMessage.includes('next-auth') ||
         errorMessage.includes('HMR update')
       ) {
-        logger.error('Unhandled promise rejection (module error):', error);
+        getLogger().then(logger => {
+          logger.error('Unhandled promise rejection (module error):', error);
+        }).catch(() => {
+          console.error('Unhandled promise rejection (module error):', error);
+        });
         if (typeof window !== 'undefined') {
           setTimeout(() => {
             window.location.reload();
@@ -135,7 +162,11 @@ export function ClientLayoutWrapper({
           // Error tracking service integration would go here
           // Example: errorTracker.captureException(error, { extra: info });
         } else {
-          logger.error('Layout Error:', error, info.componentStack);
+          getLogger().then(logger => {
+            logger.error('Layout Error:', error, info.componentStack);
+          }).catch(() => {
+            console.error('Layout Error:', error, info.componentStack);
+          });
         }
       }}
       onReset={() => {

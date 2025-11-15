@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Clock, TrendingUp, Star, ArrowRight } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -16,7 +16,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/auth/UserProvider";
 import { safeGetItem } from "@/lib/safe-client-utils";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface NavigationSuggestion {
 	id: string;

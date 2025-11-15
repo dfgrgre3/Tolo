@@ -2,11 +2,12 @@
 
 import { useState, useEffect, memo } from "react";
 import { motion } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Badge } from "@/shared/badge";
-import { Progress } from "@/shared/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { getSafeUserId } from "@/lib/safe-client-utils";import { logger } from '@/lib/logger';
+import { getSafeUserId } from "@/lib/safe-client-utils";
+import { logger } from '@/lib/logger';
 
 import { 
   TrendingUp,

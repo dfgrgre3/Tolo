@@ -12,7 +12,7 @@ import {
 	X,
 	ChevronRight,
 } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -25,7 +25,8 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/components/auth/UserProvider";
 import { formatDistanceToNow } from "date-fns";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface ActivityItem {
 	id: string;

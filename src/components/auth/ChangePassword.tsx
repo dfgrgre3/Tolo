@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { getPasswordStrengthDisplay } from './utils/password-strength';
 import { parseApiError, handleNetworkError, createFetchWithTimeout } from './utils/error-handling';
-import { getTokenFromStorage } from '@/lib/auth-client';
-import { logger } from '@/lib/logger';
+// Token is in httpOnly cookie - no need to import getTokenFromStorage
+
+import { logger } from '@/lib/logger';
 
 export default function ChangePassword() {
   const { user } = useAuth();
@@ -66,21 +67,15 @@ export default function ChangePassword() {
     setIsLoading(true);
 
     try {
-      const token = getTokenFromStorage();
-      if (!token) {
-        toast.error('غير مصرح، يرجى تسجيل الدخول مرة أخرى');
-        setIsLoading(false);
-        return;
-      }
-
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await createFetchWithTimeout(
         '/api/auth/change-password',
         {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
           },
+          credentials: 'include',
           body: JSON.stringify({
             currentPassword: formData.currentPassword,
             newPassword: formData.newPassword,

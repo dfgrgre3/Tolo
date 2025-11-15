@@ -3,7 +3,7 @@ import { authService } from '@/lib/auth-service';
 import { withAuth } from '@/lib/middleware/auth-middleware';
 import { prisma } from '@/lib/prisma';
 import { isConnectionError } from '../_helpers';
-
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { logger } from '@/lib/logger';
 
 /**

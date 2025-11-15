@@ -1,8 +1,8 @@
 ﻿import Link from "next/link";
 import { motion } from "framer-motion";
-import { Button } from "@/shared/button";
-import { Card, CardContent } from "@/shared/card";
-import { Badge } from "@/shared/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/components/auth/UserProvider";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {

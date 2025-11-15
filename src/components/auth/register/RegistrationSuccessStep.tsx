@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from 'react';
-import { Button } from '@/shared/button';
+import { Button } from '@/components/ui/button';
 import {
   BadgeCheck,
   ClipboardCopy,

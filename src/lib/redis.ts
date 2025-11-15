@@ -1,7 +1,13 @@
+// This file must only run on the server - prevent browser bundling
+if (typeof window !== 'undefined') {
+  throw new Error('redis.ts can only be used on the server');
+}
+
 import { createClient, Cluster } from 'redis';
-import { perfConfig, PerfMonitor } from './perf-config.js';
+import { perfConfig, PerfMonitor } from './perf-config';
 import { recordCacheMetric } from './db-monitor';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 class RedisService {
   private client: any;

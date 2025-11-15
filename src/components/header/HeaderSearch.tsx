@@ -14,7 +14,7 @@ import {
 	FileText,
 	ChevronDown,
 } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -24,7 +24,8 @@ import { useToast } from "@/contexts/toast-context";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
 import { VirtualList } from "@/components/ui/VirtualList";
 import { registerServiceWorker, preCacheSearch } from "@/lib/service-worker";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface HeaderSearchProps {
 	isMobile?: boolean;

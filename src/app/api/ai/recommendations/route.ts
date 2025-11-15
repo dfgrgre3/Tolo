@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getHybridRecommendations, trackInteraction } from "@/lib/ai/ml-recommendations";
-import { verifyToken } from "@/lib/auth-unified";
+import { verifyToken } from "@/lib/auth-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {

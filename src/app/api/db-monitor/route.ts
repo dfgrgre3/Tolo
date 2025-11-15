@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbMonitor } from '@/lib/db-monitor';
-import { verifyToken } from '@/lib/auth-unified';
+import { verifyToken } from '@/lib/auth-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

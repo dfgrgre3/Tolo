@@ -8,7 +8,7 @@ import TaskManagement from "@/components/time/TaskManagement";
 import StudySessionsHistory from "@/components/time/StudySessionsHistory";
 import Reminders from "@/components/time/Reminders";
 import TimeTracker from "@/components/TimeTracker";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { RefreshCw, Settings, Filter, Search, BarChart3, Play, Pause, Cog } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,7 +29,8 @@ import { useOverdueNotifications } from './hooks/useOverdueNotifications';
 
 // Types
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export default function TimeManagementPage() {
   const [activeTab, setActiveTab] = useState("dashboard");

@@ -10,12 +10,13 @@ import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-import { JaegerExporter } from '@opentelemetry/exporter-jaeger';
+// JaegerExporter is imported dynamically to avoid loading issues
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
 import { PrismaInstrumentation } from '@prisma/instrumentation';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // متغيرات التكوين
 const JAEGER_ENABLED = process.env.JAEGER_ENABLED !== 'false';
@@ -27,13 +28,23 @@ let tracer: ReturnType<typeof trace.getTracer> | null = null;
 let provider: NodeTracerProvider | null = null;
 
 // تهيئة Tracer
-export function initializeTracer(): void {
+export async function initializeTracer(): Promise<void> {
   if (!JAEGER_ENABLED) {
     logger.info('Jaeger tracing is disabled');
     return;
   }
 
   try {
+    // استيراد ديناميكي لـ JaegerExporter لتجنب مشاكل التحميل
+    let JaegerExporter: any;
+    try {
+      const jaegerModule = await import('@opentelemetry/exporter-jaeger');
+      JaegerExporter = jaegerModule.JaegerExporter;
+    } catch (importError: any) {
+      logger.warn('Jaeger exporter not available, disabling tracing:', importError?.message);
+      return;
+    }
+
     // إنشاء Resource
     const resource = new Resource({
       [SemanticResourceAttributes.SERVICE_NAME]: SERVICE_NAME,
@@ -79,9 +90,13 @@ export function initializeTracer(): void {
     tracer = trace.getTracer(SERVICE_NAME);
 
     logger.info('Jaeger tracing initialized successfully');
-  } catch (error) {
-    logger.error('Failed to initialize Jaeger tracing:', error);
+  } catch (error: any) {
+    logger.error('Failed to initialize Jaeger tracing:', error?.message || error);
     // لا نرمي خطأ حتى لا نؤثر على التطبيق
+    // تعطيل Jaeger تلقائياً في حالة الفشل
+    if (error?.code === 'ENOENT' || error?.message?.includes('jaeger') || error?.message?.includes('thrift')) {
+      logger.warn('Jaeger dependencies missing, tracing will be disabled');
+    }
   }
 }
 
@@ -201,6 +216,9 @@ export async function shutdownTracer(): Promise<void> {
 
 // تهيئة تلقائية إذا كان التطبيق يعمل
 if (typeof window === 'undefined') {
-  initializeTracer();
+  // تهيئة غير متزامنة لتجنب مشاكل التحميل
+  initializeTracer().catch((error) => {
+    logger.error('Failed to auto-initialize tracer:', error);
+  });
 }
 

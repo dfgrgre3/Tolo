@@ -13,8 +13,30 @@ import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorRes
 import { setAuthCookies, createErrorResponse } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { getJWTSecret } from '@/lib/env-validation';
+import type { Prisma } from '@prisma/client';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET || 'your-secret-key');
+// Type for user with 2FA fields
+type UserWith2FA = Prisma.UserGetPayload<{
+  select: {
+    id: true;
+    email: true;
+    twoFactorEnabled: true;
+    twoFactorSecret: true;
+    recoveryCodes: true;
+  }
+}>;
+
+// Security: JWT_SECRET is required - no fallback values allowed
+let JWT_SECRET: Uint8Array | null = null;
+
+function getJWTSecretSafe(): Uint8Array {
+  if (!JWT_SECRET) {
+    const secretString = getJWTSecret();
+    JWT_SECRET = new TextEncoder().encode(secretString);
+  }
+  return JWT_SECRET;
+}
 
 // Generate a new 2FA verification code
 export async function GET(request: NextRequest) {
@@ -174,14 +196,21 @@ export async function POST(request: NextRequest) {
       }
 
       const token = authHeader.substring(7);
-      const { payload } = await jwtVerify(token, JWT_SECRET);
+      const { payload } = await jwtVerify(token, getJWTSecretSafe());
 
       targetUserId = payload.userId as string;
     }
 
-    // Get user
+    // Get user with required 2FA fields
     const user = await prisma.user.findUnique({
-      where: { id: targetUserId }
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        email: true,
+        twoFactorEnabled: true,
+        twoFactorSecret: true,
+        recoveryCodes: true,
+      }
     });
 
     if (!user) {
@@ -218,7 +247,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Handle 2FA setup
-async function handleSetup2FA(user: any) {
+async function handleSetup2FA(user: UserWith2FA) {
   try {
     // In a real implementation, you would generate a secret key and QR code
     // For this example, we'll just generate a placeholder secret
@@ -256,7 +285,7 @@ async function handleSetup2FA(user: any) {
 }
 
 // Handle 2FA verification
-async function handleVerify2FA(user: any, code: string, request: NextRequest) {
+async function handleVerify2FA(user: UserWith2FA, code: string, request: NextRequest) {
   try {
     if (!code) {
       return NextResponse.json(
@@ -339,7 +368,7 @@ async function handleVerify2FA(user: any, code: string, request: NextRequest) {
 }
 
 // Handle 2FA disabling
-async function handleDisable2FA(user: any, code: string, request: NextRequest) {
+async function handleDisable2FA(user: UserWith2FA, code: string, request: NextRequest) {
   try {
     if (!code) {
       return NextResponse.json(
@@ -425,7 +454,7 @@ async function handleDisable2FA(user: any, code: string, request: NextRequest) {
 }
 
 // Handle backup code verification
-async function handleBackupCode(user: any, backupCode: string, request: NextRequest) {
+async function handleBackupCode(user: UserWith2FA, backupCode: string, request: NextRequest) {
   try {
     if (!backupCode) {
       return NextResponse.json(
@@ -506,7 +535,7 @@ async function handleBackupCode(user: any, backupCode: string, request: NextRequ
       .setProtectedHeader({ alg: 'HS256' })
       .setIssuedAt()
       .setExpirationTime('7d')
-      .sign(JWT_SECRET);
+      .sign(getJWTSecretSafe());
 
     return NextResponse.json({
       message: 'تم التحقق من رمز الاسترداد بنجاح',

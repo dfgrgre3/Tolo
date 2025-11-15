@@ -1,4 +1,4 @@
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { Settings, Download, Upload } from 'lucide-react';
 import type { WeekStats } from './types';
 

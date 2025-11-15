@@ -1,7 +1,7 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Progress } from "@/shared/progress";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Clock, Target, Flame, Award, BarChart3, Calendar } from 'lucide-react';
 import type { Task, StudySession, Reminder } from '../types';
 import { useMemo } from 'react';

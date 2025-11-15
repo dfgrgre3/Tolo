@@ -7,6 +7,13 @@
  */
 
 // Re-export unified logger
-export { logger, getLogger, type LogLevel, type LogContext } from './logging/unified-logger';
-export { logger as default };
+export {
+  logger,
+  getLogger,
+  type LogLevel,
+  type LogContext,
+  type LoggableContext,
+} from './logging/unified-logger';
+
+export { logger as default } from './logging/unified-logger';
 

@@ -1,6 +1,8 @@
 
 import { UAParser } from 'ua-parser-js';
-import { logger } from '@/lib/logger';
+import bcrypt from 'bcryptjs';
+
+import { logger } from '@/lib/logger';
 
 // Get device information from user agent
 export async function getDeviceInfo(userAgent: string) {
@@ -149,14 +151,12 @@ export function generateBackupCodes(count = 10): string[] {
 
 // Hash a security question answer
 export async function hashSecurityAnswer(answer: string): Promise<string> {
-  const bcrypt = require('bcryptjs');
   const saltRounds = 10;
   return bcrypt.hash(answer.toLowerCase().trim(), saltRounds);
 }
 
 // Verify a security question answer
 export async function verifySecurityAnswer(answer: string, hash: string): Promise<boolean> {
-  const bcrypt = require('bcryptjs');
   return bcrypt.compare(answer.toLowerCase().trim(), hash);
 }
 

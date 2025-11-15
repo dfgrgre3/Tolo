@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig, generateState } from '@/lib/oauth';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { getSecureCookieOptions } from '../_helpers';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -70,23 +71,16 @@ export async function GET(request: NextRequest) {
     // Store state in a cookie for later verification
     const response = NextResponse.redirect(authUrl);
 
+    // Security: Use centralized secure cookie settings
     // Set state cookie
     response.cookies.set('oauth_state', state, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 600, // 10 minutes
-      path: '/',
+      ...getSecureCookieOptions({ maxAge: 600 }), // 10 minutes
     });
     
     // Store redirect path in cookie (validate it's a relative path)
     if (redirectPath.startsWith('/') && !redirectPath.startsWith('//')) {
       response.cookies.set('oauth_redirect', redirectPath, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 600, // 10 minutes
-        path: '/',
+        ...getSecureCookieOptions({ maxAge: 600 }), // 10 minutes
       });
     }
 

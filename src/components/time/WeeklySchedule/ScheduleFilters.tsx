@@ -1,5 +1,5 @@
-import { Card, CardContent } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Eye, EyeOff } from 'lucide-react';

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { LoginErrorResponse } from '@/types/api/auth';
+import { logger } from '@/lib/logger';
 
 // ==================== CONSTANTS ====================
 
@@ -42,7 +43,62 @@ export const resetTokenSchema = z.string().min(1, 'رمز إعادة التعي�
 // ==================== HELPER FUNCTIONS ====================
 
 /**
+ * Get secure cookie options
+ * Security: Centralized cookie security settings for consistency across the application
+ * 
+ * Security Requirements:
+ * - In production: secure MUST be true (HTTPS only)
+ * - In production: sameSite SHOULD be 'strict' (best CSRF protection)
+ * - httpOnly is always true (prevents XSS attacks)
+ * 
+ * Note: OAuth redirects may require 'lax' sameSite - use options parameter to override
+ */
+export function getSecureCookieOptions(options?: {
+  maxAge?: number;
+  sameSite?: 'strict' | 'lax' | 'none';
+}): {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'strict' | 'lax' | 'none';
+  path: string;
+  maxAge?: number;
+} {
+  const isProduction = process.env.NODE_ENV === 'production';
+  
+  // Security: In production, secure MUST be true (no exceptions)
+  // Only allow false in development if explicitly set via COOKIE_SECURE=false
+  const isSecure = isProduction 
+    ? true  // Always secure in production
+    : (process.env.COOKIE_SECURE === 'true' || process.env.COOKIE_SECURE !== 'false');
+  
+  // Security: Use 'strict' in production for maximum CSRF protection
+  // Allow 'lax' only if explicitly needed (e.g., OAuth redirects) via options parameter
+  // Can be overridden via COOKIE_SAME_SITE env variable for special cases
+  const defaultSameSite = isProduction 
+    ? 'strict'  // Maximum security in production
+    : 'lax';    // More permissive in development
+  
+  const sameSite = options?.sameSite || 
+                   (process.env.COOKIE_SAME_SITE as 'strict' | 'lax' | 'none') || 
+                   defaultSameSite;
+
+  // Security warning in production if secure is false (should never happen)
+  if (isProduction && !isSecure) {
+    logger.error('SECURITY WARNING: Cookies are not secure in production! This is a critical security issue.');
+  }
+
+  return {
+    httpOnly: true,  // Always true - prevents JavaScript access (XSS protection)
+    secure: isSecure,  // HTTPS only in production
+    sameSite: sameSite,  // CSRF protection
+    path: '/',
+    ...(options?.maxAge !== undefined && { maxAge: options.maxAge }),
+  };
+}
+
+/**
  * Helper function to set authentication cookies
+ * Security: Uses strict cookie settings for maximum security
  */
 export function setAuthCookies(
   response: NextResponse,
@@ -51,40 +107,27 @@ export function setAuthCookies(
   rememberMe: boolean = false
 ): void {
   response.cookies.set('access_token', accessToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: ACCESS_TOKEN_MAX_AGE,
-    path: '/',
+    ...getSecureCookieOptions({ maxAge: ACCESS_TOKEN_MAX_AGE }),
   });
 
   response.cookies.set('refresh_token', refreshToken, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: rememberMe ? REFRESH_TOKEN_MAX_AGE_REMEMBER : REFRESH_TOKEN_MAX_AGE_DEFAULT,
-    path: '/',
+    ...getSecureCookieOptions({ 
+      maxAge: rememberMe ? REFRESH_TOKEN_MAX_AGE_REMEMBER : REFRESH_TOKEN_MAX_AGE_DEFAULT 
+    }),
   });
 }
 
 /**
  * Helper function to clear authentication cookies
+ * Security: Uses same secure settings as setAuthCookies for consistency
  */
 export function clearAuthCookies(response: NextResponse): void {
   response.cookies.set('access_token', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,
-    path: '/',
+    ...getSecureCookieOptions({ maxAge: 0 }),
   });
 
   response.cookies.set('refresh_token', '', {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    maxAge: 0,
-    path: '/',
+    ...getSecureCookieOptions({ maxAge: 0 }),
   });
 }
 
@@ -99,7 +142,8 @@ export function isConnectionError(error: unknown): boolean {
 
   // Check for Prisma error codes
   if (error && typeof error === 'object' && 'code' in error) {
-    const errorCode = String((error as any).code).toUpperCase();
+    const prismaError = error as { code: string | number };
+    const errorCode = String(prismaError.code).toUpperCase();
     // P1xxx codes are connection errors
     if (errorCode.startsWith('P1')) {
       return true;
@@ -212,7 +256,7 @@ export function createErrorResponse(
     errorCode = 'SERVER_ERROR';
   } else if (typeof error === 'object') {
     // Object error - check if it's empty
-    const errorObj = error as any;
+    const errorObj = error as { error?: string; code?: string; message?: string; [key: string]: unknown };
     const keys = Object.keys(errorObj);
     
     if (keys.length === 0) {

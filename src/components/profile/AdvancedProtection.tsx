@@ -1,17 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/shared/badge";
+import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Shield, MapPin, AlertTriangle, CheckCircle2, X, Plus, Trash2, Globe, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { CaptchaWidget } from '@/components/auth/CaptchaWidget';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface AdvancedProtectionProps {
   userId: string;
@@ -42,11 +43,9 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
 
   const loadProtectionSettings = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security/protection', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -63,11 +62,9 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
 
   const loadIPWhitelist = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security/ip-whitelist', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -94,13 +91,13 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
 
   const handleSaveProtectionSettings = async () => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security/protection', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           recaptchaEnabled,
           geographicSecurityEnabled,
@@ -134,13 +131,13 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
     }
 
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security/ip-whitelist', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           ip: newIp,
           label: newIpLabel || 'عنوان IP',
@@ -164,12 +161,10 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
 
   const handleRemoveIP = async (ipId: string) => {
     try {
-      const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch(`/api/auth/security/ip-whitelist/${ipId}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+        credentials: 'include',
       });
 
       if (response.ok) {

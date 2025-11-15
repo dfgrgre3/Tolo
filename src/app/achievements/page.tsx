@@ -9,9 +9,9 @@ import { AchievementFilters } from './components/AchievementFilters';
 import { AchievementCard } from './components/AchievementCard';
 import { EmptyState } from './components/EmptyState';
 import { LoadingState } from './components/LoadingState';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/card';
-import { Button } from '@/shared/button';
-import { Badge } from '@/shared/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Trophy, TrendingUp, Sparkles, Info } from 'lucide-react';
 
 export default function AchievementsPage() {

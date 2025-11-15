@@ -413,21 +413,12 @@ export default function EnhancedLoginForm() {
       provider: 'local' as const,
     };
 
-    // Save token and user data
+    // Save user data (token is already in httpOnly cookie from server)
     try {
       login(data.token, userData);
       
-      // Also save refresh token if available
-      if (data.refreshToken && isBrowser()) {
-        try {
-          const storage = formData.rememberMe ? localStorage : sessionStorage;
-          storage.setItem('refresh_token', data.refreshToken);
-        } catch (storageError) {
-          if (process.env.NODE_ENV === 'development') {
-            logger.warn('Failed to save refresh token:', storageError);
-          }
-        }
-      }
+      // Note: Token is stored in httpOnly cookie by server (setAuthCookies)
+      // No need to save token to localStorage for security
       
       // Show success message - different message if account was just created
       if (data.accountWasCreated) {
@@ -1126,6 +1117,8 @@ export default function EnhancedLoginForm() {
         clearTimeout(verifyTimeout);
 
         try {
+          // Token is already in httpOnly cookie from server
+          // Just save user data to localStorage for faster initial render
           login(data.token, data.user);
           toast.success('تم تسجيل الدخول بنجاح!');
           setIsLoading(false);
@@ -1788,6 +1781,7 @@ export default function EnhancedLoginForm() {
                         if (retryResponse.ok) {
                           const retryData = await retryResponse.json();
                           if (retryData.token && retryData.user) {
+                            // Token is already in httpOnly cookie from server
                             login(retryData.token, retryData.user);
                             toast.success('تم تسجيل الدخول بحساب تجريبي!', { duration: 3000 });
                             const redirectPath = getRedirectPath();
@@ -1810,6 +1804,7 @@ export default function EnhancedLoginForm() {
                     const loginData = await loginResponse.json();
 
                     if (loginData.token && loginData.user) {
+                      // Token is already in httpOnly cookie from server
                       login(loginData.token, loginData.user);
                       toast.success('تم تسجيل الدخول بحساب تجريبي!', { duration: 3000 });
                       const redirectPath = getRedirectPath();

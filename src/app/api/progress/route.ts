@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-unified';
+import { verifyToken } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -42,14 +43,17 @@ async function handleGetRequest(request: NextRequest) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
 
+      // Type for study session with startTime
+      type StudySessionWithStartTime = Pick<Prisma.StudySessionGetPayload<{}>, 'startTime'>;
+
       // Check if user studied today or yesterday
-      const studiedToday = studySessions.some((session: any) => {
+      const studiedToday = studySessions.some((session: StudySessionWithStartTime) => {
         const sessionDate = new Date(session.startTime);
         sessionDate.setHours(0, 0, 0, 0);
         return sessionDate.getTime() === today.getTime();
       });
 
-      const studiedYesterday = studySessions.some((session: any) => {
+      const studiedYesterday = studySessions.some((session: StudySessionWithStartTime) => {
         const sessionDate = new Date(session.startTime);
         sessionDate.setHours(0, 0, 0, 0);
         return sessionDate.getTime() === yesterday.getTime();
@@ -63,7 +67,7 @@ async function handleGetRequest(request: NextRequest) {
         checkDate.setDate(checkDate.getDate() - 1);
 
         while (true) {
-          const studiedOnDate = studySessions.some((session: any) => {
+          const studiedOnDate = studySessions.some((session: StudySessionWithStartTime) => {
             const sessionDate = new Date(session.startTime);
             sessionDate.setHours(0, 0, 0, 0);
             return sessionDate.getTime() === checkDate.getTime();
@@ -93,8 +97,14 @@ async function handleGetRequest(request: NextRequest) {
       take: 5,
     });
 
+    // Type for goal with status
+    type GoalWithStatus = Prisma.RecommendationGetPayload<{}> & {
+      achieved: boolean;
+      notified: boolean;
+    };
+
     // Mark goals as achieved (this is a placeholder logic)
-    const goalsWithStatus = recentGoals.map((goal: any) => ({
+    const goalsWithStatus: GoalWithStatus[] = recentGoals.map((goal) => ({
       ...goal,
       achieved: Math.random() > 0.7, // Random for demo
       notified: false, // This would be stored in the database in a real app

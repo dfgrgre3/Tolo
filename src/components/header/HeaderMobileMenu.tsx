@@ -5,14 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Settings, LogOut, LogIn, ChevronDown } from "lucide-react";
-import { Button } from "@/shared/button";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/navData";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/components/auth/UserProvider";
 import { HeaderSearch } from "./HeaderSearch";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface HeaderMobileMenuProps {
 	isMobileMenuOpen: boolean;

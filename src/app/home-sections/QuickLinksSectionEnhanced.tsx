@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Card, CardContent } from "@/shared/card";
-import { Button } from "@/shared/button";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ArrowRight } from "lucide-react";
 import { useMemo, memo } from "react";
 

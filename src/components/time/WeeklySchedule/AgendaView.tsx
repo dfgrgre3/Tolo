@@ -1,6 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Clock, CheckCircle, Circle, BookOpen, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';

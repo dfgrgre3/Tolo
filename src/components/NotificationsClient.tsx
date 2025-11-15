@@ -1,19 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getSafeAuthToken } from "@/lib/safe-client-utils";
-import { logger } from '@/lib/logger';
+// Token is in httpOnly cookie - no need to import getSafeAuthToken
+
+import { logger } from '@/lib/logger';
 
 async function getUserId(): Promise<string | null> {
 	// Get user ID from auth token - only run on client side
-	const token = getSafeAuthToken();
-	if (!token) return null;
-	
+	// Token is in httpOnly cookie - no need to send Authorization header
 	try {
 		const res = await fetch("/api/auth/me", {
-			headers: {
-				"Authorization": `Bearer ${token}`
-			}
+			credentials: "include",
 		});
 		
 		if (!res.ok) return null;

@@ -36,11 +36,11 @@ function isOnline(): boolean {
 /**
  * Check if error is a network error
  */
-function isNetworkError(error: any): boolean {
+function isNetworkError(error: unknown): boolean {
   if (!error) return false;
   
-  const errorMessage = error.message || String(error);
-  const errorName = error.name || '';
+  const errorMessage = (error as Error).message || String(error);
+  const errorName = (error as Error).name || '';
   
   return (
     errorName === 'TypeError' ||
@@ -56,11 +56,11 @@ function isNetworkError(error: any): boolean {
 /**
  * Check if error is a timeout error
  */
-function isTimeoutError(error: any): boolean {
+function isTimeoutError(error: unknown): boolean {
   if (!error) return false;
   
-  const errorName = error.name || '';
-  const errorMessage = error.message || String(error);
+  const errorName = (error as Error).name || '';
+  const errorMessage = (error as Error).message || String(error);
   
   return (
     errorName === 'AbortError' ||
@@ -80,7 +80,7 @@ function sleep(ms: number): Promise<void> {
 /**
  * Check if error is retryable
  */
-function isRetryableError(error: any, status?: number): boolean {
+function isRetryableError(error: unknown, status?: number): boolean {
   if (status && RETRYABLE_STATUS_CODES.includes(status)) {
     return true;
   }
@@ -132,7 +132,7 @@ async function apiFetch<T>(
 
     // Read response body once (can only be read once)
     let responseText = '';
-    let responseData: any = null;
+    let responseData: unknown = null;
     
     try {
       responseText = await response.text();
@@ -206,9 +206,9 @@ async function apiFetch<T>(
           return {} as T;
         }
       }
-    } catch (readError: any) {
+    } catch (readError: unknown) {
       // If error already has structure, re-throw it
-      if (readError && (readError.error || readError.code)) {
+      if (readError && (readError as { error?: string; code?: string }).error) {
         throw readError;
       }
       
@@ -316,7 +316,7 @@ async function apiFetch<T>(
     
     // For other endpoints, return empty object
     return {} as T;
-  } catch (error: any) {
+  } catch (error: unknown) {
     clearTimeout(timeoutId);
 
     // Check if error is retryable and we haven't exceeded max retries
@@ -338,14 +338,14 @@ async function apiFetch<T>(
     }
     
     // If error already has the expected structure, normalize it
-    if (error && typeof error === 'object' && (error.error || error.code)) {
+    if (error && typeof error === 'object' && ((error as {error?: string}).error || (error as {code?: string}).code)) {
       // Ensure error message is present
       const normalizedError = {
-        error: error.error || error.message || 'حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.',
-        code: error.code || 'UNEXPECTED_ERROR',
-        ...(error.status !== undefined && { status: error.status }),
-        ...(error.retryAfterSeconds !== undefined && { retryAfterSeconds: error.retryAfterSeconds }),
-        ...(error.requiresCaptcha !== undefined && { requiresCaptcha: error.requiresCaptcha }),
+        error: (error as {error?: string; message?: string}).error || (error as {error?: string; message?: string}).message || 'حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.',
+        code: (error as {code?: string}).code || 'UNEXPECTED_ERROR',
+        ...((error as {status?: number}).status !== undefined && { status: (error as {status?: number}).status }),
+        ...((error as {retryAfterSeconds?: number}).retryAfterSeconds !== undefined && { retryAfterSeconds: (error as {retryAfterSeconds?: number}).retryAfterSeconds }),
+        ...((error as {requiresCaptcha?: boolean}).requiresCaptcha !== undefined && { requiresCaptcha: (error as {requiresCaptcha?: boolean}).requiresCaptcha }),
       };
       throw normalizedError;
     }
@@ -372,10 +372,10 @@ async function apiFetch<T>(
       errorMessage = error.message || errorMessage;
     } else if (typeof error === 'string') {
       errorMessage = error || errorMessage;
-    } else if (error?.message) {
-      errorMessage = error.message;
-    } else if (error?.error) {
-      errorMessage = error.error;
+    } else if ((error as {message?: string}).message) {
+      errorMessage = (error as {message: string}).message;
+    } else if ((error as {error?: string}).error) {
+      errorMessage = (error as {error: string}).error;
     } else {
       errorMessage = String(error) || errorMessage;
     }
@@ -431,7 +431,7 @@ export async function loginUser(
     }
     
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Check if error is empty object or null/undefined
     if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
       throw {
@@ -441,15 +441,15 @@ export async function loginUser(
     }
     
     // Re-throw if it's already a properly formatted error with error or code property
-    if (error && typeof error === 'object' && (error.error || error.code)) {
+    if (error && typeof error === 'object' && ((error as {error?: string}).error || (error as {code?: string}).code)) {
       // Ensure error message is present
       const normalizedError = {
-        error: error.error || error.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
-        code: error.code || 'LOGIN_ERROR',
-        ...(error.status !== undefined && { status: error.status }),
-        ...(error.retryAfterSeconds !== undefined && { retryAfterSeconds: error.retryAfterSeconds }),
-        ...(error.requiresCaptcha !== undefined && { requiresCaptcha: error.requiresCaptcha }),
-        ...(error.failedAttempts !== undefined && { failedAttempts: error.failedAttempts }),
+        error: (error as {error?: string; message?: string}).error || (error as {error?: string; message?: string}).message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: (error as {code?: string}).code || 'LOGIN_ERROR',
+        ...((error as {status?: number}).status !== undefined && { status: (error as {status?: number}).status }),
+        ...((error as {retryAfterSeconds?: number}).retryAfterSeconds !== undefined && { retryAfterSeconds: (error as {retryAfterSeconds?: number}).retryAfterSeconds }),
+        ...((error as {requiresCaptcha?: boolean}).requiresCaptcha !== undefined && { requiresCaptcha: (error as {requiresCaptcha?: boolean}).requiresCaptcha }),
+        ...((error as {failedAttempts?: number}).failedAttempts !== undefined && { failedAttempts: (error as {failedAttempts?: number}).failedAttempts }),
       };
       throw normalizedError;
     }
@@ -461,10 +461,10 @@ export async function loginUser(
       errorMessage = error || 'حدث خطأ أثناء تسجيل الدخول';
     } else if (error instanceof Error) {
       errorMessage = error.message || 'حدث خطأ أثناء تسجيل الدخول';
-    } else if (error?.message) {
-      errorMessage = error.message;
-    } else if (error?.error) {
-      errorMessage = error.error;
+    } else if ((error as {message?: string}).message) {
+      errorMessage = (error as {message: string}).message;
+    } else if ((error as {error?: string}).error) {
+      errorMessage = (error as {error: string}).error;
     } else {
       errorMessage = String(error) || 'حدث خطأ أثناء تسجيل الدخول';
     }
@@ -533,15 +533,15 @@ export async function verifyTwoFactor(
     }
     
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Re-throw if it's already a properly formatted error
-    if (error && (error.error || error.code)) {
+    if (error && ( (error as {error?: string}).error || (error as {code?: string}).code )) {
       throw error;
     }
     
     // Wrap unexpected errors
     throw {
-      error: error?.message || 'حدث خطأ أثناء التحقق من رمز المصادقة',
+      error: (error as {message?: string}).message || 'حدث خطأ أثناء التحقق من رمز المصادقة',
       code: 'TWO_FACTOR_ERROR',
     };
   }
@@ -669,11 +669,11 @@ export async function sendVerificationEmail(): Promise<{
 export async function getSecurityLogs(params?: {
   page?: number;
   limit?: number;
-}): Promise<{ logs: any[]; total: number }> {
+}): Promise<{ logs: unknown[]; total: number }> {
   const queryParams = params
-    ? `?${new URLSearchParams(params as any).toString()}`
+    ? `?${new URLSearchParams(params as Record<string, string>).toString()}`
     : '';
-  return apiFetch<{ logs: any[]; total: number }>(
+  return apiFetch<{ logs: unknown[]; total: number }>(
     `/security-logs${queryParams}`,
     {
       method: 'GET',
@@ -685,10 +685,10 @@ export async function getSecurityLogs(params?: {
  * Get sessions
  */
 export async function getSessions(): Promise<{
-  sessions: any[];
+  sessions: unknown[];
   currentSessionId?: string;
 }> {
-  return apiFetch<{ sessions: any[]; currentSessionId?: string }>('/sessions', {
+  return apiFetch<{ sessions: unknown[]; currentSessionId?: string }>('/sessions', {
     method: 'GET',
   });
 }

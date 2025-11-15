@@ -10,8 +10,9 @@ import {
   Loader2,
   MailQuestion,
 } from 'lucide-react';
-import { Button } from '@/shared/button';
-import { logger } from '@/lib/logger';
+import { Button } from '@/components/ui/button';
+
+import { logger } from '@/lib/logger';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'already' | 'error';
 

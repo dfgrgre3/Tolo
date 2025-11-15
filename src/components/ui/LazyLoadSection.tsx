@@ -1,9 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState, ReactNode, useCallback } from "react";
-import { perfConfig } from "@/lib/perf-config";
 import { useClientEffect, useClientLayoutEffect } from "@/hooks/use-client-effect";
-import { logger } from '@/lib/logger';
 
 interface LazyLoadSectionProps {
   children: ReactNode;
@@ -19,8 +17,8 @@ interface LazyLoadSectionProps {
 
 export function LazyLoadSection({
   children,
-  threshold = perfConfig.lazyLoading.intersectionObserver.threshold,
-  rootMargin = perfConfig.lazyLoading.intersectionObserver.rootMargin,
+  threshold,
+  rootMargin,
   fallback,
   onVisible,
   onLoadStart,
@@ -28,6 +26,10 @@ export function LazyLoadSection({
   priority = false,
   className = ""
 }: LazyLoadSectionProps) {
+  // Use default values from perfConfig only when needed, not in function parameters
+  // This prevents module-level evaluation that can cause bundling issues
+  const actualThreshold = threshold ?? 0.1;
+  const actualRootMargin = rootMargin ?? "200px";
   const [isVisible, setIsVisible] = useState<boolean>(priority);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [hasError, setHasError] = useState<boolean>(false);
@@ -40,8 +42,8 @@ export function LazyLoadSection({
     if (typeof window !== 'undefined' && 'performance' in window) {
       try {
         // Report to performance monitoring if available
-        if (duration !== undefined) {
-          logger.debug(`LazyLoadSection: ${action} took ${duration}ms`);
+        if (duration !== undefined && process.env.NODE_ENV === 'development') {
+          console.debug(`LazyLoadSection: ${action} took ${duration}ms`);
         }
       } catch (error) {
         // Silently fail performance reporting
@@ -83,8 +85,8 @@ export function LazyLoadSection({
 
     try {
       observerRef.current = new IntersectionObserver(handleIntersection, {
-        threshold,
-        rootMargin,
+        threshold: actualThreshold,
+        rootMargin: actualRootMargin,
         // Add root option for better performance
         root: null,
       });
@@ -95,7 +97,9 @@ export function LazyLoadSection({
         reportPerformance('observer attached');
       }
     } catch (error) {
-      logger.warn('LazyLoadSection: Failed to create IntersectionObserver, falling back to immediate load', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.warn('LazyLoadSection: Failed to create IntersectionObserver, falling back to immediate load', error);
+      }
       setIsVisible(true);
     }
 
@@ -105,7 +109,7 @@ export function LazyLoadSection({
         observerRef.current = null;
       }
     };
-  }, [threshold, rootMargin, priority, handleIntersection, reportPerformance]);
+  }, [actualThreshold, actualRootMargin, priority, handleIntersection, reportPerformance]);
 
   // Handle loading completion
   useEffect(() => {

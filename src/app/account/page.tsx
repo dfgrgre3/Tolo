@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { AuthGuard } from "@/components/auth/AuthGuard";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/card";
-import { Button } from "@/shared/button";
-import { Badge } from "@/shared/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
@@ -48,7 +48,8 @@ import { ensureUser } from "@/lib/user-utils";
 import { useAuth } from "@/components/auth/UserProvider";
 import { toast } from "sonner";
 import SecurityTab from "@/components/profile/SecurityTab";
-import LoginMethods from "@/components/profile/LoginMethods";import { logger } from '@/lib/logger';
+import LoginMethods from "@/components/profile/LoginMethods";
+import { logger } from '@/lib/logger';
 
 import {
 	Dialog,
@@ -238,13 +239,10 @@ export default function AccountPage() {
 		if (!userId) return;
 
 		try {
-			const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+			// Token is in httpOnly cookie - no need to send Authorization header
 			const headers: HeadersInit = {
 				"Content-Type": "application/json",
 			};
-			if (token) {
-				headers["Authorization"] = `Bearer ${token}`;
-			}
 
 			const res = await fetch(`/api/users/${userId}`, {
 				method: "DELETE",
@@ -275,17 +273,15 @@ export default function AccountPage() {
 		if (!userId) return;
 		setIsSaving(true);
 		try {
-			const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+			// Token is in httpOnly cookie - no need to send Authorization header
 			const headers: HeadersInit = {
 				"Content-Type": "application/json",
 			};
-			if (token) {
-				headers["Authorization"] = `Bearer ${token}`;
-			}
 
 			const res = await fetch(`/api/user/notification-settings`, {
 				method: "PUT",
 				headers,
+				credentials: "include",
 				body: JSON.stringify({
 					emailNotifications: notificationSettings.emailNotifications,
 					smsNotifications: notificationSettings.smsNotifications,
@@ -326,13 +322,10 @@ export default function AccountPage() {
 		if (!userId) return;
 		setIsSaving(true);
 		try {
-			const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+			// Token is in httpOnly cookie - no need to send Authorization header
 			const headers: HeadersInit = {
 				"Content-Type": "application/json",
 			};
-			if (token) {
-				headers["Authorization"] = `Bearer ${token}`;
-			}
 
 			const res = await fetch(`/api/users/${userId}`, {
 				method: "PATCH",

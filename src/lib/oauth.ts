@@ -1,8 +1,18 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
+import { getJWTSecret } from './env-validation';
 
-const JWT_SECRET = new TextEncoder().encode(process.env.NEXTAUTH_SECRET || process.env.JWT_SECRET || 'your-secret-key');
+// Security: JWT_SECRET is required - no fallback values allowed
+let JWT_SECRET: Uint8Array | null = null;
+
+function getJWTSecretSafe(): Uint8Array {
+  if (!JWT_SECRET) {
+    const secretString = getJWTSecret();
+    JWT_SECRET = new TextEncoder().encode(secretString);
+  }
+  return JWT_SECRET;
+}
 
 // Generate a JWT token for the user
 export async function generateToken(userId: string, email: string, name?: string) {
@@ -10,13 +20,13 @@ export async function generateToken(userId: string, email: string, name?: string
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
-    .sign(JWT_SECRET);
+    .sign(getJWTSecretSafe());
 }
 
 // Verify a JWT token
 export async function verifyToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJWTSecretSafe());
     return {
       userId: payload.userId as string,
       email: payload.email as string,
