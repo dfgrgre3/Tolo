@@ -7,7 +7,8 @@ if (typeof window !== 'undefined') {
   throw new Error('db-connection-helper.ts can only be used on the server');
 }
 
-import { prisma, checkDatabaseHealth, ensureDatabaseConnection } from './db';
+import { prisma } from './prisma';
+import { checkDatabaseHealth, ensureDatabaseConnection } from './db';
 import { databaseConfig } from './database';
 
 // Lazy load logger to prevent circular dependencies and client bundling issues

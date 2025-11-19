@@ -51,7 +51,13 @@
     "check:oauth": "tsx scripts/check-oauth-config.ts",
     "check:oauth-config": "npm run check:oauth",
     "check:db": "node scripts/check-db-conflicts.js",
-    "check:db-conflicts": "npm run check:db"
+    "check:db-conflicts": "npm run check:db",
+    "check:api-duplicates": "tsx scripts/check-api-duplicates.ts",
+    "check:api-routes": "npm run check:api-duplicates",
+    "check:page-duplicates": "tsx scripts/check-page-duplicates.ts",
+    "check:pages": "npm run check:page-duplicates",
+    "clean:page-duplicates": "tsx scripts/clean-page-duplicates.ts",
+    "clean:page-duplicates:dry": "tsx scripts/clean-page-duplicates.ts --dry-run"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",

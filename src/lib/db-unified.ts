@@ -592,6 +592,8 @@ export const prisma = new Proxy({} as PrismaClient, {
 
 // Export enhancedPrisma with proper type that includes all Prisma models
 // Using PrismaClient type directly ensures TypeScript recognizes all model properties
+// ⚠️ DEPRECATED: enhancedPrisma is deprecated, use prisma instead
+// ⚠️ Use direct import: import { prisma } from '@/lib/prisma'
 export const enhancedPrisma: PrismaClient = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
     const instance = getEnhancedPrismaLazy();
@@ -599,5 +601,34 @@ export const enhancedPrisma: PrismaClient = new Proxy({} as PrismaClient, {
     return typeof value === 'function' ? value.bind(instance) : value;
   }
 }) as ReturnType<typeof getEnhancedPrisma>;
+
+// Export connection pool stats functions directly (recommended way)
+// ✅ Use these functions instead of enhancedPrisma for pool statistics
+/**
+ * Get current connection pool statistics
+ * ✅ Recommended way to get pool stats
+ */
+export function getConnectionPoolStats(): ConnectionPoolStats {
+  // Initialize prisma to ensure middleware is set up
+  getPrismaLazy();
+  return { ...poolStats };
+}
+
+/**
+ * Optimize connection pool by closing idle connections
+ * ✅ Recommended way to optimize pool
+ */
+export function optimizeConnectionPool(): void {
+  // Initialize prisma to ensure middleware is set up
+  getPrismaLazy();
+  poolStats.idleConnections = Math.max(
+    maxConnections - poolStats.activeConnections,
+    0,
+  );
+  poolStats.waitingRequests = Math.max(
+    poolStats.waitingRequests - 1,
+    0,
+  );
+}
 
 export default prisma;

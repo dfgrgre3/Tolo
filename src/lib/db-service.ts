@@ -1,4 +1,18 @@
-import { prisma, closeDatabaseConnection, checkDatabaseHealth, ensureDatabaseConnection } from './db';
+/**
+ * Database Service - خدمة قاعدة البيانات
+ * 
+ * ⚠️ CRITICAL: This file uses prisma from '@/lib/prisma' (single source of truth)
+ * ⚠️ CRITICAL: هذا الملف يستخدم prisma من '@/lib/prisma' (المصدر الوحيد الموثوق)
+ * 
+ * ✅ All database queries should use prisma from '@/lib/prisma'
+ * ✅ جميع استعلامات قاعدة البيانات يجب أن تستخدم prisma من '@/lib/prisma'
+ * 
+ * ❌ NEVER import PrismaClient directly from '@prisma/client'
+ * ❌ لا تستورد PrismaClient مباشرة من '@prisma/client'
+ */
+
+import { prisma } from './prisma';
+import { closeDatabaseConnection, checkDatabaseHealth, ensureDatabaseConnection } from './db';
 import { CacheService } from './redis';
 import { Prisma } from '@prisma/client';
 

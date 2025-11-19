@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { getPrisma } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { getCachedOrFetch } from '@/lib/db-service';
 import { authService } from '@/lib/auth-service';
 import { logger } from '@/lib/logger';
@@ -60,11 +60,8 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
     const summary = await getCachedOrFetch(cacheKey, async () => {
-      // Get prisma instance
-      const dbClient = await getPrisma();
-      
       // Get all study sessions for the user
-      const sessions = await dbClient.studySession.findMany({
+      const sessions = await prisma.studySession.findMany({
         where: { userId },
         select: {
           durationMin: true,
@@ -95,7 +92,7 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
           : 0;
 
       // Count completed tasks
-      const tasksCompleted = await dbClient.task.count({
+      const tasksCompleted = await prisma.task.count({
         where: {
           userId,
           status: 'COMPLETED',

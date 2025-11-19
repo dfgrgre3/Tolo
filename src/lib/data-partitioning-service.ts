@@ -1,4 +1,4 @@
-import { prisma } from './db-unified';
+import { prisma } from './prisma';
 import { logger } from '@/lib/logger';
 
 export interface PartitionInfo {

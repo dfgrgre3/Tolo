@@ -50,8 +50,16 @@
 // ❌ DO NOT create new PrismaClient() instances here!
 // ❌ لا تنشئ نسخ جديدة من PrismaClient() هنا!
 
-// Re-export Prisma clients from db-unified.ts (single source of truth)
-export { prisma, enhancedPrisma, default as prismaDefault } from './db-unified';
+// Re-export Prisma client from prisma.ts (single source of truth)
+// ✅ Always use: import { prisma } from '@/lib/db' or '@/lib/prisma'
+// ⚠️ enhancedPrisma is deprecated but kept for backward compatibility
+export { 
+  prisma, 
+  enhancedPrisma, 
+  default as prismaDefault,
+  getConnectionPoolStats,
+  optimizeConnectionPool
+} from './prisma';
 
 // Re-export database configuration from database.ts (single source of truth)
 export {
@@ -62,8 +70,8 @@ export {
   defaultPoolStats,
 } from './database';
 
-// Import for use in helper functions (this uses the singleton from db-unified.ts)
-import { prisma } from './db-unified';
+// Import for use in helper functions (this uses the singleton from prisma.ts)
+import { prisma } from './prisma';
 import { logger } from '@/lib/logger';
 
 // Graceful shutdown handling

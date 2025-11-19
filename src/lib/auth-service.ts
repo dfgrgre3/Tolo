@@ -11,25 +11,7 @@ import { logger } from './logger';
 // ⚠️ CRITICAL: لا تستورد PrismaClient مباشرة من '@prisma/client'
 // ✅ Use the singleton instance from prisma.ts to avoid "Too many connections" errors
 // ✅ استخدم النسخة الوحيدة من prisma.ts لتجنب خطأ "Too many connections"
-import type { PrismaClient } from '@prisma/client';
-
-// Lazy load prisma to prevent server-only bundling issues
-// This uses the singleton instance from prisma.ts (which uses db-unified.ts)
-let prismaInstance: PrismaClient | null = null;
-
-async function getPrisma() {
-  if (!prismaInstance) {
-    // Runtime check to ensure this only runs on the server
-    if (typeof window !== 'undefined') {
-      throw new Error('Prisma can only be used on the server');
-    }
-    // Use string concatenation to prevent webpack from statically analyzing the import
-    const prismaModule = await import('./' + 'prisma');
-    // Use getPrisma function instead of direct prisma access
-    prismaInstance = await prismaModule.getPrisma();
-  }
-  return prismaInstance;
-}
+import { prisma } from './prisma';
 
 // Get validated JWT_SECRET (throws error in production if invalid)
 let JWT_SECRET: Uint8Array;
@@ -365,7 +347,7 @@ export class AuthService {
       const sessionId = payload.sessionId as string;
 
       // Validate session exists and is not expired
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       if (!dbClient) throw new Error('Database client not available');
       const session = await dbClient.session.findUnique({
         where: { id: sessionId }
@@ -448,7 +430,7 @@ export class AuthService {
 
     // Fetch from database (with timeout)
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       if (!dbClient) throw new Error('Database client not available');
       const dbPromise = dbClient.user.findUnique({
         where: { email: normalizedEmail },
@@ -472,7 +454,7 @@ export class AuthService {
    * Find user by ID with full profile
    */
   async findUserById(id: string) {
-    const dbClient = await getPrisma();
+    const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
     return dbClient.user.findUnique({
       where: { id },
@@ -492,7 +474,7 @@ export class AuthService {
    * Update user's last login timestamp
    */
   async updateLastLogin(id: string) {
-    const dbClient = await getPrisma();
+    const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
     return dbClient.user.update({
       where: { id },
@@ -509,7 +491,7 @@ export class AuthService {
     const sessionId = uuidv4();
     const expiresAt = new Date(Date.now() + SESSION_DURATION * 1000);
 
-    const dbClient = await getPrisma();
+    const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
     const session = await dbClient.session.create({
       data: {
@@ -529,7 +511,7 @@ export class AuthService {
    */
   async deleteSession(sessionId: string): Promise<boolean> {
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       if (!dbClient) throw new Error('Database client not available');
       await dbClient.session.delete({
         where: { id: sessionId }
@@ -552,7 +534,7 @@ export class AuthService {
 
     // Fetch from database (with timeout)
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       if (!dbClient) throw new Error('Database client not available');
       const dbPromise = dbClient.session.findUnique({
         where: { id: sessionId }
@@ -576,7 +558,7 @@ export class AuthService {
    * Delete all sessions for a user (logout from all devices)
    */
   async deleteAllUserSessions(userId: string): Promise<void> {
-    const dbClient = await getPrisma();
+    const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
     await dbClient.session.deleteMany({
       where: { userId }
@@ -876,7 +858,7 @@ export class AuthService {
 
     const hashedPassword = await AuthService.hashPassword(password);
 
-    const dbClient = await getPrisma();
+    const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
     const user = await dbClient.user.create({
       data: {
@@ -1007,7 +989,7 @@ export class AuthService {
     }
 
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       if (!dbClient) return;
       
       // Add timeout to prevent hanging
@@ -1089,7 +1071,7 @@ export class AuthService {
         
         // Optionally check session validity
         if (options.checkSession && sessionId) {
-          const dbClient = await getPrisma();
+          const dbClient = prisma;
           if (!dbClient) {
             return {
               isValid: false,
@@ -1155,7 +1137,7 @@ export class AuthService {
 
         // Check session validity if requested
         if (checkSession && sessionId) {
-          const dbClient = await getPrisma();
+          const dbClient = prisma;
           if (!dbClient) {
             return {
               isValid: false,

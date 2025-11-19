@@ -1,15 +1,13 @@
-import { prisma, enhancedPrisma } from './db';
+import { prisma } from './prisma';
+import { getConnectionPoolStats, optimizeConnectionPool } from './prisma';
 import redisClient, { CacheService } from './redis';
 import { ConnectionPoolStats, defaultPoolStats, getDatabaseConfig } from './db';
 
 import { logger } from '@/lib/logger';
 
-type PrismaMonitoringClient = typeof enhancedPrisma & {
-  getConnectionPoolStats?: () => ConnectionPoolStats;
-  optimizeConnectionPool?: () => void;
-};
-
-const monitoredPrisma = enhancedPrisma as PrismaMonitoringClient;
+// Use prisma directly - enhancedPrisma is deprecated
+// The connection pool stats are available through getConnectionPoolStats() function
+const monitoredPrisma = prisma;
 
 // Query performance tracking
 interface QueryPerformance {
@@ -139,20 +137,29 @@ export class DatabaseMonitor {
    * database's monitoring APIs.
    */
   public getConnectionPoolStats(): ConnectionPoolStats {
-    // For SQLite, we return default stats since it doesn't have a real connection pool
-    // But we can get enhanced stats from our enhancedPrisma instance
-    if (typeof monitoredPrisma.getConnectionPoolStats === 'function') {
-      return monitoredPrisma.getConnectionPoolStats();
+    // Use the unified connection pool stats function from prisma.ts
+    // This ensures we use the same singleton instance managed by db-unified.ts
+    try {
+      return getConnectionPoolStats();
+    } catch {
+      // If function not available, return default stats
+      return { ...defaultPoolStats };
     }
-    return { ...defaultPoolStats };
   }
 
   /**
    * Optimize connection pool by closing idle connections
    */
   public optimizeConnectionPool(): void {
-    if (typeof monitoredPrisma.optimizeConnectionPool === 'function') {
-      monitoredPrisma.optimizeConnectionPool();
+    // Use the unified connection pool optimization function from prisma.ts
+    // This ensures we use the same singleton instance managed by db-unified.ts
+    try {
+      optimizeConnectionPool();
+    } catch (error) {
+      // If optimization fails, log but don't throw
+      if (process.env.NODE_ENV === 'development') {
+        logger.warn('Connection pool optimization failed:', error);
+      }
     }
   }
   

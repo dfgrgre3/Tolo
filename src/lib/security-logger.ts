@@ -1,17 +1,6 @@
-// Lazy load prisma to prevent client bundling of server-only code
-let prismaInstance: any = null;
-
-async function getPrisma() {
-  if (!prismaInstance) {
-    // Dynamic import to prevent bundler from analyzing server-only dependencies
-    if (typeof window !== 'undefined') {
-      throw new Error('Security logger can only be used on the server');
-    }
-    const prismaModule = await import('./prisma');
-    prismaInstance = await prismaModule.getPrisma();
-  }
-  return prismaInstance;
-}
+// Import prisma singleton to prevent multiple connection pools
+// This uses the singleton instance from prisma.ts (which uses db-unified.ts)
+import { prisma } from './prisma';
 
 // Lazy load elkLogger to prevent client bundling of server-only code
 let elkLoggerInstance: any = null;
@@ -97,7 +86,7 @@ export class SecurityLogger {
    */
   async logEvent(data: SecurityLogData): Promise<void> {
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       await dbClient.securityLog.create({
         data: {
           id: crypto.randomUUID(),
@@ -287,7 +276,7 @@ export class SecurityLogger {
     offset: number = 0
   ): Promise<any[]> {
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       const logs = await dbClient.securityLog.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
@@ -324,7 +313,7 @@ export class SecurityLogger {
     limit: number = 50
   ): Promise<any[]> {
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       const logs = await dbClient.securityLog.findMany({
         where: {
           userId,
@@ -362,7 +351,7 @@ export class SecurityLogger {
     eventType: SecurityEventType
   ): Promise<any | null> {
     try {
-      const dbClient = await getPrisma();
+      const dbClient = prisma;
       const log = await dbClient.securityLog.findFirst({
         where: {
           userId,
