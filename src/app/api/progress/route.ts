@@ -6,6 +6,11 @@ import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
+import { 
+  createStandardErrorResponse, 
+  createSuccessResponse,
+  addSecurityHeaders 
+} from '@/app/api/auth/_helpers';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -15,17 +20,23 @@ export async function GET(request: NextRequest) {
 
 async function handleGetRequest(request: NextRequest) {
   try {
-    // Verify authentication
-    const decodedToken = verifyToken(request);
+    // Verify authentication with timeout protection
+    const verifyPromise = Promise.resolve(verifyToken(request));
+    const verifyTimeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), 5000); // 5 second timeout
+    });
+
+    const decodedToken = await Promise.race([verifyPromise, verifyTimeoutPromise]);
     if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
+      const response = NextResponse.json(
+        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 401 }
       );
+      return addSecurityHeaders(response);
     }
 
-    // Get user's study streak
-    const studySessions = await prisma.studySession.findMany({
+    // Get user's study streak with timeout protection
+    const studySessionsPromise = prisma.studySession.findMany({
       where: {
         userId: decodedToken.userId,
       },
@@ -33,6 +44,12 @@ async function handleGetRequest(request: NextRequest) {
         startTime: 'desc',
       },
     });
+
+    const studySessionsTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 10000);
+    });
+
+    const studySessions = await Promise.race([studySessionsPromise, studySessionsTimeoutPromise]);
 
     // Calculate streak days
     let streakDays = 0;
@@ -83,8 +100,8 @@ async function handleGetRequest(request: NextRequest) {
       }
     }
 
-    // Get recent goals (this is a placeholder, adjust based on your actual goals model)
-    const recentGoals = await prisma.customGoal.findMany({
+    // Get recent goals (this is a placeholder, adjust based on your actual goals model) with timeout protection
+    const recentGoalsPromise = prisma.customGoal.findMany({
       where: {
         userId: decodedToken.userId,
         title: {
@@ -96,6 +113,12 @@ async function handleGetRequest(request: NextRequest) {
       },
       take: 5,
     });
+
+    const recentGoalsTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 5000);
+    });
+
+    const recentGoals = await Promise.race([recentGoalsPromise, recentGoalsTimeoutPromise]);
 
     // Type for goal with status
     type GoalWithStatus = Prisma.CustomGoalGetPayload<{}> & {
@@ -115,12 +138,12 @@ async function handleGetRequest(request: NextRequest) {
       recentGoals: goalsWithStatus 
     };
 
-    return NextResponse.json(result);
+    return createSuccessResponse(result);
   } catch (error) {
     logger.error('Error fetching progress:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch progress' },
-      { status: 500 }
+    return createStandardErrorResponse(
+      error,
+      'Failed to fetch progress'
     );
   }
 }

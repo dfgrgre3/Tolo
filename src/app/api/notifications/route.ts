@@ -4,6 +4,12 @@ import { verifyToken } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { 
+  parseRequestBody, 
+  createStandardErrorResponse, 
+  createSuccessResponse,
+  addSecurityHeaders 
+} from '@/app/api/auth/_helpers';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -16,10 +22,11 @@ export async function GET(request: NextRequest) {
 
       const decodedToken = await Promise.race([verifyPromise, verifyTimeoutPromise]);
       if (!decodedToken) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Unauthorized', code: 'UNAUTHORIZED' },
           { status: 401 }
         );
+        return addSecurityHeaders(response);
       }
 
       // Get and validate query parameters
@@ -30,18 +37,20 @@ export async function GET(request: NextRequest) {
 
       const limit = parseInt(limitParam, 10);
       if (isNaN(limit) || limit > 100 || limit < 1) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Invalid limit parameter. Must be between 1 and 100.', code: 'INVALID_PARAMETER' },
           { status: 400 }
         );
+        return addSecurityHeaders(response);
       }
 
       const offset = parseInt(offsetParam, 10);
       if (isNaN(offset) || offset < 0) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Invalid offset parameter. Must be a non-negative integer.', code: 'INVALID_PARAMETER' },
           { status: 400 }
         );
+        return addSecurityHeaders(response);
       }
 
       // Build where clause with proper typing
@@ -74,17 +83,17 @@ export async function GET(request: NextRequest) {
         dbTimeoutPromise,
       ]);
 
-      return NextResponse.json({ 
+      const response = NextResponse.json({ 
         notifications, 
         unreadCount,
         hasMore: notifications.length === limit 
       });
+      return addSecurityHeaders(response);
     } catch (error) {
       logger.error('Error fetching notifications:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch notifications';
-      return NextResponse.json(
-        { error: errorMessage, code: 'FETCH_ERROR' },
-        { status: 500 }
+      return createStandardErrorResponse(
+        error,
+        'Failed to fetch notifications'
       );
     }
   });
@@ -101,67 +110,76 @@ export async function POST(request: NextRequest) {
 
       const decodedToken = await Promise.race([verifyPromise, verifyTimeoutPromise2]);
       if (!decodedToken) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Unauthorized', code: 'UNAUTHORIZED' },
           { status: 401 }
         );
+        return addSecurityHeaders(response);
       }
 
-      // Parse request body with timeout protection
-      let body;
-      try {
-        const bodyPromise = req.json();
-        const bodyTimeoutPromise = new Promise<never>((resolve, reject) => {
-          setTimeout(() => reject(new Error('Request body parsing timeout')), 5000);
-        });
-        body = await Promise.race([bodyPromise, bodyTimeoutPromise]);
-      } catch (parseError) {
-        return NextResponse.json(
-          { error: 'Invalid request body format', code: 'PARSE_ERROR' },
-          { status: 400 }
-        );
+      // Parse request body with timeout protection using standardized helper
+      const bodyResult = await parseRequestBody<{
+        title?: string;
+        message?: string;
+        type?: string;
+        actionUrl?: string;
+        icon?: string;
+      }>(req, {
+        maxSize: 2048, // 2KB max
+        required: true,
+      });
+
+      if (!bodyResult.success) {
+        return bodyResult.error;
       }
+
+      const body = bodyResult.data;
 
       const { title, message, type, actionUrl, icon } = body;
 
       // Validate required fields
       if (!title || typeof title !== 'string' || title.trim().length === 0) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Title is required and must be a non-empty string', code: 'MISSING_TITLE' },
           { status: 400 }
         );
+        return addSecurityHeaders(response);
       }
 
       if (!message || typeof message !== 'string' || message.trim().length === 0) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Message is required and must be a non-empty string', code: 'MISSING_MESSAGE' },
           { status: 400 }
         );
+        return addSecurityHeaders(response);
       }
 
       // Validate title and message length
       if (title.trim().length > 200) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Title is too long. Maximum length is 200 characters.', code: 'TITLE_TOO_LONG' },
           { status: 400 }
         );
+        return addSecurityHeaders(response);
       }
 
       if (message.trim().length > 1000) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: 'Message is too long. Maximum length is 1000 characters.', code: 'MESSAGE_TOO_LONG' },
           { status: 400 }
         );
+        return addSecurityHeaders(response);
       }
 
       // Validate type if provided
       const validTypes = ['info', 'success', 'warning', 'error'];
       const notificationType = type || 'info';
       if (!validTypes.includes(notificationType)) {
-        return NextResponse.json(
+        const response = NextResponse.json(
           { error: `Invalid type. Must be one of: ${validTypes.join(', ')}`, code: 'INVALID_TYPE' },
           { status: 400 }
         );
+        return addSecurityHeaders(response);
       }
 
       // Create notification with timeout protection
@@ -183,13 +201,12 @@ export async function POST(request: NextRequest) {
 
       const notification = await Promise.race([createPromise, createTimeoutPromise]);
 
-      return NextResponse.json({ notification }, { status: 201 });
+      return createSuccessResponse({ notification }, undefined, 201);
     } catch (error) {
       logger.error('Error creating notification:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create notification';
-      return NextResponse.json(
-        { error: errorMessage, code: 'CREATE_ERROR' },
-        { status: 500 }
+      return createStandardErrorResponse(
+        error,
+        'Failed to create notification'
       );
     }
   });

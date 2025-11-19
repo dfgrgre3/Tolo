@@ -9,15 +9,16 @@ import { gamificationService } from '@/lib/gamification-service';
 import { firestoreService } from '@/lib/firestore-service';
 import { rateLimit, handleApiError, badRequestResponse, unauthorizedResponse, successResponse } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { TASK_STATUS, TASK_STATUS_VALUES, TASK_PRIORITY, TASK_PRIORITY_VALUES, TASK_PRIORITY_MAP, TASK_DEFAULTS, type TaskStatus, type TaskPriority } from '@/lib/constants';
 
 // Validation schemas
 const TaskCreateSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
   description: z.string().max(1000, "Description is too long").optional(),
   dueDate: z.string().datetime().optional().nullable(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+  priority: z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]).optional(),
   subjectId: z.string().optional().nullable(),
-  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  status: z.enum([TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS, TASK_STATUS.COMPLETED] as [string, ...string[]]).optional(),
 });
 
 const TaskUpdateSchema = z.object({
@@ -25,9 +26,9 @@ const TaskUpdateSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long").optional(),
   description: z.string().max(1000, "Description is too long").optional(),
   dueDate: z.string().datetime().optional().nullable(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).optional(),
+  priority: z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]).optional(),
   subjectId: z.string().optional().nullable(),
-  status: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED']).optional(),
+  status: z.enum([TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS, TASK_STATUS.COMPLETED] as [string, ...string[]]).optional(),
 });
 
 // Rate limiting configuration
@@ -86,13 +87,13 @@ async function handleGetRequest(req: NextRequest) {
     }
 
     // Validate status if provided
-    if (status && !['PENDING', 'IN_PROGRESS', 'COMPLETED'].includes(status)) {
-      return badRequestResponse('Invalid status parameter. Must be PENDING, IN_PROGRESS, or COMPLETED.', 'INVALID_PARAMETER');
+    if (status && !TASK_STATUS_VALUES.includes(status as TaskStatus)) {
+      return badRequestResponse(`Invalid status parameter. Must be ${TASK_STATUS_VALUES.join(', ')}.`, 'INVALID_PARAMETER');
     }
 
     // Validate priority if provided
-    if (priority && !['LOW', 'MEDIUM', 'HIGH'].includes(priority)) {
-      return badRequestResponse('Invalid priority parameter. Must be LOW, MEDIUM, or HIGH.', 'INVALID_PARAMETER');
+    if (priority && !TASK_PRIORITY_VALUES.includes(priority as TaskPriority)) {
+      return badRequestResponse(`Invalid priority parameter. Must be ${TASK_PRIORITY_VALUES.join(', ')}.`, 'INVALID_PARAMETER');
     }
 
     // Build where clause with proper typing using Prisma types
@@ -116,13 +117,8 @@ async function handleGetRequest(req: NextRequest) {
     }
 
     if (priority) {
-      // Convert string priority to number: LOW=1, MEDIUM=2, HIGH=3
-      const priorityMap: Record<string, number> = {
-        'LOW': 1,
-        'MEDIUM': 2,
-        'HIGH': 3
-      };
-      where.priority = priorityMap[priority] || 2;
+      // Convert string priority to number using constants
+      where.priority = TASK_PRIORITY_MAP[priority as TaskPriority] || TASK_DEFAULTS.PRIORITY_NUMBER;
     }
 
     if (subjectId) {
@@ -203,13 +199,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Convert priority string to number
-      const priorityMap: Record<string, number> = {
-        'LOW': 1,
-        'MEDIUM': 2,
-        'HIGH': 3
-      };
-      const priorityNumber = priority ? priorityMap[priority] || 2 : 2;
+      // Convert priority string to number using constants
+      const priorityNumber = priority 
+        ? TASK_PRIORITY_MAP[priority as TaskPriority] || TASK_DEFAULTS.PRIORITY_NUMBER
+        : TASK_DEFAULTS.PRIORITY_NUMBER;
 
       // Create task in database with timeout protection
       const createPromise = prisma.task.create({
@@ -219,7 +212,7 @@ export async function POST(request: NextRequest) {
           description: description?.trim() || null,
           dueAt: dueDate ? new Date(dueDate) : null,
           priority: priorityNumber,
-          status: status || 'PENDING',
+          status: status || TASK_DEFAULTS.STATUS,
           userId: decodedToken.userId,
           subject: subjectId || null,
         },
@@ -327,13 +320,8 @@ export async function PUT(request: NextRequest) {
         }
       }
 
-      // Convert priority string to number if provided
-      const priorityMap: Record<string, number> = {
-        'LOW': 1,
-        'MEDIUM': 2,
-        'HIGH': 3
-      };
-      const priorityNumber = priority ? priorityMap[priority] : undefined;
+      // Convert priority string to number if provided using constants
+      const priorityNumber = priority ? TASK_PRIORITY_MAP[priority as TaskPriority] : undefined;
 
       // Update task in database with timeout protection
       const updatePromise = prisma.task.update({
@@ -357,7 +345,7 @@ export async function PUT(request: NextRequest) {
       const task = await Promise.race([updatePromise, updateTimeoutPromise]);
 
       // Invalidate cache and trigger gamification in parallel (non-blocking)
-      const wasCompleted = task.status === 'COMPLETED' && existingTask.status !== 'COMPLETED';
+      const wasCompleted = task.status === TASK_STATUS.COMPLETED && existingTask.status !== TASK_STATUS.COMPLETED;
       Promise.allSettled([
         invalidateUserCache(decodedToken.userId),
         wasCompleted ? gamificationService.updateUserProgress(decodedToken.userId, 'task_completed') : Promise.resolve(),

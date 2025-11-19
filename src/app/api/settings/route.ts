@@ -4,9 +4,14 @@ import { SubjectType, FocusStrategy } from "@/types/settings";
 import { SettingsUpdateRequest } from "@/types/settings";
 import { verifyToken } from "@/lib/auth-service";
 import { randomUUID } from "crypto";
-
 import { logger } from '@/lib/logger';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { 
+  parseRequestBody, 
+  createStandardErrorResponse, 
+  createSuccessResponse,
+  addSecurityHeaders 
+} from '@/app/api/auth/_helpers';
 
 export async function GET(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
@@ -22,25 +27,43 @@ export async function GET(req: NextRequest) {
 
 		// If userId is provided in query, ensure it matches the authenticated user
 		if (userId && userId !== authUser.userId) {
-			return NextResponse.json({ error: "Forbidden: Can only access your own settings" }, { status: 403 });
+			const response = NextResponse.json({ error: "Forbidden: Can only access your own settings", code: 'FORBIDDEN' }, { status: 403 });
+			return addSecurityHeaders(response);
 		}
 
 		// Use authenticated user's ID if no userId provided in query
 		const targetUserId = userId || authUser.userId;
 
-			const user = await prisma.user.findUnique({
+			// Fetch user with timeout protection
+			const userPromise = prisma.user.findUnique({
 				where: { id: targetUserId },
 				select: { id: true, wakeUpTime: true, sleepTime: true, focusStrategy: true }
 			});
 
-			const subjects = await prisma.subjectEnrollment.findMany({
+			const userTimeoutPromise = new Promise<never>((resolve, reject) => {
+				setTimeout(() => reject(new Error('Database query timeout')), 5000);
+			});
+
+			const user = await Promise.race([userPromise, userTimeoutPromise]);
+
+			const subjectsPromise = prisma.subjectEnrollment.findMany({
 				where: { userId: targetUserId },
 				orderBy: { subject: "asc" }
 			});
 
-			return NextResponse.json({ user, subjects });
+			const subjectsTimeoutPromise = new Promise<never>((resolve, reject) => {
+				setTimeout(() => reject(new Error('Database query timeout')), 5000);
+			});
+
+			const subjects = await Promise.race([subjectsPromise, subjectsTimeoutPromise]);
+
+			return createSuccessResponse({ user, subjects });
 		} catch (e: any) {
-			return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+			logger.error("Error fetching settings:", e);
+			return createStandardErrorResponse(
+				e,
+				e?.message ?? "Server error"
+			);
 		}
 	});
 }
@@ -48,35 +71,59 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
 		try {
-			// Authenticate user
-			const authUser = verifyToken(request);
+			// Authenticate user with timeout protection
+			const verifyPromise = Promise.resolve(verifyToken(request));
+			const verifyTimeoutPromise = new Promise<null>((resolve) => {
+				setTimeout(() => resolve(null), 5000); // 5 second timeout
+			});
+
+			const authUser = await Promise.race([verifyPromise, verifyTimeoutPromise]);
 			if (!authUser) {
-				return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+				const response = NextResponse.json({ error: "Unauthorized", code: 'UNAUTHORIZED' }, { status: 401 });
+				return addSecurityHeaders(response);
 			}
 
-			const body: SettingsUpdateRequest = await request.json();
+			// Parse request body with timeout protection using standardized helper
+			const bodyResult = await parseRequestBody<SettingsUpdateRequest>(request, {
+				maxSize: 4096, // 4KB max for settings
+				required: true,
+			});
+
+			if (!bodyResult.success) {
+				return bodyResult.error;
+			}
+
+			const body = bodyResult.data;
 			const { userId, wakeUpTime, sleepTime, focusStrategy, subjects } = body;
 
-			// If userId is provided in body, ensure it matches the authenticated user
-			if (userId && userId !== authUser.userId) {
-				return NextResponse.json({ error: "Forbidden: Can only update your own settings" }, { status: 403 });
-			}
+		// If userId is provided in body, ensure it matches the authenticated user
+		if (userId && userId !== authUser.userId) {
+			const response = NextResponse.json({ error: "Forbidden: Can only update your own settings", code: 'FORBIDDEN' }, { status: 403 });
+			return addSecurityHeaders(response);
+		}
 
-			// Use authenticated user's ID if no userId provided in body
-			const targetUserId = userId || authUser.userId;
+		// Use authenticated user's ID if no userId provided in body
+		const targetUserId = userId || authUser.userId;
 
-		// Verify user exists
-		const userExists = await prisma.user.findUnique({
+		// Verify user exists with timeout protection
+		const userExistsPromise = prisma.user.findUnique({
 			where: { id: targetUserId },
 			select: { id: true }
 		});
 
+		const userExistsTimeoutPromise = new Promise<never>((resolve, reject) => {
+			setTimeout(() => reject(new Error('Database query timeout')), 5000);
+		});
+
+		const userExists = await Promise.race([userExistsPromise, userExistsTimeoutPromise]);
+
 		if (!userExists) {
-			return NextResponse.json({ error: "User not found" }, { status: 404 });
+			const response = NextResponse.json({ error: "User not found", code: 'USER_NOT_FOUND' }, { status: 404 });
+			return addSecurityHeaders(response);
 		}
 
-		// Update user settings
-		await prisma.user.update({
+		// Update user settings with timeout protection
+		const updateUserPromise = prisma.user.update({
 			where: { id: targetUserId },
 			data: {
 				wakeUpTime: wakeUpTime ?? null,
@@ -84,6 +131,12 @@ export async function POST(req: NextRequest) {
 				focusStrategy: focusStrategy ?? null
 			}
 		});
+
+		const updateUserTimeoutPromise = new Promise<never>((resolve, reject) => {
+			setTimeout(() => reject(new Error('Database update timeout')), 10000);
+		});
+
+		await Promise.race([updateUserPromise, updateUserTimeoutPromise]);
 
 		// Update subject enrollments
 		if (Array.isArray(subjects) && subjects.length > 0) {
@@ -192,19 +245,13 @@ export async function POST(req: NextRequest) {
 			}
 		}
 
-			return NextResponse.json({ ok: true, message: "Settings updated successfully" });
+			return createSuccessResponse({ ok: true, message: "Settings updated successfully" });
 		} catch (e: any) {
 			logger.error("Error updating settings:", e);
-			// Log detailed error for debugging
-			const errorMessage = e?.message || "Server error";
-			const errorDetails = process.env.NODE_ENV === 'development' 
-				? { message: errorMessage, stack: e?.stack, name: e?.name }
-				: { message: errorMessage };
-			
-			return NextResponse.json({ 
-				error: errorMessage,
-				...(process.env.NODE_ENV === 'development' && { details: errorDetails })
-			}, { status: 500 });
+			return createStandardErrorResponse(
+				e,
+				e?.message || "Server error"
+			);
 		}
 	});
 }

@@ -6,6 +6,7 @@ import { verifyToken } from '@/lib/auth-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
+import { TASK_STATUS } from '@/lib/constants';
 
 /**
  * GET /api/recommendations
@@ -199,8 +200,8 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
   });
 
   // 3. Task Completion Analysis
-  const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
-  const pendingTasks = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+  const completedTasks = tasks.filter(t => t.status === TASK_STATUS.COMPLETED);
+  const pendingTasks = tasks.filter(t => t.status === TASK_STATUS.PENDING || t.status === TASK_STATUS.IN_PROGRESS);
   const completionRate = tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0;
 
   if (pendingTasks.length > 0 && completionRate < 70) {

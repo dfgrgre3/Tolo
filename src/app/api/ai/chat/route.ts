@@ -4,13 +4,32 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { analyzeSentiment } from "@/lib/ai/sentiment-analysis";
 import { prisma } from "@/lib/prisma";
 import { verifyToken } from "@/lib/auth-service";
-
 import { logger } from '@/lib/logger';
+import { 
+  parseRequestBody, 
+  createStandardErrorResponse, 
+  createSuccessResponse,
+  addSecurityHeaders 
+} from '@/app/api/auth/_helpers';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
   try {
-    const { messages, provider, userId } = await req.json();
+    // Parse request body with timeout protection using standardized helper
+    const bodyResult = await parseRequestBody<{
+      messages?: any[];
+      provider?: string;
+      userId?: string;
+    }>(req, {
+      maxSize: 10240, // 10KB max for chat messages
+      required: true,
+    });
+
+    if (!bodyResult.success) {
+      return bodyResult.error;
+    }
+
+    const { messages, provider, userId } = bodyResult.data;
     
     // Try to get userId from token if not provided
     let actualUserId = userId;
@@ -25,17 +44,19 @@ export async function POST(request: NextRequest) {
     const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
 
     if (!validateApiKey(selectedProvider === AI_PROVIDERS.OPENAI ? 'OPENAI' : 'GEMINI')) {
-      return NextResponse.json(
-        { error: `مفتاح API لـ ${selectedProvider.name} غير مهيأ` },
+      const response = NextResponse.json(
+        { error: `مفتاح API لـ ${selectedProvider.name} غير مهيأ`, code: 'API_KEY_MISSING' },
         { status: 500 }
       );
+      return addSecurityHeaders(response);
     }
 
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json(
-        { error: "الرسائل غير صالحة" },
+      const response = NextResponse.json(
+        { error: "الرسائل غير صالحة", code: 'INVALID_MESSAGES' },
         { status: 400 }
       );
+      return addSecurityHeaders(response);
     }
 
     // Analyze sentiment of the last user message
@@ -103,9 +124,11 @@ export async function POST(request: NextRequest) {
       if (!response.ok) {
         const errorData = await response.json();
         logger.error("Error from OpenAI:", errorData);
-        return NextResponse.json({
-          message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم."
-        });
+        const errorResponse = NextResponse.json({
+          message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم.",
+          code: 'AI_SERVICE_ERROR'
+        }, { status: 500 });
+        return addSecurityHeaders(errorResponse);
       }
 
       const data = await response.json();
@@ -139,9 +162,11 @@ export async function POST(request: NextRequest) {
       if (!response.ok) {
         const errorData = await response.json();
         logger.error("Error from Gemini:", errorData);
-        return NextResponse.json({
-          message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم."
-        });
+        const errorResponse = NextResponse.json({
+          message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم.",
+          code: 'AI_SERVICE_ERROR'
+        }, { status: 500 });
+        return addSecurityHeaders(errorResponse);
       }
 
       const data = await response.json();
@@ -163,7 +188,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ 
+    return createSuccessResponse({ 
       message: aiMessage,
       sentiment: sentiment ? {
         sentiment: sentiment.sentiment,
@@ -173,9 +198,9 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Error in AI chat API:", error);
-    return NextResponse.json(
-      { message: "حدث خطأ في معالجة طلبك" },
-      { status: 500 }
+    return createStandardErrorResponse(
+      error,
+      "حدث خطأ في معالجة طلبك"
     );
   }
   });

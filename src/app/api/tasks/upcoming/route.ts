@@ -4,6 +4,7 @@ import { verifyToken } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { TASK_STATUS } from '@/lib/constants';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -38,7 +39,7 @@ export async function GET(request: NextRequest) {
               lt: now,
             },
             status: {
-              not: 'COMPLETED',
+              not: TASK_STATUS.COMPLETED,
             },
           },
         ],

@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { TEACHER_ROLES } from '@/lib/constants';
+import { 
+  createStandardErrorResponse, 
+  createSuccessResponse,
+  addSecurityHeaders 
+} from '@/app/api/auth/_helpers';
 
 type SearchScope = "all" | "courses" | "teachers" | "forum" | "exams";
 
@@ -24,7 +30,17 @@ export async function GET(request: NextRequest) {
 		const limit = parseInt(searchParams.get("limit") || "10");
 
 		if (!query.trim()) {
-			return NextResponse.json({ results: [], total: 0 });
+			const response = NextResponse.json({ results: [], total: 0 });
+			return addSecurityHeaders(response);
+		}
+
+		// Validate limit parameter
+		if (isNaN(limit) || limit < 1 || limit > 100) {
+			const response = NextResponse.json(
+				{ error: "حد غير صحيح. يجب أن يكون بين 1 و 100", code: 'INVALID_LIMIT' },
+				{ status: 400 }
+			);
+			return addSecurityHeaders(response);
 		}
 
 		const results: SearchResult[] = [];
@@ -39,10 +55,10 @@ export async function GET(request: NextRequest) {
 			return 50;
 		};
 
-		// Search in Courses (Subjects)
+		// Search in Courses (Subjects) with timeout protection
 		if (scope === "all" || scope === "courses") {
 			try {
-				const courses = await prisma.subject.findMany({
+				const coursesPromise = prisma.subject.findMany({
 					where: {
 						OR: [
 							{ name: { contains: query, mode: "insensitive" } },
@@ -53,6 +69,12 @@ export async function GET(request: NextRequest) {
 					take: limit,
 					orderBy: { name: "asc" },
 				});
+
+				const timeoutPromise = new Promise<never>((resolve, reject) => {
+					setTimeout(() => reject(new Error('Database query timeout')), 5000);
+				});
+
+				const courses = await Promise.race([coursesPromise, timeoutPromise]);
 
 				courses.forEach((course: { id: string; name: string | null; description: string | null; type: string | null }) => {
 					const title = course.name || "مادة بدون عنوان";
@@ -77,16 +99,16 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		// Search in Teachers
+		// Search in Teachers with timeout protection
 		if (scope === "all" || scope === "teachers") {
 			try {
 				// Search in local teachers if they exist in the database
 				// For now, we'll search in a hypothetical teachers table or use AI search
 				// This is a placeholder - adjust based on your actual schema
-				const teachers = await prisma.user.findMany({
+				const teachersPromise = prisma.user.findMany({
 					where: {
 						AND: [
-							{ role: { in: ["TEACHER", "ADMIN"] } },
+							{ role: { in: TEACHER_ROLES } },
 							{
 								OR: [
 									{ name: { contains: query, mode: "insensitive" } },
@@ -102,6 +124,12 @@ export async function GET(request: NextRequest) {
 						email: true,
 					},
 				});
+
+				const teachersTimeoutPromise = new Promise<never>((resolve, reject) => {
+					setTimeout(() => reject(new Error('Database query timeout')), 5000);
+				});
+
+				const teachers = await Promise.race([teachersPromise, teachersTimeoutPromise]);
 
 				teachers.forEach((teacher: { id: string; name: string | null; email: string }) => {
 					const title = teacher.name || teacher.email || "معلم";
@@ -122,10 +150,10 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		// Search in Forum Posts
+		// Search in Forum Posts with timeout protection
 		if (scope === "all" || scope === "forum") {
 			try {
-				const posts = await prisma.forumPost.findMany({
+				const postsPromise = prisma.forumPost.findMany({
 					where: {
 						OR: [
 							{ title: { contains: query, mode: "insensitive" } },
@@ -143,6 +171,12 @@ export async function GET(request: NextRequest) {
 					},
 					orderBy: { createdAt: "desc" },
 				});
+
+				const postsTimeoutPromise = new Promise<never>((resolve, reject) => {
+					setTimeout(() => reject(new Error('Database query timeout')), 5000);
+				});
+
+				const posts = await Promise.race([postsPromise, postsTimeoutPromise]);
 
 				posts.forEach((post: { id: string; title: string | null; content: string | null; category: { name: string } | null }) => {
 					const title = post.title || "موضوع بدون عنوان";
@@ -167,10 +201,10 @@ export async function GET(request: NextRequest) {
 			}
 		}
 
-		// Search in Exams
+		// Search in Exams with timeout protection
 		if (scope === "all" || scope === "exams") {
 			try {
-				const exams = await prisma.exam.findMany({
+				const examsPromise = prisma.exam.findMany({
 					where: {
 						OR: [
 							{ title: { contains: query, mode: "insensitive" } },
@@ -180,6 +214,12 @@ export async function GET(request: NextRequest) {
 					take: limit,
 					orderBy: { createdAt: "desc" },
 				});
+
+				const examsTimeoutPromise = new Promise<never>((resolve, reject) => {
+					setTimeout(() => reject(new Error('Database query timeout')), 5000);
+				});
+
+				const exams = await Promise.race([examsPromise, examsTimeoutPromise]);
 
 				exams.forEach((exam: { id: string; title: string; subject: string; year: number }) => {
 					const title = exam.title || "امتحان بدون عنوان";
@@ -208,7 +248,7 @@ export async function GET(request: NextRequest) {
 			.sort((a, b) => b.relevance - a.relevance)
 			.slice(0, limit * 2); // Return more results before limiting
 
-		return NextResponse.json({
+		return createSuccessResponse({
 			results: sortedResults,
 			total: sortedResults.length,
 			query,
@@ -216,9 +256,9 @@ export async function GET(request: NextRequest) {
 		});
 	} catch (error) {
 		logger.error("Error in search API:", error);
-		return NextResponse.json(
-			{ error: "حدث خطأ في البحث", results: [], total: 0 },
-			{ status: 500 }
+		return createStandardErrorResponse(
+			error,
+			"حدث خطأ في البحث"
 		);
 		}
 	});

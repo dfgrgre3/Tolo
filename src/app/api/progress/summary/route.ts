@@ -4,6 +4,7 @@ import { getCachedOrFetch, invalidateCache } from '@/lib/db-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
+import { TASK_STATUS } from '@/lib/constants';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -61,7 +62,7 @@ export async function GET(request: NextRequest) {
       const tasksCompleted = await prisma.task.count({
         where: {
           userId,
-          status: 'COMPLETED',
+          status: TASK_STATUS.COMPLETED,
         },
       });
 

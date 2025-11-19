@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
 import Link from "next/link";
 import { safeFetch } from "@/lib/safe-client-utils";
-
 import { logger } from '@/lib/logger';
+import { AlertCircle, RefreshCw } from "lucide-react";
 
 // --- Type Definitions ---
 
@@ -184,31 +184,58 @@ function ExamsSectionComponent() {
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedSubject, setSelectedSubject] = useState<SubjectWithExams | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
+    const abortControllerRef = useRef<AbortController | null>(null);
 
-    // Fetch real data from API
+    // Fetch real data from API with retry logic
     useEffect(() => {
         const fetchExamsData = async () => {
+            // Cancel previous request if exists
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+            
+            abortControllerRef.current = new AbortController();
             setLoading(true);
             setError(null);
             
             try {
-                // Fetch exams from API
+                // Fetch exams from API with timeout
                 const { data: examsData, error: examsError } = await safeFetch<Exam[]>(
                     "/api/exams",
-                    undefined,
+                    {
+                        signal: abortControllerRef.current.signal,
+                        cache: 'no-store'
+                    },
                     []
                 );
 
                 if (examsError) {
+                    // Handle abort errors gracefully
+                    if (examsError instanceof Error && examsError.name === 'AbortError') {
+                        return;
+                    }
+                    
                     // فقط في وضع التطوير نعرض الخطأ الكامل في console
                     if (process.env.NODE_ENV === 'development') {
                         logger.error("Error fetching exams:", examsError);
                     }
+                    
                     // عرض رسالة خطأ واضحة للمستخدم
                     const errorMessage = examsError?.message || "فشل تحميل الامتحانات";
-                    setError(errorMessage.includes("HTTP 500") 
-                        ? "حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً." 
-                        : "حدث خطأ في جلب الامتحانات");
+                    let userMessage = "حدث خطأ في جلب الامتحانات";
+                    
+                    if (errorMessage.includes("HTTP 500") || errorMessage.includes("500")) {
+                        userMessage = "حدث خطأ في الخادم. يرجى المحاولة مرة أخرى لاحقاً.";
+                    } else if (errorMessage.includes("timeout") || errorMessage.includes("Timeout") || errorMessage.includes("ETIMEDOUT")) {
+                        userMessage = "انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.";
+                    } else if (errorMessage.includes("network") || errorMessage.includes("Network") || errorMessage.includes("ECONNREFUSED") || errorMessage.includes("ENOTFOUND")) {
+                        userMessage = "مشكلة في الاتصال بالإنترنت. يرجى التحقق من الاتصال والمحاولة مرة أخرى.";
+                    } else if (errorMessage.includes("404") || errorMessage.includes("Not Found")) {
+                        userMessage = "لم يتم العثور على الامتحانات. يرجى المحاولة مرة أخرى.";
+                    }
+                    
+                    setError(userMessage);
                     setLoading(false);
                     return;
                 }
@@ -292,6 +319,11 @@ function ExamsSectionComponent() {
                 ]);
 
             } catch (err) {
+                // Handle abort errors gracefully
+                if (err instanceof Error && err.name === 'AbortError') {
+                    return;
+                }
+                
                 logger.error("Error fetching exams data:", err);
                 setError("حدث خطأ أثناء تحميل البيانات");
             } finally {
@@ -300,13 +332,27 @@ function ExamsSectionComponent() {
         };
 
         fetchExamsData();
-    }, []);
+        
+        // Cleanup function
+        return () => {
+            if (abortControllerRef.current) {
+                abortControllerRef.current.abort();
+            }
+        };
+    }, [retryCount]);
 
-    const filteredSubjects = useMemo(() =>
-        subjects.filter(subject =>
-            subject.name.toLowerCase().includes(searchTerm.toLowerCase())
-        ), [subjects, searchTerm]
-    );
+    const filteredSubjects = useMemo(() => {
+        if (!searchTerm.trim()) return subjects;
+        
+        const searchLower = searchTerm.toLowerCase().trim();
+        return subjects.filter(subject =>
+            subject.name.toLowerCase().includes(searchLower) ||
+            subject.exams.some(exam => 
+                exam.title.toLowerCase().includes(searchLower) ||
+                exam.subject?.toLowerCase().includes(searchLower)
+            )
+        );
+    }, [subjects, searchTerm]);
 
     return (
         <>
@@ -348,12 +394,20 @@ function ExamsSectionComponent() {
                         }
                     </div>
                     {error && (
-                        <div className="text-center py-8">
-                            <p className="text-red-600 mb-2">{error}</p>
+                        <div className="text-center py-8 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-6" role="alert">
+                            <div className="flex items-center justify-center gap-2 text-red-600 dark:text-red-400 mb-3">
+                                <AlertCircle className="h-5 w-5" aria-hidden="true" />
+                                <p className="font-medium">{error}</p>
+                            </div>
                             <button 
-                                onClick={() => window.location.reload()} 
-                                className="text-primary hover:underline"
+                                onClick={() => {
+                                    setRetryCount(prev => prev + 1);
+                                    setError(null);
+                                }} 
+                                className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                                aria-label="إعادة المحاولة"
                             >
+                                <RefreshCw className="h-4 w-4" aria-hidden="true" />
                                 إعادة المحاولة
                             </button>
                         </div>

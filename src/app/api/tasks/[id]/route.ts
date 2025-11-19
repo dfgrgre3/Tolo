@@ -4,6 +4,7 @@ import { verifyToken } from "@/lib/auth-service";
 import { gamificationService } from "@/lib/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { TASK_STATUS } from '@/lib/constants';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return opsWrapper(req, async (request) => {
@@ -82,7 +83,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     // Check if task is being marked as completed
-    const isCompleting = (updates.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') ||
+    const isCompleting = (updates.status === TASK_STATUS.COMPLETED && existingTask.status !== TASK_STATUS.COMPLETED) ||
                          (updates.completedAt !== undefined && !existingTask.completedAt);
 
     const updated = await prisma.task.update({

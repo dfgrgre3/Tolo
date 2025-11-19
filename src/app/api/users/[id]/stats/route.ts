@@ -4,6 +4,7 @@ import { verifyToken } from "@/lib/auth-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
+import { TASK_STATUS } from '@/lib/constants';
 
 // Type for Prisma client with optional models
 type PrismaClientWithOptionalModels = typeof prisma & {
@@ -34,7 +35,7 @@ export async function GET(
     const completedTasks = await prisma.task.count({
       where: {
         userId: id,
-        status: 'COMPLETED'
+        status: TASK_STATUS.COMPLETED
       }
     });
 
