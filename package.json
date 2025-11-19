@@ -26,7 +26,6 @@
     "test:cov": "dotenv -e tests/test.env jest --coverage",
     "test:watch": "dotenv -e tests/test.env jest --watch",
     "check:cov": "node scripts/check-coverage.js",
-    "websocket": "ts-node src/lib/websocket.ts",
     "postinstall": "npx prisma generate",
     "prisma:generate": "npx prisma generate",
     "create-test-account": "ts-node scripts/create-test-account.ts",

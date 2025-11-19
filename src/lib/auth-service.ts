@@ -446,25 +446,6 @@ export class AuthService {
       return null;
     }
 
-    // Try to get from cache first (with timeout)
-    try {
-      const cachePromise = (async () => {
-        const { authCache, CacheKeys } = await import('./cache/auth-cache');
-        return authCache.get(CacheKeys.userByEmail(normalizedEmail));
-      })();
-
-      const timeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 500); // 500ms timeout for cache
-      });
-
-      const cached = await Promise.race([cachePromise, timeoutPromise]);
-      if (cached) {
-        return cached;
-      }
-    } catch {
-      // Cache not available, continue with DB query
-    }
-
     // Fetch from database (with timeout)
     try {
       const dbClient = await getPrisma();
@@ -479,19 +460,6 @@ export class AuthService {
 
       const user = await Promise.race([dbPromise, timeoutPromise]);
 
-      // Cache the result if found (non-blocking)
-      if (user) {
-        Promise.resolve().then(async () => {
-          try {
-            const { authCache, CacheKeys } = await import('./cache/auth-cache');
-            authCache.set(CacheKeys.userByEmail(normalizedEmail), user, 5 * 60 * 1000); // Cache for 5 minutes
-          } catch {
-            // Ignore cache errors silently
-          }
-        }).catch(() => {
-          // Silent fail
-        });
-      }
 
       return user;
     } catch (error) {
@@ -567,14 +535,6 @@ export class AuthService {
         where: { id: sessionId }
       });
       
-      // Invalidate cache
-      try {
-        const { authCache, CacheKeys } = await import('./cache/auth-cache');
-        authCache.delete(CacheKeys.session(sessionId));
-      } catch {
-        // Ignore cache errors
-      }
-      
       return true;
     } catch {
       return false;
@@ -588,25 +548,6 @@ export class AuthService {
   async getSession(sessionId: string) {
     if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
       return null;
-    }
-
-    // Try to get from cache first (with timeout)
-    try {
-      const cachePromise = (async () => {
-        const { authCache, CacheKeys } = await import('./cache/auth-cache');
-        return authCache.get(CacheKeys.session(sessionId));
-      })();
-
-      const timeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 500); // 500ms timeout for cache
-      });
-
-      const cached = await Promise.race([cachePromise, timeoutPromise]);
-      if (cached) {
-        return cached;
-      }
-    } catch {
-      // Cache not available, continue with DB query
     }
 
     // Fetch from database (with timeout)
@@ -623,20 +564,6 @@ export class AuthService {
 
       const session = await Promise.race([dbPromise, timeoutPromise]);
 
-      // Cache the result if found (non-blocking)
-      if (session) {
-        Promise.resolve().then(async () => {
-          try {
-            const { authCache, CacheKeys } = await import('./cache/auth-cache');
-            // Cache for shorter time since sessions can change
-            authCache.set(CacheKeys.session(sessionId), session, 2 * 60 * 1000); // Cache for 2 minutes
-          } catch {
-            // Ignore cache errors silently
-          }
-        }).catch(() => {
-          // Silent fail
-        });
-      }
 
       return session;
     } catch (error) {
