@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
-import { withAuth } from '@/lib/middleware/auth-middleware';
+import { withEnhancedAuth } from '@/lib/auth/enhanced-middleware';
 import { prisma } from '@/lib/prisma';
 import { isConnectionError } from '../_helpers';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
@@ -23,10 +23,11 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Use auth middleware to verify authentication
-      const authResult = await withAuth(req, {
+      // Use enhanced auth middleware with auto-retry
+      const authResult = await withEnhancedAuth(req, {
         requireAuth: false, // Don't require auth, just check if exists
         checkSession: true,
+        autoRetry: true, // إعادة المحاولة التلقائية
       });
 
       // If not authenticated, return unauthenticated status
@@ -45,7 +46,7 @@ export async function GET(request: NextRequest) {
         try {
           const session = await authService.getSession(sessionId);
           if (session) {
-            expiresAt = session.expiresAt;
+            expiresAt = (session as { expiresAt?: Date }).expiresAt || null;
           }
         } catch (sessionError) {
           // Log but don't fail - session might be expired

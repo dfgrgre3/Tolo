@@ -3,7 +3,10 @@ import { NotificationType } from '@/types/notification';
 // Token is in httpOnly cookie - no need to import getTokenFromStorage
 import { logger } from '@/lib/logger';
 
-// دالة لإرسال إشعار للمستخدم الحالي
+/**
+ * Send notification to current user
+ * Improved with better error handling, validation, and timeout protection
+ */
 export async function sendNotification(
   title: string,
   message: string,
@@ -12,32 +15,71 @@ export async function sendNotification(
     actionUrl?: string;
     icon?: string;
   }
-) {
+): Promise<{ success: boolean; error?: string }> {
+  // Validate inputs early
+  if (!title || typeof title !== 'string' || title.trim().length === 0) {
+    logger.error('Invalid notification title');
+    return { success: false, error: 'Title is required' };
+  }
+
+  if (!message || typeof message !== 'string' || message.trim().length === 0) {
+    logger.error('Invalid notification message');
+    return { success: false, error: 'Message is required' };
+  }
+
+  if (title.trim().length > 200) {
+    logger.error('Notification title too long');
+    return { success: false, error: 'Title is too long' };
+  }
+
+  if (message.trim().length > 1000) {
+    logger.error('Notification message too long');
+    return { success: false, error: 'Message is too long' };
+  }
+
   try {
     // Token is in httpOnly cookie - no need to send Authorization header
-    const response = await fetch('/api/notifications', {
+    const fetchPromise = fetch('/api/notifications', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
       body: JSON.stringify({
-        title,
-        message,
+        title: title.trim(),
+        message: message.trim(),
         type,
         ...options,
       }),
     });
 
+    const timeoutPromise = new Promise<Response>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 10000); // 10 second timeout
+    });
+
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
     if (!response.ok) {
-      logger.error('Failed to send notification', undefined, { status: response.status });
+      const errorData = await response.json().catch(() => ({}));
+      logger.error('Failed to send notification', undefined, { 
+        status: response.status,
+        error: errorData.error || 'Unknown error'
+      });
+      return { success: false, error: errorData.error || 'Failed to send notification' };
     }
+
+    return { success: true };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Error sending notification', error);
+    return { success: false, error: errorMessage };
   }
 }
 
-// دالة لإرسال إشعارات متعددة
+/**
+ * Send multiple notifications at once
+ * Improved with better error handling, validation, and timeout protection
+ */
 export async function sendBulkNotifications(
   notifications: Array<{
     title: string;
@@ -46,23 +88,82 @@ export async function sendBulkNotifications(
     actionUrl?: string;
     icon?: string;
   }>
-) {
+): Promise<{ success: boolean; error?: string; sent?: number; failed?: number }> {
+  // Validate inputs early
+  if (!notifications || !Array.isArray(notifications)) {
+    logger.error('Invalid notifications array');
+    return { success: false, error: 'Notifications must be an array' };
+  }
+
+  if (notifications.length === 0) {
+    return { success: true, sent: 0, failed: 0 };
+  }
+
+  if (notifications.length > 100) {
+    logger.error('Too many notifications in bulk request');
+    return { success: false, error: 'Maximum 100 notifications per bulk request' };
+  }
+
+  // Validate each notification
+  const invalidNotifications = notifications.filter(
+    (notif, index) => 
+      !notif.title || 
+      typeof notif.title !== 'string' || 
+      notif.title.trim().length === 0 ||
+      !notif.message ||
+      typeof notif.message !== 'string' ||
+      notif.message.trim().length === 0
+  );
+
+  if (invalidNotifications.length > 0) {
+    logger.error('Invalid notifications found in bulk request');
+    return { success: false, error: `${invalidNotifications.length} notification(s) have invalid title or message` };
+  }
+
   try {
     // Token is in httpOnly cookie - no need to send Authorization header
-    const response = await fetch('/api/notifications/bulk', {
+    const fetchPromise = fetch('/api/notifications/bulk', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify({ notifications }),
+      body: JSON.stringify({ 
+        notifications: notifications.map(notif => ({
+          title: notif.title.trim(),
+          message: notif.message.trim(),
+          type: notif.type,
+          actionUrl: notif.actionUrl?.trim(),
+          icon: notif.icon?.trim(),
+        }))
+      }),
     });
 
+    const timeoutPromise = new Promise<Response>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Request timeout')), 30000); // 30 second timeout for bulk
+    });
+
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
+
     if (!response.ok) {
-      logger.error('Failed to send bulk notifications', undefined, { status: response.status });
+      const errorData = await response.json().catch(() => ({}));
+      logger.error('Failed to send bulk notifications', undefined, { 
+        status: response.status,
+        error: errorData.error || 'Unknown error'
+      });
+      return { success: false, error: errorData.error || 'Failed to send bulk notifications' };
     }
+
+    const result = await response.json().catch(() => ({}));
+    return { 
+      success: true, 
+      sent: result.sent || notifications.length,
+      failed: result.failed || 0
+    };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     logger.error('Error sending bulk notifications', error);
+    return { success: false, error: errorMessage };
   }
 }
 

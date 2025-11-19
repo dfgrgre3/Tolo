@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Shield, Smartphone, Key, Copy, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { TOTPSetup } from '@/components/auth/TOTPSetup';
+import TOTPSetup from '@/components/auth/TOTPSetup';
 import RecoveryCodesDisplay from '@/components/auth/RecoveryCodesDisplay';
 
 import { logger } from '@/lib/logger';
@@ -311,7 +311,6 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
                   {showRecoveryCodes && recoveryCodes.length > 0 ? (
                     <RecoveryCodesDisplay
                       codes={recoveryCodes}
-                      onCopy={() => toast.success('تم نسخ الرموز')}
                     />
                   ) : (
                     <div className="flex gap-2">

@@ -390,10 +390,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 															<div className="flex items-center gap-2">
 																<span className="text-sm font-medium text-foreground">{command.label}</span>
 																{command.recent && (
-																	<History className="h-3 w-3 text-primary shrink-0" title="مستخدم مؤخراً" />
+																	<History className="h-3 w-3 text-primary shrink-0" />
 																)}
 																{command.popular && (
-																	<Star className="h-3 w-3 text-yellow-500 shrink-0" title="شائع" />
+																	<Star className="h-3 w-3 text-yellow-500 shrink-0" />
 																)}
 															</div>
 															{command.description && (

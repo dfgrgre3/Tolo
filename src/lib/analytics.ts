@@ -19,8 +19,8 @@ export class AnalyticsService {
   }
 
   private setupListeners() {
-    this.eventBus.subscribe('user.activity', async (event) => {
-      await this.processEvent(event);
+    this.eventBus.subscribe('user.activity', async (event: { type: string; userId: string; [key: string]: unknown }) => {
+      await this.processEvent(event as AnalyticsEvent);
     });
   }
 

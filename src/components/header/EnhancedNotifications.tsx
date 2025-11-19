@@ -89,10 +89,20 @@ export function EnhancedNotifications({ user, mounted }: HeaderNotificationsProp
 	}, [mounted]);
 
 	// Realtime notifications
-	const { disconnect } = useRealtimeNotifications({
+		const { disconnect } = useRealtimeNotifications({
 		onNotification: (notification) => {
 			// Add to notifications list
-			setNotifications((prev) => [notification, ...prev]);
+			setNotifications((prev) => {
+				const newNotification: Notification = {
+					id: notification.id || String(Date.now()),
+					title: notification.title || '',
+					message: notification.message || '',
+					type: notification.type || 'info',
+					isRead: notification.isRead || false,
+					createdAt: notification.createdAt || new Date().toISOString(),
+				};
+				return [newNotification, ...prev];
+			});
 			setNotificationCount((prev) => prev + 1);
 		},
 		enabled: mounted && !!user,

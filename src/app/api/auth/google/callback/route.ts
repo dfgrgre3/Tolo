@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { oauthConfig, verifyState, generateToken } from '@/lib/oauth';
+import { oauthConfig, verifyState, generateToken, validateRedirectUri } from '@/lib/oauth';
 import { prisma } from '@/lib/prisma';
 import { v4 as uuidv4 } from 'uuid';
 import { isConnectionError, getSecureCookieOptions } from '@/app/api/auth/_helpers';
@@ -40,10 +40,21 @@ export async function GET(request: NextRequest) {
       
       // Special handling for invalid_request which often means redirect_uri mismatch
       if (error === 'invalid_request') {
+        const redirectUri = oauthConfig.google.redirectUri;
+        const redirectUriValidation = validateRedirectUri(redirectUri);
+        
         errorMessage = `طلب غير صحيح. يرجى التحقق من:
-1. Redirect URI في Google Console يجب أن يكون: ${oauthConfig.google.redirectUri}
+1. Redirect URI في Google Cloud Console يجب أن يكون بالضبط: ${redirectUri}
+   ${redirectUriValidation.valid ? '✅' : '⚠️'} ${redirectUriValidation.error || 'صيغة صحيحة'}
 2. OAuth Consent Screen يجب أن يكون مكتملاً
-3. إذا كان التطبيق في وضع الاختبار، تأكد من إضافة بريدك الإلكتروني في "Test users"`;
+3. إذا كان التطبيق في وضع الاختبار، تأكد من إضافة بريدك الإلكتروني في "Test users"
+4. تأكد من تطابق البروتوكول (http/https) والنطاق والمنفذ والمسار بالضبط`;
+        
+        logger.error('Google OAuth redirect_uri mismatch detected', {
+          expectedRedirectUri: redirectUri,
+          validation: redirectUriValidation,
+          baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
+        });
       }
       
       errorMessage = errorMessages[error] || errorMessage;
@@ -90,8 +101,29 @@ export async function GET(request: NextRequest) {
     }
 
     // Exchange authorization code for access token
-    // redirect_uri must match exactly what was sent in the initial auth request
+    // redirect_uri must match EXACTLY what was sent in the initial auth request
     // This is the complete redirect URI stored in oauthConfig (e.g., http://localhost:3000/api/auth/google/callback)
+    // Google OAuth requires exact match - any difference will cause failure
+    const redirectUriForTokenExchange = oauthConfig.google.redirectUri;
+    
+    // Validate redirect URI before token exchange (helps catch configuration issues early)
+    const redirectUriValidation = validateRedirectUri(redirectUriForTokenExchange);
+    if (!redirectUriValidation.valid) {
+      logger.error('Google OAuth callback: Invalid redirect URI format', {
+        redirectUri: redirectUriForTokenExchange,
+        error: redirectUriValidation.error,
+        note: 'This redirect_uri will be sent to Google. It must match exactly what is configured in Google Cloud Console.',
+      });
+    } else {
+      // Log the redirect_uri being used for debugging (only in development)
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('Google OAuth callback: Using redirect_uri for token exchange', {
+          redirectUri: redirectUriForTokenExchange,
+          note: 'This must match exactly the redirect_uri sent in the initial auth request and configured in Google Cloud Console',
+        });
+      }
+    }
+    
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -101,7 +133,7 @@ export async function GET(request: NextRequest) {
         client_id: oauthConfig.google.clientId,
         client_secret: oauthConfig.google.clientSecret,
         code,
-        redirect_uri: oauthConfig.google.redirectUri, // Complete redirect URI from oauthConfig
+        redirect_uri: redirectUriForTokenExchange, // Complete redirect URI from oauthConfig (must match exactly)
         grant_type: 'authorization_code',
       }),
     });
@@ -112,6 +144,8 @@ export async function GET(request: NextRequest) {
         status: tokenResponse.status,
         statusText: tokenResponse.statusText,
         error: errorText,
+        redirectUri: redirectUriForTokenExchange,
+        note: 'If error is "redirect_uri_mismatch", ensure the redirect_uri in Google Cloud Console matches exactly: ' + redirectUriForTokenExchange,
       });
       
       let errorMessage = 'فشل الحصول على رمز الوصول من Google.';
@@ -121,6 +155,22 @@ export async function GET(request: NextRequest) {
           errorMessage = 'رمز التفويض غير صحيح أو منتهي الصلاحية. يرجى المحاولة مرة أخرى.';
         } else if (errorData.error === 'invalid_client') {
           errorMessage = 'معرف العميل غير صحيح. يرجى التواصل مع الدعم الفني.';
+        } else if (errorData.error === 'redirect_uri_mismatch') {
+          // Special handling for redirect_uri mismatch - most common OAuth configuration error
+          errorMessage = `عدم تطابق redirect_uri. يجب أن يكون العنوان في Google Cloud Console بالضبط:
+${redirectUriForTokenExchange}
+
+📝 خطوات الإصلاح:
+1. افتح Google Cloud Console: https://console.cloud.google.com/
+2. انتقل إلى: APIs & Services → Credentials
+3. اختر OAuth 2.0 Client ID الخاص بك
+4. تأكد من وجود هذا العنوان بالضبط في "Authorized redirect URIs":
+   ${redirectUriForTokenExchange}
+5. تأكد من التطابق التام: نفس البروتوكول (http/https)، نفس النطاق، نفس المنفذ، نفس المسار`;
+          logger.error('Google OAuth redirect_uri mismatch detected', {
+            expectedRedirectUri: redirectUriForTokenExchange,
+            errorFromGoogle: errorData.error_description || errorData.error,
+          });
         } else if (errorData.error_description) {
           errorMessage = errorData.error_description;
         }

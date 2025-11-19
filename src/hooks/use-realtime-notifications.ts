@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useCallback } from "react";
 import { soundNotificationManager, NotificationSound } from "@/lib/notifications/sound-notifications";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface RealtimeNotification {
 	id: string;
@@ -13,6 +14,8 @@ interface RealtimeNotification {
 	priority?: "low" | "medium" | "high";
 	link?: string;
 	actions?: Array<{ label: string; action: string; url?: string }>;
+	isRead?: boolean;
+	createdAt?: string;
 }
 
 interface UseRealtimeNotificationsOptions {

@@ -16,10 +16,14 @@ type SummaryData = {
 	streakDays: number;
 };
 
+interface PerformanceMetricsData {
+	[key: string]: unknown;
+}
+
 interface PerformanceMetricsProps {
 	summary: SummaryData | null;
 	weekly: WeeklyData | null;
-	performanceMetrics: any;
+	performanceMetrics: PerformanceMetricsData | null;
 }
 
 export default function PerformanceMetrics({ 

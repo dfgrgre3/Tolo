@@ -36,14 +36,9 @@ export async function GET(
         name: true,
         email: true,
         avatar: true,
-        bio: true,
-        grade: true,
-        school: true,
         createdAt: true,
         emailVerified: true,
-        phone: true,
-        phoneVerified: true,
-        provider: true
+        phone: true
         }
       });
 
@@ -90,25 +85,19 @@ export async function PATCH(
         );
       }
 
-      const { name, email, bio, grade, school } = await req.json();
+      const { name, email } = await req.json();
 
     const updatedUser = await prisma.user.update({
       where: { id },
       data: {
         ...(name && { name }),
-        ...(email && { email }),
-        ...(bio !== undefined && { bio }),
-        ...(grade !== undefined && { grade }),
-        ...(school !== undefined && { school })
+        ...(email && { email })
       },
       select: {
         id: true,
         name: true,
         email: true,
         avatar: true,
-        bio: true,
-        grade: true,
-        school: true,
         createdAt: true
       }
       });

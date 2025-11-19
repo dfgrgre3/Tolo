@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText, FileJson, Printer, Calendar } from 'lucide-react';
 import { exportToCSV, exportToJSON, generatePDFReport, downloadFile, printPDFReport, type ExportData } from '../utils/exportUtils';
-import { format, subDays, subWeeks, subMonths, startOfWeek, endOfWeek } from 'date-fns';
+import { format as formatDate, subDays, subWeeks, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import type { Task, StudySession, Reminder } from '../types';
 
@@ -66,7 +66,7 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
     return { filteredTasks, filteredSessions, filteredReminders };
   };
 
-  const handleExport = async (format: 'csv' | 'json' | 'pdf' | 'print') => {
+  const handleExport = async (exportFormat: 'csv' | 'json' | 'pdf' | 'print') => {
     setIsExporting(true);
     try {
       const { start, end } = getPeriodDates();
@@ -76,16 +76,16 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
         tasks: filteredTasks,
         studySessions: filteredSessions,
         reminders: filteredReminders,
-        exportDate: format(new Date(), 'yyyy-MM-dd HH:mm:ss', { locale: ar }),
+        exportDate: formatDate(new Date(), 'yyyy-MM-dd HH:mm:ss', { locale: ar }),
         period: {
-          start: format(start, 'yyyy-MM-dd', { locale: ar }),
-          end: format(end, 'yyyy-MM-dd', { locale: ar })
+          start: formatDate(start, 'yyyy-MM-dd', { locale: ar }),
+          end: formatDate(end, 'yyyy-MM-dd', { locale: ar })
         }
       };
 
-      const filename = `time-management-${format}-${format(new Date(), 'yyyy-MM-dd')}`;
+      const filename = `time-management-${exportFormat}-${formatDate(new Date(), 'yyyy-MM-dd')}`;
 
-      switch (format) {
+      switch (exportFormat) {
         case 'csv':
           const csvContent = exportToCSV(exportData);
           downloadFile(csvContent, `${filename}.csv`, 'text/csv;charset=utf-8;');
@@ -162,7 +162,7 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {format(start, 'yyyy-MM-dd', { locale: ar })} إلى {format(end, 'yyyy-MM-dd', { locale: ar })}
+              {formatDate(start, 'yyyy-MM-dd', { locale: ar })} إلى {formatDate(end, 'yyyy-MM-dd', { locale: ar })}
             </p>
           </div>
 

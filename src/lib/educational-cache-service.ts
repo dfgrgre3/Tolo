@@ -188,6 +188,24 @@ export async function getCachedGradeLevel(gradeLevelId: string): Promise<unknown
 }
 
 /**
+ * Cache multiple educational items at once
+ * @param items Array of items to cache with key, data, and ttl
+ */
+export async function cacheMultipleEducationalItems(
+  items: Array<{ key: string; data: unknown; ttl: number }>
+): Promise<void> {
+  try {
+    await Promise.all(
+      items.map(item => 
+        CacheService.set(`educational:${item.key}`, item.data, item.ttl)
+      )
+    );
+  } catch (error) {
+    logger.error('Error caching multiple educational items:', error);
+  }
+}
+
+/**
  * Invalidate educational content cache by key
  * @param key Specific key to invalidate
  */

@@ -1,8 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ensureUser } from '@/lib/user-utils';
-import { Achievement, UserProgress, AchievementFilters } from '../types';
+import { Achievement, UserProgress, AchievementFilters, AchievementRarity } from '../types';
 import { filterAchievements, calculateStats, getRarityByXP } from '../utils';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
+
+interface AchievementsApiResponse {
+	achievements?: unknown[];
+	userProgress?: UserProgress | null;
+	error?: string;
+}
 
 interface UseAchievementsReturn {
 	achievements: Achievement[];
@@ -31,7 +38,7 @@ export function useAchievements(): UseAchievementsReturn {
 	const [error, setError] = useState<string | null>(null);
 	const [filters, setFiltersState] = useState<AchievementFilters>(defaultFilters);
 
-	const fetchAchievements = async () => {
+	const fetchAchievements = useCallback(async () => {
 		try {
 			setLoading(true);
 			setError(null);
@@ -59,17 +66,20 @@ export function useAchievements(): UseAchievementsReturn {
 			const res = await fetch(url.toString());
 
 			// Even if response is not ok, try to parse it for fallback data
-			let data;
+			let data: AchievementsApiResponse;
 			if (!res.ok) {
 				try {
-					data = await res.json();
+					data = await res.json() as AchievementsApiResponse;
 					// If API returned fallback data, use it
 					if (data.achievements && Array.isArray(data.achievements)) {
 						const fetchedAchievements: Achievement[] = data.achievements.map(
-							(ach: any) => ({
-								...ach,
-								rarity: (ach.rarity || getRarityByXP(ach.xpReward || 0)) as any,
-							})
+							(ach: unknown) => {
+								const achievement = ach as Partial<Achievement> & { xpReward?: number };
+								return {
+									...achievement,
+									rarity: (achievement.rarity || getRarityByXP(achievement.xpReward || 0)) as AchievementRarity,
+								} as Achievement;
+							}
 						);
 						setAchievements(fetchedAchievements);
 						setUserProgress(data.userProgress || null);
@@ -77,13 +87,13 @@ export function useAchievements(): UseAchievementsReturn {
 						setError(null);
 						return;
 					}
-				} catch (parseError) {
+				} catch (parseError: unknown) {
 					// If we can't parse the error response, throw original error
 				}
 				throw new Error(data?.error || `فشل في تحميل الإنجازات (${res.status})`);
 			}
 
-			data = await res.json();
+			data = await res.json() as AchievementsApiResponse;
 
 			// Validate response structure
 			if (!data || !Array.isArray(data.achievements)) {
@@ -91,16 +101,19 @@ export function useAchievements(): UseAchievementsReturn {
 			}
 
 			const fetchedAchievements: Achievement[] = data.achievements.map(
-				(ach: any) => ({
-					...ach,
-					rarity: (ach.rarity || getRarityByXP(ach.xpReward || 0)) as any,
-				})
+				(ach: unknown) => {
+					const achievement = ach as Partial<Achievement> & { xpReward?: number };
+					return {
+						...achievement,
+						rarity: (achievement.rarity || getRarityByXP(achievement.xpReward || 0)) as AchievementRarity,
+					} as Achievement;
+				}
 			);
 
 			setAchievements(fetchedAchievements);
 			setUserProgress(data.userProgress || null);
 			setError(null);
-		} catch (err) {
+		} catch (err: unknown) {
 			logger.error('Error fetching achievements:', err);
 			const errorMessage = err instanceof Error ? err.message : 'حدث خطأ غير متوقع';
 			setError(errorMessage);
@@ -108,11 +121,11 @@ export function useAchievements(): UseAchievementsReturn {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [filters.category, filters.difficulty]); // Only refetch when API-affecting filters change
 
 	useEffect(() => {
 		fetchAchievements();
-	}, [filters.category, filters.difficulty]); // Only refetch when API-affecting filters change
+	}, [fetchAchievements]);
 
 	// Calculate filtered achievements and stats
 	const filteredAchievements = filterAchievements(achievements, filters);

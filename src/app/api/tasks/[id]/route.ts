@@ -55,13 +55,17 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     }
 
     // Whitelist allowed fields to prevent mass assignment vulnerability
-    const allowedFields = ['title', 'description', 'completed', 'status', 'priority', 'dueAt', 'subject', 'category'];
+    const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subject'];
     const updates: any = {};
 
     for (const field of allowedFields) {
       if (field in data) {
         if (field === 'dueAt' && typeof data[field] === 'string') {
           updates[field] = new Date(data[field]);
+        } else if (field === 'completedAt' && data[field] === true) {
+          updates[field] = new Date();
+        } else if (field === 'completedAt' && data[field] === false) {
+          updates[field] = null;
         } else if (field === 'subject' && data[field] === '') {
           updates[field] = null;
         } else if (field === 'description' && data[field] === '') {
@@ -79,7 +83,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     // Check if task is being marked as completed
     const isCompleting = (updates.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') ||
-                         (updates.completed === true && !existingTask.completed);
+                         (updates.completedAt !== undefined && !existingTask.completedAt);
 
     const updated = await prisma.task.update({
       where: { id },

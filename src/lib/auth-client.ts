@@ -1,3 +1,21 @@
+/**
+ * Legacy Auth Client - Local Storage Utilities
+ * عميل المصادقة القديم - وظائف التخزين المحلي
+ * 
+ * ⚠️ IMPORTANT: هذا الملف قديم (Legacy) ويستخدم فقط للتخزين المحلي
+ * 
+ * هذا الملف يحتوي على وظائف localStorage للـ user data فقط.
+ * Token لم يعد يُخزن في localStorage - يتم تخزينه في httpOnly cookie.
+ * 
+ * ⚠️ لا تستخدم هذا الملف لـ token management
+ * ✅ استخدم src/lib/api/auth-client.ts لاستدعاءات API
+ * ✅ استخدم src/lib/auth-hook-enhanced.ts للـ hooks
+ * 
+ * الملفات الموصى بها:
+ * - src/lib/api/auth-client.ts: للاستدعاءات API (loginUser, verifyTwoFactor, etc.)
+ * - src/lib/auth-hook-enhanced.ts: للـ hooks (useEnhancedAuth)
+ * - src/contexts/auth-context.tsx: للـ contexts (useUnifiedAuth, useAuth)
+ */
 'use client';
 
 import { safeGetItem, safeSetItem, safeRemoveItem } from './safe-client-utils';

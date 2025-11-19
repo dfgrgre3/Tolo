@@ -59,9 +59,10 @@ export async function GET(request: NextRequest) {
         orderBy: { takenAt: 'desc' },
         take: 20
       }),
-      prisma.userGrade.findMany({
+      prisma.examResult.findMany({
         where: { userId },
-        orderBy: { date: 'desc' },
+        include: { exam: true },
+        orderBy: { takenAt: 'desc' },
         take: 20
       }),
       gamificationService.getUserProgress(userId).catch(() => null)
@@ -80,7 +81,11 @@ export async function GET(request: NextRequest) {
       tasks,
       examResults,
       userGrades,
-      progress
+      progress: progress ? {
+        totalStudyMinutes: 0,
+        averageFocusScore: 0,
+        currentStreak: progress.currentStreak
+      } : null
     });
 
     return NextResponse.json({
@@ -103,15 +108,20 @@ interface RecommendationData {
   studySessions: Prisma.StudySessionGetPayload<{}>[];
   tasks: Prisma.TaskGetPayload<{}>[];
   examResults: Prisma.ExamResultGetPayload<{}>[];
-  userGrades: Prisma.ExamResultGetPayload<{}>[];
-  progress: { totalStudyMinutes: number; averageFocusScore: number } | null;
+  userGrades: Prisma.ExamResultGetPayload<{ include: { exam: true } }>[];
+  progress: { totalStudyMinutes: number; averageFocusScore: number; currentStreak?: number } | null;
 }
 
 interface Recommendation {
+  id?: string;
   type: string;
+  category?: string;
   title: string;
   description: string;
   priority: 'high' | 'medium' | 'low';
+  impact?: number;
+  estimatedTime?: string;
+  icon?: string;
   actionUrl?: string;
 }
 
@@ -250,12 +260,12 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
 
     // Subject-specific recommendations based on grades
     const subjectScores: Record<string, number[]> = {};
-    userGrades.forEach(grade => {
-      const subject = grade.subject || 'غير محدد';
+    userGrades.forEach(result => {
+      const subject = result.exam?.subject || 'غير محدد';
       if (!subjectScores[subject]) {
         subjectScores[subject] = [];
       }
-      subjectScores[subject].push(grade.grade);
+      subjectScores[subject].push(result.score);
     });
 
     Object.entries(subjectScores).forEach(([subject, scores]) => {
@@ -278,8 +288,8 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
   }
 
   // 5. Study Streak Analysis
-  if (progress) {
-    const currentStreak = progress.currentStreak || 0;
+  if (progress && progress.currentStreak !== undefined) {
+    const currentStreak = progress.currentStreak;
     
     if (currentStreak === 0 && studySessions.length > 0) {
       recommendations.push({
@@ -366,7 +376,7 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
 
   // Sort by impact (highest first) and limit to top 10
   return recommendations
-    .sort((a, b) => b.impact - a.impact)
+    .sort((a, b) => (b.impact ?? 0) - (a.impact ?? 0))
     .slice(0, 10)
     .map((rec, index) => ({
       ...rec,

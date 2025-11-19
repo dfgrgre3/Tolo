@@ -87,24 +87,43 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
     const errors: LoginFormErrors = {};
     let message: string | null = null;
 
-    const normalizedEmail = credentials.email.trim();
+    const trimmedEmail = credentials.email.trim();
+    const normalizedEmail = trimmedEmail.toLowerCase();
     const passwordValue = credentials.password;
 
-    if (!normalizedEmail || passwordValue.trim().length === 0) {
-      if (!normalizedEmail) {
-        errors.email = 'يرجى إدخال البريد الإلكتروني';
-      }
-
-      if (passwordValue.trim().length === 0) {
-        errors.password = 'يرجى إدخال كلمة المرور';
-      }
-
+    // Validate email
+    if (!trimmedEmail) {
+      errors.email = 'يرجى إدخال البريد الإلكتروني';
       message = 'يرجى إدخال جميع الحقول';
+    } else {
+      // Validate email length (RFC 5321 limit)
+      if (normalizedEmail.length > 254) {
+        errors.email = 'البريد الإلكتروني طويل جداً';
+        message = 'البريد الإلكتروني طويل جداً';
+      } else if (!EMAIL_PATTERN.test(normalizedEmail)) {
+        errors.email = 'البريد الإلكتروني غير صحيح';
+        message = 'البريد الإلكتروني غير صحيح';
+      } else {
+        // Additional security: Check for potentially malicious email patterns
+        if (normalizedEmail.includes('..') || normalizedEmail.startsWith('.') || normalizedEmail.endsWith('.')) {
+          errors.email = 'صيغة البريد الإلكتروني غير صحيحة';
+          message = 'صيغة البريد الإلكتروني غير صحيحة';
+        }
+      }
     }
 
-    if (!errors.email && normalizedEmail && !EMAIL_PATTERN.test(normalizedEmail)) {
-      errors.email = 'البريد الإلكتروني غير صحيح';
-      message = 'البريد الإلكتروني غير صحيح';
+    // Validate password
+    if (!passwordValue || typeof passwordValue !== 'string' || passwordValue.trim().length === 0) {
+      errors.password = 'يرجى إدخال كلمة المرور';
+      if (!message) {
+        message = 'يرجى إدخال جميع الحقول';
+      }
+    } else if (passwordValue.length < 8) {
+      errors.password = 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل';
+      message = 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل';
+    } else if (passwordValue.length > 128) {
+      errors.password = 'كلمة المرور طويلة جداً';
+      message = 'كلمة المرور طويلة جداً';
     }
 
     return {
@@ -166,17 +185,18 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
           message: 'تم تسجيل الدخول بنجاح.',
         });
         setCurrentStep('success');
-      } catch (error: any) {
+      } catch (error: unknown) {
         const newErrors: LoginFormErrors = {};
+        const errorObj = error as { message?: string; status?: number; code?: string; details?: { email?: unknown[]; password?: unknown[] } };
         let message =
-          error?.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
+          errorObj?.message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.';
 
         const emailIssues =
-          Array.isArray(error?.details?.email) &&
-          error.details.email.length > 0;
+          Array.isArray(errorObj?.details?.email) &&
+          errorObj.details.email.length > 0;
         const passwordIssues =
-          Array.isArray(error?.details?.password) &&
-          error.details.password.length > 0;
+          Array.isArray(errorObj?.details?.password) &&
+          errorObj.details.password.length > 0;
 
         if (emailIssues) {
           newErrors.email = 'البريد الإلكتروني غير صحيح';
@@ -190,13 +210,13 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
           }
         }
 
-        if (error?.status === 401) {
+        if (errorObj?.status === 401) {
           newErrors.password = 'كلمة المرور غير صحيحة';
           message = 'كلمة المرور غير صحيحة';
         }
 
-        if (typeof error?.code === 'string' && error.code.length > 0) {
-          message = error.message || message;
+        if (typeof errorObj?.code === 'string' && errorObj.code.length > 0) {
+          message = errorObj.message || message;
         }
 
         setFormErrors(Object.keys(newErrors).length ? newErrors : {});
@@ -241,11 +261,11 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
           message:
             '�?�? �?�?�?�?�?�? �?�? �?�?�?�?�� �?�?�?�?�?. �?�?�?�? �?�?�?�?�?�? �?�?�? �?�?�?�? �?�?�?�?�?�?.',
         });
-      } catch (error: any) {
+      } catch (error: unknown) {
         setFeedback({
           type: 'error',
           message:
-            error?.message ||
+            (error as { message?: string })?.message ||
             '�?�?���? �?�?�?�?�?�? �?�? �?�?�?�?��. �?��?�? �?�? ���?�?�? �?�?�?�?�? �?�?�?�?�?�?.',
         });
       } finally {
@@ -270,11 +290,12 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
         message: '�?�? �?�?�?�?�? �?�?�� �?�?�?�? �?�?�?�?�?.',
       });
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorObj = error as { message?: string };
       setFeedback({
         type: 'error',
         message:
-          error?.message ||
+          errorObj?.message ||
           '�?�?���? �?�?�?�?�? �?�?�?�?��. �?�?�?�? �?�?�? ��?�?�? �?�?�?�?�?�?.',
       });
     }
@@ -284,11 +305,11 @@ export function useLoginFlow(options: UseLoginFlowOptions = {}) {
     async (provider: 'google' | 'github' | 'twitter') => {
       try {
         await loginWithSocial(provider);
-      } catch (error: any) {
+      } catch (error: unknown) {
         setFeedback({
           type: 'error',
           message:
-            error?.message ||
+            (error as { message?: string })?.message ||
             '�?�?���? �?�?�? �?�?�?�?�? �?�?�?�?�?�? �?�?�? �?�?�?�?�?�?�? �?�?�?�?�?�?�?�?�?�?.',
         });
       }

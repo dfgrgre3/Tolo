@@ -3,16 +3,22 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 /**
- * NextAuth session endpoint
- * This endpoint is required by next-auth/react SessionProvider
- * Returns null session since we're using custom auth system
+ * NextAuth session endpoint (Legacy compatibility)
+ * 
+ * ⚠️ NOTE: This endpoint exists for backward compatibility only.
+ * NextAuth has been removed from this project in favor of custom auth (@/lib/auth-service).
+ * 
+ * This endpoint returns null session since we're using custom auth system.
+ * It prevents CLIENT_FETCH_ERROR from any legacy next-auth/react SessionProvider calls.
+ * 
+ * See ENVIRONMENT_ISSUES.md and AUTH_STRUCTURE_CLEAN.md for details.
  */
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async () => {
     try {
-    // Return null session in the format expected by next-auth
-    // This prevents CLIENT_FETCH_ERROR from next-auth/react
-    // next-auth expects either a Session object or null
+    // ⚠️ Legacy: Return null session in the format expected by NextAuth (removed library)
+    // This prevents CLIENT_FETCH_ERROR from any legacy next-auth/react SessionProvider calls
+    // NextAuth expects either a Session object or null
     return NextResponse.json(
       null, // null session indicates no authenticated user
       {
@@ -25,7 +31,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     logger.error('Session endpoint error:', error);
-    // Return null session even on error to prevent next-auth errors
+    // ⚠️ Legacy: Return null session even on error to prevent NextAuth errors
     return NextResponse.json(
       null,
       {

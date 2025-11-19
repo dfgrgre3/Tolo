@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     let sentimentAwareContext = "";
     
     if (actualUserId && messages.length > 0) {
-      const lastUserMessage = messages.filter((m: ChatMessage) => m.role === 'user').pop();
+      const lastUserMessage = messages.filter((m: any) => m.role === 'user').pop();
       if (lastUserMessage) {
         try {
           sentiment = await analyzeSentiment(lastUserMessage.content, actualUserId, 'chat');

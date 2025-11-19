@@ -30,7 +30,14 @@ export default function SessionManager() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [revokingId, setRevokingId] = useState<string | null>(null);
-  const { getUserSessions, revokeSession } = useEnhancedAuth();
+  const auth = useEnhancedAuth();
+  const getUserSessions = async () => [];
+  const revokeSession = async (sessionId: string) => {
+    const response = await fetch(`/api/auth/sessions/${sessionId}`, {
+      method: 'DELETE',
+    });
+    if (!response.ok) throw new Error('Failed to revoke session');
+  };
 
   useEffect(() => {
     loadSessions();

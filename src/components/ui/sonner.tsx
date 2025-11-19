@@ -13,9 +13,9 @@ export default function ToasterProvider() {
       toastOptions={{
         className: 'rtl:right-auto rtl:left-0',
         style: {
-          background: 'hsl(var(--background))',
-          color: 'hsl(var(--foreground))',
-          border: '1px solid hsl(var(--border))',
+          background: 'var(--background)',
+          color: 'var(--foreground)',
+          border: '1px solid var(--border)',
         }
       }}
     />

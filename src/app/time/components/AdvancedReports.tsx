@@ -10,7 +10,9 @@ import {
   Target,
   Award,
   Activity,
-  Download
+  Download,
+  Bell,
+  BookOpen
 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import type { Task, StudySession, Reminder, TimeStats } from '../types';

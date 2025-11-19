@@ -95,7 +95,7 @@ export function LazyAvatar({
 
 	const placeholderColor = fallback
 		? getPlaceholderGradient(fallback)
-		: "hsl(var(--primary))";
+		: "var(--primary)";
 
 	return (
 		<div ref={avatarRef} className={cn("relative", className)}>

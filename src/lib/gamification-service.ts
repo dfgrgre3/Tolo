@@ -236,27 +236,55 @@ export class GamificationService {
     });
   }
 
+  /**
+   * Get user progress with timeout protection and better error handling
+   */
   async getUserProgress(userId: string): Promise<UserProgress> {
-    // Try to get from cache first
-    const cacheKey = `user_progress:${userId}`;
-    const cached = await this.getCachedProgress(cacheKey);
-    if (cached) return cached;
+    // Validate userId
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('Invalid user ID');
+    }
 
-    // Get from database
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const trimmedUserId = userId.trim();
+
+    // Try to get from cache first with timeout protection
+    const cacheKey = `user_progress:${trimmedUserId}`;
+    try {
+      const cachePromise = this.getCachedProgress(cacheKey);
+      const timeoutPromise = new Promise<UserProgress | null>((resolve) => {
+        setTimeout(() => resolve(null), 2000); // 2 second timeout
+      });
+
+      const cached = await Promise.race([cachePromise, timeoutPromise]);
+      if (cached) return cached;
+    } catch (cacheError) {
+      // Log but continue - cache failure shouldn't block progress retrieval
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache retrieval failed, fetching from database:', cacheError);
+      }
+    }
+
+    // Get from database with timeout protection
+    const fetchPromise = prisma.user.findUnique({
+      where: { id: trimmedUserId },
       include: {
         achievements: true,
         customGoals: true
       }
     });
 
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 10000); // 10 second timeout
+    });
+
+    const user = await Promise.race([fetchPromise, timeoutPromise]);
+
     if (!user) {
       throw new Error('User not found');
     }
 
     const progress: UserProgress = {
-      userId,
+      userId: trimmedUserId,
       totalXP: user.totalXP || 0,
       level: this.calculateLevel(user.totalXP || 0),
       currentStreak: user.currentStreak || 0,
@@ -264,40 +292,88 @@ export class GamificationService {
       totalStudyTime: user.totalStudyTime || 0,
       tasksCompleted: user.tasksCompleted || 0,
       examsPassed: user.examsPassed || 0,
-      achievements: user.achievements.map(a => a.achievementKey),
-      customGoals: user.customGoals.map(g => ({
+      achievements: (user.achievements || []).map(a => a.achievementKey).filter(Boolean),
+      customGoals: (user.customGoals || []).map(g => ({
         id: g.id,
         userId: g.userId,
-        title: g.title,
+        title: g.title || '',
         description: g.description || undefined,
-        targetValue: g.targetValue,
-        currentValue: g.currentValue,
-        unit: g.unit,
-        category: g.category,
-        isCompleted: g.isCompleted,
+        targetValue: g.targetValue || 0,
+        currentValue: g.currentValue || 0,
+        unit: g.unit || '',
+        category: g.category || '',
+        isCompleted: Boolean(g.isCompleted),
         createdAt: g.createdAt,
         completedAt: g.completedAt || undefined
       }))
     };
 
-    // Cache the result
-    await this.setCachedProgress(cacheKey, progress);
+    // Cache the result (non-blocking)
+    this.setCachedProgress(cacheKey, progress).catch((error) => {
+      // Log but don't block response
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache update failed:', error);
+      }
+    });
+
     return progress;
   }
 
+  /**
+   * Update user progress with timeout protection and better error handling
+   */
   async updateUserProgress(userId: string, action: string, data: Record<string, any> = {}): Promise<UserProgress> {
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new Error('User not found');
+    // Validate inputs
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('Invalid user ID');
+    }
+
+    if (!action || typeof action !== 'string' || action.trim().length === 0) {
+      throw new Error('Invalid action');
+    }
+
+    const trimmedUserId = userId.trim();
+    const trimmedAction = action.trim();
+
+    // Get user with timeout protection
+    const findPromise = prisma.user.findUnique({ where: { id: trimmedUserId } });
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 5000);
+    });
+
+    const user = await Promise.race([findPromise, timeoutPromise]);
+    if (!user) {
+      throw new Error('User not found');
+    }
 
     const updates: Record<string, any> = {};
     let xpGained = 0;
     const newAchievements: string[] = [];
 
-    switch (action) {
+    switch (trimmedAction) {
       case 'study_session_completed':
-        const studyTime = data.duration || 0;
+        const studyTime = Number(data.duration) || 0;
+        if (studyTime < 0) {
+          throw new Error('Study time cannot be negative');
+        }
+        if (studyTime > 1440) { // Max 24 hours in minutes
+          throw new Error('Study time exceeds maximum allowed (24 hours)');
+        }
+
         updates.totalStudyTime = (user.totalStudyTime || 0) + studyTime;
-        updates.currentStreak = await this.calculateStreak(userId);
+        
+        // Calculate streak with timeout protection
+        try {
+          const streakPromise = this.calculateStreak(trimmedUserId);
+          const streakTimeoutPromise = new Promise<number>((resolve) => {
+            setTimeout(() => resolve(user.currentStreak || 0), 3000); // 3 second timeout, fallback to current streak
+          });
+          updates.currentStreak = await Promise.race([streakPromise, streakTimeoutPromise]);
+        } catch (streakError) {
+          // Fallback to current streak if calculation fails
+          updates.currentStreak = user.currentStreak || 0;
+        }
+
         updates.longestStreak = Math.max(user.longestStreak || 0, updates.currentStreak);
 
         // XP for study time (1 XP per 6 minutes)
@@ -308,45 +384,63 @@ export class GamificationService {
           const currentDeepWorkCount = (user.deepWorkSessions || 0) + 1;
           updates.deepWorkSessions = currentDeepWorkCount;
           
-          // Check for deep work achievement
+          // Check for deep work achievement (non-blocking)
           if (currentDeepWorkCount >= 5) {
-            const progress = await this.getUserProgress(userId);
-            if (!progress.achievements.includes('deep_work')) {
-              const achievement = this.achievements.get('deep_work');
-              if (achievement) {
-                await this.unlockAchievement(userId, achievement);
-                newAchievements.push('deep_work');
-              }
-            }
+            this.getUserProgress(trimmedUserId)
+              .then((progress) => {
+                if (!progress.achievements.includes('deep_work')) {
+                  const achievement = this.achievements.get('deep_work');
+                  if (achievement) {
+                    this.unlockAchievement(trimmedUserId, achievement).catch((error) => {
+                      console.warn('Failed to unlock deep_work achievement:', error);
+                    });
+                  }
+                }
+              })
+              .catch((error) => {
+                console.warn('Failed to check deep_work achievement:', error);
+              });
           }
         }
         break;
 
       case 'task_completed':
-        updates.tasksCompleted = (user.tasksCompleted || 0) + 1;
-        xpGained = 5; // Base XP for completing a task
+      case 'task_created':
+        updates.tasksCompleted = (user.tasksCompleted || 0) + (trimmedAction === 'task_completed' ? 1 : 0);
+        xpGained = trimmedAction === 'task_completed' ? 5 : 2; // Base XP for completing/creating a task
         break;
 
       case 'exam_completed':
-        const score = data.score || 0;
+        const score = Number(data.score) || 0;
+        if (score < 0 || score > 100) {
+          throw new Error('Exam score must be between 0 and 100');
+        }
+
         updates.examsPassed = (user.examsPassed || 0) + (score >= 60 ? 1 : 0);
         xpGained = Math.floor(score / 2); // XP based on score
 
-        // Check for high score achievements
-        const progress = await this.getUserProgress(userId);
-        if (score >= 90 && !progress.achievements.includes('exam_90_percent')) {
-          const achievement = this.achievements.get('exam_90_percent');
-          if (achievement) {
-            await this.unlockAchievement(userId, achievement);
-            newAchievements.push('exam_90_percent');
-          }
-        } else if (score >= 80 && !progress.achievements.includes('exam_80_percent')) {
-          const achievement = this.achievements.get('exam_80_percent');
-          if (achievement) {
-            await this.unlockAchievement(userId, achievement);
-            newAchievements.push('exam_80_percent');
-          }
-        }
+        // Check for high score achievements (non-blocking)
+        this.getUserProgress(trimmedUserId)
+          .then((progress) => {
+            if (score >= 90 && !progress.achievements.includes('exam_90_percent')) {
+              const achievement = this.achievements.get('exam_90_percent');
+              if (achievement) {
+                this.unlockAchievement(trimmedUserId, achievement).catch((error) => {
+                  console.warn('Failed to unlock exam_90_percent achievement:', error);
+                });
+              }
+            } else if (score >= 80 && !progress.achievements.includes('exam_80_percent')) {
+              const achievement = this.achievements.get('exam_80_percent');
+              if (achievement) {
+                this.unlockAchievement(trimmedUserId, achievement).catch((error) => {
+                  console.warn('Failed to unlock exam_80_percent achievement:', error);
+                });
+              }
+            }
+          })
+          .catch((error) => {
+            console.warn('Failed to check exam achievements:', error);
+          });
         break;
 
       case 'pomodoro_completed':
@@ -354,59 +448,114 @@ export class GamificationService {
         updates.pomodoroSessions = pomodoroCount;
         xpGained = 3;
 
-        // Check for pomodoro master achievement
+        // Check for pomodoro master achievement (non-blocking)
         if (pomodoroCount >= 10) {
-          const progress = await this.getUserProgress(userId);
-          if (!progress.achievements.includes('pomodoro_master')) {
-            const achievement = this.achievements.get('pomodoro_master');
-            if (achievement) {
-              await this.unlockAchievement(userId, achievement);
-              newAchievements.push('pomodoro_master');
-            }
-          }
+          this.getUserProgress(trimmedUserId)
+            .then((progress) => {
+              if (!progress.achievements.includes('pomodoro_master')) {
+                const achievement = this.achievements.get('pomodoro_master');
+                if (achievement) {
+                  this.unlockAchievement(trimmedUserId, achievement).catch((error) => {
+                    console.warn('Failed to unlock pomodoro_master achievement:', error);
+                  });
+                }
+              }
+            })
+            .catch((error) => {
+              console.warn('Failed to check pomodoro_master achievement:', error);
+            });
+        }
+        break;
+
+      default:
+        // Unknown action - log but don't throw
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Unknown action: ${trimmedAction}`);
         }
         break;
     }
 
-    // Update total XP
-    updates.totalXP = (user.totalXP || 0) + xpGained;
+    // Update total XP (ensure non-negative)
+    updates.totalXP = Math.max(0, (user.totalXP || 0) + xpGained);
     updates.level = this.calculateLevel(updates.totalXP);
 
-    // Update user in database
-    await prisma.user.update({
-      where: { id: userId },
+    // Update user in database with timeout protection
+    const updatePromise = prisma.user.update({
+      where: { id: trimmedUserId },
       data: updates
     });
 
-    // Check for new achievements
-    const progress = await this.getUserProgress(userId);
-    const achievementChecks = [
-      { key: 'first_study_session', condition: progress.totalStudyTime > 0 },
-      { key: 'study_10_hours', condition: progress.totalStudyTime >= 600 },
-      { key: 'study_50_hours', condition: progress.totalStudyTime >= 3000 },
-      { key: 'study_100_hours', condition: progress.totalStudyTime >= 6000 },
-      { key: 'week_streak', condition: progress.currentStreak >= 7 },
-      { key: 'month_streak', condition: progress.currentStreak >= 30 },
-      { key: 'complete_10_tasks', condition: progress.tasksCompleted >= 10 },
-      { key: 'complete_50_tasks', condition: progress.tasksCompleted >= 50 },
-      { key: 'complete_100_tasks', condition: progress.tasksCompleted >= 100 },
-      { key: 'first_exam_pass', condition: progress.examsPassed >= 1 }
-    ];
+    const updateTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database update timeout')), 10000);
+    });
 
-    for (const check of achievementChecks) {
-      if (check.condition && !progress.achievements.includes(check.key)) {
-        const achievement = this.achievements.get(check.key);
-        if (achievement) {
-          await this.unlockAchievement(userId, achievement);
-          newAchievements.push(check.key);
-        }
+    await Promise.race([updatePromise, updateTimeoutPromise]);
+
+    // Check for new achievements (non-blocking, in background)
+    this.getUserProgress(trimmedUserId)
+      .then((progress) => {
+        const achievementChecks = [
+          { key: 'first_study_session', condition: progress.totalStudyTime > 0 },
+          { key: 'study_10_hours', condition: progress.totalStudyTime >= 600 },
+          { key: 'study_50_hours', condition: progress.totalStudyTime >= 3000 },
+          { key: 'study_100_hours', condition: progress.totalStudyTime >= 6000 },
+          { key: 'week_streak', condition: progress.currentStreak >= 7 },
+          { key: 'month_streak', condition: progress.currentStreak >= 30 },
+          { key: 'complete_10_tasks', condition: progress.tasksCompleted >= 10 },
+          { key: 'complete_50_tasks', condition: progress.tasksCompleted >= 50 },
+          { key: 'complete_100_tasks', condition: progress.tasksCompleted >= 100 },
+          { key: 'first_exam_pass', condition: progress.examsPassed >= 1 }
+        ];
+
+        // Process achievements in parallel (non-blocking)
+        Promise.allSettled(
+          achievementChecks
+            .filter(check => check.condition && !progress.achievements.includes(check.key))
+            .map(async (check) => {
+              const achievement = this.achievements.get(check.key);
+              if (achievement) {
+                await this.unlockAchievement(trimmedUserId, achievement);
+                newAchievements.push(check.key);
+              }
+            })
+        ).catch((error) => {
+          console.warn('Error checking achievements:', error);
+        });
+      })
+      .catch((error) => {
+        console.warn('Failed to check achievements:', error);
+      });
+
+    // Invalidate cache (non-blocking)
+    this.invalidateProgressCache(trimmedUserId).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache invalidation failed:', error);
       }
+    });
+
+    // Return updated progress with timeout protection
+    try {
+      const progressPromise = this.getUserProgress(trimmedUserId);
+      const timeoutPromise = new Promise<UserProgress>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Progress retrieval timeout')), 5000);
+      });
+
+      return await Promise.race([progressPromise, timeoutPromise]);
+    } catch (error) {
+      // If progress retrieval fails, return a basic progress object
+      return {
+        userId: trimmedUserId,
+        totalXP: updates.totalXP || user.totalXP || 0,
+        level: updates.level || this.calculateLevel(updates.totalXP || user.totalXP || 0),
+        currentStreak: updates.currentStreak || user.currentStreak || 0,
+        longestStreak: updates.longestStreak || user.longestStreak || 0,
+        totalStudyTime: updates.totalStudyTime || user.totalStudyTime || 0,
+        tasksCompleted: updates.tasksCompleted || user.tasksCompleted || 0,
+        examsPassed: updates.examsPassed || user.examsPassed || 0,
+        achievements: newAchievements.length > 0 ? newAchievements : [],
+        customGoals: [],
+      };
     }
-
-    // Invalidate cache
-    await this.invalidateProgressCache(userId);
-
-    return await this.getUserProgress(userId);
   }
 
   private checkAchievement(user: any, achievementKey: string, data: Record<string, any>): Achievement | null {
@@ -417,30 +566,92 @@ export class GamificationService {
     return achievement;
   }
 
+  /**
+   * Unlock achievement with timeout protection and better error handling
+   */
   async unlockAchievement(userId: string, achievement: Achievement): Promise<void> {
-    await prisma.userAchievement.create({
+    // Validate inputs
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('Invalid user ID');
+    }
+
+    if (!achievement || !achievement.key) {
+      throw new Error('Invalid achievement');
+    }
+
+    const trimmedUserId = userId.trim();
+
+    // Create achievement record with timeout protection
+    const createPromise = prisma.userAchievement.create({
       data: {
-        userId,
+        id: crypto.randomUUID(),
+        userId: trimmedUserId,
         achievementKey: achievement.key,
         earnedAt: new Date()
       }
     });
 
-    // Invalidate cache
-    await this.invalidateProgressCache(userId);
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database operation timeout')), 5000);
+    });
+
+    await Promise.race([createPromise, timeoutPromise]);
+
+    // Invalidate cache (non-blocking)
+    this.invalidateProgressCache(trimmedUserId).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache invalidation failed:', error);
+      }
+    });
   }
 
+  /**
+   * Create custom goal with timeout protection and better validation
+   */
   async createCustomGoal(userId: string, goalData: Omit<CustomGoal, 'id' | 'userId' | 'isCompleted' | 'createdAt' | 'completedAt'>): Promise<CustomGoal> {
-    const goal = await prisma.customGoal.create({
+    // Validate inputs
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('Invalid user ID');
+    }
+
+    if (!goalData || !goalData.title || goalData.title.trim().length === 0) {
+      throw new Error('Goal title is required');
+    }
+
+    if (goalData.targetValue === undefined || goalData.targetValue <= 0) {
+      throw new Error('Target value must be greater than 0');
+    }
+
+    const trimmedUserId = userId.trim();
+
+    // Create goal with timeout protection
+    const createPromise = prisma.customGoal.create({
       data: {
-        userId,
-        ...goalData,
+        id: crypto.randomUUID(),
+        userId: trimmedUserId,
+        title: goalData.title.trim(),
+        description: goalData.description?.trim() || null,
+        targetValue: goalData.targetValue,
+        currentValue: goalData.currentValue || 0,
+        unit: goalData.unit || '',
+        category: goalData.category || '',
         isCompleted: false,
         createdAt: new Date()
       }
     });
 
-    await this.invalidateProgressCache(userId);
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database operation timeout')), 10000);
+    });
+
+    const goal = await Promise.race([createPromise, timeoutPromise]);
+
+    // Invalidate cache (non-blocking)
+    this.invalidateProgressCache(trimmedUserId).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache invalidation failed:', error);
+      }
+    });
 
     return {
       id: goal.id,
@@ -457,9 +668,31 @@ export class GamificationService {
     };
   }
 
+  /**
+   * Update custom goal with timeout protection and better validation
+   */
   async updateCustomGoal(goalId: string, currentValue: number): Promise<CustomGoal> {
-    const goal = await prisma.customGoal.findUnique({ where: { id: goalId } });
-    if (!goal) throw new Error('Goal not found');
+    // Validate inputs
+    if (!goalId || typeof goalId !== 'string' || goalId.trim().length === 0) {
+      throw new Error('Invalid goal ID');
+    }
+
+    if (currentValue < 0) {
+      throw new Error('Current value cannot be negative');
+    }
+
+    const trimmedGoalId = goalId.trim();
+
+    // Find goal with timeout protection
+    const findPromise = prisma.customGoal.findUnique({ where: { id: trimmedGoalId } });
+    const findTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 5000);
+    });
+
+    const goal = await Promise.race([findPromise, findTimeoutPromise]);
+    if (!goal) {
+      throw new Error('Goal not found');
+    }
 
     const isCompleted = currentValue >= goal.targetValue;
     const updates: any = { currentValue };
@@ -469,12 +702,24 @@ export class GamificationService {
       updates.completedAt = new Date();
     }
 
-    const updatedGoal = await prisma.customGoal.update({
-      where: { id: goalId },
+    // Update goal with timeout protection
+    const updatePromise = prisma.customGoal.update({
+      where: { id: trimmedGoalId },
       data: updates
     });
 
-    await this.invalidateProgressCache(goal.userId);
+    const updateTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database update timeout')), 10000);
+    });
+
+    const updatedGoal = await Promise.race([updatePromise, updateTimeoutPromise]);
+
+    // Invalidate cache (non-blocking)
+    this.invalidateProgressCache(goal.userId).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache invalidation failed:', error);
+      }
+    });
 
     return {
       id: updatedGoal.id,
@@ -491,23 +736,79 @@ export class GamificationService {
     };
   }
 
+  /**
+   * Delete custom goal with timeout protection and better validation
+   */
   async deleteCustomGoal(goalId: string): Promise<void> {
-    const goal = await prisma.customGoal.findUnique({ where: { id: goalId } });
-    if (!goal) throw new Error('Goal not found');
+    // Validate inputs
+    if (!goalId || typeof goalId !== 'string' || goalId.trim().length === 0) {
+      throw new Error('Invalid goal ID');
+    }
 
-    await prisma.customGoal.delete({
-      where: { id: goalId }
+    const trimmedGoalId = goalId.trim();
+
+    // Find goal with timeout protection
+    const findPromise = prisma.customGoal.findUnique({ where: { id: trimmedGoalId } });
+    const findTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 5000);
     });
 
-    await this.invalidateProgressCache(goal.userId);
+    const goal = await Promise.race([findPromise, findTimeoutPromise]);
+    if (!goal) {
+      throw new Error('Goal not found');
+    }
+
+    const userId = goal.userId;
+
+    // Delete goal with timeout protection
+    const deletePromise = prisma.customGoal.delete({
+      where: { id: trimmedGoalId }
+    });
+
+    const deleteTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database delete timeout')), 10000);
+    });
+
+    await Promise.race([deletePromise, deleteTimeoutPromise]);
+
+    // Invalidate cache (non-blocking)
+    this.invalidateProgressCache(userId).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache invalidation failed:', error);
+      }
+    });
   }
 
+  /**
+   * Get leaderboard with timeout protection and better validation
+   */
   async getLeaderboard(type: 'global' | 'friends' = 'global', limit: number = 50): Promise<LeaderboardEntry[]> {
+    // Validate inputs
+    if (!['global', 'friends'].includes(type)) {
+      throw new Error('Invalid leaderboard type. Must be "global" or "friends"');
+    }
+
+    if (limit < 1 || limit > 100) {
+      throw new Error('Limit must be between 1 and 100');
+    }
+
     const cacheKey = `leaderboard:${type}:${limit}`;
 
-    // Try cache first
-    const cached = await this.getCachedLeaderboard(cacheKey);
-    if (cached) return cached;
+    // Try cache first with timeout protection
+    try {
+      const cachePromise = this.getCachedLeaderboard(cacheKey);
+      const timeoutPromise = new Promise<LeaderboardEntry[] | null>((resolve) => {
+        setTimeout(() => resolve(null), 2000); // 2 second timeout
+      });
+
+      const cached = await Promise.race([cachePromise, timeoutPromise]);
+      if (cached) return cached;
+    } catch (cacheError) {
+      // Log but continue - cache failure shouldn't block leaderboard retrieval
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache retrieval failed, fetching from database:', cacheError);
+      }
+    }
 
     let whereClause = {};
     if (type === 'friends') {
@@ -516,7 +817,8 @@ export class GamificationService {
       whereClause = {};
     }
 
-    const users = await prisma.user.findMany({
+    // Fetch leaderboard with timeout protection
+    const fetchPromise = prisma.user.findMany({
       where: whereClause,
       select: {
         id: true,
@@ -529,6 +831,12 @@ export class GamificationService {
       take: limit
     });
 
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 15000); // 15 second timeout
+    });
+
+    const users = await Promise.race([fetchPromise, timeoutPromise]);
+
     const leaderboard: LeaderboardEntry[] = users.map((user, index) => ({
       userId: user.id,
       username: user.username || 'مستخدم مجهول',
@@ -538,8 +846,13 @@ export class GamificationService {
       avatar: user.avatar || undefined
     }));
 
-    // Cache the result
-    await this.setCachedLeaderboard(cacheKey, leaderboard);
+    // Cache the result (non-blocking)
+    this.setCachedLeaderboard(cacheKey, leaderboard).catch((error) => {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('Cache update failed:', error);
+      }
+    });
+
     return leaderboard;
   }
 
@@ -549,13 +862,35 @@ export class GamificationService {
     return Math.floor((-1 + Math.sqrt(1 + 8 * totalXP / 100)) / 2) + 1;
   }
 
+  /**
+   * Calculate streak with timeout protection
+   */
   private async calculateStreak(userId: string): Promise<number> {
+    // Validate userId
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      return 0;
+    }
+
+    const trimmedUserId = userId.trim();
+
     // Calculate streak based on consecutive days with study sessions
-    const sessions = await prisma.studySession.findMany({
-      where: { userId },
+    const fetchPromise = prisma.studySession.findMany({
+      where: { userId: trimmedUserId },
       orderBy: { startTime: 'desc' },
       take: 100 // Check last 100 sessions
     });
+
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 5000);
+    });
+
+    let sessions;
+    try {
+      sessions = await Promise.race([fetchPromise, timeoutPromise]);
+    } catch (error) {
+      // If query fails, return 0
+      return 0;
+    }
 
     if (sessions.length === 0) return 0;
 

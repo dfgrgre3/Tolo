@@ -37,15 +37,22 @@ interface ActivityItem {
 	read: boolean;
 	icon: React.ReactNode;
 	color: string;
+	url?: string;
 	action?: () => void;
 }
 
 export function ActivityWidget() {
-	const { user, mounted } = useAuth();
+	const authContext = useAuth();
+	const user = authContext?.user ?? null;
 	const [activities, setActivities] = useState<ActivityItem[]>([]);
 	const [unreadCount, setUnreadCount] = useState(0);
 	const [isOpen, setIsOpen] = useState(false);
+	const [mounted, setMounted] = useState(false);
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
+
+	useEffect(() => {
+		setMounted(true);
+	}, []);
 
 	useEffect(() => {
 		if (!mounted || !user) return;
@@ -144,7 +151,9 @@ export function ActivityWidget() {
 		}
 	};
 
-	if (!mounted || !user) return null;
+	if (!mounted || !user) {
+		return null;
+	}
 
 	const unreadActivities = activities.filter((item) => !item.read);
 	const recentActivities = activities.slice(0, 5);

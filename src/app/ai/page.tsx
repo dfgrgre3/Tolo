@@ -75,14 +75,14 @@ export default function AILearningPage() {
         </TabsList>
 
         <TabsContent value="assistant" className="space-y-4 sm:space-y-6">
-          <Card padding="lg" shadow="lg" className="w-full">
-            <CardHeader padding="lg">
+          <Card className="w-full shadow-lg p-6">
+            <CardHeader className="p-6 pb-4">
               <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
                 <div className="flex items-center gap-3 sm:gap-4 flex-1">
                   <div className="p-2 sm:p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg sm:rounded-xl">
                     <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6 md:h-7 md:w-7 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <CardTitle size="lg">المساعد الذكي</CardTitle>
+                  <CardTitle className="text-lg sm:text-xl">المساعد الذكي</CardTitle>
                 </div>
                 <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full">
                   <Zap className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
@@ -90,7 +90,7 @@ export default function AILearningPage() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent padding="lg" className="pt-0">
+            <CardContent className="p-6 pt-0">
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 mb-4 sm:mb-6 leading-relaxed">
                 تحدث مع المساعد الذكي للحصول على إجابات لأسئلتك، شرح للمفاهيم الصعبة، أو مساعدة في واجباتك.
                 المساعد متاح على مدار الساعة لمساعدتك في رحلتك التعليمية.

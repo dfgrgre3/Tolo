@@ -216,9 +216,32 @@ export default function Reminders({
     }
     
     // Check for due reminders every minute
-    const interval = setInterval(checkDueReminders, 60000);
+    const checkDueRemindersFn = () => {
+      const now = new Date();
+      const dueReminders = reminders.filter(reminder => {
+        if (reminder.isCompleted || reminder.isSnoozed) return false;
+        
+        try {
+          const remindTime = new Date(reminder.remindAt);
+          if (isNaN(remindTime.getTime())) return false;
+          
+          const timeDiff = differenceInMinutes(now, remindTime);
+          // Check if reminder is due (within 1 minute)
+          return timeDiff >= 0 && timeDiff < 1;
+        } catch {
+          return false;
+        }
+      });
+      
+      dueReminders.forEach(reminder => {
+        // Trigger notification or action
+        // Note: onReminderDue callback can be added to props if needed
+      });
+    };
+    
+    const interval = setInterval(checkDueRemindersFn, 60000);
     return () => clearInterval(interval);
-  }, [checkDueReminders]);
+  }, [reminders]);
 
   const calculateStatsInternal = useCallback((remindersList: Reminder[]) => {
     const now = new Date();
@@ -495,12 +518,22 @@ export default function Reminders({
         onReminderCreate?.(savedReminder);
       }
       
-      handleDialogClose();
+      setIsDialogOpen(false);
+      setReminderToEdit(null);
+      setFormData(prev => ({
+        ...prev,
+        title: '',
+        message: '',
+        remindAt: '',
+        type: 'CUSTOM' as Reminder['type'],
+        priority: 'MEDIUM' as Reminder['priority'],
+        tags: '',
+      }));
     } catch (error) {
       logger.error("Error saving reminder:", error);
       // You can add toast notification here if needed
     }
-  }, [formData, reminderToEdit, userId, onReminderUpdate, onReminderCreate, handleDialogClose]);
+  }, [formData, reminderToEdit, userId, onReminderUpdate, onReminderCreate]);
 
   const handleDialogClose = useCallback(() => {
     setIsDialogOpen(false);
@@ -1087,11 +1120,11 @@ export default function Reminders({
           </div>
           
           {/* Tags Filter */}
-          {getAllTags().length > 0 && (
+          {getAllTags.length > 0 && (
             <div className="mt-4">
               <div className="flex flex-wrap gap-2">
                 <span className="text-sm text-gray-600 self-center">العلامات:</span>
-                {getAllTags().map(tag => (
+                {getAllTags.map((tag: string) => (
                   <Button
                     key={tag}
                     variant={selectedTags.includes(tag) ? "default" : "outline"}

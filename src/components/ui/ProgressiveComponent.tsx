@@ -103,7 +103,8 @@ export function ProgressiveComponent<T = any>({
       {hasError ? (
         errorFallback || defaultErrorFallback
       ) : Component ? (
-        <Component {...(componentProps as T)} />
+        // @ts-ignore - Complex generic type inference
+        <Component {...(componentProps as any)} />
       ) : isLoading ? (
         fallback || defaultFallback
       ) : null}
@@ -148,7 +149,7 @@ export function withProgressiveLoading<T extends object>(
   return React.forwardRef<any, T>((props, ref) => (
     <ProgressiveComponent
       importFunc={importFunc}
-      componentProps={{ ...props, ref }}
+      componentProps={{ ...props, ref } as T & { ref?: React.ForwardedRef<any> }}
       {...options}
     />
   ));
@@ -159,13 +160,16 @@ export function createProgressiveSection<T = any>(
   importFunc: () => Promise<{ default: ComponentType<T> }>,
   displayName: string
 ) {
-  const ProgressiveSection = React.forwardRef<any, ProgressiveComponentProps<T>>((props, ref) => (
-    <ProgressiveComponent
-      importFunc={importFunc}
-      {...props}
-      ref={ref}
-    />
-  ));
+  const ProgressiveSection = React.forwardRef<any, ProgressiveComponentProps<T>>((props, ref) => {
+    const { importFunc: _, ...restProps } = props;
+    return (
+      <ProgressiveComponent
+        importFunc={importFunc}
+        {...(restProps as any)}
+        ref={ref}
+      />
+    );
+  });
 
   ProgressiveSection.displayName = `ProgressiveSection(${displayName})`;
   return ProgressiveSection;

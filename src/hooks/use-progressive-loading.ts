@@ -75,6 +75,11 @@ export function useProgressiveLoading<T>(
   }, []);
 
   const executeLoad = useCallback(async (attempt: number = 1): Promise<void> => {
+    // Validate attempt number
+    if (attempt < 1 || attempt > retryAttempts + 1) {
+      return;
+    }
+
     // Create abort controller for this load attempt
     abortControllerRef.current = new AbortController();
 
@@ -88,17 +93,31 @@ export function useProgressiveLoading<T>(
 
       onLoadStart?.();
 
-      // Set timeout
+      // Set timeout with validation
+      const validTimeout = Math.max(1000, Math.min(timeout, 60000)); // Between 1s and 60s
       timeoutRef.current = setTimeout(() => {
         abortControllerRef.current?.abort();
-      }, timeout);
+      }, validTimeout);
 
-      // Execute load function
-      const result = await loadFunction();
+      // Execute load function with timeout protection
+      const loadPromise = loadFunction();
+      const timeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => {
+          reject(new Error(`Load operation timed out after ${validTimeout}ms`));
+        }, validTimeout);
+      });
+
+      const result = await Promise.race([loadPromise, timeoutPromise]);
 
       // Clear timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
+      }
+
+      // Validate result
+      if (result === null || result === undefined) {
+        throw new Error('Load function returned null or undefined');
       }
 
       setState(prev => ({
@@ -114,17 +133,27 @@ export function useProgressiveLoading<T>(
       // Clear timeout
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
+        timeoutRef.current = undefined;
       }
 
       const err = error instanceof Error ? error : new Error('Unknown error occurred');
 
       // Check if we should retry
-      if (attempt < retryAttempts && !abortControllerRef.current?.signal.aborted) {
+      const shouldRetry = attempt < retryAttempts && 
+                         !abortControllerRef.current?.signal.aborted &&
+                         !err.message.includes('aborted');
+
+      if (shouldRetry) {
         onRetry?.(attempt);
+
+        // Calculate retry delay with exponential backoff and jitter
+        const baseDelay = retryDelay * Math.pow(2, attempt - 1);
+        const jitter = Math.random() * 0.3 * baseDelay; // Add up to 30% jitter
+        const finalDelay = Math.min(baseDelay + jitter, 30000); // Max 30 seconds
 
         retryTimeoutRef.current = setTimeout(() => {
           executeLoad(attempt + 1);
-        }, retryDelay * attempt); // Exponential backoff
+        }, finalDelay);
 
         return;
       }
@@ -140,10 +169,29 @@ export function useProgressiveLoading<T>(
   }, [loadFunction, retryAttempts, retryDelay, timeout, onLoadStart, onLoadComplete, onError, onRetry]);
 
   const load = useCallback(() => {
-    if (!state.isLoading && state.attemptCount < retryAttempts) {
-      executeLoad(state.attemptCount + 1);
+    // Validate state before loading
+    if (state.isLoading) {
+      return; // Already loading
     }
-  }, [state.isLoading, state.attemptCount, retryAttempts, executeLoad]);
+
+    if (state.attemptCount >= retryAttempts) {
+      return; // Max attempts reached
+    }
+
+    // Validate loadFunction
+    if (typeof loadFunction !== 'function') {
+      const error = new Error('Load function is not a function');
+      setState(prev => ({
+        ...prev,
+        error,
+        isLoading: false
+      }));
+      onError?.(error);
+      return;
+    }
+
+    executeLoad(state.attemptCount + 1);
+  }, [state.isLoading, state.attemptCount, retryAttempts, executeLoad, loadFunction, onError]);
 
   const retry = useCallback(() => {
     setState(prev => ({ ...prev, error: null, attemptCount: 0 }));
@@ -294,13 +342,56 @@ export function useProgressiveImage(
   }, []);
 
   const loadImage = useCallback(() => {
-    if (!src) return;
+    // Validate src
+    if (!src || typeof src !== 'string' || src.trim().length === 0) {
+      const error = new Error('Invalid image source');
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error
+      }));
+      onError?.(error);
+      return;
+    }
+
+    // Validate URL format
+    try {
+      new URL(src);
+    } catch {
+      // If not a valid URL, it might be a relative path - that's okay
+      if (!src.startsWith('/') && !src.startsWith('./') && !src.startsWith('../')) {
+        const error = new Error(`Invalid image source format: ${src}`);
+        setState(prev => ({
+          ...prev,
+          isLoading: false,
+          error
+        }));
+        onError?.(error);
+        return;
+      }
+    }
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     const img = new Image();
+    let loadTimeout: NodeJS.Timeout | undefined;
+
+    // Set timeout for image loading (30 seconds)
+    loadTimeout = setTimeout(() => {
+      const error = new Error(`Image load timeout: ${src}`);
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        error
+      }));
+      onError?.(error);
+      img.src = ''; // Cancel loading
+    }, 30000);
 
     img.onload = () => {
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+      }
       setState(prev => ({
         ...prev,
         currentSrc: src,
@@ -310,6 +401,9 @@ export function useProgressiveImage(
     };
 
     img.onerror = () => {
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+      }
       const error = new Error(`Failed to load image: ${src}`);
       setState(prev => ({
         ...prev,

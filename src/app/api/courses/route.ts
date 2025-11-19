@@ -72,15 +72,25 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 // GET all courses (now subjects)
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-      try {
+    try {
       const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+      const userId = searchParams.get("userId");
+
+      // Validate userId if provided
+      if (userId && (typeof userId !== 'string' || userId.trim().length === 0)) {
+        return NextResponse.json(
+          { error: "معرف المستخدم غير صحيح", code: 'INVALID_USER_ID' },
+          { status: 400 }
+        );
+      }
+
+      const trimmedUserId = userId?.trim() || null;
     
-      // Get all subjects
-      const subjects = await getOrSetEnhanced(
+      // Get all subjects with timeout protection
+      const subjectsPromise = getOrSetEnhanced(
         'subjects:all',
         async () => {
-          return await prisma.subject.findMany({
+          const fetchPromise = prisma.subject.findMany({
             where: {
               isActive: true
             },
@@ -88,22 +98,48 @@ export async function GET(request: NextRequest) {
               name: 'asc'
             }
           });
-        }
+
+          const timeoutPromise = new Promise<never>((resolve, reject) => {
+            setTimeout(() => reject(new Error('Database query timeout')), 10000);
+          });
+
+          return await Promise.race([fetchPromise, timeoutPromise]);
+        },
+        300 // Cache for 5 minutes
       );
 
-      // If userId is provided, get enrollment information
+      const timeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Cache operation timeout')), 5000);
+      });
+
+      const subjects = await Promise.race([subjectsPromise, timeoutPromise]);
+
+      // If userId is provided, get enrollment information with timeout protection
       let enrollments = {};
-      if (userId) {
-        const userEnrollments = await prisma.subjectEnrollment.findMany({
-          where: {
-            userId
-          }
-        });
-        
-        enrollments = userEnrollments.reduce((acc: any, enrollment: any) => {
-          acc[enrollment.subject] = enrollment;
-          return acc;
-        }, {});
+      if (trimmedUserId) {
+        try {
+          const enrollmentsPromise = prisma.subjectEnrollment.findMany({
+            where: {
+              userId: trimmedUserId
+            }
+          });
+
+          const enrollmentsTimeoutPromise = new Promise<never>((resolve, reject) => {
+            setTimeout(() => reject(new Error('Database query timeout')), 5000);
+          });
+
+          const userEnrollments = await Promise.race([enrollmentsPromise, enrollmentsTimeoutPromise]);
+          
+          enrollments = userEnrollments.reduce((acc: any, enrollment: any) => {
+            if (enrollment.subject) {
+              acc[enrollment.subject] = enrollment;
+            }
+            return acc;
+          }, {});
+        } catch (enrollmentError) {
+          // Log but don't block response - enrollments are optional
+          logger.warn('Error fetching enrollments:', enrollmentError);
+        }
       }
 
       return NextResponse.json({
@@ -112,8 +148,13 @@ export async function GET(request: NextRequest) {
       });
     } catch (error) {
       logger.error("Error fetching subjects:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return NextResponse.json(
-        { error: "حدث خطأ أثناء معالجة الطلب" },
+        { 
+          error: "حدث خطأ أثناء معالجة الطلب",
+          code: 'FETCH_ERROR',
+          ...(process.env.NODE_ENV === 'development' && { details: errorMessage })
+        },
         { status: 500 }
       );
     }
@@ -124,51 +165,147 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const { name, nameAr, code, description, color, icon } = await req.json();
-
-      // Validate required fields
-      if (!name || !nameAr || !code) {
+      // Parse request body with timeout protection
+      let body;
+      try {
+        const bodyPromise = req.json();
+        const timeoutPromise = new Promise<never>((resolve, reject) => {
+          setTimeout(() => reject(new Error('Request body parsing timeout')), 5000);
+        });
+        body = await Promise.race([bodyPromise, timeoutPromise]);
+      } catch (parseError) {
         return NextResponse.json(
-          { error: "الاسم والرمز مطلوبان" },
+          { error: "تنسيق البيانات غير صحيح", code: 'PARSE_ERROR' },
           { status: 400 }
         );
       }
 
-      // Check if subject with this code already exists
-      const existingSubject = await prisma.subject.findUnique({
-        where: { code }
+      const { name, nameAr, code, description, color, icon } = body;
+
+      // Validate required fields
+      if (!name || typeof name !== 'string' || name.trim().length === 0) {
+        return NextResponse.json(
+          { error: "الاسم مطلوب", code: 'MISSING_NAME' },
+          { status: 400 }
+        );
+      }
+
+      if (!nameAr || typeof nameAr !== 'string' || nameAr.trim().length === 0) {
+        return NextResponse.json(
+          { error: "الاسم بالعربية مطلوب", code: 'MISSING_NAME_AR' },
+          { status: 400 }
+        );
+      }
+
+      if (!code || typeof code !== 'string' || code.trim().length === 0) {
+        return NextResponse.json(
+          { error: "الرمز مطلوب", code: 'MISSING_CODE' },
+          { status: 400 }
+        );
+      }
+
+      // Validate field lengths
+      if (name.trim().length > 200) {
+        return NextResponse.json(
+          { error: "الاسم طويل جداً (الحد الأقصى 200 حرف)", code: 'NAME_TOO_LONG' },
+          { status: 400 }
+        );
+      }
+
+      if (nameAr.trim().length > 200) {
+        return NextResponse.json(
+          { error: "الاسم بالعربية طويل جداً (الحد الأقصى 200 حرف)", code: 'NAME_AR_TOO_LONG' },
+          { status: 400 }
+        );
+      }
+
+      if (code.trim().length > 50) {
+        return NextResponse.json(
+          { error: "الرمز طويل جداً (الحد الأقصى 50 حرف)", code: 'CODE_TOO_LONG' },
+          { status: 400 }
+        );
+      }
+
+      if (description && typeof description === 'string' && description.trim().length > 1000) {
+        return NextResponse.json(
+          { error: "الوصف طويل جداً (الحد الأقصى 1000 حرف)", code: 'DESCRIPTION_TOO_LONG' },
+          { status: 400 }
+        );
+      }
+
+      const trimmedCode = code.trim().toUpperCase();
+
+      // Check if subject with this code already exists with timeout protection
+      const findPromise = prisma.subject.findUnique({
+        where: { code: trimmedCode }
       });
+
+      const findTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 5000);
+      });
+
+      const existingSubject = await Promise.race([findPromise, findTimeoutPromise]);
 
       if (existingSubject) {
         return NextResponse.json(
-          { error: "توجد مادة بنفس الرمز بالفعل" },
+          { error: "توجد مادة بنفس الرمز بالفعل", code: 'DUPLICATE_CODE' },
           { status: 400 }
         );
       }
 
-      // Create new subject
-      const newSubject = await prisma.subject.create({
+      // Validate color format if provided
+      if (color && typeof color === 'string') {
+        const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+        if (!colorRegex.test(color.trim())) {
+          return NextResponse.json(
+            { error: "تنسيق اللون غير صحيح (يجب أن يكون hex color)", code: 'INVALID_COLOR' },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Create new subject with timeout protection
+      const createPromise = prisma.subject.create({
         data: {
-          name,
-          nameAr,
-          code,
-          description,
-          color: color || '#3b82f6',
-          icon: icon || 'BookOpen',
+          name: name.trim(),
+          nameAr: nameAr.trim(),
+          code: trimmedCode,
+          description: description?.trim() || null,
+          color: (color && typeof color === 'string') ? color.trim() : '#3b82f6',
+          icon: (icon && typeof icon === 'string') ? icon.trim() : 'BookOpen',
           isActive: true
         }
       });
 
-      // Invalidate cache
-      // In a real implementation, you might want to invalidate related caches as well
+      const createTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Database operation timeout')), 10000);
+      });
 
-      return NextResponse.json(newSubject);
+      const newSubject = await Promise.race([createPromise, createTimeoutPromise]);
+
+      // Invalidate cache (non-blocking)
+      // In a real implementation, you might want to invalidate related caches as well
+      import('@/lib/cache-service-unified').then(({ CacheService }) => {
+        CacheService.del('subjects:all').catch((error) => {
+          logger.warn('Cache invalidation failed:', error);
+        });
+      }).catch(() => {
+        // Ignore import errors
+      });
+
+      return NextResponse.json(newSubject, { status: 201 });
     } catch (error) {
       logger.error("Error creating subject:", error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return NextResponse.json(
-        { error: "حدث خطأ أثناء معالجة الطلب" },
+        { 
+          error: "حدث خطأ أثناء معالجة الطلب",
+          code: 'CREATE_ERROR',
+          ...(process.env.NODE_ENV === 'development' && { details: errorMessage })
+        },
         { status: 500 }
       );
     }
   });
 }
+

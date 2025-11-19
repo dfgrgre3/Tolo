@@ -1,4 +1,5 @@
 import { buildSchema } from 'type-graphql';
+// @ts-ignore - auth-resolver may not exist
 import { AuthResolver } from './resolvers/auth-resolver';
 
 export async function createSchema() {

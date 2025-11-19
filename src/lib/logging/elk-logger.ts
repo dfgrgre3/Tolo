@@ -3,6 +3,9 @@
  * 
  * هذا الملف يوفر تكامل مع Elasticsearch, Logstash, Kibana (ELK Stack)
  * جميع السجلات تُصدر بصيغة JSON متوافقة مع ELK
+ * 
+ * NOTE: This file uses server-only dependencies (winston, winston-elasticsearch)
+ * It should only be imported dynamically on the server side
  */
 
 import winston from 'winston';

@@ -34,24 +34,40 @@ export class RateLimiter {
   }
 
   /**
-   * Check if a client has exceeded rate limits using Redis
+   * Check if a client has exceeded rate limits using Redis with timeout protection
    * @param clientId Unique identifier for the client (e.g., IP + User Agent)
    * @param config Rate limiting configuration
    * @returns Rate limit check result
    */
   async checkRateLimit(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<RateLimitResult> {
-    const key = `rate_limit:${clientId}`;
-    const lockoutKey = `lockout:${clientId}`;
+    // Validate inputs
+    if (!clientId || typeof clientId !== 'string' || clientId.trim().length === 0) {
+      logger.warn('Invalid clientId provided to checkRateLimit');
+      return {
+        allowed: true,
+        attempts: 0
+      };
+    }
+
+    const trimmedClientId = clientId.trim();
+    const key = `rate_limit:${trimmedClientId}`;
+    const lockoutKey = `lockout:${trimmedClientId}`;
 
     const now = Date.now();
     const windowStart = now - config.windowMs;
 
     try {
-      // Check if account is locked
-      const lockedUntil = await redis.get(lockoutKey);
+      // Check if account is locked with timeout protection
+      const getLockPromise = redis.get(lockoutKey);
+      const lockTimeoutPromise = new Promise<string | null>((resolve) => {
+        setTimeout(() => resolve(null), 1000); // 1 second timeout
+      });
+
+      const lockedUntil = await Promise.race([getLockPromise, lockTimeoutPromise]);
+
       if (lockedUntil) {
         const lockoutTime = parseInt(lockedUntil, 10);
-        if (now < lockoutTime) {
+        if (!isNaN(lockoutTime) && now < lockoutTime) {
           const remainingTime = Math.ceil((lockoutTime - now) / 60000); // in minutes
           return {
             allowed: false,
@@ -60,12 +76,14 @@ export class RateLimiter {
             lockedUntil: lockoutTime
           };
         } else {
-          // Lockout expired, remove the lockout key
-          await redis.del(lockoutKey);
+          // Lockout expired, remove the lockout key (non-blocking)
+          redis.del(lockoutKey).catch((error: unknown) => {
+            logger.warn('Failed to remove expired lockout key:', error);
+          });
         }
       }
 
-      // Use Redis pipeline for atomic operations
+      // Use Redis pipeline for atomic operations with timeout protection
       const pipeline = redis.multi();
 
       // Remove old entries outside the window
@@ -74,8 +92,13 @@ export class RateLimiter {
       // Get current count
       pipeline.zcard(key);
 
-      const results = await pipeline.exec();
-      const currentCount = results[1] as number;
+      const execPromise = pipeline.exec();
+      const execTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Redis pipeline timeout')), 2000); // 2 second timeout
+      });
+
+      const results = await Promise.race([execPromise, execTimeoutPromise]);
+      const currentCount = (results && results[1]) ? (results[1] as number) : 0;
 
       return {
         allowed: currentCount < config.maxAttempts,
@@ -93,35 +116,56 @@ export class RateLimiter {
   }
 
   /**
-   * Increment failed attempts for a client using Redis
+   * Increment failed attempts for a client using Redis with timeout protection
    * @param clientId Unique identifier for the client
    * @param config Rate limiting configuration
    */
   async incrementAttempts(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<void> {
-    const key = `rate_limit:${clientId}`;
-    const lockoutKey = `lockout:${clientId}`;
+    // Validate inputs
+    if (!clientId || typeof clientId !== 'string' || clientId.trim().length === 0) {
+      logger.warn('Invalid clientId provided to incrementAttempts');
+      return;
+    }
+
+    const trimmedClientId = clientId.trim();
+    const key = `rate_limit:${trimmedClientId}`;
+    const lockoutKey = `lockout:${trimmedClientId}`;
 
     const now = Date.now();
 
     try {
-      // Use Redis pipeline for atomic operations
+      // Use Redis pipeline for atomic operations with timeout protection
       const pipeline = redis.multi();
 
       // Add current attempt
       pipeline.zadd(key, { [now]: now.toString() });
 
       // Set expiration for the sorted set
-      pipeline.expire(key, Math.ceil(config.windowMs / 1000));
+      const expirationSeconds = Math.ceil(config.windowMs / 1000);
+      pipeline.expire(key, expirationSeconds);
 
-      await pipeline.exec();
+      const execPromise = pipeline.exec();
+      const execTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Redis pipeline timeout')), 2000); // 2 second timeout
+      });
 
-      // Check if we need to lock the account
-      const result = await this.checkRateLimit(clientId, config);
-      if (result.attempts >= config.maxAttempts && config.lockoutMs) {
-        // Lock the account
-        const lockoutUntil = now + config.lockoutMs;
-        await redis.setEx(lockoutKey, Math.ceil(config.lockoutMs / 1000), lockoutUntil.toString());
-      }
+      await Promise.race([execPromise, execTimeoutPromise]);
+
+      // Check if we need to lock the account (non-blocking)
+      this.checkRateLimit(trimmedClientId, config)
+        .then((result) => {
+          if (result.attempts >= config.maxAttempts && config.lockoutMs) {
+            // Lock the account
+            const lockoutUntil = now + config.lockoutMs;
+            const lockoutSeconds = Math.ceil(config.lockoutMs / 1000);
+            redis.setEx(lockoutKey, lockoutSeconds, lockoutUntil.toString()).catch((error: unknown) => {
+              logger.warn('Failed to set lockout:', error);
+            });
+          }
+        })
+        .catch((error) => {
+          logger.warn('Failed to check rate limit after increment:', error);
+        });
     } catch (error) {
       logger.error('Failed to record failed attempt:', error);
     }
@@ -229,15 +273,13 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
   }
 
   if ((error as {name: string}).name === 'ZodError') {
-    return NextResponse.json(
-      {
-        error: 'Validation error',
-        code: 'VALIDATION_ERROR',
-        details: (error as {errors: unknown[]}).errors,
-        status: 400
-      },
-      { status: 400 }
-    );
+    const apiError: APIError = {
+      error: 'Validation error',
+      code: 'VALIDATION_ERROR',
+      details: ((error as {errors: unknown[]}).errors || []) as unknown as Record<string, unknown>,
+      status: 400
+    };
+    return NextResponse.json(apiError, { status: 400 });
   }
 
   if ((error as {code: string}).code === 'P2002') {
@@ -332,19 +374,35 @@ export async function validateRequestBody<T>(
   schema: ZodSchema<T>
 ): Promise<{ success: true; data: T } | { success: false; error: string }> {
   try {
-    const body = await request.json();
+    // Parse request body with timeout protection
+    const bodyPromise = request.json();
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Request body parsing timeout')), 5000); // 5 second timeout
+    });
+
+    const body = await Promise.race([bodyPromise, timeoutPromise]);
+
+    // Validate schema
+    if (!schema || typeof schema.safeParse !== 'function') {
+      return { success: false, error: 'Invalid validation schema' };
+    }
+
     const result = schema.safeParse(body);
 
     if (!result.success) {
-      const errorMessages = result.error.issues.map(issue =>
-        `${issue.path.join('.')}: ${issue.message}`
-      ).join(', ');
+      const errorMessages = result.error.issues
+        .map(issue => `${issue.path.join('.')}: ${issue.message}`)
+        .join(', ');
 
       return { success: false, error: errorMessages };
     }
 
     return { success: true, data: result.data };
   } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    if (errorMessage.includes('timeout')) {
+      return { success: false, error: 'Request body parsing timeout' };
+    }
     return { success: false, error: 'Invalid JSON in request body' };
   }
 }

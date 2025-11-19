@@ -1,7 +1,8 @@
 import { prisma, closeDatabaseConnection, checkDatabaseHealth, ensureDatabaseConnection } from './db';
 import { CacheService } from './redis';
 import { Prisma } from '@prisma/client';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // Type for paginated results
 export interface PaginatedResult<T> {
@@ -126,7 +127,7 @@ export async function executeTransaction<T>(
  * @param params Pagination parameters
  * @returns Paginated results
  */
-export async function paginate<T extends keyof typeof prisma>(
+export async function paginate<T extends Prisma.ModelName>(
   model: T,
   params: {
     where?: any;
@@ -134,23 +135,30 @@ export async function paginate<T extends keyof typeof prisma>(
     skip?: number;
     take?: number;
   }
-): Promise<PaginatedResult<Awaited<ReturnType<typeof prisma[T]['findMany']>>[0]>> {
+): Promise<PaginatedResult<any>> {
   const { where, orderBy, skip = 0, take = 10 } = params;
   
   // Ensure take is within reasonable limits
   const safeTake = Math.min(take, 100);
   
-  const [data, totalCount] = await prisma.$transaction([
-    prisma[model].findMany({
-      where,
-      orderBy,
-      skip,
-      take: safeTake,
-    }),
-    prisma[model].count({
-      where,
-    }),
-  ]);
+  const modelDelegate = (prisma as any)[model] as {
+    findMany: (args: any) => Promise<any[]>;
+    count: (args: any) => Promise<number>;
+  };
+  
+  const [data, totalCount] = await prisma.$transaction(async (tx) => {
+    return Promise.all([
+      modelDelegate.findMany({
+        where,
+        orderBy,
+        skip,
+        take: safeTake,
+      }),
+      modelDelegate.count({
+        where,
+      }),
+    ]);
+  });
   
   return {
     data,
@@ -167,13 +175,17 @@ export async function paginate<T extends keyof typeof prisma>(
  * @param data Data to update records with
  * @returns Number of updated records
  */
-export async function batchUpdate<T extends keyof typeof prisma>(
+export async function batchUpdate<T extends Prisma.ModelName>(
   model: T,
   where: any,
   data: any
 ): Promise<number> {
   try {
-    const result = await prisma[model].updateMany({
+    const modelDelegate = (prisma as any)[model] as {
+      updateMany: (args: any) => Promise<{ count: number }>;
+    };
+    
+    const result = await modelDelegate.updateMany({
       where,
       data,
     });
@@ -191,12 +203,16 @@ export async function batchUpdate<T extends keyof typeof prisma>(
  * @param where Where condition for records to delete
  * @returns Number of deleted records
  */
-export async function batchDelete<T extends keyof typeof prisma>(
+export async function batchDelete<T extends Prisma.ModelName>(
   model: T,
   where: any
 ): Promise<number> {
   try {
-    const result = await prisma[model].deleteMany({
+    const modelDelegate = (prisma as any)[model] as {
+      deleteMany: (args: any) => Promise<{ count: number }>;
+    };
+    
+    const result = await modelDelegate.deleteMany({
       where,
     });
     
@@ -214,20 +230,25 @@ export async function batchDelete<T extends keyof typeof prisma>(
  * @param create Data to create the record with if it doesn't exist
  * @returns The found or created record
  */
-export async function findOrCreate<T extends keyof typeof prisma>(
+export async function findOrCreate<T extends Prisma.ModelName>(
   model: T,
   where: any,
   create: any
-): Promise<Awaited<ReturnType<typeof prisma[T]['findUnique']>> | null> {
+): Promise<any | null> {
   try {
+    const modelDelegate = (prisma as any)[model] as {
+      findUnique: (args: any) => Promise<any>;
+      create: (args: any) => Promise<any>;
+    };
+    
     // Try to find the record first
-    let record = await prisma[model].findUnique({
+    let record = await modelDelegate.findUnique({
       where,
     });
     
     // If not found, create it
     if (!record) {
-      record = await prisma[model].create({
+      record = await modelDelegate.create({
         data: { ...where, ...create },
       });
     }

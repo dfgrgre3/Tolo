@@ -13,25 +13,90 @@ export async function DELETE(
       // Await params in Next.js 16
       const { sessionId } = await params;
       
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req);
+      // Enhanced session ID validation
+      if (!sessionId || typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+        return NextResponse.json(
+          { 
+            error: 'معرف الجلسة مطلوب',
+            code: 'MISSING_SESSION_ID',
+          },
+          { status: 400 }
+        );
+      }
+
+      const trimmedSessionId = sessionId.trim();
+      
+      // Validate session ID format
+      if (trimmedSessionId.length < 10 || trimmedSessionId.length > 100) {
+        return NextResponse.json(
+          { 
+            error: 'معرف الجلسة غير صحيح',
+            code: 'INVALID_SESSION_ID',
+          },
+          { status: 400 }
+        );
+      }
+      
+      // Enhanced authentication verification with timeout protection
+      const verifyPromise = authService.verifyTokenFromRequest(req);
+      const timeoutPromise = new Promise<{ isValid: false; error: string }>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            isValid: false,
+            error: 'انتهت مهلة التحقق من المصادقة',
+          });
+        }, 5000); // 5 second timeout
+      });
+
+      const verification = await Promise.race([verifyPromise, timeoutPromise]);
     
-    if (!verification.isValid || !verification.user) {
-      return NextResponse.json(
-        { error: 'غير مصرح' },
-        { status: 401 }
-      );
-    }
+      if (!verification.isValid || !verification.user) {
+        return NextResponse.json(
+          { 
+            error: verification.error || 'غير مصرح',
+            code: 'UNAUTHORIZED',
+          },
+          { status: 401 }
+        );
+      }
 
-    const userId = verification.user.id;
+      // Enhanced user ID validation
+      if (!verification.user.id || typeof verification.user.id !== 'string' || verification.user.id.trim().length === 0) {
+        return NextResponse.json(
+          { 
+            error: 'بيانات المستخدم غير صحيحة',
+            code: 'INVALID_USER_DATA',
+          },
+          { status: 401 }
+        );
+      }
 
-    // Verify session belongs to user
-    const session = await prisma.session.findFirst({
+      const userId = verification.user.id.trim();
+      
+      // Validate user ID format
+      if (userId.length < 10 || userId.length > 100) {
+        return NextResponse.json(
+          { 
+            error: 'معرف المستخدم غير صحيح',
+            code: 'INVALID_USER_ID',
+          },
+          { status: 401 }
+        );
+      }
+
+    // Verify session belongs to user with timeout protection
+    const sessionPromise = prisma.session.findFirst({
       where: {
-        id: sessionId,
+        id: trimmedSessionId,
         userId,
       },
     });
+
+    const sessionTimeoutPromise = new Promise<null>((resolve) => {
+      setTimeout(() => resolve(null), 3000); // 3 second timeout
+    });
+
+    const session = await Promise.race([sessionPromise, sessionTimeoutPromise]);
 
     if (!session) {
       return NextResponse.json(
@@ -40,27 +105,50 @@ export async function DELETE(
       );
     }
 
-    // Delete session
-    await prisma.session.delete({
-      where: { id: sessionId },
+    // Delete session with timeout protection
+    const deletePromise = prisma.session.delete({
+      where: { id: trimmedSessionId },
     });
 
-      // Log security event
-      const ip = authService.getClientIP(req);
-      const userAgent = authService.getUserAgent(req);
-    await authService.logSecurityEvent(
-      userId,
-      'session_revoked',
-      ip,
-      {
-        userAgent,
-        revokedSessionId: sessionId,
-        revokedDevice: session.deviceInfo,
+    const deleteTimeoutPromise = new Promise<void>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Session deletion timeout')), 3000); // 3 second timeout
+    });
+
+    await Promise.race([deletePromise, deleteTimeoutPromise]);
+
+      // Log security event (non-blocking)
+      const ip = authService.getClientIP(req) || 'unknown';
+      const userAgent = authService.getUserAgent(req) || 'unknown';
+      
+      // Sanitize device info
+      let deviceInfo = null;
+      try {
+        if (session.deviceInfo && typeof session.deviceInfo === 'string') {
+          const parsed = JSON.parse(session.deviceInfo);
+          if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+            deviceInfo = parsed;
+          }
+        }
+      } catch {
+        // Ignore parsing errors
       }
-    );
+
+      authService.logSecurityEvent(
+        userId,
+        'session_revoked',
+        ip,
+        {
+          userAgent,
+          revokedSessionId: trimmedSessionId,
+          revokedDevice: deviceInfo,
+        }
+      ).catch(() => {
+        // Silent fail - logging shouldn't block response
+      });
 
     return NextResponse.json({
       message: 'تم إلغاء الجلسة بنجاح',
+      sessionId: trimmedSessionId,
     });
 
   } catch (error) {

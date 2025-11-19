@@ -1,13 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { authService, AuthService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
-import type { RegisterRequest, RegisterResponse, RegisterErrorResponse } from '@/types/api/auth';
-import { createErrorResponse, isConnectionError } from '@/app/api/auth/_helpers';
-import { logger } from '@/lib/logger';
+import type { RegisterResponse } from '@/types/api/auth';
+import { 
+  createStandardErrorResponse,
+  createSuccessResponse,
+  isConnectionError,
+  parseRequestBody,
+  extractRequestMetadata,
+  logSecurityEventSafely
+} from '@/app/api/auth/_helpers';
+
+import { logger } from '@/lib/logger';
 
 const registerSchema = z.object({
   email: z
@@ -33,20 +41,34 @@ const registerSchema = z.object({
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-  const ip = authService.getClientIP(req);
-  const userAgent = authService.getUserAgent(req);
+    const { ip, userAgent } = extractRequestMetadata(req);
 
-  try {
-    const body = await req.json().catch(() => ({}));
-    const parsed = registerSchema.safeParse(body);
+    try {
+      // Parse and validate request body using standardized helper
+      const bodyResult = await parseRequestBody<{
+        email?: string;
+        password?: string;
+        name?: string;
+      }>(req, {
+        maxSize: 2048, // 2KB max for registration
+        required: true,
+      });
+
+      if (!bodyResult.success) {
+        return bodyResult.error;
+      }
+
+      const parsed = registerSchema.safeParse(bodyResult.data);
 
     if (!parsed.success) {
-      const errorResponse: RegisterErrorResponse = {
-        error: 'تعذر معالجة البيانات المدخلة.',
-        code: 'VALIDATION_ERROR',
-        details: parsed.error.flatten().fieldErrors as Record<string, string[]>,
-      };
-      return NextResponse.json(errorResponse, { status: 400 });
+      return createStandardErrorResponse(
+        {
+          error: 'VALIDATION_ERROR',
+          details: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+        },
+        'تعذر معالجة البيانات المدخلة.',
+        400
+      );
     }
 
     const { email, password, name } = parsed.data;
@@ -55,22 +77,22 @@ export async function POST(request: NextRequest) {
 
     // Additional email validation
     if (!normalizedEmail || normalizedEmail.length < 5) {
-      const errorResponse: RegisterErrorResponse = {
-        error: 'البريد الإلكتروني غير صالح.',
-        code: 'INVALID_EMAIL',
-      };
-      return NextResponse.json(errorResponse, { status: 400 });
+      return createStandardErrorResponse(
+        new Error('INVALID_EMAIL'),
+        'البريد الإلكتروني غير صالح.',
+        400
+      );
     }
 
     // Check if user already exists
     const existingUser = await authService.findUserByEmail(normalizedEmail);
 
     if (existingUser) {
-      const errorResponse: RegisterErrorResponse = {
-        error: 'البريد الإلكتروني مستخدم بالفعل.',
-        code: 'USER_EXISTS',
-      };
-      return NextResponse.json(errorResponse, { status: 409 });
+      return createStandardErrorResponse(
+        new Error('USER_EXISTS'),
+        'البريد الإلكتروني مستخدم بالفعل.',
+        409
+      );
     }
 
     // Hash password with proper error handling
@@ -79,12 +101,10 @@ export async function POST(request: NextRequest) {
       passwordHash = await AuthService.hashPassword(password);
     } catch (hashError) {
       logger.error('Password hashing error:', hashError);
-      return NextResponse.json(
-        {
-          error: 'حدث خطأ أثناء معالجة كلمة المرور. حاول مرة أخرى.',
-          code: 'HASH_ERROR',
-        },
-        { status: 500 }
+      return createStandardErrorResponse(
+        hashError,
+        'حدث خطأ أثناء معالجة كلمة المرور. حاول مرة أخرى.',
+        500
       );
     }
 
@@ -131,44 +151,34 @@ export async function POST(request: NextRequest) {
       
       // Handle unique constraint violation
       if (dbError.code === 'P2002' || dbError.message?.includes('unique')) {
-        return NextResponse.json(
-          {
-            error: 'البريد الإلكتروني مستخدم بالفعل.',
-            code: 'USER_EXISTS',
-          },
-          { status: 409 }
+        return createStandardErrorResponse(
+          new Error('USER_EXISTS'),
+          'البريد الإلكتروني مستخدم بالفعل.',
+          409
         );
       }
 
-      return NextResponse.json(
-        {
-          error: 'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى لاحقاً.',
-          code: 'DATABASE_ERROR',
-        },
-        { status: 500 }
+      return createStandardErrorResponse(
+        dbError,
+        'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى لاحقاً.',
+        500
       );
     }
 
     // Verify user was created successfully
     if (!newUser || !newUser.id) {
-      return NextResponse.json(
-        {
-          error: 'فشل إنشاء الحساب. حاول مرة أخرى.',
-          code: 'CREATION_FAILED',
-        },
-        { status: 500 }
+      return createStandardErrorResponse(
+        new Error('CREATION_FAILED'),
+        'فشل إنشاء الحساب. حاول مرة أخرى.',
+        500
       );
     }
 
     // Log security event
-    try {
-      await authService.logSecurityEvent(newUser.id, 'register_success', ip, {
-        userAgent,
-      });
-    } catch (logError) {
-      // Don't fail registration if logging fails, but log it
-      logger.error('Failed to log security event:', logError);
-    }
+    await logSecurityEventSafely(newUser.id, 'register_success', {
+      ip,
+      userAgent,
+    });
 
     // Generate verification link
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
@@ -185,22 +195,21 @@ export async function POST(request: NextRequest) {
           emailVerified: true,
           createdAt: true,
           role: true,
+          twoFactorEnabled: true,
         },
       });
 
       if (!verifiedUser) {
         logger.error('User was not found in database after creation');
-        return NextResponse.json(
-          {
-            error: 'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.',
-            code: 'VERIFICATION_FAILED',
-          },
-          { status: 500 }
+        return createStandardErrorResponse(
+          new Error('VERIFICATION_FAILED'),
+          'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.',
+          500
         );
       }
 
       // Return user data without sensitive information
-      const registerResponse: RegisterResponse = {
+      return createSuccessResponse<RegisterResponse>({
         success: true,
         message: 'تم إنشاء الحساب بنجاح!',
         user: {
@@ -208,51 +217,46 @@ export async function POST(request: NextRequest) {
           email: verifiedUser.email,
           name: verifiedUser.name || undefined,
           emailVerified: verifiedUser.emailVerified || false,
+          twoFactorEnabled: verifiedUser.twoFactorEnabled || false,
           role: verifiedUser.role || 'user',
           createdAt: verifiedUser.createdAt,
         },
         verificationLink: process.env.NODE_ENV === 'development' ? verificationLink : undefined,
         requiresEmailVerification: true,
-      };
-      return NextResponse.json(registerResponse, { status: 201 });
+      }, undefined, 201);
     } catch (verifyError: any) {
       logger.error('Error verifying user creation:', verifyError);
       // Even if verification fails, user was created, so return success
       // but log the error for investigation
-      return NextResponse.json(
-        {
-          success: true,
-          message: 'تم إنشاء الحساب بنجاح!',
-          user: {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-            emailVerified: newUser.emailVerified || false,
-            role: (newUser as any).role || 'user',
-            createdAt: newUser.createdAt,
-          },
-          verificationLink: process.env.NODE_ENV === 'development' ? verificationLink : undefined,
-          requiresEmailVerification: true,
-          warning: 'تم إنشاء الحساب ولكن حدث خطأ أثناء التحقق. يرجى المحاولة مرة أخرى.',
+      return createSuccessResponse<RegisterResponse>({
+        success: true,
+        message: 'تم إنشاء الحساب بنجاح!',
+        user: {
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          emailVerified: newUser.emailVerified || false,
+          twoFactorEnabled: newUser.twoFactorEnabled || false,
+          role: (newUser as any).role || 'user',
+          createdAt: newUser.createdAt,
         },
-        { status: 201 }
-      );
+        verificationLink: process.env.NODE_ENV === 'development' ? verificationLink : undefined,
+        requiresEmailVerification: true,
+        warning: 'تم إنشاء الحساب ولكن حدث خطأ أثناء التحقق. يرجى المحاولة مرة أخرى.',
+      }, undefined, 201);
     }
   } catch (error: any) {
     logger.error('Registration error:', error);
     
-    // Try to log security event
-    try {
-      await authService.logSecurityEvent(null, 'register_error', ip, {
-        userAgent,
-        error: error?.message || 'Unknown error',
-      });
-    } catch (logError) {
-      logger.error('Failed to log security event:', logError);
-    }
+    // Log security event safely
+    await logSecurityEventSafely(null, 'register_error', {
+      ip,
+      userAgent,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
     // Return appropriate error response
-    return createErrorResponse(
+    return createStandardErrorResponse(
       error,
       'حدث خطأ غير متوقع أثناء التسجيل. حاول مرة أخرى لاحقاً.'
     );

@@ -27,7 +27,7 @@ export interface EnvValidationResult {
  * Validate JWT_SECRET format and security
  */
 function validateJWTSecret(): { valid: boolean; error?: string } {
-  const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  const jwtSecret = process.env.JWT_SECRET;
 
   if (!jwtSecret) {
     return {
@@ -140,11 +140,11 @@ export function validateEnvironment(): EnvValidationResult {
 export function getJWTSecret(): string {
   const isProduction = process.env.NODE_ENV === 'production';
   
-  // Security: NO FALLBACK VALUES ALLOWED - check both possible env var names
-  const jwtSecret = process.env.JWT_SECRET || process.env.NEXTAUTH_SECRET;
+  // Security: NO FALLBACK VALUES ALLOWED
+  const jwtSecret = process.env.JWT_SECRET;
 
   if (!jwtSecret) {
-    const errorMessage = 'JWT_SECRET is not set in environment variables. Please set JWT_SECRET or NEXTAUTH_SECRET.';
+    const errorMessage = 'JWT_SECRET is not set in environment variables. Please set JWT_SECRET.';
     
     // In production, this is a critical security error
     if (isProduction) {

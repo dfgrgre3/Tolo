@@ -7,21 +7,57 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req);
+      // Enhanced authentication verification with timeout protection
+      const verifyPromise = authService.verifyTokenFromRequest(req);
+      const timeoutPromise = new Promise<{ isValid: false; error: string }>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            isValid: false,
+            error: 'انتهت مهلة التحقق من المصادقة',
+          });
+        }, 5000); // 5 second timeout
+      });
+
+      const verification = await Promise.race([verifyPromise, timeoutPromise]);
     
-    if (!verification.isValid || !verification.user) {
-      return NextResponse.json(
-        { error: 'غير مصرح' },
-        { status: 401 }
-      );
-    }
+      if (!verification.isValid || !verification.user) {
+        return NextResponse.json(
+          { 
+            error: verification.error || 'غير مصرح',
+            code: 'UNAUTHORIZED',
+          },
+          { status: 401 }
+        );
+      }
 
-    const userId = verification.user.id;
-    const currentSessionId = verification.sessionId;
+      // Enhanced user ID validation
+      if (!verification.user.id || typeof verification.user.id !== 'string' || verification.user.id.trim().length === 0) {
+        return NextResponse.json(
+          { 
+            error: 'بيانات المستخدم غير صحيحة',
+            code: 'INVALID_USER_DATA',
+          },
+          { status: 401 }
+        );
+      }
 
-    // Get all active sessions for user
-    const sessions = await prisma.session.findMany({
+      const userId = verification.user.id.trim();
+      
+      // Validate user ID format
+      if (userId.length < 10 || userId.length > 100) {
+        return NextResponse.json(
+          { 
+            error: 'معرف المستخدم غير صحيح',
+            code: 'INVALID_USER_ID',
+          },
+          { status: 401 }
+        );
+      }
+
+      const currentSessionId = verification.sessionId ? verification.sessionId.trim() : null;
+
+    // Get all active sessions for user with timeout protection
+    const sessionsPromise = prisma.session.findMany({
       where: {
         userId,
         isActive: true,
@@ -32,34 +68,60 @@ export async function GET(request: NextRequest) {
       orderBy: {
         lastAccessed: 'desc',
       },
+      take: 50, // Limit to 50 sessions for performance
     });
 
-    // Parse and format sessions
-    const formattedSessions = sessions.map((session: any) => {
-      let deviceInfo: any = {};
-      try {
-        deviceInfo = JSON.parse(session.deviceInfo);
-      } catch {
-        // If parsing fails, extract from user agent
-        deviceInfo = {
-          browser: parseBrowser(session.userAgent),
-          os: parseOS(session.userAgent),
+    const sessionsTimeoutPromise = new Promise<[]>(resolve => {
+      setTimeout(() => resolve([]), 3000); // 3 second timeout
+    });
+
+    const sessions = await Promise.race([sessionsPromise, sessionsTimeoutPromise]);
+
+    // Parse and format sessions with enhanced validation
+    const formattedSessions = sessions
+      .filter((session: any) => session && session.id) // Filter out invalid sessions
+      .map((session: any) => {
+        // Validate session ID
+        if (!session.id || typeof session.id !== 'string' || session.id.trim().length === 0) {
+          return null;
+        }
+
+        let deviceInfo: any = {};
+        try {
+          // Safely parse device info with validation
+          if (session.deviceInfo && typeof session.deviceInfo === 'string') {
+            const parsed = JSON.parse(session.deviceInfo);
+            if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+              deviceInfo = parsed;
+            }
+          }
+        } catch {
+          // If parsing fails, extract from user agent
+          deviceInfo = {
+            browser: parseBrowser(session.userAgent || ''),
+            os: parseOS(session.userAgent || ''),
+          };
+        }
+
+        // Sanitize IP address (limit length)
+        const sanitizedIp = session.ip && typeof session.ip === 'string'
+          ? session.ip.substring(0, 45) // IPv6 max length
+          : 'unknown';
+
+        return {
+          id: session.id.trim(),
+          deviceInfo: session.deviceInfo || null,
+          browser: deviceInfo.browser || parseBrowser(session.userAgent || ''),
+          os: deviceInfo.os || parseOS(session.userAgent || ''),
+          ip: sanitizedIp,
+          createdAt: session.createdAt,
+          lastAccessed: session.lastAccessed,
+          isActive: Boolean(session.isActive),
+          isCurrent: session.id === currentSessionId,
+          trusted: true, // Can be enhanced with trust logic
         };
-      }
-
-      return {
-        id: session.id,
-        deviceInfo: session.deviceInfo,
-        browser: deviceInfo.browser || parseBrowser(session.userAgent),
-        os: deviceInfo.os || parseOS(session.userAgent),
-        ip: session.ip,
-        createdAt: session.createdAt,
-        lastAccessed: session.lastAccessed,
-        isActive: session.isActive,
-        isCurrent: session.id === currentSessionId,
-        trusted: true, // Can be enhanced with trust logic
-      };
-    });
+      })
+      .filter((session: any) => session !== null); // Remove null entries
 
     // Get session statistics
     const stats = {
@@ -86,40 +148,85 @@ export async function GET(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req);
+      // Enhanced authentication verification with timeout protection
+      const verifyPromise = authService.verifyTokenFromRequest(req);
+      const timeoutPromise = new Promise<{ isValid: false; error: string }>((resolve) => {
+        setTimeout(() => {
+          resolve({
+            isValid: false,
+            error: 'انتهت مهلة التحقق من المصادقة',
+          });
+        }, 5000); // 5 second timeout
+      });
+
+      const verification = await Promise.race([verifyPromise, timeoutPromise]);
     
-    if (!verification.isValid || !verification.user) {
-      return NextResponse.json(
-        { error: 'غير مصرح' },
-        { status: 401 }
-      );
-    }
-
-    const userId = verification.user.id;
-    const currentSessionId = verification.sessionId;
-
-    // Delete all sessions except current
-    const result = await prisma.session.deleteMany({
-      where: {
-        userId,
-        id: { not: currentSessionId },
-      },
-    });
-
-      // Log security event
-      const ip = authService.getClientIP(req);
-      const userAgent = authService.getUserAgent(req);
-    await authService.logSecurityEvent(
-      userId,
-      'all_sessions_revoked',
-      ip,
-      {
-        userAgent,
-        sessionsRevoked: result.count,
-        currentSessionId,
+      if (!verification.isValid || !verification.user) {
+        return NextResponse.json(
+          { 
+            error: verification.error || 'غير مصرح',
+            code: 'UNAUTHORIZED',
+          },
+          { status: 401 }
+        );
       }
-    );
+
+      // Enhanced user ID validation
+      if (!verification.user.id || typeof verification.user.id !== 'string' || verification.user.id.trim().length === 0) {
+        return NextResponse.json(
+          { 
+            error: 'بيانات المستخدم غير صحيحة',
+            code: 'INVALID_USER_DATA',
+          },
+          { status: 401 }
+        );
+      }
+
+      const userId = verification.user.id.trim();
+      
+      // Validate user ID format
+      if (userId.length < 10 || userId.length > 100) {
+        return NextResponse.json(
+          { 
+            error: 'معرف المستخدم غير صحيح',
+            code: 'INVALID_USER_ID',
+          },
+          { status: 401 }
+        );
+      }
+
+      const currentSessionId = verification.sessionId ? verification.sessionId.trim() : null;
+
+      // Delete all sessions except current with timeout protection
+      const deletePromise = prisma.session.deleteMany({
+        where: {
+          userId,
+          ...(currentSessionId ? { id: { not: currentSessionId } } : {}),
+        },
+      });
+
+      const deleteTimeoutPromise = new Promise<{ count: number }>((resolve) => {
+        setTimeout(() => resolve({ count: 0 }), 3000); // 3 second timeout
+      });
+
+      const result = await Promise.race([deletePromise, deleteTimeoutPromise]);
+
+      // Log security event (non-blocking)
+      const ip = authService.getClientIP(req) || 'unknown';
+      const userAgent = authService.getUserAgent(req) || 'unknown';
+      
+      authService.logSecurityEvent(
+        userId,
+        'all_sessions_revoked',
+        ip,
+        {
+          userAgent,
+          sessionsRevoked: result.count,
+          currentSessionId,
+        }
+      ).catch(() => {
+        // Silent fail - logging shouldn't block response
+      });
 
     return NextResponse.json({
       message: 'تم إلغاء جميع الجلسات بنجاح',

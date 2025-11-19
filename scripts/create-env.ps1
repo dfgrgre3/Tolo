@@ -22,6 +22,13 @@ if (Test-Path $envPath) {
         Add-Content -Path $envPath -Value "`nDATABASE_URL=`"$defaultDbUrl`""
         Write-Host "Added DATABASE_URL" -ForegroundColor Green
     }
+    
+    # Check and warn about NextAuth variables
+    if ($content -match 'NEXTAUTH_SECRET' -or $content -match 'NEXTAUTH_URL') {
+        Write-Host ""
+        Write-Host "[WARNING] Found NextAuth variables in .env" -ForegroundColor Yellow
+        Write-Host "  Run 'npm run env:clean' to remove them" -ForegroundColor Cyan
+    }
 } else {
     Write-Host "Creating .env file..." -ForegroundColor Cyan
     $envContent = @"
@@ -30,7 +37,6 @@ DATABASE_URL="$defaultDbUrl"
 
 # JWT Configuration
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-NEXTAUTH_SECRET=your-nextauth-secret-change-this-in-production
 
 # Application URLs
 NEXT_PUBLIC_BASE_URL=http://localhost:3000

@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, ErrorInfo } from 'react';
-import React from 'react';import { logger } from '@/lib/logger';
+import React from 'react';
+import { logger } from '@/lib/logger';
 
 // import { useToast } from '@/contexts/toast-context'; // Not needed - WebSocket is disabled
 
@@ -88,12 +89,40 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
         return;
       }
 
+      // Validate userId if provided
+      if (userId && (typeof userId !== 'string' || userId.trim().length === 0)) {
+        logger.warn('Invalid userId provided to WebSocket connection');
+        return;
+      }
+
       try {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = userId ? `${wsProtocol}//${window.location.host}/api/ws?userId=${userId}` : `${wsProtocol}//${window.location.host}/api/ws`;
+        const trimmedUserId = userId?.trim();
+        const wsUrl = trimmedUserId 
+          ? `${wsProtocol}//${window.location.host}/api/ws?userId=${encodeURIComponent(trimmedUserId)}`
+          : `${wsProtocol}//${window.location.host}/api/ws`;
+        
+        // Validate URL before creating WebSocket
+        try {
+          new URL(wsUrl);
+        } catch (urlError) {
+          logger.error('Invalid WebSocket URL:', urlError);
+          return;
+        }
+
         ws = new WebSocket(wsUrl);
 
+        // Set connection timeout (30 seconds)
+        const connectionTimeout = setTimeout(() => {
+          if (ws && ws.readyState === WebSocket.CONNECTING) {
+            logger.warn('WebSocket connection timeout');
+            ws.close();
+          }
+        }, 30000);
+
         ws.onopen = () => {
+          clearTimeout(connectionTimeout);
+          
           if (!WEBSOCKET_ENABLED) {
             ws?.close();
             return;
@@ -106,8 +135,27 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
         ws.onmessage = (event) => {
           if (!WEBSOCKET_ENABLED) return;
           
+          // Validate message data
+          if (!event || !event.data) {
+            logger.warn('Received empty WebSocket message');
+            return;
+          }
+
           try {
+            // Validate data size (prevent DoS)
+            if (typeof event.data === 'string' && event.data.length > 10000) {
+              logger.warn('WebSocket message too large, ignoring');
+              return;
+            }
+
             const data = JSON.parse(event.data);
+            
+            // Validate data structure
+            if (!data || typeof data !== 'object') {
+              logger.warn('Invalid WebSocket message format');
+              return;
+            }
+
             if (data.type === 'notification') {
               logger.info('WebSocket notification:', data.message);
             } else if (data.type === 'SCHEDULE_CONFLICT') {
@@ -121,19 +169,25 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
           }
         };
 
-        ws.onclose = () => {
+        ws.onclose = (event) => {
+          clearTimeout(connectionTimeout);
           setIsConnected(false);
           setSocket(null);
           
-          // Only attempt reconnect if WebSocket is still enabled
-          if (WEBSOCKET_ENABLED && reconnectAttempts < maxReconnectAttempts) {
+          // Only attempt reconnect if WebSocket is still enabled and not a normal closure
+          if (WEBSOCKET_ENABLED && reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
             reconnectAttempts++;
-            const delay = Math.min(3000 * reconnectAttempts, 15000);
+            // Exponential backoff with jitter
+            const baseDelay = Math.min(3000 * Math.pow(2, reconnectAttempts - 1), 15000);
+            const jitter = Math.random() * 0.3 * baseDelay;
+            const delay = baseDelay + jitter;
             reconnectTimeout = setTimeout(connect, delay);
           }
         };
 
-        ws.onerror = () => {
+        ws.onerror = (error) => {
+          clearTimeout(connectionTimeout);
+          
           // Completely suppress WebSocket errors when disabled
           // Do not log anything to prevent console errors
           // Silently handle - do not propagate errors
@@ -146,10 +200,13 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
             }
           }
         };
-      } catch {
+      } catch (error) {
         // Completely suppress errors when WebSocket is disabled
         // Do not log anything to prevent console errors
         // Silently ignore all connection errors
+        if (WEBSOCKET_ENABLED && process.env.NODE_ENV === 'development') {
+          logger.debug('WebSocket connection error (suppressed):', error);
+        }
       }
     };
 

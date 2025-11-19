@@ -35,7 +35,7 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
   });
 
   // Build interaction matrix
-  allInteractions.forEach(interaction => {
+  allInteractions.forEach((interaction: { userId: string; itemType: string; itemId: string; type: string }) => {
     if (!userItemMatrix[interaction.userId]) {
       userItemMatrix[interaction.userId] = {};
     }
@@ -93,12 +93,15 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
     
     if (normalizedScore > 0.1) {
       result.push({
+        id: itemId,
         itemId,
         itemType: itemType as 'resource' | 'course' | 'exam' | 'content' | 'teacher',
+        title: '',
         score: normalizedScore,
         algorithm: 'collaborative',
-        reason: `مستخدمون مشابهون لك أعجبهم هذا المحتوى`
-      });
+        reason: `مستخدمون مشابهون لك أعجبهم هذا المحتوى`,
+        priority: 'medium' as const
+      } as Recommendation);
     }
   }
 
@@ -129,7 +132,7 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
 
   // Build user preference vector
   const userPreferences: Record<string, number> = {};
-  preferences.forEach(pref => {
+  preferences.forEach((pref: { itemType: string; itemValue: string; weight: number }) => {
     const key = `${pref.itemType}:${pref.itemValue}`;
     userPreferences[key] = pref.weight;
   });
@@ -149,11 +152,16 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
         
         if (!existing) {
           recommendations.set(key, {
-            ...item,
+            id: item.itemId || '',
+            itemId: item.itemId || '',
+            itemType: item.itemType || 'resource',
+            title: item.title || '',
+            description: (item as { description?: string }).description,
             score: 0.7,
             algorithm: 'content_based',
-            reason: `مشابه لمحتوى أعجبك`
-          });
+            reason: `مشابه لمحتوى أعجبك`,
+            priority: 'medium' as const
+          } as Recommendation);
         } else {
           existing.score = Math.min(1, existing.score + 0.1);
         }
@@ -188,7 +196,7 @@ async function findSimilarItems(itemType: string, itemId: string): Promise<Array
         take: 5
       });
       
-      similarResources.forEach(r => {
+      similarResources.forEach((r: { id: string; title: string; description: string | null; [key: string]: unknown }) => {
         results.push({
           itemType: 'resource',
           itemId: r.id,

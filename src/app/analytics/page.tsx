@@ -61,7 +61,7 @@ function AnalyticsPage() {
 	const [summary, setSummary] = useState<SummaryData | null>(null);
 	const [weekly, setWeekly] = useState<WeeklyData | null>(null);
 	const [predictions, setPredictions] = useState<PredictionsData[]>([]);
-	const [performanceMetrics, setPerformanceMetrics] = useState<any>(null);
+	const [performanceMetrics, setPerformanceMetrics] = useState<Record<string, unknown> | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
 	const fetchData = async () => {
@@ -115,9 +115,10 @@ function AnalyticsPage() {
 					logger.error('Error parsing performance data:', e);
 				}
 			}
-		} catch (err: any) {
+		} catch (err: unknown) {
 			logger.error('Error fetching analytics:', err);
-			setError(err?.message || 'حدث خطأ أثناء تحميل البيانات');
+			const errorMessage = err instanceof Error ? err.message : 'حدث خطأ أثناء تحميل البيانات';
+			setError(errorMessage);
 		} finally {
 			setIsLoading(false);
 		}

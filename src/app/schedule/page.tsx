@@ -4,12 +4,14 @@ import { useEffect, useMemo, useState, memo } from "react";
 import { useRouter } from "next/navigation";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Modal } from "@/components/ui/modal";
-import { useDrag, useDrop, DndProvider } from "react-dnd";
+// @ts-ignore - react-dnd type issue
+import { DndProvider, useDrag, useDrop } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import { WebSocketProvider, useWebSocket } from "@/contexts/websocket-context";
 import { safeGetItem, safeSetItem, safeJsonParse, safeFetch } from "@/lib/safe-client-utils";
 import errorManager from "@/services/ErrorManager";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 type DragItem = {
   id: string;
@@ -158,7 +160,7 @@ export default function SchedulePage() {
 		const loadUser = async () => {
 			setLoadingUser(true);
 			try {
-				let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
+				let id: string | null = safeGetItem(LOCAL_USER_KEY, { fallback: null });
 				if (!id) {
 					const { data, error } = await safeFetch<{ id: string }>(
 						"/api/users/guest", 
@@ -173,7 +175,7 @@ export default function SchedulePage() {
 						return;
 					}
 					if (data && data.id) {
-						id = data.id;
+						id = data.id as string;
 						safeSetItem(LOCAL_USER_KEY, id);
 					}
 				}

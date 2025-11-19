@@ -5,7 +5,7 @@ import Header from "../components/Header";
 import { GlobalProviders } from "../providers/index";
 import NotificationsClient from "../components/NotificationsClient";
 import { ClientLayoutWrapper } from "../components/layout/ClientLayoutWrapper";
-// import { auth } from '../auth-server';
+// import { auth } from '../auth'; // Unified auth export (server-only)
 import { AuthSessionWrapper } from '../components/auth/AuthSessionWrapper';
 
 export default async function RootLayout({

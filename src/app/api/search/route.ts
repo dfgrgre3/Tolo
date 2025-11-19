@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 					orderBy: { name: "asc" },
 				});
 
-				courses.forEach((course) => {
+				courses.forEach((course: { id: string; name: string | null; description: string | null; type: string | null }) => {
 					const title = course.name || "مادة بدون عنوان";
 					const description = course.description || "";
 					const relevance = Math.max(
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
 					},
 				});
 
-				teachers.forEach((teacher) => {
+				teachers.forEach((teacher: { id: string; name: string | null; email: string }) => {
 					const title = teacher.name || teacher.email || "معلم";
 					const relevance = calculateRelevance(title, searchTerm);
 
@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
 					orderBy: { createdAt: "desc" },
 				});
 
-				posts.forEach((post) => {
+				posts.forEach((post: { id: string; title: string | null; content: string | null; category: { name: string } | null }) => {
 					const title = post.title || "موضوع بدون عنوان";
 					const content = post.content || "";
 					const relevance = Math.max(
@@ -181,7 +181,7 @@ export async function GET(request: NextRequest) {
 					orderBy: { createdAt: "desc" },
 				});
 
-				exams.forEach((exam) => {
+				exams.forEach((exam: { id: string; title: string; subject: string; year: number }) => {
 					const title = exam.title || "امتحان بدون عنوان";
 					const relevance = Math.max(
 						calculateRelevance(title, searchTerm),

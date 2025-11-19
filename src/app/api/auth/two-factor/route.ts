@@ -21,6 +21,8 @@ type UserWith2FA = Prisma.UserGetPayload<{
   select: {
     id: true;
     email: true;
+    name: true;
+    role: true;
     twoFactorEnabled: true;
     twoFactorSecret: true;
     recoveryCodes: true;
@@ -82,8 +84,59 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Verify and consume the challenge from database
-      const challengeResult = await TwoFactorChallengeService.verifyAndConsumeChallenge(loginAttemptId, code);
+      // Enhanced code validation with comprehensive checks
+      if (!code || typeof code !== 'string') {
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'رمز التحقق مطلوب',
+          code: 'MISSING_CODE',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+
+      const trimmedCode = code.trim();
+      if (trimmedCode.length === 0) {
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'رمز التحقق لا يمكن أن يكون فارغاً',
+          code: 'EMPTY_CODE',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+
+      // Validate code format (must be exactly 6 digits)
+      if (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'رمز التحقق يجب أن يكون مكون من 6 أرقام',
+          code: 'INVALID_CODE_FORMAT',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+
+      // Validate loginAttemptId format
+      if (!loginAttemptId || typeof loginAttemptId !== 'string' || loginAttemptId.trim().length === 0) {
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'معرف محاولة تسجيل الدخول مطلوب',
+          code: 'MISSING_LOGIN_ATTEMPT_ID',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+
+      const trimmedLoginAttemptId = loginAttemptId.trim();
+      if (trimmedLoginAttemptId.length < 10 || trimmedLoginAttemptId.length > 100) {
+        const errorResponse: TwoFactorErrorResponse = {
+          error: 'معرف محاولة تسجيل الدخول غير صحيح',
+          code: 'INVALID_LOGIN_ATTEMPT_ID',
+        };
+        return NextResponse.json(errorResponse, { status: 400 });
+      }
+
+      // Verify and consume the challenge from database (with timeout)
+      // Use trimmed values for consistency
+      const challengePromise = TwoFactorChallengeService.verifyAndConsumeChallenge(trimmedLoginAttemptId, trimmedCode);
+      const timeoutPromise = new Promise<{ valid: false }>((resolve) => {
+        setTimeout(() => resolve({ valid: false }), 5000); // 5 second timeout
+      });
+
+      const challengeResult = await Promise.race([challengePromise, timeoutPromise]);
 
       if (!challengeResult.valid) {
         const errorResponse: TwoFactorErrorResponse = {
@@ -101,7 +154,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(errorResponse, { status: 400 });
       }
 
-      const user = await prisma.user.findUnique({
+      // Fetch user with timeout
+      const userPromise = prisma.user.findUnique({
         where: { id: challengeResult.userId },
         select: {
           id: true,
@@ -112,6 +166,12 @@ export async function POST(request: NextRequest) {
           lastLogin: true,
         }
       });
+
+      const userTimeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 3000); // 3 second timeout
+      });
+
+      const user = await Promise.race([userPromise, userTimeoutPromise]);
 
       if (!user) {
         const errorResponse: TwoFactorErrorResponse = {
@@ -140,19 +200,21 @@ export async function POST(request: NextRequest) {
         session.id,
       );
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          refreshToken,
-          lastLogin: loginTimestamp,
-        },
-      }).catch(() => {
-        // Non-critical persistence error
-      });
-
-      await authService.logSecurityEvent(user.id, 'two_factor_verified', ip, {
-        userAgent,
-        sessionId: session.id,
+      // Update user (non-blocking, with timeout)
+      Promise.allSettled([
+        prisma.user.update({
+          where: { id: user.id },
+          data: {
+            refreshToken,
+            lastLogin: loginTimestamp,
+          },
+        }),
+        authService.logSecurityEvent(user.id, 'two_factor_verified', ip, {
+          userAgent,
+          sessionId: session.id,
+        }),
+      ]).catch(() => {
+        // Non-critical errors - login can proceed
       });
 
       const twoFactorResponse: TwoFactorVerifyResponse = {
@@ -207,6 +269,8 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         email: true,
+        name: true,
+        role: true,
         twoFactorEnabled: true,
         twoFactorSecret: true,
         recoveryCodes: true,
@@ -263,7 +327,7 @@ async function handleSetup2FA(user: UserWith2FA) {
       where: { id: user.id },
       data: { 
         twoFactorSecret: secret,
-        backupCodes: JSON.stringify(backupCodes)
+        recoveryCodes: JSON.stringify(backupCodes)
       }
     });
 
@@ -316,7 +380,7 @@ async function handleVerify2FA(user: UserWith2FA, code: string, request: NextReq
         }),
         securityLogger.logEvent({
           userId: user.id,
-          eventType: 'TWO_FACTOR_VERIFY_FAILED',
+          eventType: 'TWO_FACTOR_FAILED',
           ip,
           userAgent,
           metadata: { method: 'TOTP' },
@@ -407,7 +471,7 @@ async function handleDisable2FA(user: UserWith2FA, code: string, request: NextRe
         }),
         securityLogger.logEvent({
           userId: user.id,
-          eventType: 'TWO_FACTOR_DISABLE_FAILED',
+          eventType: 'TWO_FACTOR_DISABLED',
           ip,
           userAgent,
           metadata: { reason: 'invalid_code' },
@@ -484,7 +548,7 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
         }),
         securityLogger.logEvent({
           userId: user.id,
-          eventType: 'TWO_FACTOR_BACKUP_CODE_FAILED',
+          eventType: 'TWO_FACTOR_FAILED',
           ip,
           userAgent,
         }),
@@ -516,7 +580,7 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
       }),
       securityLogger.logEvent({
         userId: user.id,
-        eventType: 'TWO_FACTOR_BACKUP_CODE_USED',
+        eventType: 'TWO_FACTOR_SUCCESS',
         ip,
         userAgent,
         metadata: { remainingCodes },
@@ -529,7 +593,7 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
     const token = await new SignJWT({
       userId: user.id,
       email: user.email,
-      name: user.name,
+      name: user.name || undefined,
       role: user.role || 'user'
     })
       .setProtectedHeader({ alg: 'HS256' })

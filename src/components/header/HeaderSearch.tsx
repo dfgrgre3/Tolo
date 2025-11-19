@@ -43,6 +43,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 		url: string;
 		type: string;
 		description?: string;
+		category?: string;
 	}
 
 	const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -84,7 +85,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 			
 			const storedScope = safeGetItem("header_search_scope", { fallback: "all" });
 			if (storedScope && ["all", "courses", "teachers", "forum", "exams"].includes(storedScope)) {
-				setSearchScope(storedScope);
+				setSearchScope(storedScope as "all" | "courses" | "teachers" | "forum" | "exams");
 			}
 		} catch (error) {
 			errorManager.handleError(
@@ -208,9 +209,10 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 	// Use adaptive debounce for search
 	const { debouncedCallback: debouncedSearch } = useAdaptiveDebounce(
-		useCallback((query: string, scope: string) => {
+		((...args: unknown[]) => {
+			const [query, scope] = args as [string, string];
 			performSearch(query, scope);
-		}, [performSearch]),
+		}) as (...args: unknown[]) => void,
 		{
 			minDelay: 150,
 			maxDelay: 600,

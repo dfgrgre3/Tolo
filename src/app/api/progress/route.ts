@@ -84,7 +84,7 @@ async function handleGetRequest(request: NextRequest) {
     }
 
     // Get recent goals (this is a placeholder, adjust based on your actual goals model)
-    const recentGoals = await prisma.recommendation.findMany({
+    const recentGoals = await prisma.customGoal.findMany({
       where: {
         userId: decodedToken.userId,
         title: {
@@ -98,13 +98,13 @@ async function handleGetRequest(request: NextRequest) {
     });
 
     // Type for goal with status
-    type GoalWithStatus = Prisma.RecommendationGetPayload<{}> & {
+    type GoalWithStatus = Prisma.CustomGoalGetPayload<{}> & {
       achieved: boolean;
       notified: boolean;
     };
 
     // Mark goals as achieved (this is a placeholder logic)
-    const goalsWithStatus: GoalWithStatus[] = recentGoals.map((goal) => ({
+    const goalsWithStatus: GoalWithStatus[] = recentGoals.map((goal: Prisma.CustomGoalGetPayload<{}>) => ({
       ...goal,
       achieved: Math.random() > 0.7, // Random for demo
       notified: false, // This would be stored in the database in a real app

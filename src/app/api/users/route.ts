@@ -23,9 +23,7 @@ export async function GET(request: NextRequest) {
         name: true,
         email: true,
         avatar: true,
-        grade: true,
-        school: true,
-        lastSeen: true
+        lastLogin: true
       },
       orderBy: { name: "asc" }
     });

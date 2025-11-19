@@ -26,7 +26,23 @@ interface Toast extends ToastProps {
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  const removeToast = useCallback((id: string) => {
+    // Validate ID
+    if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      console.warn('Invalid toast ID provided for removal');
+      return;
+    }
+
+    setToasts(prev => prev.filter(toast => toast.id !== id.trim()));
+  }, []);
+
   const showToast = useCallback((toast: Omit<ToastProps, 'id' | 'onDismiss'>) => {
+    // Validate toast input
+    if (!toast || typeof toast !== 'object') {
+      console.warn('Invalid toast object provided');
+      return '';
+    }
+
     const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const newToast: Toast = {
       ...toast,
@@ -34,13 +50,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       onDismiss: () => removeToast(id),
     };
 
-    setToasts(prev => [...prev, newToast]);
-    return id;
-  }, []);
+    // Limit maximum toasts to prevent memory issues
+    setToasts(prev => {
+      // Check if toast with same ID already exists (prevent duplicates)
+      if (prev.some(t => t.id === id)) {
+        return prev;
+      }
 
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+      // Remove oldest toast if we've reached the limit (10 toasts max)
+      if (prev.length >= 10) {
+        return [...prev.slice(1), newToast];
+      }
+
+      return [...prev, newToast];
+    });
+    
+    return id;
+  }, [removeToast]);
 
   const clearAllToasts = useCallback(() => {
     setToasts([]);

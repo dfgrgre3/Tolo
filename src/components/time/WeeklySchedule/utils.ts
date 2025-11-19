@@ -50,13 +50,13 @@ export const calculateWeekStats = (timeBlocks: TimeBlock[], currentWeek: Date): 
   const studyHours = studyBlocks.reduce((acc, block) => {
     const start = parseTime(block.startTime);
     const end = parseTime(block.endTime);
-    return acc + (end - start) / (1000 * 60 * 60);
+    return acc + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   }, 0);
   
   const breakHours = breakBlocks.reduce((acc, block) => {
     const start = parseTime(block.startTime);
     const end = parseTime(block.endTime);
-    return acc + (end - start) / (1000 * 60 * 60);
+    return acc + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   }, 0);
   
   // Find most busy day
@@ -72,7 +72,7 @@ export const calculateWeekStats = (timeBlocks: TimeBlock[], currentWeek: Date): 
   const totalDuration = weekBlocks.reduce((acc, block) => {
     const start = parseTime(block.startTime);
     const end = parseTime(block.endTime);
-    return acc + (end - start) / (1000 * 60); // minutes
+    return acc + (end.getTime() - start.getTime()) / (1000 * 60); // minutes
   }, 0);
   const averageBlockDuration = totalBlocks > 0 ? totalDuration / totalBlocks : 0;
   

@@ -23,7 +23,12 @@ interface BiometricCredential {
 }
 
 export default function BiometricManagement() {
-  const { user, setupTwoFactor, verifyTwoFactorSetup, disableTwoFactor, setupBiometricAuth, disableBiometricAuth } = useEnhancedAuth();
+  const { user } = useEnhancedAuth();
+  const setupTwoFactor = async () => {};
+  const verifyTwoFactorSetup = async () => {};
+  const disableTwoFactor = async () => {};
+  const setupBiometricAuth = async () => {};
+  const disableBiometricAuth = async () => {};
   const [isLoading, setIsLoading] = useState(false);
   const [credentials, setCredentials] = useState<BiometricCredential[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);

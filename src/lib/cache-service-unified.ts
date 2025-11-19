@@ -11,9 +11,7 @@ import { logger } from '@/lib/logger';
 
 // Create Redis client with enhanced configuration for better performance and reliability
 const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  retryDelayOnFailover: 100,
   maxRetriesPerRequest: 3,
-  retryDelayOnClusterDown: 100,
   connectTimeout: 10000,
   reconnectOnError: (err) => {
     // Exponential backoff strategy
@@ -60,14 +58,26 @@ function decompressData(data: string): string {
 // Cache service with generic type support
 export class CacheService {
   /**
-   * Get data from cache
+   * Get data from cache with timeout protection
    * @param key Cache key
    * @returns Cached data or null if not found/expired
    */
   static async get<T>(key: string): Promise<T | null> {
+    // Validate key
+    if (!key || typeof key !== 'string' || key.trim().length === 0) {
+      logger.warn('Invalid cache key provided');
+      return null;
+    }
+
+    const trimmedKey = key.trim();
     const start = Date.now();
     try {
-      const data = await redisClient.get(key);
+      const getPromise = redisClient.get(trimmedKey);
+      const timeoutPromise = new Promise<string | null>((resolve) => {
+        setTimeout(() => resolve(null), 2000); // 2 second timeout
+      });
+
+      const data = await Promise.race([getPromise, timeoutPromise]);
       const duration = Date.now() - start;
       const hit = data !== null;
       
@@ -75,8 +85,17 @@ export class CacheService {
       recordCacheMetric('get', duration, hit);
       
       if (data) {
-        const decompressedData = decompressData(data);
-        return JSON.parse(decompressedData) as T;
+        try {
+          const decompressedData = decompressData(data);
+          return JSON.parse(decompressedData) as T;
+        } catch (parseError) {
+          logger.error('Error parsing cached data:', parseError);
+          // Invalidate corrupted cache entry
+          this.del(trimmedKey).catch(() => {
+            // Ignore deletion errors
+          });
+          return null;
+        }
       }
       return null;
     } catch (error) {
@@ -88,22 +107,45 @@ export class CacheService {
   }
 
   /**
-   * Set data in cache
+   * Set data in cache with timeout protection and validation
    * @param key Cache key
    * @param value Data to cache
    * @param ttl Time to live in seconds (default: 1 hour)
    */
   static async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
+    // Validate inputs
+    if (!key || typeof key !== 'string' || key.trim().length === 0) {
+      logger.warn('Invalid cache key provided');
+      return;
+    }
+
+    if (ttl < 0 || ttl > 86400 * 30) { // Max 30 days
+      logger.warn('Invalid TTL provided, using default');
+      ttl = 3600;
+    }
+
+    const trimmedKey = key.trim();
     const start = Date.now();
     try {
-      const serializedValue = JSON.stringify(value);
+      let serializedValue: string;
+      try {
+        serializedValue = JSON.stringify(value);
+      } catch (serializeError) {
+        logger.error('Error serializing value for cache:', serializeError);
+        return;
+      }
+
       const compressedValue = compressData(serializedValue);
       
-      if (ttl) {
-        await redisClient.setex(key, ttl, compressedValue);
-      } else {
-        await redisClient.set(key, compressedValue);
-      }
+      const setPromise = ttl > 0
+        ? redisClient.setex(trimmedKey, ttl, compressedValue)
+        : redisClient.set(trimmedKey, compressedValue);
+
+      const timeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Cache set timeout')), 3000); // 3 second timeout
+      });
+
+      await Promise.race([setPromise, timeoutPromise]);
       const duration = Date.now() - start;
       recordCacheMetric('set', duration, true);
     } catch (error) {
@@ -114,13 +156,25 @@ export class CacheService {
   }
 
   /**
-   * Delete data from cache
+   * Delete data from cache with timeout protection
    * @param key Cache key
    */
   static async del(key: string): Promise<void> {
+    // Validate key
+    if (!key || typeof key !== 'string' || key.trim().length === 0) {
+      logger.warn('Invalid cache key provided for deletion');
+      return;
+    }
+
+    const trimmedKey = key.trim();
     const start = Date.now();
     try {
-      await redisClient.del(key);
+      const delPromise = redisClient.del(trimmedKey);
+      const timeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Cache delete timeout')), 2000); // 2 second timeout
+      });
+
+      await Promise.race([delPromise, timeoutPromise]);
       const duration = Date.now() - start;
       recordCacheMetric('del', duration, true);
     } catch (error) {
@@ -131,21 +185,50 @@ export class CacheService {
   }
 
   /**
-   * Get multiple values from cache
+   * Get multiple values from cache with timeout protection
    * @param keys Cache keys
    * @returns Array of cached data in the same order as keys
    */
   static async mget<T>(keys: string[]): Promise<(T | null)[]> {
+    // Validate keys
+    if (!keys || !Array.isArray(keys) || keys.length === 0) {
+      logger.warn('Invalid keys array provided for mget');
+      return [];
+    }
+
+    if (keys.length > 100) {
+      logger.warn('Too many keys requested, limiting to 100');
+      keys = keys.slice(0, 100);
+    }
+
+    const trimmedKeys = keys
+      .filter(key => key && typeof key === 'string' && key.trim().length > 0)
+      .map(key => key.trim());
+
+    if (trimmedKeys.length === 0) {
+      return [];
+    }
+
     const start = Date.now();
     try {
-      const data = await redisClient.mget(keys);
+      const mgetPromise = redisClient.mget(trimmedKeys);
+      const timeoutPromise = new Promise<(string | null)[]>((resolve) => {
+        setTimeout(() => resolve(trimmedKeys.map(() => null)), 5000); // 5 second timeout
+      });
+
+      const data = await Promise.race([mgetPromise, timeoutPromise]);
       const duration = Date.now() - start;
       recordCacheMetric('mget', duration, true);
       
       return data.map(item => {
         if (item) {
-          const decompressedData = decompressData(item);
-          return JSON.parse(decompressedData) as T;
+          try {
+            const decompressedData = decompressData(item);
+            return JSON.parse(decompressedData) as T;
+          } catch (parseError) {
+            logger.error('Error parsing cached data in mget:', parseError);
+            return null;
+          }
         }
         return null;
       });
@@ -153,34 +236,77 @@ export class CacheService {
       const duration = Date.now() - start;
       recordCacheMetric('mget', duration, false);
       logger.error('Error getting multiple data from cache:', error);
-      return keys.map(() => null);
+      return trimmedKeys.map(() => null);
     }
   }
 
   /**
-   * Set multiple values in cache
+   * Set multiple values in cache with timeout protection and validation
    * @param keyValuePairs Array of [key, value] pairs
    * @param ttl Time to live in seconds (default: 1 hour)
    */
   static async mset<T>(keyValuePairs: [string, T][], ttl: number = 3600): Promise<void> {
+    // Validate inputs
+    if (!keyValuePairs || !Array.isArray(keyValuePairs) || keyValuePairs.length === 0) {
+      logger.warn('Invalid keyValuePairs array provided for mset');
+      return;
+    }
+
+    if (keyValuePairs.length > 100) {
+      logger.warn('Too many key-value pairs, limiting to 100');
+      keyValuePairs = keyValuePairs.slice(0, 100);
+    }
+
+    if (ttl < 0 || ttl > 86400 * 30) { // Max 30 days
+      logger.warn('Invalid TTL provided, using default');
+      ttl = 3600;
+    }
+
+    // Filter and validate pairs
+    const validPairs = keyValuePairs.filter(([key]) => 
+      key && typeof key === 'string' && key.trim().length > 0
+    );
+
+    if (validPairs.length === 0) {
+      logger.warn('No valid key-value pairs to set');
+      return;
+    }
+
     const start = Date.now();
     try {
-      const serializedPairs = keyValuePairs.map(([key, value]) => {
-        const serializedValue = JSON.stringify(value);
-        const compressedValue = compressData(serializedValue);
-        return [key, compressedValue] as [string, string];
-      });
+      const serializedPairs: [string, string][] = [];
       
-      if (ttl) {
-        const pipeline = redisClient.pipeline();
-        serializedPairs.forEach(([key, value]) => {
-          pipeline.setex(key, ttl, value);
-        });
-        await pipeline.exec();
-      } else {
-        await redisClient.mset(serializedPairs);
+      for (const [key, value] of validPairs) {
+        try {
+          const serializedValue = JSON.stringify(value);
+          const compressedValue = compressData(serializedValue);
+          serializedPairs.push([key.trim(), compressedValue]);
+        } catch (serializeError) {
+          logger.error(`Error serializing value for key ${key}:`, serializeError);
+          // Continue with other pairs
+        }
+      }
+
+      if (serializedPairs.length === 0) {
+        logger.warn('No valid serialized pairs to set');
+        return;
       }
       
+      const msetPromise = ttl > 0
+        ? (async () => {
+            const pipeline = redisClient.pipeline();
+            serializedPairs.forEach(([key, value]) => {
+              pipeline.setex(key, ttl, value);
+            });
+            await pipeline.exec();
+          })()
+        : redisClient.mset(serializedPairs);
+
+      const timeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Cache mset timeout')), 10000); // 10 second timeout
+      });
+
+      await Promise.race([msetPromise, timeoutPromise]);
       const duration = Date.now() - start;
       recordCacheMetric('mset', duration, true);
     } catch (error) {
@@ -191,13 +317,37 @@ export class CacheService {
   }
 
   /**
-   * Delete multiple keys from cache
+   * Delete multiple keys from cache with timeout protection
    * @param keys Cache keys
    */
   static async mdel(keys: string[]): Promise<void> {
+    // Validate keys
+    if (!keys || !Array.isArray(keys) || keys.length === 0) {
+      logger.warn('Invalid keys array provided for mdel');
+      return;
+    }
+
+    if (keys.length > 100) {
+      logger.warn('Too many keys to delete, limiting to 100');
+      keys = keys.slice(0, 100);
+    }
+
+    const trimmedKeys = keys
+      .filter(key => key && typeof key === 'string' && key.trim().length > 0)
+      .map(key => key.trim());
+
+    if (trimmedKeys.length === 0) {
+      return;
+    }
+
     const start = Date.now();
     try {
-      await redisClient.del(...keys);
+      const delPromise = redisClient.del(...trimmedKeys);
+      const timeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Cache mdel timeout')), 5000); // 5 second timeout
+      });
+
+      await Promise.race([delPromise, timeoutPromise]);
       const duration = Date.now() - start;
       recordCacheMetric('mdel', duration, true);
     } catch (error) {

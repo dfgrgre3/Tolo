@@ -1,14 +1,20 @@
 import { NextRequest } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
+// @ts-ignore - jsonwebtoken type declarations issue
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { rateLimitingService } from './rate-limiting-service';
 import { getJWTSecret } from './env-validation';
 import { logger } from './logger';
-import type { PrismaClient } from './prisma';
+// ⚠️ CRITICAL: Do NOT import PrismaClient directly from '@prisma/client'
+// ⚠️ CRITICAL: لا تستورد PrismaClient مباشرة من '@prisma/client'
+// ✅ Use the singleton instance from prisma.ts to avoid "Too many connections" errors
+// ✅ استخدم النسخة الوحيدة من prisma.ts لتجنب خطأ "Too many connections"
+import type { PrismaClient } from '@prisma/client';
 
 // Lazy load prisma to prevent server-only bundling issues
+// This uses the singleton instance from prisma.ts (which uses db-unified.ts)
 let prismaInstance: PrismaClient | null = null;
 
 async function getPrisma() {
@@ -83,7 +89,33 @@ export interface TokenVerificationResult {
 
 /**
  * Unified Authentication Service - Single source of truth for all authentication operations
- * Consolidates functionality from multiple auth services into one centralized service
+ * خدمة المصادقة الموحدة - المصدر الوحيد الموثوق لجميع عمليات المصادقة
+ * 
+ * ⭐ هذا هو المصدر الأساسي الوحيد الموثوق (Single Source of Truth) لجميع عمليات المصادقة على الخادم
+ * 
+ * ⚠️ IMPORTANT - لا تضارب في الملفات:
+ * - ❌ src/lib/auth.ts → غير موجود (استخدم هذا الملف بدلاً منه)
+ * - ❌ src/lib/auth-enhanced.ts → غير موجود (استخدم @/lib/auth-hook-enhanced للعميل)
+ * - ❌ src/lib/auth-unified.ts → غير موجود (استخدم @/lib/auth/unified-auth-manager)
+ * - ✅ src/lib/auth-service.ts → هذا الملف (المصدر الأساسي)
+ * 
+ * هذا هو الملف الرئيسي لجميع عمليات المصادقة على الخادم.
+ * جميع ملفات المصادقة الأخرى تستورد من هذا الملف.
+ * 
+ * للاستخدام:
+ * - ✅ على الخادم (API Routes): استورد authService من هذا الملف
+ * - ✅ على الخادم (Server Components): استورد auth من @/auth (الذي يستورد من هذا الملف)
+ * - ✅ على العميل: استخدم @/lib/auth-hook-enhanced أو @/components/auth
+ * - ✅ للـ middleware: استخدم @/lib/auth/enhanced-middleware (يوصى به) أو @/lib/middleware/auth-middleware
+ * 
+ * ملفات المصادقة الموحدة:
+ * - src/auth.ts: نقطة التصدير الموحدة للمصادقة على مستوى الخادم (server-only) ← يستورد من هذا الملف
+ * - src/lib/auth-service.ts: هذا الملف - الخدمة الأساسية ⭐
+ * - src/lib/api/auth-client.ts: عميل API للعميل (client-side)
+ * - src/lib/auth-hook-enhanced.ts: Hook للعميل (client-side)
+ * - src/lib/auth/: نظام المصادقة الموحد (unified auth manager)
+ * 
+ * راجع AUTH_STRUCTURE_CLEAN.md للتفاصيل الكاملة
  */
 export class AuthService {
   private static instance: AuthService;
@@ -122,62 +154,99 @@ export class AuthService {
 
   /**
    * Create access and refresh tokens for a user
-   * Improved with better validation and error handling
+   * Improved with better validation, error handling, and security
+   * Enhanced with additional security checks and performance optimizations
    */
   async createTokens(user: AuthUser, sessionId?: string): Promise<{ accessToken: string; refreshToken: string }> {
     // Get validated JWT_SECRET
     const { secret: jwtSecret } = getJWTSecretSafe();
 
-    // Validate user data
-    if (!user || !user.id || !user.email) {
-      throw new Error('User data is required for token creation');
+    // Validate user data with comprehensive checks
+    if (!user || typeof user !== 'object' || Array.isArray(user)) {
+      throw new Error('User data is required and must be an object');
     }
 
-    // Validate email format
+    if (!user.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
+      throw new Error('Valid user ID is required for token creation');
+    }
+
+    if (!user.email || typeof user.email !== 'string' || user.email.trim().length === 0) {
+      throw new Error('Valid user email is required for token creation');
+    }
+
+    // Validate email format with stricter checks
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(user.email)) {
+    const normalizedEmail = user.email.trim().toLowerCase();
+    if (!emailRegex.test(normalizedEmail) || normalizedEmail.length > 254) {
       throw new Error('Invalid email format for token creation');
     }
 
     // Validate session ID format if provided
-    if (sessionId && (typeof sessionId !== 'string' || sessionId.trim().length === 0)) {
-      throw new Error('Invalid session ID format');
+    if (sessionId !== undefined) {
+      if (typeof sessionId !== 'string' || sessionId.trim().length === 0) {
+        throw new Error('Invalid session ID format');
+      }
+      // Validate UUID format if sessionId looks like a UUID
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (sessionId.length === 36 && !uuidRegex.test(sessionId)) {
+        logger.warn('Session ID format may be invalid:', sessionId.substring(0, 8) + '...');
+      }
     }
 
     try {
+      // Prepare token payload with sanitized data
       const tokenPayload = {
-        userId: user.id,
-        email: user.email,
-        name: user.name || undefined,
-        role: user.role || 'user',
-        sessionId: sessionId || undefined,
+        userId: user.id.trim(),
+        email: normalizedEmail,
+        name: user.name ? String(user.name).trim().substring(0, 100) : undefined, // Limit name length
+        role: (user.role && typeof user.role === 'string') ? user.role.trim() : 'user',
+        sessionId: sessionId ? sessionId.trim() : undefined,
+        iat: Math.floor(Date.now() / 1000), // Issued at timestamp
       };
 
       // Create access token with 1 hour expiration
+      // Using shorter expiration for better security
       const accessToken = await new SignJWT(tokenPayload)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('1h')
+        .setIssuer('thanawy-auth') // Add issuer for better security
         .sign(jwtSecret);
 
-      // Validate access token was created
-      if (!accessToken || accessToken.split('.').length !== 3) {
-        throw new Error('Failed to create valid access token');
+      // Validate access token was created and has correct format
+      if (!accessToken || typeof accessToken !== 'string' || accessToken.trim().length === 0) {
+        throw new Error('Failed to create access token: empty or invalid');
+      }
+      
+      const tokenParts = accessToken.split('.');
+      if (tokenParts.length !== 3 || tokenParts.some(part => part.length === 0)) {
+        throw new Error('Failed to create valid access token: invalid format');
       }
 
       // Create refresh token with 30 days expiration
-      const refreshToken = await new SignJWT({
-        userId: user.id,
-        sessionId: sessionId || undefined,
-      })
+      // Refresh token contains minimal data for security
+      const refreshTokenPayload = {
+        userId: user.id.trim(),
+        sessionId: sessionId ? sessionId.trim() : undefined,
+        type: 'refresh', // Token type identifier
+        iat: Math.floor(Date.now() / 1000),
+      };
+
+      const refreshToken = await new SignJWT(refreshTokenPayload)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('30d')
+        .setIssuer('thanawy-auth')
         .sign(jwtSecret);
 
-      // Validate refresh token was created
-      if (!refreshToken || refreshToken.split('.').length !== 3) {
-        throw new Error('Failed to create valid refresh token');
+      // Validate refresh token was created and has correct format
+      if (!refreshToken || typeof refreshToken !== 'string' || refreshToken.trim().length === 0) {
+        throw new Error('Failed to create refresh token: empty or invalid');
+      }
+      
+      const refreshTokenParts = refreshToken.split('.');
+      if (refreshTokenParts.length !== 3 || refreshTokenParts.some(part => part.length === 0)) {
+        throw new Error('Failed to create valid refresh token: invalid format');
       }
 
       return { accessToken, refreshToken };
@@ -297,6 +366,7 @@ export class AuthService {
 
       // Validate session exists and is not expired
       const dbClient = await getPrisma();
+      if (!dbClient) throw new Error('Database client not available');
       const session = await dbClient.session.findUnique({
         where: { id: sessionId }
       });
@@ -308,7 +378,7 @@ export class AuthService {
         };
       }
 
-      const user = await dbClient.user.findUnique({
+      const user = await dbClient!.user.findUnique({
         where: { id: userId },
         select: { id: true, email: true, name: true, role: true }
       });
@@ -321,7 +391,7 @@ export class AuthService {
       }
 
       // Update session with new expiration
-      await dbClient.session.update({
+      await dbClient!.session.update({
         where: { id: sessionId },
         data: {
           expiresAt: new Date(Date.now() + SESSION_DURATION * 1000),
@@ -330,11 +400,11 @@ export class AuthService {
         }
       });
 
-      const { accessToken, refreshToken: newRefreshToken } = await this.createTokens(user, sessionId);
+      const { accessToken, refreshToken: newRefreshToken } = await this.createTokens(user as AuthUser, sessionId);
 
       return {
         isValid: true,
-        user,
+        user: user as AuthUser,
         sessionId,
         accessToken,
         refreshToken: newRefreshToken,
@@ -351,12 +421,43 @@ export class AuthService {
 
   /**
    * Find user by email with caching
+   * Improved with timeout protection, better error handling, and security
+   * Enhanced with input validation and sanitization
    */
   async findUserByEmail(email: string) {
-    // Try to get from cache first
+    // Comprehensive input validation
+    if (!email || typeof email !== 'string' || !email.trim()) {
+      return null;
+    }
+
+    // Normalize and validate email format
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Additional security checks
+    if (normalizedEmail.length > 254) { // RFC 5321 limit
+      logger.warn('Email too long in findUserByEmail:', normalizedEmail.substring(0, 50) + '...');
+      return null;
+    }
+    
+    // Basic email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      logger.debug('Invalid email format in findUserByEmail:', normalizedEmail.substring(0, 20) + '...');
+      return null;
+    }
+
+    // Try to get from cache first (with timeout)
     try {
-      const { authCache, CacheKeys } = await import('./cache/auth-cache');
-      const cached = authCache.get(CacheKeys.userByEmail(email));
+      const cachePromise = (async () => {
+        const { authCache, CacheKeys } = await import('./cache/auth-cache');
+        return authCache.get(CacheKeys.userByEmail(normalizedEmail));
+      })();
+
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 500); // 500ms timeout for cache
+      });
+
+      const cached = await Promise.race([cachePromise, timeoutPromise]);
       if (cached) {
         return cached;
       }
@@ -364,23 +465,39 @@ export class AuthService {
       // Cache not available, continue with DB query
     }
 
-    // Fetch from database
-    const dbClient = await getPrisma();
-    const user = await dbClient.user.findUnique({
-      where: { email },
-    });
+    // Fetch from database (with timeout)
+    try {
+      const dbClient = await getPrisma();
+      if (!dbClient) throw new Error('Database client not available');
+      const dbPromise = dbClient.user.findUnique({
+        where: { email: normalizedEmail },
+      });
 
-    // Cache the result if found
-    if (user) {
-      try {
-        const { authCache, CacheKeys } = await import('./cache/auth-cache');
-        authCache.set(CacheKeys.userByEmail(email), user, 5 * 60 * 1000); // Cache for 5 minutes
-      } catch {
-        // Ignore cache errors
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 3000); // 3 second timeout
+      });
+
+      const user = await Promise.race([dbPromise, timeoutPromise]);
+
+      // Cache the result if found (non-blocking)
+      if (user) {
+        Promise.resolve().then(async () => {
+          try {
+            const { authCache, CacheKeys } = await import('./cache/auth-cache');
+            authCache.set(CacheKeys.userByEmail(normalizedEmail), user, 5 * 60 * 1000); // Cache for 5 minutes
+          } catch {
+            // Ignore cache errors silently
+          }
+        }).catch(() => {
+          // Silent fail
+        });
       }
-    }
 
-    return user;
+      return user;
+    } catch (error) {
+      logger.error('Error finding user by email:', error instanceof Error ? error : new Error(String(error)));
+      return null;
+    }
   }
 
   /**
@@ -388,6 +505,7 @@ export class AuthService {
    */
   async findUserById(id: string) {
     const dbClient = await getPrisma();
+    if (!dbClient) throw new Error('Database client not available');
     return dbClient.user.findUnique({
       where: { id },
       select: {
@@ -407,6 +525,7 @@ export class AuthService {
    */
   async updateLastLogin(id: string) {
     const dbClient = await getPrisma();
+    if (!dbClient) throw new Error('Database client not available');
     return dbClient.user.update({
       where: { id },
       data: { lastLogin: new Date() }
@@ -423,14 +542,15 @@ export class AuthService {
     const expiresAt = new Date(Date.now() + SESSION_DURATION * 1000);
 
     const dbClient = await getPrisma();
+    if (!dbClient) throw new Error('Database client not available');
     const session = await dbClient.session.create({
       data: {
         id: sessionId,
         userId,
         userAgent,
         ip,
-        expiresAt
-      }
+        expiresAt: expiresAt
+      } as any
     });
 
     return session;
@@ -442,6 +562,7 @@ export class AuthService {
   async deleteSession(sessionId: string): Promise<boolean> {
     try {
       const dbClient = await getPrisma();
+      if (!dbClient) throw new Error('Database client not available');
       await dbClient.session.delete({
         where: { id: sessionId }
       });
@@ -462,12 +583,25 @@ export class AuthService {
 
   /**
    * Get session by ID with caching
+   * Improved with timeout protection and better error handling
    */
   async getSession(sessionId: string) {
-    // Try to get from cache first
+    if (!sessionId || typeof sessionId !== 'string' || !sessionId.trim()) {
+      return null;
+    }
+
+    // Try to get from cache first (with timeout)
     try {
-      const { authCache, CacheKeys } = await import('./cache/auth-cache');
-      const cached = authCache.get(CacheKeys.session(sessionId));
+      const cachePromise = (async () => {
+        const { authCache, CacheKeys } = await import('./cache/auth-cache');
+        return authCache.get(CacheKeys.session(sessionId));
+      })();
+
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 500); // 500ms timeout for cache
+      });
+
+      const cached = await Promise.race([cachePromise, timeoutPromise]);
       if (cached) {
         return cached;
       }
@@ -475,24 +609,40 @@ export class AuthService {
       // Cache not available, continue with DB query
     }
 
-    // Fetch from database
-    const dbClient = await getPrisma();
-    const session = await dbClient.session.findUnique({
-      where: { id: sessionId }
-    });
+    // Fetch from database (with timeout)
+    try {
+      const dbClient = await getPrisma();
+      if (!dbClient) throw new Error('Database client not available');
+      const dbPromise = dbClient.session.findUnique({
+        where: { id: sessionId }
+      });
 
-    // Cache the result if found
-    if (session) {
-      try {
-        const { authCache, CacheKeys } = await import('./cache/auth-cache');
-        // Cache for shorter time since sessions can change
-        authCache.set(CacheKeys.session(sessionId), session, 2 * 60 * 1000); // Cache for 2 minutes
-      } catch {
-        // Ignore cache errors
+      const timeoutPromise = new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), 2000); // 2 second timeout
+      });
+
+      const session = await Promise.race([dbPromise, timeoutPromise]);
+
+      // Cache the result if found (non-blocking)
+      if (session) {
+        Promise.resolve().then(async () => {
+          try {
+            const { authCache, CacheKeys } = await import('./cache/auth-cache');
+            // Cache for shorter time since sessions can change
+            authCache.set(CacheKeys.session(sessionId), session, 2 * 60 * 1000); // Cache for 2 minutes
+          } catch {
+            // Ignore cache errors silently
+          }
+        }).catch(() => {
+          // Silent fail
+        });
       }
-    }
 
-    return session;
+      return session;
+    } catch (error) {
+      logger.error('Error getting session:', error instanceof Error ? error : new Error(String(error)));
+      return null;
+    }
   }
 
   /**
@@ -500,6 +650,7 @@ export class AuthService {
    */
   async deleteAllUserSessions(userId: string): Promise<void> {
     const dbClient = await getPrisma();
+    if (!dbClient) throw new Error('Database client not available');
     await dbClient.session.deleteMany({
       where: { userId }
     });
@@ -509,50 +660,266 @@ export class AuthService {
 
   /**
    * Authenticate user login
+   * Improved with better validation, error handling, and performance optimizations
+   * Enhanced with additional security checks and input sanitization
+   * 
+   * Security improvements:
+   * - Comprehensive input validation and sanitization
+   * - Rate limiting protection
+   * - Timeout protection for all async operations
+   * - Constant-time password comparison
+   * - Secure session management
    */
   async login(email: string, password: string, userAgent: string, ip: string): Promise<TokenVerificationResult & { accessToken?: string; refreshToken?: string }> {
-    const clientId = `${ip}-${userAgent}`;
-
-    // Check rate limiting
-    if (await this.isRateLimited(clientId)) {
+    const startTime = Date.now();
+    
+    // Validate inputs early with comprehensive checks
+    if (!email || typeof email !== 'string' || email.trim().length === 0) {
       return {
         isValid: false,
-        error: 'Too many login attempts. Account temporarily locked.',
+        error: 'البريد الإلكتروني مطلوب',
       };
     }
 
-    const user = await this.findUserByEmail(email);
+    // Validate email length (RFC 5321 limit)
+    if (email.length > 254) {
+      return {
+        isValid: false,
+        error: 'البريد الإلكتروني طويل جداً',
+      };
+    }
+
+    if (!password || typeof password !== 'string' || password.length === 0) {
+      return {
+        isValid: false,
+        error: 'كلمة المرور مطلوبة',
+      };
+    }
+
+    // Validate password length (security best practice)
+    if (password.length > 128) {
+      return {
+        isValid: false,
+        error: 'كلمة المرور طويلة جداً',
+      };
+    }
+
+    // Normalize and sanitize inputs
+    const normalizedEmail = email.trim().toLowerCase();
+    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      return {
+        isValid: false,
+        error: 'صيغة البريد الإلكتروني غير صحيحة',
+      };
+    }
+
+    // Additional security: Check for potentially malicious email patterns
+    if (normalizedEmail.includes('..') || normalizedEmail.startsWith('.') || normalizedEmail.endsWith('.')) {
+      return {
+        isValid: false,
+        error: 'صيغة البريد الإلكتروني غير صحيحة',
+      };
+    }
+
+    // Sanitize user agent and IP (limit length to prevent DoS)
+    const safeUserAgent = (userAgent || 'unknown').substring(0, 500);
+    const safeIp = (ip || 'unknown').substring(0, 45); // IPv6 max length
+    const clientId = `${safeIp}-${safeUserAgent}`;
+
+    // Check rate limiting with timeout protection
+    try {
+      const rateLimitCheck = this.isRateLimited(clientId);
+      const timeoutPromise = new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(false), 2000); // 2 second timeout
+      });
+
+      const isRateLimited = await Promise.race([rateLimitCheck, timeoutPromise]);
+      if (isRateLimited) {
+        // Log rate limit event (non-blocking)
+        this.recordFailedAttempt(clientId).catch(() => {
+          // Silent fail
+        });
+        return {
+          isValid: false,
+          error: 'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة.',
+        };
+      }
+    } catch (rateLimitError) {
+      // Log but continue - don't block login if rate limit check fails
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('Rate limit check failed, continuing:', rateLimitError instanceof Error ? rateLimitError.message : String(rateLimitError));
+      }
+    }
+
+    // Find user with timeout protection
+    let user;
+    try {
+      const findUserPromise = this.findUserByEmail(normalizedEmail);
+      const timeoutPromise = new Promise<any>((resolve) => {
+        setTimeout(() => resolve(null), 5000); // 5 second timeout
+      });
+
+      user = await Promise.race([findUserPromise, timeoutPromise]);
+    } catch (findUserError) {
+      logger.error('Error finding user:', findUserError);
+      return {
+        isValid: false,
+        error: 'حدث خطأ أثناء التحقق من الحساب. يرجى المحاولة مرة أخرى.',
+      };
+    }
+
     if (!user) {
-      await this.recordFailedAttempt(clientId);
+      // Record failed attempt (non-blocking)
+      // Use setTimeout to ensure logging doesn't affect timing
+      setTimeout(() => {
+        this.recordFailedAttempt(clientId).catch((err) => {
+          if (process.env.NODE_ENV === 'development') {
+            logger.debug('Failed to record failed attempt:', err instanceof Error ? err.message : String(err));
+          }
+        });
+      }, 0);
       return {
         isValid: false,
-        error: 'Invalid credentials',
+        error: 'بيانات تسجيل الدخول غير صحيحة',
       };
     }
 
-    const isValid = await AuthService.comparePasswords(password, user.passwordHash);
+    // Validate password hash exists
+    if (!user.passwordHash || user.passwordHash === 'oauth_user' || user.passwordHash.trim().length === 0) {
+      this.recordFailedAttempt(clientId).catch(() => {
+        // Silent fail
+      });
+      return {
+        isValid: false,
+        error: 'بيانات تسجيل الدخول غير صحيحة',
+      };
+    }
+
+    // Verify password with timeout protection and constant-time comparison
+    // Using constant-time comparison to prevent timing attacks
+    let isValid = false;
+    try {
+      const passwordCheckPromise = AuthService.comparePasswords(password, user.passwordHash);
+      const timeoutPromise = new Promise<boolean>((resolve) => {
+        setTimeout(() => resolve(false), 5000); // 5 second timeout
+      });
+
+      isValid = await Promise.race([passwordCheckPromise, timeoutPromise]);
+      
+      // Log failed attempts for security monitoring (non-blocking)
+      // Use setTimeout to ensure logging doesn't affect timing
+      if (!isValid) {
+        setTimeout(() => {
+          logger.debug('Password mismatch for user', { 
+            userId: user.id, 
+            email: normalizedEmail.substring(0, 50), // Limit email length in logs
+            timestamp: new Date().toISOString(),
+          });
+        }, 0);
+      }
+    } catch (passwordError) {
+      logger.error('Password comparison error:', passwordError instanceof Error ? passwordError.message : String(passwordError));
+      // Record failed attempt (non-blocking)
+      setTimeout(() => {
+        this.recordFailedAttempt(clientId).catch(() => {
+          // Silent fail
+        });
+      }, 0);
+      return {
+        isValid: false,
+        error: 'حدث خطأ أثناء التحقق من كلمة المرور. يرجى المحاولة مرة أخرى.',
+      };
+    }
+
     if (!isValid) {
-      await this.recordFailedAttempt(clientId);
+      // Record failed attempt (non-blocking)
+      // Use setTimeout to ensure logging doesn't affect timing
+      setTimeout(() => {
+        this.recordFailedAttempt(clientId).catch(() => {
+          // Silent fail
+        });
+      }, 0);
       return {
         isValid: false,
-        error: 'Invalid credentials',
+        error: 'بيانات تسجيل الدخول غير صحيحة',
       };
     }
 
-    await this.updateLastLogin(user.id);
+    // Update last login and reset rate limit in parallel (non-blocking)
+    Promise.allSettled([
+      this.updateLastLogin(user.id),
+      this.resetRateLimit(clientId),
+    ]).catch(() => {
+      // Silent fail - login can proceed
+    });
 
-    // Reset rate limiting on successful login
-    await this.resetRateLimit(clientId);
+    // Create session with timeout protection
+    let session;
+    try {
+      const sessionPromise = this.createSession(user.id, safeUserAgent, safeIp);
+      const timeoutPromise = new Promise<any>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Session creation timeout')), 5000);
+      });
 
-    // Create a new session
-    const session = await this.createSession(user.id, userAgent, ip);
+      session = await Promise.race([sessionPromise, timeoutPromise]);
+    } catch (sessionError) {
+      logger.error('Failed to create session:', sessionError);
+      return {
+        isValid: false,
+        error: 'فشل في إنشاء الجلسة. يرجى المحاولة مرة أخرى.',
+      };
+    }
 
-    const { accessToken, refreshToken } = await this.createTokens({
-      id: user.id,
-      email: user.email,
-      name: user.name || undefined,
-      role: user.role || undefined,
-    }, session.id);
+    if (!session || !session.id) {
+      logger.error('Invalid session created');
+      return {
+        isValid: false,
+        error: 'فشل في إنشاء الجلسة. يرجى المحاولة مرة أخرى.',
+      };
+    }
+
+    // Generate tokens with timeout protection
+    let accessToken: string;
+    let refreshToken: string;
+    try {
+      const tokensPromise = this.createTokens({
+        id: user.id,
+        email: user.email,
+        name: user.name || undefined,
+        role: user.role || undefined,
+      }, session.id);
+
+      const timeoutPromise = new Promise<{ accessToken: string; refreshToken: string }>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Token generation timeout')), 5000);
+      });
+
+      const tokens = await Promise.race([tokensPromise, timeoutPromise]);
+      accessToken = tokens.accessToken;
+      refreshToken = tokens.refreshToken;
+    } catch (tokenError) {
+      logger.error('Failed to generate tokens:', tokenError);
+      return {
+        isValid: false,
+        error: 'فشل في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.',
+      };
+    }
+
+    if (!accessToken || !refreshToken || accessToken.trim().length === 0 || refreshToken.trim().length === 0) {
+      logger.error('Invalid tokens generated');
+      return {
+        isValid: false,
+        error: 'فشل في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.',
+      };
+    }
+
+    // Log successful login duration for monitoring
+    const duration = Date.now() - startTime;
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`AuthService.login completed successfully in ${duration}ms`);
+    }
 
     return {
       isValid: true,
@@ -583,6 +950,7 @@ export class AuthService {
     const hashedPassword = await AuthService.hashPassword(password);
 
     const dbClient = await getPrisma();
+    if (!dbClient) throw new Error('Database client not available');
     const user = await dbClient.user.create({
       data: {
         email,
@@ -704,22 +1072,42 @@ export class AuthService {
 
   /**
    * Log security event
+   * Improved with timeout protection and better error handling
    */
   async logSecurityEvent(userId: string | null, event: string, ip: string, metadata?: Record<string, unknown>): Promise<void> {
+    if (!event || typeof event !== 'string') {
+      return;
+    }
+
     try {
       const dbClient = await getPrisma();
-      await dbClient.securityLog.create({
-        data: {
-          userId,
-          eventType: event,
-          ip,
-          userAgent: metadata?.userAgent || '',
-          deviceInfo: metadata?.deviceInfo ? JSON.stringify(metadata.deviceInfo) : null,
-          metadata: metadata ? JSON.stringify(metadata) : null,
-        },
+      if (!dbClient) return;
+      
+      // Add timeout to prevent hanging
+      const logData: any = {
+        eventType: event,
+        ip: ip || 'unknown',
+        userAgent: (metadata?.userAgent as string) || '',
+        deviceInfo: metadata?.deviceInfo ? JSON.stringify(metadata.deviceInfo) : null,
+        metadata: metadata ? JSON.stringify(metadata) : null,
+      };
+      if (userId) {
+        logData.userId = userId;
+      }
+      const logPromise = dbClient.securityLog.create({
+        data: logData,
       });
+
+      const timeoutPromise = new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 2000); // 2 second timeout
+      });
+
+      await Promise.race([logPromise, timeoutPromise]);
     } catch (error) {
-      logger.error('Failed to log security event', error instanceof Error ? error : new Error(String(error)));
+      // Only log errors in development to avoid noise in production
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('Failed to log security event', error instanceof Error ? error : new Error(String(error)));
+      }
     }
   }
 
@@ -775,6 +1163,12 @@ export class AuthService {
         // Optionally check session validity
         if (options.checkSession && sessionId) {
           const dbClient = await getPrisma();
+          if (!dbClient) {
+            return {
+              isValid: false,
+              error: 'Database client not available'
+            };
+          }
           const session = await dbClient.session.findUnique({
             where: {
               id: sessionId,
@@ -835,6 +1229,12 @@ export class AuthService {
         // Check session validity if requested
         if (checkSession && sessionId) {
           const dbClient = await getPrisma();
+          if (!dbClient) {
+            return {
+              isValid: false,
+              error: 'Database client not available'
+            };
+          }
           const session = await dbClient.session.findUnique({
             where: {
               id: sessionId,

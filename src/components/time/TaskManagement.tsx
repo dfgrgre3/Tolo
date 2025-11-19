@@ -854,11 +854,11 @@ export default function TaskManagement({
           </div>
           
           {/* Tags Filter */}
-          {getAllTags().length > 0 && (
+          {getAllTags.length > 0 && (
             <div className="mt-4">
               <div className="flex flex-wrap gap-2">
                 <span className="text-sm text-gray-600 self-center">العلامات:</span>
-                {getAllTags().map(tag => (
+                {getAllTags.map((tag: string) => (
                   <Button
                     key={tag}
                     variant={selectedTags.includes(tag) ? "default" : "outline"}
@@ -1213,7 +1213,6 @@ export default function TaskManagement({
                               {addingSubtaskTo === task.id ? (
                                 <div className="flex gap-2">
                                   <Input
-                                    size="sm"
                                     placeholder="مهمة فرعية جديدة"
                                     value={newSubtaskTitle}
                                     onChange={(e) => setNewSubtaskTitle(e.target.value)}

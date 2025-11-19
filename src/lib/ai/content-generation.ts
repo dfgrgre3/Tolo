@@ -1,6 +1,7 @@
 import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
 import { prisma } from '@/lib/prisma';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export interface GeneratedContent {
   id: string;
@@ -151,7 +152,7 @@ export async function generateStudyPlan(
     orderBy: { startTime: 'desc' }
   });
 
-  const studyHistory = userStudySessions.map(s => ({
+  const studyHistory = userStudySessions.map((s: { subject: string | null; durationMin: number; startTime: Date }) => ({
     subject: s.subject,
     duration: s.durationMin,
     date: s.startTime
@@ -393,11 +394,11 @@ export async function getUserGeneratedContent(
     take: limit
   });
 
-  return content.map(item => ({
+  return content.map((item: { id: string; type: string; [key: string]: unknown }) => ({
     id: item.id,
     type: item.type as any,
     title: item.title,
-    content: JSON.parse(item.content),
+    content: JSON.parse(item.content as string),
     subject: item.subject,
     metadata: item.metadata,
     createdAt: item.createdAt,

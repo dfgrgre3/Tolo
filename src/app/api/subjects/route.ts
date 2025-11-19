@@ -27,10 +27,7 @@ async function handleGetRequest(req: NextRequest) {
       cacheKey,
       async () => {
         return await prisma.subjectEnrollment.findMany({ 
-          where: { userId },
-          include: {
-            subject: true
-          }
+          where: { userId }
         });
       },
       600 // 10 minutes TTL
@@ -46,19 +43,17 @@ async function handleGetRequest(req: NextRequest) {
 export async function POST(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
-      const { userId, subjectId } = await request.json();
+      const { userId, subject } = await request.json();
     
-      if (!userId || !subjectId) {
-        return NextResponse.json({ error: "userId and subjectId required" }, { status: 400 });
+      if (!userId || !subject) {
+        return NextResponse.json({ error: "userId and subject required" }, { status: 400 });
       }
       
       // Check if already enrolled
-      const existingEnrollment = await prisma.subjectEnrollment.findUnique({
+      const existingEnrollment = await prisma.subjectEnrollment.findFirst({
         where: {
-          userId_subjectId: {
-            userId,
-            subjectId
-          }
+          userId,
+          subject
         }
       });
       
@@ -69,11 +64,9 @@ export async function POST(req: NextRequest) {
       // Create enrollment
       const enrollment = await prisma.subjectEnrollment.create({
         data: {
+          id: `${userId}_${subject}_${Date.now()}`,
           userId,
-          subjectId
-        },
-        include: {
-          subject: true
+          subject
         }
       });
       
@@ -93,19 +86,27 @@ export async function DELETE(req: NextRequest) {
     try {
       const { searchParams } = new URL(request.url);
       const userId = searchParams.get("userId");
-      const subjectId = searchParams.get("subjectId");
+      const subject = searchParams.get("subject");
       
-      if (!userId || !subjectId) {
-        return NextResponse.json({ error: "userId and subjectId required" }, { status: 400 });
+      if (!userId || !subject) {
+        return NextResponse.json({ error: "userId and subject required" }, { status: 400 });
       }
       
-      // Delete enrollment
+      // Find and delete enrollment
+      const enrollment = await prisma.subjectEnrollment.findFirst({
+        where: {
+          userId,
+          subject
+        }
+      });
+      
+      if (!enrollment) {
+        return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
+      }
+      
       await prisma.subjectEnrollment.delete({
         where: {
-          userId_subjectId: {
-            userId,
-            subjectId
-          }
+          id: enrollment.id
         }
       });
       

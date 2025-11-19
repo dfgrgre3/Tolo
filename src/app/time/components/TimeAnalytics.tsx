@@ -15,8 +15,8 @@ interface TimeAnalyticsProps {
 }
 
 export default function TimeAnalytics({ tasks, studySessions, reminders }: TimeAnalyticsProps) {
+  const now = new Date();
   const analytics = useMemo(() => {
-    const now = new Date();
     const weekStart = startOfWeek(now, { locale: ar });
     const weekEnd = endOfWeek(now, { locale: ar });
     const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
@@ -152,7 +152,7 @@ export default function TimeAnalytics({ tasks, studySessions, reminders }: TimeA
             </h3>
             <div className="space-y-2">
               {analytics.weeklyStudyTime.map((minutes, index) => {
-                const dayName = format(startOfWeek(now, { locale: ar }).getTime() + index * 24 * 60 * 60 * 1000, 'EEEE', { locale: ar });
+                const dayName = format(new Date(startOfWeek(now, { locale: ar }).getTime() + index * 24 * 60 * 60 * 1000), 'EEEE', { locale: ar });
                 const hours = minutes / 60;
                 const maxHours = Math.max(...analytics.weeklyStudyTime) / 60 || 1;
                 const percentage = (hours / maxHours) * 100;

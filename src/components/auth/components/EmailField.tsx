@@ -10,21 +10,21 @@ interface EmailFieldProps {
   onFocus: () => void;
   onBlur: () => void;
   error?: string;
-  focused: boolean;
+  isFocused: boolean;
   disabled?: boolean;
   inputRef?: React.RefObject<HTMLInputElement>;
 }
 
-export function EmailField({
+export const EmailField: React.FC<EmailFieldProps> = ({
   value,
   onChange,
   onFocus,
   onBlur,
   error,
-  focused,
+  isFocused,
   disabled,
   inputRef,
-}: EmailFieldProps) {
+}) => {
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
@@ -41,7 +41,7 @@ export function EmailField({
         <Mail
           className={cn(
             'absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 transition-colors',
-            focused ? 'text-indigo-400' : 'text-slate-400'
+            isFocused ? 'text-indigo-400' : 'text-slate-400'
           )}
           aria-hidden="true"
         />
@@ -58,7 +58,7 @@ export function EmailField({
           className={cn(
             'w-full rounded-xl bg-white/10 py-3 pr-12 pl-4 text-white placeholder-slate-400 transition-all duration-200',
             'focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400',
-            focused && 'ring-2 ring-indigo-400'
+            isFocused && 'ring-2 ring-indigo-400'
           )}
           dir="ltr"
           required
@@ -89,5 +89,4 @@ export function EmailField({
       </AnimatePresence>
     </motion.div>
   );
-}
-
+};

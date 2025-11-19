@@ -34,6 +34,7 @@ model User {
   smsNotifications        Boolean?    @default(false)
   biometricEnabled        Boolean     @default(false)
   biometricCredentials    Json        @default("[]")
+  role                    String?     @default("user")
 
   // Gamification fields
   totalXP                 Int         @default(0)

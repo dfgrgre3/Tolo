@@ -1,10 +1,16 @@
 /**
  * Session-related types
- * Type definitions for NextAuth session management
+ * 
+ * ⚠️ NOTE: These types exist for backward compatibility only.
+ * NextAuth has been removed from this project in favor of custom auth (@/lib/auth-service).
+ * 
+ * These types are kept for legacy endpoint compatibility.
+ * See ENVIRONMENT_ISSUES.md and AUTH_STRUCTURE_CLEAN.md for details.
  */
 
 /**
- * Session data structure from NextAuth
+ * Session data structure (legacy NextAuth format)
+ * @deprecated Use custom auth types from @/lib/auth-service instead
  */
 export interface SessionData {
   /** Authenticated user information */

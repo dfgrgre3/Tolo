@@ -12,7 +12,7 @@ export interface Achievement {
 	category: AchievementCategory;
 	difficulty: AchievementDifficulty;
 	xpReward: number;
-	requirements: Record<string, any>;
+	requirements: Record<string, unknown>;
 	isSecret?: boolean;
 	isEarned?: boolean;
 	earnedAt?: string | null;

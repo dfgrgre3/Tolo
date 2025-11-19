@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AchievementStats as StatsType } from '../types';
+import { AchievementStats as StatsType, AchievementCategory, AchievementDifficulty } from '../types';
 import { getCategoryIcon, getCategoryLabel } from '../utils';
 import { Trophy, Target, Lock, TrendingUp, Award } from 'lucide-react';
 
@@ -95,12 +95,12 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 				</CardHeader>
 				<CardContent>
 					<div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-						{Object.entries(stats.byCategory).map(([category, count]) => (
+						{(Object.entries(stats.byCategory) as [AchievementCategory, number][]).map(([category, count]) => (
 							<div key={category} className="text-center">
-								<div className="text-2xl mb-1">{getCategoryIcon(category as any)}</div>
+								<div className="text-2xl mb-1">{getCategoryIcon(category)}</div>
 								<div className="text-lg font-semibold">{count}</div>
 								<div className="text-xs text-muted-foreground">
-									{getCategoryLabel(category as any)}
+									{getCategoryLabel(category)}
 								</div>
 							</div>
 						))}
@@ -118,7 +118,7 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 				</CardHeader>
 				<CardContent>
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-						{Object.entries(stats.byDifficulty).map(([difficulty, count]) => (
+						{(Object.entries(stats.byDifficulty) as [AchievementDifficulty, number][]).map(([difficulty, count]) => (
 							<div key={difficulty} className="text-center">
 								<div className="text-lg font-semibold">{count}</div>
 								<div className="text-xs text-muted-foreground capitalize">{difficulty}</div>

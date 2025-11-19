@@ -1,6 +1,7 @@
 import { RedisClientType } from 'redis';
 import { redis } from './redis';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export interface RateLimitConfig {
   windowMs: number;        // Time window in milliseconds
@@ -38,32 +39,56 @@ export class RateLimitingService {
    * @returns RateLimitResult indicating if the request is allowed
    */
   async checkRateLimit(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<RateLimitResult> {
-    const key = `rate_limit:${clientId}`;
-    const lockoutKey = `lockout:${clientId}`;
+    // Validate inputs
+    if (!clientId || typeof clientId !== 'string' || clientId.trim().length === 0) {
+      logger.warn('Invalid clientId provided to checkRateLimit');
+      return { allowed: true, attempts: 0 };
+    }
+
+    if (!config || typeof config !== 'object') {
+      logger.warn('Invalid config provided to checkRateLimit, using default');
+      config = this.defaultConfig;
+    }
+
+    // Validate config values
+    const validWindowMs = Math.max(1000, Math.min(config.windowMs || this.defaultConfig.windowMs, 3600000)); // 1s to 1h
+    const validMaxAttempts = Math.max(1, Math.min(config.maxAttempts || this.defaultConfig.maxAttempts, 1000)); // 1 to 1000
+    const validLockoutMs = config.lockoutMs ? Math.max(1000, Math.min(config.lockoutMs, 86400000)) : undefined; // 1s to 24h
+
+    const trimmedClientId = clientId.trim().slice(0, 200); // Limit length
+    const key = `rate_limit:${trimmedClientId}`;
+    const lockoutKey = `lockout:${trimmedClientId}`;
     
     const now = Date.now();
-    const windowStart = now - config.windowMs;
+    const windowStart = now - validWindowMs;
     
     try {
-      // Check if account is locked
-      const lockedUntil = await this.redisClient.get(lockoutKey);
+      // Check if account is locked with timeout
+      const getLockPromise = this.redisClient.get(lockoutKey);
+      const lockTimeoutPromise = new Promise<string | null>((resolve) => {
+        setTimeout(() => resolve(null), 1000); // 1 second timeout
+      });
+
+      const lockedUntil = await Promise.race([getLockPromise, lockTimeoutPromise]);
       if (lockedUntil) {
         const lockoutTime = parseInt(lockedUntil, 10);
-        if (now < lockoutTime) {
+        if (!isNaN(lockoutTime) && now < lockoutTime) {
           const remainingTime = Math.ceil((lockoutTime - now) / 60000); // in minutes
           return {
             allowed: false,
-            attempts: config.maxAttempts,
+            attempts: validMaxAttempts,
             remainingTime,
             lockedUntil: lockoutTime
           };
         } else {
-          // Lockout expired, remove the lockout key
-          await this.redisClient.del(lockoutKey);
+          // Lockout expired, remove the lockout key (non-blocking)
+          this.redisClient.del(lockoutKey).catch((err) => {
+            logger.warn('Failed to remove expired lockout key:', err);
+          });
         }
       }
       
-      // Use Redis pipeline for atomic operations
+      // Use Redis pipeline for atomic operations with timeout
       const pipeline = this.redisClient.multi();
       
       // Remove old entries outside the window
@@ -72,11 +97,18 @@ export class RateLimitingService {
       // Get current count
       pipeline.zcard(key);
       
-      const results = await pipeline.exec();
-      const currentCount = results[1] as number;
+      const execPromise = pipeline.exec();
+      const execTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => {
+          reject(new Error('Redis pipeline timeout'));
+        }, 2000); // 2 second timeout
+      });
+
+      const results = await Promise.race([execPromise, execTimeoutPromise]);
+      const currentCount = (results && results[1] && typeof results[1] === 'number') ? results[1] : 0;
       
       return {
-        allowed: currentCount < config.maxAttempts,
+        allowed: currentCount < validMaxAttempts,
         attempts: currentCount,
         remainingTime: undefined
       };
@@ -96,32 +128,71 @@ export class RateLimitingService {
    * @param config Rate limiting configuration
    */
   async recordFailedAttempt(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<void> {
-    const key = `rate_limit:${clientId}`;
-    const lockoutKey = `lockout:${clientId}`;
+    // Validate inputs
+    if (!clientId || typeof clientId !== 'string' || clientId.trim().length === 0) {
+      logger.warn('Invalid clientId provided to recordFailedAttempt');
+      return;
+    }
+
+    if (!config || typeof config !== 'object') {
+      logger.warn('Invalid config provided to recordFailedAttempt, using default');
+      config = this.defaultConfig;
+    }
+
+    // Validate config values
+    const validWindowMs = Math.max(1000, Math.min(config.windowMs || this.defaultConfig.windowMs, 3600000)); // 1s to 1h
+    const validMaxAttempts = Math.max(1, Math.min(config.maxAttempts || this.defaultConfig.maxAttempts, 1000)); // 1 to 1000
+    const validLockoutMs = config.lockoutMs ? Math.max(1000, Math.min(config.lockoutMs, 86400000)) : undefined; // 1s to 24h
+
+    const trimmedClientId = clientId.trim().slice(0, 200); // Limit length
+    const key = `rate_limit:${trimmedClientId}`;
+    const lockoutKey = `lockout:${trimmedClientId}`;
     
     const now = Date.now();
     
     try {
-      // Use Redis pipeline for atomic operations
+      // Use Redis pipeline for atomic operations with timeout
       const pipeline = this.redisClient.multi();
       
       // Add current attempt
       pipeline.zadd(key, { [now]: now.toString() });
       
       // Set expiration for the sorted set
-      pipeline.expire(key, Math.ceil(config.windowMs / 1000));
+      pipeline.expire(key, Math.ceil(validWindowMs / 1000));
       
-      await pipeline.exec();
+      const execPromise = pipeline.exec();
+      const execTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => {
+          reject(new Error('Redis pipeline timeout'));
+        }, 2000); // 2 second timeout
+      });
+
+      await Promise.race([execPromise, execTimeoutPromise]);
       
-      // Check if we need to lock the account
-      const result = await this.checkRateLimit(clientId, config);
-      if (result.attempts >= config.maxAttempts && config.lockoutMs) {
-        // Lock the account
-        const lockoutUntil = now + config.lockoutMs;
-        await this.redisClient.setEx(lockoutKey, Math.ceil(config.lockoutMs / 1000), lockoutUntil.toString());
-      }
+      // Check if we need to lock the account (non-blocking)
+      this.checkRateLimit(trimmedClientId, { ...config, windowMs: validWindowMs, maxAttempts: validMaxAttempts, lockoutMs: validLockoutMs })
+        .then((result) => {
+          if (result.attempts >= validMaxAttempts && validLockoutMs) {
+            // Lock the account with timeout
+            const lockoutUntil = now + validLockoutMs;
+            const setExPromise = this.redisClient.setEx(lockoutKey, Math.ceil(validLockoutMs / 1000), lockoutUntil.toString());
+            const setExTimeoutPromise = new Promise<void>((resolve) => {
+              setTimeout(() => {
+                logger.warn('Failed to set lockout (timeout)');
+                resolve();
+              }, 2000);
+            });
+            Promise.race([setExPromise, setExTimeoutPromise]).catch((err) => {
+              logger.warn('Failed to set lockout:', err);
+            });
+          }
+        })
+        .catch((err) => {
+          logger.warn('Failed to check rate limit for lockout:', err);
+        });
     } catch (error) {
       logger.error('Failed to record failed attempt:', error);
+      // Don't throw - this is a non-critical operation
     }
   }
 
@@ -139,13 +210,30 @@ export class RateLimitingService {
    * @param clientId Unique identifier for the client
    */
   async resetAttempts(clientId: string): Promise<void> {
-    const key = `rate_limit:${clientId}`;
-    const lockoutKey = `lockout:${clientId}`;
+    // Validate input
+    if (!clientId || typeof clientId !== 'string' || clientId.trim().length === 0) {
+      logger.warn('Invalid clientId provided to resetAttempts');
+      return;
+    }
+
+    const trimmedClientId = clientId.trim().slice(0, 200); // Limit length
+    const key = `rate_limit:${trimmedClientId}`;
+    const lockoutKey = `lockout:${trimmedClientId}`;
     
     try {
-      await this.redisClient.del(key, lockoutKey);
+      // Add timeout protection
+      const delPromise = this.redisClient.del(key, lockoutKey);
+      const timeoutPromise = new Promise<void>((resolve) => {
+        setTimeout(() => {
+          logger.warn('Failed to reset rate limit (timeout)');
+          resolve();
+        }, 2000); // 2 second timeout
+      });
+
+      await Promise.race([delPromise, timeoutPromise]);
     } catch (error) {
       logger.error('Failed to reset rate limit:', error);
+      // Don't throw - this is a non-critical operation
     }
   }
 

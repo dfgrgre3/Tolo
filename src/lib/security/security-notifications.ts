@@ -6,7 +6,8 @@
 import { prisma } from '@/lib/prisma';
 import { RiskAssessment } from './risk-assessment';
 import { DeviceFingerprint } from './device-fingerprint';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export interface SecurityNotification {
   id: string;
@@ -324,6 +325,7 @@ export class SecurityNotificationService {
   ): Promise<void> {
     await prisma.securityLog.create({
       data: {
+        id: crypto.randomUUID(),
         userId: notification.userId,
         eventType: `notification_${notification.type}`,
         ip: notification.metadata?.ip || 'unknown',

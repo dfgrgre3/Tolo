@@ -37,7 +37,8 @@ interface NavigationPage {
 export function SmartNavigationSuggestions() {
 	const router = useRouter();
 	const pathname = usePathname();
-	const { user, mounted } = useAuth();
+	const { user } = useAuth();
+	const mounted = true;
 	const [suggestions, setSuggestions] = useState<NavigationSuggestion[]>([]);
 	const [isOpen, setIsOpen] = useState(false);
 

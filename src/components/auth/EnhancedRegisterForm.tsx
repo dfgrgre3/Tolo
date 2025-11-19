@@ -22,8 +22,9 @@ import {
 import { cn } from '@/lib/utils';
 import { getPasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
 import type { PasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
-import type { User } from '@/components/auth/UserProvider';
-import { logger } from '@/lib/logger';
+import type { User as UserType } from '@/components/auth/UserProvider';
+
+import { logger } from '@/lib/logger';
 
 interface RegisterFormData {
   name: string;
@@ -481,7 +482,7 @@ export default function EnhancedRegisterForm() {
             }
 
             // Prepare user data for login function
-            const userData: User = {
+            const userData: UserType = {
               id: loginData.user.id,
               email: loginData.user.email,
               name: loginData.user.name || data.user.name || formData.name.trim(),

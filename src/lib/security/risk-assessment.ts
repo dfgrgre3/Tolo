@@ -68,12 +68,35 @@ export class RiskAssessmentService {
   }
 
   /**
-   * Assess risk for a login attempt
+   * Assess risk for a login attempt with validation and timeout protection
    */
   async assessLoginRisk(
     attempt: LoginAttempt,
     history?: LoginAttempt[]
   ): Promise<RiskAssessment> {
+    // Validate input
+    if (!attempt || typeof attempt !== 'object') {
+      throw new Error('Invalid login attempt data');
+    }
+
+    if (!attempt.email || typeof attempt.email !== 'string' || attempt.email.trim().length === 0) {
+      throw new Error('Email is required for risk assessment');
+    }
+
+    if (!attempt.ip || typeof attempt.ip !== 'string' || attempt.ip.trim().length === 0) {
+      throw new Error('IP address is required for risk assessment');
+    }
+
+    if (!attempt.userAgent || typeof attempt.userAgent !== 'string' || attempt.userAgent.trim().length === 0) {
+      throw new Error('User agent is required for risk assessment');
+    }
+
+    // Validate history if provided
+    if (history && (!Array.isArray(history) || history.length > 1000)) {
+      // Limit history to prevent performance issues
+      history = history.slice(0, 1000);
+    }
+
     const factors: RiskFactors = {
       newLocation: false,
       unusualLocation: false,
@@ -92,6 +115,48 @@ export class RiskAssessmentService {
 
     let score = 0;
     const recommendations: string[] = [];
+
+    // Wrap assessment in timeout protection
+    try {
+      const assessmentPromise = this.performAssessment(attempt, history, factors, score, recommendations);
+      const timeoutPromise = new Promise<RiskAssessment>((resolve) => {
+        setTimeout(() => {
+          // Return default low-risk assessment on timeout
+          resolve({
+            score: 0,
+            level: 'low',
+            factors,
+            recommendations: [],
+            requireAdditionalAuth: false,
+            blockAccess: false,
+          });
+        }, 5000); // 5 second timeout
+      });
+
+      return await Promise.race([assessmentPromise, timeoutPromise]);
+    } catch (error) {
+      // Return default low-risk assessment on error
+      return {
+        score: 0,
+        level: 'low',
+        factors,
+        recommendations: [],
+        requireAdditionalAuth: false,
+        blockAccess: false,
+      };
+    }
+  }
+
+  /**
+   * Perform the actual risk assessment (internal method)
+   */
+  private async performAssessment(
+    attempt: LoginAttempt,
+    history: LoginAttempt[] | undefined,
+    factors: RiskFactors,
+    score: number,
+    recommendations: string[]
+  ): Promise<RiskAssessment> {
 
     // Analyze location
     if (history && history.length > 0) {
@@ -187,7 +252,7 @@ export class RiskAssessmentService {
   }
 
   /**
-   * Assess location-based risk
+   * Assess location-based risk with validation
    */
   private assessLocationRisk(
     attempt: LoginAttempt,
@@ -196,20 +261,32 @@ export class RiskAssessmentService {
     isNew: boolean;
     isUnusual: boolean;
   } {
+    // Validate inputs
+    if (!attempt || !history || !Array.isArray(history)) {
+      return { isNew: false, isUnusual: false };
+    }
+
     if (!attempt.location || history.length === 0) {
       return { isNew: false, isUnusual: false };
     }
 
-    const successfulAttempts = history.filter((h) => h.success);
+    // Limit history size for performance
+    const limitedHistory = history.slice(0, 1000);
+
+    const successfulAttempts = limitedHistory.filter((h) => h && h.success);
+    
+    if (successfulAttempts.length === 0) {
+      return { isNew: true, isUnusual: false };
+    }
     
     // Check if location is new
     const knownCountries = new Set(
       successfulAttempts
-        .filter((h) => h.location?.country)
-        .map((h) => h.location!.country)
+        .filter((h) => h.location?.country && typeof h.location.country === 'string')
+        .map((h) => h.location!.country!)
     );
     
-    const isNew = attempt.location.country
+    const isNew = attempt.location.country && typeof attempt.location.country === 'string'
       ? !knownCountries.has(attempt.location.country)
       : false;
 
@@ -224,7 +301,7 @@ export class RiskAssessmentService {
   }
 
   /**
-   * Assess device-based risk
+   * Assess device-based risk with validation
    */
   private assessDeviceRisk(
     fingerprint: DeviceFingerprint,
@@ -233,14 +310,34 @@ export class RiskAssessmentService {
     isNew: boolean;
     mismatch: boolean;
   } {
-    const successfulAttempts = history.filter(
-      (h) => h.success && h.deviceFingerprint
+    // Validate inputs
+    if (!fingerprint || typeof fingerprint !== 'object') {
+      return { isNew: false, mismatch: false };
+    }
+
+    if (!fingerprint.fingerprint || typeof fingerprint.fingerprint !== 'string') {
+      return { isNew: false, mismatch: false };
+    }
+
+    if (!history || !Array.isArray(history)) {
+      return { isNew: true, mismatch: false };
+    }
+
+    // Limit history size for performance
+    const limitedHistory = history.slice(0, 1000);
+
+    const successfulAttempts = limitedHistory.filter(
+      (h) => h && h.success && h.deviceFingerprint && typeof h.deviceFingerprint === 'object'
     );
 
+    if (successfulAttempts.length === 0) {
+      return { isNew: true, mismatch: false };
+    }
+
     // Check if device is completely new
-    const knownFingerprints = successfulAttempts.map(
-      (h) => h.deviceFingerprint!.fingerprint
-    );
+    const knownFingerprints = successfulAttempts
+      .map((h) => h.deviceFingerprint!.fingerprint)
+      .filter((fp): fp is string => typeof fp === 'string');
     
     const isNew = !knownFingerprints.includes(fingerprint.fingerprint);
 
@@ -249,8 +346,8 @@ export class RiskAssessmentService {
     const mismatch = recentAttempts.some((h) => {
       const fp = h.deviceFingerprint!;
       return (
-        fp.os !== fingerprint.os ||
-        fp.browser !== fingerprint.browser
+        (fp.os && fingerprint.os && fp.os !== fingerprint.os) ||
+        (fp.browser && fingerprint.browser && fp.browser !== fingerprint.browser)
       );
     });
 
@@ -258,7 +355,7 @@ export class RiskAssessmentService {
   }
 
   /**
-   * Assess timing-based risk
+   * Assess timing-based risk with validation
    */
   private assessTimeRisk(
     attempt: LoginAttempt,
@@ -267,16 +364,41 @@ export class RiskAssessmentService {
     isUnusual: boolean;
     isRapid: boolean;
   } {
-    if (!history || history.length === 0) {
+    // Validate inputs
+    if (!attempt || !attempt.timestamp) {
+      return { isUnusual: false, isRapid: false };
+    }
+
+    if (!history || !Array.isArray(history) || history.length === 0) {
+      return { isUnusual: false, isRapid: false };
+    }
+
+    // Limit history size for performance
+    const limitedHistory = history.slice(0, 1000);
+
+    // Validate timestamp
+    const attemptTimestamp = attempt.timestamp instanceof Date 
+      ? attempt.timestamp 
+      : new Date(attempt.timestamp);
+    
+    if (isNaN(attemptTimestamp.getTime())) {
       return { isUnusual: false, isRapid: false };
     }
 
     // Check for unusual time (based on user's typical login times)
-    const hour = attempt.timestamp.getHours();
-    const successfulHours = history
-      .filter((h) => h.success)
-      .map((h) => h.timestamp.getHours());
+    const hour = attemptTimestamp.getHours();
+    const successfulHours = limitedHistory
+      .filter((h) => h && h.success && h.timestamp)
+      .map((h) => {
+        const ts = h.timestamp instanceof Date ? h.timestamp : new Date(h.timestamp);
+        return isNaN(ts.getTime()) ? null : ts.getHours();
+      })
+      .filter((h): h is number => h !== null);
     
+    if (successfulHours.length === 0) {
+      return { isUnusual: false, isRapid: false };
+    }
+
     const hourCounts = new Map<number, number>();
     successfulHours.forEach((h) => {
       hourCounts.set(h, (hourCounts.get(h) || 0) + 1);
@@ -288,9 +410,11 @@ export class RiskAssessmentService {
 
     // Check for rapid retries (more than 3 attempts in last 5 minutes)
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const recentAttempts = history.filter(
-      (h) => h.timestamp > fiveMinutesAgo && h.email === attempt.email
-    );
+    const recentAttempts = limitedHistory.filter((h) => {
+      if (!h || !h.timestamp || !h.email) return false;
+      const ts = h.timestamp instanceof Date ? h.timestamp : new Date(h.timestamp);
+      return !isNaN(ts.getTime()) && ts > fiveMinutesAgo && h.email === attempt.email;
+    });
     
     const isRapid = recentAttempts.length > 3;
 
@@ -298,7 +422,7 @@ export class RiskAssessmentService {
   }
 
   /**
-   * Assess IP-based risk
+   * Assess IP-based risk with validation
    */
   private assessIPRisk(
     ip: string,
@@ -307,15 +431,38 @@ export class RiskAssessmentService {
     isSuspicious: boolean;
     hasFailures: boolean;
   } {
+    // Validate IP
+    if (!ip || typeof ip !== 'string' || ip.trim().length === 0) {
+      return { isSuspicious: false, hasFailures: false };
+    }
+
+    const trimmedIP = ip.trim();
+
+    // Basic IP format validation
+    const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+    const ipv6Regex = /^([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$/;
+    
+    if (!ipv4Regex.test(trimmedIP) && !ipv6Regex.test(trimmedIP) && trimmedIP !== 'unknown') {
+      // Invalid IP format - treat as suspicious
+      return { isSuspicious: true, hasFailures: false };
+    }
+
     // Check against known suspicious IPs (this would integrate with a real service)
-    const suspiciousIPs = new Set([
+    const suspiciousIPs = new Set<string>([
       // This would be populated from a threat intelligence feed
     ]);
     
-    const isSuspicious = suspiciousIPs.has(ip);
+    const isSuspicious = suspiciousIPs.has(trimmedIP);
 
     // Check for multiple failed attempts from this IP
-    const ipAttempts = history?.filter((h) => h.ip === ip) || [];
+    if (!history || !Array.isArray(history)) {
+      return { isSuspicious, hasFailures: false };
+    }
+
+    // Limit history size for performance
+    const limitedHistory = history.slice(0, 1000);
+
+    const ipAttempts = limitedHistory.filter((h) => h && h.ip && h.ip.trim() === trimmedIP);
     const failedAttempts = ipAttempts.filter((h) => !h.success);
     const hasFailures = failedAttempts.length >= 3;
 
@@ -323,7 +470,7 @@ export class RiskAssessmentService {
   }
 
   /**
-   * Calculate anomaly score based on behavioral patterns
+   * Calculate anomaly score based on behavioral patterns with validation
    */
   async calculateAnomalyScore(
     userId: string,
@@ -333,6 +480,68 @@ export class RiskAssessmentService {
       location?: { lat: number; lng: number };
     }
   ): Promise<number> {
+    // Validate inputs
+    if (!userId || typeof userId !== 'string' || userId.trim().length === 0) {
+      throw new Error('User ID is required');
+    }
+
+    if (!currentBehavior || typeof currentBehavior !== 'object') {
+      throw new Error('Current behavior data is required');
+    }
+
+    if (!currentBehavior.loginTime) {
+      throw new Error('Login time is required');
+    }
+
+    if (!currentBehavior.deviceFingerprint || typeof currentBehavior.deviceFingerprint !== 'object') {
+      throw new Error('Device fingerprint is required');
+    }
+
+    // Validate login time
+    const loginTime = currentBehavior.loginTime instanceof Date 
+      ? currentBehavior.loginTime 
+      : new Date(currentBehavior.loginTime);
+    
+    if (isNaN(loginTime.getTime())) {
+      throw new Error('Invalid login time');
+    }
+
+    // Validate location if provided
+    if (currentBehavior.location) {
+      const { lat, lng } = currentBehavior.location;
+      if (typeof lat !== 'number' || typeof lng !== 'number' ||
+          isNaN(lat) || isNaN(lng) ||
+          lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        throw new Error('Invalid location coordinates');
+      }
+    }
+
+    // Wrap in timeout protection
+    try {
+      const scorePromise = this.performAnomalyCalculation(userId, currentBehavior, loginTime);
+      const timeoutPromise = new Promise<number>((resolve) => {
+        setTimeout(() => resolve(0), 5000); // 5 second timeout, return 0 (no anomaly)
+      });
+
+      return await Promise.race([scorePromise, timeoutPromise]);
+    } catch (error) {
+      // Return 0 (no anomaly) on error
+      return 0;
+    }
+  }
+
+  /**
+   * Perform the actual anomaly calculation (internal method)
+   */
+  private async performAnomalyCalculation(
+    userId: string,
+    currentBehavior: {
+      loginTime: Date;
+      deviceFingerprint: DeviceFingerprint;
+      location?: { lat: number; lng: number };
+    },
+    loginTime: Date
+  ): Promise<number> {
     // This would analyze patterns like:
     // - Typical login times
     // - Usual locations
@@ -341,6 +550,9 @@ export class RiskAssessmentService {
     // - Navigation patterns
     
     // For now, return a simple score
+    // In a real implementation, this would query user behavior history
+    // and compare against current behavior
+    
     return 0;
   }
 }

@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
 import Link from "next/link";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // --- Type Definitions ---
 
@@ -238,6 +239,7 @@ function ExamsSectionComponent() {
                         };
                         
                         subjectMap.set(subjectName, {
+                            id: subjectName,
                             emoji: emojiMap[subjectName] || "📖",
                             name: subjectName,
                             exams: []
@@ -245,7 +247,8 @@ function ExamsSectionComponent() {
                     }
                     
                     const subject = subjectMap.get(subjectName);
-                    subject.exams.push({
+                    if (subject) {
+                        subject.exams.push({
                         id: exam.id,
                         title: exam.title || "امتحان بدون عنوان",
                         duration: exam.duration || 120,
@@ -254,6 +257,7 @@ function ExamsSectionComponent() {
                         year: exam.year,
                         type: exam.type
                     });
+                    }
                 });
 
                 // Convert map to array

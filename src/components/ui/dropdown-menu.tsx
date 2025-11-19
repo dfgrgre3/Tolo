@@ -23,13 +23,13 @@ const DropdownMenuTrigger = React.forwardRef<
   if (!mounted) {
     // عرض عنصر بديل أثناء التحميل لمنع عدم تطابق الترطيب
     // استخدام div بدلاً من button لتجنب مشكلة التداخل مع العناصر الأبوية
-    const { asChild, ...restProps } = props;
+    const { asChild, ...restProps } = props as { asChild?: boolean; [key: string]: unknown };
     return (
       <div 
-        ref={ref} 
+        ref={ref as React.LegacyRef<HTMLDivElement>} 
         className={cn("inline-flex items-center justify-center", className)}
         suppressHydrationWarning 
-        {...restProps}
+        {...(restProps as React.HTMLAttributes<HTMLDivElement>)}
       />
     );
   }

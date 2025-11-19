@@ -1,3 +1,24 @@
+/**
+ * ⭐ SINGLE SOURCE OF TRUTH FOR PRISMA CLIENT - المصدر الوحيد الموثوق لعميل Prisma
+ * 
+ * ⚠️ CRITICAL: هذا الملف هو المصدر الوحيد الذي ينشئ نسخة Prisma Client.
+ * ⚠️ CRITICAL: This file is the ONLY source that creates a Prisma Client instance.
+ * 
+ * ❌ NEVER create new PrismaClient() instances anywhere else in the application!
+ * ❌ لا تنشئ نسخ جديدة من PrismaClient في أي مكان آخر في التطبيق!
+ * 
+ * ✅ This file uses a global singleton pattern to ensure only ONE connection pool exists.
+ * ✅ يستخدم هذا الملف نمط Singleton عالمي لضمان وجود pool اتصال واحد فقط.
+ * 
+ * ✅ All other files (db.ts, prisma.ts) re-export from this file.
+ * ✅ جميع الملفات الأخرى (db.ts, prisma.ts) تعيد التصدير من هذا الملف.
+ * 
+ * ⚠️ Creating multiple Prisma Client instances leads to "Too many connections" errors.
+ * ⚠️ إنشاء نسخ متعددة من Prisma Client يؤدي إلى خطأ "Too many connections".
+ * 
+ * For more information, see: https://www.prisma.io/docs/guides/performance-and-optimization/connection-management
+ */
+
 // This file must only run on the server - prevent browser bundling
 // Note: We use runtime checks instead of 'server-only' to prevent build-time errors
 // when this file is imported through dynamic imports in client components
@@ -12,8 +33,15 @@ import { databaseConfig, getDatabaseConfig } from './database';
 
 // Lazy load logger to prevent circular dependencies and client bundling issues
 // Use a synchronous wrapper that falls back to console if logger isn't loaded yet
-let loggerInstance: any = null;
-let loggerLoading: Promise<any> | null = null;
+interface LoggerInterface {
+  info: (message: string, context?: unknown, details?: Record<string, unknown>) => void;
+  warn: (message: string, context?: unknown, details?: Record<string, unknown>) => void;
+  error: (message: string, context?: unknown, details?: Record<string, unknown>) => void;
+  debug: (message: string, context?: unknown, details?: Record<string, unknown>) => void;
+}
+
+let loggerInstance: LoggerInterface | null = null;
+let loggerLoading: Promise<LoggerInterface> | null = null;
 
 function getLoggerSync() {
   // If logger is already loaded, return it
@@ -34,48 +62,48 @@ function getLoggerSync() {
   // If logger is being loaded, return a console-based logger temporarily
   if (loggerLoading) {
     return {
-      info: (...args: any[]) => console.info('[Logger not loaded yet]', ...args),
-      warn: (...args: any[]) => console.warn('[Logger not loaded yet]', ...args),
-      error: (...args: any[]) => console.error('[Logger not loaded yet]', ...args),
-      debug: (...args: any[]) => console.debug('[Logger not loaded yet]', ...args),
+      info: (message: string) => console.info('[Logger not loaded yet]', message),
+      warn: (message: string) => console.warn('[Logger not loaded yet]', message),
+      error: (message: string) => console.error('[Logger not loaded yet]', message),
+      debug: (message: string) => console.debug('[Logger not loaded yet]', message),
     };
   }
   
   // Start loading logger (async, but return sync wrapper)
   loggerLoading = import('@/lib/logger').then(module => {
-    loggerInstance = module.logger;
+    loggerInstance = module.logger as LoggerInterface;
     return loggerInstance;
   }).catch(() => {
     // If loading fails, use console as fallback
     loggerInstance = {
-      info: (...args: any[]) => console.info(...args),
-      warn: (...args: any[]) => console.warn(...args),
-      error: (...args: any[]) => console.error(...args),
-      debug: (...args: any[]) => console.debug(...args),
+      info: (message: string) => console.info(message),
+      warn: (message: string) => console.warn(message),
+      error: (message: string) => console.error(message),
+      debug: (message: string) => console.debug(message),
     };
     return loggerInstance;
   });
   
   // Return console-based logger while loading
   return {
-    info: (...args: any[]) => console.info('[Logger loading...]', ...args),
-    warn: (...args: any[]) => console.warn('[Logger loading...]', ...args),
-    error: (...args: any[]) => console.error('[Logger loading...]', ...args),
-    debug: (...args: any[]) => console.debug('[Logger loading...]', ...args),
+    info: (message: string) => console.info('[Logger loading...]', message),
+    warn: (message: string) => console.warn('[Logger loading...]', message),
+    error: (message: string) => console.error('[Logger loading...]', message),
+    debug: (message: string) => console.debug('[Logger loading...]', message),
   };
 }
 
 // Export logger getter for synchronous use
-const logger = new Proxy({} as any, {
+const logger = new Proxy({} as LoggerInterface, {
   get: (target, prop) => {
-    const logger = getLoggerSync();
-    const method = (logger as any)[prop];
+    const loggerInstance = getLoggerSync();
+    const method = (loggerInstance as Record<string, unknown>)[prop as string];
     if (typeof method === 'function') {
-      return method.bind(logger);
+      return method.bind(loggerInstance);
     }
     return method;
   }
-});
+}) as LoggerInterface;
 
 type ConnectionPoolStats = {
   totalConnections: number;
@@ -153,14 +181,14 @@ This will generate the Prisma Client based on your schema.prisma file.
     });
 
     // Add error handler for connection errors
-    prisma.$on('error' as any, (e: any) => {
+    prisma.$on('error' as never, (e: { message?: string; [key: string]: unknown }) => {
       logger.error(`Prisma error event: ${e.message || JSON.stringify(e)}`, undefined, { details: e });
     });
 
     if (databaseConfig.common.logSlowQueries) {
-      prisma.$on('query' as any, async (e: any) => {
+      prisma.$on('query' as never, async (e: { duration: number; query: string; timestamp: Date }) => {
         if (e.duration > databaseConfig.common.slowQueryThreshold) {
-          logger.warn('Slow query detected:', {
+          logger.warn('Slow query detected:', undefined, {
             duration: e.duration,
             query: e.query,
             timestamp: e.timestamp,
@@ -170,19 +198,24 @@ This will generate the Prisma Client based on your schema.prisma file.
     }
 
     // Add connection error handling with improved retry logic
-    if (typeof prisma.$use === 'function') {
-      prisma.$use(async (params, next) => {
+    interface PrismaWithUse {
+      $use?: (middleware: (params: { model?: string; action?: string; args?: unknown }, next: (params: unknown) => Promise<unknown>) => Promise<unknown>) => void;
+    }
+    const prismaWithUse = prisma as unknown as PrismaWithUse;
+    if (typeof prismaWithUse.$use === 'function') {
+      prismaWithUse.$use(async (params: { model?: string; action?: string; args?: unknown }, next: (params: unknown) => Promise<unknown>) => {
         try {
           return await next(params);
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Handle connection errors
-          if (error?.code === 'P1001' || error?.code === 'P1017' || 
-              error?.message?.includes('Connection') ||
-              error?.message?.includes('ECONNREFUSED') ||
-              error?.message?.includes('ETIMEDOUT')) {
-            logger.error('Database connection error:', {
-              code: error.code,
-              message: error.message,
+          const errorObj = error as { code?: string; message?: string };
+          if (errorObj?.code === 'P1001' || errorObj?.code === 'P1017' || 
+              errorObj?.message?.includes('Connection') ||
+              errorObj?.message?.includes('ECONNREFUSED') ||
+              errorObj?.message?.includes('ETIMEDOUT')) {
+            logger.error('Database connection error:', undefined, {
+              code: errorObj.code,
+              message: errorObj.message,
               databaseUrl: databaseUrl ? '***' : 'not set'
             });
             
@@ -207,8 +240,9 @@ This will generate the Prisma Client based on your schema.prisma file.
                 
                 // Retry the operation once after successful reconnection
                 return await next(params);
-              } catch (reconnectError: any) {
-                logger.warn(`Reconnection attempt ${attempt} failed:`, reconnectError.message);
+              } catch (reconnectError: unknown) {
+                const reconnectErrorObj = reconnectError as { message?: string };
+                logger.warn(`Reconnection attempt ${attempt} failed:`, undefined, { message: reconnectErrorObj.message });
                 if (attempt === 3) {
                   logger.error('Failed to reconnect to database after all attempts');
                   throw error; // Throw original error
@@ -230,10 +264,11 @@ This will generate the Prisma Client based on your schema.prisma file.
     }
 
     return prisma;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Check if error is about Prisma Client not being initialized
-    if (error?.message?.includes('did not initialize yet') || 
-        error?.message?.includes('prisma generate')) {
+    const errorObj = error as { message?: string; code?: string };
+    if (errorObj?.message?.includes('did not initialize yet') || 
+        errorObj?.message?.includes('prisma generate')) {
       const errorMessage = `
 Prisma Client has not been generated yet. Please run:
   npx prisma generate
@@ -241,14 +276,14 @@ Prisma Client has not been generated yet. Please run:
 Or if using npm:
   npm run prisma:generate
 
-Original error: ${error.message}
+Original error: ${errorObj.message}
       `.trim();
       
       throw new Error(errorMessage);
     }
     
     // Handle EPERM errors (Windows file locking issues)
-    if (error?.code === 'EPERM' || error?.message?.includes('EPERM')) {
+    if (errorObj?.code === 'EPERM' || errorObj?.message?.includes('EPERM')) {
       const errorMessage = `
 Prisma Client generation failed due to file permission error (EPERM).
 This usually happens when the Prisma Client files are locked by another process.
@@ -259,7 +294,7 @@ Solutions:
 3. If the issue persists, restart your terminal/IDE
 4. On Windows, check if any antivirus is blocking the file
 
-Original error: ${error.message}
+Original error: ${errorObj.message}
       `.trim();
       
       logger.error(errorMessage);
@@ -283,16 +318,33 @@ type GlobalPrismaContext = typeof globalThis & {
 
 const globalForPrisma = globalThis as GlobalPrismaContext;
 
+// Runtime check to detect multiple Prisma Client instances
+// This helps identify if someone accidentally creates a new PrismaClient instance
+if (process.env.NODE_ENV === 'development') {
+  const existingInstance = (globalThis as GlobalPrismaContext).prismaGlobal;
+  if (existingInstance && existingInstance !== globalForPrisma.prismaGlobal) {
+    logger.warn('⚠️ WARNING: Multiple Prisma Client instances detected! This can cause "Too many connections" errors.');
+    logger.warn('⚠️ Make sure you are importing from "@/lib/db-unified", "@/lib/db", or "@/lib/prisma" only.');
+    logger.warn('⚠️ NEVER import PrismaClient directly from "@prisma/client" and create new instances!');
+  }
+}
+
 // Lazy initialization function - only creates Prisma client when first accessed
 const getPrismaClient = (): ReturnType<typeof prismaClientSingleton> => {
   if (!globalForPrisma.prismaGlobal) {
     try {
       globalForPrisma.prismaGlobal = prismaClientSingleton();
-    } catch (error: any) {
+      
+      // Log in development to help debug connection issues
+      if (process.env.NODE_ENV === 'development') {
+        logger.info('✅ Prisma Client singleton instance created (single connection pool)');
+      }
+    } catch (error: unknown) {
       // Provide a helpful error message if Prisma Client isn't generated
-      if (error?.message?.includes('did not initialize yet') || 
-          error?.message?.includes('prisma generate') ||
-          error?.message?.includes('has not been generated')) {
+      const errorObj = error as { message?: string };
+      if (errorObj?.message?.includes('did not initialize yet') || 
+          errorObj?.message?.includes('prisma generate') ||
+          errorObj?.message?.includes('has not been generated')) {
         const errorMessage = `
 ❌ Prisma Client has not been generated yet!
 
@@ -303,7 +355,7 @@ Please run one of the following commands:
 
 This will generate the Prisma Client based on your prisma/schema.prisma file.
 
-Original error: ${error.message}
+Original error: ${errorObj.message}
         `.trim();
         
         throw new Error(errorMessage);
@@ -360,8 +412,12 @@ const initializePrismaWithMiddleware = () => {
   if (!globalForPrisma.prismaPoolMiddlewareRegistered) {
     try {
       // Check if $use is available before using it
-      if (typeof prisma.$use === 'function') {
-        prisma.$use(async (params, next) => {
+      interface PrismaWithUse {
+        $use?: (middleware: (params: { model?: string; action?: string; args?: unknown }, next: (params: unknown) => Promise<unknown>) => Promise<unknown>) => void;
+      }
+      const prismaWithUse = prisma as unknown as PrismaWithUse;
+      if (typeof prismaWithUse.$use === 'function') {
+        prismaWithUse.$use(async (params: { model?: string; action?: string; args?: unknown }, next: (params: unknown) => Promise<unknown>) => {
           poolStats.activeConnections += 1;
           poolStats.totalConnections = Math.max(
             poolStats.totalConnections,
@@ -405,7 +461,7 @@ const initializePrismaWithMiddleware = () => {
         // Mark as registered even if we couldn't set up middleware to avoid retrying
         globalForPrisma.prismaPoolMiddlewareRegistered = true;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       // If middleware setup fails, log but don't throw
       if (process.env.NODE_ENV === 'development') {
         logger.warn('Failed to set up Prisma middleware:', error);
@@ -422,7 +478,7 @@ const initializePrismaWithMiddleware = () => {
 const getPrisma = () => {
   try {
     return initializePrismaWithMiddleware();
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Re-throw with helpful message
     throw error;
   }
@@ -450,7 +506,7 @@ const getEnhancedPrisma = () => {
         },
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     // If extension fails, return base prisma client
     if (process.env.NODE_ENV === 'development') {
       logger.warn('Failed to create enhanced Prisma client, using base client:', error);
@@ -465,8 +521,8 @@ let prismaInstance: ReturnType<typeof getPrisma> | null = null;
 let enhancedPrismaInstance: ReturnType<typeof getEnhancedPrisma> | null = null;
 
 // Create a proxy object that throws a helpful error when any method is called
-const createErrorProxy = (message: string) => {
-  return new Proxy({}, {
+const createErrorProxy = <T>(message: string): T => {
+  return new Proxy({} as T, {
     get: (target, prop) => {
       if (prop === 'then' || prop === 'catch' || prop === 'finally') {
         // Allow Promise inspection
@@ -477,7 +533,7 @@ const createErrorProxy = (message: string) => {
     apply: () => {
       throw new Error(message);
     }
-  }) as any;
+  });
 };
 
 // Lazy getter for prisma client
@@ -485,8 +541,9 @@ const getPrismaLazy = (): ReturnType<typeof getPrisma> => {
   if (!prismaInstance) {
     try {
       prismaInstance = getPrisma();
-    } catch (error: any) {
-      const errorMessage = error?.message || `
+    } catch (error: unknown) {
+      const errorObj = error as { message?: string };
+      const errorMessage = errorObj?.message || `
 ❌ Prisma Client has not been generated yet!
 
 Please run one of the following commands:
@@ -495,10 +552,10 @@ Please run one of the following commands:
 
 This will generate the Prisma Client based on your prisma/schema.prisma file.
       `.trim();
-      prismaInstance = createErrorProxy(errorMessage);
+      prismaInstance = createErrorProxy<ReturnType<typeof getPrisma>>(errorMessage);
     }
   }
-  return prismaInstance;
+  return prismaInstance as ReturnType<typeof getPrisma>;
 };
 
 // Lazy getter for enhanced prisma client
@@ -506,8 +563,9 @@ const getEnhancedPrismaLazy = (): ReturnType<typeof getEnhancedPrisma> => {
   if (!enhancedPrismaInstance) {
     try {
       enhancedPrismaInstance = getEnhancedPrisma();
-    } catch (error: any) {
-      const errorMessage = error?.message || `
+    } catch (error: unknown) {
+      const errorObj = error as { message?: string };
+      const errorMessage = errorObj?.message || `
 ❌ Prisma Client has not been generated yet!
 
 Please run one of the following commands:
@@ -516,10 +574,10 @@ Please run one of the following commands:
 
 This will generate the Prisma Client based on your prisma/schema.prisma file.
       `.trim();
-      enhancedPrismaInstance = createErrorProxy(errorMessage);
+      enhancedPrismaInstance = createErrorProxy<ReturnType<typeof getEnhancedPrisma>>(errorMessage);
     }
   }
-  return enhancedPrismaInstance;
+  return enhancedPrismaInstance as ReturnType<typeof getEnhancedPrisma>;
 };
 
 // Export lazy getters that create Prisma clients only when accessed
@@ -527,19 +585,19 @@ This will generate the Prisma Client based on your prisma/schema.prisma file.
 export const prisma = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
     const instance = getPrismaLazy();
-    const value = (instance as any)[prop];
+    const value = (instance as Record<string | symbol, unknown>)[prop];
     return typeof value === 'function' ? value.bind(instance) : value;
   }
 }) as ReturnType<typeof getPrisma>;
 
 // Export enhancedPrisma with proper type that includes all Prisma models
 // Using PrismaClient type directly ensures TypeScript recognizes all model properties
-export const enhancedPrisma: PrismaClient = new Proxy({} as any, {
+export const enhancedPrisma: PrismaClient = new Proxy({} as PrismaClient, {
   get: (target, prop) => {
     const instance = getEnhancedPrismaLazy();
-    const value = (instance as any)[prop];
+    const value = (instance as Record<string | symbol, unknown>)[prop];
     return typeof value === 'function' ? value.bind(instance) : value;
   }
-}) as any;
+}) as ReturnType<typeof getEnhancedPrisma>;
 
 export default prisma;

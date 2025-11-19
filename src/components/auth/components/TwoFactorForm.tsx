@@ -2,31 +2,48 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShieldCheck, Loader2 } from 'lucide-react';
-import { LoginErrorBanner } from './LoginErrorBanner';
+import { ErrorBanner } from './ErrorBanner';
 
 interface TwoFactorFormProps {
-  code: string;
+  twoFactorCode: string;
   onCodeChange: (code: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   onBack: () => void;
-  isLoading?: boolean;
-  errorMessage?: string | null;
-  errorCode?: string | null;
+  isLoading: boolean;
+  errorMessage: string | null;
+  errorCode: string | null;
+  formControls: any;
 }
 
-export function TwoFactorForm({
-  code,
+export const TwoFactorForm: React.FC<TwoFactorFormProps> = ({
+  twoFactorCode,
   onCodeChange,
   onSubmit,
   onBack,
-  isLoading = false,
+  isLoading,
   errorMessage,
   errorCode,
-}: TwoFactorFormProps) {
+  formControls,
+}) => {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
+      variants={{
+        initial: { opacity: 0, y: 20, x: 0 },
+        steady: {
+          opacity: 1,
+          y: 0,
+          x: 0,
+          transition: { duration: 0.4, ease: 'easeOut' },
+        },
+        shake: {
+          opacity: 1,
+          y: 0,
+          x: [0, -10, 10, -8, 8, -4, 4, 0],
+          transition: { duration: 0.5, ease: 'easeInOut' },
+        },
+      }}
+      initial="initial"
+      animate={formControls}
       className="rounded-3xl bg-white/10 p-8 shadow-2xl backdrop-blur-xl"
     >
       <motion.div
@@ -49,11 +66,7 @@ export function TwoFactorForm({
         </p>
       </motion.div>
 
-      <LoginErrorBanner
-        message={errorMessage}
-        errorCode={errorCode}
-        id="twofactor-error-banner"
-      />
+      <ErrorBanner message={errorMessage} code={errorCode} />
 
       <form onSubmit={onSubmit} className="space-y-6">
         <motion.div
@@ -63,8 +76,10 @@ export function TwoFactorForm({
         >
           <input
             type="text"
-            value={code}
-            onChange={(e) => onCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            value={twoFactorCode}
+            onChange={(e) =>
+              onCodeChange(e.target.value.replace(/\D/g, '').slice(0, 6))
+            }
             placeholder="000000"
             className="w-full rounded-xl bg-white/10 px-6 py-4 text-center text-2xl tracking-widest text-white placeholder-slate-400 focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all"
             maxLength={6}
@@ -88,7 +103,7 @@ export function TwoFactorForm({
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           type="submit"
-          disabled={isLoading || code.length !== 6}
+          disabled={isLoading || twoFactorCode.length !== 6}
           className="w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 font-semibold text-white shadow-lg transition hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           aria-label="تحقق من الرمز"
         >
@@ -115,5 +130,4 @@ export function TwoFactorForm({
       </form>
     </motion.div>
   );
-}
-
+};

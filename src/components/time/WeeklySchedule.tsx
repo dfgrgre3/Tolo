@@ -65,30 +65,6 @@ export default function WeeklySchedule({
   // Statistics
   const [weekStats, setWeekStats] = useState(calculateWeekStats([], currentWeek));
 
-  useEffect(() => {
-    loadScheduleData();
-  }, [loadScheduleData]);
-
-  // Memoize week stats calculation
-  const weekStatsMemo = useMemo(() => {
-    return calculateWeekStats(timeBlocks, currentWeek);
-  }, [timeBlocks, currentWeek]);
-
-  useEffect(() => {
-    setWeekStats(weekStatsMemo);
-  }, [weekStatsMemo]);
-
-  // Debounced auto-save
-  useEffect(() => {
-    if (!autoSave) return;
-    
-    const timer = setTimeout(() => {
-      saveSchedule();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [timeBlocks, autoSave, saveSchedule]);
-
   const loadScheduleData = useCallback(() => {
     if (!schedule?.planJson) {
       setTimeBlocks([]);
@@ -103,6 +79,19 @@ export default function WeeklySchedule({
       setTimeBlocks([]);
     }
   }, [schedule]);
+
+  useEffect(() => {
+    loadScheduleData();
+  }, [loadScheduleData]);
+
+  // Memoize week stats calculation
+  const weekStatsMemo = useMemo(() => {
+    return calculateWeekStats(timeBlocks, currentWeek);
+  }, [timeBlocks, currentWeek]);
+
+  useEffect(() => {
+    setWeekStats(weekStatsMemo);
+  }, [weekStatsMemo]);
 
   const saveSchedule = useCallback(async () => {
     if (!userId) {
@@ -142,6 +131,16 @@ export default function WeeklySchedule({
     }
   }, [timeBlocks, userId, schedule, onScheduleUpdate]);
 
+  // Debounced auto-save
+  useEffect(() => {
+    if (!autoSave) return;
+    
+    const timer = setTimeout(() => {
+      saveSchedule();
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [timeBlocks, autoSave, saveSchedule]);
 
   const handleSlotClick = useCallback((day: number, time: string) => {
     setSelectedSlot({ day, time });
@@ -202,8 +201,26 @@ export default function WeeklySchedule({
       setTimeBlocks(prev => [...prev, newBlock]);
     }
 
-    handleDialogClose();
-  }, [formData, blockToEdit, handleDialogClose]);
+    setIsDialogOpen(false);
+    setBlockToEdit(null);
+    setSelectedSlot(null);
+    setFormData(prev => ({
+      ...prev,
+      title: '',
+      description: '',
+      startTime: '09:00',
+      endTime: '10:00',
+      day: 0,
+      color: '#3b82f6',
+      type: 'STUDY' as TimeBlock['type'],
+      subject: '',
+      priority: 'MEDIUM' as TimeBlock['priority'],
+      isRecurring: false,
+      recurringPattern: 'WEEKLY' as TimeBlock['recurringPattern'],
+      reminders: [],
+      location: '',
+    }));
+  }, [formData, blockToEdit]);
 
   const handleDialogClose = useCallback(() => {
     setIsDialogOpen(false);

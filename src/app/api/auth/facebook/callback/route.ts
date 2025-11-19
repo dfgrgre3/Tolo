@@ -4,7 +4,7 @@ import { oauthConfig, verifyState, generateToken } from '@/lib/oauth';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { getSecureCookieOptions } from '../_helpers';
+import { getSecureCookieOptions } from '@/app/api/auth/_helpers';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {

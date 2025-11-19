@@ -1,167 +1,70 @@
-import { prisma as prismaClient, enhancedPrisma as enhancedPrismaClient } from './db-unified';
-import { logger } from '@/lib/logger';
-
-// Database connection configuration with pooling settings
-export const databaseConfig = {
-  // SQLite configuration (development)
-  sqlite: {
-    url: process.env.DATABASE_URL || 'file:./dev.db',
-    connectionLimit: 1, // SQLite only supports one connection
-  },
-
-  // PostgreSQL configuration (production)
-  postgresql: {
-    url: process.env.DATABASE_URL || 'postgresql://user:password@localhost:5432/thanawy',
-    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10', 10),
-    minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE || '2', 10),
-    maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE || '20', 10),
-    idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10), // 30 seconds
-    connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10), // 2 seconds
-  },
-
-  // MySQL configuration (alternative production)
-  mysql: {
-    url: process.env.DATABASE_URL || 'mysql://user:password@localhost:3306/thanawy',
-    connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT || '10', 10),
-    minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE || '2', 10),
-    maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE || '20', 10),
-    idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10), // 30 seconds
-    connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || '2000', 10), // 2 seconds
-  },
-
-  // Common settings
-  common: {
-    logQueries: process.env.NODE_ENV === 'development',
-    logSlowQueries: true,
-    slowQueryThreshold: parseInt(process.env.SLOW_QUERY_THRESHOLD || '1000', 10), // 1 second
-    retryAttempts: parseInt(process.env.DB_RETRY_ATTEMPTS || '3', 10),
-    retryDelay: parseInt(process.env.DB_RETRY_DELAY || '1000', 10), // 1 second
-  }
-};
-
-// Define database configuration interface
-export interface DatabaseConfig {
-  /** Whether to log queries */
-  logQueries: boolean;
-  /** Whether to log slow queries */
-  logSlowQueries: boolean;
-  /** Slow query threshold (ms) */
-  slowQueryThreshold: number;
-  /** Maximum connection pool size */
-  maxPoolSize: number;
-  /** Connection timeout (ms) */
-  connectionTimeout: number;
-  /** Idle timeout (ms) */
-  idleTimeout: number;
-  /** Minimum connection pool size */
-  minPoolSize: number;
-  /** Connection acquisition timeout */
-  acquireTimeout: number;
-}
-
 /**
- * Get base database configuration
- * Reads from environment variables, provides defaults
+ * Unified database module - وحدة قاعدة البيانات الموحدة
+ * 
+ * ⚠️ CRITICAL: This file does NOT create Prisma Client instances.
+ * ⚠️ CRITICAL: هذا الملف لا ينشئ نسخ جديدة من Prisma Client.
+ * 
+ * ⚠️ CRITICAL: NEVER import PrismaClient directly from '@prisma/client' in application code!
+ * ⚠️ CRITICAL: لا تستورد PrismaClient مباشرة من '@prisma/client' في كود التطبيق!
+ * 
+ * ⚠️ CRITICAL: NEVER create new PrismaClient() instances anywhere else!
+ * ⚠️ CRITICAL: لا تنشئ نسخ جديدة من PrismaClient في أي مكان آخر!
+ * 
+ * ✅ This file ONLY re-exports from db-unified.ts and database.ts.
+ * ✅ هذا الملف يعيد التصدير فقط من db-unified.ts و database.ts.
+ * 
+ * 📋 Purpose: Compatibility layer that provides both Prisma client and database configuration.
+ * 📋 الغرض: طبقة توافق توفر كل من عميل Prisma وإعدادات قاعدة البيانات.
+ * 
+ * 📦 Re-exports from:
+ * 📦 يعيد التصدير من:
+ *   - db-unified.ts: Prisma Client singleton instances (single source of truth)
+ *   - database.ts: Database configuration (single source of truth)
+ * 
+ * ✅ All Prisma clients are sourced from db-unified.ts to ensure a single connection pool.
+ * ✅ جميع عملاء Prisma مصدرهم db-unified.ts لضمان pool اتصال واحد فقط.
+ * 
+ * ❌ Creating multiple Prisma Client instances leads to "Too many connections" errors.
+ * ❌ إنشاء نسخ متعددة من Prisma Client يؤدي إلى خطأ "Too many connections".
+ * 
+ * 📝 Usage:
+ * 📝 الاستخدام:
+ *   - Import Prisma: import { prisma } from '@/lib/db'
+ *   - Import Config: import { databaseConfig } from '@/lib/db'
+ *   - Both use the singleton instances (no new connections created)
+ *   - كلاهما يستخدم النسخ الوحيدة (لا يتم إنشاء اتصالات جديدة)
+ * 
+ * 🔍 To check for conflicts, run: grep -r "new PrismaClient" src/
+ * 🔍 للتحقق من التضارب، نفذ: grep -r "new PrismaClient" src/
  */
-export const getBaseDatabaseConfig = (): DatabaseConfig => {
-  return {
-    logQueries: process.env.DB_LOG_QUERIES?.toLowerCase() === 'true' ||
-                process.env.NODE_ENV === 'development',
-    logSlowQueries: process.env.DB_LOG_SLOW_QUERIES?.toLowerCase() === 'true' ||
-                    process.env.NODE_ENV === 'development',
-    slowQueryThreshold: parseInt(process.env.DB_SLOW_QUERY_THRESHOLD || '1000', 10),
-    maxPoolSize: parseInt(process.env.DB_MAX_POOL_SIZE || '20', 10),
-    minPoolSize: parseInt(process.env.DB_MIN_POOL_SIZE || '5', 10),
-    connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10),
-    idleTimeout: parseInt(process.env.DB_IDLE_TIMEOUT || '30000', 10),
-    acquireTimeout: parseInt(process.env.DB_ACQUIRE_TIMEOUT || '5000', 10),
-  };
-};
 
-// Get the appropriate configuration based on the database URL
-export function getDatabaseConfig() {
-  const databaseUrl = process.env.DATABASE_URL || 'file:./dev.db';
+// ⚠️ CRITICAL: This file ONLY re-exports - it does NOT create Prisma Client instances
+// ⚠️ CRITICAL: هذا الملف يعيد التصدير فقط - لا ينشئ نسخ جديدة من Prisma Client
+// 
+// ✅ All Prisma clients come from db-unified.ts (single source of truth)
+// ✅ جميع عملاء Prisma تأتي من db-unified.ts (المصدر الوحيد الموثوق)
+// 
+// ❌ DO NOT import PrismaClient from '@prisma/client' here!
+// ❌ لا تستورد PrismaClient من '@prisma/client' هنا!
+// 
+// ❌ DO NOT create new PrismaClient() instances here!
+// ❌ لا تنشئ نسخ جديدة من PrismaClient() هنا!
 
-  if (databaseUrl.startsWith('postgres')) {
-    return {
-      ...databaseConfig.postgresql,
-      ...databaseConfig.common
-    };
-  }
+// Re-export Prisma clients from db-unified.ts (single source of truth)
+export { prisma, enhancedPrisma, default as prismaDefault } from './db-unified';
 
-  if (databaseUrl.startsWith('mysql')) {
-    return {
-      ...databaseConfig.mysql,
-      ...databaseConfig.common
-    };
-  }
+// Re-export database configuration from database.ts (single source of truth)
+export {
+  databaseConfig,
+  getBaseDatabaseConfig,
+  getDatabaseConfig,
+  type ConnectionPoolStats,
+  defaultPoolStats,
+} from './database';
 
-  // Default to SQLite
-  return {
-    ...databaseConfig.sqlite,
-    ...databaseConfig.common
-  };
-}
-
-// Connection pool monitoring
-export interface ConnectionPoolStats {
-  totalConnections: number;
-  activeConnections: number;
-  idleConnections: number;
-  waitingRequests: number;
-  maxConnections?: number;
-  connectionTimeout?: number;
-  idleTimeout?: number;
-}
-
-// Default pool stats (for monitoring purposes)
-export const defaultPoolStats: ConnectionPoolStats = {
-  totalConnections: 0,
-  activeConnections: 0,
-  idleConnections: 0,
-  waitingRequests: 0,
-  maxConnections: 10,
-  connectionTimeout: 30000, // 30 seconds
-  idleTimeout: 60000, // 60 seconds
-};
-
-// Centralized Prisma clients sourced from db-unified singleton
-export const prisma = prismaClient;
-export const enhancedPrisma = enhancedPrismaClient;
-
-// Connection pooling utility functions
-export const connectionPoolUtils = {
-  /**
-   * Check if connection pool needs optimization
-   */
-  shouldOptimizePool: (stats: ConnectionPoolStats): boolean => {
-    // Optimize if more than 80% of connections are idle
-    return stats.totalConnections > 0 &&
-           (stats.idleConnections / stats.totalConnections) > 0.8;
-  },
-
-  /**
-   * Get recommended pool size based on current usage
-   */
-  getRecommendedPoolSize: (stats: ConnectionPoolStats): number => {
-    // Calculate recommended pool size based on usage patterns
-    const utilization = stats.totalConnections > 0 ?
-      (stats.activeConnections / stats.totalConnections) : 0;
-
-    // If utilization is high, recommend increasing pool size
-    if (utilization > 0.8) {
-      return Math.min(stats.maxConnections! * 1.5, 50); // Cap at 50
-    }
-
-    // If utilization is low, recommend decreasing pool size
-    if (utilization < 0.2 && stats.totalConnections > 5) {
-      return Math.max(stats.maxConnections! * 0.8, 5); // Floor at 5
-    }
-
-    // Otherwise, keep current size
-    return stats.maxConnections!;
-  }
-};
+// Import for use in helper functions (this uses the singleton from db-unified.ts)
+import { prisma } from './db-unified';
+import { logger } from '@/lib/logger';
 
 // Graceful shutdown handling
 export const closeDatabaseConnection = async () => {
@@ -310,6 +213,40 @@ export const ensureDatabaseConnection = async (): Promise<boolean> => {
   } catch (error) {
     logger.error('Failed to ensure database connection:', error);
     return false;
+  }
+};
+
+// Connection pooling utility functions
+export const connectionPoolUtils = {
+  /**
+   * Check if connection pool needs optimization
+   */
+  shouldOptimizePool: (stats: ConnectionPoolStats): boolean => {
+    // Optimize if more than 80% of connections are idle
+    return stats.totalConnections > 0 &&
+           (stats.idleConnections / stats.totalConnections) > 0.8;
+  },
+
+  /**
+   * Get recommended pool size based on current usage
+   */
+  getRecommendedPoolSize: (stats: ConnectionPoolStats): number => {
+    // Calculate recommended pool size based on usage patterns
+    const utilization = stats.totalConnections > 0 ?
+      (stats.activeConnections / stats.totalConnections) : 0;
+
+    // If utilization is high, recommend increasing pool size
+    if (utilization > 0.8) {
+      return Math.min(stats.maxConnections! * 1.5, 50); // Cap at 50
+    }
+
+    // If utilization is low, recommend decreasing pool size
+    if (utilization < 0.2 && stats.totalConnections > 5) {
+      return Math.max(stats.maxConnections! * 0.8, 5); // Floor at 5
+    }
+
+    // Otherwise, keep current size
+    return stats.maxConnections!;
   }
 };
 

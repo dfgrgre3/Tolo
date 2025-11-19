@@ -169,19 +169,19 @@ export class AdvancedGamificationService {
       totalStudyTime: user.totalStudyTime || 0,
       tasksCompleted: user.tasksCompleted || 0,
       examsPassed: user.examsPassed || 0,
-      achievements: user.achievements.map(a => a.achievementKey),
-      customGoals: user.customGoals.map(g => ({
+      achievements: user.achievements.map((a: { achievementKey: string }) => a.achievementKey),
+      customGoals: user.customGoals.map((g: { id: string; userId: string; title: string; description: string | null; targetValue: number; currentValue: number; category: string | null; unit?: string | null; isCompleted?: boolean; createdAt?: Date; completedAt?: Date | null }) => ({
         id: g.id,
         userId: g.userId,
         title: g.title,
-        description: g.description,
+        description: g.description || '',
         targetValue: g.targetValue,
         currentValue: g.currentValue,
-        unit: g.unit,
-        category: g.category,
-        isCompleted: g.isCompleted,
-        createdAt: g.createdAt,
-        completedAt: g.completedAt
+        unit: g.unit || undefined,
+        category: g.category || '',
+        isCompleted: g.isCompleted || false,
+        createdAt: g.createdAt || new Date(),
+        completedAt: g.completedAt || undefined
       }))
     };
   }
@@ -262,7 +262,7 @@ export class AdvancedGamificationService {
       take: limit
     });
 
-    return participations.map((p, index) => ({
+    return participations.map((p: { userId: string; seasonXP?: number | null; user: { username: string | null; level?: number | null; avatar?: string | null } }, index: number) => ({
       userId: p.userId,
       username: p.user.username || 'مستخدم مجهول',
       totalXP: 0,
@@ -271,7 +271,7 @@ export class AdvancedGamificationService {
       examXP: 0,
       challengeXP: 0,
       questXP: 0,
-      seasonXP: p.seasonXP,
+      seasonXP: p.seasonXP || 0,
       level: p.user.level || 1,
       rank: index + 1,
       avatar: p.user.avatar || undefined
@@ -296,13 +296,13 @@ export class AdvancedGamificationService {
       orderBy: { startDate: 'desc' }
     });
 
-    return challenges.map(c => ({
+    return challenges.map((c: { id: string; title: string; description: string | null; type: string; category: string | null; startDate: Date; endDate: Date; xpReward: number; requirements: unknown; difficulty?: string | null; subject?: string | null; levelRange?: unknown }) => ({
       id: c.id,
       title: c.title,
-      description: c.description,
+      description: c.description || '',
       type: c.type as any,
       category: c.category as any,
-      difficulty: c.difficulty as any,
+      difficulty: (c.difficulty as any) || undefined,
       xpReward: c.xpReward,
       requirements: c.requirements as Record<string, any>,
       startDate: c.startDate,
@@ -351,15 +351,15 @@ export class AdvancedGamificationService {
       }
     });
 
-    const completionMap = new Map(completions.map(c => [c.challengeId, c]));
+    const completionMap = new Map(completions.map((c: { challengeId: string; progress?: number; isCompleted?: boolean }) => [c.challengeId, c]));
 
-    return challenges.map(challenge => {
+    return challenges.map((challenge: any) => {
       const completion = completionMap.get(challenge.id);
       return {
         ...challenge,
-        progress: completion?.progress || 0,
-        isCompleted: completion?.isCompleted || false
-      };
+        progress: (completion as { progress?: number } | undefined)?.progress || 0,
+        isCompleted: (completion as { isCompleted?: boolean } | undefined)?.isCompleted || false
+      } as Challenge & { progress: number; isCompleted: boolean };
     });
   }
 
@@ -374,22 +374,22 @@ export class AdvancedGamificationService {
       }
     });
 
-    return chains.map(chain => ({
+    return chains.map((chain: { id: string; title: string; description: string | null; category: string | null; difficulty: string | null; quests: Array<{ id: string; chainId: string; title: string; description: string | null; order: number }> }) => ({
       id: chain.id,
       title: chain.title,
-      description: chain.description,
-      category: chain.category,
-      difficulty: chain.difficulty,
+      description: chain.description || '',
+      category: chain.category || '',
+      difficulty: chain.difficulty || '',
       totalQuests: chain.quests.length,
-      quests: chain.quests.map(q => ({
+      quests: chain.quests.map((q: { id: string; chainId: string; title: string; description: string | null; order: number; xpReward?: number; requirements?: unknown; prerequisites?: string[] | null }) => ({
         id: q.id,
         chainId: q.chainId,
         title: q.title,
-        description: q.description,
+        description: q.description || '',
         order: q.order,
-        xpReward: q.xpReward,
-        requirements: q.requirements as Record<string, any>,
-        prerequisites: q.prerequisites as string[] | undefined
+        xpReward: q.xpReward || 0,
+        requirements: (q.requirements as Record<string, any>) || {},
+        prerequisites: q.prerequisites || undefined
       }))
     }));
   }
@@ -413,21 +413,21 @@ export class AdvancedGamificationService {
       }
     });
 
-    const progressMap = new Map(progresses.map(p => [p.questId, p]));
+    const progressMap = new Map(progresses.map((p: { questId: string; progress?: number; isCompleted?: boolean }) => [p.questId, p]));
 
-    return chain.quests.map(quest => {
+    return chain.quests.map((quest: { id: string; chainId: string; title: string; description: string | null; order: number; xpReward: number; requirements: unknown; prerequisites: string[] | null }) => {
       const progress = progressMap.get(quest.id);
       return {
         id: quest.id,
         chainId: quest.chainId,
         title: quest.title,
-        description: quest.description,
+        description: quest.description || '',
         order: quest.order,
         xpReward: quest.xpReward,
-        requirements: quest.requirements as Record<string, any>,
-        prerequisites: quest.prerequisites as string[] | undefined,
-        progress: progress?.progress || 0,
-        isCompleted: progress?.isCompleted || false
+        requirements: quest.requirements as Record<string, unknown>,
+        prerequisites: quest.prerequisites || undefined,
+        progress: (progress as { progress?: number } | undefined)?.progress || 0,
+        isCompleted: (progress as { isCompleted?: boolean } | undefined)?.isCompleted || false
       };
     });
   }
@@ -519,22 +519,29 @@ export class AdvancedGamificationService {
         take: limit
       });
 
-      return entries.map((entry, index) => ({
-        userId: entry.userId,
-        username: entry.user.username || 'مستخدم مجهول',
-        totalXP: entry.totalXP,
-        studyXP: entry.studyXP,
-        taskXP: entry.taskXP,
-        examXP: entry.examXP,
-        challengeXP: entry.challengeXP,
-        questXP: entry.questXP,
-        seasonXP: entry.seasonXP || 0,
-        level: entry.level,
-        rank: entry.rank || index + 1,
-        avatar: entry.user.avatar || undefined,
-        subject: entry.subject || undefined,
-        levelRange: entry.levelRange || undefined
-      }));
+      return entries.map((entry: { userId: string; user: { username: string | null }; totalXP: number; studyXP: number; taskXP: number; examXP: number; challengeXP: number }, index: number) => {
+        const levelRange = (entry as { levelRange?: [number, number] | string }).levelRange;
+        const levelRangeStr = Array.isArray(levelRange) 
+          ? `${levelRange[0]}-${levelRange[1]}` 
+          : (typeof levelRange === 'string' ? levelRange : undefined);
+        
+        return {
+          userId: entry.userId,
+          username: entry.user.username || 'مستخدم مجهول',
+          totalXP: entry.totalXP,
+          studyXP: entry.studyXP,
+          taskXP: entry.taskXP,
+          examXP: entry.examXP,
+          challengeXP: entry.challengeXP,
+          questXP: (entry as { questXP?: number }).questXP || 0,
+          seasonXP: (entry as { seasonXP?: number }).seasonXP || 0,
+          level: (entry as { level?: number }).level || 1,
+          rank: (entry as { rank?: number }).rank || index + 1,
+          avatar: (entry.user as { avatar?: string | null }).avatar || undefined,
+          subject: (entry as { subject?: string }).subject || undefined,
+          levelRange: levelRangeStr
+        };
+      });
     }
 
     // Global leaderboard - use User table
@@ -556,7 +563,7 @@ export class AdvancedGamificationService {
       take: limit
     });
 
-    return users.map((user, index) => ({
+    return users.map((user: { id: string; username: string | null; totalXP: number | null; studyXP: number | null; taskXP: number | null; examXP: number | null; challengeXP: number | null }, index: number) => ({
       userId: user.id,
       username: user.username || 'مستخدم مجهول',
       totalXP: user.totalXP || 0,
@@ -564,11 +571,11 @@ export class AdvancedGamificationService {
       taskXP: user.taskXP || 0,
       examXP: user.examXP || 0,
       challengeXP: user.challengeXP || 0,
-      questXP: user.questXP || 0,
-      seasonXP: user.seasonXP || 0,
-      level: user.level || 1,
+      questXP: (user as { questXP?: number | null }).questXP || 0,
+      seasonXP: (user as { seasonXP?: number | null }).seasonXP || 0,
+      level: (user as { level?: number | null }).level || 1,
       rank: index + 1,
-      avatar: user.avatar || undefined
+      avatar: (user as { avatar?: string | null }).avatar || undefined
     }));
   }
 
@@ -654,14 +661,14 @@ export class AdvancedGamificationService {
       }
     });
 
-    return userRewards.map(ur => ({
+    return userRewards.map((ur: { reward: { id: string; name: string; description: string | null; type: string; xpCost: number; icon: string | null; rarity: string | null } }) => ({
       id: ur.reward.id,
       name: ur.reward.name,
-      description: ur.reward.description,
+      description: ur.reward.description || '',
       type: ur.reward.type as any,
       rarity: ur.reward.rarity as any,
-      imageUrl: ur.reward.imageUrl || undefined,
-      metadata: ur.reward.metadata as any
+      imageUrl: (ur.reward as { imageUrl?: string | null }).imageUrl || undefined,
+      metadata: (ur.reward as { metadata?: unknown }).metadata as any
     }));
   }
 

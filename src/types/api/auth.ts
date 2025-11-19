@@ -63,6 +63,7 @@ export interface LoginErrorResponse {
   failedAttempts?: number;
   retryAfterSeconds?: number;
   lockedUntil?: string;
+  blockedUntil?: string;
   attempts?: number;
   details?: Record<string, string[]>;
   riskLevel?: string;

@@ -1,7 +1,8 @@
 import { prisma, enhancedPrisma } from './db';
 import redisClient, { CacheService } from './redis';
 import { ConnectionPoolStats, defaultPoolStats, getDatabaseConfig } from './db';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 type PrismaMonitoringClient = typeof enhancedPrisma & {
   getConnectionPoolStats?: () => ConnectionPoolStats;
@@ -68,8 +69,9 @@ export class DatabaseMonitor {
   private setupQueryMonitoring(): void {
     try {
       // Check if $use is available (it might not be on Proxy objects or extended clients)
-      if (typeof prisma.$use === 'function') {
-        prisma.$use(async (params, next) => {
+      const prismaWithUse = prisma as any;
+      if (typeof prismaWithUse.$use === 'function') {
+        prismaWithUse.$use(async (params: any, next: any) => {
           const before = Date.now();
           
           try {

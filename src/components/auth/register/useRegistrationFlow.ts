@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEnhancedAuth } from '@/lib/auth-hook-enhanced';
-import { safeGetItem } from '@/lib/safe-client-utils';
 import {
   evaluatePassword,
   validateProfileState,
@@ -27,7 +26,17 @@ export function useRegistrationFlow(options: UseRegistrationFlowOptions = {}) {
   const { onClose } = options;
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, register, loading } = useEnhancedAuth();
+  const { user } = useEnhancedAuth();
+  const loading = false;
+  const register = async (data: { email: string; password: string; name: string }) => {
+    const response = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error('Registration failed');
+    return response.json();
+  };
 
   const [currentStep, setCurrentStep] =
     useState<RegistrationStep>('profile');
@@ -167,31 +176,25 @@ export function useRegistrationFlow(options: UseRegistrationFlowOptions = {}) {
         let marketingOptInApplied: boolean | undefined;
         let twoFactorSetup: RegistrationResult['twoFactorSetup'] | undefined;
 
-        const authToken =
-          outcome.token ||
-          (safeGetItem('access_token', { fallback: null }) ??
-          safeGetItem('accessToken', { fallback: null }));
-
-        const authHeaders =
-          authToken && authToken.length > 0
-            ? {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${authToken}`,
-              }
-            : undefined;
+        // Token is in httpOnly cookie (set by server after registration/login)
+        // No need to get token from localStorage or send Authorization header
+        // The server will read the token from cookies automatically
 
         // Update marketing/email notification preference
-        if (authHeaders) {
-          try {
-            const response = await fetch('/api/user/notification-settings', {
-              method: 'PUT',
-              headers: authHeaders,
-              body: JSON.stringify({
-                emailNotifications: security.marketingOptIn,
-                smsNotifications: false,
-                phone: null,
-              }),
-            });
+        // Use cookies for authentication (credentials: 'include')
+        try {
+          const response = await fetch('/api/user/notification-settings', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include', // Important: send cookies for authentication
+            body: JSON.stringify({
+              emailNotifications: security.marketingOptIn,
+              smsNotifications: false,
+              phone: null,
+            }),
+          });
 
             if (!response.ok) {
               throw new Error('Failed to update notification settings');
@@ -212,24 +215,19 @@ export function useRegistrationFlow(options: UseRegistrationFlowOptions = {}) {
                 'تعذر تحديث تفضيلات البريد الآن، يمكنك إعادة المحاولة من صفحة الإشعارات.',
             });
           }
-        } else if (security.marketingOptIn) {
-          marketingOptInApplied = false;
-          postActions.push({
-            type: 'warning',
-            message:
-              'لم نتمكن من تفعيل رسائل البريد بسبب انتهاء الجلسة، أعد تسجيل الدخول وحاول مرة أخرى.',
-          });
-        }
 
         // Initiate two-factor setup if requested
+        // Use cookies for authentication (credentials: 'include')
         if (security.enableTwoFactor) {
-          if (authHeaders) {
-            try {
-              const response = await fetch('/api/auth/two-factor', {
-                method: 'POST',
-                headers: authHeaders,
-                body: JSON.stringify({ action: 'setup' }),
-              });
+          try {
+            const response = await fetch('/api/auth/two-factor', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              credentials: 'include', // Important: send cookies for authentication
+              body: JSON.stringify({ action: 'setup' }),
+            });
 
               if (!response.ok) {
                 throw new Error('Failed to setup 2FA');
@@ -268,13 +266,6 @@ export function useRegistrationFlow(options: UseRegistrationFlowOptions = {}) {
                   'تعذر بدء المصادقة الثنائية آلياً، يمكنك تفعيلها لاحقاً من الإعدادات.',
               });
             }
-          } else {
-            postActions.push({
-              type: 'warning',
-              message:
-                'لم يتم تهيئة المصادقة الثنائية بسبب الجلسة الحالية، يرجى التفعيل من صفحة الأمان.',
-            });
-          }
         }
 
         const registrationResult: RegistrationResult = {

@@ -3,7 +3,8 @@ import { AlertTriangle, RefreshCw, Home, MessageCircle } from 'lucide-react';
 import errorLogger from '../services/ErrorLogger';
 import errorManager from '../services/ErrorManager';
 import ErrorPage, { ErrorType } from './ErrorPages';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: ReactNode;
@@ -39,7 +40,7 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentWillUnmount() {
     // Unregister when unmounting
-    errorManager.registerBoundaryCallback(null);
+    errorManager.registerBoundaryCallback(() => {});
   }
 
   handleBoundaryError = (error: Error, errorId: string) => {

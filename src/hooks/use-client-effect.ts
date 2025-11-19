@@ -31,7 +31,7 @@ async function getLogger() {
  */
 export function useClientEffect(
   effect: () => void | (() => void),
-  deps?: React.DependencyArray,
+  deps?: React.DependencyList,
   options?: {
     priority?: 'low' | 'normal' | 'high';
     skipHydration?: boolean;
@@ -105,7 +105,7 @@ export function useClientEffect(
  */
 export function useClientEffectSafe(
   effect: () => void | (() => void),
-  deps?: React.DependencyArray,
+  deps?: React.DependencyList,
   options?: {
     skipHydration?: boolean;
     priority?: 'low' | 'normal' | 'high';
@@ -151,7 +151,7 @@ export function useClientEffectSafe(
  * @param effect The effect function to run
  * @param deps Dependency array for the effect
  */
-export function useClientLayoutEffect(effect: () => void | (() => void), deps?: React.DependencyArray) {
+export function useClientLayoutEffect(effect: () => void | (() => void), deps?: React.DependencyList) {
   useLayoutEffect(() => {
     // Only run the effect on the client side
     if (typeof window !== 'undefined' && typeof effect === 'function') {

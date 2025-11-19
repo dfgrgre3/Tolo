@@ -75,7 +75,19 @@ function throttle<T extends (...args: unknown[]) => unknown>(
 
 export default function Header() {
 	const pathname = usePathname();
-	const { user } = useAuth();
+	const [isMounted, setIsMounted] = useState(false);
+	
+	// Ensure component is mounted before using hooks
+	useEffect(() => {
+		setIsMounted(true);
+	}, []);
+	
+	// Safely get user - useAuth returns default values if context is not available
+	// useAuth handles SSR and missing context gracefully and never throws
+	// It will return default context if provider is not available
+	// useAuth is now wrapped in try-catch internally, so it will never throw
+	const authContext = useAuth();
+	const user = authContext?.user ?? null;
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 	const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -195,11 +207,11 @@ export default function Header() {
 				mounted &&
 					isScrolled &&
 					"shadow-xl shadow-black/10 dark:shadow-black/30 border-b-border/50",
-				user &&
+				isMounted && user &&
 					"border-primary/20 dark:border-primary/30 bg-gradient-to-r from-primary/5 via-background/80 to-primary/5 dark:from-primary/10 dark:via-background/70 dark:to-primary/10 shadow-primary/10",
 				headerPreferences.compactMode && "h-12"
 			),
-		[mounted, isScrolled, user, headerPreferences.compactMode]
+		[mounted, isScrolled, isMounted, user, headerPreferences.compactMode]
 	);
 
 	return (
@@ -257,7 +269,7 @@ export default function Header() {
 						)}
 
 						{/* Notifications Dropdown */}
-						<EnhancedNotifications user={user} mounted={mounted} />
+						{isMounted && <EnhancedNotifications user={user} mounted={mounted} />}
 
 						{/* User Menu / Login */}
 						<HeaderUserMenu />

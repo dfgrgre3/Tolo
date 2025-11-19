@@ -21,7 +21,7 @@ export function TaskForm({ control, register, errors }: TaskFormProps) {
         </Label>
         <Input id="title" {...register('title')} className="col-span-3" />
       </div>
-      {errors.title && <p className="text-red-500 col-start-2 col-span-3">{errors.title.message}</p>}
+      {errors.title && <p className="text-red-500 col-start-2 col-span-3">{String(errors.title.message)}</p>}
 
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="description" className="text-right">

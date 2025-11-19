@@ -37,7 +37,7 @@ export interface DeviceInfo {
 }
 
 /**
- * Generate device fingerprint from browser data
+ * Generate device fingerprint from browser data with validation
  */
 export function generateDeviceFingerprint(data: {
   userAgent: string;
@@ -48,16 +48,38 @@ export function generateDeviceFingerprint(data: {
   canvas?: string;
   webgl?: string;
 }): DeviceFingerprint {
-  const ua = parseUserAgent(data.userAgent);
+  // Validate input
+  if (!data || typeof data !== 'object') {
+    throw new Error('Invalid device fingerprint data');
+  }
+
+  if (!data.userAgent || typeof data.userAgent !== 'string' || data.userAgent.trim().length === 0) {
+    throw new Error('User agent is required');
+  }
+
+  // Validate screen data if provided
+  if (data.screen) {
+    if (typeof data.screen.width !== 'number' || data.screen.width < 0 ||
+        typeof data.screen.height !== 'number' || data.screen.height < 0 ||
+        typeof data.screen.colorDepth !== 'number' || data.screen.colorDepth < 0) {
+      throw new Error('Invalid screen data');
+    }
+  }
+
+  // Validate and sanitize user agent (limit length to prevent DoS)
+  const sanitizedUserAgent = data.userAgent.trim().slice(0, 500);
   
+  const ua = parseUserAgent(sanitizedUserAgent);
+  
+  // Validate and sanitize components
   const components: string[] = [
-    data.userAgent,
+    sanitizedUserAgent,
     data.screen ? `${data.screen.width}x${data.screen.height}x${data.screen.colorDepth}` : '',
-    data.timezone || new Date().getTimezoneOffset().toString(),
-    data.language || navigator.language,
-    data.platform || navigator.platform,
-    data.canvas || '',
-    data.webgl || '',
+    data.timezone ? data.timezone.trim().slice(0, 100) : (typeof navigator !== 'undefined' ? new Date().getTimezoneOffset().toString() : '0'),
+    data.language ? data.language.trim().slice(0, 50) : (typeof navigator !== 'undefined' ? navigator.language : 'unknown'),
+    data.platform ? data.platform.trim().slice(0, 100) : (typeof navigator !== 'undefined' ? navigator.platform : 'unknown'),
+    data.canvas ? data.canvas.trim().slice(0, 200) : '',
+    data.webgl ? data.webgl.trim().slice(0, 200) : '',
   ];
 
   // Generate hash
@@ -69,11 +91,11 @@ export function generateDeviceFingerprint(data: {
     os: ua.os,
     device: ua.device,
     screen: data.screen ? `${data.screen.width}x${data.screen.height}` : 'unknown',
-    timezone: data.timezone || 'unknown',
-    language: data.language || 'unknown',
-    platform: data.platform || 'unknown',
-    canvas: data.canvas,
-    webgl: data.webgl,
+    timezone: data.timezone ? data.timezone.trim() : 'unknown',
+    language: data.language ? data.language.trim() : 'unknown',
+    platform: data.platform ? data.platform.trim() : 'unknown',
+    canvas: data.canvas ? data.canvas.trim() : undefined,
+    webgl: data.webgl ? data.webgl.trim() : undefined,
   };
 }
 
@@ -113,19 +135,32 @@ function parseUserAgent(ua: string): {
 }
 
 /**
- * Simple hash function for fingerprint components
+ * Simple hash function for fingerprint components with validation
  */
 function hashComponents(components: string[]): string {
-  const str = components.join('|');
+  // Validate input
+  if (!components || !Array.isArray(components)) {
+    throw new Error('Invalid components array');
+  }
+
+  // Filter out empty components and join
+  const validComponents = components.filter(c => c && typeof c === 'string' && c.length > 0);
+  const str = validComponents.join('|');
+  
+  // Limit string length to prevent DoS
+  const limitedStr = str.slice(0, 10000);
+  
   let hash = 0;
   
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
+  for (let i = 0; i < limitedStr.length; i++) {
+    const char = limitedStr.charCodeAt(i);
     hash = ((hash << 5) - hash) + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   
-  return Math.abs(hash).toString(16);
+  // Ensure hash is positive and convert to hex
+  const positiveHash = Math.abs(hash);
+  return positiveHash.toString(16).padStart(8, '0');
 }
 
 /**

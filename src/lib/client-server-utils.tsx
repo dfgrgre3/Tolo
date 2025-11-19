@@ -10,25 +10,64 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useClientEffect } from '@/hooks/use-client-effect';
 
 type Logger = {
-  info: (...args: unknown[]) => void;
-  warn: (...args: unknown[]) => void;
-  error: (...args: unknown[]) => void;
-  debug: (...args: unknown[]) => void;
+  info: (message: string, context?: unknown) => void;
+  warn: (message: string, context?: unknown) => void;
+  error: (message: string, context?: unknown) => void;
+  debug: (message: string, context?: unknown) => void;
 };
 
 let loggerInstance: Logger | null = null;
-async function getLogger() {
+async function getLogger(): Promise<Logger> {
   if (!loggerInstance) {
     try {
       const loggerModule = await import('@/lib/logger');
-      loggerInstance = loggerModule.logger;
+      const importedLogger = loggerModule.logger;
+      // Wrap the logger to match our type signature
+      loggerInstance = {
+        info: (message: string, context?: unknown) => {
+          if (typeof importedLogger.info === 'function') {
+            if (importedLogger.info.length === 1) {
+              (importedLogger.info as (message: string) => void)(message);
+            } else {
+              (importedLogger.info as (message: string, context?: unknown) => void)(message, context);
+            }
+          }
+        },
+        warn: (message: string, context?: unknown) => {
+          if (typeof importedLogger.warn === 'function') {
+            if (importedLogger.warn.length === 1) {
+              (importedLogger.warn as (message: string) => void)(message);
+            } else {
+              (importedLogger.warn as (message: string, context?: unknown) => void)(message, context);
+            }
+          }
+        },
+        error: (message: string, context?: unknown) => {
+          if (typeof importedLogger.error === 'function') {
+            if (importedLogger.error.length === 1) {
+              (importedLogger.error as (message: string) => void)(message);
+            } else {
+              (importedLogger.error as (message: string, context?: unknown) => void)(message, context);
+            }
+          }
+        },
+        debug: (message: string, context?: unknown) => {
+          if (typeof importedLogger.debug === 'function') {
+            if (importedLogger.debug.length === 1) {
+              (importedLogger.debug as (message: string) => void)(message);
+            } else {
+              (importedLogger.debug as (message: string, context?: unknown) => void)(message, context);
+            }
+          }
+        },
+      };
     } catch (error) {
       // Fallback to console if logger fails to load
       loggerInstance = {
-        info: (...args: unknown[]) => console.info(...args),
-        warn: (...args: unknown[]) => console.warn(...args),
-        error: (...args: unknown[]) => console.error(...args),
-        debug: (...args: unknown[]) => console.debug(...args),
+        info: (message: string) => console.info(message),
+        warn: (message: string) => console.warn(message),
+        error: (message: string) => console.error(message),
+        debug: (message: string) => console.debug(message),
       };
     }
   }
@@ -93,7 +132,9 @@ export function useBrowserAPI<T>(
       setIsReady(true);
     } catch (error) {
       getLogger().then(logger => {
-        logger.warn('Failed to access browser API:', error);
+        if (logger) {
+          logger.warn('Failed to access browser API:', error);
+        }
       }).catch(() => {
         console.warn('Failed to access browser API:', error);
       });
@@ -161,18 +202,22 @@ export function useProgressiveEnhancement<T>(
 ): T {
   const [value, setValue] = useState(serverValue);
 
-  useClientEffect(async () => {
-    try {
-      const enhancedValue = await clientEnhancer();
-      setValue(enhancedValue);
-    } catch (error) {
-      getLogger().then(logger => {
-        logger.error('Progressive enhancement failed:', error);
-      }).catch(() => {
-        console.error('Progressive enhancement failed:', error);
-      });
-      options?.onError?.(error as Error);
-    }
+  useClientEffect(() => {
+    (async () => {
+      try {
+        const enhancedValue = await clientEnhancer();
+        setValue(enhancedValue);
+      } catch (error) {
+        getLogger().then(logger => {
+          if (logger) {
+            logger.error('Progressive enhancement failed:', error);
+          }
+        }).catch(() => {
+          console.error('Progressive enhancement failed:', error);
+        });
+        options?.onError?.(error as Error);
+      }
+    })();
   }, []);
 
   return value;
@@ -202,8 +247,8 @@ export function createHydrationSafeHandler<T extends (...args: unknown[]) => unk
  * Hook for managing client-only side effects with cleanup
  */
 export function useClientOnlyEffect(
-  effect: () => (() => void) | void,
-  deps?: React.DependencyArray,
+  effect: () => (() => void) | void | Promise<void>,
+  deps?: React.DependencyList,
   options?: {
     onError?: (error: Error) => void;
   }
@@ -211,16 +256,24 @@ export function useClientOnlyEffect(
   const cleanupRef = useRef<(() => void) | void>();
 
   useClientEffect(() => {
-    try {
-      cleanupRef.current = effect();
-    } catch (error) {
-      getLogger().then(logger => {
-        logger.error('Client-only effect failed:', error);
-      }).catch(() => {
-        console.error('Client-only effect failed:', error);
-      });
-      options?.onError?.(error as Error);
-    }
+    (async () => {
+      try {
+        const result = effect();
+        if (result instanceof Promise) {
+          await result;
+        } else {
+          cleanupRef.current = result;
+        }
+      } catch (error) {
+        const logger = await getLogger().catch(() => null);
+        if (logger) {
+          logger.error('Client-only effect failed:', error);
+        } else {
+          console.error('Client-only effect failed:', error);
+        }
+        options?.onError?.(error as Error);
+      }
+    })();
 
     return () => {
       if (cleanupRef.current && typeof cleanupRef.current === 'function') {
@@ -258,7 +311,9 @@ export async function safeDynamicImport<T>(
       return await importFn();
     } catch (error) {
       getLogger().then(logger => {
-        logger.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
+        if (logger) {
+          logger.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
+        }
       }).catch(() => {
         console.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
       });
@@ -353,7 +408,7 @@ export function detectHydrationMismatch(
         return true;
       }
 
-      if (detectHydrationMismatch(serverValue[key], clientValue[key], tolerance)) {
+      if (detectHydrationMismatch((serverValue as Record<string, unknown>)[key], (clientValue as Record<string, unknown>)[key], tolerance)) {
         return true;
       }
     }

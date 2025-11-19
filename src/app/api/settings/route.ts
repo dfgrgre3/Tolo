@@ -94,13 +94,14 @@ export async function POST(req: NextRequest) {
 				});
 				
 				// Create a map for quick lookup
-				const existingMap = new Map(existing.map(e => [e.subject, e]));
-				const incomingSubjects = new Set(subjects.map((s) => s.subject));
+				type EnrollmentType = { subject: string; id: string };
+				const existingMap = new Map<string, EnrollmentType>(existing.map((e: EnrollmentType) => [e.subject, e]));
+				const incomingSubjects = new Set(subjects.map((s: { subject: string }) => s.subject));
 				
 				// Delete enrollments that are not in the incoming list
 				const toDelete = existing
-					.filter((e) => !incomingSubjects.has(e.subject))
-					.map((e) => e.id);
+					.filter((e: EnrollmentType) => !incomingSubjects.has(e.subject))
+					.map((e: EnrollmentType) => e.id);
 				
 				if (toDelete.length > 0) {
 					await prisma.subjectEnrollment.deleteMany({ 
@@ -122,7 +123,7 @@ export async function POST(req: NextRequest) {
 					const hours = Math.max(0, Math.floor(s.targetWeeklyHours || 0));
 
 					// Find existing enrollment
-					const existingEnrollment = existingMap.get(s.subject);
+					const existingEnrollment: EnrollmentType | undefined = existingMap.get(s.subject);
 
 					if (existingEnrollment) {
 						// Update existing enrollment
@@ -130,7 +131,7 @@ export async function POST(req: NextRequest) {
 							prisma.subjectEnrollment.update({
 								where: { id: existingEnrollment.id },
 								data: { targetWeeklyHours: hours }
-							}).catch((err) => {
+							}).catch((err: unknown) => {
 								logger.error(`Error updating enrollment for ${s.subject}:`, err);
 								throw err;
 							})
@@ -145,10 +146,11 @@ export async function POST(req: NextRequest) {
 									subject: s.subject,
 									targetWeeklyHours: hours
 								}
-							}).catch(async (err) => {
+							}).catch(async (err: unknown) => {
 								logger.error(`Error creating enrollment for ${s.subject}:`, err);
 								// If creation fails due to duplicate, try to update instead
-								if (err?.code === 'P2002' || err?.message?.includes('Unique constraint') || err?.message?.includes('UNIQUE constraint')) {
+								const error = err as { code?: string; message?: string };
+								if (error?.code === 'P2002' || error?.message?.includes('Unique constraint') || error?.message?.includes('UNIQUE constraint')) {
 									const existing = await prisma.subjectEnrollment.findFirst({
 										where: { userId: targetUserId, subject: s.subject }
 									});

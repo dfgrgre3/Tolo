@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { cacheMultipleEducationalItems } from "@/lib/educational-cache-service";
 import { CacheService } from "@/lib/cache-service-unified";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 /**
  * Cache Warming Service
@@ -13,27 +14,30 @@ export async function warmEducationalContentCache(): Promise<void> {
   try {
     logger.info('Starting educational content cache warming...');
     
-    // Fetch frequently accessed subjects
-    const subjects = await prisma.subject.findMany({
-      where: {
-        published: true,
+    // Fetch frequently accessed subjects from enrollments
+    // Note: There's no Subject model, so we get subjects from SubjectEnrollment
+    const subjectEnrollments = await prisma.subjectEnrollment.groupBy({
+      by: ['subject'],
+      _count: {
+        subject: true,
       },
-      take: 50, // Top 50 subjects
       orderBy: {
-        enrollments: {
-          _count: 'desc'
-        }
-      },
-      include: {
         _count: {
-          select: { enrollments: true }
-        }
-      }
+          subject: 'desc',
+        },
+      },
+      take: 50,
     });
     
+    const subjects = subjectEnrollments.map((se) => ({
+      id: se.subject,
+      subject: se.subject,
+      enrollmentCount: se._count.subject,
+    }));
+    
     // Prepare cache items for subjects
-    const subjectCacheItems = subjects.map(subject => ({
-      key: `subject:${subject.id}`,
+    const subjectCacheItems = subjects.map((subject: any) => ({
+      key: `subject:${subject.subject}`,
       data: subject,
       ttl: 3600 // 1 hour
     }));
@@ -41,11 +45,13 @@ export async function warmEducationalContentCache(): Promise<void> {
     // Cache subjects
     await cacheMultipleEducationalItems(subjectCacheItems);
     
-    // Fetch popular courses for these subjects
+    // Note: Course model may not exist, so we skip course caching for now
+    // If Course model exists, uncomment the following:
+    /*
     const courses = await prisma.course.findMany({
       where: {
         subjectId: {
-          in: subjects.map(s => s.id)
+          in: subjects.map((s: any) => s.subject)
         },
         published: true,
       },
@@ -62,9 +68,11 @@ export async function warmEducationalContentCache(): Promise<void> {
         subject: true
       }
     });
+    */
+    const courses: any[] = [];
     
     // Prepare cache items for courses
-    const courseCacheItems = courses.map(course => ({
+    const courseCacheItems = courses.map((course: any) => ({
       key: `course:${course.id}`,
       data: course,
       ttl: 1800 // 30 minutes
@@ -144,12 +152,17 @@ export async function warmSystemStatsCache(): Promise<void> {
     const userCount = await prisma.user.count();
     await CacheService.set('system:stats:user_count', userCount, 3600); // 1 hour
     
-    // Cache total course count
-    const courseCount = await prisma.course.count();
-    await CacheService.set('system:stats:course_count', courseCount, 3600); // 1 hour
+    // Note: Course model doesn't exist in schema, so we skip course count
+    // If Course model is added later, uncomment the following:
+    // const courseCount = await prisma.course.count();
+    // await CacheService.set('system:stats:course_count', courseCount, 3600);
+    await CacheService.set('system:stats:course_count', 0, 3600); // Placeholder
     
-    // Cache total subject count
-    const subjectCount = await prisma.subject.count();
+    // Cache total subject count (count distinct subjects from enrollments)
+    const subjectCountResult = await prisma.subjectEnrollment.groupBy({
+      by: ['subject'],
+    });
+    const subjectCount = subjectCountResult.length;
     await CacheService.set('system:stats:subject_count', subjectCount, 3600); // 1 hour
     
     logger.info('Warmed system statistics cache');

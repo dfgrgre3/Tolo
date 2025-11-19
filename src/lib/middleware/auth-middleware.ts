@@ -69,8 +69,29 @@ export async function withAuth(
     onError,
   } = options;
 
-  // Extract token from various sources
+  // Extract token from various sources with validation
   const token = authService.extractToken(request);
+
+  // Enhanced token validation
+  if (token && typeof token === 'string') {
+    // Basic JWT format validation (should have 3 parts separated by dots)
+    const tokenParts = token.split('.');
+    if (tokenParts.length !== 3 || tokenParts.some(part => part.length === 0)) {
+      const errorResponse = NextResponse.json(
+        {
+          error: 'رمز المصادقة غير صحيح',
+          code: 'INVALID_TOKEN_FORMAT',
+        },
+        { status: 401 }
+      );
+
+      if (onError) {
+        return { success: false, response: onError('INVALID_TOKEN_FORMAT', 'INVALID_TOKEN_FORMAT') };
+      }
+
+      return { success: false, response: errorResponse };
+    }
+  }
 
   // If authentication is required but no token provided
   if (requireAuth && !token) {
@@ -98,8 +119,35 @@ export async function withAuth(
     };
   }
 
-  // Verify token
-  const verification = await authService.verifyTokenFromInput(token, checkSession);
+  // Verify token with timeout protection
+  let verification: TokenVerificationResult;
+  try {
+    const verifyPromise = authService.verifyTokenFromInput(token, checkSession);
+    const timeoutPromise = new Promise<TokenVerificationResult>((resolve) => {
+      setTimeout(() => {
+        resolve({
+          isValid: false,
+          error: 'انتهت مهلة التحقق من المصادقة',
+        });
+      }, 5000); // 5 second timeout
+    });
+
+    verification = await Promise.race([verifyPromise, timeoutPromise]);
+  } catch (error) {
+    const errorResponse = NextResponse.json(
+      {
+        error: 'حدث خطأ أثناء التحقق من المصادقة.',
+        code: 'VERIFICATION_ERROR',
+      },
+      { status: 500 }
+    );
+
+    if (onError) {
+      return { success: false, response: onError('VERIFICATION_ERROR', 'VERIFICATION_ERROR') };
+    }
+
+    return { success: false, response: errorResponse };
+  }
 
   if (!verification.isValid || !verification.user) {
     const errorResponse = NextResponse.json(
@@ -117,9 +165,28 @@ export async function withAuth(
     return { success: false, response: errorResponse };
   }
 
-  // Check required roles if specified
+  // Enhanced role validation
   if (requiredRoles.length > 0) {
     const userRole = verification.user.role || 'user';
+    
+    // Validate role format
+    if (typeof userRole !== 'string' || userRole.trim().length === 0) {
+      const errorResponse = NextResponse.json(
+        {
+          error: 'دور المستخدم غير صحيح',
+          code: 'INVALID_USER_ROLE',
+        },
+        { status: 403 }
+      );
+
+      if (onError) {
+        return { success: false, response: onError('INVALID_USER_ROLE', 'INVALID_USER_ROLE') };
+      }
+
+      return { success: false, response: errorResponse };
+    }
+
+    // Check if user has required role
     if (!requiredRoles.includes(userRole)) {
       const errorResponse = NextResponse.json(
         {

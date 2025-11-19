@@ -23,6 +23,9 @@ interface Notification {
 	type: string;
 	isRead: boolean;
 	createdAt: string;
+	link?: string;
+	description?: string;
+	time?: string;
 }
 
 interface HeaderNotificationsProps {

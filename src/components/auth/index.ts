@@ -9,11 +9,18 @@
 export { AuthGuard } from './AuthGuard';
 export type { AuthGuardProps } from './AuthGuard';
 export { default as ChangePassword } from './ChangePassword';
+// ⚠️ NOTE: EnhancedLoginForm.old.tsx does NOT exist. Use EnhancedLoginForm only.
 export { default as EnhancedLoginForm } from './EnhancedLoginForm';
 export { default as EnhancedRegisterForm } from './EnhancedRegisterForm';
 export { AuthSessionWrapper } from './AuthSessionWrapper';
 // Legacy export - kept for backward compatibility
 export { AuthSessionWrapper as SessionProviderWrapper } from './AuthSessionWrapper';
+
+// Unified Auth System (NEW - Recommended)
+export { UnifiedAuthProvider, useUnifiedAuth, UnifiedAuthContext } from './UnifiedAuthProvider';
+export type { UnifiedAuthContextType, User as UnifiedUser } from './UnifiedAuthProvider';
+
+// Legacy Auth System (for backward compatibility)
 export { AuthProvider, useAuth, AuthContext } from './UserProvider';
 export type { User, AuthContextType } from './UserProvider';
 
@@ -52,5 +59,100 @@ export * from './components';
 // Auth Hooks
 export * from './hooks';
 
-// Login API utilities
-export * from './utils/loginApi';
+// Login API utilities - use @/lib/api/auth-client instead
+// export * from './utils/loginApi'; // Deprecated - use @/lib/api/auth-client
+
+// ============================================
+// 🚀 ADVANCED AUTHENTICATION FEATURES
+// ============================================
+
+// Analytics & Tracking
+export {
+  LoginAttemptTracker,
+  getLoginAttemptTracker,
+  type LoginAttempt,
+  type LoginAnalytics,
+} from './analytics/LoginAttemptTracker';
+
+export {
+  BehavioralAnalytics,
+  getBehavioralAnalytics,
+  type UserBehavior,
+  type TypingPattern,
+  type MousePattern,
+  type NavigationPattern,
+  type TimePattern,
+  type DevicePattern,
+  type AnomalyDetection,
+} from './analytics/BehavioralAnalytics';
+
+// Security Notifications
+export {
+  SecurityNotificationSystem,
+  getSecurityNotificationSystem,
+  notifyLoginSuccess,
+  notifyNewDevice,
+  notifySuspiciousActivity,
+  notifyPasswordChanged,
+  notifyAccountLocked,
+  type SecurityNotification,
+  type NotificationPriority,
+  type NotificationType,
+  type NotificationPreferences,
+} from './notifications/SecurityNotificationSystem';
+
+// Passkeys (WebAuthn)
+export {
+  PasskeyManager,
+  getPasskeyManager,
+  type PasskeyCredential,
+  type PasskeyRegistrationOptions,
+  type PasskeyAuthenticationOptions,
+} from './passkeys/PasskeyManager';
+
+export { default as PasskeyManagement } from './passkeys/PasskeyManagement';
+
+// Advanced Session Management
+export {
+  AdvancedSessionManager,
+  getAdvancedSessionManager,
+  type SessionInfo,
+  type SessionActivity,
+  type SessionStatistics,
+} from './sessions/AdvancedSessionManager';
+
+export { default as SessionManagementUI } from './sessions/SessionManagementUI';
+
+// Smart Rate Limiting
+export {
+  SmartRateLimiter,
+  getSmartRateLimiter,
+  type RateLimitConfig,
+  type RateLimitEntry,
+  type BehaviorPattern,
+  type RateLimitResult,
+} from './security/SmartRateLimiter';
+
+// Security Dashboard
+export { default as SecurityDashboard } from './dashboard/SecurityDashboard';
+
+// Backup Codes
+export {
+  BackupCodesManager,
+  getBackupCodesManager,
+  type BackupCode,
+  type BackupCodesSet,
+} from './backup/BackupCodesManager';
+
+// Advanced Features - Centralized
+export * from './advanced';
+
+// ============================================
+// 🎯 QUICK START HELPERS
+// ============================================
+
+/**
+ * Initialize all advanced authentication features
+ * Call this after successful login
+ */
+export { initializeAdvancedAuth, cleanupAdvancedAuth } from './advanced';

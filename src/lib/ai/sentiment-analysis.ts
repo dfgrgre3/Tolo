@@ -1,6 +1,7 @@
 import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
 import { prisma } from '@/lib/prisma';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export interface SentimentResult {
   sentiment: 'positive' | 'negative' | 'neutral' | 'frustrated' | 'tired';
@@ -249,20 +250,20 @@ export async function getUserSentimentTrends(userId: string, days: number = 7) {
     };
   }
   
-  const averageScore = analyses.reduce((sum, a) => sum + a.score, 0) / analyses.length;
+  const averageScore = analyses.reduce((sum: number, a: { score: number }) => sum + a.score, 0) / analyses.length;
   
   const sentimentCounts: Record<string, number> = {};
-  analyses.forEach(a => {
+  analyses.forEach((a: { sentiment: string }) => {
     sentimentCounts[a.sentiment] = (sentimentCounts[a.sentiment] || 0) + 1;
   });
   
   const dominantSentiment = Object.entries(sentimentCounts)
-    .sort((a, b) => b[1] - a[1])[0][0] as SentimentResult['sentiment'];
+    .sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0][0] as SentimentResult['sentiment'];
   
   return {
     averageScore,
     dominantSentiment,
-    trends: analyses.map(a => ({
+    trends: analyses.map((a: { createdAt: Date; sentiment: string; score: number }) => ({
       date: a.createdAt,
       sentiment: a.sentiment,
       score: a.score

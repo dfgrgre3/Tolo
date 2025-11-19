@@ -156,7 +156,7 @@ export function ClientLayoutWrapper({
       fallbackRender={({ error, resetErrorBoundary }) => (
         <ErrorFallback error={error} resetErrorBoundary={resetErrorBoundary} />
       )}
-      onError={(error: Error, info: { componentStack: string }) => {
+      onError={(error: Error, info: React.ErrorInfo) => {
         // Log error - in production, this should be sent to error tracking service
         if (process.env.NODE_ENV === 'production') {
           // Error tracking service integration would go here

@@ -43,52 +43,72 @@ export async function GET(request: NextRequest) {
 
 async function handleGetRequest(req: NextRequest) {
   try {
-    // Apply rate limiting
-    const rateLimitResult = await rateLimit(req, GET_RATE_LIMIT, 'get_tasks');
+    // Apply rate limiting with timeout protection
+    const rateLimitPromise = rateLimit(req, GET_RATE_LIMIT, 'get_tasks');
+    const timeoutPromise = new Promise<NextResponse | null>((resolve) => {
+      setTimeout(() => resolve(null), 2000); // 2 second timeout
+    });
+
+    const rateLimitResult = await Promise.race([rateLimitPromise, timeoutPromise]);
     if (rateLimitResult) {
       return rateLimitResult;
     }
 
-    // Verify authentication using the unified AuthService
-    const verification = await authService.verifyTokenFromRequest(req);
+    // Verify authentication using the unified AuthService with timeout protection
+    const verifyPromise = authService.verifyTokenFromRequest(req);
+    const verifyTimeoutPromise = new Promise<{ isValid: false }>((resolve) => {
+      setTimeout(() => resolve({ isValid: false }), 5000); // 5 second timeout
+    });
+
+    const verification = await Promise.race([verifyPromise, verifyTimeoutPromise]);
     const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
     if (!decodedToken) {
       return unauthorizedResponse();
     }
 
     const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limitParam = searchParams.get('limit') || '20';
     const completed = searchParams.get('completed');
-    const offset = parseInt(searchParams.get('offset') || '0');
+    const offsetParam = searchParams.get('offset') || '0';
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
     const subjectId = searchParams.get('subjectId');
 
-    // Validate query parameters
+    // Validate and parse query parameters with better error handling
+    const limit = parseInt(limitParam, 10);
     if (isNaN(limit) || limit > 100 || limit < 1) {
       return badRequestResponse('Invalid limit parameter. Must be between 1 and 100.', 'INVALID_PARAMETER');
     }
 
+    const offset = parseInt(offsetParam, 10);
     if (isNaN(offset) || offset < 0) {
       return badRequestResponse('Invalid offset parameter. Must be a non-negative integer.', 'INVALID_PARAMETER');
     }
 
-    // Build where clause with proper typing
-    type TaskWhereInput = {
-      userId: string;
-      completed?: boolean;
-      status?: string;
-      priority?: string;
-      subjectId?: string;
-    };
+    // Validate status if provided
+    if (status && !['PENDING', 'IN_PROGRESS', 'COMPLETED'].includes(status)) {
+      return badRequestResponse('Invalid status parameter. Must be PENDING, IN_PROGRESS, or COMPLETED.', 'INVALID_PARAMETER');
+    }
 
-    const where: TaskWhereInput = {
+    // Validate priority if provided
+    if (priority && !['LOW', 'MEDIUM', 'HIGH'].includes(priority)) {
+      return badRequestResponse('Invalid priority parameter. Must be LOW, MEDIUM, or HIGH.', 'INVALID_PARAMETER');
+    }
+
+    // Build where clause with proper typing using Prisma types
+    const where: {
+      userId: string;
+      completedAt?: { not: null } | null;
+      status?: string;
+      priority?: number;
+      subject?: string;
+    } = {
       userId: decodedToken.userId,
     };
 
     if (completed !== null) {
       const isCompleted = completed === 'true';
-      where.completed = isCompleted;
+      where.completedAt = isCompleted ? { not: null } : null;
     }
 
     if (status) {
@@ -96,15 +116,21 @@ async function handleGetRequest(req: NextRequest) {
     }
 
     if (priority) {
-      where.priority = priority;
+      // Convert string priority to number: LOW=1, MEDIUM=2, HIGH=3
+      const priorityMap: Record<string, number> = {
+        'LOW': 1,
+        'MEDIUM': 2,
+        'HIGH': 3
+      };
+      where.priority = priorityMap[priority] || 2;
     }
 
     if (subjectId) {
-      where.subjectId = subjectId;
+      where.subject = subjectId;
     }
 
-    // Fetch tasks from database
-    const tasks = await prisma.task.findMany({
+    // Fetch tasks from database with timeout protection
+    const fetchPromise = prisma.task.findMany({
       where,
       orderBy: {
         createdAt: 'desc',
@@ -112,6 +138,12 @@ async function handleGetRequest(req: NextRequest) {
       take: limit,
       skip: offset,
     });
+
+    const dbFetchTimeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => reject(new Error('Database query timeout')), 10000); // 10 second timeout
+    });
+
+    const tasks = await Promise.race([fetchPromise, dbFetchTimeoutPromise]);
 
     // Return successful response
     return successResponse(tasks);
@@ -137,34 +169,78 @@ export async function POST(request: NextRequest) {
         return unauthorizedResponse();
       }
 
-      // Parse and validate request body
-      const body = await req.json();
-    const parsedBody = TaskCreateSchema.safeParse(body);
+      // Parse and validate request body with timeout protection
+      let body;
+      try {
+        const bodyPromise = req.json();
+        const bodyTimeoutPromise = new Promise<never>((resolve, reject) => {
+          setTimeout(() => reject(new Error('Request body parsing timeout')), 5000);
+        });
+        body = await Promise.race([bodyPromise, bodyTimeoutPromise]);
+      } catch (parseError) {
+        return badRequestResponse('Invalid request body format', 'PARSE_ERROR');
+      }
 
-    if (!parsedBody.success) {
-      return badRequestResponse(`Invalid request body: ${parsedBody.error.message}`, 'VALIDATION_ERROR');
-    }
+      const parsedBody = TaskCreateSchema.safeParse(body);
 
-    const { title, description, dueDate, priority, subjectId, status } = parsedBody.data;
+      if (!parsedBody.success) {
+        const errorMessage = parsedBody.error.errors
+          .map((err) => `${err.path.join('.')}: ${err.message}`)
+          .join(', ');
+        return badRequestResponse(`Invalid request body: ${errorMessage}`, 'VALIDATION_ERROR');
+      }
 
-    // Create task in database
-    const task = await prisma.task.create({
-      data: {
-        title,
-        description,
-        dueDate: dueDate ? new Date(dueDate) : null,
-        priority: priority || 'MEDIUM',
-        status: status || 'PENDING',
-        userId: decodedToken.userId,
-        subjectId,
-      },
-    });
+      const { title, description, dueDate, priority, subjectId, status } = parsedBody.data;
 
-    // Invalidate cache
-    await invalidateUserCache(decodedToken.userId);
+      // Validate dueDate if provided
+      if (dueDate) {
+        const dueDateObj = new Date(dueDate);
+        if (isNaN(dueDateObj.getTime())) {
+          return badRequestResponse('Invalid dueDate format. Must be a valid ISO 8601 datetime string.', 'INVALID_DATE');
+        }
+        if (dueDateObj < new Date()) {
+          return badRequestResponse('Due date cannot be in the past', 'INVALID_DATE');
+        }
+      }
 
-    // Trigger gamification
-    await gamificationService.updateUserProgress(decodedToken.userId, 'task_created');
+      // Convert priority string to number
+      const priorityMap: Record<string, number> = {
+        'LOW': 1,
+        'MEDIUM': 2,
+        'HIGH': 3
+      };
+      const priorityNumber = priority ? priorityMap[priority] || 2 : 2;
+
+      // Create task in database with timeout protection
+      const createPromise = prisma.task.create({
+        data: {
+          id: `task_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          title: title.trim(),
+          description: description?.trim() || null,
+          dueAt: dueDate ? new Date(dueDate) : null,
+          priority: priorityNumber,
+          status: status || 'PENDING',
+          userId: decodedToken.userId,
+          subject: subjectId || null,
+        },
+      });
+
+      const createTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Database operation timeout')), 10000);
+      });
+
+      const task = await Promise.race([createPromise, createTimeoutPromise]);
+
+      // Invalidate cache and trigger gamification in parallel (non-blocking)
+      Promise.allSettled([
+        invalidateUserCache(decodedToken.userId),
+        gamificationService.updateUserProgress(decodedToken.userId, 'task_created'),
+      ]).catch((error) => {
+        // Log but don't block response - use console in case logger is not available
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Cache invalidation or gamification update failed:', error);
+        }
+      });
 
       // Return successful response
       return successResponse(task, 'Task created successfully', 201);
@@ -191,22 +267,46 @@ export async function PUT(request: NextRequest) {
         return unauthorizedResponse();
       }
 
-      // Parse and validate request body
-      const body = await req.json();
+      // Parse and validate request body with timeout protection
+      let body;
+      try {
+        const bodyPromise = req.json();
+        const bodyTimeoutPromise = new Promise<never>((resolve, reject) => {
+          setTimeout(() => reject(new Error('Request body parsing timeout')), 5000);
+        });
+        body = await Promise.race([bodyPromise, bodyTimeoutPromise]);
+      } catch (parseError) {
+        return badRequestResponse('Invalid request body format', 'PARSE_ERROR');
+      }
+
       const parsedBody = TaskUpdateSchema.safeParse(body);
 
       if (!parsedBody.success) {
-        return badRequestResponse(`Invalid request body: ${parsedBody.error.message}`, 'VALIDATION_ERROR');
+        const errorMessage = parsedBody.error.errors
+          .map((err) => `${err.path.join('.')}: ${err.message}`)
+          .join(', ');
+        return badRequestResponse(`Invalid request body: ${errorMessage}`, 'VALIDATION_ERROR');
       }
 
       const { id, title, description, dueDate, priority, subjectId, status } = parsedBody.data;
 
-      // Check if task belongs to user
-      const existingTask = await prisma.task.findUnique({
+      // Validate task ID
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        return badRequestResponse('Task ID is required and must be a non-empty string', 'INVALID_TASK_ID');
+      }
+
+      // Check if task belongs to user with timeout protection
+      const findPromise = prisma.task.findUnique({
         where: {
-          id,
+          id: id.trim(),
         },
       });
+
+      const findTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 5000);
+      });
+
+      const existingTask = await Promise.race([findPromise, findTimeoutPromise]);
 
       if (!existingTask) {
         return badRequestResponse('Task not found', 'TASK_NOT_FOUND');
@@ -216,28 +316,57 @@ export async function PUT(request: NextRequest) {
         return unauthorizedResponse('You do not have permission to update this task');
       }
 
-      // Update task in database
-      const task = await prisma.task.update({
+      // Validate dueDate if provided
+      if (dueDate !== undefined && dueDate !== null) {
+        const dueDateObj = new Date(dueDate);
+        if (isNaN(dueDateObj.getTime())) {
+          return badRequestResponse('Invalid dueDate format. Must be a valid ISO 8601 datetime string.', 'INVALID_DATE');
+        }
+        if (dueDateObj < new Date()) {
+          return badRequestResponse('Due date cannot be in the past', 'INVALID_DATE');
+        }
+      }
+
+      // Convert priority string to number if provided
+      const priorityMap: Record<string, number> = {
+        'LOW': 1,
+        'MEDIUM': 2,
+        'HIGH': 3
+      };
+      const priorityNumber = priority ? priorityMap[priority] : undefined;
+
+      // Update task in database with timeout protection
+      const updatePromise = prisma.task.update({
         where: {
-          id,
+          id: id.trim(),
         },
         data: {
-          title,
-          description,
-          dueDate: dueDate !== undefined ? (dueDate ? new Date(dueDate) : null) : undefined,
-          priority: priority || undefined,
-          status: status || undefined,
-          subjectId: subjectId !== undefined ? subjectId : undefined,
+          ...(title !== undefined && { title: title.trim() }),
+          ...(description !== undefined && { description: description?.trim() || null }),
+          ...(dueDate !== undefined && { dueAt: dueDate ? new Date(dueDate) : null }),
+          ...(priorityNumber !== undefined && { priority: priorityNumber }),
+          ...(status !== undefined && { status }),
+          ...(subjectId !== undefined && { subject: subjectId || null }),
         },
       });
 
-      // Invalidate cache
-      await invalidateUserCache(decodedToken.userId);
+      const updateTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Database update timeout')), 10000);
+      });
 
-      // Trigger gamification for completion
-      if (task.status === 'COMPLETED' && existingTask.status !== 'COMPLETED') {
-        await gamificationService.updateUserProgress(decodedToken.userId, 'task_completed');
-      }
+      const task = await Promise.race([updatePromise, updateTimeoutPromise]);
+
+      // Invalidate cache and trigger gamification in parallel (non-blocking)
+      const wasCompleted = task.status === 'COMPLETED' && existingTask.status !== 'COMPLETED';
+      Promise.allSettled([
+        invalidateUserCache(decodedToken.userId),
+        wasCompleted ? gamificationService.updateUserProgress(decodedToken.userId, 'task_completed') : Promise.resolve(),
+      ]).catch((error) => {
+        // Log but don't block response - use console in case logger is not available
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Cache invalidation or gamification update failed:', error);
+        }
+      });
 
       // Return successful response
       return successResponse(task, 'Task updated successfully');
@@ -267,16 +396,24 @@ export async function DELETE(request: NextRequest) {
       const { searchParams } = new URL(req.url);
       const taskId = searchParams.get('id');
 
-      if (!taskId) {
-        return badRequestResponse('Task ID is required', 'MISSING_TASK_ID');
+      if (!taskId || typeof taskId !== 'string' || taskId.trim().length === 0) {
+        return badRequestResponse('Task ID is required and must be a non-empty string', 'MISSING_TASK_ID');
       }
 
-      // Check if task belongs to user
-      const existingTask = await prisma.task.findUnique({
+      const trimmedTaskId = taskId.trim();
+
+      // Check if task belongs to user with timeout protection
+      const findPromise = prisma.task.findUnique({
         where: {
-          id: taskId,
+          id: trimmedTaskId,
         },
       });
+
+      const findTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Database query timeout')), 5000);
+      });
+
+      const existingTask = await Promise.race([findPromise, findTimeoutPromise]);
 
       if (!existingTask) {
         return badRequestResponse('Task not found', 'TASK_NOT_FOUND');
@@ -286,15 +423,25 @@ export async function DELETE(request: NextRequest) {
         return unauthorizedResponse('You do not have permission to delete this task');
       }
 
-      // Delete task from database
-      await prisma.task.delete({
+      // Delete task from database with timeout protection
+      const deletePromise = prisma.task.delete({
         where: {
-          id: taskId,
+          id: trimmedTaskId,
         },
       });
 
-      // Invalidate cache
-      await invalidateUserCache(decodedToken.userId);
+      const deleteTimeoutPromise = new Promise<never>((resolve, reject) => {
+        setTimeout(() => reject(new Error('Database delete timeout')), 10000);
+      });
+
+      await Promise.race([deletePromise, deleteTimeoutPromise]);
+
+      // Invalidate cache (non-blocking)
+      invalidateUserCache(decodedToken.userId).catch((error) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('Cache invalidation failed:', error);
+        }
+      });
 
       // Return successful response
       return successResponse(null, 'Task deleted successfully');

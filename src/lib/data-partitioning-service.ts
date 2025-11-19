@@ -1,8 +1,5 @@
-import { PrismaClient } from '@prisma/client'
-
+import { prisma } from './db-unified';
 import { logger } from '@/lib/logger';
-
-const prisma = new PrismaClient()
 
 export interface PartitionInfo {
   tableName: string
@@ -129,13 +126,15 @@ export class DataPartitioningService {
       `
 
       // Parse bounds to extract dates
-      const partitions: PartitionInfo[] = result.map(row => {
+      const partitions: PartitionInfo[] = result.map((row: any) => {
         let startDate: Date | null = null
         let endDate: Date | null = null
 
-        if (row.bounds && !row.bounds.includes('DEFAULT')) {
+        const bounds = row.bounds || row.partitionBound || null
+        if (bounds && !String(bounds).includes('DEFAULT')) {
           // Parse bounds like "FOR VALUES FROM ('2025-01-01 00:00:00+00') TO ('2025-02-01 00:00:00+00')"
-          const match = row.bounds.match(/FOR VALUES FROM \('([^']+)'\) TO \('([^']+)'\)/)
+          const boundsStr = String(bounds)
+          const match = boundsStr.match(/FOR VALUES FROM \('([^']+)'\) TO \('([^']+)'\)/)
           if (match) {
             startDate = new Date(match[1])
             endDate = new Date(match[2])
@@ -144,7 +143,7 @@ export class DataPartitioningService {
 
         return {
           tableName,
-          partitionName: row.partitionName,
+          partitionName: row.partitionName || row.relname || '',
           startDate: startDate || new Date('1970-01-01'),
           endDate: endDate || new Date('2100-01-01'),
           rowCount: row.rowCount as number | undefined

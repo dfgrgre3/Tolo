@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { LoginErrorResponse } from '@/types/api/auth';
 import { logger } from '@/lib/logger';
@@ -284,7 +284,7 @@ export function createErrorResponse(
     ? 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.'
     : errorMessage;
   
-  return NextResponse.json(
+  const response = NextResponse.json(
     {
       error: userFriendlyMessage,
       code: errorCode,
@@ -292,6 +292,8 @@ export function createErrorResponse(
     },
     { status: isConnection ? 503 : 500 }
   );
+  
+  return addSecurityHeaders(response);
 }
 
 /**
@@ -453,5 +455,375 @@ export function calculateRetryDelay(
 ): number {
   const delay = baseDelay * Math.pow(2, attempt);
   return Math.min(delay, maxDelay);
+}
+
+/**
+ * Extract IP and User Agent from request
+ * Helper function to standardize request metadata extraction
+ */
+export function extractRequestMetadata(request: NextRequest): {
+  ip: string;
+  userAgent: string;
+  clientId: string;
+} {
+  // Validate input
+  if (!request || typeof request !== 'object') {
+    return {
+      ip: 'unknown',
+      userAgent: 'unknown',
+      clientId: 'unknown-unknown',
+    };
+  }
+
+  // This will use authService if available, otherwise fallback
+  try {
+    const { authService } = require('@/lib/auth-service');
+    const ip = authService.getClientIP(request) || 'unknown';
+    const userAgent = authService.getUserAgent(request) || 'unknown';
+    
+    // Sanitize and limit length
+    const sanitizedIP = typeof ip === 'string' ? ip.trim().slice(0, 100) : 'unknown';
+    const sanitizedUserAgent = typeof userAgent === 'string' ? userAgent.trim().slice(0, 500) : 'unknown';
+    
+    return {
+      ip: sanitizedIP,
+      userAgent: sanitizedUserAgent,
+      clientId: `${sanitizedIP}-${sanitizedUserAgent}`.slice(0, 600),
+    };
+  } catch (error) {
+    // Fallback if authService is not available
+    logger.warn('Error extracting request metadata with authService, using fallback:', error);
+    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'unknown';
+    const userAgent = request.headers.get('user-agent') || 'unknown';
+    
+    // Sanitize and limit length
+    const sanitizedIP = typeof ip === 'string' ? ip.trim().slice(0, 100) : 'unknown';
+    const sanitizedUserAgent = typeof userAgent === 'string' ? userAgent.trim().slice(0, 500) : 'unknown';
+    
+    return {
+      ip: sanitizedIP,
+      userAgent: sanitizedUserAgent,
+      clientId: `${sanitizedIP}-${sanitizedUserAgent}`.slice(0, 600),
+    };
+  }
+}
+
+/**
+ * Validate and parse request body with size limits
+ * Prevents DoS attacks by limiting body size
+ */
+export async function parseRequestBody<T = unknown>(
+  request: NextRequest,
+  options: {
+    maxSize?: number; // in bytes, default 1024 (1KB)
+    required?: boolean;
+  } = {}
+): Promise<{ success: true; data: T } | { success: false; error: NextResponse }> {
+  // Validate inputs
+  if (!request || typeof request !== 'object') {
+    return {
+      success: false,
+      error: NextResponse.json(
+        {
+          error: 'طلب غير صحيح.',
+          code: 'INVALID_REQUEST',
+        },
+        { status: 400 }
+      ),
+    };
+  }
+
+  const { maxSize = 1024, required = false } = options;
+
+  // Validate maxSize
+  const validMaxSize = Math.max(1, Math.min(maxSize, 10 * 1024 * 1024)); // 1 byte to 10MB
+
+  const contentLength = request.headers.get('content-length');
+  
+  if (required && (contentLength === '0' || !contentLength)) {
+    return {
+      success: false,
+      error: NextResponse.json(
+        {
+          error: 'الطلب فارغ. يرجى إدخال البيانات المطلوبة.',
+          code: 'EMPTY_REQUEST_BODY',
+        },
+        { status: 400 }
+      ),
+    };
+  }
+
+  if (contentLength) {
+    const contentLengthNum = parseInt(contentLength, 10);
+    if (isNaN(contentLengthNum) || contentLengthNum < 0) {
+      return {
+        success: false,
+        error: NextResponse.json(
+          {
+            error: 'حجم الطلب غير صحيح.',
+            code: 'INVALID_CONTENT_LENGTH',
+          },
+          { status: 400 }
+        ),
+      };
+    }
+    if (contentLengthNum > validMaxSize) {
+      return {
+        success: false,
+        error: NextResponse.json(
+          {
+            error: 'حجم الطلب كبير جداً.',
+            code: 'REQUEST_TOO_LARGE',
+            maxSize: validMaxSize,
+          },
+          { status: 413 }
+        ),
+      };
+    }
+  }
+
+  try {
+    // Add timeout protection for JSON parsing
+    const jsonPromise = request.json() as Promise<T>;
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error('Request body parsing timeout'));
+      }, 5000); // 5 second timeout
+    });
+
+    const data = await Promise.race([jsonPromise, timeoutPromise]);
+    return { success: true, data };
+  } catch (jsonError) {
+    logger.error('Error parsing request body:', jsonError);
+    return {
+      success: false,
+      error: NextResponse.json(
+        {
+          error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.',
+          code: 'INVALID_REQUEST_BODY',
+        },
+        { status: 400 }
+      ),
+    };
+  }
+}
+
+/**
+ * Add security headers to a NextResponse
+ * Security: Centralized security headers for consistent protection
+ */
+export function addSecurityHeaders(response: NextResponse): NextResponse {
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-XSS-Protection', '1; mode=block');
+  
+  // Add CSP header in production
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
+    );
+  }
+  
+  return response;
+}
+
+/**
+ * Create success response with consistent format and security headers
+ */
+export function createSuccessResponse<T = unknown>(
+  data: T,
+  message?: string,
+  status: number = 200
+): NextResponse {
+  const response: { success?: boolean; message?: string; [key: string]: unknown } = {};
+  
+  if (message) {
+    response.message = message;
+  }
+  
+  // If data is already an object, merge it; otherwise set as 'data'
+  if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+    Object.assign(response, data);
+    if (!('success' in response)) {
+      response.success = true;
+    }
+  } else {
+    response.data = data;
+    response.success = true;
+  }
+
+  const nextResponse = NextResponse.json(response, { status });
+  return addSecurityHeaders(nextResponse);
+}
+
+/**
+ * Standard error response creator with security headers
+ */
+export function createStandardErrorResponse(
+  error: unknown,
+  defaultMessage: string = 'حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.',
+  status: number = 500
+): NextResponse {
+  const errorResponse = createErrorResponse(error, defaultMessage);
+  
+  // Add security headers to error responses
+  addSecurityHeaders(errorResponse);
+  
+  // Update status if provided
+  if (status !== 500) {
+    const body = JSON.parse(errorResponse.body?.toString() || '{}');
+    const response = NextResponse.json(body, { status });
+    return addSecurityHeaders(response);
+  }
+  
+  return errorResponse;
+}
+
+/**
+ * Database query wrapper with error handling and timeout protection
+ * Handles connection errors gracefully
+ */
+export async function withDatabaseQuery<T>(
+  query: () => Promise<T>,
+  options: {
+    onConnectionError?: () => NextResponse;
+    onError?: (error: unknown) => NextResponse;
+    timeout?: number; // Timeout in milliseconds, default 10 seconds
+  } = {}
+): Promise<{ success: true; data: T } | { success: false; response: NextResponse }> {
+  // Validate inputs
+  if (!query || typeof query !== 'function') {
+    const response = createErrorResponse(
+      new Error('Invalid query function'),
+      'دالة الاستعلام غير صحيحة.'
+    );
+    return { success: false, response };
+  }
+
+  const timeout = Math.max(1000, Math.min(options.timeout || 10000, 60000)); // 1s to 60s
+
+  try {
+    // Add timeout protection
+    const queryPromise = query();
+    const timeoutPromise = new Promise<never>((resolve, reject) => {
+      setTimeout(() => {
+        reject(new Error(`Database query timeout after ${timeout}ms`));
+      }, timeout);
+    });
+
+    const data = await Promise.race([queryPromise, timeoutPromise]);
+    return { success: true, data };
+  } catch (error) {
+    // Check if it's a timeout error
+    if (error instanceof Error && error.message.includes('timeout')) {
+      logger.error('Database query timeout:', error);
+      const response = NextResponse.json(
+        {
+          error: 'انتهت مهلة الاستعلام. يرجى المحاولة مرة أخرى.',
+          code: 'QUERY_TIMEOUT',
+        },
+        { status: 504 }
+      );
+      return { success: false, response: addSecurityHeaders(response) };
+    }
+
+    if (isConnectionError(error)) {
+      const response = options.onConnectionError?.() || NextResponse.json(
+        {
+          error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
+          code: 'CONNECTION_ERROR',
+        },
+        { status: 503 }
+      );
+      return { success: false, response: addSecurityHeaders(response) };
+    }
+
+    if (options.onError) {
+      const response = options.onError(error);
+      return { success: false, response: addSecurityHeaders(response) };
+    }
+
+    // Default error handling
+    const response = createErrorResponse(
+      error,
+      'حدث خطأ أثناء معالجة البيانات.'
+    );
+    return { success: false, response };
+  }
+}
+
+/**
+ * Safe security event logger with timeout protection
+ * Wraps security event logging to prevent failures from breaking the flow
+ */
+export async function logSecurityEventSafely(
+  userId: string | null,
+  eventType: string,
+  metadata: {
+    ip?: string;
+    userAgent?: string;
+    [key: string]: unknown;
+  } = {}
+): Promise<void> {
+  // Validate inputs
+  if (eventType && typeof eventType !== 'string') {
+    logger.warn('Invalid eventType provided to logSecurityEventSafely');
+    return;
+  }
+
+  if (userId !== null && (typeof userId !== 'string' || userId.trim().length === 0)) {
+    logger.warn('Invalid userId provided to logSecurityEventSafely');
+    return;
+  }
+
+  // Sanitize metadata
+  const sanitizedMetadata: { ip?: string; userAgent?: string; [key: string]: unknown } = {};
+  if (metadata.ip && typeof metadata.ip === 'string') {
+    sanitizedMetadata.ip = metadata.ip.trim().slice(0, 100);
+  }
+  if (metadata.userAgent && typeof metadata.userAgent === 'string') {
+    sanitizedMetadata.userAgent = metadata.userAgent.trim().slice(0, 500);
+  }
+
+  // Limit metadata size to prevent DoS
+  const metadataKeys = Object.keys(metadata).slice(0, 50);
+  for (const key of metadataKeys) {
+    if (key !== 'ip' && key !== 'userAgent') {
+      const value = metadata[key];
+      if (typeof value === 'string') {
+        sanitizedMetadata[key] = value.slice(0, 1000);
+      } else if (typeof value === 'number' || typeof value === 'boolean') {
+        sanitizedMetadata[key] = value;
+      }
+    }
+  }
+
+  try {
+    const { authService } = require('@/lib/auth-service');
+    
+    // Add timeout protection
+    const logPromise = authService.logSecurityEvent(
+      userId,
+      eventType,
+      sanitizedMetadata.ip || 'unknown',
+      {
+        userAgent: sanitizedMetadata.userAgent || 'unknown',
+        ...sanitizedMetadata,
+      }
+    );
+    
+    const timeoutPromise = new Promise<void>((resolve) => {
+      setTimeout(() => {
+        logger.warn('Security event logging timeout');
+        resolve();
+      }, 3000); // 3 second timeout
+    });
+
+    await Promise.race([logPromise, timeoutPromise]);
+  } catch (error) {
+    // Don't fail the request if logging fails, but log the error
+    logger.error('Failed to log security event:', error);
+  }
 }
 

@@ -3,7 +3,17 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { randomBytes } from 'crypto';
 import { authService } from '@/lib/auth-service';
-import { createErrorResponse, emailSchema, RESET_TOKEN_EXPIRY_MS, isConnectionError } from '../_helpers';
+import { 
+  createStandardErrorResponse,
+  createSuccessResponse,
+  emailSchema, 
+  RESET_TOKEN_EXPIRY_MS, 
+  isConnectionError,
+  parseRequestBody,
+  extractRequestMetadata,
+  logSecurityEventSafely,
+  withDatabaseQuery
+} from '../_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -11,14 +21,9 @@ const forgotPasswordSchema = z.object({
   email: emailSchema,
 });
 
-const buildClientId = (ip: string, userAgent: string) =>
-  `${ip || 'unknown'}-${userAgent || 'unknown'}`;
-
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    const ip = authService.getClientIP(req);
-    const userAgent = authService.getUserAgent(req);
-    const clientId = buildClientId(ip, userAgent);
+    const { ip, userAgent, clientId } = extractRequestMetadata(req);
 
     try {
     // Rate limiting check
@@ -60,27 +65,37 @@ export async function POST(request: NextRequest) {
       logger.warn('Redis unavailable for rate limiting:', redisError);
     }
 
-      const body = await req.json().catch(() => ({}));
-    const parsed = forgotPasswordSchema.safeParse(body);
+      // Parse and validate request body using standardized helper
+      const bodyResult = await parseRequestBody<{
+        email?: string;
+      }>(req, {
+        maxSize: 512,
+        required: true,
+      });
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: 'البريد الإلكتروني غير صالح',
-          code: 'VALIDATION_ERROR',
-          details: parsed.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
+      if (!bodyResult.success) {
+        return bodyResult.error;
+      }
+
+      const parsed = forgotPasswordSchema.safeParse(bodyResult.data);
+
+      if (!parsed.success) {
+        return createStandardErrorResponse(
+          {
+            error: 'VALIDATION_ERROR',
+            details: parsed.error.flatten().fieldErrors,
+          },
+          'البريد الإلكتروني غير صالح',
+          400
+        );
+      }
 
     const { email } = parsed.data;
     const normalizedEmail = email as string;
 
-    // Find user by email with error handling
-    let user;
-    try {
-      user = await prisma.user.findUnique({
+    // Find user by email with standardized error handling
+    const userResult = await withDatabaseQuery(
+      () => prisma.user.findUnique({
         where: { email: normalizedEmail },
         select: {
           id: true,
@@ -88,96 +103,77 @@ export async function POST(request: NextRequest) {
           resetToken: true,
           resetTokenExpires: true,
         },
-      });
-    } catch (dbError) {
-      logger.error('Database error while finding user:', dbError);
-      
-      if (isConnectionError(dbError)) {
-        return NextResponse.json(
-          {
-            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
-            code: 'CONNECTION_ERROR',
-          },
-          { status: 503 }
-        );
-      }
-      
-      throw dbError;
+      })
+    );
+
+    if (!userResult.success) {
+      return userResult.response;
     }
+
+    const user = userResult.data;
 
     // Don't reveal if user exists or not for security (timing attack prevention)
     // Always return the same response regardless of user existence
     if (!user) {
       // Log security event for monitoring (without revealing user existence)
-      await authService.logSecurityEvent(null, 'forgot_password_requested', ip, {
+      await logSecurityEventSafely(null, 'forgot_password_requested', {
+        ip,
         userAgent,
         emailDomain: normalizedEmail.split('@')[1],
       });
 
-      return NextResponse.json({
+      return createSuccessResponse({
         message: 'إذا كان بريدك الإلكتروني مسجلاً لدينا، ستتلقى رابط إعادة تعيين كلمة المرور.',
       });
     }
 
     // Check if there's an existing valid reset token
-    const hasValidToken = user.resetToken && 
-      user.resetTokenExpires && 
-      new Date(user.resetTokenExpires) > new Date();
+    const hasValidToken = (user as any).resetToken && 
+      (user as any).resetTokenExpires && 
+      new Date((user as any).resetTokenExpires) > new Date();
 
     // Generate new reset token
     const resetToken = randomBytes(32).toString('hex');
     const resetTokenExpires = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS);
 
-    // Save token and expiration to user
-    try {
-      await prisma.user.update({
-        where: { id: user.id },
+    // Save token and expiration to user with standardized error handling
+    const updateResult = await withDatabaseQuery(
+      () => prisma.user.update({
+        where: { id: (user as any).id },
         data: {
           resetToken,
           resetTokenExpires,
         },
-      });
-    } catch (dbError) {
-      logger.error('Database error while updating reset token:', dbError);
-      
-      if (isConnectionError(dbError)) {
-        return NextResponse.json(
-          {
-            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
-            code: 'CONNECTION_ERROR',
-          },
-          { status: 503 }
-        );
-      }
-      
-      throw dbError;
+      })
+    );
+
+    if (!updateResult.success) {
+      return updateResult.response;
     }
 
     // Log security event
-    await authService.logSecurityEvent(user.id, 'forgot_password_token_generated', ip, {
+    await logSecurityEventSafely((user as any).id, 'forgot_password_token_generated', {
+      ip,
       userAgent,
       hasExistingToken: hasValidToken,
     });
 
     // In production, send email here
     // For now, we return a generic success message
-    return NextResponse.json({
+    return createSuccessResponse({
       message: 'إذا كان بريدك الإلكتروني مسجلاً لدينا، ستتلقى رابط إعادة تعيين كلمة المرور.',
     });
   } catch (error) {
     logger.error('Forgot password error:', error);
     
     // Log security event safely
-    try {
-      await authService.logSecurityEvent(null, 'forgot_password_error', ip, {
-        userAgent,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } catch (logError) {
-      logger.error('Failed to log security event:', logError);
-    }
+    await logSecurityEventSafely(null, 'forgot_password_error', {
+      ip,
+      userAgent,
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
 
-    return createErrorResponse(
+    return createStandardErrorResponse(
       error,
       'حدث خطأ غير متوقع أثناء معالجة طلب إعادة تعيين كلمة المرور. حاول مرة أخرى لاحقاً.'
     );

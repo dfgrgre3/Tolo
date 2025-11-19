@@ -1,6 +1,21 @@
 /**
  * Centralized API client for authentication endpoints
- * Provides type-safe methods for all auth operations
+ * عميل API المركزي لمواقع المصادقة
+ * 
+ * هذا هو الملف الوحيد الموثوق لجميع استدعاءات API للمصادقة على العميل.
+ * جميع المكونات على العميل يجب أن تستورد دوال API من هذا الملف.
+ * 
+ * للاستخدام:
+ * - في Client Components: استورد دوال مثل loginUser, verifyTwoFactor, registerUser من هذا الملف
+ * - لا تستورد من src/lib/auth-client.ts (ملف قديم للتخزين المحلي فقط)
+ * - لا تستورد من src/lib/auth-hook-enhanced.ts (استخدم للـ hooks فقط)
+ * 
+ * الملفات المتعلقة:
+ * - src/lib/auth-service.ts: الخدمة الأساسية على الخادم (server-side)
+ * - src/auth.ts: نقطة التصدير الموحدة للمصادقة على الخادم (server-only)
+ * - src/lib/auth-hook-enhanced.ts: Hook محسّن للمصادقة (useEnhancedAuth)
+ * 
+ * ملاحظة: Token يتم تخزينه في httpOnly cookie تلقائياً عند تسجيل الدخول الناجح
  */
 
 import type {
@@ -19,12 +34,14 @@ import type {
   BiometricVerifyResponse,
   ApiErrorResponse,
 } from '@/types/api/auth';
+import { logger } from '@/lib/logger';
 
 const API_TIMEOUT = 30000; // 30 seconds
 const API_BASE_URL = '/api/auth';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
+const CONNECTION_TIMEOUT = 5000; // 5 seconds for connection timeout
 
 /**
  * Check if device is online
@@ -94,6 +111,7 @@ function isRetryableError(error: unknown, status?: number): boolean {
 
 /**
  * Generic fetch wrapper with timeout, retry logic, and comprehensive error handling
+ * Improved with connection timeout and better error handling
  */
 async function apiFetch<T>(
   endpoint: string,
@@ -108,8 +126,23 @@ async function apiFetch<T>(
     };
   }
 
+  // Validate endpoint
+  if (!endpoint || typeof endpoint !== 'string') {
+    throw {
+      error: 'مسار API غير صحيح',
+      code: 'INVALID_ENDPOINT',
+    };
+  }
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+  
+  // Add connection timeout for faster failure detection
+  const connectionTimeoutId = setTimeout(() => {
+    if (!controller.signal.aborted) {
+      controller.abort();
+    }
+  }, CONNECTION_TIMEOUT);
 
   try {
     const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -123,6 +156,7 @@ async function apiFetch<T>(
     });
 
     clearTimeout(timeoutId);
+    clearTimeout(connectionTimeoutId);
 
     // Handle empty response
     const contentType = response.headers.get('content-type');
@@ -318,6 +352,7 @@ async function apiFetch<T>(
     return {} as T;
   } catch (error: unknown) {
     clearTimeout(timeoutId);
+    clearTimeout(connectionTimeoutId);
 
     // Check if error is retryable and we haven't exceeded max retries
     if (isRetryableError(error) && retryCount < MAX_RETRIES) {
@@ -392,46 +427,180 @@ async function apiFetch<T>(
 
 /**
  * Login API
- * Improved with better error handling and connection to backend
+ * Improved with better error handling, validation, and connection to backend
+ * Enhanced with input sanitization and better error messages
+ * 
+ * Security improvements:
+ * - Comprehensive input validation and sanitization
+ * - Timeout protection for API calls
+ * - Better error handling and retry logic
+ * - Response validation
  */
 export async function loginUser(
   request: LoginRequest
 ): Promise<LoginResponse> {
+  const startTime = Date.now();
+  
+  // Validate request structure
+  if (!request || typeof request !== 'object' || Array.isArray(request)) {
+    throw {
+      error: 'بيانات الطلب غير صحيحة',
+      code: 'INVALID_REQUEST',
+    };
+  }
+
+  // Enhanced email validation and sanitization
+  if (!request.email || typeof request.email !== 'string') {
+    throw {
+      error: 'البريد الإلكتروني مطلوب',
+      code: 'MISSING_EMAIL',
+    };
+  }
+
+  // Validate email length (RFC 5321 limit)
+  if (request.email.length > 254) {
+    throw {
+      error: 'البريد الإلكتروني طويل جداً',
+      code: 'EMAIL_TOO_LONG',
+    };
+  }
+
+  const email = request.email.trim().toLowerCase();
+  if (email.length === 0) {
+    throw {
+      error: 'البريد الإلكتروني لا يمكن أن يكون فارغاً',
+      code: 'INVALID_EMAIL',
+    };
+  }
+
+  // Enhanced email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw {
+      error: 'صيغة البريد الإلكتروني غير صحيحة',
+      code: 'INVALID_EMAIL_FORMAT',
+    };
+  }
+
+  // Additional security: Check for potentially malicious email patterns
+  if (email.includes('..') || email.startsWith('.') || email.endsWith('.')) {
+    throw {
+      error: 'صيغة البريد الإلكتروني غير صحيحة',
+      code: 'INVALID_EMAIL_FORMAT',
+    };
+  }
+
+  // Enhanced password validation
+  if (!request.password || typeof request.password !== 'string') {
+    throw {
+      error: 'كلمة المرور مطلوبة',
+      code: 'MISSING_PASSWORD',
+    };
+  }
+
+  if (request.password.length === 0) {
+    throw {
+      error: 'كلمة المرور لا يمكن أن تكون فارغة',
+      code: 'INVALID_PASSWORD',
+    };
+  }
+
+  // Minimum length validation (security best practice)
+  if (request.password.length < 8) {
+    throw {
+      error: 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل',
+      code: 'PASSWORD_TOO_SHORT',
+    };
+  }
+
+  // Maximum length validation (security - prevent DoS attacks)
+  if (request.password.length > 128) {
+    throw {
+      error: 'كلمة المرور طويلة جداً',
+      code: 'PASSWORD_TOO_LONG',
+    };
+  }
+
   try {
+    // Prepare request body with sanitized data
+    const requestBody = {
+      email,
+      password: request.password, // Don't trim password - spaces might be intentional
+      rememberMe: request.rememberMe ?? false,
+      deviceFingerprint: request.deviceFingerprint || undefined,
+      captchaToken: request.captchaToken || undefined,
+    };
+
     const response = await apiFetch<LoginResponse>('/login', {
       method: 'POST',
-      body: JSON.stringify({
-        email: request.email.trim().toLowerCase(),
-        password: request.password,
-        rememberMe: request.rememberMe ?? false,
-        deviceFingerprint: request.deviceFingerprint,
-        captchaToken: request.captchaToken,
-      }),
+      body: JSON.stringify(requestBody),
     });
     
     // Validate response structure
-    if (!response || typeof response !== 'object') {
+    if (!response || typeof response !== 'object' || Array.isArray(response)) {
       throw {
         error: 'استجابة غير صحيحة من الخادم',
         code: 'INVALID_RESPONSE',
       };
     }
     
-    // If 2FA is required, return the response with requiresTwoFactor flag
+    // If 2FA is required, validate and return the response
     if (response.requiresTwoFactor) {
+      if (!response.loginAttemptId || typeof response.loginAttemptId !== 'string') {
+        throw {
+          error: 'استجابة التحقق بخطوتين غير صحيحة',
+          code: 'INVALID_2FA_RESPONSE',
+        };
+      }
       return response;
     }
     
-    // Validate successful login response
-    if (!response.token || !response.user) {
+    // Validate successful login response structure
+    if (!response.token || typeof response.token !== 'string' || response.token.trim().length === 0) {
       throw {
-        error: 'استجابة تسجيل الدخول غير كاملة',
-        code: 'INCOMPLETE_RESPONSE',
+        error: 'رمز المصادقة غير موجود في الاستجابة',
+        code: 'MISSING_TOKEN',
       };
+    }
+
+    if (!response.user || typeof response.user !== 'object') {
+      throw {
+        error: 'بيانات المستخدم غير موجودة في الاستجابة',
+        code: 'MISSING_USER_DATA',
+      };
+    }
+
+    // Validate user data structure
+    if (!response.user.id || typeof response.user.id !== 'string') {
+      throw {
+        error: 'معرف المستخدم غير صحيح',
+        code: 'INVALID_USER_ID',
+      };
+    }
+
+    if (!response.user.email || typeof response.user.email !== 'string') {
+      throw {
+        error: 'بريد المستخدم غير صحيح',
+        code: 'INVALID_USER_EMAIL',
+      };
+    }
+    
+    // Log successful login duration for monitoring
+    const duration = Date.now() - startTime;
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`loginUser API call completed successfully in ${duration}ms`);
     }
     
     return response;
   } catch (error: unknown) {
+    // Log error with context
+    const duration = Date.now() - startTime;
+    if (process.env.NODE_ENV === 'development') {
+      logger.debug(`loginUser API call failed after ${duration}ms`, {
+        error: error && typeof error === 'object' && 'error' in error ? (error as {error?: string}).error : String(error),
+      });
+    }
+    
     // Check if error is empty object or null/undefined
     if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
       throw {
@@ -551,11 +720,15 @@ export async function verifyTwoFactor(
  * Get Biometric Challenge
  */
 export async function getBiometricChallenge(
-  request: BiometricChallengeRequest
-): Promise<BiometricChallengeResponse> {
-  return apiFetch<BiometricChallengeResponse>('/biometric', {
+  request: BiometricChallengeRequest | { type: 'authenticate' | 'register' | 'options'; userId?: string }
+): Promise<BiometricChallengeResponse & { options?: any; challenge?: string }> {
+  const body = typeof request === 'object' && 'type' in request
+    ? { action: request.type === 'authenticate' ? 'authenticate' : request.type === 'register' ? 'register' : 'options', userId: (request as { userId?: string }).userId }
+    : request;
+  
+  return apiFetch<BiometricChallengeResponse & { options?: any; challenge?: string }>('/biometric', {
     method: 'POST',
-    body: JSON.stringify(request),
+    body: JSON.stringify(body),
   });
 }
 
@@ -701,6 +874,249 @@ export async function deleteSession(sessionId: string): Promise<{
 }> {
   return apiFetch<{ message: string }>(`/sessions/${sessionId}`, {
     method: 'DELETE',
+  });
+}
+
+/**
+ * Resend two-factor code
+ */
+export async function resendTwoFactorCode(data: {
+  loginAttemptId: string;
+  method?: 'email' | 'sms';
+}): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/resend-two-factor', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Setup TOTP two-factor authentication
+ */
+export async function setupTOTP(): Promise<{
+  secret: string;
+  qrCodeURL: string;
+  manualEntryKey: string;
+  recoveryCodes: string[];
+  message: string;
+}> {
+  return apiFetch<{
+    secret: string;
+    qrCodeURL: string;
+    manualEntryKey: string;
+    recoveryCodes: string[];
+    message: string;
+  }>('/two-factor/totp/setup', {
+    method: 'POST',
+  });
+}
+
+/**
+ * Verify TOTP code
+ */
+export async function verifyTOTPCode(code: string): Promise<{
+  message: string;
+}> {
+  return apiFetch<{ message: string }>('/two-factor/totp/verify', {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+/**
+ * Verify TOTP code for login
+ */
+export async function verifyTOTPForLogin(data: {
+  loginAttemptId: string;
+  code: string;
+}): Promise<TwoFactorVerifyResponse> {
+  return apiFetch<TwoFactorVerifyResponse>('/two-factor/totp/verify-login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Get recovery codes
+ */
+export async function getRecoveryCodes(): Promise<{
+  codes: string[];
+  remaining: number;
+}> {
+  return apiFetch<{ codes: string[]; remaining: number }>('/two-factor/recovery-codes', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Generate new recovery codes
+ */
+export async function generateRecoveryCodes(): Promise<{
+  codes: string[];
+  message: string;
+}> {
+  return apiFetch<{ codes: string[]; message: string }>('/two-factor/recovery-codes', {
+    method: 'POST',
+  });
+}
+
+/**
+ * Setup biometric authentication
+ */
+export async function setupBiometric(data: {
+  credentialId: string;
+  publicKey: string;
+  deviceName?: string;
+}): Promise<{
+  message: string;
+  credentialId: string;
+  challenge: string;
+}> {
+  return apiFetch<{
+    message: string;
+    credentialId: string;
+    challenge: string;
+  }>('/biometric/setup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Register biometric credential
+ */
+export async function registerBiometric(data: {
+  credential: any;
+  deviceName?: string;
+}): Promise<{
+  message: string;
+  credentialId: string;
+}> {
+  return apiFetch<{ message: string; credentialId: string }>('/biometric/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Get biometric credentials
+ */
+export async function getBiometricCredentials(): Promise<{
+  credentials: Array<{
+    id: string;
+    credentialId: string;
+    deviceName: string;
+    createdAt: string;
+  }>;
+}> {
+  return apiFetch<{
+    credentials: Array<{
+      id: string;
+      credentialId: string;
+      deviceName: string;
+      createdAt: string;
+    }>;
+  }>('/biometric', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Delete biometric credential
+ */
+export async function deleteBiometric(credentialId: string): Promise<{
+  message: string;
+}> {
+  return apiFetch<{ message: string }>('/biometric/setup', {
+    method: 'DELETE',
+    body: JSON.stringify({ credentialId }),
+  });
+}
+
+/**
+ * Get OAuth status
+ */
+export async function getOAuthStatus(): Promise<{
+  status: 'pending' | 'success' | 'error';
+  user?: any;
+  error?: string;
+}> {
+  return apiFetch<{
+    status: 'pending' | 'success' | 'error';
+    user?: any;
+    error?: string;
+  }>('/oauth/status', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Get auth status
+ */
+export async function getAuthStatus(): Promise<{
+  isAuthenticated: boolean;
+  user?: any;
+}> {
+  return apiFetch<{ isAuthenticated: boolean; user?: any }>('/status', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Get analytics data
+ */
+export async function getAuthAnalytics(): Promise<{
+  loginAttempts: number;
+  failedAttempts: number;
+  successfulLogins: number;
+  suspiciousActivity: number;
+}> {
+  return apiFetch<{
+    loginAttempts: number;
+    failedAttempts: number;
+    successfulLogins: number;
+    suspiciousActivity: number;
+  }>('/analytics', {
+    method: 'GET',
+  });
+}
+
+/**
+ * Send magic link
+ */
+export async function sendMagicLink(email: string): Promise<{
+  message: string;
+}> {
+  return apiFetch<{ message: string }>('/magic-link', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Verify magic link
+ */
+export async function verifyMagicLink(token: string): Promise<{
+  message: string;
+  token?: string;
+  user?: any;
+}> {
+  return apiFetch<{ message: string; token?: string; user?: any }>('/magic-link/verify', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
+/**
+ * Create test account (for development)
+ */
+export async function createTestAccount(): Promise<{
+  email: string;
+  password: string;
+  message: string;
+}> {
+  return apiFetch<{ email: string; password: string; message: string }>('/test-account', {
+    method: 'POST',
   });
 }
 

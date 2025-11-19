@@ -25,6 +25,10 @@ const nextConfig = {
   turbopack: {
     // Improve HMR for icon libraries
     resolveExtensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
+    // Improve chunk loading reliability
+    resolveAlias: {
+      // Ensure consistent module resolution
+    },
   },
 
   // Enable compression
@@ -35,6 +39,20 @@ const nextConfig = {
 
   // Enable standalone build for smaller docker images
   output: 'standalone',
+
+  // Server-only packages (not bundled for client)
+  serverExternalPackages: [
+    'winston',
+    'winston-elasticsearch',
+    '@elastic/elasticsearch',
+    'tailwindcss',
+    '@nodelib/fs.scandir',
+    '@nodelib/fs.walk',
+    'fast-glob',
+    'import-in-the-middle',
+    'require-in-the-middle',
+    '@prisma/instrumentation',
+  ],
 
   // Optimize static assets
   experimental: {
@@ -50,10 +68,42 @@ const nextConfig = {
     ],
     // Enable webpack 5 for better performance
     webpackBuildWorker: true,
+    // Improve chunk loading reliability
+    serverActions: {
+      bodySizeLimit: '2mb',
+    },
   },
 
   // Configure webpack to handle path aliases
   webpack: (config, { dev, isServer }) => {
+    // Prevent Node.js modules from being bundled for client
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+        stream: false,
+        url: false,
+        zlib: false,
+        http: false,
+        https: false,
+        assert: false,
+        os: false,
+        path: false,
+        'child_process': false,
+      };
+    } else {
+      // Server-side fallbacks
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        assert: require.resolve('assert'),
+        util: require.resolve('util'),
+        stream: require.resolve('stream-browserify')
+      };
+    }
+
     // Improved module resolution
     config.resolve = {
       ...config.resolve,
@@ -61,11 +111,6 @@ const nextConfig = {
         ...config.resolve.alias,
         '@': require('path').resolve(__dirname, 'src/')
       },
-      fallback: {
-        assert: require.resolve('assert'),
-        util: require.resolve('util'),
-        stream: require.resolve('stream-browserify')
-      }
     };
 
     // Fix HMR issues with lucide-react and other icon libraries

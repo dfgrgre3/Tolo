@@ -31,11 +31,27 @@ export interface AuthContextType {
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
+  _isProviderMounted?: boolean; // Internal flag to check if provider is mounted
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// Create context with default value to prevent React errors when used outside provider
+// This ensures useAuth never throws, even if called before AuthProvider is mounted
+const DEFAULT_AUTH_CONTEXT: AuthContextType = {
+  user: null,
+  isLoading: false,
+  login: () => {},
+  logout: () => {},
+  updateUser: () => {},
+  refreshUser: async () => {},
+  _isProviderMounted: false
+};
 
-export { AuthContext };
+// Create context with explicit default value
+// IMPORTANT: The default value ensures useContext never throws, even when used outside provider
+const AuthContext = createContext<AuthContextType>(DEFAULT_AUTH_CONTEXT);
+
+// Export both context and default for safety
+export { AuthContext, DEFAULT_AUTH_CONTEXT };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const isHydrated = useHydrationFix();
@@ -74,13 +90,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Always check with server - token is in httpOnly cookie
         // The server will read from cookies automatically
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+        }, 10000); // 10 second timeout
         
         let response: Response;
         try {
           // Don't send Authorization header - rely on httpOnly cookies only
           // This ensures we use the secure cookie-based authentication
-          response = await fetch('/api/auth/me', {
+          const fetchPromise = fetch('/api/auth/me', {
             headers: {
               'Content-Type': 'application/json',
             },
@@ -88,11 +106,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             signal: controller.signal,
             cache: 'no-store',
           });
+
+          // Additional timeout protection using Promise.race
+          const timeoutPromise = new Promise<Response>((resolve, reject) => {
+            setTimeout(() => {
+              reject(new Error('Request timeout'));
+            }, 10000);
+          });
+
+          response = await Promise.race([fetchPromise, timeoutPromise]);
           clearTimeout(timeoutId);
         } catch (fetchError: any) {
           clearTimeout(timeoutId);
           
-          if (fetchError.name === 'AbortError') {
+          if (fetchError.name === 'AbortError' || fetchError.message?.includes('timeout')) {
             logger.warn('Auth check request timed out');
             removeTokenFromStorage(); // Clean up any legacy tokens
             setUser(null);
@@ -103,7 +130,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Network error - don't clear user, might be temporary
           if (
             fetchError.message?.includes('Failed to fetch') ||
-            !navigator.onLine
+            fetchError.message?.includes('NetworkError') ||
+            (typeof navigator !== 'undefined' && !navigator.onLine)
           ) {
             logger.warn('Network error during auth check, keeping cached user');
             setIsLoading(false);
@@ -125,7 +153,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           
           if (isJson) {
             try {
-              const userData = await response.json();
+              // Parse response with timeout protection
+              const parsePromise = response.json();
+              const parseTimeoutPromise = new Promise<never>((resolve, reject) => {
+                setTimeout(() => reject(new Error('JSON parsing timeout')), 5000);
+              });
+
+              const userData = await Promise.race([parsePromise, parseTimeoutPromise]);
+              
+              // Validate user data structure
+              if (!userData || typeof userData !== 'object') {
+                throw new Error('Invalid user data structure');
+              }
+
+              if (!userData.user || typeof userData.user !== 'object') {
+                throw new Error('User object missing or invalid');
+              }
+
+              // Validate required user fields
+              if (!userData.user.id || typeof userData.user.id !== 'string') {
+                throw new Error('User ID missing or invalid');
+              }
+
+              if (!userData.user.email || typeof userData.user.email !== 'string') {
+                throw new Error('User email missing or invalid');
+              }
+
               setUser(userData.user);
               saveUserToStorage(userData.user);
               // Token is in httpOnly cookie - no need to store in localStorage
@@ -142,6 +195,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           // Authentication failed - clear state
+          // Check status code for better error handling
+          if (response.status === 401 || response.status === 403) {
+            logger.info('Authentication failed: unauthorized');
+          } else if (response.status >= 500) {
+            logger.error('Server error during auth check');
+            // Don't clear user on server errors - might be temporary
+            setIsLoading(false);
+            return;
+          }
+          
           removeTokenFromStorage(); // Clean up any legacy tokens
           setUser(null);
         }
@@ -409,11 +472,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   // Memoize context value to prevent unnecessary re-renders
+  // Always include _isProviderMounted: true to ensure useAuth works correctly
   const contextValue = useMemo(
-    () => ({ user, isLoading, login, logout, updateUser, refreshUser }),
+    () => ({ 
+      user, 
+      isLoading, 
+      login, 
+      logout, 
+      updateUser, 
+      refreshUser,
+      _isProviderMounted: true // Mark that provider is mounted - always true when provider is rendered
+    }),
     [user, isLoading, login, logout, updateUser, refreshUser]
   );
 
+  // Always render the provider - contextValue is always available
+  // This ensures useAuth can always access the context, even during SSR
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
@@ -421,10 +495,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useAuth() {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+/**
+ * useAuth hook - safely gets auth context
+ * 
+ * IMPORTANT: This hook NEVER throws an error. It always returns a safe default context
+ * if the AuthProvider is not available (e.g., during SSR or initial render).
+ * 
+ * React's useContext will return DEFAULT_AUTH_CONTEXT if no Provider is found,
+ * so we never need to throw an error.
+ */
+export function useAuth(): AuthContextType {
+  // React's useContext will return DEFAULT_AUTH_CONTEXT if no Provider is mounted
+  // This means it will NEVER throw an error when we provide a default value
+  // We use a try-catch for extra safety in edge cases, but it should never be needed
+  let context: AuthContextType;
+  
+  try {
+    // Safely get context - React will return DEFAULT_AUTH_CONTEXT if no provider exists
+    context = useContext(AuthContext);
+    
+    // Ensure context is always defined (should never be null/undefined with default value)
+    if (!context) {
+      context = DEFAULT_AUTH_CONTEXT;
+    }
+  } catch (error) {
+    // If useContext somehow throws (should never happen with default value),
+    // return default context immediately
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('useAuth: useContext threw an error (unexpected), using default context:', error);
+    }
+    context = DEFAULT_AUTH_CONTEXT;
   }
-  return context;
+  
+  // Always ensure we have a valid context object
+  if (!context || typeof context !== 'object') {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('useAuth: context is invalid, using default context');
+    }
+    context = DEFAULT_AUTH_CONTEXT;
+  }
+  
+  // Check if we're inside the provider by checking the internal flag
+  // If _isProviderMounted is not true, we're using the default context
+  if (context._isProviderMounted !== true) {
+    // Provider is not mounted - return default context (no error thrown)
+    // This is EXPECTED during SSR or initial render
+    const { _isProviderMounted, ...defaultContext } = DEFAULT_AUTH_CONTEXT;
+    return defaultContext as AuthContextType;
+  }
+  
+  // Provider is mounted - remove the internal flag and return public context
+  const { _isProviderMounted, ...publicContext } = context;
+  return publicContext as AuthContextType;
 }

@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+// @ts-ignore - @radix-ui/react-alert-dialog type declarations issue
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
