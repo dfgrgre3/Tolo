@@ -7,7 +7,7 @@ import {
   extractRequestMetadata,
   logSecurityEventSafely,
   withDatabaseQuery
-} from '../_helpers';
+} from '@/app/api/auth/_helpers';
 import { withEnhancedAuth } from '@/lib/auth/enhanced-middleware';
 import { logger } from '@/lib/logger';
 

@@ -4,7 +4,7 @@ import { authService, AuthService } from '@/lib/auth-service';
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { prisma } from '@/lib/prisma';
-import { createErrorResponse, passwordSchema, isConnectionError } from '../_helpers';
+import { createErrorResponse, passwordSchema, isConnectionError } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

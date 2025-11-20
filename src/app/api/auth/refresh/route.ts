@@ -10,7 +10,7 @@ import {
   extractRequestMetadata,
   logSecurityEventSafely,
   addSecurityHeaders
-} from '../_helpers';
+} from '@/app/api/auth/_helpers';
 
 import { logger } from '@/lib/logger';
 

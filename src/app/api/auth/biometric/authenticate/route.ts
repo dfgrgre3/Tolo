@@ -4,7 +4,7 @@ import { webAuthnService } from '@/lib/security/webauthn';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { getSecureCookieOptions } from '../../_helpers';
+import { getSecureCookieOptions } from '@/app/api/auth/_helpers';
 import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {

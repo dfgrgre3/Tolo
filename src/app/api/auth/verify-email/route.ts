@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authService } from '@/lib/auth-service';
-import { isConnectionError } from '../_helpers';
+import { isConnectionError } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

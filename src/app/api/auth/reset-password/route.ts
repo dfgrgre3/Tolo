@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authService, AuthService } from '@/lib/auth-service';
 import { securityNotificationService } from '@/lib/security/security-notifications';
-import { createErrorResponse, passwordSchema, resetTokenSchema, isConnectionError } from '../_helpers';
+import { createErrorResponse, passwordSchema, resetTokenSchema, isConnectionError } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

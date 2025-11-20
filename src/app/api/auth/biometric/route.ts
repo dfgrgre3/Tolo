@@ -19,7 +19,7 @@ import type {
 } from '@simplewebauthn/typescript-types';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { getSecureCookieOptions } from '../_helpers';
+import { getSecureCookieOptions } from '@/app/api/auth/_helpers';
 import { BiometricChallengeService } from '@/lib/auth-challenges-service';
 
 // Helper function to validate environment variables

@@ -13,7 +13,7 @@ import {
   extractRequestMetadata,
   logSecurityEventSafely,
   withDatabaseQuery
-} from '../_helpers';
+} from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

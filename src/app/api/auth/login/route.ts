@@ -7,7 +7,7 @@ import {
   createStandardErrorResponse,
   parseRequestBody,
   addSecurityHeaders
-} from '../_helpers';
+} from '@/app/api/auth/_helpers';
 import type { LoginResponse } from '@/types/api/auth';
 
 /**
