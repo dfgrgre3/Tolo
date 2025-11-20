@@ -1,12 +1,12 @@
 "use client";
 
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { CheckCircle2, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
 export default function Footer() {
-	const { user } = useAuth();
+	const { user } = useUnifiedAuth();
 	
 	return (
 		<footer className={`border-t bg-background transition-all duration-300 ${user ? 'bg-gradient-to-br from-primary/5 via-background to-primary/5' : ''}`} suppressHydrationWarning>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { AuthGuard } from "@/components/auth/AuthGuard";
-import { useAuth } from '@/contexts/auth-context';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import {
   Activity,
@@ -26,7 +26,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface SecurityEvent {
   id: string;
@@ -43,7 +44,7 @@ interface SecurityEvent {
 type EventFilter = 'all' | 'login' | 'security' | 'settings' | 'suspicious';
 
 export default function ActivityLogPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useUnifiedAuth();
   const router = useRouter();
 
   const [events, setEvents] = useState<SecurityEvent[]>([]);

@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
-import { getCachedOrFetch } from '@/lib/db-service';
+import { CacheService } from '@/lib/redis';
 import { authService } from '@/lib/auth-service';
 import { logger } from '@/lib/logger';
 
@@ -59,7 +59,7 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
 
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
-    const summary = await getCachedOrFetch(cacheKey, async () => {
+    const summary = await CacheService.getOrSet(cacheKey, async () => {
       // Get all study sessions for the user
       const sessions = await prisma.studySession.findMany({
         where: { userId },

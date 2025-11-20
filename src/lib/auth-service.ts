@@ -12,6 +12,10 @@ import { logger } from './logger';
 // ✅ Use the singleton instance from prisma.ts to avoid "Too many connections" errors
 // ✅ استخدم النسخة الوحيدة من prisma.ts لتجنب خطأ "Too many connections"
 import { prisma } from './prisma';
+import {
+  validateEmail,
+  validatePassword,
+} from './auth/validation';
 
 // Get validated JWT_SECRET (throws error in production if invalid)
 let JWT_SECRET: Uint8Array;
@@ -70,34 +74,34 @@ export interface TokenVerificationResult {
 }
 
 /**
- * Unified Authentication Service - Single source of truth for all authentication operations
- * خدمة المصادقة الموحدة - المصدر الوحيد الموثوق لجميع عمليات المصادقة
+ * ============================================
+ * ⭐ الخدمة الأساسية للمصادقة (Server-Side)
+ * ============================================
  * 
- * ⭐ هذا هو المصدر الأساسي الوحيد الموثوق (Single Source of Truth) لجميع عمليات المصادقة على الخادم
+ * هذا هو المصدر الأساسي الوحيد الموثوق (Single Source of Truth) لجميع عمليات المصادقة على الخادم
  * 
- * ⚠️ IMPORTANT - لا تضارب في الملفات:
- * - ❌ src/lib/auth.ts → غير موجود (استخدم هذا الملف بدلاً منه)
- * - ❌ src/lib/auth-enhanced.ts → غير موجود (استخدم @/lib/auth-hook-enhanced للعميل)
- * - ❌ src/lib/auth-unified.ts → غير موجود (استخدم @/lib/auth/unified-auth-manager)
- * - ✅ src/lib/auth-service.ts → هذا الملف (المصدر الأساسي)
+ * ⚠️ IMPORTANT - البنية الموحدة بدون تضارب:
  * 
- * هذا هو الملف الرئيسي لجميع عمليات المصادقة على الخادم.
- * جميع ملفات المصادقة الأخرى تستورد من هذا الملف.
+ * 📁 SERVER-SIDE (الخادم):
+ *   ✅ src/lib/auth-service.ts → هذا الملف (الخدمة الأساسية) ⭐
+ *      └─> يُستخدم من: src/auth.ts (نقطة التصدير الموحدة)
  * 
- * للاستخدام:
- * - ✅ على الخادم (API Routes): استورد authService من هذا الملف
- * - ✅ على الخادم (Server Components): استورد auth من @/auth (الذي يستورد من هذا الملف)
- * - ✅ على العميل: استخدم @/lib/auth-hook-enhanced أو @/components/auth
- * - ✅ للـ middleware: استخدم @/lib/auth/enhanced-middleware (يوصى به) أو @/lib/middleware/auth-middleware
+ * 📁 CLIENT-SIDE (العميل):
+ *   ✅ src/contexts/auth-context.tsx → نقطة التصدير الموحدة ⭐
+ *      └─> src/components/auth/UnifiedAuthProvider.tsx
+ *          └─> src/lib/auth/unified-auth-manager.ts
  * 
- * ملفات المصادقة الموحدة:
- * - src/auth.ts: نقطة التصدير الموحدة للمصادقة على مستوى الخادم (server-only) ← يستورد من هذا الملف
- * - src/lib/auth-service.ts: هذا الملف - الخدمة الأساسية ⭐
- * - src/lib/api/auth-client.ts: عميل API للعميل (client-side)
- * - src/lib/auth-hook-enhanced.ts: Hook للعميل (client-side)
- * - src/lib/auth/: نظام المصادقة الموحد (unified auth manager)
+ * 📖 للاستخدام:
+ *   ✅ في API Routes: 
+ *      import { authService } from '@/lib/auth-service'
+ *   
+ *   ✅ في Server Components: 
+ *      import { auth } from '@/auth' (يستخدم authService داخلياً)
+ *   
+ *   ✅ في Client Components: 
+ *      import { useUnifiedAuth } from '@/contexts/auth-context'
  * 
- * راجع AUTH_STRUCTURE_CLEAN.md للتفاصيل الكاملة
+ * 📚 راجع AUTH_STRUCTURE_UNIFIED.md للتفاصيل الكاملة
  */
 export class AuthService {
   private static instance: AuthService;
@@ -156,12 +160,12 @@ export class AuthService {
       throw new Error('Valid user email is required for token creation');
     }
 
-    // Validate email format with stricter checks
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    const normalizedEmail = user.email.trim().toLowerCase();
-    if (!emailRegex.test(normalizedEmail) || normalizedEmail.length > 254) {
+    // Validate email format using centralized validation
+    const emailValidation = validateEmail(user.email);
+    if (!emailValidation.isValid) {
       throw new Error('Invalid email format for token creation');
     }
+    const normalizedEmail = emailValidation.normalized!;
 
     // Validate session ID format if provided
     if (sessionId !== undefined) {
@@ -293,8 +297,9 @@ export class AuthService {
         };
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (typeof payload.email !== 'string' || !emailRegex.test(payload.email)) {
+      // Validate email format using centralized validation
+      const emailValidation = validateEmail(payload.email);
+      if (!emailValidation.isValid) {
         return {
           isValid: false,
           error: 'Invalid email in token',
@@ -407,26 +412,15 @@ export class AuthService {
    * Enhanced with input validation and sanitization
    */
   async findUserByEmail(email: string) {
-    // Comprehensive input validation
-    if (!email || typeof email !== 'string' || !email.trim()) {
+    // Comprehensive input validation using centralized validation
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
+      if (process.env.NODE_ENV === 'development') {
+        logger.debug('Invalid email in findUserByEmail:', emailValidation.error);
+      }
       return null;
     }
-
-    // Normalize and validate email format
-    const normalizedEmail = email.trim().toLowerCase();
-    
-    // Additional security checks
-    if (normalizedEmail.length > 254) { // RFC 5321 limit
-      logger.warn('Email too long in findUserByEmail:', normalizedEmail.substring(0, 50) + '...');
-      return null;
-    }
-    
-    // Basic email format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      logger.debug('Invalid email format in findUserByEmail:', normalizedEmail.substring(0, 20) + '...');
-      return null;
-    }
+    const normalizedEmail = emailValidation.normalized!;
 
     // Fetch from database (with timeout)
     try {
@@ -582,54 +576,21 @@ export class AuthService {
   async login(email: string, password: string, userAgent: string, ip: string): Promise<TokenVerificationResult & { accessToken?: string; refreshToken?: string }> {
     const startTime = Date.now();
     
-    // Validate inputs early with comprehensive checks
-    if (!email || typeof email !== 'string' || email.trim().length === 0) {
+    // Validate inputs early using centralized validation
+    const emailValidation = validateEmail(email);
+    if (!emailValidation.isValid) {
       return {
         isValid: false,
-        error: 'البريد الإلكتروني مطلوب',
+        error: emailValidation.error || 'البريد الإلكتروني غير صحيح',
       };
     }
+    const normalizedEmail = emailValidation.normalized!;
 
-    // Validate email length (RFC 5321 limit)
-    if (email.length > 254) {
+    const passwordValidation = validatePassword(password);
+    if (!passwordValidation.isValid) {
       return {
         isValid: false,
-        error: 'البريد الإلكتروني طويل جداً',
-      };
-    }
-
-    if (!password || typeof password !== 'string' || password.length === 0) {
-      return {
-        isValid: false,
-        error: 'كلمة المرور مطلوبة',
-      };
-    }
-
-    // Validate password length (security best practice)
-    if (password.length > 128) {
-      return {
-        isValid: false,
-        error: 'كلمة المرور طويلة جداً',
-      };
-    }
-
-    // Normalize and sanitize inputs
-    const normalizedEmail = email.trim().toLowerCase();
-    
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      return {
-        isValid: false,
-        error: 'صيغة البريد الإلكتروني غير صحيحة',
-      };
-    }
-
-    // Additional security: Check for potentially malicious email patterns
-    if (normalizedEmail.includes('..') || normalizedEmail.startsWith('.') || normalizedEmail.endsWith('.')) {
-      return {
-        isValid: false,
-        error: 'صيغة البريد الإلكتروني غير صحيحة',
+        error: passwordValidation.error || 'كلمة المرور غير صحيحة',
       };
     }
 

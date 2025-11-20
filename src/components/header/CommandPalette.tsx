@@ -30,7 +30,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { safeGetItem } from "@/lib/safe-client-utils";
 
 interface CommandItem {
@@ -54,7 +54,7 @@ interface CommandPaletteProps {
 export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 	const router = useRouter();
 	const pathname = usePathname();
-	const { user } = useAuth();
+	const { user } = useUnifiedAuth();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const inputRef = useRef<HTMLInputElement>(null);

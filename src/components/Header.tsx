@@ -15,7 +15,7 @@ import { EnhancedNotifications } from "./header/EnhancedNotifications";
 import { HeaderUserMenu } from "./header/HeaderUserMenu";
 import { HeaderMobileMenu } from "./header/HeaderMobileMenu";
 import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { useMegaMenuState } from "./header/useMegaMenuState";
 import { useKeyboardShortcuts } from "@/app/time/hooks/useKeyboardShortcuts";
 import { HeaderCustomization, useHeaderPreferences } from "./header/HeaderCustomization";
@@ -82,11 +82,8 @@ export default function Header() {
 		setIsMounted(true);
 	}, []);
 	
-	// Safely get user - useAuth returns default values if context is not available
-	// useAuth handles SSR and missing context gracefully and never throws
-	// It will return default context if provider is not available
-	// useAuth is now wrapped in try-catch internally, so it will never throw
-	const authContext = useAuth();
+	// Safely get user - useUnifiedAuth is the unified authentication hook
+	const authContext = useUnifiedAuth();
 	const user = authContext?.user ?? null;
 	const [isScrolled, setIsScrolled] = useState(false);
 	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);

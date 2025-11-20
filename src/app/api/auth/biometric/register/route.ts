@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
     // For now, we'll store in BiometricChallenge table
     await prisma.biometricChallenge.create({
       data: {
+        id: crypto.randomUUID(),
         challenge: options.challenge,
         type: 'register',
         userId: user.id,

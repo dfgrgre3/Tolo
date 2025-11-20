@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import {
   Shield,
@@ -33,7 +33,7 @@ export default function SecurityOnboarding({
   onComplete,
   skipable = false,
 }: SecurityOnboardingProps) {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser } = useUnifiedAuth();
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('welcome');
   const [isLoading, setIsLoading] = useState(false);

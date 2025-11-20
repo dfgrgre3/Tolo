@@ -1,0 +1,226 @@
+﻿.next/dev/types/validator.ts(809,39): error TS2307: Cannot find module '../../../src/app/api/auth/session/route.js' or its corresponding type declarations.
+src/app/achievements/hooks/useAchievements.ts(93,21): error TS2454: Variable 'data' is used before being assigned.
+src/app/api/ai/teachers/route.ts(48,36): error TS2339: Property 'teacher' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/ai/teachers/route.ts(141,30): error TS2339: Property 'teacher' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/ai/tips/route.ts(30,11): error TS2353: Object literal may only specify known properties, and 'subjects' does not exist in type 'UserInclude<DefaultArgs>'.
+src/app/api/ai/tips/route.ts(50,34): error TS2339: Property 'subjects' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/ai/tips/route.ts(51,50): error TS2339: Property 'exams' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/ai/tips/route.ts(51,79): error TS2339: Property 'exams' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/ai/tips/route.ts(51,152): error TS2339: Property 'exams' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/ai/tips/route.ts(52,46): error TS2339: Property 'progress' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/ai/tips/route.ts(52,78): error TS2339: Property 'progress' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/ai/tips/route.ts(52,160): error TS2339: Property 'progress' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/ai/tips/route.ts(151,26): error TS2551: Property 'recommendation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'mlRecommendation'?
+src/app/api/announcements/route.ts(22,44): error TS2339: Property 'announcement' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/announcements/route.ts(100,42): error TS2339: Property 'announcement' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/auth/biometric/authenticate/route.ts(65,7): error TS2322: Type '{ challenge: string; type: string; userId: string; expiresAt: Date; used: false; }' is not assignable to type '(Without<BiometricChallengeCreateInput, BiometricChallengeUncheckedCreateInput> & BiometricChallengeUncheckedCreateInput) | (Without<...> & BiometricChallengeCreateInput)'.
+  Type '{ challenge: string; type: string; userId: string; expiresAt: Date; used: false; }' is not assignable to type 'Without<BiometricChallengeUncheckedCreateInput, BiometricChallengeCreateInput> & BiometricChallengeCreateInput'.
+    Property 'id' is missing in type '{ challenge: string; type: string; userId: string; expiresAt: Date; used: false; }' but required in type 'BiometricChallengeCreateInput'.
+src/app/api/auth/biometric/register/route.ts(51,7): error TS2322: Type '{ challenge: string; type: string; userId: string; expiresAt: Date; used: false; }' is not assignable to type '(Without<BiometricChallengeCreateInput, BiometricChallengeUncheckedCreateInput> & BiometricChallengeUncheckedCreateInput) | (Without<...> & BiometricChallengeCreateInput)'.
+  Type '{ challenge: string; type: string; userId: string; expiresAt: Date; used: false; }' is not assignable to type 'Without<BiometricChallengeUncheckedCreateInput, BiometricChallengeCreateInput> & BiometricChallengeCreateInput'.
+    Property 'id' is missing in type '{ challenge: string; type: string; userId: string; expiresAt: Date; used: false; }' but required in type 'BiometricChallengeCreateInput'.
+src/app/api/auth/biometric/route.ts(202,9): error TS2353: Object literal may only specify known properties, and 'some' does not exist in type 'JsonFilter<"User">'.
+src/app/api/auth/biometric/route.ts(224,22): error TS18047: 'user.biometricCredentials' is possibly 'null'.
+src/app/api/auth/biometric/route.ts(224,48): error TS2339: Property 'find' does not exist on type 'string | number | boolean | JsonObject | JsonArray'.
+  Property 'find' does not exist on type 'string'.
+src/app/api/auth/biometric/route.ts(269,9): error TS2353: Object literal may only specify known properties, and 'some' does not exist in type 'JsonFilter<"User">'.
+src/app/api/auth/biometric/route.ts(315,5): error TS2322: Type '{ userId: string; eventType: string; ip: string; userAgent: string; deviceInfo: string; location: string; metadata: string; }' is not assignable to type '(Without<SecurityLogCreateInput, SecurityLogUncheckedCreateInput> & SecurityLogUncheckedCreateInput) | (Without<...> & SecurityLogCreateInput)'.
+  Type '{ userId: string; eventType: string; ip: string; userAgent: string; deviceInfo: string; location: string; metadata: string; }' is not assignable to type 'Without<SecurityLogCreateInput, SecurityLogUncheckedCreateInput> & SecurityLogUncheckedCreateInput'.
+    Property 'id' is missing in type '{ userId: string; eventType: string; ip: string; userAgent: string; deviceInfo: string; location: string; metadata: string; }' but required in type 'SecurityLogUncheckedCreateInput'.
+src/app/api/auth/biometric/setup/route.ts(46,18): error TS2339: Property 'biometricCredential' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/auth/biometric/setup/route.ts(100,18): error TS2339: Property 'biometricCredential' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/blog/categories/route.ts(10,37): error TS2339: Property 'blogCategory' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/blog/categories/route.ts(38,38): error TS2339: Property 'blogCategory' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/blog/posts/[id]/route.ts(15,31): error TS2339: Property 'blogPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/blog/posts/[id]/route.ts(70,18): error TS2339: Property 'blogPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/blog/posts/route.ts(15,32): error TS2339: Property 'blogPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/blog/posts/route.ts(84,35): error TS2339: Property 'blogCategory' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/blog/posts/route.ts(99,34): error TS2339: Property 'blogPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/chat/conversations/[userId]/route.ts(16,35): error TS2339: Property 'message' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/chat/conversations/[userId]/route.ts(42,13): error TS2353: Object literal may only specify known properties, and 'lastSeen' does not exist in type 'UserSelect<DefaultArgs>'.
+src/app/api/chat/conversations/[userId]/route.ts(48,44): error TS2339: Property 'message' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/chat/conversations/[userId]/route.ts(61,31): error TS2339: Property 'lastSeen' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/chat/messages/[senderId]/[receiverId]/route.ts(15,35): error TS2339: Property 'message' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/chat/messages/[senderId]/[receiverId]/route.ts(28,18): error TS2339: Property 'message' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/chat/messages/route.ts(42,37): error TS2339: Property 'message' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/contests/route.ts(10,35): error TS2339: Property 'contest' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/contests/route.ts(85,37): error TS2339: Property 'contest' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/enroll/route.ts(38,9): error TS2353: Object literal may only specify known properties, and 'userId_subject' does not exist in type 'SubjectEnrollmentWhereUniqueInput'.
+src/app/api/courses/[id]/enroll/route.ts(54,7): error TS2322: Type '{ userId: any; subject: any; targetWeeklyHours: number; }' is not assignable to type '(Without<SubjectEnrollmentCreateInput, SubjectEnrollmentUncheckedCreateInput> & SubjectEnrollmentUncheckedCreateInput) | (Without<...> & SubjectEnrollmentCreateInput)'.
+  Type '{ userId: any; subject: any; targetWeeklyHours: number; }' is not assignable to type 'Without<SubjectEnrollmentUncheckedCreateInput, SubjectEnrollmentCreateInput> & SubjectEnrollmentCreateInput'.
+    Type '{ userId: any; subject: any; targetWeeklyHours: number; }' is missing the following properties from type 'SubjectEnrollmentCreateInput': id, user
+src/app/api/courses/[id]/enroll/route.ts(92,9): error TS2353: Object literal may only specify known properties, and 'userId_subject' does not exist in type 'SubjectEnrollmentWhereUniqueInput'.
+src/app/api/courses/[id]/enroll/route.ts(141,11): error TS2353: Object literal may only specify known properties, and 'userId_subject' does not exist in type 'SubjectEnrollmentWhereUniqueInput'.
+src/app/api/courses/[id]/enroll/route.ts(158,11): error TS2353: Object literal may only specify known properties, and 'userId_subject' does not exist in type 'SubjectEnrollmentWhereUniqueInput'.
+src/app/api/courses/[id]/lessons/route.ts(19,34): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/lessons/route.ts(34,29): error TS2339: Property 'subTopic' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/lessons/route.ts(55,44): error TS2339: Property 'topicProgress' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/lessons/route.ts(93,34): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/lessons/route.ts(105,36): error TS2339: Property 'subTopic' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/route.ts(20,31): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/route.ts(41,11): error TS2353: Object literal may only specify known properties, and 'userId_subject' does not exist in type 'SubjectEnrollmentWhereUniqueInput'.
+src/app/api/courses/[id]/route.ts(73,36): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/route.ts(85,20): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/[id]/route.ts(114,43): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/lessons/[id]/progress/route.ts(23,33): error TS2339: Property 'subTopic' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/lessons/[id]/progress/route.ts(35,41): error TS2339: Property 'topicProgress' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/lessons/[id]/progress/route.ts(55,40): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/lessons/[id]/progress/route.ts(60,44): error TS2339: Property 'topic' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/lessons/[id]/progress/route.ts(69,43): error TS2339: Property 'topicProgress' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/lessons/[id]/progress/route.ts(87,13): error TS2353: Object literal may only specify known properties, and 'progress' does not exist in type '(Without<SubjectEnrollmentUpdateManyMutationInput, SubjectEnrollmentUncheckedUpdateManyInput> & SubjectEnrollmentUncheckedUpdateManyInput) | (Without<...> & SubjectEnrollmentUpdateManyMutationInput)'.
+src/app/api/courses/lessons/[id]/progress/route.ts(120,35): error TS2339: Property 'topicProgress' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/route.ts(35,39): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/route.ts(188,34): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/courses/route.ts(219,36): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/evaluate-test/route.ts(53,31): error TS2339: Property 'aiGeneratedExam' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/evaluate-test/route.ts(158,37): error TS2339: Property 'testResult' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/attendees/route.ts(16,32): error TS2339: Property 'event' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/attendees/route.ts(27,36): error TS2339: Property 'eventAttendee' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/attendees/route.ts(80,32): error TS2339: Property 'event' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/attendees/route.ts(105,45): error TS2339: Property 'eventAttendee' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/attendees/route.ts(122,38): error TS2339: Property 'eventAttendee' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/attendees/route.ts(172,37): error TS2339: Property 'eventAttendee' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/attendees/route.ts(189,18): error TS2339: Property 'eventAttendee' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/[id]/route.ts(15,32): error TS2339: Property 'event' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/route.ts(11,33): error TS2339: Property 'event' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/route.ts(92,35): error TS2339: Property 'event' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/events/upcoming/route.ts(26,33): error TS2339: Property 'event' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/exams/grades/route.ts(33,37): error TS2339: Property 'userGrade' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/exams/grades/route.ts(91,20): error TS2339: Property 'userGrade' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/exams/route.ts(65,35): error TS2353: Object literal may only specify known properties, and 'createdAt' does not exist in type 'ExamOrderByWithRelationInput'.
+src/app/api/exams/route.ts(215,6): error TS2353: Object literal may only specify known properties, and 'type' does not exist in type '(Without<ExamCreateInput, ExamUncheckedCreateInput> & ExamUncheckedCreateInput) | (Without<...> & ExamCreateInput)'.
+src/app/api/forum/categories/route.ts(10,37): error TS2339: Property 'forumCategory' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/categories/route.ts(38,38): error TS2339: Property 'forumCategory' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/[id]/replies/route.ts(16,31): error TS2339: Property 'forumPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/[id]/replies/route.ts(27,34): error TS2339: Property 'forumReply' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/[id]/replies/route.ts(74,31): error TS2339: Property 'forumPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/[id]/replies/route.ts(97,35): error TS2339: Property 'forumReply' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/[id]/route.ts(15,31): error TS2339: Property 'forumPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/[id]/route.ts(71,20): error TS2339: Property 'forumPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/route.ts(15,32): error TS2339: Property 'forumPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/route.ts(85,35): error TS2339: Property 'forumCategory' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/forum/posts/route.ts(96,34): error TS2339: Property 'forumPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/generate-test/route.ts(103,34): error TS2339: Property 'aiGeneratedExam' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/generate-test/route.ts(117,20): error TS2339: Property 'aiQuestion' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/generate-test/route.ts(132,44): error TS2339: Property 'aiGeneratedExam' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/grades/[id]/route.ts(22,18): error TS2339: Property 'userGrade' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/grades/route.ts(21,37): error TS2339: Property 'userGrade' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/grades/route.ts(29,42): error TS2339: Property 'userGrade' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/grades/route.ts(74,35): error TS2339: Property 'userGrade' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/lessons/route.ts(24,32): error TS2339: Property 'offlineLesson' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/lessons/route.ts(58,31): error TS2339: Property 'offlineLesson' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/reminders/route.ts(47,4): error TS2322: Type '{ userId: string; title: string; message: string | null; remindAt: Date; repeat: string | null; }' is not assignable to type '(Without<ReminderCreateInput, ReminderUncheckedCreateInput> & ReminderUncheckedCreateInput) | (Without<...> & ReminderCreateInput)'.
+  Type '{ userId: string; title: string; message: string | null; remindAt: Date; repeat: string | null; }' is not assignable to type 'Without<ReminderCreateInput, ReminderUncheckedCreateInput> & ReminderUncheckedCreateInput'.
+    Property 'id' is missing in type '{ userId: string; title: string; message: string | null; remindAt: Date; repeat: string | null; }' but required in type 'ReminderUncheckedCreateInput'.
+src/app/api/schedule/route.ts(38,35): error TS2339: Property 'schedule' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/schedule/route.ts(46,33): error TS2339: Property 'schedule' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/schedule/route.ts(96,37): error TS2339: Property 'schedule' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/schedule/route.ts(112,37): error TS2339: Property 'schedule' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/search/route.ts(61,35): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/search/route.ts(111,18): error TS2322: Type 'readonly ["TEACHER", "ADMIN", "teacher", "admin"]' is not assignable to type 'string[] | FieldRef<"User", "String[]"> | null | undefined'.
+  The type 'readonly ["TEACHER", "ADMIN", "teacher", "admin"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/app/api/search/route.ts(156,33): error TS2339: Property 'forumPost' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+src/app/api/search/route.ts(215,17): error TS2353: Object literal may only specify known properties, and 'createdAt' does not exist in type 'ExamOrderByWithRelationInput | ExamOrderByWithRelationInput[]'.
+src/app/api/teachers/route.ts(14,7): error TS2322: Type 'readonly ["TEACHER", "ADMIN", "teacher", "admin"]' is not assignable to type 'string[] | FieldRef<"User", "String[]"> | null | undefined'.
+  The type 'readonly ["TEACHER", "ADMIN", "teacher", "admin"]' is 'readonly' and cannot be assigned to the mutable type 'string[]'.
+src/app/api/teachers/route.ts(41,17): error TS2339: Property 'subjectEnrollments' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/teachers/route.ts(41,47): error TS2339: Property 'subjectEnrollments' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/teachers/route.ts(42,21): error TS2339: Property 'subjectEnrollments' does not exist on type '{ level: number; name: string | null; id: string; email: string; username: string | null; avatar: string | null; passwordHash: string; createdAt: Date; updatedAt: Date; wakeUpTime: string | null; ... 31 more ...; seasonXP: number; }'.
+src/app/api/teachers/route.ts(42,44): error TS7006: Parameter 'enrollment' implicitly has an 'any' type.
+src/lib/advanced-gamification-service.ts(418,29): error TS2345: Argument of type '(quest: { id: string; chainId: string; title: string; description: string | null; order: number; xpReward: number; requirements: unknown; prerequisites: string[] | null; }) => { ...; }' is not assignable to parameter of type '(value: { id: string; createdAt: Date; title: string; description: string; isActive: boolean; chainId: string; order: number; xpReward: number; requirements: JsonValue; prerequisites: JsonValue; }, index: number, array: { ...; }[]) => { ...; }'.
+  Types of parameters 'quest' and 'value' are incompatible.
+    Type '{ id: string; createdAt: Date; title: string; description: string; isActive: boolean; chainId: string; order: number; xpReward: number; requirements: JsonValue; prerequisites: JsonValue; }' is not assignable to type '{ id: string; chainId: string; title: string; description: string | null; order: number; xpReward: number; requirements: unknown; prerequisites: string[] | null; }'.
+      Types of property 'prerequisites' are incompatible.
+        Type 'JsonValue' is not assignable to type 'string[] | null'.
+          Type 'string' is not assignable to type 'string[]'.
+src/lib/advanced-gamification-service.ts(664,28): error TS2345: Argument of type '(ur: { reward: { id: string; name: string; description: string | null; type: string; xpCost: number; icon: string | null; rarity: string | null; }; }) => { id: string; name: string; ... 4 more ...; metadata: any; }' is not assignable to parameter of type '(value: { reward: { name: string; id: string; createdAt: Date; updatedAt: Date; description: string; metadata: JsonValue; isActive: boolean; type: string; imageUrl: string | null; rarity: string; isTradeable: boolean; }; } & { ...; }, index: number, array: ({ ...; } & { ...; })[]) => { ...; }'.
+  Types of parameters 'ur' and 'value' are incompatible.
+    Type '{ reward: { name: string; id: string; createdAt: Date; updatedAt: Date; description: string; metadata: JsonValue; isActive: boolean; type: string; imageUrl: string | null; rarity: string; isTradeable: boolean; }; } & { ...; }' is not assignable to type '{ reward: { id: string; name: string; description: string | null; type: string; xpCost: number; icon: string | null; rarity: string | null; }; }'.
+      Types of property 'reward' are incompatible.
+        Type '{ name: string; id: string; createdAt: Date; updatedAt: Date; description: string; metadata: JsonValue; isActive: boolean; type: string; imageUrl: string | null; rarity: string; isTradeable: boolean; }' is missing the following properties from type '{ id: string; name: string; description: string | null; type: string; xpCost: number; icon: string | null; rarity: string | null; }': xpCost, icon
+src/lib/env-validation.ts(192,106): error TS2554: Expected 1-2 arguments, but got 3.
+src/lib/event-bus.ts(1,30): error TS2307: Cannot find module '../types' or its corresponding type declarations.
+src/lib/logging/elk-logger.ts(26,3): error TS2353: Object literal may only specify known properties, and 'ssl' does not exist in type 'ClientOptions'.
+src/lib/logging/elk-logger.ts(70,7): error TS2740: Type 'Client' is missing the following properties from type 'Client': extend, emit, on, once, and 29 more.
+src/lib/middleware/ops-middleware.ts(10,35): error TS2307: Cannot find module './logging-middleware' or its corresponding type declarations.
+src/lib/middleware/ops-middleware.ts(34,16): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/lib/notification-service.ts(326,29): error TS2339: Property 'actionUrl' does not exist on type '{ title: string; message: string; type: NotificationType; actionUrl: string; icon: string; } | { title: string; message: string; type: NotificationType; actionUrl: string; icon: string; } | ... 14 more ... | { ...; }'.
+  Property 'actionUrl' does not exist on type '{ title: string; message: string; type: NotificationType; icon: string; }'.
+src/lib/notifications/sound-notifications.ts(62,5): error TS2304: Cannot find name 'logger'.
+src/lib/passwordless/magic-link-service.ts(110,5): error TS2304: Cannot find name 'logger'.
+src/lib/passwordless/magic-link-service.ts(183,5): error TS2304: Cannot find name 'logger'.
+src/lib/perf-config.ts(65,3): error TS2322: Type 'Logger | null' is not assignable to type 'Logger'.
+  Type 'null' is not assignable to type 'Logger'.
+src/lib/rate-limiting-service.ts(20,24): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+src/lib/rate-limiting-service.ts(24,18): error TS2709: Cannot use namespace 'RedisClientType' as a type.
+src/lib/rate-limiting-service.ts(85,51): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/lib/redis.ts(32,31): error TS7006: Parameter 'retries' implicitly has an 'any' type.
+src/lib/redis.ts(149,39): error TS7006: Parameter 'r' implicitly has an 'any' type.
+src/lib/redis.ts(152,26): error TS7006: Parameter 'result' implicitly has an 'any' type.
+src/lib/safe-client-utils.ts(103,7): error TS2322: Type 'string' is not assignable to type 'T'.
+  'T' could be instantiated with an arbitrary type which could be unrelated to 'string'.
+src/lib/safe-client-utils.ts(199,20): error TS2345: Argument of type 'T | null' is not assignable to parameter of type 'SetStateAction<T>'.
+  Type 'null' is not assignable to type 'SetStateAction<T>'.
+src/lib/safe-client-utils.ts(235,20): error TS2345: Argument of type 'T | null' is not assignable to parameter of type 'SetStateAction<T>'.
+  Type 'null' is not assignable to type 'SetStateAction<T>'.
+src/lib/security/webauthn.ts(194,11): error TS2322: Type 'string | ArrayBuffer | Uint8Array<ArrayBufferLike>' is not assignable to type 'string'.
+  Type 'ArrayBuffer' is not assignable to type 'string'.
+src/lib/service-worker.ts(14,3): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(23,3): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(32,7): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(40,3): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(54,4): error TS2304: Cannot find name 'logger'.
+src/lib/service-worker.ts(59,3): error TS2304: Cannot find name 'logger'.
+src/lib/services/login-service.ts(148,12): error TS2307: Cannot find module '@/lib/security/ip-blocking' or its corresponding type declarations.
+src/lib/services/login-service.ts(373,50): error TS2307: Cannot find module '@/lib/security/ip-blocking' or its corresponding type declarations.
+src/lib/services/login-service.ts(417,52): error TS2307: Cannot find module '@/lib/security/ip-blocking' or its corresponding type declarations.
+src/lib/tracing/jaeger-tracer.ts(129,5): error TS2322: Type 'Record<string, unknown>' is not assignable to type 'Attributes'.
+  'string' index signatures are incompatible.
+    Type 'unknown' is not assignable to type 'AttributeValue | undefined'.
+src/types/settings.ts(110,18): error TS2320: Interface 'AppSettings' cannot simultaneously extend types 'UserSettings' and 'NotificationSettings'.
+  Named property 'emailNotifications' of types 'UserSettings' and 'NotificationSettings' are not identical.
+src/types/settings.ts(110,18): error TS2320: Interface 'AppSettings' cannot simultaneously extend types 'UserSettings' and 'SecuritySettings'.
+  Named property 'twoFactorEnabled' of types 'UserSettings' and 'SecuritySettings' are not identical.
+tests/e2e/auth-flow.test.ts(12,5): error TS2322: Type '(_url: string, _options?: any) => Promise<never>' is not assignable to type '{ (input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>; (input: string | URL | Request, init?: RequestInit | undefined): Promise<...>; }'.
+  Types of parameters '_url' and 'input' are incompatible.
+    Type 'URL | RequestInfo' is not assignable to type 'string'.
+      Type 'URL' is not assignable to type 'string'.
+tests/e2e/login-comprehensive.test.ts(15,5): error TS2322: Type '(_url: string, _options?: any) => Promise<never>' is not assignable to type '{ (input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>; (input: string | URL | Request, init?: RequestInit | undefined): Promise<...>; }'.
+  Types of parameters '_url' and 'input' are incompatible.
+    Type 'URL | RequestInfo' is not assignable to type 'string'.
+      Type 'URL' is not assignable to type 'string'.
+tests/e2e/user-journey.test.ts(11,5): error TS2322: Type '(_url: string, _options?: any) => Promise<never>' is not assignable to type '{ (input: URL | RequestInfo, init?: RequestInit | undefined): Promise<Response>; (input: string | URL | Request, init?: RequestInit | undefined): Promise<...>; }'.
+  Types of parameters '_url' and 'input' are incompatible.
+    Type 'URL | RequestInfo' is not assignable to type 'string'.
+      Type 'URL' is not assignable to type 'string'.
+tests/integration/api/ai.test.ts(4,10): error TS2305: Module '"@/lib/ai/content-generation"' has no exported member 'generateChatResponse'.
+tests/integration/api/courses.test.ts(70,15): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+tests/integration/api/courses.test.ts(96,15): error TS2339: Property 'subject' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+tests/integration/api/courses.test.ts(126,15): error TS2339: Property 'course' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'.
+tests/integration/api/login-comprehensive.test.ts(197,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+tests/integration/api/login-comprehensive.test.ts(355,30): error TS2339: Property 'code' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'code' does not exist on type 'LoginResponse'.
+tests/integration/api/login-comprehensive.test.ts(377,30): error TS2339: Property 'code' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'code' does not exist on type 'LoginResponse'.
+tests/integration/api/login-comprehensive.test.ts(463,30): error TS2339: Property 'token' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'token' does not exist on type 'LoginErrorResponse'.
+tests/integration/api/login-comprehensive.test.ts(464,30): error TS2339: Property 'user' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'user' does not exist on type 'LoginErrorResponse'.
+tests/integration/api/progress.test.ts(67,15): error TS2551: Property 'recommendation' does not exist on type 'PrismaClient<PrismaClientOptions, never, DefaultArgs>'. Did you mean 'mlRecommendation'?
+tests/setup.ts(89,13): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+tests/unit/auth-service.test.ts(121,40): error TS2554: Expected 4 arguments, but got 1.
+tests/unit/auth-service.test.ts(126,21): error TS2339: Property 'success' does not exist on type 'TokenVerificationResult & { accessToken?: string | undefined; refreshToken?: string | undefined; }'.
+tests/unit/auth-service.test.ts(140,40): error TS2554: Expected 4 arguments, but got 1.
+tests/unit/auth-service.test.ts(145,21): error TS2339: Property 'success' does not exist on type 'TokenVerificationResult & { accessToken?: string | undefined; refreshToken?: string | undefined; }'.
+tests/unit/auth-service.test.ts(152,40): error TS2554: Expected 4 arguments, but got 1.
+tests/unit/auth-service.test.ts(157,21): error TS2339: Property 'success' does not exist on type 'TokenVerificationResult & { accessToken?: string | undefined; refreshToken?: string | undefined; }'.
+tests/unit/login-service-comprehensive.test.ts(133,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+tests/unit/login-service-comprehensive.test.ts(207,31): error TS2339: Property 'code' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'code' does not exist on type 'LoginResponse'.
+tests/unit/login-service-comprehensive.test.ts(242,31): error TS2339: Property 'code' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'code' does not exist on type 'LoginResponse'.
+tests/unit/login-service-comprehensive.test.ts(272,31): error TS2339: Property 'code' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'code' does not exist on type 'LoginResponse'.
+tests/unit/login-service-comprehensive.test.ts(306,31): error TS2339: Property 'code' does not exist on type 'LoginResponse | LoginErrorResponse'.
+  Property 'code' does not exist on type 'LoginResponse'.
+tests/websocket-load.test.ts(1,16): error TS2307: Cannot find module 'jest-websocket-mock' or its corresponding type declarations.

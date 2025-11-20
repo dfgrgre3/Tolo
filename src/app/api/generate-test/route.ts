@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken, DecodedToken } from '@/lib/auth-service';
-import { prisma } from '@/lib/prisma';
+import { prisma, Prisma } from '@/lib/prisma';
 import { OpenAI } from 'openai';
 import { rateLimit } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -106,9 +106,8 @@ export async function POST(request: NextRequest) {
         title: generatedTest.title,
         subject: subject.toUpperCase(),
         year: new Date().getFullYear(),
-        lesson: lesson || '',
-        difficulty: difficulty || 'mixed',
-        timeLimit: timeLimit || 30,
+        difficulty: difficulty || 'medium',
+        duration: timeLimit || 30,
       }
     });
 
@@ -118,11 +117,9 @@ export async function POST(request: NextRequest) {
         data: {
           examId: newExam.id,
           question: q.question,
-          type: q.type.toUpperCase().replace('-', '_'),
-          options: q.options ? JSON.stringify(q.options) : null,
+          options: q.options ? q.options : Prisma.JsonNull,
           correctAnswer: q.correctAnswer,
           explanation: q.explanation,
-          difficulty: q.difficulty,
           points: q.points || 1
         }
       });

@@ -67,6 +67,38 @@ const FORBIDDEN_IMPORTS = [
   /SessionProvider.*from ['"]next-auth/,
 ];
 
+// Patterns that indicate incorrect usage of auth context
+const INCORRECT_AUTH_USAGE = [
+  // ❌ useAuth from contexts/auth-context (should not be exported)
+  {
+    pattern: /from ['"]@\/contexts\/auth-context['"].*useAuth/,
+    message: 'useAuth لا يتم تصديره من @/contexts/auth-context - استخدم useUnifiedAuth بدلاً منه',
+    suggestion: 'استبدل: import { useUnifiedAuth } from \'@/contexts/auth-context\'',
+    type: 'incorrect_export' as const,
+  },
+  // ❌ AuthProvider from contexts/auth-context (should not be exported)
+  {
+    pattern: /from ['"]@\/contexts\/auth-context['"].*AuthProvider[^U]/,
+    message: 'AuthProvider لا يتم تصديره من @/contexts/auth-context - استخدم UnifiedAuthProvider بدلاً منه',
+    suggestion: 'استبدل: import { UnifiedAuthProvider } from \'@/contexts/auth-context\'',
+    type: 'incorrect_export' as const,
+  },
+  // ⚠️ useAuthCompatibility (deprecated and throws error)
+  {
+    pattern: /useAuthCompatibility|from ['"].*compatibility['"].*useAuth/,
+    message: 'useAuthCompatibility تم إزالته - استخدم useUnifiedAuth بدلاً منه',
+    suggestion: 'استبدل: import { useUnifiedAuth } from \'@/contexts/auth-context\'',
+    type: 'deprecated' as const,
+  },
+  // ⚠️ Dual providers (AuthProvider + UnifiedAuthProvider)
+  {
+    pattern: /<AuthProvider[^U].*<UnifiedAuthProvider|<UnifiedAuthProvider.*<AuthProvider[^U]/,
+    message: 'تضارب: استخدام AuthProvider و UnifiedAuthProvider معاً - استخدم UnifiedAuthProvider فقط',
+    suggestion: 'استخدم UnifiedAuthProvider فقط في Providers',
+    type: 'dual_provider' as const,
+  },
+];
+
 // Correct import patterns (should be used instead)
 const CORRECT_IMPORTS = {
   'auth-server.ts': 'Use @/auth instead (server-side)',
@@ -81,6 +113,7 @@ interface ConflictReport {
   conflictingFiles: string[];
   conflictingPackages: Array<{ package: string; reason: string }>;
   forbiddenImports: Array<{ file: string; line: number; import: string; suggestion: string; type: 'file' | 'clerk' | 'nextauth' }>;
+  incorrectUsage: Array<{ file: string; line: number; code: string; message: string; suggestion: string; type: 'incorrect_export' | 'deprecated' | 'dual_provider' }>;
   warnings: string[];
 }
 
@@ -89,6 +122,7 @@ async function checkAuthConflicts(): Promise<ConflictReport> {
     conflictingFiles: [],
     conflictingPackages: [],
     forbiddenImports: [],
+    incorrectUsage: [],
     warnings: [],
   };
 
@@ -199,6 +233,86 @@ async function checkAuthConflicts(): Promise<ConflictReport> {
     }
   }
 
+  // Files that are allowed to have deprecated patterns (compatibility layers)
+  const ALLOWED_DEPRECATED_FILES = [
+    'lib/auth/compatibility.ts',
+    'components/auth/UserProvider.tsx',
+    'hooks/use-auth.ts',
+  ];
+
+  // Check for incorrect auth usage patterns
+  for (const file of files) {
+    // Skip compatibility/deprecated files themselves
+    if (ALLOWED_DEPRECATED_FILES.some(allowed => file.replace(/\\/g, '/').includes(allowed))) {
+      continue;
+    }
+
+    const filePath = path.join(SRC_DIR, file);
+    const content = fs.readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n');
+
+    // Check for incorrect export usage (useAuth/AuthProvider from contexts/auth-context)
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      for (const check of INCORRECT_AUTH_USAGE) {
+        if (check.pattern.test(line)) {
+          // Skip if it's in a comment or documentation file
+          if (line.trim().startsWith('//') || line.trim().startsWith('*') || file.endsWith('.md')) {
+            continue;
+          }
+
+          report.incorrectUsage.push({
+            file: file,
+            line: i + 1,
+            code: line.trim(),
+            message: check.message,
+            suggestion: check.suggestion,
+            type: check.type,
+          });
+        }
+      }
+    }
+
+    // Check for dual providers (multiline check) - only for non-deprecated files
+    const fullContent = content;
+    const isAllowedFile = ALLOWED_DEPRECATED_FILES.some(allowed => file.replace(/\\/g, '/').includes(allowed));
+    
+    if (!isAllowedFile) {
+      for (const check of INCORRECT_AUTH_USAGE) {
+        if (check.type === 'dual_provider') {
+        // Check if file contains both AuthProvider and UnifiedAuthProvider
+        const hasAuthProvider = /<AuthProvider[^U]/.test(fullContent);
+        const hasUnifiedAuthProvider = /<UnifiedAuthProvider/.test(fullContent);
+        
+        if (hasAuthProvider && hasUnifiedAuthProvider) {
+          // Find the lines
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].includes('<AuthProvider') || lines[i].includes('<UnifiedAuthProvider')) {
+              const relevantLines: string[] = [];
+              for (let j = Math.max(0, i - 2); j <= Math.min(lines.length - 1, i + 5); j++) {
+                if (lines[j].includes('Provider') || lines[j].trim().startsWith('<')) {
+                  relevantLines.push(lines[j].trim());
+                }
+              }
+              
+              report.incorrectUsage.push({
+                file: file,
+                line: i + 1,
+                code: relevantLines.join('\n'),
+                message: check.message,
+                suggestion: check.suggestion,
+                type: check.type,
+              });
+            break;
+          }
+        }
+      }
+    }
+    }
+  }
+  }
+
   return report;
 }
 
@@ -240,6 +354,51 @@ function printReport(report: ConflictReport): void {
   } else {
     console.log('\n✅ No conflicting packages found');
     console.log('   ✅ لم يتم العثور على مكتبات متضاربة');
+  }
+
+  // Check incorrect auth usage
+  if (report.incorrectUsage.length > 0) {
+    hasConflicts = true;
+    console.log('\n❌ INCORRECT AUTH USAGE FOUND:');
+    console.log('   ❌ تم العثور على استخدامات غير صحيحة للمصادقة:');
+    
+    // Group by type
+    const incorrectExports = report.incorrectUsage.filter(u => u.type === 'incorrect_export');
+    const deprecated = report.incorrectUsage.filter(u => u.type === 'deprecated');
+    const dualProviders = report.incorrectUsage.filter(u => u.type === 'dual_provider');
+
+    if (incorrectExports.length > 0) {
+      console.log('\n   🚫 استخدامات تصدير غير صحيحة:');
+      incorrectExports.forEach(({ file, line, code, message, suggestion }) => {
+        console.log(`   - ${file}:${line}`);
+        console.log(`     ${code}`);
+        console.log(`     ❌ ${message}`);
+        console.log(`     💡 ${suggestion}`);
+      });
+    }
+
+    if (deprecated.length > 0) {
+      console.log('\n   ⚠️  استخدامات مهملة (Deprecated):');
+      deprecated.forEach(({ file, line, code, message, suggestion }) => {
+        console.log(`   - ${file}:${line}`);
+        console.log(`     ${code}`);
+        console.log(`     ⚠️  ${message}`);
+        console.log(`     💡 ${suggestion}`);
+      });
+    }
+
+    if (dualProviders.length > 0) {
+      console.log('\n   ⚠️  تضارب: استخدام Providers متعددة:');
+      dualProviders.forEach(({ file, line, code, message, suggestion }) => {
+        console.log(`   - ${file}:${line}`);
+        console.log(`     ${code.split('\n').join('\n     ')}`);
+        console.log(`     ⚠️  ${message}`);
+        console.log(`     💡 ${suggestion}`);
+      });
+    }
+  } else {
+    console.log('\n✅ No incorrect auth usage found');
+    console.log('   ✅ لم يتم العثور على استخدامات غير صحيحة');
   }
 
   // Check forbidden imports
@@ -298,8 +457,8 @@ function printReport(report: ConflictReport): void {
   if (hasConflicts) {
     console.log('\n⚠️  CONFLICTS DETECTED! Please fix the issues above.');
     console.log('⚠️  تم اكتشاف تعارضات! يرجى إصلاح المشاكل أعلاه.');
-    console.log('\n📚 See AUTH_STRUCTURE_CLEAN.md for correct usage.');
-    console.log('📚 راجع AUTH_STRUCTURE_CLEAN.md للاستخدام الصحيح.');
+    console.log('\n📚 See AUTH_STRUCTURE_UNIFIED.md for correct usage.');
+    console.log('📚 راجع AUTH_STRUCTURE_UNIFIED.md للاستخدام الصحيح.');
     console.log('\n💡 Quick fix suggestions:');
     console.log('💡 اقتراحات الإصلاح السريع:');
     if (report.conflictingPackages.length > 0) {

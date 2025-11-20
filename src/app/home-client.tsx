@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import Layout from "@/components/layout/Layout";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
-import { useAuth, type User as UserType } from "@/components/auth/UserProvider";
+import { useUnifiedAuth, type User as UserType } from "@/contexts/auth-context";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Clock, Target, CheckCircle2, Flame, ChevronDown, TrendingUp, Zap, BookOpen, Users, Brain, Calendar, Award, Star, ArrowRight, Sparkles, BarChart3, MessageSquare, FileText, Trophy, Lightbulb, Rocket, User } from "lucide-react";
@@ -150,7 +150,7 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ summary }: HomeClientProps) {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useUnifiedAuth();
   const dashboardRef = useRef<HTMLDivElement>(null);
 
   const scrollToDashboard = () => {

@@ -27,13 +27,13 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LazyAvatar } from "@/components/ui/LazyAvatar";
 import { motion } from "framer-motion";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 
 import { logger } from '@/lib/logger';
 
 export function HeaderUserMenu() {
 	const router = useRouter();
-	const { user, logout } = useAuth();
+	const { user, logout } = useUnifiedAuth();
 
 	const handleLogout = useCallback(async () => {
 		try {

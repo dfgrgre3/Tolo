@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { AI_PROVIDERS, getDefaultProvider } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -26,13 +27,15 @@ export async function POST(request: NextRequest) {
       userData = await prisma.user.findUnique({
         where: { id: userId },
         include: {
-          subjects: true,
-          progress: {
+          subjectEnrollments: {
+            take: 10
+          },
+          progressSnapshots: {
             orderBy: { date: 'desc' },
             take: 5
           },
-          exams: {
-            orderBy: { takenAt: 'desc' },
+          examResults: {
+            orderBy: { completedAt: 'desc' },
             take: 5
           }
         }
@@ -46,9 +49,9 @@ export async function POST(request: NextRequest) {
     معلومات الطالب:
     ${userData ? `
     - الاسم: ${userData.name || "غير محدد"}
-    - المواد المسجلة: ${userData.subjects.map((s: any) => s.subject).join(", ") || "لا توجد مواد مسجلة"}
-    - متوسط درجات الامتحانات الأخيرة: ${userData.exams.length > 0 ? (userData.exams.reduce((sum: number, exam: any) => sum + exam.score, 0) / userData.exams.length).toFixed(2) : "لا توجد بيانات"}
-    - متوسط وقت الدراسة الأسبوعي: ${userData.progress.length > 0 ? (userData.progress.reduce((sum: number, p: any) => sum + p.totalStudyMinutes, 0) / userData.progress.length / 60).toFixed(2) + " ساعات" : "لا توجد بيانات"}
+    - المواد المسجلة: ${userData.subjectEnrollments?.map((s: any) => s.subject).join(", ") || "لا توجد مواد مسجلة"}
+    - متوسط درجات الامتحانات الأخيرة: ${userData.examResults && userData.examResults.length > 0 ? (userData.examResults.reduce((sum: number, exam: any) => sum + exam.score, 0) / userData.examResults.length).toFixed(2) : "لا توجد بيانات"}
+    - متوسط وقت الدراسة الأسبوعي: ${userData.progressSnapshots && userData.progressSnapshots.length > 0 ? (userData.progressSnapshots.reduce((sum: number, p: any) => sum + p.totalStudyMinutes, 0) / userData.progressSnapshots.length / 60).toFixed(2) + " ساعات" : "لا توجد بيانات"}
     ` : "لا توجد بيانات مستخدم متاحة"}
 
     طلب النصائح:

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/components/auth/UserProvider';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
@@ -26,7 +26,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Session {
   id: string;
@@ -66,7 +67,7 @@ interface SecuritySettings {
 }
 
 export default function SecurityDashboardPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading } = useUnifiedAuth();
   const router = useRouter();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'devices' | 'activity' | 'settings'>('overview');

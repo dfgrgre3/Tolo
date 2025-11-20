@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 
 interface QuickAction {
 	id: string;
@@ -41,7 +41,7 @@ interface QuickAction {
 
 export function QuickActions() {
 	const router = useRouter();
-	const { user } = useAuth();
+	const { user } = useUnifiedAuth();
 	const [isOpen, setIsOpen] = useState(false);
 	const triggerRef = useRef<HTMLButtonElement>(null);
 

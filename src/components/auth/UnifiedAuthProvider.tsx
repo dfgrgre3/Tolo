@@ -1,12 +1,27 @@
 /**
- * Unified Authentication Provider
- * Provider موحد ومتكامل للمصادقة
+ * ============================================
+ * Provider موحد ومتكامل للمصادقة (Client-Side)
+ * ============================================
  * 
- * يجمع بين:
- * - Unified Auth Manager
- * - Session Sync
- * - Error Recovery
- * - Offline Support
+ * ⚠️ IMPORTANT: لا تستورد من هذا الملف مباشرة
+ * ✅ استخدم @/contexts/auth-context كالمصدر الوحيد الموثوق
+ * 
+ * ⚠️ IMPORTANT - البنية الموحدة:
+ * 
+ * 📁 CLIENT-SIDE (العميل):
+ *   ✅ src/contexts/auth-context.tsx → نقطة التصدير الموحدة ⭐
+ *      └─> UnifiedAuthProvider, useUnifiedAuth
+ *          └─> هذا الملف (التنفيذ)
+ *              └─> src/lib/auth/unified-auth-manager.ts (إدارة الحالة)
+ * 
+ * 📖 للاستخدام:
+ *   ✅ في Client Components: 
+ *      import { useUnifiedAuth } from '@/contexts/auth-context'
+ *   
+ *   ✅ في Providers: 
+ *      import { UnifiedAuthProvider } from '@/contexts/auth-context'
+ * 
+ * 📚 راجع AUTH_STRUCTURE_UNIFIED.md للتفاصيل الكاملة
  */
 
 'use client';
@@ -18,6 +33,7 @@ import { getSessionSyncManager } from '@/lib/auth/session-sync';
 import { getErrorRecoveryManager } from '@/lib/auth/error-recovery';
 import { toast } from 'sonner';
 import { logger } from '@/lib/logger';
+import { loginUser, verifyTwoFactor as verifyTwoFactorApi, resendTwoFactorCode as resendTwoFactorApi } from '@/lib/api/auth-client';
 
 export interface User {
   id: string;
@@ -42,12 +58,18 @@ export interface UnifiedAuthContextType {
   isOnline: boolean;
   lastActivity: number;
 
-  // العمليات
+  // العمليات الأساسية
   login: (token: string, userData?: User, sessionId?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (userData: Partial<User>) => void;
   refreshUser: () => Promise<void>;
   checkAuth: () => Promise<boolean>;
+
+  // عمليات تسجيل الدخول المتقدمة
+  loginWithCredentials: (email: string, password: string, rememberMe?: boolean) => Promise<any>;
+  loginWithTwoFactor: (loginAttemptId: string, code: string) => Promise<void>;
+  resendTwoFactorCode: (loginAttemptId: string, method?: 'email' | 'sms') => Promise<void>;
+  loginWithSocial: (provider: 'google' | 'github' | 'twitter') => Promise<void>;
 
   // معلومات إضافية
   error: Error | null;
@@ -232,6 +254,68 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
     }
   }, [authManager]);
 
+  // تسجيل الدخول باستخدام البريد وكلمة المرور
+  const loginWithCredentials = useCallback(async (email: string, password: string, rememberMe: boolean = false) => {
+    try {
+      setError(null);
+      const response = await loginUser({ email, password, rememberMe });
+      
+      if (response.requiresTwoFactor) {
+        return response;
+      }
+
+      if (response.token && response.user) {
+        await login(response.token, response.user as User, response.sessionId);
+      }
+      
+      return response;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    }
+  }, [login]);
+
+  // تسجيل الدخول باستخدام التحقق بخطوتين
+  const loginWithTwoFactor = useCallback(async (loginAttemptId: string, code: string) => {
+    try {
+      setError(null);
+      const response = await verifyTwoFactorApi({ loginAttemptId, code });
+      
+      if (response.token && response.user) {
+        await login(response.token, response.user as User, response.sessionId);
+      }
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    }
+  }, [login]);
+
+  // إعادة إرسال رمز التحقق
+  const resendTwoFactorCode = useCallback(async (loginAttemptId: string, method?: 'email' | 'sms') => {
+    try {
+      setError(null);
+      await resendTwoFactorApi({ loginAttemptId, method });
+      toast.success('تم إعادة إرسال رمز التحقق بنجاح');
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    }
+  }, []);
+
+  // تسجيل الدخول باستخدام وسائل التواصل الاجتماعي
+  const loginWithSocial = useCallback(async (provider: 'google' | 'github' | 'twitter') => {
+    try {
+      window.location.href = `/api/auth/${provider}?redirect=${encodeURIComponent(window.location.pathname)}`;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      setError(error);
+      throw error;
+    }
+  }, []);
+
   // تسجيل الخروج
   const logout = useCallback(async () => {
     try {
@@ -300,6 +384,10 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
 
     // العمليات
     login,
+    loginWithCredentials,
+    loginWithTwoFactor,
+    resendTwoFactorCode,
+    loginWithSocial,
     logout,
     updateUser,
     refreshUser,
@@ -310,6 +398,10 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
     isOnline,
     error,
     login,
+    loginWithCredentials,
+    loginWithTwoFactor,
+    resendTwoFactorCode,
+    loginWithSocial,
     logout,
     updateUser,
     refreshUser,

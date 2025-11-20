@@ -1,24 +1,32 @@
 /**
- * Unified Authentication Export
- * نقطة التصدير الموحدة للمصادقة
+ * ============================================
+ * ⭐ نقطة التصدير الموحدة للمصادقة (Server-Side Only)
+ * ============================================
  * 
- * ⭐ هذا هو المصدر الوحيد الموثوق للمصادقة على الخادم (Server-Side Only)
+ * هذا هو المصدر الوحيد الموثوق للمصادقة على الخادم
  * 
- * ⚠️ IMPORTANT - لا تضارب في الملفات:
- * - ❌ src/auth-server.ts → تم دمجه في هذا الملف (لم يعد موجوداً)
- * - ✅ src/auth.ts → هذا الملف (المصدر الموحد)
+ * ⚠️ IMPORTANT - البنية الموحدة بدون تضارب:
  * 
- * هذا الملف هو المصدر الوحيد الموحد لتصدير وظائف المصادقة على مستوى الخادم.
- * تم دمج src/auth.ts و src/auth-server.ts في هذا الملف لتجنب التضارب.
+ * 📁 SERVER-SIDE (الخادم):
+ *   ✅ src/auth.ts → هذا الملف (المصدر الموحد) ⭐
+ *      └─> src/lib/auth-service.ts (الخدمة الأساسية)
  * 
- * للاستخدام:
- * - ✅ على الخادم (Server Components): استورد auth من هذا الملف
- * - ✅ على الخادم (API Routes): استورد authService مباشرة من @/lib/auth-service
- * - ✅ على العميل: استخدم hooks من @/components/auth أو @/lib/auth-hook-enhanced
+ * 📁 CLIENT-SIDE (العميل):
+ *   ✅ src/contexts/auth-context.tsx → نقطة التصدير الموحدة ⭐
+ *      └─> src/components/auth/UnifiedAuthProvider
+ *          └─> src/lib/auth/unified-auth-manager.ts
  * 
- * المصدر الأساسي: src/lib/auth-service.ts
+ * 📖 للاستخدام:
+ *   ✅ في Server Components: 
+ *      import { auth } from '@/auth'
+ *   
+ *   ✅ في API Routes: 
+ *      import { authService } from '@/lib/auth-service'
+ *   
+ *   ✅ في Client Components: 
+ *      import { useUnifiedAuth } from '@/contexts/auth-context'
  * 
- * راجع AUTH_STRUCTURE_CLEAN.md للتفاصيل الكاملة
+ * 📚 راجع AUTH_STRUCTURE_UNIFIED.md للتفاصيل الكاملة
  */
 
 import 'server-only';

@@ -1,13 +1,24 @@
 /**
- * Unified Authentication Manager
- * نظام موحد لإدارة المصادقة بشكل متكامل
+ * ============================================
+ * مدير المصادقة الموحد (Unified Auth Manager)
+ * ============================================
  * 
- * يوفر:
- * - إدارة موحدة لحالة المصادقة
- * - مزامنة عبر التبويبات
- * - استعادة تلقائية من الأخطاء
- * - دعم الوضع غير المتصل
- * - تكامل مع جميع مكونات النظام
+ * ⚠️ IMPORTANT: هذا ملف داخلي - لا تستورده مباشرة
+ * ✅ استخدم useUnifiedAuth من @/contexts/auth-context
+ * 
+ * ⚠️ IMPORTANT - البنية الموحدة:
+ * 
+ * 📁 CLIENT-SIDE (العميل):
+ *   ✅ src/contexts/auth-context.tsx → نقطة التصدير الموحدة ⭐
+ *      └─> src/components/auth/UnifiedAuthProvider.tsx
+ *          └─> هذا الملف (التنفيذ الداخلي)
+ * 
+ * 📖 للاستخدام:
+ *   ✅ في Client Components: 
+ *      import { useUnifiedAuth } from '@/contexts/auth-context'
+ *      (لا تستورد من هذا الملف مباشرة)
+ * 
+ * 📚 راجع AUTH_STRUCTURE_UNIFIED.md للتفاصيل الكاملة
  */
 
 import { EventEmitter } from 'events';

@@ -45,7 +45,7 @@ import {
 	Languages,
 } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
 import SecurityTab from "@/components/profile/SecurityTab";
 import LoginMethods from "@/components/profile/LoginMethods";
@@ -78,7 +78,7 @@ type User = {
 
 export default function AccountPage() {
 	const router = useRouter();
-	const { user: authUser } = useAuth();
+	const { user: authUser } = useUnifiedAuth();
 	const [userId, setUserId] = useState<string | null>(null);
 	const [user, setUser] = useState<User | null>(null);
 	const [loading, setLoading] = useState(true);

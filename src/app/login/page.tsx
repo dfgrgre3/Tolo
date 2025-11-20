@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Clock, ShieldCheck, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/components/auth/UserProvider';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 
 const EnhancedLoginForm = dynamic(
   () => import('@/components/auth/EnhancedLoginForm'),
@@ -37,7 +37,7 @@ type AuthView = 'login' | 'register';
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useUnifiedAuth();
   const [activeView, setActiveView] = useState<AuthView>('login');
 
   // Redirect authenticated users to home page immediately

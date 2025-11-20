@@ -66,6 +66,10 @@ model User {
   customGoals             CustomGoal[]
   examResults             ExamResult[]
   notifications           Notification[]
+  organizedEvents         Event[]              @relation("EventOrganizer")
+  forumPosts              ForumPost[]          @relation("ForumPostAuthor")
+  forumReplies            ForumReply[]         @relation("ForumReplyAuthor")
+  blogPosts               BlogPost[]           @relation("BlogPostAuthor")
   
   // Advanced gamification relations
   seasonParticipations    SeasonParticipation[]
@@ -141,7 +145,7 @@ model Task {
 }
 
 model Reminder {
-  id        String   @id
+  id        String   @id @default(cuid())
   userId    String
   title     String
   message   String?
@@ -219,12 +223,15 @@ model Exam {
   title     String
   year      Int
   url       String
+  type      String?
+  createdAt DateTime @default(now())
   
   results   ExamResult[]
 
   @@index([subject])
   @@index([subject, year])
   @@index([year])
+  @@index([createdAt])
 }
 
 model ExamResult {
@@ -737,4 +744,411 @@ model MlRecommendation {
   @@index([score])
   @@index([createdAt])
   @@index([userId, createdAt])
+}
+
+// Teachers Model
+model Teacher {
+  id          String   @id @default(cuid())
+  name        String
+  subject     String
+  onlineUrl   String?
+  rating      Float    @default(0)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([name, subject], name: "name_subject")
+  @@index([subject])
+  @@index([rating])
+}
+
+// Subjects Model (Courses)
+model Subject {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  icon        String?
+  color       String?
+  type        String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topics      Topic[]
+
+  @@index([name])
+  @@index([isActive])
+}
+
+model Topic {
+  id          String   @id @default(cuid())
+  subjectId   String
+  name        String
+  description String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subTopics   SubTopic[]
+
+  @@index([subjectId])
+  @@index([order])
+}
+
+model SubTopic {
+  id          String   @id @default(cuid())
+  topicId     String
+  name        String
+  description String?
+  content     String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  topic       Topic    @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  progresses  TopicProgress[]
+
+  @@index([topicId])
+  @@index([order])
+}
+
+model TopicProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  subTopicId  String
+  completed   Boolean  @default(false)
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  subTopic    SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subTopicId])
+  @@index([userId])
+  @@index([subTopicId])
+  @@index([completed])
+}
+
+// Messages Model (Chat)
+model Message {
+  id          String   @id @default(cuid())
+  senderId    String
+  receiverId  String
+  content     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([senderId, receiverId])
+  @@index([isRead])
+  @@index([createdAt])
+}
+
+// Announcements Model
+model Announcement {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  priority    String   @default("normal") // low, normal, high, urgent
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+// Blog Models
+model BlogCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  slug        String   @unique
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts       BlogPost[]
+
+  @@index([slug])
+}
+
+model BlogPost {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  excerpt     String?
+  slug        String   @unique
+  categoryId  String
+  authorId    String
+  isPublished Boolean  @default(false)
+  publishedAt DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  category    BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([isPublished])
+  @@index([publishedAt])
+}
+
+// Forum Models
+model ForumCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  slug        String   @unique
+  icon        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts       ForumPost[]
+
+  @@index([slug])
+}
+
+model ForumPost {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  categoryId  String
+  authorId    String
+  isPinned    Boolean  @default(false)
+  isLocked    Boolean  @default(false)
+  views       Int      @default(0)
+  viewCount   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  category    ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  replies     ForumReply[]
+
+  @@index([categoryId])
+  @@index([authorId])
+  @@index([isPinned])
+  @@index([createdAt])
+}
+
+model ForumReply {
+  id          String   @id @default(cuid())
+  content     String
+  postId      String
+  authorId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  author      User     @relation("ForumReplyAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  post        ForumPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+// Events Model
+model Event {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  startDate    DateTime
+  endDate      DateTime
+  location     String?
+  maxAttendees Int?
+  imageUrl     String?
+  organizerId  String
+  category     String
+  isPublic     Boolean  @default(true)
+  tags         Json     @default("[]")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  organizer    User     @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
+  attendees    EventAttendee[]
+
+  @@index([startDate])
+  @@index([endDate])
+  @@index([organizerId])
+  @@index([category])
+  @@index([isPublic])
+}
+
+model EventAttendee {
+  id          String   @id @default(cuid())
+  eventId     String
+  userId      String
+  status      String   @default("pending") // pending, confirmed, cancelled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  event       Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@index([status])
+}
+
+// Contest Model
+model Contest {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  rules       String?
+  prizes      Json?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([startDate, endDate])
+}
+
+// Schedule Model
+model Schedule {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String?
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  subject     String?
+  type        String   @default("study") // study, exam, task, event
+  color       String?
+  active      Boolean  @default(true)
+  planJson    String?
+  version     Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, active], name: "userId_active")
+  @@index([userId])
+  @@index([userId, startTime])
+  @@index([type])
+  @@index([subject])
+  @@index([active])
+}
+
+// User Grades Model
+model UserGrade {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  grade       Float
+  maxGrade    Float
+  examName    String?
+  date        DateTime?
+  examDate    DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, subject])
+  @@index([subject])
+  @@index([date])
+  @@index([examDate])
+}
+
+// Offline Lessons Model
+model OfflineLesson {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  subject     String
+  teacherId   String?
+  location    String?
+  startTime   DateTime
+  endTime     DateTime
+  maxStudents Int?
+  price       Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([subject])
+  @@index([teacherId])
+  @@index([startTime])
+}
+
+// AI Generated Exams Models
+model AiGeneratedExam {
+  id          String   @id @default(cuid())
+  userId      String
+  subject     String
+  title       String
+  difficulty  String   @default("medium") // easy, medium, hard
+  duration    Int      // in minutes
+  year        Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions   AiQuestion[]
+  results     TestResult[]
+
+  @@index([userId])
+  @@index([subject])
+  @@index([difficulty])
+  @@index([year])
+}
+
+model AiQuestion {
+  id          String   @id @default(cuid())
+  examId      String
+  question    String
+  options     Json     // Array of options
+  correctAnswer String
+  explanation String?
+  points      Int      @default(1)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  exam        AiGeneratedExam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([examId])
+  @@index([order])
+}
+
+model TestResult {
+  id          String   @id @default(cuid())
+  userId      String
+  examId      String
+  score       Float
+  totalScore  Float
+  answers     Json     // User's answers
+  timeTaken   Int      // in seconds
+  completedAt DateTime @default(now())
+
+  exam        AiGeneratedExam @relation(fields: [examId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([examId])
+  @@index([userId, examId])
+  @@index([completedAt])
+}
+
+// Biometric Credentials Model
+model BiometricCredential {
+  id          String   @id @default(cuid())
+  userId      String
+  credentialId String  @unique
+  publicKey   String
+  counter     Int      @default(0)
+  deviceType  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([credentialId])
 }

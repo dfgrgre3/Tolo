@@ -22,15 +22,11 @@ export async function GET(request: NextRequest) {
         const announcements = await prisma.announcement.findMany({
           take: limit,
           where: {
-            ...(category && { category })
-          },
-          include: {
-            author: {
-              select: { name: true }
-            }
+            isActive: true,
+            ...(category && { priority: category })
           },
           orderBy: {
-            publishedAt: "desc"
+            createdAt: "desc"
           }
         });
 

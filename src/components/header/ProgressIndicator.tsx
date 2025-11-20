@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BookOpen, Clock, Award, TrendingUp } from "lucide-react";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 
 import { logger } from '@/lib/logger';
 
@@ -20,9 +20,7 @@ interface ProgressData {
 
 function ProgressIndicator() {
 	const pathname = usePathname();
-	// Safely get auth context - useAuth handles missing provider gracefully and never throws
-	// It will return default context if provider is not available
-	const authContext = useAuth();
+	const authContext = useUnifiedAuth();
 	const user = authContext?.user ?? null;
 	const [progressData, setProgressData] = useState<ProgressData[]>([]);
 	const [isVisible, setIsVisible] = useState(false);

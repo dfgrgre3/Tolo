@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { getSecureCookieOptions } from '../../_helpers';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -63,6 +64,7 @@ export async function POST(request: NextRequest) {
     // Store challenge temporarily
     await prisma.biometricChallenge.create({
       data: {
+        id: crypto.randomUUID(),
         challenge: options.challenge,
         type: 'authenticate',
         userId: user.id,

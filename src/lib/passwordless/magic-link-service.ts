@@ -7,6 +7,7 @@ import crypto from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { sendEmailNotification } from '@/lib/notification-sender-new';
 import { securityLogger } from '@/lib/security-logger';
+import { logger } from '@/lib/logger';
 
 const MAGIC_LINK_EXPIRY_MINUTES = 15; // 15 minutes
 

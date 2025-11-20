@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useAuth } from '@/contexts/auth-context';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Eye,
@@ -22,7 +22,7 @@ import {
 import { cn } from '@/lib/utils';
 import { getPasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
 import type { PasswordStrengthDisplay } from '@/components/auth/utils/password-strength';
-import type { User as UserType } from '@/components/auth/UserProvider';
+import type { User as UserType } from '@/contexts/auth-context';
 
 import { logger } from '@/lib/logger';
 
@@ -38,7 +38,7 @@ type PasswordStrength = PasswordStrengthDisplay;
 
 export default function EnhancedRegisterForm() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login } = useUnifiedAuth();
   const [isGoogleOAuthEnabled, setIsGoogleOAuthEnabled] = useState<boolean>(true); // Default to true to avoid flash
   
   // Check OAuth provider status

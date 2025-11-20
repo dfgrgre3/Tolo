@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authService } from '@/lib/auth-service';
 import { getDeviceInfo, getLocationFromIP } from '@/lib/security-utils';
+import crypto from 'crypto';
 import {
   verifyAuthenticationResponse,
   verifyRegistrationResponse,
@@ -313,6 +314,7 @@ async function handleBiometricAuthentication(
   // Log security event
   await prisma.securityLog.create({
     data: {
+      id: crypto.randomUUID(),
       userId: user.id,
       eventType: 'BIOMETRIC_LOGIN_SUCCESS',
       ip,

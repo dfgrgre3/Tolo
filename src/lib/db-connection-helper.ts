@@ -1,278 +1,43 @@
-// This file must only run on the server - prevent browser bundling
-// Note: We use runtime checks instead of 'server-only' to prevent build-time errors
-// when this file is imported through dynamic imports in client components
-
-// Runtime check to ensure this only runs on the server
-if (typeof window !== 'undefined') {
-  throw new Error('db-connection-helper.ts can only be used on the server');
-}
+/**
+ * Database Connection Helper
+ * Provides utilities for database connection management
+ */
 
 import { prisma } from './prisma';
-import { checkDatabaseHealth, ensureDatabaseConnection } from './db';
-import { databaseConfig } from './database';
-
-// Lazy load logger to prevent circular dependencies and client bundling issues
-let loggerInstance: any = null;
-let loggerLoading: Promise<any> | null = null;
-
-function getLoggerSync() {
-  // If logger is already loaded, return it
-  if (loggerInstance) {
-    return loggerInstance;
-  }
-  
-  // If we're on the client, return a no-op logger
-  if (typeof window !== 'undefined') {
-    return {
-      info: () => {},
-      warn: () => {},
-      error: () => {},
-      debug: () => {},
-    };
-  }
-  
-  // If logger is being loaded, return a console-based logger temporarily
-  if (loggerLoading) {
-    return {
-      info: (...args: any[]) => console.info('[Logger not loaded yet]', ...args),
-      warn: (...args: any[]) => console.warn('[Logger not loaded yet]', ...args),
-      error: (...args: any[]) => console.error('[Logger not loaded yet]', ...args),
-      debug: (...args: any[]) => console.debug('[Logger not loaded yet]', ...args),
-    };
-  }
-  
-  // Start loading logger (async, but return sync wrapper)
-  loggerLoading = import('@/lib/logger').then(module => {
-    loggerInstance = module.logger;
-    return loggerInstance;
-  }).catch(() => {
-    // If loading fails, use console as fallback
-    loggerInstance = {
-      info: (...args: any[]) => console.info(...args),
-      warn: (...args: any[]) => console.warn(...args),
-      error: (...args: any[]) => console.error(...args),
-      debug: (...args: any[]) => console.debug(...args),
-    };
-    return loggerInstance;
-  });
-  
-  // Return console-based logger while loading
-  return {
-    info: (...args: any[]) => console.info('[Logger loading...]', ...args),
-    warn: (...args: any[]) => console.warn('[Logger loading...]', ...args),
-    error: (...args: any[]) => console.error('[Logger loading...]', ...args),
-    debug: (...args: any[]) => console.debug('[Logger loading...]', ...args),
-  };
-}
-
-// Export logger getter for synchronous use
-const logger = new Proxy({} as any, {
-  get: (target, prop) => {
-    const logger = getLoggerSync();
-    const method = (logger as any)[prop];
-    if (typeof method === 'function') {
-      return method.bind(logger);
-    }
-    return method;
-  }
-});
 
 /**
- * Database connection helper utilities
- * Provides functions to test, diagnose, and fix database connection issues
+ * Check database health
  */
-
-export interface DatabaseConnectionDiagnostics {
-  isConnected: boolean;
-  databaseUrl: string;
-  databaseType: 'sqlite' | 'postgresql' | 'mysql' | 'mongodb' | 'unknown';
-  error?: string;
-  recommendations?: string[];
-}
-
-/**
- * Diagnose database connection issues
- */
-export async function diagnoseDatabaseConnection(): Promise<DatabaseConnectionDiagnostics> {
-  const diagnostics: DatabaseConnectionDiagnostics = {
-    isConnected: false,
-    databaseUrl: process.env.DATABASE_URL || 'not set',
-    databaseType: 'unknown',
-    recommendations: []
-  };
-
+export async function checkDatabaseHealth(): Promise<boolean> {
   try {
-    // Determine database type
-    const databaseUrl = process.env.DATABASE_URL || databaseConfig.sqlite.url;
-    diagnostics.databaseUrl = databaseUrl;
-
-    if (databaseUrl.startsWith('postgres')) {
-      diagnostics.databaseType = 'postgresql';
-    } else if (databaseUrl.startsWith('mysql')) {
-      diagnostics.databaseType = 'mysql';
-    } else if (databaseUrl.startsWith('mongodb')) {
-      diagnostics.databaseType = 'mongodb';
-    } else if (databaseUrl.startsWith('file:')) {
-      diagnostics.databaseType = 'sqlite';
-    }
-
-    // Check if DATABASE_URL is set
-    if (!process.env.DATABASE_URL) {
-      diagnostics.recommendations?.push(
-        'DATABASE_URL environment variable is not set. Set it in your .env.local file.'
-      );
-    }
-
-    // For SQLite, check if file exists
-    if (diagnostics.databaseType === 'sqlite') {
-      const fsPromises = await import('fs/promises');
-      const pathModule = await import('path');
-      
-      const dbPath = databaseUrl.replace('file:', '');
-      const fullPath = pathModule.resolve(process.cwd(), dbPath.startsWith('./') ? dbPath.substring(2) : dbPath);
-      
-      try {
-        await fsPromises.access(fullPath);
-        diagnostics.recommendations?.push('SQLite database file exists and is accessible.');
-      } catch (error) {
-        diagnostics.recommendations?.push(
-          `SQLite database file not found at: ${fullPath}. It will be created on first connection.`
-        );
-      }
-    }
-
-    // Test connection
-    try {
-      const isHealthy = await checkDatabaseHealth(true);
-      diagnostics.isConnected = isHealthy;
-      
-      if (isHealthy) {
-        diagnostics.recommendations?.push('Database connection is healthy.');
-      } else {
-        diagnostics.recommendations?.push('Database connection test failed. Check your database configuration.');
-      }
-    } catch (error: any) {
-      diagnostics.isConnected = false;
-      diagnostics.error = error?.message || String(error);
-      
-      // Provide specific recommendations based on error type
-      if (error?.code === 'P1001') {
-        diagnostics.recommendations?.push(
-          'Cannot reach database server. Check if your database server is running and accessible.'
-        );
-      } else if (error?.code === 'P1017') {
-        diagnostics.recommendations?.push(
-          'Database server closed the connection. Try reconnecting or check server logs.'
-        );
-      } else if (error?.message?.includes('EPERM')) {
-        diagnostics.recommendations?.push(
-          'File permission error. Close any processes using the database file and try again.'
-        );
-      } else if (error?.message?.includes('prisma generate')) {
-        diagnostics.recommendations?.push(
-          'Prisma Client not generated. Run: npx prisma generate'
-        );
-      }
-    }
-  } catch (error: any) {
-    diagnostics.isConnected = false;
-    diagnostics.error = error?.message || String(error);
-    diagnostics.recommendations?.push('An unexpected error occurred during diagnosis.');
-  }
-
-  return diagnostics;
-}
-
-/**
- * Test database connection with retry
- */
-export async function testDatabaseConnection(maxRetries: number = 3): Promise<boolean> {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      const isConnected = await ensureDatabaseConnection();
-      if (isConnected) {
-        logger.info(`Database connection test successful (attempt ${attempt}/${maxRetries})`);
-        return true;
-      }
-    } catch (error) {
-      logger.warn(`Database connection test failed (attempt ${attempt}/${maxRetries}):`, error);
-      
-      if (attempt === maxRetries) {
-        logger.error('All database connection attempts failed');
-        return false;
-      }
-      
-      // Wait before retrying
-      await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-    }
-  }
-  
-  return false;
-}
-
-/**
- * Get database connection status
- */
-export async function getDatabaseConnectionStatus(): Promise<{
-  connected: boolean;
-  databaseType: string;
-  databaseUrl: string;
-  error?: string;
-}> {
-  try {
-    const isHealthy = await checkDatabaseHealth(false);
-    const databaseUrl = process.env.DATABASE_URL || databaseConfig.sqlite.url;
-    
-    let databaseType = 'unknown';
-    if (databaseUrl.startsWith('postgres')) databaseType = 'postgresql';
-    else if (databaseUrl.startsWith('mysql')) databaseType = 'mysql';
-    else if (databaseUrl.startsWith('mongodb')) databaseType = 'mongodb';
-    else if (databaseUrl.startsWith('file:')) databaseType = 'sqlite';
-
-    return {
-      connected: isHealthy,
-      databaseType,
-      databaseUrl: databaseUrl ? '***' : 'not set'
-    };
-  } catch (error: any) {
-    return {
-      connected: false,
-      databaseType: 'unknown',
-      databaseUrl: 'not set',
-      error: error?.message || String(error)
-    };
-  }
-}
-
-/**
- * Initialize database connection on startup
- * Call this function early in your application lifecycle
- */
-export async function initializeDatabaseConnection(): Promise<boolean> {
-  try {
-    logger.info('Initializing database connection...');
-    
-    // First, ensure connection
-    const isConnected = await ensureDatabaseConnection();
-    
-    if (isConnected) {
-      logger.info('Database connection initialized successfully');
-      return true;
-    } else {
-      logger.error('Failed to initialize database connection');
-      
-      // Try to diagnose the issue
-      const diagnostics = await diagnoseDatabaseConnection();
-      logger.error('Database connection diagnostics:', diagnostics);
-      
-      return false;
-    }
+    await prisma.$queryRaw`SELECT 1`;
+    return true;
   } catch (error) {
-    logger.error('Error initializing database connection:', error);
+    console.error('Database health check failed:', error);
     return false;
   }
 }
 
-// Export for use in API routes or server components
-export { checkDatabaseHealth, ensureDatabaseConnection };
+/**
+ * Ensure database connection is established
+ */
+export async function ensureDatabaseConnection(): Promise<void> {
+  try {
+    await prisma.$connect();
+  } catch (error) {
+    console.error('Failed to connect to database:', error);
+    throw error;
+  }
+}
 
+/**
+ * Disconnect from database
+ */
+export async function disconnectDatabase(): Promise<void> {
+  try {
+    await prisma.$disconnect();
+  } catch (error) {
+    console.error('Failed to disconnect from database:', error);
+    throw error;
+  }
+}

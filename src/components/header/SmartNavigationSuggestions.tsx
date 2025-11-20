@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { safeGetItem } from "@/lib/safe-client-utils";
 
 import { logger } from '@/lib/logger';
@@ -37,7 +37,7 @@ interface NavigationPage {
 export function SmartNavigationSuggestions() {
 	const router = useRouter();
 	const pathname = usePathname();
-	const { user } = useAuth();
+	const { user } = useUnifiedAuth();
 	const mounted = true;
 	const [suggestions, setSuggestions] = useState<NavigationSuggestion[]>([]);
 	const [isOpen, setIsOpen] = useState(false);

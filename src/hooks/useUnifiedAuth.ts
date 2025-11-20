@@ -1,4 +1,19 @@
 /**
+ * ============================================
+ * ⚠️ DEPRECATED - استخدم @/contexts/auth-context بدلاً من ذلك
+ * ============================================
+ * 
+ * هذا الملف موجود للتوافق مع الكود القديم فقط
+ * 
+ * ✅ للاستخدام الجديد (موصى به):
+ *   import { useUnifiedAuth } from '@/contexts/auth-context'
+ * 
+ * ✅ للوظائف المتقدمة (2FA، Social Login):
+ *   import { useEnhancedAuth } from '@/lib/auth-hook-enhanced'
+ * 
+ * ⚠️ هذا الملف يستورد مباشرة من unified-auth-manager
+ *    يجب تجنب الاستيراد المباشر من الملفات الداخلية
+ * 
  * Unified Authentication Hook
  * Hook موحد لاستخدام المصادقة في جميع المكونات
  * 
@@ -13,6 +28,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+// ⚠️ DEPRECATED: يجب استخدام useUnifiedAuth من @/contexts/auth-context بدلاً من ذلك
 import { getAuthManager, type AuthState, type AuthEvent } from '@/lib/auth/unified-auth-manager';
 import { loginUser, verifyTwoFactor } from '@/lib/api/auth-client';
 import { toast } from 'sonner';

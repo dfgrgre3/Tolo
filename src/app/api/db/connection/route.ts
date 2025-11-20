@@ -3,10 +3,8 @@ import { logger } from '@/lib/logger';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 
 import {
-  diagnoseDatabaseConnection,
-  testDatabaseConnection,
-  getDatabaseConnectionStatus,
-  initializeDatabaseConnection
+  checkDatabaseHealth,
+  ensureDatabaseConnection,
 } from '@/lib/db-connection-helper';
 
 /**
@@ -17,20 +15,12 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-    const action = searchParams.get('action');
+      const action = searchParams.get('action');
 
       switch (action) {
-        case 'diagnose':
-          // Full diagnostics
-          const diagnostics = await diagnoseDatabaseConnection();
-          return NextResponse.json({
-            success: true,
-            diagnostics
-          });
-
         case 'test':
-          // Test connection with retry
-          const testResult = await testDatabaseConnection(3);
+          // Test connection
+          const testResult = await checkDatabaseHealth();
           return NextResponse.json({
             success: testResult,
             message: testResult
@@ -40,20 +30,28 @@ export async function GET(request: NextRequest) {
 
         case 'initialize':
           // Initialize connection
-          const initResult = await initializeDatabaseConnection();
-          return NextResponse.json({
-            success: initResult,
-            message: initResult
-              ? 'Database connection initialized successfully'
-              : 'Failed to initialize database connection'
-          });
+          try {
+            await ensureDatabaseConnection();
+            return NextResponse.json({
+              success: true,
+              message: 'Database connection initialized successfully'
+            });
+          } catch (error) {
+            return NextResponse.json({
+              success: false,
+              message: 'Failed to initialize database connection'
+            });
+          }
 
         default:
-          // Get status
-          const status = await getDatabaseConnectionStatus();
+          // Get status (simple check)
+          const status = await checkDatabaseHealth();
           return NextResponse.json({
             success: true,
-            status
+            status: {
+              connected: status,
+              timestamp: new Date().toISOString()
+            }
           });
       }
     } catch (error: any) {
@@ -78,20 +76,25 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const body = await req.json().catch(() => ({}));
-    const { action = 'test' } = body;
+      const { action = 'test' } = body;
 
       switch (action) {
         case 'initialize':
-          const initResult = await initializeDatabaseConnection();
-          return NextResponse.json({
-            success: initResult,
-            message: initResult
-              ? 'Database connection initialized successfully'
-              : 'Failed to initialize database connection'
-          });
+          try {
+            await ensureDatabaseConnection();
+            return NextResponse.json({
+              success: true,
+              message: 'Database connection initialized successfully'
+            });
+          } catch (error) {
+            return NextResponse.json({
+              success: false,
+              message: 'Failed to initialize database connection'
+            });
+          }
 
         case 'test':
-          const testResult = await testDatabaseConnection(3);
+          const testResult = await checkDatabaseHealth();
           return NextResponse.json({
             success: testResult,
             message: testResult

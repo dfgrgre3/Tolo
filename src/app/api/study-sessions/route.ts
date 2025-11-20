@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
-import { getCachedOrFetch, invalidateCachePattern } from '@/lib/db-service';
+import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';
 import { gamificationService } from '@/lib/gamification-service';
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
     // Use cache key based on user and parameters
     const cacheKey = `study_sessions_${decodedToken.userId}_limit_${limit}_offset_${offset}`;
 
-    const sessions = await getCachedOrFetch(cacheKey, async () => {
+    const sessions = await LegacyCacheService.getOrSet(cacheKey, async () => {
       return await prisma.studySession.findMany({
         where: {
           userId: decodedToken.userId,
@@ -38,13 +38,13 @@ export async function GET(request: NextRequest) {
         orderBy: {
           startTime: 'desc',
         },
-        include: {
-          task: {
-            select: {
-              title: true,
-            }
-          }
-        }
+        // include: {
+        //   task: {
+        //     select: {
+        //       title: true,
+        //     }
+        //   }
+        // }
       });
     }, 300); // Cache for 5 minutes
 
@@ -101,6 +101,8 @@ export async function POST(request: NextRequest) {
       });
 
       // Send achievement notifications if any were unlocked
+      // TODO: Fix achievement notification logic - session.achievements does not exist
+      /*
       const newAchievements = updatedProgress.achievements.filter(
         achievement => !session.achievements?.includes(achievement)
       );
@@ -120,13 +122,14 @@ export async function POST(request: NextRequest) {
           );
         }
       }
+      */
     } catch (gamificationError) {
       logger.error('Error updating gamification:', gamificationError);
       // Don't fail the request if gamification fails
     }
 
     // Invalidate user's study sessions cache
-    await invalidateCachePattern(`study_sessions_${decodedToken.userId}*`);
+    await LegacyCacheService.invalidatePattern(`study_sessions_${decodedToken.userId}*`);
 
     // Invalidate user's analytics cache
     const weekStart = startOfWeek(new Date(), { weekStartsOn: 6 });

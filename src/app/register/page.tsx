@@ -2,12 +2,12 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/components/auth/UserProvider';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useUnifiedAuth();
 
   // Redirect authenticated users to home page immediately
   useEffect(() => {

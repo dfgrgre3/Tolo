@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import crypto from 'crypto';
 
 // POST to enroll in a subject
 export async function POST(
@@ -33,12 +34,10 @@ export async function POST(
     }
 
     // Check if already enrolled
-    const existingEnrollment = await prisma.subjectEnrollment.findUnique({
+    const existingEnrollment = await prisma.subjectEnrollment.findFirst({
       where: {
-        userId_subject: {
-          userId,
-          subject
-        }
+        userId,
+        subject
       }
     });
 
@@ -52,6 +51,7 @@ export async function POST(
     // Create enrollment
     const enrollment = await prisma.subjectEnrollment.create({
       data: {
+        id: crypto.randomUUID(),
         userId,
         subject,
         targetWeeklyHours: 0 // Default value, can be updated later
@@ -87,12 +87,10 @@ export async function GET(
       );
     }
 
-    const enrollment = await prisma.subjectEnrollment.findUnique({
+    const enrollment = await prisma.subjectEnrollment.findFirst({
       where: {
-        userId_subject: {
-          userId,
-          subject: id
-        }
+        userId,
+        subject: id
       }
     });
 
@@ -136,12 +134,10 @@ export async function DELETE(
       }
 
       // Check if enrollment exists
-      const enrollment = await prisma.subjectEnrollment.findUnique({
+      const enrollment = await prisma.subjectEnrollment.findFirst({
         where: {
-          userId_subject: {
-            userId,
-            subject: id
-          }
+          userId,
+          subject: id
         }
       });
 
@@ -155,10 +151,7 @@ export async function DELETE(
       // Delete enrollment
       await prisma.subjectEnrollment.delete({
         where: {
-          userId_subject: {
-            userId,
-            subject: id
-          }
+          id: enrollment.id
         }
       });
 

@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/navData";
 import { cn } from "@/lib/utils";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { HeaderSearch } from "./HeaderSearch";
 
 import { logger } from '@/lib/logger';
@@ -30,7 +30,7 @@ export function HeaderMobileMenu({
 }: HeaderMobileMenuProps) {
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const pathname = usePathname();
-	const { user, logout } = useAuth();
+	const { user, logout } = useUnifiedAuth();
 	const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
 	// Close mobile menu when route changes

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
 	Clock,
@@ -31,7 +31,7 @@ export function HeroSectionEnhanced({
 	priority?: boolean;
 }) {
 	void priority;
-	const { user } = useAuth();
+	const { user } = useUnifiedAuth();
 
 	const formatNumber = (value: number) => new Intl.NumberFormat("ar-EG").format(value);
 

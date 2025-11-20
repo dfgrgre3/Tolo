@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getCachedOrFetch, invalidateCache } from '@/lib/db-service';
+import { CacheService } from '@/lib/redis';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
     // Use enhanced caching for progress summary with longer TTL
     const cacheKey = `progress_summary_${userId}`;
-    const summary = await getCachedOrFetch(cacheKey, async () => {
+    const summary = await CacheService.getOrSet(cacheKey, async () => {
       // Get all study sessions for the user
       const sessions = await prisma.studySession.findMany({
         where: { userId },
@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     // Only invalidate cache when requested
     if (action === 'invalidate-cache') {
       const cacheKey = `progress_summary_${userId}`;
-      await invalidateCache(cacheKey);
+      await CacheService.del(cacheKey);
       
       return NextResponse.json(
         { message: 'Progress summary cache invalidated successfully' },

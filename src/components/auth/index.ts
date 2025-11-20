@@ -16,13 +16,25 @@ export { AuthSessionWrapper } from './AuthSessionWrapper';
 // Legacy export - kept for backward compatibility
 export { AuthSessionWrapper as SessionProviderWrapper } from './AuthSessionWrapper';
 
-// Unified Auth System (NEW - Recommended)
-export { UnifiedAuthProvider, useUnifiedAuth, UnifiedAuthContext } from './UnifiedAuthProvider';
-export type { UnifiedAuthContextType, User as UnifiedUser } from './UnifiedAuthProvider';
+// ============================================
+// Unified Auth System (NEW - Recommended) ⭐
+// ============================================
+// ⚠️ IMPORTANT: استخدم @/contexts/auth-context كالمصدر الوحيد الموثوق
+export { UnifiedAuthProvider, useUnifiedAuth, UnifiedAuthContext } from '@/contexts/auth-context';
+export type { UnifiedAuthContextType, User as UnifiedUser } from '@/contexts/auth-context';
 
-// Legacy Auth System (for backward compatibility)
-export { AuthProvider, useAuth, AuthContext } from './UserProvider';
-export type { User, AuthContextType } from './UserProvider';
+// ============================================
+// Legacy Auth System - للتوافق فقط ⚠️
+// ============================================
+// ❌ لا تستخدم في الكود الجديد
+// ✅ استخدم useUnifiedAuth و UnifiedAuthProvider بدلاً منها
+// 
+// ⚠️ للتوافق مع الكود القديم فقط:
+// يمكنك استيراد النظام القديم مباشرة من:
+//   - @/components/auth/UserProvider (AuthProvider, useAuth)
+//   - @/hooks/use-auth (useAuth wrapper يستخدم useUnifiedAuth)
+// 
+// لكن يُنصح بشدة بالترقية إلى النظام الموحد
 
 // Security components
 export { default as SessionManager } from './SessionManager';

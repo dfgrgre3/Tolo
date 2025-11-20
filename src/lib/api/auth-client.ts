@@ -35,6 +35,7 @@ import type {
   ApiErrorResponse,
 } from '@/types/api/auth';
 import { logger } from '@/lib/logger';
+import { authValidator } from '@/lib/auth/validation-interface';
 
 const API_TIMEOUT = 30000; // 30 seconds
 const API_BASE_URL = '/api/auth';
@@ -449,75 +450,23 @@ export async function loginUser(
     };
   }
 
-  // Enhanced email validation and sanitization
-  if (!request.email || typeof request.email !== 'string') {
+  // Enhanced email validation using centralized validation
+  const emailValidation = authValidator.validateEmail(request.email);
+  if (!emailValidation.isValid) {
     throw {
-      error: 'البريد الإلكتروني مطلوب',
-      code: 'MISSING_EMAIL',
+      error: emailValidation.error || 'البريد الإلكتروني غير صحيح',
+      code: emailValidation.error === 'البريد الإلكتروني مطلوب' ? 'MISSING_EMAIL' : 'INVALID_EMAIL_FORMAT',
     };
   }
+  const email = emailValidation.normalized!;
 
-  // Validate email length (RFC 5321 limit)
-  if (request.email.length > 254) {
+  // Enhanced password validation using centralized validation
+  const passwordValidation = authValidator.validatePassword(request.password);
+  if (!passwordValidation.isValid) {
     throw {
-      error: 'البريد الإلكتروني طويل جداً',
-      code: 'EMAIL_TOO_LONG',
-    };
-  }
-
-  const email = request.email.trim().toLowerCase();
-  if (email.length === 0) {
-    throw {
-      error: 'البريد الإلكتروني لا يمكن أن يكون فارغاً',
-      code: 'INVALID_EMAIL',
-    };
-  }
-
-  // Enhanced email format validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(email)) {
-    throw {
-      error: 'صيغة البريد الإلكتروني غير صحيحة',
-      code: 'INVALID_EMAIL_FORMAT',
-    };
-  }
-
-  // Additional security: Check for potentially malicious email patterns
-  if (email.includes('..') || email.startsWith('.') || email.endsWith('.')) {
-    throw {
-      error: 'صيغة البريد الإلكتروني غير صحيحة',
-      code: 'INVALID_EMAIL_FORMAT',
-    };
-  }
-
-  // Enhanced password validation
-  if (!request.password || typeof request.password !== 'string') {
-    throw {
-      error: 'كلمة المرور مطلوبة',
-      code: 'MISSING_PASSWORD',
-    };
-  }
-
-  if (request.password.length === 0) {
-    throw {
-      error: 'كلمة المرور لا يمكن أن تكون فارغة',
-      code: 'INVALID_PASSWORD',
-    };
-  }
-
-  // Minimum length validation (security best practice)
-  if (request.password.length < 8) {
-    throw {
-      error: 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل',
-      code: 'PASSWORD_TOO_SHORT',
-    };
-  }
-
-  // Maximum length validation (security - prevent DoS attacks)
-  if (request.password.length > 128) {
-    throw {
-      error: 'كلمة المرور طويلة جداً',
-      code: 'PASSWORD_TOO_LONG',
+      error: passwordValidation.error || 'كلمة المرور غير صحيحة',
+      code: passwordValidation.error === 'كلمة المرور مطلوبة' ? 'MISSING_PASSWORD' : 
+            passwordValidation.error?.includes('8 أحرف') ? 'PASSWORD_TOO_SHORT' : 'PASSWORD_TOO_LONG',
     };
   }
 
@@ -663,24 +612,23 @@ export async function registerUser(
 
 /**
  * Verify Two-Factor Authentication
- * Improved with better validation and error handling
+ * Improved with better validation and error handling using centralized validation
  */
 export async function verifyTwoFactor(
   request: TwoFactorVerifyRequest
 ): Promise<TwoFactorVerifyResponse> {
   try {
-    // Validate request
-    if (!request.loginAttemptId && !request.challengeId) {
-      throw {
-        error: 'معرف محاولة تسجيل الدخول مطلوب',
-        code: 'MISSING_LOGIN_ATTEMPT_ID',
-      };
-    }
+    // Validate request using centralized validation
+    const validation = authValidator.validateTwoFactorRequest({
+      loginAttemptId: request.loginAttemptId,
+      challengeId: request.challengeId,
+      code: request.code,
+    });
     
-    if (!request.code || request.code.length !== 6 || !/^\d{6}$/.test(request.code)) {
+    if (!validation.isValid) {
       throw {
-        error: 'رمز التحقق يجب أن يكون مكون من 6 أرقام',
-        code: 'INVALID_CODE_FORMAT',
+        error: validation.error || 'بيانات التحقق غير صحيحة',
+        code: validation.error?.includes('معرف') ? 'MISSING_LOGIN_ATTEMPT_ID' : 'INVALID_CODE_FORMAT',
       };
     }
     
@@ -837,6 +785,19 @@ export async function sendVerificationEmail(): Promise<{
 }
 
 /**
+ * Resend Two-Factor Authentication Code
+ */
+export async function resendTwoFactorCode(data: {
+  loginAttemptId: string;
+  method?: 'email' | 'sms';
+}): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>('/resend-two-factor', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
  * Get security logs
  */
 export async function getSecurityLogs(params?: {
@@ -877,18 +838,7 @@ export async function deleteSession(sessionId: string): Promise<{
   });
 }
 
-/**
- * Resend two-factor code
- */
-export async function resendTwoFactorCode(data: {
-  loginAttemptId: string;
-  method?: 'email' | 'sms';
-}): Promise<{ message: string }> {
-  return apiFetch<{ message: string }>('/resend-two-factor', {
-    method: 'POST',
-    body: JSON.stringify(data),
-  });
-}
+
 
 /**
  * Setup TOTP two-factor authentication

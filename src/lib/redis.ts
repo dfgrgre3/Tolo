@@ -29,7 +29,7 @@ class RedisService {
       this.client = createClient({
         url: process.env.REDIS_URL || 'redis://localhost:6379',
         socket: {
-          reconnectStrategy: (retries) => Math.min(retries * 100, 5000)
+          reconnectStrategy: (retries: number): number => Math.min(retries * 100, 5000)
         }
       });
     }
@@ -146,10 +146,10 @@ class RedisService {
       const results = await this.client.mGet(keys);
       const duration = Date.now() - start;
       // Count hits (non-null values)
-      const hitCount = results.filter(r => r !== null).length;
+      const hitCount = results.filter((r: any) => r !== null).length;
       recordCacheMetric('mget', duration, hitCount > 0);
       
-      return results.map(result => {
+      return results.map((result: any) => {
         if (result) {
           const decompressedData = this.decompressData(result);
           return JSON.parse(decompressedData) as T;

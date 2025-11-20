@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { UnifiedAuthProvider } from '@/components/auth/UnifiedAuthProvider';
-import { AuthProvider } from '@/components/auth/UserProvider';
+import { UnifiedAuthProvider } from '@/contexts/auth-context';
 import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/app/ClientLayoutProvider';
@@ -24,27 +23,21 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
     return () => clearTimeout(timer);
   }, []);
   
-  // CRITICAL: Always render AuthProvider synchronously - never conditionally
-  // This ensures AuthProvider is always available when useAuth is called
-  // Components can safely use useAuth() immediately, even during SSR
-  // The providers are rendered immediately, not conditionally, so they're always available
+  // ✅ النظام الموحد: UnifiedAuthProvider هو المصدر الوحيد للمصادقة
+  // ✅ تم إزالة AuthProvider لتجنب التضارب - نظام واحد فقط يدير الحالة
   return (
     <UnifiedAuthProvider>
-      <AuthProvider>
-        <ClientLayoutProvider>
-          <ToastProvider>
-            {mounted && isReady ? (
-              <WebSocketProvider>
-                {children}
-              </WebSocketProvider>
-            ) : (
-              // Render children immediately - AuthProvider is already available
-              // This ensures Header can use useAuth() even during initial render
-              <>{children}</>
-            )}
-          </ToastProvider>
-        </ClientLayoutProvider>
-      </AuthProvider>
+      <ClientLayoutProvider>
+        <ToastProvider>
+          {mounted && isReady ? (
+            <WebSocketProvider>
+              {children}
+            </WebSocketProvider>
+          ) : (
+            <>{children}</>
+          )}
+        </ToastProvider>
+      </ClientLayoutProvider>
     </UnifiedAuthProvider>
   );
 }

@@ -1,10 +1,10 @@
 "use client";
 
+import { logger } from '@/lib/logger';
+
 /**
  * Sound Notifications Service
- * Handles audio notifications with customi
-import { logger } from '@/lib/logger';
-zable sounds
+ * Handles audio notifications with customizable sounds
  */
 
 export type NotificationSound = "default" | "success" | "error" | "warning" | "info" | "none";

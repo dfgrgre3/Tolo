@@ -36,12 +36,10 @@ export async function GET(
     let enrollment = null;
     
     if (userId) {
-      enrollment = await prisma.subjectEnrollment.findUnique({
+      enrollment = await prisma.subjectEnrollment.findFirst({
         where: {
-          userId_subject: {
-            userId,
-            subject: subject.name // Using subject name as the identifier
-          }
+          userId,
+          subject: subject.name // Using subject name as the identifier
         }
       });
     }

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { AuthGuard } from "@/components/auth/AuthGuard";
 import { User as UserIcon, Shield as ShieldIcon, Bell as BellIcon, Palette as PaletteIcon, Globe as GlobeIcon, Clock as ClockIcon, Loader2 } from "lucide-react";
 import { SettingsData, SubjectEnrollment, FocusStrategy, SubjectType } from "@/types/settings";
@@ -21,7 +21,7 @@ import TimeSettings from "@/app/time/components/TimeSettings";
 import { logger } from '@/lib/logger';
 
 function SettingsPage() {
-	const { user } = useAuth();
+	const { user } = useUnifiedAuth();
 	const [userId, setUserId] = useState<string | null>(null);
 	const [activeTab, setActiveTab] = useState("general");
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
 // Token is in httpOnly cookie - no need to import getSafeAuthToken
 import { logger } from '@/lib/logger';
@@ -23,7 +23,7 @@ interface TOTPSetupProps {
 }
 
 export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   const [step, setStep] = useState<'setup' | 'verify' | 'recovery'>('setup');
   const [qrCodeURL, setQrCodeURL] = useState<string>('');
   const [manualEntryKey, setManualEntryKey] = useState<string>('');

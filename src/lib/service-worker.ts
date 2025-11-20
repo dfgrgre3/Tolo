@@ -1,9 +1,9 @@
 "use client";
 
-/**
- * Service Worker registration and manageme
 import { logger } from '@/lib/logger';
-nt utilities
+
+/**
+ * Service Worker registration and management utilities
  */
 
 const SW_PATH = "/sw.js";

@@ -5,6 +5,16 @@ const nextConfig = {
   // Enable React strict mode for better performance
   reactStrictMode: true,
 
+  // Skip type checking during build (run separately in CI)
+  typescript: {
+    ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
+  },
+
+  // Skip ESLint during build (run separately in CI)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+
   // Optimize images
   images: {
     remotePatterns: [

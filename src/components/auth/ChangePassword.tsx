@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useUnifiedAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, Loader2, CheckCircle2, XCircle } from 'lucide-react';
 import { getPasswordStrengthDisplay } from './utils/password-strength';
@@ -11,7 +11,7 @@ import { parseApiError, handleNetworkError, createFetchWithTimeout } from './uti
 import { logger } from '@/lib/logger';
 
 export default function ChangePassword() {
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   const [formData, setFormData] = useState({
     currentPassword: '',
     newPassword: '',

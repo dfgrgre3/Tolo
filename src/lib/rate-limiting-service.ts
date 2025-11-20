@@ -17,11 +17,11 @@ export interface RateLimitResult {
 }
 
 export class RateLimitingService {
-  private redisClient: RedisClientType;
+  private redisClient: any;
   private defaultConfig: RateLimitConfig;
 
   constructor(
-    redisClient: RedisClientType,
+    redisClient: any,
     defaultConfig: RateLimitConfig = {
       windowMs: 15 * 60 * 1000, // 15 minutes
       maxAttempts: 5,
@@ -82,7 +82,7 @@ export class RateLimitingService {
           };
         } else {
           // Lockout expired, remove the lockout key (non-blocking)
-          this.redisClient.del(lockoutKey).catch((err) => {
+          this.redisClient.del(lockoutKey).catch((err: any) => {
             logger.warn('Failed to remove expired lockout key:', err);
           });
         }

@@ -1,28 +1,40 @@
 /**
- * Enhanced Auth Hook
- * Hook محسّن للمصادقة
+ * ============================================
+ * Hook محسّن للمصادقة (Client-Side)
+ * ============================================
  * 
- * هذا هو Hook محسّن يوفر وظائف مصادقة محسّنة للمكونات.
- * يعمل كطبقة توافقية تعتمد على unified auth system.
+ * هذا هو Hook محسّن يوفر وظائف مصادقة إضافية (2FA، Social Login، إلخ)
+ * يعمل كطبقة توافقية تعتمد على unified auth system
  * 
- * للاستخدام:
- * - في Client Components: استورد useEnhancedAuth من هذا الملف
- * - يوفر: login, verifyTwoFactor, resendTwoFactorCode, loginWithSocial
+ * ⚠️ IMPORTANT - البنية الموحدة:
  * 
- * الملفات المتعلقة:
- * - src/contexts/auth-context.tsx: يوفر useUnifiedAuth (المصدر الأساسي)
- * - src/lib/api/auth-client.ts: يوفر دوال API (loginUser, verifyTwoFactor, etc.)
- * - src/lib/auth-service.ts: الخدمة الأساسية على الخادم (server-side)
+ * 📁 CLIENT-SIDE (العميل):
+ *   ✅ src/contexts/auth-context.tsx → المصدر الأساسي الموثوق ⭐
+ *      └─> useUnifiedAuth() (الاستخدام الأساسي)
+ *   
+ *   🔄 هذا الملف (طبقة توافق):
+ *      - src/lib/auth-hook-enhanced.ts → useEnhancedAuth()
+ *      └─> يعتمد على: useUnifiedAuth من @/contexts/auth-context
  * 
- * ⚠️ لا تستورد دوال API مباشرة من هذا الملف - استخدم @/lib/api/auth-client
+ * 📖 للاستخدام:
+ *   ✅ للاستخدام الأساسي: 
+ *      import { useUnifiedAuth } from '@/contexts/auth-context'
+ *   
+ *   ✅ للوظائف الإضافية (2FA، Social Login): 
+ *      import { useEnhancedAuth } from '@/lib/auth-hook-enhanced'
+ *   
+ *   ✅ لدوال API: 
+ *      import { loginUser, verifyTwoFactor } from '@/lib/api/auth-client'
+ * 
+ * 📚 راجع AUTH_STRUCTURE_UNIFIED.md للتفاصيل الكاملة
  */
 
 'use client';
 
-import { useUnifiedAuth } from '@/contexts/auth-context';
+import { useUnifiedAuth, type User } from '@/contexts/auth-context';
 import { verifyTwoFactor as verifyTwoFactorAPI } from '@/lib/api/auth-client';
 import { loginUser } from '@/lib/api/auth-client';
-import type { User } from '@/components/auth/UnifiedAuthProvider';
+import { authValidator } from '@/lib/auth/validation-interface';
 
 export interface EnhancedAuthHook {
   user: User | null;
@@ -60,43 +72,22 @@ export function useEnhancedAuth(): EnhancedAuthHook {
     password: string;
     rememberMe?: boolean;
   }) => {
-    // Enhanced input validation
+    // Enhanced input validation using centralized validation
     if (!credentials || typeof credentials !== 'object') {
       throw new Error('بيانات تسجيل الدخول مطلوبة');
     }
 
-    if (!credentials.email || typeof credentials.email !== 'string' || credentials.email.trim().length === 0) {
-      throw new Error('البريد الإلكتروني مطلوب');
+    // Validate email using centralized validation
+    const emailValidation = authValidator.validateEmail(credentials.email);
+    if (!emailValidation.isValid) {
+      throw new Error(emailValidation.error || 'البريد الإلكتروني غير صحيح');
     }
+    const normalizedEmail = emailValidation.normalized!;
 
-    // Validate email length (RFC 5321 limit)
-    if (credentials.email.length > 254) {
-      throw new Error('البريد الإلكتروني طويل جداً');
-    }
-
-    // Validate email format
-    const normalizedEmail = credentials.email.trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(normalizedEmail)) {
-      throw new Error('صيغة البريد الإلكتروني غير صحيحة');
-    }
-    
-    // Additional security: Check for potentially malicious email patterns
-    if (normalizedEmail.includes('..') || normalizedEmail.startsWith('.') || normalizedEmail.endsWith('.')) {
-      throw new Error('صيغة البريد الإلكتروني غير صحيحة');
-    }
-
-    if (!credentials.password || typeof credentials.password !== 'string' || credentials.password.length === 0) {
-      throw new Error('كلمة المرور مطلوبة');
-    }
-
-    // Validate password length (security best practice)
-    if (credentials.password.length < 8) {
-      throw new Error('كلمة المرور يجب أن تتكون من 8 أحرف على الأقل');
-    }
-
-    if (credentials.password.length > 128) {
-      throw new Error('كلمة المرور طويلة جداً');
+    // Validate password using centralized validation
+    const passwordValidation = authValidator.validatePassword(credentials.password);
+    if (!passwordValidation.isValid) {
+      throw new Error(passwordValidation.error || 'كلمة المرور غير صحيحة');
     }
 
     try {
@@ -141,30 +132,24 @@ export function useEnhancedAuth(): EnhancedAuthHook {
     code: string;
     trustDevice?: boolean;
   }) => {
-    // Enhanced input validation
+    // Enhanced input validation using centralized validation
     if (!params || typeof params !== 'object') {
       throw new Error('بيانات التحقق مطلوبة');
     }
 
-    if (!params.loginAttemptId || typeof params.loginAttemptId !== 'string' || params.loginAttemptId.trim().length === 0) {
-      throw new Error('معرف محاولة تسجيل الدخول مطلوب');
+    // Validate loginAttemptId using centralized validation
+    const idValidation = authValidator.validateLoginAttemptId(params.loginAttemptId);
+    if (!idValidation.isValid) {
+      throw new Error(idValidation.error || 'معرف محاولة تسجيل الدخول غير صحيح');
     }
+    const trimmedLoginAttemptId = idValidation.normalized!;
 
-    if (!params.code || typeof params.code !== 'string' || params.code.trim().length === 0) {
-      throw new Error('رمز التحقق مطلوب');
+    // Validate code using centralized validation
+    const codeValidation = authValidator.validateTwoFactorCode(params.code);
+    if (!codeValidation.isValid) {
+      throw new Error(codeValidation.error || 'رمز التحقق غير صحيح');
     }
-
-    // Validate code format (must be 6 digits)
-    const trimmedCode = params.code.trim();
-    if (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
-      throw new Error('رمز التحقق يجب أن يكون مكون من 6 أرقام');
-    }
-
-    // Validate loginAttemptId format
-    const trimmedLoginAttemptId = params.loginAttemptId.trim();
-    if (trimmedLoginAttemptId.length < 10 || trimmedLoginAttemptId.length > 100) {
-      throw new Error('معرف محاولة تسجيل الدخول غير صحيح');
-    }
+    const trimmedCode = codeValidation.normalized!;
 
     try {
       const response = await verifyTwoFactorAPI({
@@ -196,20 +181,17 @@ export function useEnhancedAuth(): EnhancedAuthHook {
     loginAttemptId: string;
     method?: 'email' | 'sms';
   }) => {
-    // Enhanced input validation
+    // Enhanced input validation using centralized validation
     if (!params || typeof params !== 'object') {
       throw new Error('بيانات إعادة الإرسال مطلوبة');
     }
 
-    if (!params.loginAttemptId || typeof params.loginAttemptId !== 'string' || params.loginAttemptId.trim().length === 0) {
-      throw new Error('معرف محاولة تسجيل الدخول مطلوب');
+    // Validate loginAttemptId using centralized validation
+    const idValidation = authValidator.validateLoginAttemptId(params.loginAttemptId);
+    if (!idValidation.isValid) {
+      throw new Error(idValidation.error || 'معرف محاولة تسجيل الدخول غير صحيح');
     }
-
-    // Validate loginAttemptId format
-    const trimmedLoginAttemptId = params.loginAttemptId.trim();
-    if (trimmedLoginAttemptId.length < 10 || trimmedLoginAttemptId.length > 100) {
-      throw new Error('معرف محاولة تسجيل الدخول غير صحيح');
-    }
+    const trimmedLoginAttemptId = idValidation.normalized!;
 
     // Validate method
     if (params.method && params.method !== 'email' && params.method !== 'sms') {

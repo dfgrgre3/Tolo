@@ -66,7 +66,7 @@ export function useAchievements(): UseAchievementsReturn {
 			const res = await fetch(url.toString());
 
 			// Even if response is not ok, try to parse it for fallback data
-			let data: AchievementsApiResponse;
+			let data: AchievementsApiResponse | null = null;
 			if (!res.ok) {
 				try {
 					data = await res.json() as AchievementsApiResponse;

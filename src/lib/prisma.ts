@@ -33,7 +33,7 @@
  *   - import { prisma } from '@/lib/db' (also re-exports from db-unified.ts)
  *   - import { prisma } from '@/lib/db-unified' (direct, but not recommended)
  * 
- * ⚠️ DEPRECATED: getPrisma() and enhancedPrisma are deprecated
+ * ⚠️ DEPRECATED: getPrisma() is deprecated
  * ⚠️ Always use direct import: import { prisma } from '@/lib/prisma'
  * 
  * 🔍 To check for conflicts, run: grep -r "new PrismaClient" src/
@@ -64,7 +64,10 @@ if (typeof window !== 'undefined') {
 // This ensures we use the same singleton instance and avoid "Too many connections" errors
 export { prisma, default as prismaDefault } from './db-unified';
 
-// ⚠️ DEPRECATED: getPrisma() and enhancedPrisma are deprecated
+// Re-export Prisma namespace for JsonNull and other utilities
+export { Prisma } from '@prisma/client';
+
+// ⚠️ DEPRECATED: getPrisma() is deprecated
 // ⚠️ Use direct import instead: import { prisma } from '@/lib/prisma'
 // ⚠️ This maintains backward compatibility but should be migrated
 let prismaInstance: any = null;
@@ -83,10 +86,3 @@ async function getPrismaInstance() {
 export async function getPrisma() {
   return getPrismaInstance();
 }
-
-// ⚠️ DEPRECATED: enhancedPrisma is deprecated, use prisma instead
-// Re-export for backward compatibility only
-export { enhancedPrisma } from './db-unified';
-
-// ✅ Export connection pool management functions (recommended)
-export { getConnectionPoolStats, optimizeConnectionPool } from './db-unified';

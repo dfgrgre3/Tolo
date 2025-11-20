@@ -6,7 +6,7 @@ import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/components/auth/UserProvider";
+import { useUnifiedAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Play, ChevronRight, Zap, Bell, Users, Bot, BarChart3, BookOpen, CalendarCheck, Headphones, Award, Globe } from 'lucide-react';
 
@@ -74,7 +74,7 @@ const FEATURES: ReadonlyArray<Feature> = [
 ];
 
 export const FeaturesSection = memo(function FeaturesSection() {
-  const { user } = useAuth();
+  const { user } = useUnifiedAuth();
   return (
     <section aria-labelledby="features-heading" className="max-w-6xl mx-auto">
       <motion.div
