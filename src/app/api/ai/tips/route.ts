@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
             take: 5
           },
           examResults: {
-            orderBy: { completedAt: 'desc' },
+            orderBy: { takenAt: 'desc' },
             take: 5
           }
         }
@@ -150,11 +150,12 @@ export async function POST(request: NextRequest) {
       if (userId) {
         for (const tip of tipsData.tips) {
           try {
-            await prisma.recommendation.create({
+            await prisma.aiGeneratedContent.create({
               data: {
                 userId: userId,
+                type: 'study_tip',
                 title: tip.title,
-                message: tip.content
+                content: JSON.stringify(tip)
               }
             });
           } catch (dbError) {

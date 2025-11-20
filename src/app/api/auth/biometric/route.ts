@@ -16,7 +16,7 @@ import type {
   PublicKeyCredentialCreationOptionsJSON,
   AuthenticationResponseJSON,
   RegistrationResponseJSON
-} from '@simplewebauthn/typescript-types';
+} from '@simplewebauthn/types';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { getSecureCookieOptions } from '@/app/api/auth/_helpers';
@@ -197,14 +197,18 @@ async function handleBiometricAuthentication(
   }
 
   // Find user by credential ID
-  const user = await prisma.user.findFirst({
+  // Since biometricCredentials is a JSON field, we need to query all users with biometric enabled
+  // and filter in JavaScript
+  const users = await prisma.user.findMany({
     where: {
-      biometricCredentials: {
-        some: {
-          credentialId: isoUint8Array.toHex(isoUint8Array.fromHex(response.id))
-        }
-      }
+      biometricEnabled: true
     }
+  });
+
+  const credentialIdHex = isoUint8Array.toHex(isoUint8Array.fromHex(response.id));
+  const user = users.find((u: any) => {
+    const creds = Array.isArray(u.biometricCredentials) ? u.biometricCredentials : [];
+    return creds.some((cred: any) => cred.credentialId === credentialIdHex);
   });
 
   if (!user) {
@@ -222,7 +226,8 @@ async function handleBiometricAuthentication(
   }
 
   // Find the matching credential
-  const credential = user.biometricCredentials.find(
+  const credentials = Array.isArray(user.biometricCredentials) ? user.biometricCredentials : [];
+  const credential = credentials.find(
     (cred: any) => cred.credentialId === isoUint8Array.toHex(isoUint8Array.fromHex(response.id))
   );
 
@@ -263,22 +268,17 @@ async function handleBiometricAuthentication(
   }
 
   // Update credential counter
+  // Since biometricCredentials is a JSON field, we need to update the entire array
+  const updatedCredentials = (Array.isArray(user.biometricCredentials) ? user.biometricCredentials : []).map((cred: any) =>
+    cred.credentialId === credential.credentialId
+      ? { ...cred, counter: authenticationInfo.newCounter }
+      : cred
+  );
+
   await prisma.user.update({
-    where: {
-      id: user.id,
-      biometricCredentials: {
-        some: {
-          credentialId: credential.credentialId
-        }
-      }
-    },
+    where: { id: user.id },
     data: {
-      biometricCredentials: {
-        updateMany: {
-          where: { credentialId: credential.credentialId },
-          data: { counter: authenticationInfo.newCounter }
-        }
-      }
+      biometricCredentials: updatedCredentials
     }
   });
 

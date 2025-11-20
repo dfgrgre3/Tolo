@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // البحث في قاعدة البيانات المحلية أولاً
-    let localTeachers = [];
+    let localTeachers: any[] = [];
     try {
       localTeachers = await prisma.teacher.findMany({
         where: {
@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
       ]
     }`;
 
-    let aiTeachers = [];
-    let youtubeResults = [];
+    let aiTeachers: any[] = [];
+    let youtubeResults: any[] = [];
 
     // إذا كان طلب البحث يشمل اليوتيب، قم بالبحث هناك أيضاً
     if (!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("يوتيوب")) {

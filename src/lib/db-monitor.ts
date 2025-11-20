@@ -71,3 +71,31 @@ export function recordCacheMetric(operation: string, duration: number, hit: bool
     // console.debug(`Cache ${operation}: ${duration}ms, hit: ${hit}`);
   }
 }
+
+/**
+ * Database monitor object with all monitoring functions
+ */
+export const dbMonitor = {
+  getHealthReport: async () => {
+    const stats = await getConnectionPoolStats();
+    const config = getDatabaseConfig();
+    
+    return {
+      status: stats.totalConnections < config.maxConnections ? 'healthy' : 'warning',
+      stats,
+      config,
+      timestamp: new Date().toISOString(),
+    };
+  },
+  
+  resetStats: () => {
+    // Placeholder for resetting stats
+    // In a real implementation, this would reset collected metrics
+    return true;
+  },
+  
+  getConnectionPoolStats,
+  getDatabaseConfig,
+  monitorDatabasePerformance,
+  recordCacheMetric,
+};

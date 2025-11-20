@@ -35,14 +35,9 @@ export async function GET(request: NextRequest) {
           id: announcement.id,
           title: announcement.title,
           content: announcement.content,
-          imageUrl: announcement.imageUrl,
-          publishedAt: announcement.publishedAt.toISOString(),
-          expiresAt: announcement.expiresAt?.toISOString(),
+          createdAt: announcement.createdAt.toISOString(),
           priority: announcement.priority,
-          category: announcement.category,
-          authorName: announcement.author.name,
-          tags: announcement.tags,
-          views: announcement.views
+          isActive: announcement.isActive
         }));
       },
       600 // Cache for 10 minutes
@@ -64,32 +59,15 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { 
-        userId, 
         title, 
         content, 
-        imageUrl, 
-        expiresAt, 
-        priority, 
-        category, 
-        tags 
+        priority
       } = await req.json();
 
-    if (!userId || !title || !content || !priority || !category) {
+    if (!title || !content || !priority) {
       return NextResponse.json(
         { error: "جميع الحقول المطلوبة يجب ملؤها" },
         { status: 400 }
-      );
-    }
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "المستخدم غير موجود" },
-        { status: 404 }
       );
     }
 
@@ -97,17 +75,7 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         content,
-        imageUrl,
-        expiresAt: expiresAt ? new Date(expiresAt) : null,
-        priority,
-        category,
-        authorId: userId,
-        tags: tags || []
-      },
-      include: {
-        author: {
-          select: { name: true }
-        }
+        priority
       }
     });
 
@@ -116,14 +84,9 @@ export async function POST(request: NextRequest) {
       id: newAnnouncement.id,
       title: newAnnouncement.title,
       content: newAnnouncement.content,
-      imageUrl: newAnnouncement.imageUrl,
-      publishedAt: newAnnouncement.publishedAt.toISOString(),
-      expiresAt: newAnnouncement.expiresAt?.toISOString(),
+      createdAt: newAnnouncement.createdAt.toISOString(),
       priority: newAnnouncement.priority,
-      category: newAnnouncement.category,
-      authorName: newAnnouncement.author.name,
-      tags: newAnnouncement.tags,
-      views: newAnnouncement.views
+      isActive: newAnnouncement.isActive
     };
 
     // Invalidate all announcements cache when creating new announcement
