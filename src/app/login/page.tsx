@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Clock, ShieldCheck, Sparkles } from 'lucide-react';
+import { Clock, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUnifiedAuth } from '@/contexts/auth-context';
 
@@ -13,8 +13,8 @@ const EnhancedLoginForm = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="rounded-2xl bg-white/10 px-6 py-8 text-center text-slate-100">
-        جارٍ تحميل نموذج تسجيل الدخول...
+      <div className="rounded-2xl bg-white/10 px-6 py-8 text-center text-slate-100 flex justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
       </div>
     ),
   },
@@ -25,8 +25,8 @@ const EnhancedRegisterForm = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="rounded-2xl bg-white/10 px-6 py-8 text-center text-slate-100">
-        جارٍ تحميل نموذج إنشاء الحساب...
+      <div className="rounded-2xl bg-white/10 px-6 py-8 text-center text-slate-100 flex justify-center items-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-400" />
       </div>
     ),
   },
@@ -65,17 +65,7 @@ export default function LoginPage() {
     setActiveView((current) => (current === derivedView ? current : derivedView));
   }, [searchParams]);
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
-        <div className="text-center">
-          <div className="mb-4 inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-indigo-400 border-r-transparent"></div>
-          <p className="text-slate-300">جارٍ التحقق من حالة تسجيل الدخول...</p>
-        </div>
-      </div>
-    );
-  }
+
 
   // Don't render login form if user is already authenticated
   // (Redirect will happen in useEffect above)

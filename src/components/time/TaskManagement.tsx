@@ -21,49 +21,23 @@ import {
   CheckCircle, 
   Clock, 
   X,
-  Filter,
   SortAsc,
   SortDesc,
   Search,
   Tag,
-  AlertTriangle,
-  Star,
   Timer,
-  Eye,
-  EyeOff,
   Copy,
-  Archive,
   Trash2,
   Edit,
   Play,
-  Pause,
   Square,
   BarChart3,
-  Target,
-  Award,
-  Zap,
-  Brain,
-  Coffee,
-  Moon,
-  Sun,
-  Flame,
-  Heart,
-  Users,
-  MessageCircle,
-  Share2,
-  Download,
-  Upload,
-  RefreshCw,
-  Settings,
-  ChevronDown,
   ChevronUp,
-  ChevronLeft,
-  ChevronRight
+  ChevronDown
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { format, isToday, isTomorrow, isThisWeek, isPast, differenceInDays } from 'date-fns';
-import { ar } from 'date-fns/locale';
+import { isToday, isTomorrow, isThisWeek, isPast, differenceInDays } from 'date-fns';
 
 import { logger } from '@/lib/logger';
 
@@ -118,12 +92,12 @@ const taskSchema = z.object({
 });
 
 interface TaskManagementProps {
-  initialTasks: Task[];
-  userId: string;
-  subjects: SubjectType[];
-  onTaskUpdate?: (task: Task) => void;
-  onTaskCreate?: (task: Task) => void;
-  onTaskDelete?: (taskId: string) => void;
+  readonly initialTasks: Task[];
+  readonly userId: string;
+  readonly subjects: SubjectType[];
+  readonly onTaskUpdate?: (task: Task) => void;
+  readonly onTaskCreate?: (task: Task) => void;
+  readonly onTaskDelete?: (taskId: string) => void;
 }
 
 export default function TaskManagement({ 
@@ -142,8 +116,7 @@ export default function TaskManagement({
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'kanban'>('list');
-  const [showCompleted, setShowCompleted] = useState(true);
+  const [showCompleted] = useState(true);
   const [selectedSubject, setSelectedSubject] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   
@@ -191,68 +164,85 @@ export default function TaskManagement({
     return [...new Set(allTags)];
   }, [tasks]);
 
+  // Helper function to check if task matches text search
+  const matchesTaskSearch = useCallback((task: Task): boolean => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return task.title.toLowerCase().includes(lowerQuery) ||
+           (task.description?.toLowerCase().includes(lowerQuery) ?? false);
+  }, [searchQuery]);
+
+  // Helper function to check if task matches status filter
+  const matchesTaskStatusFilter = useCallback((task: Task): boolean => {
+    if (filter === 'pending') return task.status === 'PENDING';
+    if (filter === 'in_progress') return task.status === 'IN_PROGRESS';
+    if (filter === 'completed') return task.status === 'COMPLETED';
+    if (filter === 'overdue') {
+      return task.dueAt !== undefined && 
+             isPast(new Date(task.dueAt)) && 
+             task.status !== 'COMPLETED';
+    }
+    return true;
+  }, [filter]);
+
+  // Helper function to check if task matches all filters
+  const matchesTaskFilters = useCallback((task: Task): boolean => {
+    if (!matchesTaskSearch(task)) return false;
+    if (!matchesTaskStatusFilter(task)) return false;
+    if (selectedSubject !== 'all' && task.subject !== selectedSubject) return false;
+    if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
+    if (selectedTags.length > 0 && !selectedTags.some(tag => task.tags?.includes(tag))) return false;
+    if (!showCompleted && task.status === 'COMPLETED') return false;
+    return true;
+  }, [matchesTaskSearch, matchesTaskStatusFilter, selectedSubject, selectedPriority, selectedTags, showCompleted]);
+
+  // Helper function to get comparison value for sorting
+  const getTaskSortComparison = useCallback((a: Task, b: Task): number => {
+    switch (sortBy) {
+      case 'dueDate': {
+        const aTime = a.dueAt ? new Date(a.dueAt).getTime() : null;
+        const bTime = b.dueAt ? new Date(b.dueAt).getTime() : null;
+        
+        if (aTime === null && bTime === null) return 0;
+        if (aTime === null) return 1;
+        if (bTime === null) return -1;
+        return aTime - bTime;
+      }
+      case 'created': {
+        const aTime = new Date(a.createdAt || '').getTime();
+        const bTime = new Date(b.createdAt || '').getTime();
+        return bTime - aTime;
+      }
+      case 'priority': {
+        const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+        const aPriority = priorityOrder[a.priority || 'MEDIUM'] || 2;
+        const bPriority = priorityOrder[b.priority || 'MEDIUM'] || 2;
+        return bPriority - aPriority;
+      }
+      case 'title':
+        return a.title.localeCompare(b.title);
+      case 'status': {
+        const statusOrder = { 'PENDING': 1, 'IN_PROGRESS': 2, 'COMPLETED': 3, 'CANCELLED': 4 };
+        const aStatus = statusOrder[a.status || 'PENDING'] || 1;
+        const bStatus = statusOrder[b.status || 'PENDING'] || 1;
+        return aStatus - bStatus;
+      }
+      default:
+        return 0;
+    }
+  }, [sortBy]);
+
   // Memoize filtered and sorted tasks
   const filteredTasks = useMemo(() => {
-    let filteredTasks = tasks.filter(task => {
-      // Text search
-      if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-          !task.description?.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
-      }
-      
-      // Status filter
-      if (filter === 'pending' && task.status !== 'PENDING') return false;
-      if (filter === 'in_progress' && task.status !== 'IN_PROGRESS') return false;
-      if (filter === 'completed' && task.status !== 'COMPLETED') return false;
-      if (filter === 'overdue' && (!task.dueAt || !isPast(new Date(task.dueAt)) || task.status === 'COMPLETED')) return false;
-      
-      // Subject filter
-      if (selectedSubject !== 'all' && task.subject !== selectedSubject) return false;
-      
-      // Priority filter
-      if (selectedPriority !== 'all' && task.priority !== selectedPriority) return false;
-      
-      // Tags filter
-      if (selectedTags.length > 0 && !selectedTags.some(tag => task.tags?.includes(tag))) return false;
-      
-      // Show completed filter
-      if (!showCompleted && task.status === 'COMPLETED') return false;
-      
-      return true;
-    });
-
-    // Sort tasks
-    filteredTasks.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'dueDate':
-          if (!a.dueAt && !b.dueAt) comparison = 0;
-          else if (!a.dueAt) comparison = 1;
-          else if (!b.dueAt) comparison = -1;
-          else comparison = new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
-          break;
-        case 'created':
-          comparison = new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
-          break;
-        case 'priority':
-          const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
-          comparison = (priorityOrder[b.priority || 'MEDIUM'] || 2) - (priorityOrder[a.priority || 'MEDIUM'] || 2);
-          break;
-        case 'title':
-          comparison = a.title.localeCompare(b.title);
-          break;
-        case 'status':
-          const statusOrder = { 'PENDING': 1, 'IN_PROGRESS': 2, 'COMPLETED': 3, 'CANCELLED': 4 };
-          comparison = (statusOrder[a.status || 'PENDING'] || 1) - (statusOrder[b.status || 'PENDING'] || 1);
-          break;
-      }
-      
+    const filtered = tasks.filter(matchesTaskFilters);
+    
+    filtered.sort((a, b) => {
+      const comparison = getTaskSortComparison(a, b);
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-    return filteredTasks;
-  }, [tasks, searchQuery, filter, selectedSubject, selectedPriority, selectedTags, showCompleted, sortBy, sortOrder]);
+    return filtered;
+  }, [tasks, matchesTaskFilters, getTaskSortComparison, sortOrder]);
 
   // Memoize task statistics
   const stats = useMemo(() => {
@@ -290,7 +280,7 @@ export default function TaskManagement({
     const method = taskToEdit ? 'PATCH' : 'POST';
     
     // Process tags
-    const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(tag => tag) : [];
+    const tags = values.tags ? values.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
     
     const body = JSON.stringify({ 
       ...values, 
@@ -310,10 +300,10 @@ export default function TaskManagement({
       const savedTask = await response.json();
       
       if (taskToEdit) {
-        setTasks(tasks.map(t => t.id === savedTask.id ? savedTask : t));
+        setTasks(prev => prev.map(t => t.id === savedTask.id ? savedTask : t));
         if (onTaskUpdate) onTaskUpdate(savedTask);
       } else {
-        setTasks([savedTask, ...tasks]);
+        setTasks(prev => [savedTask, ...prev]);
         if (onTaskCreate) onTaskCreate(savedTask);
       }
       
@@ -356,7 +346,7 @@ export default function TaskManagement({
       if (!response.ok) throw new Error('Failed to update task status');
       const updatedTask = await response.json();
       
-      setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
+      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
       if (onTaskUpdate) onTaskUpdate(updatedTask);
       
       // Stop timer if task is completed
@@ -389,7 +379,7 @@ export default function TaskManagement({
     setTimerSeconds(0);
   };
 
-  const updateTaskField = async (taskId: string, field: string, value: any) => {
+  const updateTaskField = async (taskId: string, field: string, value: unknown) => {
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'PATCH',
@@ -398,10 +388,10 @@ export default function TaskManagement({
       });
       
       if (!response.ok) throw new Error('Failed to update task');
-      const updatedTask = await response.json();
+      const updatedTask = await response.json() as Task;
       
-      setTasks(tasks.map(t => t.id === taskId ? updatedTask : t));
-      if (onTaskUpdate) onTaskUpdate(updatedTask);
+      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+      onTaskUpdate?.(updatedTask);
     } catch (error) {
       logger.error("Error updating task:", error);
     }
@@ -428,7 +418,7 @@ export default function TaskManagement({
 
   const toggleSubtask = async (taskId: string, subtaskId: string) => {
     const task = tasks.find(t => t.id === taskId);
-    if (!task || !task.subtasks) return;
+    if (!task?.subtasks) return;
     
     const updatedSubtasks = task.subtasks.map(st => 
       st.id === subtaskId ? { ...st, isCompleted: !st.isCompleted } : st
@@ -690,7 +680,7 @@ export default function TaskManagement({
                               max="480" 
                               placeholder="30"
                               {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || undefined)}
+                              onChange={(e) => field.onChange(Number.parseInt(e.target.value) || undefined)}
                             />
                           </FormControl>
                           <FormMessage />
@@ -923,7 +913,7 @@ export default function TaskManagement({
                 </p>
               </div>
             ) : (
-              filteredTasks.map((task, index) => {
+              filteredTasks.map((task) => {
                 const dueDateInfo = getDueDateInfo(task.dueAt);
                 const isExpanded = expandedTasks.includes(task.id);
                 const completedSubtasks = task.subtasks?.filter(st => st.isCompleted).length || 0;
@@ -952,6 +942,7 @@ export default function TaskManagement({
                                 setSelectedTaskIds(selectedTaskIds.filter(id => id !== task.id));
                               }
                             }}
+                            aria-label={`تحديد المهمة ${task.title}`}
                             className="mt-1"
                           />
                         )}
@@ -1193,6 +1184,7 @@ export default function TaskManagement({
                                       type="checkbox"
                                       checked={subtask.isCompleted}
                                       onChange={() => toggleSubtask(task.id, subtask.id)}
+                                      aria-label={`تحديد المهمة الفرعية ${subtask.title}`}
                                       className="rounded"
                                     />
                                     <span className={cn(
@@ -1216,7 +1208,7 @@ export default function TaskManagement({
                                     placeholder="مهمة فرعية جديدة"
                                     value={newSubtaskTitle}
                                     onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                                    onKeyPress={(e) => {
+                                    onKeyDown={(e) => {
                                       if (e.key === 'Enter' && newSubtaskTitle.trim()) {
                                         addSubtask(task.id, newSubtaskTitle);
                                       }

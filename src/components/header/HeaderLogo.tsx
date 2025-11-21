@@ -7,7 +7,12 @@ import { GraduationCap } from "lucide-react";
 
 export function HeaderLogo() {
 	return (
-		<Link href="/" className="flex items-center gap-3 group" suppressHydrationWarning>
+		<Link 
+			href="/" 
+			className="flex items-center gap-3 group" 
+			prefetch={true}
+			scroll={true}
+		>
 			<motion.div 
 				className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-primary/30"
 				whileHover={{ scale: 1.1, rotate: [0, -5] }}

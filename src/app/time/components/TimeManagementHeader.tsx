@@ -76,7 +76,7 @@ export default function TimeManagementHeader({
                 <DialogTitle>إنشاء مهمة جديدة</DialogTitle>
               </DialogHeader>
               <div className="py-4 text-center text-muted-foreground">
-                <p>نموذج إنشاء المهام متوفر في علامة التبويب "إدارة المهام"</p>
+                <p>نموذج إنشاء المهام متوفر في علامة التبويب &quot;إدارة المهام&quot;</p>
               </div>
             </DialogContent>
           </Dialog>

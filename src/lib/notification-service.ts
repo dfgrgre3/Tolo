@@ -312,18 +312,55 @@ export const notificationTemplates = {
   }),
 };
 
+// Whitelist of allowed template keys for security
+const ALLOWED_TEMPLATE_KEYS: ReadonlySet<keyof typeof notificationTemplates> = new Set([
+  'taskDueSoon',
+  'taskOverdue',
+  'taskCompleted',
+  'testGenerated',
+  'testCompleted',
+  'testReminder',
+  'scheduleConflict',
+  'classReminder',
+  'progressMilestone',
+  'goalAchieved',
+  'newMessage',
+  'eventReminder',
+  'newFollower',
+  'systemUpdate',
+  'securityAlert',
+  'newContent',
+  'contentRecommendation',
+] as const);
+
 // دالة لإرسال إشعار باستخدام القوالب
 export function sendTemplatedNotification(
   templateKey: keyof typeof notificationTemplates,
   ...args: unknown[]
 ) {
+  // Security: Validate templateKey against whitelist before accessing object
+  if (!ALLOWED_TEMPLATE_KEYS.has(templateKey)) {
+    logger.error('Invalid template key attempted', undefined, { templateKey });
+    return Promise.resolve({ success: false, error: 'Invalid template key' });
+  }
+
   const template = notificationTemplates[templateKey];
-  if (!template) return;
+  if (!template) {
+    logger.error('Template not found', undefined, { templateKey });
+    return Promise.resolve({ success: false, error: 'Template not found' });
+  }
 
   // Type-safe dynamic function call
   const notification = (template as (...args: unknown[]) => ReturnType<typeof template>)(...args);
-  return sendNotification(notification.title, notification.message, notification.type, {
-    actionUrl: notification.actionUrl,
-    icon: notification.icon,
-  });
+  
+  // Safely extract optional properties
+  const options: { actionUrl?: string; icon?: string } = {};
+  if ('actionUrl' in notification && notification.actionUrl) {
+    options.actionUrl = notification.actionUrl;
+  }
+  if ('icon' in notification && notification.icon) {
+    options.icon = notification.icon;
+  }
+  
+  return sendNotification(notification.title, notification.message, notification.type, options);
 }

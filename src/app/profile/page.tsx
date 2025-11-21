@@ -40,7 +40,7 @@ import SecurityTab from "@/components/profile/SecurityTab";
 
 import { logger } from '@/lib/logger';
 
-type User = {
+type ProfileUser = {
 	id: string;
 	name: string;
 	email: string;
@@ -65,7 +65,7 @@ type UserStats = {
 export default function ProfilePage() {
 	const router = useRouter();
 	const [userId, setUserId] = useState<string | null>(null);
-	const [user, setUser] = useState<User | null>(null);
+	const [user, setUser] = useState<ProfileUser | null>(null);
 	const [stats, setStats] = useState<UserStats | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [isEditing, setIsEditing] = useState(false);

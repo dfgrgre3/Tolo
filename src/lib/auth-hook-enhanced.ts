@@ -122,9 +122,6 @@ export function useEnhancedAuth(): EnhancedAuthHook {
         user: response.user as User,
         sessionId: response.sessionId,
       };
-    } catch (error: any) {
-      throw error;
-    }
   };
 
   const verifyTwoFactor = async (params: {
@@ -172,9 +169,6 @@ export function useEnhancedAuth(): EnhancedAuthHook {
         user: response.user as User,
         sessionId: response.sessionId,
       };
-    } catch (error: any) {
-      throw error;
-    }
   };
 
   const resendTwoFactorCode = async (params: {
@@ -228,12 +222,8 @@ export function useEnhancedAuth(): EnhancedAuthHook {
   };
 
   const loginWithSocial = async (provider: 'google' | 'github' | 'twitter') => {
-    try {
-      // Redirect to social login endpoint
-      window.location.href = `/api/auth/${provider}?redirect=${encodeURIComponent(window.location.pathname)}`;
-    } catch (error: any) {
-      throw error;
-    }
+    // Redirect to social login endpoint
+    window.location.href = `/api/auth/${provider}?redirect=${encodeURIComponent(window.location.pathname)}`;
   };
 
   return {

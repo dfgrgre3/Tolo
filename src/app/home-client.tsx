@@ -251,19 +251,7 @@ export function HomeClient({ summary }: HomeClientProps) {
     }
   ];
 
-  // Show loading skeleton while checking authentication
-  if (authLoading) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-background">
-          <div className="flex flex-col items-center justify-center h-screen">
-            <SkeletonLoader className="h-16 w-16 rounded-full" />
-            <p className="mt-4 text-muted-foreground">جارٍ التحقق من حالة تسجيل الدخول...</p>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
+
 
   // If user is authenticated, show enhanced Dashboard with personalized content
   if (user) {

@@ -101,7 +101,6 @@ export function HeaderNavigation({
 							isActive &&
 								"bg-primary/10 text-primary font-semibold shadow-sm"
 						)}
-						suppressHydrationWarning
 					>
 							{item.icon ? (
 								<span className={cn(

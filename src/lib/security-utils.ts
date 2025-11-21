@@ -224,6 +224,6 @@ export function isValidEmail(email: string): boolean {
 export function isValidPhoneNumber(phone: string): boolean {
   // This is a simplified validation
   // In a real implementation, you would use a proper phone number validation library
-  const phoneRegex = /^[\d\s\-\+\(\)]+$/;
+  const phoneRegex = /^[\d\s\-+()]+$/;
   return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
 }

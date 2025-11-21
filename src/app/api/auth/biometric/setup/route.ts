@@ -48,8 +48,7 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         credentialId,
         publicKey,
-        deviceName,
-        createdAt: new Date()
+        deviceType: deviceName,
       }
     });
 

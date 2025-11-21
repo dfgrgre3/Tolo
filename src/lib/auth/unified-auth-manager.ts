@@ -121,6 +121,8 @@ class UnifiedAuthManager extends EventEmitter {
   private restoreState() {
     try {
       const stored = localStorage.getItem('auth_state');
+      let restored = false;
+
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed.user && parsed.isAuthenticated) {
@@ -130,10 +132,26 @@ class UnifiedAuthManager extends EventEmitter {
             isLoading: false,
           };
           this.emit('state_change', { state: this.state });
+          restored = true;
         }
+      }
+
+      if (!restored) {
+        // If no valid state found, ensure we're not stuck in loading
+        this.state = {
+          ...this.state,
+          isLoading: false,
+        };
+        this.emit('state_change', { state: this.state });
       }
     } catch (error) {
       logger.error('Failed to restore auth state:', error);
+      // Ensure we're not stuck in loading on error
+      this.state = {
+        ...this.state,
+        isLoading: false,
+      };
+      this.emit('state_change', { state: this.state });
     }
   }
 

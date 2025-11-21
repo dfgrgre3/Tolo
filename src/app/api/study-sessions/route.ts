@@ -101,28 +101,46 @@ export async function POST(request: NextRequest) {
       });
 
       // Send achievement notifications if any were unlocked
-      // TODO: Fix achievement notification logic - session.achievements does not exist
-      /*
-      const newAchievements = updatedProgress.achievements.filter(
-        achievement => !session.achievements?.includes(achievement)
-      );
+      // Check for newly unlocked achievements by comparing current achievements with previous user state
+      if (updatedProgress.achievements && Array.isArray(updatedProgress.achievements)) {
+        try {
+          // Get user's previous achievements from database to compare
+          const user = await prisma.user.findUnique({
+            where: { id: decodedToken.userId },
+            select: { achievements: { select: { achievementKey: true } } }
+          });
 
-      for (const achievementKey of newAchievements) {
-        const achievement = gamificationService.getAchievement(achievementKey);
-        if (achievement) {
-          await firestoreService.sendAchievementNotification(
-            decodedToken.userId,
-            {
-              key: achievement.key,
-              title: achievement.title,
-              description: achievement.description,
-              icon: achievement.icon,
-              xpReward: achievement.xpReward
-            }
+          const previousAchievementKeys = new Set(
+            user?.achievements?.map(ua => ua.achievementKey) || []
           );
+
+          const newAchievementKeys = updatedProgress.achievements.filter(
+            (achievementKey: string) => !previousAchievementKeys.has(achievementKey)
+          );
+
+          for (const achievementKey of newAchievementKeys) {
+            const achievement = await prisma.achievement.findUnique({
+              where: { key: achievementKey }
+            });
+
+            if (achievement) {
+              await firestoreService.sendAchievementNotification(
+                decodedToken.userId,
+                {
+                  key: achievement.key,
+                  title: achievement.title,
+                  description: achievement.description,
+                  icon: achievement.icon,
+                  xpReward: achievement.xpReward
+                }
+              );
+            }
+          }
+        } catch (notificationError) {
+          logger.error('Error sending achievement notifications:', notificationError);
+          // Don't fail the request if notification sending fails
         }
       }
-      */
     } catch (gamificationError) {
       logger.error('Error updating gamification:', gamificationError);
       // Don't fail the request if gamification fails

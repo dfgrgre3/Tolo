@@ -1,0 +1,17 @@
+.progressBar {
+  width: var(--progress-width, 0%);
+  height: 0.5rem;
+  border-radius: 9999px;
+}
+
+.progressBarBlue {
+  background-color: rgb(37, 99, 235);
+}
+
+.progressBarRed {
+  background-color: rgb(220, 38, 38);
+}
+
+.progressBarGreen {
+  background-color: rgb(22, 163, 74);
+}

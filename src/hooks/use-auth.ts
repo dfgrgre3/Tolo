@@ -41,19 +41,19 @@ export interface AuthContextType {
  * سيتم إزالة هذا الملف في الإصدارات القادمة
  */
 export function useAuth(): AuthContextType {
+  // إعادة توجيه إلى useUnifiedAuth
+  const unifiedAuth = useUnifiedAuth();
+  
   // تحذير في development mode
-  if (process.env.NODE_ENV === 'development') {
-    useEffect(() => {
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
       console.warn(
         '⚠️ useAuth from @/hooks/use-auth is DEPRECATED.\n' +
         '✅ Please use useUnifiedAuth from @/contexts/auth-context instead.\n' +
         '📖 Migration: Replace useAuth() with useUnifiedAuth()'
       );
-    }, []);
-  }
-  
-  // إعادة توجيه إلى useUnifiedAuth
-  const unifiedAuth = useUnifiedAuth();
+    }
+  }, []);
   
   // تحويل الواجهة إلى واجهة useAuth القديمة للتوافق
   return {

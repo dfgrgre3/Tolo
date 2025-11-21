@@ -13,7 +13,7 @@ import ClientLayoutProvider from '../app/ClientLayoutProvider';
  * البنية الموحدة:
  * - UnifiedAuthProvider: المصدر الوحيد للمصادقة (تم إزالة AuthProvider لتجنب التضارب)
  */
-export function CombinedProviders({ children }: { children: React.ReactNode }) {
+export function CombinedProviders({ children }: { readonly children: React.ReactNode }) {
   return (
     <UnifiedAuthProvider>
       <ClientLayoutProvider>

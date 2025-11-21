@@ -1,4 +1,6 @@
 -- CreateIndex for User table on email (already exists as unique constraint, but adding for clarity)
+SET QUOTED_IDENTIFIER ON;
+GO
 -- CREATE UNIQUE INDEX "User_email_key" ON "User"("email"); -- Already exists
 
 -- CreateIndex for SubjectEnrollment table on userId and subjectId (already exists)

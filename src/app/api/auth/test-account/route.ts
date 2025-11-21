@@ -26,7 +26,8 @@ export async function POST(request: NextRequest) {
 
     try {
     const testEmail = 'test@example.com';
-    const testPassword = 'Test123!@#';
+    // Generate a random password for the test account to avoid hardcoded secrets
+    const testPassword = randomBytes(12).toString('base64');
     const testName = 'مستخدم تجريبي';
 
     // Check if test user already exists

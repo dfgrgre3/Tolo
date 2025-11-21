@@ -351,7 +351,7 @@ export class GamificationService {
     const newAchievements: string[] = [];
 
     switch (trimmedAction) {
-      case 'study_session_completed':
+      case 'study_session_completed': {
         const studyTime = Number(data.duration) || 0;
         if (studyTime < 0) {
           throw new Error('Study time cannot be negative');
@@ -402,6 +402,7 @@ export class GamificationService {
               });
           }
         }
+        }
         break;
 
       case 'task_completed':
@@ -410,7 +411,7 @@ export class GamificationService {
         xpGained = trimmedAction === 'task_completed' ? 5 : 2; // Base XP for completing/creating a task
         break;
 
-      case 'exam_completed':
+      case 'exam_completed': {
         const score = Number(data.score) || 0;
         if (score < 0 || score > 100) {
           throw new Error('Exam score must be between 0 and 100');
@@ -442,8 +443,9 @@ export class GamificationService {
             console.warn('Failed to check exam achievements:', error);
           });
         break;
+      }
 
-      case 'pomodoro_completed':
+      case 'pomodoro_completed': {
         const pomodoroCount = (user.pomodoroSessions || 0) + 1;
         updates.pomodoroSessions = pomodoroCount;
         xpGained = 3;
@@ -464,6 +466,7 @@ export class GamificationService {
             .catch((error) => {
               console.warn('Failed to check pomodoro_master achievement:', error);
             });
+        }
         }
         break;
 

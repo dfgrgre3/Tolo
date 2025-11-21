@@ -41,6 +41,20 @@ const nextConfig = {
     },
   },
 
+  // Improve HMR reliability
+  onDemandEntries: {
+    // Period (in ms) where the server will keep pages in the buffer
+    maxInactiveAge: 25 * 1000,
+    // Number of pages that should be kept simultaneously without being disposed
+    pagesBufferLength: 2,
+  },
+
+  // Fix HMR module resolution issues
+  webpackDevMiddleware: {
+    // Improve HMR stability
+    writeToDisk: false,
+  },
+
   // Enable compression
   compress: true,
 
@@ -131,10 +145,54 @@ const nextConfig = {
         'lucide-react': require.resolve('lucide-react'),
       };
 
-      // Improve HMR handling for ES modules
+      // Improve HMR handling for ES modules and Next.js internals
       config.optimization = {
         ...config.optimization,
         moduleIds: 'named',
+        // Improve chunk splitting for better HMR
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Separate Next.js internals for better HMR
+            framework: {
+              name: 'framework',
+              chunks: 'all',
+              test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|next)[\\/]/,
+              priority: 40,
+              enforce: true,
+            },
+            // Separate Next.js client components for better HMR
+            nextClient: {
+              name: 'next-client',
+              chunks: 'all',
+              test: /[\\/]node_modules[\\/]next[\\/]dist[\\/]client[\\/]/,
+              priority: 30,
+              enforce: true,
+            },
+          },
+        },
+      };
+
+      // Improve module resolution for Next.js internals
+      config.resolve = {
+        ...config.resolve,
+        // Ensure proper module resolution
+        symlinks: false,
+        // Fix module resolution for Next.js internals
+        alias: {
+          ...config.resolve.alias,
+        },
+      };
+
+      // Configure webpack cache for better HMR
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+        cacheDirectory: '.next/cache/webpack',
       };
 
       // Add HMR plugin configuration
@@ -148,6 +206,14 @@ const nextConfig = {
           }
         });
       }
+
+      // Improve HMR for Next.js client components
+      config.watchOptions = {
+        ...config.watchOptions,
+        ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
+        aggregateTimeout: 300,
+        poll: false,
+      };
     }
 
     // Add error tracking

@@ -1,30 +1,33 @@
 -- CreateTable
 CREATE TABLE "GradeLevel" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "nameAr" TEXT NOT NULL,
     "level" INTEGER NOT NULL,
     "educationSystem" TEXT NOT NULL DEFAULT 'EGYPT',
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "GradeLevel_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Curriculum" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "nameAr" TEXT NOT NULL,
     "description" TEXT,
     "gradeLevelId" TEXT NOT NULL,
     "subject" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Curriculum_gradeLevelId_fkey" FOREIGN KEY ("gradeLevelId") REFERENCES "GradeLevel" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Curriculum_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Subject" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "nameAr" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -32,13 +35,15 @@ CREATE TABLE "Subject" (
     "color" TEXT NOT NULL DEFAULT '#3b82f6',
     "icon" TEXT NOT NULL DEFAULT 'BookOpen',
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Subject_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Topic" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "nameAr" TEXT NOT NULL,
     "description" TEXT,
@@ -47,44 +52,70 @@ CREATE TABLE "Topic" (
     "gradeLevelId" TEXT NOT NULL,
     "order" INTEGER NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "Topic_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Topic_curriculumId_fkey" FOREIGN KEY ("curriculumId") REFERENCES "Curriculum" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT "Topic_gradeLevelId_fkey" FOREIGN KEY ("gradeLevelId") REFERENCES "GradeLevel" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Topic_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SubTopic" (
-    "id" TEXT NOT NULL PRIMARY KEY,
+    "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "nameAr" TEXT NOT NULL,
     "description" TEXT,
     "topicId" TEXT NOT NULL,
     "order" INTEGER NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "SubTopic_topicId_fkey" FOREIGN KEY ("topicId") REFERENCES "Topic" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "SubTopic_pkey" PRIMARY KEY ("id")
 );
 
--- Redefine SubjectEnrollment table to use the new Subject table
-PRAGMA defer_foreign_keys=ON;
-PRAGMA foreign_keys=OFF;
-CREATE TABLE "new_SubjectEnrollment" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "userId" TEXT NOT NULL,
-    "subjectId" TEXT NOT NULL,
-    "targetWeeklyHours" INTEGER NOT NULL DEFAULT 0,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "new_SubjectEnrollment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "new_SubjectEnrollment_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
-);
-INSERT INTO "new_SubjectEnrollment" ("createdAt", "id", "targetWeeklyHours", "userId") SELECT "createdAt", "id", "targetWeeklyHours", "userId" FROM "SubjectEnrollment";
-DROP TABLE "SubjectEnrollment";
-ALTER TABLE "new_SubjectEnrollment" RENAME TO "SubjectEnrollment";
-PRAGMA foreign_keys=ON;
-PRAGMA defer_foreign_keys=OFF;
+-- Step 1: Add the new subjectId column (nullable initially)
+ALTER TABLE "SubjectEnrollment" ADD COLUMN "subjectId" TEXT;
+
+-- Step 2: Migrate existing subject names to the Subject table
+-- This creates Subject records from existing SubjectEnrollment.subject values
+INSERT INTO "Subject" ("id", "name", "nameAr", "code", "description", "color", "icon", "isActive", "createdAt", "updatedAt")
+SELECT 
+    gen_random_uuid()::text,
+    subject,
+    subject, -- Using same value for nameAr temporarily
+    UPPER(REPLACE(subject, ' ', '_')), -- Generate code from name
+    NULL,
+    '#3b82f6',
+    'BookOpen',
+    true,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+FROM (SELECT DISTINCT subject FROM "SubjectEnrollment" WHERE subject IS NOT NULL) AS distinct_subjects
+ON CONFLICT ("name") DO NOTHING;
+
+-- Step 3: Update SubjectEnrollment.subjectId to reference the new Subject records
+UPDATE "SubjectEnrollment" se
+SET "subjectId" = s."id"
+ALTER TABLE "SubjectEnrollment" DROP COLUMN "subject";
+
+-- Step 7: Update indexes to use subjectId instead of subject
+DROP INDEX IF EXISTS "SubjectEnrollment_userId_subject_idx";
+DROP INDEX IF EXISTS "SubjectEnrollment_subject_idx";
+
+-- AddForeignKey
+ALTER TABLE "Curriculum" ADD CONSTRAINT "Curriculum_gradeLevelId_fkey" FOREIGN KEY ("gradeLevelId") REFERENCES "GradeLevel"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Topic" ADD CONSTRAINT "Topic_subjectId_fkey" FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Topic" ADD CONSTRAINT "Topic_curriculumId_fkey" FOREIGN KEY ("curriculumId") REFERENCES "Curriculum"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Topic" ADD CONSTRAINT "Topic_gradeLevelId_fkey" FOREIGN KEY ("gradeLevelId") REFERENCES "GradeLevel"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SubTopic" ADD CONSTRAINT "SubTopic_topicId_fkey" FOREIGN KEY ("topicId") REFERENCES "Topic"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- CreateIndex
 CREATE UNIQUE INDEX "GradeLevel_name_key" ON "GradeLevel"("name");

@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanawy-deployment
+  labels:
+    app: thanawy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: thanawy
+  template:
+    metadata:
+      labels:
+        app: thanawy
+    spec:
+      # Security: Disable automounting of service account token to reduce attack surface
+      automountServiceAccountToken: false
+      containers:
+        - name: thanawy-container
+          image: thanawy-app:latest
+          imagePullPolicy: Always
+          # Security: Prevent privilege escalation
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            capabilities:
+              drop:
+                - ALL
+            readOnlyRootFilesystem: false
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: thanawy-secrets
+                  key: DATABASE_URL
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: thanawy-secrets
+                  key: JWT_SECRET
+            - name: NEXT_PUBLIC_APP_NAME
+              value: "Thanawy"
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+              # Reliability: Specify storage request to ensure sufficient disk space
+              ephemeral-storage: "1Gi"
+            limits:
+              cpu: "500m"
+              memory: "1Gi"
+              ephemeral-storage: "2Gi"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 20
+            periodSeconds: 10

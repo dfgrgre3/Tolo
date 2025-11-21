@@ -955,6 +955,7 @@ export class AuthService {
       
       // Add timeout to prevent hanging
       const logData: any = {
+        id: uuidv4(),
         eventType: event,
         ip: ip || 'unknown',
         userAgent: (metadata?.userAgent as string) || '',

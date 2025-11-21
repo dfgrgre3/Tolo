@@ -5,8 +5,8 @@ import { SignJWT, jwtVerify } from 'jose';
 import { TextEncoder } from 'util';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
 import { authService } from '@/lib/auth-service';
-import { verifyTOTP, disableTOTP } from '@/lib/two-factor/totp-service';
-import { verifyAndConsumeRecoveryCode } from '@/lib/two-factor/recovery-codes';
+import { verifyTOTP, disableTOTP, generateSecret } from '@/lib/two-factor/totp-service';
+import { verifyAndConsumeRecoveryCode, generateRecoveryCodes } from '@/lib/two-factor/recovery-codes';
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorResponse } from '@/types/api/auth';
@@ -313,14 +313,11 @@ export async function POST(request: NextRequest) {
 // Handle 2FA setup
 async function handleSetup2FA(user: UserWith2FA) {
   try {
-    // In a real implementation, you would generate a secret key and QR code
-    // For this example, we'll just generate a placeholder secret
+    // Generate a cryptographically secure secret key using crypto.randomBytes
+    const secret = generateSecret();
 
-    // Generate a secret key (in a real implementation, use a library like speakeasy)
-    const secret = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'; // Base32 encoded secret
-
-    // Generate backup codes
-    const backupCodes = generateBackupCodes();
+    // Generate cryptographically secure backup codes
+    const backupCodes = generateRecoveryCodes();
 
     // Store the secret temporarily (not enabled yet)
     await prisma.user.update({
@@ -331,9 +328,8 @@ async function handleSetup2FA(user: UserWith2FA) {
       }
     });
 
-    // In a real implementation, you would also generate a QR code
-    // For this example, we'll just return the secret and backup codes
-
+    // Return the secret and backup codes
+    // Note: The frontend should generate a QR code from the secret for easy setup
     return NextResponse.json({
       secret,
       backupCodes,
@@ -615,21 +611,5 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
   }
 }
 
-// Generate backup codes
-function generateBackupCodes(count = 10): string[] {
-  const codes = [];
 
-  for (let i = 0; i < count; i++) {
-    // Generate 8-character alphanumeric codes
-    let code = '';
-    for (let j = 0; j < 8; j++) {
-      if (j === 4) code += '-';
-      const charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      code += charSet.charAt(Math.floor(Math.random() * charSet.length));
-    }
-    codes.push(code);
-  }
-
-  return codes;
-}
 

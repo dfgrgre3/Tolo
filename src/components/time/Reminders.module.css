@@ -1,0 +1,10 @@
+.typeIcon {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  flex-shrink: 0;
+}
+
+.typeIconCustom {
+  background-color: var(--custom-color, #3b82f6);
+}
+

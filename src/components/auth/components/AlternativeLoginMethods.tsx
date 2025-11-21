@@ -8,8 +8,9 @@ import { getRedirectPath, clearStoredRedirect } from '../utils/login-form.utils'
 interface AlternativeLoginMethodsProps {
   isLoading: boolean;
   isGoogleOAuthEnabled: boolean;
-  onBiometricLogin: () => void;
+  onBiometricLogin?: () => void;
   onTestAccountLogin?: () => void;
+  mode?: 'login' | 'register';
 }
 
 export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = ({
@@ -17,10 +18,12 @@ export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = (
   isGoogleOAuthEnabled,
   onBiometricLogin,
   onTestAccountLogin,
+  mode = 'login',
 }) => {
   const showTestAccount =
-    process.env.NODE_ENV === 'development' ||
-    process.env.NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS === 'true';
+    mode === 'login' &&
+    (process.env.NODE_ENV === 'development' ||
+    process.env.NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS === 'true');
 
   return (
     <>
@@ -58,9 +61,9 @@ export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = (
         transition={{ delay: 0.6 }}
         className="grid gap-3"
       >
-        {/* Biometric Login */}
+        {/* Biometric Login - Only for Login mode */}
         <AnimatePresence>
-          {safeWindow((w) => !!w.PublicKeyCredential, false) && (
+          {mode === 'login' && onBiometricLogin && safeWindow((w) => !!w.PublicKeyCredential, false) && (
             <motion.button
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -97,15 +100,16 @@ export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = (
               const redirectPath = getRedirectPath();
               clearStoredRedirect();
               safeWindow((w) => {
-                w.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath)}`;
+                const typeParam = mode === 'register' ? '&type=register' : '';
+                w.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirectPath)}${typeParam}`;
               }, undefined);
             }}
             disabled={isLoading}
             className="flex items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
-            aria-label="تسجيل الدخول باستخدام حساب جوجل"
+            aria-label={mode === 'register' ? "إنشاء حساب باستخدام جوجل" : "تسجيل الدخول باستخدام حساب جوجل"}
           >
             <Chrome className="h-5 w-5" aria-hidden="true" />
-            تسجيل الدخول بجوجل
+            {mode === 'register' ? 'إنشاء حساب بجوجل' : 'تسجيل الدخول بجوجل'}
           </motion.button>
         )}
 

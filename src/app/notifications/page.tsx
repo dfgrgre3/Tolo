@@ -1,15 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AuthGuard } from "@/components/auth/AuthGuard";
-import { Bell, Check, CheckCheck, Trash2, ExternalLink, Clock } from 'lucide-react';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { AuthGuard } from '@/components/auth/AuthGuard';
+import { Bell, Check, CheckCheck, ExternalLink, Clock } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Skeleton } from '@/components/ui/skeleton';
-// Token is in httpOnly cookie - no need to import getSafeAuthToken
-
 import { logger } from '@/lib/logger';
 
 interface Notification {
@@ -35,7 +32,6 @@ export default function NotificationsPage() {
   const fetchNotifications = useCallback(async (reset = false) => {
     setIsLoading(true);
     try {
-      // Token is in httpOnly cookie - no need to send Authorization header
       const currentOffset = reset ? 0 : offset;
       const params = new URLSearchParams({
         limit: limit.toString(),
@@ -43,9 +39,7 @@ export default function NotificationsPage() {
       });
 
       const response = await fetch(`/api/notifications?${params}`, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
       });
 
@@ -57,7 +51,7 @@ export default function NotificationsPage() {
         setNotifications(data.notifications);
         setOffset(0);
       } else {
-        setNotifications(prev => [...prev, ...data.notifications]);
+        setNotifications((prev) => [...prev, ...data.notifications]);
         setOffset(currentOffset + limit);
       }
 
@@ -78,29 +72,22 @@ export default function NotificationsPage() {
   // Mark notifications as read
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/notifications/mark-read', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({
-          notificationIds,
-          all,
-        }),
+        body: JSON.stringify({ notificationIds, all }),
       });
 
       if (!response.ok) throw new Error('Failed to mark notifications as read');
 
       const data = await response.json();
 
-      // Update local state
       if (all) {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       } else if (notificationIds) {
-        setNotifications(prev => 
-          prev.map(n => notificationIds.includes(n.id) ? { ...n, isRead: true } : n)
+        setNotifications((prev) =>
+          prev.map((n) => (notificationIds.includes(n.id) ? { ...n, isRead: true } : n))
         );
       }
 
@@ -110,7 +97,7 @@ export default function NotificationsPage() {
     }
   };
 
-  // Format date
+  // Format date helper
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -131,10 +118,9 @@ export default function NotificationsPage() {
     });
   };
 
-  // Get notification icon
+  // Icon helper
   const getNotificationIcon = (type: string, icon?: string) => {
     if (icon) return icon;
-
     switch (type) {
       case 'success':
         return '✅';
@@ -147,7 +133,7 @@ export default function NotificationsPage() {
     }
   };
 
-  // Get notification type color
+  // Color helper
   const getNotificationTypeColor = (type: string) => {
     switch (type) {
       case 'success':
@@ -161,156 +147,136 @@ export default function NotificationsPage() {
     }
   };
 
-  // Load more notifications
+  // Load more
   const loadMore = () => {
-    if (!isLoading && hasMore) {
-      fetchNotifications();
-    }
+    if (!isLoading && hasMore) fetchNotifications();
   };
 
   return (
     <AuthGuard>
       <div className="container mx-auto py-8 px-4 max-w-4xl">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-          <Bell className="h-8 w-8 text-blue-600" />
-          الإشعارات
-        </h1>
-        <p className="text-gray-600">
-          عرض جميع الإشعارات والتنبيهات
-        </p>
-      </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+            <Bell className="h-8 w-8 text-blue-600" />
+            الإشعارات
+          </h1>
+          <p className="text-gray-600">عرض جميع الإشعارات والتنبيهات</p>
+        </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>الإشعارات</CardTitle>
-              <CardDescription>
-                {unreadCount > 0 
-                  ? `لديك ${unreadCount} إشعار${unreadCount > 1 ? 'ات غير مقروءة' : ' غير مقروء'}`
-                  : 'لا توجد إشعارات غير مقروءة'
-                }
-              </CardDescription>
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>الإشعارات</CardTitle>
+                <CardDescription>
+                  {unreadCount > 0
+                    ? `لديك ${unreadCount} إشعار${unreadCount > 1 ? 'ات غير مقروءة' : ' غير مقروء'}`
+                    : 'لا توجد إشعارات غير مقروءة'}
+                </CardDescription>
+              </div>
+              {unreadCount > 0 && (
+                <Button variant="outline" onClick={() => markAsRead(undefined, true)} className="flex items-center gap-2">
+                  <CheckCheck className="h-4 w-4" />
+                  تحديد الكل كمقروء
+                </Button>
+              )}
             </div>
-            {unreadCount > 0 && (
-              <Button 
-                variant="outline" 
-                onClick={() => markAsRead(undefined, true)}
-                className="flex items-center gap-2"
-              >
-                <CheckCheck className="h-4 w-4" />
-                تحديد الكل كمقروء
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {notifications.length === 0 ? (
-            <div className="text-center py-12">
-              <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-1">لا توجد إشعارات</h3>
-              <p className="text-gray-500">سيتم عرض الإشعارات هنا عند توفرها</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {notifications.map((notification) => (
-                <div 
-                  key={notification.id} 
-                  className={`p-4 rounded-lg border transition-colors ${
-                    notification.isRead 
-                      ? 'bg-white border-gray-200' 
-                      : 'bg-blue-50 border-blue-200'
-                  }`}
-                >
-                  <div className="flex gap-4">
-                    <Avatar className="h-10 w-10 flex-shrink-0">
-                      <AvatarFallback className="text-lg">
-                        {getNotificationIcon(notification.type, notification.icon)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className={`font-medium ${!notification.isRead ? 'font-bold' : ''}`}>
-                            {notification.title}
-                          </h3>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs ${getNotificationTypeColor(notification.type)}`}
-                            >
-                              {notification.type === 'info' && 'معلومات'}
-                              {notification.type === 'success' && 'نجاح'}
-                              {notification.type === 'warning' && 'تحذير'}
-                              {notification.type === 'error' && 'خطأ'}
-                            </Badge>
-                            <div className="flex items-center text-xs text-gray-500">
-                              <Clock className="h-3 w-3 mr-1" />
-                              {formatDate(notification.createdAt)}
+          </CardHeader>
+          <CardContent>
+            {notifications.length === 0 ? (
+              <div className="text-center py-12">
+                <Bell className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-1">لا توجد إشعارات</h3>
+                <p className="text-gray-500">سيتم عرض الإشعارات هنا عند توفرها</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 rounded-lg border transition-colors ${
+                      notification.isRead ? 'bg-white border-gray-200' : 'bg-blue-50 border-blue-200'
+                    }`}
+                  >
+                    <div className="flex gap-4">
+                      <Avatar className="h-10 w-10 flex-shrink-0">
+                        <AvatarFallback className="text-lg">
+                          {getNotificationIcon(notification.type, notification.icon)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className={`font-medium ${!notification.isRead ? 'font-bold' : ''}`}>
+                              {notification.title}
+                            </h3>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Badge variant="outline" className={`text-xs ${getNotificationTypeColor(notification.type)}`}>
+                                {notification.type === 'info' && 'معلومات'}
+                                {notification.type === 'success' && 'نجاح'}
+                                {notification.type === 'warning' && 'تحذير'}
+                                {notification.type === 'error' && 'خطأ'}
+                              </Badge>
+                              <div className="flex items-center text-xs text-gray-500">
+                                <Clock className="h-3 w-3 mr-1" />
+                                {formatDate(notification.createdAt)}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                        {!notification.isRead && (
-                          <span className="h-2 w-2 rounded-full bg-blue-600 flex-shrink-0 mt-2"></span>
-                        )}
-                      </div>
-                      <p className="mt-2 text-gray-700">
-                        {notification.message}
-                      </p>
-                      <div className="flex justify-between items-center mt-3">
-                        <div className="flex gap-2">
                           {!notification.isRead && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => markAsRead([notification.id])}
-                              className="h-8 px-2 text-xs"
-                            >
-                              <Check className="h-3 w-3 mr-1" />
-                              تحديد كمقروء
-                            </Button>
+                            <span className="h-2 w-2 rounded-full bg-blue-600 flex-shrink-0 mt-2" />
                           )}
-                          {notification.actionUrl && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                if (notification.actionUrl) {
-                                  if (typeof window !== 'undefined') {
-                                    window.location.href = notification.actionUrl;
+                        </div>
+                        <p className="mt-2 text-gray-700">{notification.message}</p>
+                        <div className="flex justify-between items-center mt-3">
+                          <div className="flex gap-2">
+                            {!notification.isRead && (
+                              <Button variant="ghost" size="sm" onClick={() => markAsRead([notification.id])} className="h-8 px-2 text-xs">
+                                <Check className="h-3 w-3 mr-1" />
+                                تحديد كمقروء
+                              </Button>
+                            )}
+                            {notification.actionUrl && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  if (typeof window !== 'undefined' && notification.actionUrl) {
+                                    try {
+                                      const parsed = new URL(notification.actionUrl, window.location.origin);
+                                      if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+                                        window.location.href = parsed.href;
+                                      } else {
+                                        console.warn('Blocked unsafe redirect:', notification.actionUrl);
+                                      }
+                                    } catch {
+                                      console.warn('Invalid URL for redirect:', notification.actionUrl);
+                                    }
                                   }
-                                }
-                              }}
-                              className="h-8 px-2 text-xs"
-                            >
-                              <ExternalLink className="h-3 w-3 mr-1" />
-                              الانتقال
-                            </Button>
-                          )}
+                                }}
+                                className="h-8 px-2 text-xs"
+                              >
+                                <ExternalLink className="h-3 w-3 mr-1" />
+                                الانتقال
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-
-              {hasMore && (
-                <div className="text-center mt-6">
-                  <Button 
-                    variant="outline" 
-                    onClick={loadMore}
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    {isLoading ? 'جاري التحميل...' : 'تحميل المزيد'}
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                ))}
+                {hasMore && (
+                  <div className="text-center mt-6">
+                    <Button variant="outline" onClick={loadMore} disabled={isLoading} className="w-full">
+                      {isLoading ? 'جاري التحميل...' : 'تحميل المزيد'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </AuthGuard>
   );

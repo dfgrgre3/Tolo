@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Input } from './ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Progress } from './ui/progress';
-import { Plus, Search, Filter, BarChart3, Clock, Target, Calendar, TrendingUp, Brain, Zap, Award, CheckCircle2, XCircle, AlertCircle, Star, BookOpen, Heart, Briefcase, Home, Coffee, FileText, Trash2, Edit2, Play, Pause, RotateCcw, Download, Upload, Share2, Bell, Settings, HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Search, BarChart3, Clock, Target, Calendar } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import TodoItem from './TodoItem';
 import TimeTracker from './TimeTracker';
 import CalendarScheduler from './CalendarScheduler';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Label } from './ui/label';
+import styles from './Dashboard.module.css';
 
 interface Task {
   id: string;
@@ -45,66 +44,6 @@ interface CalendarEvent {
   completed: boolean;
 }
 
-interface Goal {
-  id: string;
-  title: string;
-  description: string;
-  targetValue: number;
-  currentValue: number;
-  unit: string;
-  category: string;
-  deadline?: Date;
-  completed: boolean;
-  createdAt: Date;
-}
-
-interface Habit {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  frequency: 'daily' | 'weekly' | 'monthly';
-  streak: number;
-  completedDates: Date[];
-  createdAt: Date;
-}
-
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-  tags: string[];
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-interface PomodoroSession {
-  id: string;
-  taskId: string;
-  startTime: Date;
-  endTime?: Date;
-  duration: number; // in seconds
-  completed: boolean;
-  breakTime: number; // in seconds
-}
-
-interface CategoryStats {
-  name: string;
-  taskCount: number;
-  completedTasks: number;
-  timeSpent: number; // in seconds
-  avgTaskTime: number; // in seconds
-}
-
-interface ProductivityInsights {
-  mostProductiveHour: number;
-  mostProductiveDay: string;
-  focusScore: number;
-  avgTaskCompletionTime: number; // in hours
-  categoryStats: CategoryStats[];
-  weeklyTrend: number[]; // percentage change for each week
-}
 
 const Dashboard: React.FC = () => {
   // State for tasks
@@ -115,7 +54,7 @@ const Dashboard: React.FC = () => {
       description: 'Finish the project proposal document and send it to the client',
       category: 'work',
       priority: 'high',
-      dueDate: new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+      dueDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
       completed: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -127,7 +66,7 @@ const Dashboard: React.FC = () => {
       description: 'Create slides for the quarterly review meeting',
       category: 'work',
       priority: 'medium',
-      dueDate: new Date(new Date().getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+      dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
       completed: false,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -139,7 +78,7 @@ const Dashboard: React.FC = () => {
       description: '30 minutes cardio and strength training',
       category: 'health',
       priority: 'medium',
-      dueDate: new Date(new Date().getTime() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
+      dueDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000), // 1 day from now
       completed: true,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -147,131 +86,18 @@ const Dashboard: React.FC = () => {
     },
   ]);
 
-  // State for goals
-  const [goals, setGoals] = useState<Goal[]>([
-    {
-      id: 'goal-1',
-      title: 'Complete 10 tasks this week',
-      description: 'Finish at least 10 tasks before the end of the week',
-      targetValue: 10,
-      currentValue: 3,
-      unit: 'tasks',
-      category: 'productivity',
-      deadline: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      completed: false,
-      createdAt: new Date(),
-    },
-    {
-      id: 'goal-2',
-      title: 'Study React for 5 hours',
-      description: 'Complete React course and practice for 5 hours this week',
-      targetValue: 5,
-      currentValue: 1.5,
-      unit: 'hours',
-      category: 'study',
-      deadline: new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      completed: false,
-      createdAt: new Date(),
-    },
-  ]);
-
-  // State for habits
-  const [habits, setHabits] = useState<Habit[]>([
-    {
-      id: 'habit-1',
-      title: 'Morning meditation',
-      description: 'Meditate for 10 minutes every morning',
-      category: 'health',
-      frequency: 'daily',
-      streak: 5,
-      completedDates: [new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000), new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000), new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000), new Date(new Date().getTime() - 4 * 24 * 60 * 60 * 1000), new Date(new Date().getTime() - 5 * 24 * 60 * 60 * 1000)],
-      createdAt: new Date(new Date().getTime() - 30 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 'habit-2',
-      title: 'Read 20 pages',
-      description: 'Read at least 20 pages of a book every day',
-      category: 'personal',
-      frequency: 'daily',
-      streak: 3,
-      completedDates: [new Date(new Date().getTime() - 1 * 24 * 60 * 60 * 1000), new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000), new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000)],
-      createdAt: new Date(new Date().getTime() - 15 * 24 * 60 * 60 * 1000),
-    },
-  ]);
-
-  // State for notes
-  const [notes, setNotes] = useState<Note[]>([
-    {
-      id: 'note-1',
-      title: 'Meeting notes',
-      content: 'Discussed project timeline and deliverables for the next quarter.\nKey points:\n- Focus on user experience improvements\n- Launch new features by end of month\n- Increase team capacity for upcoming projects',
-      category: 'work',
-      tags: ['meeting', 'project', 'q1'],
-      createdAt: new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(new Date().getTime() - 2 * 24 * 60 * 60 * 1000),
-    },
-    {
-      id: 'note-2',
-      title: 'Book ideas',
-      content: 'Ideas for my next book:\n1. Time management for creative professionals\n2. Building sustainable habits\n3. Productivity in the digital age',
-      category: 'personal',
-      tags: ['ideas', 'writing', 'book'],
-      createdAt: new Date(new Date().getTime() - 5 * 24 * 60 * 60 * 1000),
-      updatedAt: new Date(new Date().getTime() - 3 * 24 * 60 * 60 * 1000),
-    },
-  ]);
-
-  // State for Pomodoro sessions
-  const [pomodoroSessions, setPomodoroSessions] = useState<PomodoroSession[]>([
-    {
-      id: 'pomodoro-1',
-      taskId: 'task-1',
-      startTime: new Date(new Date().getTime() - 25 * 60 * 1000), // 25 minutes ago
-      endTime: new Date(),
-      duration: 1500, // 25 minutes in seconds
-      completed: true,
-      breakTime: 300, // 5 minutes in seconds
-    },
-  ]);
-
-  // State for productivity insights
-  const [insights, setInsights] = useState<ProductivityInsights | null>(null);
-
-  // State for UI controls
-  const [activeTab, setActiveTab] = useState('tasks');
-  const [showCompletedTasks, setShowCompletedTasks] = useState(true);
-  const [showGoalProgress, setShowGoalProgress] = useState(true);
-  const [showHabitTracker, setShowHabitTracker] = useState(true);
-  const [showNotes, setShowNotes] = useState(true);
-  const [showPomodoro, setShowPomodoro] = useState(true);
-  const [viewMode, setViewMode] = useState('grid'); // grid or list
-  const [sortBy, setSortBy] = useState('dueDate'); // dueDate, priority, title, createdAt
-  const [sortOrder, setSortOrder] = useState('asc'); // asc or desc
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedPriority, setSelectedPriority] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskDescription, setNewTaskDescription] = useState('');
-  const [newTaskCategory, setNewTaskCategory] = useState('work');
-  const [newTaskPriority, setNewTaskPriority] = useState('medium');
-  const [newTaskDueDate, setNewTaskDueDate] = useState('');
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: '1', type: 'task', title: 'Task due soon', message: 'Complete project proposal is due in 2 days', read: false, timestamp: new Date() },
-    { id: '2', type: 'goal', title: 'Goal progress', message: 'You\'ve completed 30% of your weekly goal', read: false, timestamp: new Date(new Date().getTime() - 60 * 60 * 1000) },
-  ]);
 
   // State for time tracking
   const [timeSessions, setTimeSessions] = useState<TimeSession[]>([
     {
       id: 'session-1',
       taskId: 'task-1',
-      startTime: new Date(new Date().getTime() - 30 * 60 * 1000), // 30 minutes ago
+      startTime: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
       endTime: new Date(),
       duration: 1800, // 30 minutes in seconds
     },
@@ -283,8 +109,8 @@ const Dashboard: React.FC = () => {
       id: 'event-1',
       title: 'Team Meeting',
       description: 'Weekly team sync-up meeting',
-      startTime: new Date(new Date().getTime() + 1 * 60 * 60 * 1000), // 1 hour from now
-      endTime: new Date(new Date().getTime() + 2 * 60 * 60 * 1000), // 2 hours from now
+      startTime: new Date(Date.now() + 1 * 60 * 60 * 1000), // 1 hour from now
+      endTime: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours from now
       category: 'work',
       priority: 'medium',
       completed: false,
@@ -293,8 +119,8 @@ const Dashboard: React.FC = () => {
       id: 'event-2',
       title: 'Doctor Appointment',
       description: 'Annual health checkup',
-      startTime: new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
-      endTime: new Date(new Date().getTime() + 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000), // 1 hour later
+      startTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), // 2 days from now
+      endTime: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000), // 1 hour later
       category: 'health',
       priority: 'high',
       completed: false,
@@ -354,7 +180,7 @@ const Dashboard: React.FC = () => {
     setTimeSessions([...timeSessions, newSession]);
   };
 
-  const handleSessionEnd = (id: string) => {
+  const handleSessionEnd = (_id: string) => {
     // يمكنك إضافة منطق إنهاء الجلسة هنا باستخدام معرف المهمة فقط
     setActiveTaskId(null);
   };
@@ -580,9 +406,10 @@ const Dashboard: React.FC = () => {
                         <span>{Math.round((completedTasks / tasks.length) * 100) || 0}%</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
+                        {/* CSS variables for dynamic values are acceptable */}
                         <div 
-                          className="bg-blue-600 h-2 rounded-full" 
-                          style={{ width: `${Math.round((completedTasks / tasks.length) * 100) || 0}%` }}
+                          className={cn(styles.progressBar, styles.progressBarBlue)}
+                          style={{ '--progress-width': `${Math.round((completedTasks / tasks.length) * 100) || 0}%` } as React.CSSProperties & { '--progress-width': string }}
                         ></div>
                       </div>
                     </div>
@@ -593,9 +420,10 @@ const Dashboard: React.FC = () => {
                         <span>{tasks.filter(t => t.priority === 'high').length}</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
+                        {/* CSS variables for dynamic values are acceptable */}
                         <div 
-                          className="bg-red-600 h-2 rounded-full" 
-                          style={{ width: `${tasks.length ? Math.round((tasks.filter(t => t.priority === 'high').length / tasks.length) * 100) : 0}%` }}
+                          className={cn(styles.progressBar, styles.progressBarRed)}
+                          style={{ '--progress-width': `${tasks.length ? Math.round((tasks.filter(t => t.priority === 'high').length / tasks.length) * 100) : 0}%` } as React.CSSProperties & { '--progress-width': string }}
                         ></div>
                       </div>
                     </div>
@@ -606,7 +434,8 @@ const Dashboard: React.FC = () => {
                         <span>Good</span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div className="bg-green-600 h-2 rounded-full" style={{ width: '75%' }}></div>
+                        {/* CSS variables for dynamic values are acceptable */}
+                        <div className={cn(styles.progressBar, styles.progressBarGreen)} style={{ '--progress-width': '75%' } as React.CSSProperties & { '--progress-width': string }}></div>
                       </div>
                     </div>
                   </CardContent>

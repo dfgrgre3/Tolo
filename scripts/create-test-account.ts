@@ -5,9 +5,16 @@ import { v4 as uuidv4 } from 'uuid';
 const prisma = new PrismaClient();
 
 async function main() {
-  const testEmail = 'test@example.com';
-  const testPassword = 'Test123!@#';
-  const testName = 'مستخدم تجريبي';
+  const testEmail = process.env.TEST_ACCOUNT_EMAIL || 'test@example.com';
+  const testPassword = process.env.TEST_ACCOUNT_PASSWORD;
+  const testName = process.env.TEST_ACCOUNT_NAME || 'مستخدم تجريبي';
+
+  if (!testPassword) {
+    console.error('Error: TEST_ACCOUNT_PASSWORD environment variable is required.');
+    console.error('Please set it before running this script:');
+    console.error('  export TEST_ACCOUNT_PASSWORD="YourSecurePassword123!@#"');
+    process.exit(1);
+  }
 
   console.log('Creating test account...');
 

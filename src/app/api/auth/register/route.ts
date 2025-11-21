@@ -16,6 +16,7 @@ import {
 } from '@/app/api/auth/_helpers';
 
 import { logger } from '@/lib/logger';
+import { emailService } from '@/lib/services/email-service';
 
 const registerSchema = z.object({
   email: z
@@ -183,6 +184,16 @@ export async function POST(request: NextRequest) {
     // Generate verification link
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const verificationLink = `${baseUrl}/verify-email?token=${emailVerificationToken}`;
+
+    // Send verification email
+    // We do this asynchronously (without awaiting) to speed up the response, 
+    // or we can await it to ensure delivery. For reliability, we await it here.
+    try {
+      await emailService.sendVerificationEmail(normalizedEmail, emailVerificationToken);
+    } catch (emailError) {
+      logger.error('Failed to send verification email:', emailError);
+      // Continue execution - user can request resend later
+    }
 
     // Verify user was created in database by fetching it again
     try {

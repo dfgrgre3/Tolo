@@ -146,13 +146,15 @@ export function withProgressiveLoading<T extends object>(
   importFunc: () => Promise<{ default: ComponentType<T> }>,
   options: Omit<ProgressiveComponentProps<T>, 'importFunc' | 'componentProps'> = {}
 ) {
-  return React.forwardRef<any, T>((props, ref) => (
+  const Component = React.forwardRef<any, T>((props, ref) => (
     <ProgressiveComponent
       importFunc={importFunc}
       componentProps={{ ...props, ref } as T & { ref?: React.ForwardedRef<any> }}
       {...options}
     />
   ));
+  Component.displayName = `withProgressiveLoading(${options.displayName || options.componentName || 'Component'})`;
+  return Component;
 }
 
 // Utility function for creating progressive sections

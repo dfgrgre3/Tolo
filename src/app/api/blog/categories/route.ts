@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
     const newCategory = await prisma.blogCategory.create({
       data: {
         name,
+        slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
         description,
         icon: icon || "📝"
       }

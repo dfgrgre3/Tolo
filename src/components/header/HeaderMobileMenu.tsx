@@ -376,7 +376,7 @@ export function HeaderMobileMenu({
 											asChild
 											onClick={() => setIsMobileMenuOpen(false)}
 										>
-											<Link href="/login" className="flex items-center justify-center gap-2" suppressHydrationWarning>
+											<Link href="/login" className="flex items-center justify-center gap-2">
 												<LogIn className="h-4 w-4" />
 												تسجيل الدخول
 											</Link>

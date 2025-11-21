@@ -589,20 +589,19 @@ ${redirectUriForTokenExchange}
       } 
       // OAuth configuration errors
       else if (errorMsg.includes('oauth') || errorMsg.includes('client_id') || 
-               errorMsg.includes('client_secret') || errorMsg.includes('jwt') ||
-               errorMsg.includes('secret')) {
+               errorMsg.includes('client_secret') || errorMsg.includes('secret')) {
         errorMessage = 'خطأ في إعدادات تسجيل الدخول. يرجى التواصل مع الدعم الفني.';
         errorCode = 'oauth_error';
       }
-      // Timeout errors
+      // JWT/Token errors (check before timeout since jwt/token are more specific)
+      else if ((errorMsg.includes('jwt') || errorMsg.includes('token')) && !errorMsg.includes('timeout')) {
+        errorMessage = 'خطأ في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.';
+        errorCode = 'token_error';
+      }
+      // Timeout errors (check after token to avoid conflicts)
       else if (errorMsg.includes('timeout')) {
         errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
         errorCode = 'timeout_error';
-      }
-      // JWT/Token errors
-      else if (errorMsg.includes('jwt') || errorMsg.includes('token')) {
-        errorMessage = 'خطأ في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.';
-        errorCode = 'token_error';
       }
       // Development mode - show more details
       else if (process.env.NODE_ENV === 'development') {

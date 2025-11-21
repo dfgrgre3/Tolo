@@ -1,0 +1,34 @@
+.blockIcon {
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+}
+
+.blockIconWithColor {
+  background-color: var(--block-color, inherit);
+}
+
+.blockCard {
+  position: absolute;
+  inset: 0.25rem;
+  border-radius: 0.25rem;
+  padding: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  cursor: pointer;
+  border-left-width: 4px;
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+.blockCard:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.blockCardHeight {
+  height: var(--block-height, 20px);
+}
+
+.blockCardWithColor {
+  background-color: var(--block-color, inherit);
+}

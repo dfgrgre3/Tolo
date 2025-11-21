@@ -322,54 +322,34 @@ DROP INDEX "Topic_nameAr_key";
 DROP INDEX "Topic_name_key";
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "Curriculum";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "ExamResult";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "GradeLevel";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "OfflineLesson";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "Recommendation";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "Schedule";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "SubTopic";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "Subject";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "Teacher";
-PRAGMA foreign_keys=on;
 
 -- DropTable
-PRAGMA foreign_keys=off;
 DROP TABLE "Topic";
-PRAGMA foreign_keys=on;
 
 -- CreateTable
 CREATE TABLE "UserAchievement" (
@@ -419,8 +399,6 @@ CREATE TABLE "BiometricChallenge" (
 );
 
 -- RedefineTables
-PRAGMA defer_foreign_keys=ON;
-PRAGMA foreign_keys=OFF;
 CREATE TABLE "new_Achievement" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "key" TEXT NOT NULL,
@@ -502,8 +480,6 @@ INSERT INTO "new_User" ("biometricCredentials", "biometricEnabled", "createdAt",
 DROP TABLE "User";
 ALTER TABLE "new_User" RENAME TO "User";
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
-PRAGMA foreign_keys=ON;
-PRAGMA defer_foreign_keys=OFF;
 
 -- CreateIndex
 CREATE INDEX "UserAchievement_userId_idx" ON "UserAchievement"("userId");

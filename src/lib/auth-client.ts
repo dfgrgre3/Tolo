@@ -172,7 +172,9 @@ export async function refreshToken(): Promise<string | null> {
         try {
           const errorData = JSON.parse(text);
           logger.error('Token refresh failed:', errorData);
-        } catch {}
+        } catch {
+          // Ignore parsing errors
+        }
       }
       clearAuthState();
       return null;

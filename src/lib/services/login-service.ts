@@ -521,75 +521,18 @@ export class LoginService {
   }
 
   /**
-   * Find or create user
+   * Find user by email
    */
-  static async findOrCreateUser(
-    email: string,
-    password: string
-  ): Promise<{ user: any; accountWasCreated: boolean }> {
-    let user = await authService.findUserByEmail(email);
-    let accountWasCreated = false;
+  static async findUser(
+    email: string
+  ): Promise<any> {
+    const user = await authService.findUserByEmail(email);
 
-    // Auto-create account if user doesn't exist
     if (!user) {
-      try {
-        const passwordHash = await AuthService.hashPassword(password);
-        const emailVerificationToken = randomBytes(32).toString('hex');
-        const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        const userId = uuidv4();
-        const emailName = email.split('@')[0];
-        const normalizedName = emailName || null;
-
-        user = await prisma.user.create({
-          data: {
-            id: userId,
-            email,
-            passwordHash,
-            name: normalizedName,
-            emailVerificationToken,
-            emailVerificationExpires,
-            emailVerified: false,
-            emailNotifications: true,
-            smsNotifications: false,
-            twoFactorEnabled: false,
-            biometricEnabled: false,
-            biometricCredentials: [],
-            totalXP: 0,
-            level: 1,
-            currentStreak: 0,
-            longestStreak: 0,
-            totalStudyTime: 0,
-            tasksCompleted: 0,
-            examsPassed: 0,
-            pomodoroSessions: 0,
-            deepWorkSessions: 0,
-            focusStrategy: 'POMODORO',
-          },
-        });
-
-        accountWasCreated = true;
-
-        await authService.logSecurityEvent(user.id, 'account_auto_created', 'unknown', {
-          email,
-        }).catch((logError) => {
-          logger.warn('Failed to log account creation event:', logError);
-        });
-      } catch (createError: any) {
-        logger.error('Error auto-creating account during login:', createError);
-        
-        if (createError.code === 'P2002' || createError.message?.includes('unique')) {
-          // User was created by another request, try to find them again
-          user = await authService.findUserByEmail(email);
-          if (!user || !('id' in user) || !('passwordHash' in user) || !user.passwordHash) {
-            throw new Error('user_not_found');
-          }
-        } else {
-          throw createError;
-        }
-      }
+      throw new Error('user_not_found');
     }
 
-    return { user, accountWasCreated };
+    return user;
   }
 
   /**
@@ -1048,15 +991,15 @@ export class LoginService {
     const captchaResult = await Promise.race([captchaCheckPromise, captchaTimeoutPromise]);
     if (captchaResult) return captchaResult;
 
-    // Find or create user
-    let accountWasCreated = false;
+    // Find user
     let user: any;
     try {
-      const userResult = await this.findOrCreateUser(normalizedEmail, password);
-      user = userResult.user;
-      accountWasCreated = userResult.accountWasCreated;
+      user = await this.findUser(normalizedEmail);
     } catch (dbError: any) {
-      logger.error('Database error while finding/creating user:', dbError);
+      // Don't log full error for user_not_found to avoid log spam
+      if (dbError.message !== 'user_not_found') {
+        logger.error('Database error while finding user:', dbError);
+      }
       
       if (isConnectionError(dbError)) {
         return {
@@ -1156,6 +1099,19 @@ export class LoginService {
         rateLimitService,
         captchaService
       );
+    }
+
+    // Enforce email verification
+    if (!user.emailVerified) {
+      logger.warn('Login attempt with unverified email', { userId: user.id, email: normalizedEmail });
+      return {
+        success: false,
+        response: {
+          error: 'البريد الإلكتروني غير مفعل. يرجى تفعيل حسابك من خلال الرابط المرسل إلى بريدك الإلكتروني.',
+          code: 'EMAIL_NOT_VERIFIED',
+        },
+        statusCode: 403,
+      };
     }
 
     // Generate device fingerprint with validation and sanitization
@@ -1328,7 +1284,7 @@ export class LoginService {
       sanitizedIp,
       riskAssessment,
       isNewDevice,
-      accountWasCreated,
+      false, // accountWasCreated is always false now
       clientId
     );
     

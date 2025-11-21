@@ -15,48 +15,52 @@ import { logger } from '@/lib/logger';
  * - Enhanced password validation
  * - Protection against malicious input patterns
  */
+import { z } from 'zod';
+
+/**
+ * Zod schema for login form validation
+ */
+const loginSchema = z.object({
+  email: z
+    .string()
+    .min(1, 'البريد الإلكتروني مطلوب')
+    .email('البريد الإلكتروني غير صالح. يرجى التحقق من التنسيق')
+    .max(254, 'البريد الإلكتروني طويل جداً (الحد الأقصى 254 حرف)')
+    .refine((email) => !email.includes('..') && !email.startsWith('.') && !email.endsWith('.'), {
+      message: 'صيغة البريد الإلكتروني غير صحيحة',
+    }),
+  password: z
+    .string()
+    .min(1, 'كلمة المرور مطلوبة')
+    .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
+    .max(128, 'كلمة المرور طويلة جداً (الحد الأقصى 128 حرف)'),
+});
+
+/**
+ * Validate form data before submission using Zod
+ * 
+ * Security improvements:
+ * - Comprehensive email validation with RFC 5321 compliance
+ * - Enhanced password validation
+ * - Protection against malicious input patterns
+ */
 export const validateForm = (
   formData: LoginFormData
 ): { isValid: boolean; errors: FieldErrors } => {
-  const errors: FieldErrors = {};
+  const result = loginSchema.safeParse(formData);
 
-  // Email validation with comprehensive checks
-  const trimmedEmail = formData.email.trim();
-  if (!trimmedEmail) {
-    errors.email = 'البريد الإلكتروني مطلوب';
-  } else {
-    // Validate email length (RFC 5321 limit)
-    if (trimmedEmail.length > 254) {
-      errors.email = 'البريد الإلكتروني طويل جداً (الحد الأقصى 254 حرف)';
-    } else {
-      // Normalize email to lowercase for validation
-      const normalizedEmail = trimmedEmail.toLowerCase();
-      
-      // Enhanced email format validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(normalizedEmail)) {
-        errors.email = 'البريد الإلكتروني غير صالح. يرجى التحقق من التنسيق';
-      } else {
-        // Additional security: Check for potentially malicious email patterns
-        if (normalizedEmail.includes('..') || normalizedEmail.startsWith('.') || normalizedEmail.endsWith('.')) {
-          errors.email = 'صيغة البريد الإلكتروني غير صحيحة';
-        }
+  if (!result.success) {
+    const errors: FieldErrors = {};
+    result.error.issues.forEach((issue) => {
+      const path = issue.path[0] as keyof FieldErrors;
+      if (path) {
+        errors[path] = issue.message;
       }
-    }
+    });
+    return { isValid: false, errors };
   }
 
-  // Password validation with security best practices
-  if (!formData.password) {
-    errors.password = 'كلمة المرور مطلوبة';
-  } else if (typeof formData.password !== 'string') {
-    errors.password = 'كلمة المرور يجب أن تكون نص';
-  } else if (formData.password.length < 8) {
-    errors.password = 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل';
-  } else if (formData.password.length > 128) {
-    errors.password = 'كلمة المرور طويلة جداً (الحد الأقصى 128 حرف)';
-  }
-
-  return { isValid: Object.keys(errors).length === 0, errors };
+  return { isValid: true, errors: {} };
 };
 
 /**

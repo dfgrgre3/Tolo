@@ -226,7 +226,7 @@ async function handleBiometricAuthentication(
   }
 
   // Find the matching credential
-  const credentials = Array.isArray(user.biometricCredentials) ? user.biometricCredentials : [];
+  const credentials = (Array.isArray(user.biometricCredentials) ? user.biometricCredentials : []) as any[];
   const credential = credentials.find(
     (cred: any) => cred.credentialId === isoUint8Array.toHex(isoUint8Array.fromHex(response.id))
   );
@@ -269,7 +269,7 @@ async function handleBiometricAuthentication(
 
   // Update credential counter
   // Since biometricCredentials is a JSON field, we need to update the entire array
-  const updatedCredentials = (Array.isArray(user.biometricCredentials) ? user.biometricCredentials : []).map((cred: any) =>
+  const updatedCredentials = ((Array.isArray(user.biometricCredentials) ? user.biometricCredentials : []) as any[]).map((cred: any) =>
     cred.credentialId === credential.credentialId
       ? { ...cred, counter: authenticationInfo.newCounter }
       : cred

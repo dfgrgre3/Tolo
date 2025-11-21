@@ -20,34 +20,26 @@ export default function RegisterPage() {
           localStorage.removeItem('registrationData');
           localStorage.removeItem('registrationStep');
           localStorage.removeItem('pendingRegistration');
-        } catch (e) {
+        } catch (_e) {
           // Ignore errors
         }
       }
     }
   }, [user, isLoading, router]);
 
-  // Show loading state while checking authentication
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin text-indigo-400 mx-auto mb-4" />
-          <p className="text-slate-300">جارٍ التحقق من حالة تسجيل الدخول...</p>
-        </div>
-      </div>
-    );
-  }
+  // Redirect to login page with register view
+  useEffect(() => {
+    if (!user && !isLoading) {
+      router.replace('/login?view=register');
+    }
+  }, [user, isLoading, router]);
+
+
 
   // Don't render if user is authenticated (redirect will happen in useEffect)
   if (user) {
     return null;
   }
-
-  // Redirect to login page with register view
-  useEffect(() => {
-    router.replace('/login?view=register');
-  }, [router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">

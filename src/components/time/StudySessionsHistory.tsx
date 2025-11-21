@@ -7,20 +7,16 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
 import { 
-  Calendar,
   Clock,
   BookOpen,
   BarChart3,
   TrendingUp,
   TrendingDown,
   Activity,
-  Target,
-  Award,
-  Star,
   Brain,
   Coffee,
-  Timer,
   Eye,
   EyeOff,
   Filter,
@@ -28,31 +24,19 @@ import {
   SortAsc,
   SortDesc,
   Download,
-  Upload,
-  RefreshCw,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  ChevronUp,
-  MoreHorizontal,
-  Edit,
-  Trash2,
-  Copy,
-  Share2,
   Zap,
-  Heart,
-  Users,
-  Moon,
-  Sun,
-  Flame,
   Trophy,
   LineChart,
-  PieChart
+  PieChart,
+  Flame,
+  MoreHorizontal,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, subDays, subWeeks, subMonths, differenceInDays, parseISO } from 'date-fns';
+import { format, startOfWeek, subDays, subMonths, startOfMonth } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import styles from './StudySessionsHistory.module.css';
 
 import { logger } from '@/lib/logger';
 
@@ -78,8 +62,8 @@ interface StudySession {
 }
 
 interface StudySessionsHistoryProps {
-  sessions: StudySession[];
-  subjects: string[];
+  readonly sessions: StudySession[];
+  readonly subjects: string[];
 }
 
 interface SessionStats {
@@ -138,7 +122,7 @@ const TIME_PERIODS = [
   { value: 'all', label: 'كل الوقت' }
 ];
 
-const CHART_TYPES = [
+const _CHART_TYPES = [
   { value: 'line', label: 'خط', icon: LineChart },
   { value: 'bar', label: 'أعمدة', icon: BarChart3 },
   { value: 'pie', label: 'دائري', icon: PieChart }
@@ -153,7 +137,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   const [sortBy, setSortBy] = useState<'date' | 'duration' | 'productivity' | 'mood'>('date');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [viewMode, setViewMode] = useState<'list' | 'grid' | 'chart'>('list');
-  const [chartType, setChartType] = useState('line');
+  const [_chartType] = useState('line');
   const [showStats, setShowStats] = useState(true);
   const [showFilters, setShowFilters] = useState(false);
   const [selectedSessions, setSelectedSessions] = useState<string[]>([]);
@@ -164,10 +148,26 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   const [itemsPerPage, setItemsPerPage] = useState(20);
   
   // Date range
-  const [customDateRange, setCustomDateRange] = useState({
+  const [customDateRange] = useState({
     start: '',
     end: ''
   });
+
+  // Handler for session toggle in bulk select mode
+  const updateSelectedSessions = useCallback((sessionId: string, isChecked: boolean) => {
+    setSelectedSessions(prev => {
+      if (isChecked) {
+        return [...prev, sessionId];
+      }
+      return prev.filter(id => id !== sessionId);
+    });
+  }, []);
+
+  const handleSessionToggle = useCallback((sessionId: string) => {
+    return (e: React.ChangeEvent<HTMLInputElement>) => {
+      updateSelectedSessions(sessionId, e.target.checked);
+    };
+  }, [updateSelectedSessions]);
 
   // Calculate comprehensive statistics
   const stats: SessionStats = useMemo(() => {
@@ -245,12 +245,12 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     }, {} as Record<number, { sessions: number; totalProductivity: number }>);
     
     const mostProductiveHour = Object.keys(hourStats).reduce((best, hour) => {
-      const avgProductivity = hourStats[parseInt(hour)].totalProductivity / hourStats[parseInt(hour)].sessions;
-      const bestAvg = hourStats[parseInt(best)]?.totalProductivity / hourStats[parseInt(best)]?.sessions || 0;
+      const avgProductivity = hourStats[Number.parseInt(hour)].totalProductivity / hourStats[Number.parseInt(hour)].sessions;
+      const bestAvg = hourStats[Number.parseInt(best)]?.totalProductivity / hourStats[Number.parseInt(best)]?.sessions || 0;
       return avgProductivity > bestAvg ? hour : best;
     }, Object.keys(hourStats)[0] || '0');
     
-    const mostProductiveTime = `${mostProductiveHour}:00 - ${parseInt(mostProductiveHour) + 1}:00`;
+    const mostProductiveTime = `${mostProductiveHour}:00 - ${Number.parseInt(mostProductiveHour) + 1}:00`;
     
     // Find favorite subject
     const subjectStats = filteredSessions.reduce((acc, session) => {
@@ -343,7 +343,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   const chartData: ChartData[] = useMemo(() => {
     const data: Record<string, ChartData> = {};
     
-    filteredSessions.forEach(session => {
+    for (const session of filteredSessions) {
       const date = format(new Date(session.createdAt), 'yyyy-MM-dd');
       
       if (!data[date]) {
@@ -362,14 +362,14 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       
       const moodValues = { 'EXCELLENT': 4, 'GOOD': 3, 'AVERAGE': 2, 'POOR': 1 };
       data[date].mood += moodValues[session.mood || 'AVERAGE'] || 2;
-    });
+    }
     
     // Calculate averages
-    Object.values(data).forEach(day => {
+    for (const day of Object.values(data)) {
       day.productivity = Math.round(day.productivity / day.sessions);
       day.mood = Math.round(day.mood / day.sessions);
       day.hours = Math.round(day.hours * 10) / 10;
-    });
+    }
     
     return Object.values(data).sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredSessions]);
@@ -445,10 +445,11 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
         case 'productivity':
           comparison = (a.productivity || 0) - (b.productivity || 0);
           break;
-        case 'mood':
+        case 'mood': {
           const moodValues = { 'EXCELLENT': 4, 'GOOD': 3, 'AVERAGE': 2, 'POOR': 1 };
           comparison = (moodValues[a.mood || 'AVERAGE'] || 2) - (moodValues[b.mood || 'AVERAGE'] || 2);
           break;
+        }
       }
       
       return sortOrder === 'asc' ? comparison : -comparison;
@@ -497,7 +498,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       a.download = `study-sessions-${format(new Date(), 'yyyy-MM-dd')}.json`;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     } catch (error) {
       logger.error('Error exporting data:', error);
@@ -564,16 +565,17 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {chartData.slice(-14).map((day, index) => (
+              {chartData.slice(-14).map((day) => (
                 <div key={day.date} className="flex items-center gap-3">
                   <div className="w-20 text-sm text-gray-600">
                     {format(new Date(day.date), 'dd/MM', { locale: ar })}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
+                      {/* CSS variables for dynamic values are acceptable */}
                       <div 
-                        className="bg-blue-500 h-6 rounded"
-                        style={{ width: `${(day.hours / maxHours) * 100}%`, minWidth: '2px' }}
+                        className={cn(styles.chartBar, styles.chartBarWidth)}
+                        style={{ '--chart-width': `${(day.hours / maxHours) * 100}%` } as React.CSSProperties & { '--chart-width': string }}
                       />
                       <span className="text-sm font-medium">{day.hours}س</span>
                     </div>
@@ -592,7 +594,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
 
   const renderSessionsList = () => (
     <div className="space-y-3">
-      {paginatedSessions.map((session, index) => (
+      {paginatedSessions.map((session) => (
         <Card key={session.id} className="hover:shadow-md transition-shadow">
           <CardContent className="p-4">
             <div className="flex items-start justify-between">
@@ -656,7 +658,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                     </Badge>
                   )}
                   
-                  {session.tags && session.tags.map(tag => (
+                  {session.tags?.map(tag => (
                     <Badge key={tag} variant="outline" className="text-xs">
                       #{tag}
                     </Badge>
@@ -668,14 +670,9 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                 {bulkSelectMode && (
                   <input
                     type="checkbox"
+                    aria-label={session.subject ? `تحديد جلسة المذاكرة للمادة ${session.subject}` : 'تحديد جلسة المذاكرة'}
                     checked={selectedSessions.includes(session.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setSelectedSessions([...selectedSessions, session.id]);
-                      } else {
-                        setSelectedSessions(selectedSessions.filter(id => id !== session.id));
-                      }
-                    }}
+                    onChange={handleSessionToggle(session.id)}
                   />
                 )}
                 
@@ -878,17 +875,32 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                 <div>
                   <p className="text-sm text-gray-600">الاتجاه الأسبوعي</p>
                   <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-lg font-bold",
-                      stats.weeklyTrend > 0 ? "text-green-600" : stats.weeklyTrend < 0 ? "text-red-600" : "text-gray-600"
-                    )}>
-                      {stats.weeklyTrend > 0 ? '+' : ''}{stats.weeklyTrend}%
-                    </span>
-                    {stats.weeklyTrend > 0 ? (
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                    ) : stats.weeklyTrend < 0 ? (
-                      <TrendingDown className="h-4 w-4 text-red-600" />
-                    ) : null}
+                    {(() => {
+                      let trendColor = "text-gray-600";
+                      let trendPrefix = '';
+                      let TrendIcon: typeof TrendingUp | typeof TrendingDown | null = null;
+                      let iconClassName = '';
+                      
+                      if (stats.weeklyTrend > 0) {
+                        trendColor = "text-green-600";
+                        trendPrefix = '+';
+                        TrendIcon = TrendingUp;
+                        iconClassName = styles.trendIconGreen;
+                      } else if (stats.weeklyTrend < 0) {
+                        trendColor = "text-red-600";
+                        TrendIcon = TrendingDown;
+                        iconClassName = styles.trendIconRed;
+                      }
+                      
+                      return (
+                        <>
+                          <span className={cn("text-lg font-bold", trendColor)}>
+                            {trendPrefix}{stats.weeklyTrend}%
+                          </span>
+                          {TrendIcon && <TrendIcon className={cn("h-4 w-4", iconClassName)} />}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -901,17 +913,32 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                 <div>
                   <p className="text-sm text-gray-600">الاتجاه الشهري</p>
                   <div className="flex items-center gap-2">
-                    <span className={cn(
-                      "text-lg font-bold",
-                      stats.monthlyTrend > 0 ? "text-green-600" : stats.monthlyTrend < 0 ? "text-red-600" : "text-gray-600"
-                    )}>
-                      {stats.monthlyTrend > 0 ? '+' : ''}{stats.monthlyTrend}%
-                    </span>
-                    {stats.monthlyTrend > 0 ? (
-                      <TrendingUp className="h-4 w-4 text-green-600" />
-                    ) : stats.monthlyTrend < 0 ? (
-                      <TrendingDown className="h-4 w-4 text-red-600" />
-                    ) : null}
+                    {(() => {
+                      let trendColor = "text-gray-600";
+                      let trendPrefix = '';
+                      let TrendIcon: typeof TrendingUp | typeof TrendingDown | null = null;
+                      let iconClassName = '';
+                      
+                      if (stats.monthlyTrend > 0) {
+                        trendColor = "text-green-600";
+                        trendPrefix = '+';
+                        TrendIcon = TrendingUp;
+                        iconClassName = styles.trendIconGreen;
+                      } else if (stats.monthlyTrend < 0) {
+                        trendColor = "text-red-600";
+                        TrendIcon = TrendingDown;
+                        iconClassName = styles.trendIconRed;
+                      }
+                      
+                      return (
+                        <>
+                          <span className={cn("text-lg font-bold", trendColor)}>
+                            {trendPrefix}{stats.monthlyTrend}%
+                          </span>
+                          {TrendIcon && <TrendIcon className={cn("h-4 w-4", iconClassName)} />}
+                        </>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>
@@ -926,9 +953,9 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
           <CardContent className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium mb-1">الفترة الزمنية</label>
+                <Label htmlFor="time-period-select">الفترة الزمنية</Label>
                 <Select value={timePeriod} onValueChange={setTimePeriod}>
-                  <SelectTrigger>
+                  <SelectTrigger id="time-period-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -942,9 +969,9 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">المادة</label>
+                <Label htmlFor="subject-select">المادة</Label>
                 <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                  <SelectTrigger>
+                  <SelectTrigger id="subject-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -959,9 +986,9 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">المزاج</label>
+                <Label htmlFor="mood-select">المزاج</Label>
                 <Select value={selectedMood} onValueChange={setSelectedMood}>
-                  <SelectTrigger>
+                  <SelectTrigger id="mood-select">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -976,10 +1003,11 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">البحث</label>
+                <Label htmlFor="search-input">البحث</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
+                    id="search-input"
                     placeholder="البحث في الملاحظات..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -1023,21 +1051,29 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       {/* Content */}
       <Card>
         <CardContent className="p-6">
-          {viewMode === 'chart' ? (
-            renderChart()
-          ) : filteredSessions.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              <Activity className="mx-auto h-12 w-12 opacity-50 mb-4" />
-              <p className="text-lg font-medium mb-2">لا توجد جلسات</p>
-              <p className="text-sm">
-                {searchQuery || timePeriod !== 'all' || selectedSubject !== 'all' || selectedMood !== 'all'
-                  ? 'لا توجد جلسات تطابق المرشحات المحددة'
-                  : 'ابدأ أول جلسة مذاكرة!'}
-              </p>
-            </div>
-          ) : (
-            <>
-              {viewMode === 'list' ? renderSessionsList() : renderSessionsGrid()}
+          {(() => {
+            if (viewMode === 'chart') {
+              return renderChart();
+            }
+            if (filteredSessions.length === 0) {
+              const hasFilters = Boolean(
+                searchQuery || timePeriod !== 'all' || selectedSubject !== 'all' || selectedMood !== 'all'
+              );
+              const emptyMessage = hasFilters 
+                ? 'لا توجد جلسات تطابق المرشحات المحددة'
+                : 'ابدأ أول جلسة مذاكرة!';
+              return (
+                <div className="text-center py-12 text-gray-500">
+                  <Activity className="mx-auto h-12 w-12 opacity-50 mb-4" />
+                  <p className="text-lg font-medium mb-2">لا توجد جلسات</p>
+                  <p className="text-sm">{emptyMessage}</p>
+                </div>
+              );
+            }
+            const sessionView = viewMode === 'list' ? renderSessionsList() : renderSessionsGrid();
+            return (
+              <>
+                {sessionView}
               
               {/* Pagination */}
               {totalPages > 1 && (
@@ -1047,7 +1083,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                       عرض {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredSessions.length)} من {filteredSessions.length}
                     </span>
                     
-                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(parseInt(value))}>
+                    <Select value={itemsPerPage.toString()} onValueChange={(value) => setItemsPerPage(Number.parseInt(value))}>
                       <SelectTrigger className="w-20">
                         <SelectValue />
                       </SelectTrigger>
@@ -1085,8 +1121,9 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                   </div>
                 </div>
               )}
-            </>
-          )}
+              </>
+            );
+          })()}
         </CardContent>
       </Card>
     </div>

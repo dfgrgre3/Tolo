@@ -8,12 +8,13 @@ import { ar } from 'date-fns/locale';
 import { getWeekDays, formatTimeRange } from './utils';
 import { BLOCK_TYPES } from './constants';
 import type { TimeBlock } from './types';
+import styles from './styles.module.css';
 
 interface AgendaViewProps {
-  currentWeek: Date;
-  timeBlocks: TimeBlock[];
-  onBlockEdit: (block: TimeBlock) => void;
-  onBlockComplete: (blockId: string) => void;
+  readonly currentWeek: Date;
+  readonly timeBlocks: TimeBlock[];
+  readonly onBlockEdit: (block: TimeBlock) => void;
+  readonly onBlockComplete: (blockId: string) => void;
 }
 
 const getBlockTypeInfo = (type: string) => {
@@ -26,7 +27,7 @@ const getBlocksForDay = (blocks: TimeBlock[], day: number) => {
     .sort((a, b) => a.startTime.localeCompare(b.startTime));
 };
 
-function MapPin({ className }: { className?: string }) {
+function MapPin({ className }: { readonly className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -46,6 +47,13 @@ export function AgendaView({
     'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'
   ];
   
+  const getPriorityLabel = (priority: string | undefined): string => {
+    if (priority === 'URGENT') return 'عاجل';
+    if (priority === 'HIGH') return 'مهم';
+    if (priority === 'LOW') return 'منخفض';
+    return '';
+  };
+
   return (
     <div className="space-y-6">
       {weekDays.map((day, dayIndex) => {
@@ -53,8 +61,10 @@ export function AgendaView({
         
         if (dayBlocks.length === 0) return null;
         
+        const dayKey = format(day, 'yyyy-MM-dd');
+        
         return (
-          <Card key={dayIndex}>
+          <Card key={dayKey}>
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center justify-between">
                 <span>{DAYS_OF_WEEK[dayIndex]}</span>
@@ -70,17 +80,21 @@ export function AgendaView({
                   const Icon = typeInfo.icon;
                   
                   return (
-                    <div
+                    <button
                       key={block.id}
+                      type="button"
                       className={cn(
-                        "flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all",
+                        "w-full flex items-center gap-3 p-3 rounded-lg border cursor-pointer hover:shadow-md transition-all text-left",
                         block.isCompleted && "opacity-60"
                       )}
                       onClick={() => onBlockEdit(block)}
                     >
+                      {/* CSS variables for dynamic values are acceptable */}
                       <div 
-                        className={cn("p-2 rounded", typeInfo.color)}
-                        style={{ backgroundColor: block.color }}
+                        className={cn(styles.blockIcon, typeInfo.color, block.color && styles.blockIconWithColor)}
+                        {...(block.color ? { 
+                          style: { '--block-color': block.color } as React.CSSProperties & { '--block-color': string }
+                        } : {})}
                       >
                         <Icon className="w-4 h-4 text-white" />
                       </div>
@@ -101,8 +115,7 @@ export function AgendaView({
                               variant={block.priority === 'URGENT' ? 'destructive' : 'secondary'}
                               className="text-xs"
                             >
-                              {block.priority === 'URGENT' ? 'عاجل' : 
-                               block.priority === 'HIGH' ? 'مهم' : 'منخفض'}
+                              {getPriorityLabel(block.priority)}
                             </Badge>
                           )}
                         </div>
@@ -162,7 +175,7 @@ export function AgendaView({
                           <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

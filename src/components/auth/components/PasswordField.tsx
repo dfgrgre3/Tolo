@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-interface PasswordFieldProps {
+export interface PasswordFieldProps {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onFocus: () => void;
@@ -15,6 +15,10 @@ interface PasswordFieldProps {
   onTogglePassword: () => void;
   disabled?: boolean;
   inputRef?: React.RefObject<HTMLInputElement>;
+  label?: string;
+  name?: string;
+  autoComplete?: string;
+  placeholder?: string;
 }
 
 export const PasswordField: React.FC<PasswordFieldProps> = ({
@@ -28,6 +32,10 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
   onTogglePassword,
   disabled,
   inputRef,
+  label = 'كلمة المرور',
+  name = 'password',
+  autoComplete = 'current-password',
+  placeholder = '••••••••',
 }) => {
   return (
     <motion.div
@@ -36,10 +44,10 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
       transition={{ delay: 0.3 }}
     >
       <label
-        htmlFor="password"
+        htmlFor={name}
         className="mb-2 block text-sm font-medium text-slate-200"
       >
-        كلمة المرور
+        {label}
       </label>
       <div className="relative">
         <Lock
@@ -51,14 +59,14 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
         />
         <input
           ref={inputRef}
-          id="password"
+          id={name}
           type={showPassword ? 'text' : 'password'}
-          name="password"
+          name={name}
           value={value}
           onChange={onChange}
           onFocus={onFocus}
           onBlur={onBlur}
-          placeholder="••••••••"
+          placeholder={placeholder}
           className={cn(
             'w-full rounded-xl bg-white/10 py-3 pr-12 pl-12 text-white placeholder-slate-400 transition-all duration-200',
             'focus:bg-white/20 focus:outline-none focus:ring-2 focus:ring-indigo-400',
@@ -67,11 +75,11 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
           dir="ltr"
           required
           aria-required="true"
-          aria-label="كلمة المرور"
+          aria-label={label}
           {...(error
-            ? { 'aria-invalid': true as const, 'aria-describedby': 'password-error' }
+            ? { 'aria-invalid': true as const, 'aria-describedby': `${name}-error` }
             : {})}
-          autoComplete="current-password"
+          autoComplete={autoComplete}
           disabled={disabled}
         />
         <motion.button
@@ -97,7 +105,7 @@ export const PasswordField: React.FC<PasswordFieldProps> = ({
             animate={{ opacity: 1, height: 'auto', y: 0 }}
             exit={{ opacity: 0, height: 0, y: -10 }}
             transition={{ duration: 0.2 }}
-            id="password-error"
+            id={`${name}-error`}
             className="mt-1 text-xs text-red-300"
             role="alert"
             aria-live="polite"

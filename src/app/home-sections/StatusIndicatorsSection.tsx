@@ -158,7 +158,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
         const storage = localStorage;
         let total = 0;
         for (let key in storage) {
-          if (storage.hasOwnProperty(key)) {
+          if (Object.prototype.hasOwnProperty.call(storage, key)) {
             total += storage[key].length + key.length;
           }
         }

@@ -61,7 +61,7 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 
-type User = {
+type AccountUser = {
 	id: string;
 	name: string;
 	email: string;
@@ -80,7 +80,7 @@ export default function AccountPage() {
 	const router = useRouter();
 	const { user: authUser } = useUnifiedAuth();
 	const [userId, setUserId] = useState<string | null>(null);
-	const [user, setUser] = useState<User | null>(null);
+	const [user, setUser] = useState<AccountUser | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [activeTab, setActiveTab] = useState("overview");
 	const [isEditing, setIsEditing] = useState(false);

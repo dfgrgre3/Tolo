@@ -65,7 +65,9 @@ export default function TeachersPage() {
 				body: JSON.stringify({ userId, plan }),
 			}).then((r) => r.json());
 			setSchedule(s);
-		} catch {}
+		} catch {
+			// Ignore errors
+		}
 		setTeacherId("");
 		setTitle("");
 		setLocation("");

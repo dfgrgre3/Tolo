@@ -181,7 +181,7 @@ export function HeaderUserMenu() {
 			className="hidden md:flex"
 		>
 			<Button variant="default" asChild className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-sm hover:shadow-md transition-all duration-300">
-				<Link href="/login" className="flex items-center gap-2" suppressHydrationWarning>
+				<Link href="/login" className="flex items-center gap-2">
 					<LogIn className="h-4 w-4" />
 					تسجيل الدخول
 				</Link>

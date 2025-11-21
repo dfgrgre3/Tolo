@@ -14,51 +14,26 @@ import {
   Edit,
   Trash2,
   Clock,
-  Calendar,
-  AlertCircle,
   CheckCircle,
   X,
   Copy,
-  Archive,
-  Volume2,
-  VolumeX,
   Repeat,
   Target,
   BookOpen,
   Coffee,
-  Brain,
   Users,
-  Home,
-  Briefcase,
   Heart,
   Star,
   Zap,
   Moon,
-  Sun,
-  Timer,
-  Settings,
-  Filter,
   Search,
   SortAsc,
   SortDesc,
-  Eye,
-  EyeOff,
-  Download,
-  Upload,
-  Share2,
-  RefreshCw,
-  MoreHorizontal,
-  Play,
-  Pause,
-  Square,
-  ChevronDown,
-  ChevronUp,
-  ChevronLeft,
-  ChevronRight
+  MoreHorizontal
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { format, isToday, isTomorrow, isPast, isThisWeek, differenceInMinutes, addMinutes, addHours, addDays, addWeeks, addMonths } from 'date-fns';
+import { format, isToday, isTomorrow, isPast, isThisWeek, differenceInMinutes, addMinutes, addDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 import { logger } from '@/lib/logger';
@@ -92,11 +67,11 @@ interface Reminder {
 }
 
 interface RemindersProps {
-  initialReminders: Reminder[];
-  userId: string;
-  onReminderUpdate?: (reminder: Reminder) => void;
-  onReminderCreate?: (reminder: Reminder) => void;
-  onReminderDelete?: (reminderId: string) => void;
+  readonly initialReminders: Reminder[];
+  readonly userId: string;
+  readonly onReminderUpdate?: (reminder: Reminder) => void;
+  readonly onReminderCreate?: (reminder: Reminder) => void;
+  readonly onReminderDelete?: (reminderId: string) => void;
 }
 
 const REMINDER_TYPES = [
@@ -148,8 +123,7 @@ export default function Reminders({
   const [selectedType, setSelectedType] = useState<string>('all');
   const [selectedPriority, setSelectedPriority] = useState<string>('all');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [showCompleted, setShowCompleted] = useState(false);
-  const [viewMode, setViewMode] = useState<'list' | 'grid' | 'calendar'>('list');
+  const [showCompleted] = useState(false);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -194,54 +168,6 @@ export default function Reminders({
   useEffect(() => {
     setReminders(initialReminders);
   }, [initialReminders]);
-
-  // Memoize stats calculation
-  const statsMemo = useMemo(() => {
-    return calculateStatsInternal(reminders);
-  }, [reminders]);
-
-  useEffect(() => {
-    setStats(statsMemo);
-  }, [statsMemo]);
-
-  useEffect(() => {
-    // Request notification permission
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-          setNotificationPermission(permission);
-        });
-      }
-    }
-    
-    // Check for due reminders every minute
-    const checkDueRemindersFn = () => {
-      const now = new Date();
-      const dueReminders = reminders.filter(reminder => {
-        if (reminder.isCompleted || reminder.isSnoozed) return false;
-        
-        try {
-          const remindTime = new Date(reminder.remindAt);
-          if (isNaN(remindTime.getTime())) return false;
-          
-          const timeDiff = differenceInMinutes(now, remindTime);
-          // Check if reminder is due (within 1 minute)
-          return timeDiff >= 0 && timeDiff < 1;
-        } catch {
-          return false;
-        }
-      });
-      
-      dueReminders.forEach(reminder => {
-        // Trigger notification or action
-        // Note: onReminderDue callback can be added to props if needed
-      });
-    };
-    
-    const interval = setInterval(checkDueRemindersFn, 60000);
-    return () => clearInterval(interval);
-  }, [reminders]);
 
   const calculateStatsInternal = useCallback((remindersList: Reminder[]) => {
     const now = new Date();
@@ -296,7 +222,7 @@ export default function Reminders({
       ? completedReminders.reduce((acc, reminder) => {
           const created = new Date(reminder.createdAt || reminder.remindAt);
           const completed = new Date(reminder.completedAt || '');
-          if (!isNaN(created.getTime()) && !isNaN(completed.getTime())) {
+          if (!Number.isNaN(created.getTime()) && !Number.isNaN(completed.getTime())) {
             return acc + differenceInMinutes(completed, created);
           }
           return acc;
@@ -316,45 +242,27 @@ export default function Reminders({
     };
   }, []);
 
-  const checkDueReminders = useCallback(() => {
-    const now = new Date();
-    const dueReminders = reminders.filter(reminder => {
-      if (reminder.isCompleted || reminder.isSnoozed) return false;
-      
-      try {
-        const remindTime = new Date(reminder.remindAt);
-        if (isNaN(remindTime.getTime())) return false;
-        
-        const timeDiff = differenceInMinutes(now, remindTime);
-        // Check if reminder is due (within 1 minute)
-        return timeDiff >= 0 && timeDiff < 1;
-      } catch {
-        return false;
-      }
-    });
-    
-    dueReminders.forEach(reminder => {
-      showReminderNotification(reminder);
-      setActiveReminders(prev => {
-        if (!prev.includes(reminder.id)) {
-          return [...prev, reminder.id];
-        }
-        return prev;
-      });
-    });
-  }, [reminders]);
+  // Memoize stats calculation
+  const statsMemo = useMemo(() => {
+    return calculateStatsInternal(reminders);
+  }, [reminders, calculateStatsInternal]);
 
+  useEffect(() => {
+    setStats(statsMemo);
+  }, [statsMemo]);
+
+  // Show reminder notification function
   const showReminderNotification = useCallback((reminder: Reminder) => {
     if (!reminder) return;
     
     // Play sound if enabled
-    if (reminder.soundEnabled && 'Audio' in window) {
+    if (reminder.soundEnabled && Audio !== undefined) {
       // You would play a notification sound here
       logger.info('Playing notification sound');
     }
     
     // Show browser notification
-    if (reminder.notificationEnabled && notificationPermission === 'granted') {
+    if (reminder.notificationEnabled && notificationPermission === 'granted' && Notification !== undefined) {
       try {
         const notification = new Notification(reminder.title || 'تذكير', {
           body: reminder.message || 'حان وقت التذكير',
@@ -364,7 +272,9 @@ export default function Reminders({
         });
         
         notification.onclick = () => {
-          window.focus();
+          if (globalThis.window !== undefined) {
+            globalThis.window.focus();
+          }
           notification.close();
         };
         
@@ -377,71 +287,135 @@ export default function Reminders({
           }
         }, 10000);
       } catch (error) {
-        logger.error('Error showing notification:', error);
+        logger.error('Failed to show notification', error);
       }
     }
   }, [notificationPermission]);
 
-  const getFilteredAndSortedReminders = () => {
-    let filteredReminders = reminders.filter(reminder => {
-      const now = new Date();
-      const remindTime = new Date(reminder.remindAt);
-      
-      // Text search
-      if (searchQuery && !reminder.title.toLowerCase().includes(searchQuery.toLowerCase()) && 
-          !reminder.message?.toLowerCase().includes(searchQuery.toLowerCase())) {
-        return false;
+  // Request notification permission on mount
+  useEffect(() => {
+    if (globalThis.window !== undefined && 'Notification' in globalThis) {
+      setNotificationPermission(Notification.permission);
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then(permission => {
+          setNotificationPermission(permission);
+        });
       }
-      
-      // Status filter
-      if (filter === 'upcoming' && (remindTime <= now || reminder.isCompleted || reminder.isSnoozed)) return false;
-      if (filter === 'overdue' && (remindTime >= now || reminder.isCompleted || reminder.isSnoozed)) return false;
-      if (filter === 'completed' && !reminder.isCompleted) return false;
-      if (filter === 'snoozed' && !reminder.isSnoozed) return false;
-      
-      // Type filter
-      if (selectedType !== 'all' && reminder.type !== selectedType) return false;
-      
-      // Priority filter
-      if (selectedPriority !== 'all' && reminder.priority !== selectedPriority) return false;
-      
-      // Tags filter
-      if (selectedTags.length > 0 && !selectedTags.some(tag => reminder.tags?.includes(tag))) return false;
-      
-      // Show completed filter
-      if (!showCompleted && reminder.isCompleted) return false;
-      
-      return true;
-    });
+    }
+  }, []);
 
-    // Sort reminders
-    filteredReminders.sort((a, b) => {
-      let comparison = 0;
+  // Check for due reminders every minute
+  useEffect(() => {
+    const checkDueRemindersFn = () => {
+      const now = new Date();
+      const dueReminders = reminders.filter(reminder => {
+        if (reminder.isCompleted || reminder.isSnoozed) return false;
+        
+        try {
+          const remindTime = new Date(reminder.remindAt);
+          if (Number.isNaN(remindTime.getTime())) return false;
+          
+          const timeDiff = differenceInMinutes(now, remindTime);
+          // Check if reminder is due (within 1 minute)
+          return timeDiff >= 0 && timeDiff < 1;
+        } catch {
+          return false;
+        }
+      });
       
-      switch (sortBy) {
-        case 'remindAt':
-          comparison = new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime();
-          break;
-        case 'created':
-          comparison = new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime();
-          break;
-        case 'priority':
-          const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
-          comparison = (priorityOrder[b.priority || 'MEDIUM'] || 2) - (priorityOrder[a.priority || 'MEDIUM'] || 2);
-          break;
-        case 'title':
-          comparison = a.title.localeCompare(b.title);
-          break;
-        case 'type':
-          comparison = (a.type || 'CUSTOM').localeCompare(b.type || 'CUSTOM');
-          break;
+      for (const reminder of dueReminders) {
+        showReminderNotification(reminder);
+        setActiveReminders(prev => {
+          if (!prev.includes(reminder.id)) {
+            return [...prev, reminder.id];
+          }
+          return prev;
+        });
       }
-      
+    };
+    
+    const interval = setInterval(checkDueRemindersFn, 60000);
+    return () => clearInterval(interval);
+  }, [reminders, showReminderNotification]);
+
+  // Helper function to check if reminder matches text search
+  const matchesSearch = useCallback((reminder: Reminder): boolean => {
+    if (!searchQuery) return true;
+    const lowerQuery = searchQuery.toLowerCase();
+    return reminder.title.toLowerCase().includes(lowerQuery) ||
+           (reminder.message?.toLowerCase().includes(lowerQuery) ?? false);
+  }, [searchQuery]);
+
+  // Helper function to check if reminder matches status filter
+  const matchesStatusFilter = useCallback((reminder: Reminder, remindTime: Date): boolean => {
+    const now = new Date();
+    if (filter === 'upcoming') {
+      return remindTime > now && !reminder.isCompleted && !reminder.isSnoozed;
+    }
+    if (filter === 'overdue') {
+      return remindTime < now && !reminder.isCompleted && !reminder.isSnoozed;
+    }
+    if (filter === 'completed') {
+      return reminder.isCompleted === true;
+    }
+    if (filter === 'snoozed') {
+      return reminder.isSnoozed === true;
+    }
+    return true;
+  }, [filter]);
+
+  // Helper function to check if reminder matches all filters
+  const matchesAllFilters = useCallback((reminder: Reminder): boolean => {
+    const remindTime = new Date(reminder.remindAt);
+    
+    if (!matchesSearch(reminder)) return false;
+    if (!matchesStatusFilter(reminder, remindTime)) return false;
+    if (selectedType !== 'all' && reminder.type !== selectedType) return false;
+    if (selectedPriority !== 'all' && reminder.priority !== selectedPriority) return false;
+    if (selectedTags.length > 0 && !selectedTags.some(tag => reminder.tags?.includes(tag))) return false;
+    if (!showCompleted && reminder.isCompleted) return false;
+    
+    return true;
+  }, [matchesSearch, matchesStatusFilter, selectedType, selectedPriority, selectedTags, showCompleted]);
+
+  // Helper function to get comparison value for sorting
+  const getSortComparison = useCallback((a: Reminder, b: Reminder): number => {
+    switch (sortBy) {
+      case 'remindAt':
+        return new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime();
+      case 'created': {
+        const aTime = new Date(a.createdAt || '').getTime();
+        const bTime = new Date(b.createdAt || '').getTime();
+        return bTime - aTime;
+      }
+      case 'priority': {
+        const priorityOrder = { 'URGENT': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+        const aPriority = priorityOrder[a.priority || 'MEDIUM'] || 2;
+        const bPriority = priorityOrder[b.priority || 'MEDIUM'] || 2;
+        return bPriority - aPriority;
+      }
+      case 'title':
+        return a.title.localeCompare(b.title);
+      case 'type': {
+        const aType = a.type || 'CUSTOM';
+        const bType = b.type || 'CUSTOM';
+        return aType.localeCompare(bType);
+      }
+      default:
+        return 0;
+    }
+  }, [sortBy]);
+
+  const getFilteredAndSortedReminders = useCallback(() => {
+    const filteredReminders = reminders.filter(matchesAllFilters);
+    
+    filteredReminders.sort((a, b) => {
+      const comparison = getSortComparison(a, b);
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
     return filteredReminders;
-  };
+  }, [reminders, matchesAllFilters, getSortComparison, sortOrder]);
 
   const handleFormSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
@@ -466,8 +440,8 @@ export default function Reminders({
     
     try {
       const remindAtDate = new Date(formData.remindAt);
-      if (isNaN(remindAtDate.getTime())) {
-        throw new Error('Invalid date format');
+      if (Number.isNaN(remindAtDate.getTime())) {
+        throw new TypeError('Invalid date format');
       }
 
       const reminderData = {
@@ -703,7 +677,7 @@ export default function Reminders({
   }, [reminders]);
 
   const getReminderTypeInfo = (type?: string) => {
-    return REMINDER_TYPES.find(t => t.value === type) || REMINDER_TYPES[REMINDER_TYPES.length - 1];
+    return REMINDER_TYPES.find(t => t.value === type) || REMINDER_TYPES.at(-1) || REMINDER_TYPES[0];
   };
 
   const getPriorityColor = (priority?: string) => {
@@ -728,7 +702,7 @@ export default function Reminders({
 
   const getTimeInfo = (remindAt: string) => {
     const remindTime = new Date(remindAt);
-    const now = new Date();
+    const _now = new Date();
     
     if (isPast(remindTime)) {
       return { text: 'متأخر', color: 'text-red-600', urgent: true };
@@ -808,8 +782,9 @@ export default function Reminders({
               <form onSubmit={handleFormSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">العنوان *</label>
+                    <label htmlFor="reminder-title" className="block text-sm font-medium mb-1">العنوان *</label>
                     <Input
+                      id="reminder-title"
                       value={formData.title}
                       onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="عنوان التذكير"
@@ -818,12 +793,12 @@ export default function Reminders({
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">النوع</label>
+                    <label htmlFor="reminder-type" className="block text-sm font-medium mb-1">النوع</label>
                     <Select 
                       value={formData.type} 
                       onValueChange={(value: any) => setFormData(prev => ({ ...prev, type: value }))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="reminder-type">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -841,8 +816,9 @@ export default function Reminders({
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">الرسالة</label>
+                  <label htmlFor="reminder-message" className="block text-sm font-medium mb-1">الرسالة</label>
                   <Textarea
+                    id="reminder-message"
                     value={formData.message}
                     onChange={(e) => setFormData(prev => ({ ...prev, message: e.target.value }))}
                     placeholder="رسالة التذكير"
@@ -852,8 +828,9 @@ export default function Reminders({
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">وقت التذكير *</label>
+                    <label htmlFor="reminder-time" className="block text-sm font-medium mb-1">وقت التذكير *</label>
                     <Input
+                      id="reminder-time"
                       type="datetime-local"
                       value={formData.remindAt}
                       onChange={(e) => setFormData(prev => ({ ...prev, remindAt: e.target.value }))}
@@ -862,12 +839,12 @@ export default function Reminders({
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">الأولوية</label>
+                    <label htmlFor="reminder-priority" className="block text-sm font-medium mb-1">الأولوية</label>
                     <Select 
                       value={formData.priority} 
                       onValueChange={(value: any) => setFormData(prev => ({ ...prev, priority: value }))}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger id="reminder-priority">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -882,8 +859,9 @@ export default function Reminders({
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium mb-1">الموقع</label>
+                    <label htmlFor="reminder-location" className="block text-sm font-medium mb-1">الموقع</label>
                     <Input
+                      id="reminder-location"
                       value={formData.location}
                       onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
                       placeholder="موقع التذكير"
@@ -891,8 +869,9 @@ export default function Reminders({
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium mb-1">اللون</label>
+                    <label htmlFor="reminder-color" className="block text-sm font-medium mb-1">اللون</label>
                     <Input
+                      id="reminder-color"
                       type="color"
                       value={formData.color}
                       onChange={(e) => setFormData(prev => ({ ...prev, color: e.target.value }))}
@@ -901,8 +880,9 @@ export default function Reminders({
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">العلامات</label>
+                  <label htmlFor="reminder-tags" className="block text-sm font-medium mb-1">العلامات</label>
                   <Input
+                    id="reminder-tags"
                     value={formData.tags}
                     onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                     placeholder="علامة1, علامة2, علامة3"
@@ -910,8 +890,9 @@ export default function Reminders({
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">ملاحظات</label>
+                  <label htmlFor="reminder-notes" className="block text-sm font-medium mb-1">ملاحظات</label>
                   <Textarea
+                    id="reminder-notes"
                     value={formData.notes}
                     onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
                     placeholder="ملاحظات إضافية"
@@ -952,12 +933,12 @@ export default function Reminders({
                   {formData.isRecurring && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
                       <div>
-                        <label className="block text-sm font-medium mb-1">النمط</label>
+                        <label htmlFor="recurring-pattern" className="block text-sm font-medium mb-1">النمط</label>
                         <Select 
                           value={formData.recurringPattern} 
                           onValueChange={(value: any) => setFormData(prev => ({ ...prev, recurringPattern: value }))}
                         >
-                          <SelectTrigger>
+                          <SelectTrigger id="recurring-pattern">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -970,18 +951,20 @@ export default function Reminders({
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium mb-1">الفترة</label>
+                        <label htmlFor="recurring-interval" className="block text-sm font-medium mb-1">الفترة</label>
                         <Input
+                          id="recurring-interval"
                           type="number"
                           min="1"
                           value={formData.recurringInterval}
-                          onChange={(e) => setFormData(prev => ({ ...prev, recurringInterval: parseInt(e.target.value) || 1 }))}
+                          onChange={(e) => setFormData(prev => ({ ...prev, recurringInterval: Number.parseInt(e.target.value, 10) || 1 }))}
                         />
                       </div>
                       
                       <div>
-                        <label className="block text-sm font-medium mb-1">تاريخ الانتهاء</label>
+                        <label htmlFor="recurring-end-date" className="block text-sm font-medium mb-1">تاريخ الانتهاء</label>
                         <Input
+                          id="recurring-end-date"
                           type="date"
                           value={formData.recurringEndDate}
                           onChange={(e) => setFormData(prev => ({ ...prev, recurringEndDate: e.target.value }))}
@@ -1214,7 +1197,7 @@ export default function Reminders({
                 </p>
               </div>
             ) : (
-              filteredReminders.map((reminder, index) => {
+              filteredReminders.map((reminder, _index) => {
                 const typeInfo = getReminderTypeInfo(reminder.type);
                 const timeInfo = getTimeInfo(reminder.remindAt);
                 const Icon = typeInfo.icon;
@@ -1252,7 +1235,7 @@ export default function Reminders({
                         {/* Type Icon */}
                         <div 
                           className={cn("p-2 rounded shrink-0", typeInfo.color)}
-                          style={{ backgroundColor: reminder.color }}
+                          {...(reminder.color ? { style: { backgroundColor: reminder.color } } : {})}
                         >
                           <Icon className="w-4 h-4 text-white" />
                         </div>
@@ -1339,7 +1322,7 @@ export default function Reminders({
                               {/* Notes */}
                               {reminder.notes && (
                                 <div className="text-sm text-gray-600 dark:text-gray-400 mt-2 italic">
-                                  "{reminder.notes}"
+                                  &quot;{reminder.notes}&quot;
                                 </div>
                               )}
                             </div>
@@ -1442,7 +1425,7 @@ export default function Reminders({
 }
 
 // Add missing components
-function Tag({ className }: { className?: string }) {
+function Tag({ className }: { readonly className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
@@ -1450,7 +1433,7 @@ function Tag({ className }: { className?: string }) {
   );
 }
 
-function MapPin({ className }: { className?: string }) {
+function MapPin({ className }: { readonly className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
@@ -1459,7 +1442,7 @@ function MapPin({ className }: { className?: string }) {
   );
 }
 
-function BarChart3({ className }: { className?: string }) {
+function BarChart3({ className }: { readonly className?: string }) {
   return (
     <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />

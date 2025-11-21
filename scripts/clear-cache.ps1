@@ -31,10 +31,24 @@ if (Test-Path $turbopackCache) {
     Write-Host "✓ Turbopack cache cleared" -ForegroundColor Green
 }
 
+# Clear webpack cache
+if (Test-Path ".next\cache\webpack") {
+    Write-Host "Removing webpack cache..." -ForegroundColor Yellow
+    Remove-Item -Recurse -Force ".next\cache\webpack" -ErrorAction SilentlyContinue
+    Write-Host "✓ Webpack cache cleared" -ForegroundColor Green
+}
+
+# Clear Next.js cache directory
+if (Test-Path ".next\cache") {
+    Write-Host "Removing Next.js cache..." -ForegroundColor Yellow
+    Remove-Item -Recurse -Force ".next\cache" -ErrorAction SilentlyContinue
+    Write-Host "✓ Next.js cache cleared" -ForegroundColor Green
+}
+
 # Clear browser cache suggestion
 Write-Host "`n✓ Cache cleared successfully!" -ForegroundColor Green
 Write-Host "`nNext steps:" -ForegroundColor Cyan
 Write-Host "1. Clear your browser cache (Ctrl+Shift+Delete)" -ForegroundColor White
 Write-Host "2. Restart the dev server: npm run dev" -ForegroundColor White
-Write-Host "3. If the issue persists, try: npm run dev -- --no-turbo" -ForegroundColor White
+Write-Host "3. If the issue persists, try: npm run dev:no-turbo" -ForegroundColor White
 

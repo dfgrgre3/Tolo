@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { formatTimeRange, getBlockDuration } from './utils';
 import { BLOCK_TYPES, PRIORITY_COLORS } from './constants';
 import type { TimeBlock } from './types';
+import styles from './styles.module.css';
 
 interface TimeBlockCardProps {
   block: TimeBlock;
@@ -26,19 +27,27 @@ export function TimeBlockCard({
   const typeInfo = getBlockTypeInfo(block.type);
   const duration = getBlockDuration(block.startTime, block.endTime);
   
+  const blockHeight = Math.max(duration / 60 * 60, 20);
+  const blockStyle: React.CSSProperties & { '--block-color'?: string; '--block-height': string } = {
+    '--block-height': `${blockHeight}px`
+  };
+  if (block.color) {
+    blockStyle['--block-color'] = block.color;
+  }
+
   return (
+    // CSS variables for dynamic values are acceptable
     <div
       className={cn(
-        "absolute inset-1 rounded p-1 text-xs cursor-pointer border-l-4 transition-all hover:shadow-md",
+        styles.blockCard,
+        styles.blockCardHeight,
         typeInfo.color,
         "text-white",
         PRIORITY_COLORS[block.priority || 'MEDIUM'],
-        block.isCompleted && "opacity-60 line-through"
+        block.isCompleted && "opacity-60 line-through",
+        block.color && styles.blockCardWithColor
       )}
-      style={{ 
-        backgroundColor: block.color,
-        height: `${Math.max(duration / 60 * 60, 20)}px`
-      }}
+      style={blockStyle}
       onClick={(e) => {
         e.stopPropagation();
         onEdit(block);

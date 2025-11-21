@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 
 import { logger } from '@/lib/logger';
+import { safeNavigate } from '@/lib/url-validator';
 
 interface Notification {
   id: string;
@@ -214,7 +215,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
                       markAsRead([notification.id]);
                     }
                     if (notification.actionUrl) {
-                      window.location.href = notification.actionUrl;
+                      safeNavigate(notification.actionUrl);
                     }
                   }}
                 >
