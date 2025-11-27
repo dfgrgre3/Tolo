@@ -78,10 +78,7 @@ export async function POST(request: NextRequest) {
         grade,
         maxGrade,
         date: date ? new Date(date) : new Date(),
-        notes,
-        isOnline,
-        teacherId,
-        assignmentType
+        examName: assignmentType
       }
     });
 

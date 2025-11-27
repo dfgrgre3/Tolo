@@ -189,7 +189,7 @@ export function getJWTSecret(): string {
 
   // Additional security check: warn if secret seems weak (but still valid)
   if (jwtSecret.length < 64 && isProduction) {
-    logger.warn('JWT_SECRET is shorter than recommended (64+ characters) for production use', undefined, {
+    logger.warn('JWT_SECRET is shorter than recommended (64+ characters) for production use', {
       currentLength: jwtSecret.length,
       recommendedLength: 64
     });

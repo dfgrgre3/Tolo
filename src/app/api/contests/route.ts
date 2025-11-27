@@ -8,14 +8,6 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async () => {
     try {
     const contests = await prisma.contest.findMany({
-      include: {
-        organizer: {
-          select: { name: true }
-        },
-        _count: {
-          select: { participants: true }
-        }
-      },
       orderBy: {
         startDate: "asc"
       }
@@ -26,14 +18,14 @@ export async function GET(request: NextRequest) {
       id: contest.id,
       title: contest.title,
       description: contest.description,
-      imageUrl: contest.imageUrl,
+      // imageUrl: contest.imageUrl, // Not in schema
       startDate: contest.startDate.toISOString(),
       endDate: contest.endDate.toISOString(),
-      prize: contest.prize,
-      category: contest.category,
-      organizerName: contest.organizer.name,
-      tags: contest.tags,
-      participantsCount: contest._count.participants
+      prize: contest.prizes, // Schema has prizes (Json)
+      // category: contest.category, // Not in schema
+      // organizerName: contest.organizer?.name, // Not in schema
+      // tags: contest.tags, // Not in schema
+      // participantsCount: contest._count?.participants // Not in schema
     }));
 
     return NextResponse.json(transformedContests);
@@ -63,7 +55,7 @@ export async function POST(request: NextRequest) {
         tags 
       } = await req.json();
 
-    if (!userId || !title || !description || !startDate || !endDate || !category) {
+    if (!userId || !title || !description || !startDate || !endDate) {
       return NextResponse.json(
         { error: "جميع الحقول المطلوبة يجب ملؤها" },
         { status: 400 }
@@ -86,21 +78,13 @@ export async function POST(request: NextRequest) {
       data: {
         title,
         description,
-        imageUrl,
+        // imageUrl, // Not in schema
         startDate: new Date(startDate),
         endDate: new Date(endDate),
-        prize,
-        category,
-        organizerId: userId,
-        tags: tags || []
-      },
-      include: {
-        organizer: {
-          select: { name: true }
-        },
-        _count: {
-          select: { participants: true }
-        }
+        prizes: prize ? JSON.stringify(prize) : undefined, // Schema has prizes
+        // category, // Not in schema
+        // organizerId: userId, // Not in schema
+        // tags: tags || [] // Not in schema
       }
     });
 
@@ -109,14 +93,14 @@ export async function POST(request: NextRequest) {
       id: newContest.id,
       title: newContest.title,
       description: newContest.description,
-      imageUrl: newContest.imageUrl,
+      // imageUrl: newContest.imageUrl,
       startDate: newContest.startDate.toISOString(),
       endDate: newContest.endDate.toISOString(),
-      prize: newContest.prize,
-      category: newContest.category,
-      organizerName: newContest.organizer.name,
-      tags: newContest.tags,
-      participantsCount: newContest._count.participants
+      prize: newContest.prizes,
+      // category: newContest.category,
+      // organizerName: user.name,
+      // tags: newContest.tags,
+      // participantsCount: 0
     };
 
     return NextResponse.json(transformedContest, { status: 201 });

@@ -184,9 +184,9 @@ export async function POST(request: NextRequest) {
 
       const trimmedCode = code.trim().toUpperCase();
 
-      // Check if subject with this code already exists with timeout protection
+      // Check if subject with this name already exists with timeout protection
       const findPromise = prisma.subject.findUnique({
-        where: { code: trimmedCode }
+        where: { name: name.trim() }
       });
 
       const findTimeoutPromise = new Promise<never>((resolve, reject) => {
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
 
       if (existingSubject) {
         const response = NextResponse.json(
-          { error: "توجد مادة بنفس الرمز بالفعل", code: 'DUPLICATE_CODE' },
+          { error: "توجد مادة بنفس الاسم بالفعل", code: 'DUPLICATE_NAME' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -219,8 +219,8 @@ export async function POST(request: NextRequest) {
       const createPromise = prisma.subject.create({
         data: {
           name: name.trim(),
-          nameAr: nameAr.trim(),
-          code: trimmedCode,
+          // nameAr: nameAr?.trim(), // Not in schema
+          // code: trimmedCode, // Not in schema
           description: description?.trim() || null,
           color: (color && typeof color === 'string') ? color.trim() : '#3b82f6',
           icon: (icon && typeof icon === 'string') ? icon.trim() : 'BookOpen',

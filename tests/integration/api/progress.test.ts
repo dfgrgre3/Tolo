@@ -64,7 +64,7 @@ describe('Progress API Routes', () => {
         { startTime: new Date() },
         { startTime: new Date(Date.now() - 86400000) },
       ]);
-      (prisma.recommendation.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.mlRecommendation.findMany as jest.Mock).mockResolvedValue([]);
 
       const request = new NextRequest('http://localhost/api/progress', {
         method: 'GET',

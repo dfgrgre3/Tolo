@@ -160,10 +160,9 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         examId: testId,
         score,
-        totalPoints,
-        timeSpent,
-        answers: JSON.stringify(answers),
-        feedback: JSON.stringify(evaluation.summary)
+        totalScore: totalPoints,
+        timeTaken: timeSpent,
+        answers: JSON.stringify(answers)
       }
     });
 

@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { SubjectType, ExamType } from "@/types/settings";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { randomUUID } from "crypto";
 import { 
   parseRequestBody, 
   createStandardErrorResponse, 
@@ -208,6 +209,7 @@ export async function POST(request: NextRequest) {
 			// إنشاء امتحان جديد مع timeout protection
 			const createPromise = prisma.exam.create({
 				data: {
+					id: randomUUID(),
 					subject: subject.trim(),
 					title: title.trim(),
 					year: Number(year),

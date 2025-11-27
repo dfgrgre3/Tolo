@@ -94,10 +94,7 @@ export async function POST(request: NextRequest) {
           subject: exam.subject,
           grade: score,
           maxGrade: 100,
-          date: new Date(),
-          notes,
-          isOnline: isOnline || false,
-          examResultId: examResult.id
+          date: new Date()
         }
       });
     }

@@ -406,3 +406,23 @@ export async function getUserGeneratedContent(
   }));
 }
 
+/**
+ * Generate chat response
+ */
+export async function generateChatResponse(
+  message: string,
+  userId: string,
+  history: { role: 'user' | 'assistant'; content: string }[] = []
+): Promise<string> {
+  const provider = getDefaultProvider();
+  
+  const prompt = `أنت مساعد تعليمي ذكي للطلاب. أجب على سؤال الطالب التالي:
+${message}
+
+تاريخ المحادثة:
+${history.map(m => `${m.role}: ${m.content}`).join('\n')}
+`;
+
+  const content = await callAI(prompt, provider);
+  return typeof content === 'string' ? content : JSON.stringify(content);
+}

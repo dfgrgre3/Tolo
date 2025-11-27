@@ -389,7 +389,7 @@ export class AdvancedGamificationService {
         order: q.order,
         xpReward: q.xpReward || 0,
         requirements: (q.requirements as Record<string, any>) || {},
-        prerequisites: q.prerequisites || undefined
+        prerequisites: (q.prerequisites as unknown as string[]) || undefined
       }))
     }));
   }
@@ -415,7 +415,7 @@ export class AdvancedGamificationService {
 
     const progressMap = new Map(progresses.map((p: { questId: string; progress?: number; isCompleted?: boolean }) => [p.questId, p]));
 
-    return chain.quests.map((quest: { id: string; chainId: string; title: string; description: string | null; order: number; xpReward: number; requirements: unknown; prerequisites: string[] | null }) => {
+    return chain.quests.map((quest: { id: string; chainId: string; title: string; description: string | null; order: number; xpReward: number; requirements: unknown; prerequisites: any }) => {
       const progress = progressMap.get(quest.id);
       return {
         id: quest.id,
@@ -425,7 +425,7 @@ export class AdvancedGamificationService {
         order: quest.order,
         xpReward: quest.xpReward,
         requirements: quest.requirements as Record<string, unknown>,
-        prerequisites: quest.prerequisites || undefined,
+        prerequisites: (quest.prerequisites as unknown as string[]) || undefined,
         progress: (progress as { progress?: number } | undefined)?.progress || 0,
         isCompleted: (progress as { isCompleted?: boolean } | undefined)?.isCompleted || false
       };
@@ -441,16 +441,17 @@ export class AdvancedGamificationService {
     if (!quest) throw new Error('Quest not found');
 
     // Check prerequisites
-    if (quest.prerequisites && Array.isArray(quest.prerequisites)) {
+    const prerequisites = quest.prerequisites as unknown as string[];
+    if (prerequisites && Array.isArray(prerequisites) && prerequisites.length > 0) {
       const prerequisiteQuests = await prisma.questProgress.findMany({
         where: {
           userId,
-          questId: { in: quest.prerequisites as string[] },
+          questId: { in: prerequisites },
           isCompleted: true
         }
       });
 
-      if (prerequisiteQuests.length < (quest.prerequisites as string[]).length) {
+      if (prerequisiteQuests.length < prerequisites.length) {
         throw new Error('Prerequisites not met');
       }
     }
@@ -661,7 +662,7 @@ export class AdvancedGamificationService {
       }
     });
 
-    return userRewards.map((ur: { reward: { id: string; name: string; description: string | null; type: string; xpCost: number; icon: string | null; rarity: string | null } }) => ({
+    return userRewards.map((ur: { reward: { id: string; name: string; description: string | null; type: string; rarity: string | null } }) => ({
       id: ur.reward.id,
       name: ur.reward.name,
       description: ur.reward.description || '',

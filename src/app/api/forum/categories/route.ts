@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description,
+        slug: name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
         icon: icon || "📝"
       }
     });

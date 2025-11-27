@@ -23,8 +23,7 @@ export async function GET(request: NextRequest) {
         }
       },
       orderBy: [
-        { publishedAt: "desc" },
-        { views: "desc" }
+        { publishedAt: "desc" }
       ]
     });
 
@@ -37,11 +36,7 @@ export async function GET(request: NextRequest) {
       authorName: post.author.name,
       categoryId: post.categoryId,
       categoryName: post.category.name,
-      coverImageUrl: post.coverImageUrl,
-      publishedAt: post.publishedAt.toISOString(),
-      readTime: post.readTime,
-      views: post.views,
-      tags: post.tags
+      publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null
     }));
 
     return NextResponse.json(transformedPosts);
@@ -59,7 +54,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const { userId, title, excerpt, content, categoryId, coverImageUrl, tags } = await req.json();
+      const { userId, title, excerpt, content, categoryId } = await req.json();
 
     if (!userId || !title || !excerpt || !content || !categoryId) {
       return NextResponse.json(
@@ -92,9 +87,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Calculate read time (rough estimate: 200 words per minute)
-    const wordCount = content.split(/\s+/).length;
-    const readTime = Math.ceil(wordCount / 200);
+    // Generate slug from title
+    const slug = title
+      .toLowerCase()
+      .replace(/ /g, '-')
+      .replace(/[^\w-]+/g, '');
 
     const newPost = await prisma.blogPost.create({
       data: {
@@ -103,9 +100,7 @@ export async function POST(request: NextRequest) {
         content,
         authorId: userId,
         categoryId,
-        coverImageUrl,
-        tags: tags || [],
-        readTime
+        slug: `${slug}-${Date.now()}` // Ensure uniqueness
       },
       include: {
         author: {

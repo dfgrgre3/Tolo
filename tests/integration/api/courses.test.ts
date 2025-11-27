@@ -123,7 +123,7 @@ describe('Courses API Routes', () => {
         email: 'test@example.com',
         role: 'admin',
       });
-      (prisma.course.create as jest.Mock).mockResolvedValue(mockCourse);
+      (prisma.subject.create as jest.Mock).mockResolvedValue(mockCourse);
 
       const request = new NextRequest('http://localhost/api/courses', {
         method: 'POST',

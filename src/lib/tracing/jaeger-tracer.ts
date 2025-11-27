@@ -5,7 +5,7 @@
  * يستخدم OpenTelemetry API للتوافق مع Jaeger
  */
 
-import { trace, Span, SpanStatusCode, context, propagation } from '@opentelemetry/api';
+import { trace, Span, SpanStatusCode, context, propagation, Context } from '@opentelemetry/api';
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
@@ -126,8 +126,8 @@ export function startSpanWithContext(
 ): Span {
   const tracerInstance = getTracer();
   const span = tracerInstance.startSpan(name, {
-    attributes: options?.attributes || {},
-  }, parentContext);
+    attributes: (options?.attributes || {}) as unknown as import('@opentelemetry/api').SpanAttributes,
+  }, parentContext as Context);
   return span;
 }
 

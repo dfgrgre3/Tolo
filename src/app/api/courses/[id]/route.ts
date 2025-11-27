@@ -39,7 +39,7 @@ export async function GET(
       enrollment = await prisma.subjectEnrollment.findFirst({
         where: {
           userId,
-          subject: subject.name // Using subject name as the identifier
+          subjectId: subject.id
         }
       });
     }

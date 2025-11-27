@@ -194,7 +194,6 @@ describe('Comprehensive Login System Tests', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     process.env.JWT_SECRET = 'test-secret-key-for-testing-only-minimum-32-characters';
-    process.env.NODE_ENV = 'test';
   });
 
   describe('Input Validation and Sanitization', () => {
@@ -352,7 +351,7 @@ describe('Comprehensive Login System Tests', () => {
       });
 
       expect(result.success).toBe(false);
-      expect(result.response.code).toBe('IP_BLOCKED');
+      expect((result.response as any).code).toBe('IP_BLOCKED');
     });
 
     it('should require CAPTCHA after threshold failed attempts', async () => {
@@ -374,7 +373,7 @@ describe('Comprehensive Login System Tests', () => {
 
       // Should require CAPTCHA
       expect(result.success).toBe(false);
-      expect(result.response.code).toBe('CAPTCHA_REQUIRED');
+      expect((result.response as any).code).toBe('CAPTCHA_REQUIRED');
     });
 
     it('should verify CAPTCHA token when provided', async () => {
@@ -460,8 +459,8 @@ describe('Comprehensive Login System Tests', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.response.token).toBeDefined();
-      expect(result.response.user).toBeDefined();
+      expect((result.response as any).token).toBeDefined();
+      expect((result.response as any).user).toBeDefined();
     });
 
     it('should normalize email to lowercase', async () => {

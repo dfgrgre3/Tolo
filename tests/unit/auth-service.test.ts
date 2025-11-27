@@ -118,12 +118,14 @@ describe('Auth Service', () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(true);
 
-      const result = await authService.login({
-        email: 'test@example.com',
-        password: 'password123',
-      });
+      const result = await authService.login(
+        'test@example.com',
+        'password123',
+        'test-user-agent',
+        '127.0.0.1'
+      );
 
-      expect(result.success).toBe(true);
+      expect(result.isValid).toBe(true);
       expect(bcrypt.compare).toHaveBeenCalledWith('password123', 'hashed-password');
     });
 
@@ -137,24 +139,28 @@ describe('Auth Service', () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      const result = await authService.login({
-        email: 'test@example.com',
-        password: 'wrong-password',
-      });
+      const result = await authService.login(
+        'test@example.com',
+        'wrong-password',
+        'test-user-agent',
+        '127.0.0.1'
+      );
 
-      expect(result.success).toBe(false);
+      expect(result.isValid).toBe(false);
       expect(result.error).toContain('Invalid');
     });
 
     it('should fail if user does not exist', async () => {
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
-      const result = await authService.login({
-        email: 'nonexistent@example.com',
-        password: 'password123',
-      });
+      const result = await authService.login(
+        'nonexistent@example.com',
+        'password123',
+        'test-user-agent',
+        '127.0.0.1'
+      );
 
-      expect(result.success).toBe(false);
+      expect(result.isValid).toBe(false);
     });
   });
 });

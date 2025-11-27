@@ -107,7 +107,7 @@ export interface Recommendation {
 }
 
 // Complete application settings interface
-export interface AppSettings extends UserSettings, NotificationSettings, AppearanceSettings, SecuritySettings {
+export interface AppSettings extends UserSettings, Partial<NotificationSettings>, Partial<AppearanceSettings>, Partial<SecuritySettings> {
   subjects: SubjectEnrollment[];
   recommendations: Recommendation[];
 }

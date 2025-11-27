@@ -26,27 +26,34 @@ export async function GET(
 
     const attendees = await prisma.eventAttendee.findMany({
       where: { eventId: id },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
-      },
       orderBy: {
-        joinedAt: "asc"
+        createdAt: "asc"
       }
     });
 
+    // Fetch user details manually since relation is missing
+    const userIds = attendees.map(a => a.userId);
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: {
+        id: true,
+        name: true,
+        avatar: true
+      }
+    });
+
+    const userMap = new Map(users.map(u => [u.id, u]));
+
     // Transform the data to match the frontend structure
-    const transformedAttendees = attendees.map((attendee: any) => ({
-      id: attendee.user.id,
-      name: attendee.user.name,
-      avatar: attendee.user.avatar,
-      joinedAt: attendee.joinedAt.toISOString()
-    }));
+    const transformedAttendees = attendees.map((attendee: any) => {
+      const user = userMap.get(attendee.userId);
+      return {
+        id: user?.id || attendee.userId,
+        name: user?.name || 'Unknown',
+        avatar: user?.avatar || null,
+        joinedAt: attendee.createdAt.toISOString()
+      };
+    });
 
     return NextResponse.json(transformedAttendees);
   } catch (error) {
@@ -123,23 +130,24 @@ export async function POST(
       data: {
         eventId: id,
         userId
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        }
+      }
+    });
+
+    // Fetch user details
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        avatar: true
       }
     });
 
     return NextResponse.json({
-      id: newAttendee.user.id,
-      name: newAttendee.user.name,
-      avatar: newAttendee.user.avatar,
-      joinedAt: newAttendee.joinedAt.toISOString()
+      id: user?.id || userId,
+      name: user?.name || 'Unknown',
+      avatar: user?.avatar || null,
+      joinedAt: newAttendee.createdAt.toISOString()
     }, { status: 201 });
   } catch (error) {
     logger.error("Error joining event:", error);

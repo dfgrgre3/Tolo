@@ -122,6 +122,9 @@ export function useEnhancedAuth(): EnhancedAuthHook {
         user: response.user as User,
         sessionId: response.sessionId,
       };
+    } catch (error) {
+      throw error;
+    }
   };
 
   const verifyTwoFactor = async (params: {
@@ -169,6 +172,9 @@ export function useEnhancedAuth(): EnhancedAuthHook {
         user: response.user as User,
         sessionId: response.sessionId,
       };
+    } catch (error) {
+      throw error;
+    }
   };
 
   const resendTwoFactorCode = async (params: {
@@ -234,4 +240,3 @@ export function useEnhancedAuth(): EnhancedAuthHook {
     loginWithSocial,
   };
 }
-

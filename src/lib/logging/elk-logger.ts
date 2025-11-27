@@ -23,7 +23,7 @@ const esClient = new Client({
         password: process.env.ELASTICSEARCH_PASSWORD || '',
       }
     : undefined,
-  ssl: process.env.ELASTICSEARCH_SSL === 'true'
+  tls: process.env.ELASTICSEARCH_SSL === 'true'
     ? {
         rejectUnauthorized: false,
       }
@@ -67,16 +67,8 @@ let elasticsearchTransport: ElasticsearchTransport | null = null;
 if (process.env.ELASTICSEARCH_ENABLED !== 'false') {
   try {
     elasticsearchTransport = new ElasticsearchTransport({
-      client: esClient,
+      client: esClient as any,
       index: `thanawy-logs-${process.env.NODE_ENV || 'development'}`,
-      indexTemplate: {
-        template: {
-          settings: {
-            number_of_shards: 1,
-            number_of_replicas: 0,
-          },
-        },
-      },
       transformer: (logData) => {
         return {
           '@timestamp': logData.timestamp,
@@ -89,6 +81,7 @@ if (process.env.ELASTICSEARCH_ENABLED !== 'false') {
       },
       bufferLimit: 100,
       flushInterval: 2000,
+      apm: undefined as any,
     });
   } catch (error) {
     // Use fallback logger to avoid circular dependency

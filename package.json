@@ -57,7 +57,16 @@
     "check:page-duplicates": "tsx scripts/check-page-duplicates.ts",
     "check:pages": "npm run check:page-duplicates",
     "clean:page-duplicates": "tsx scripts/clean-page-duplicates.ts",
-    "clean:page-duplicates:dry": "tsx scripts/clean-page-duplicates.ts --dry-run"
+    "clean:page-duplicates:dry": "tsx scripts/clean-page-duplicates.ts --dry-run",
+    "prisma:studio": "npx prisma studio",
+    "prisma:validate": "npx prisma validate && tsx prisma/validate-schema.ts",
+    "prisma:format": "npx prisma format",
+    "prisma:migrate": "npx prisma migrate dev",
+    "prisma:migrate:deploy": "npx prisma migrate deploy",
+    "prisma:migrate:reset": "npx prisma migrate reset",
+    "prisma:db:push": "npx prisma db push",
+    "prisma:db:pull": "npx prisma db pull",
+    "prisma:seed": "tsx prisma/seed/main.ts"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",

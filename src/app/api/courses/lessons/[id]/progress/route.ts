@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 // POST to update lesson progress
 export async function POST(
@@ -76,16 +76,8 @@ export async function POST(
         const totalCount = subTopicIds.length;
         const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
         
-        // Update subject enrollment with progress
-        await prisma.subjectEnrollment.updateMany({
-          where: {
-            userId,
-            subject: subjectData.name
-          },
-          data: {
-            progress: progressPercentage
-          }
-        });
+        // Update subject enrollment with progress - skipped as field doesn't exist
+        // await prisma.subjectEnrollment.updateMany({ ... });
       }
     }
 

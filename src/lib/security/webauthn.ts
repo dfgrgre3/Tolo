@@ -184,7 +184,15 @@ export class WebAuthnService {
       // This is a simplified version
       // In production, use a library like @simplewebauthn/server
       const credentialId = response.id;
-      const publicKey = response.response?.attestationObject || '';
+      let publicKey = '';
+      const attestationObject = response.response?.attestationObject;
+      if (attestationObject) {
+        if (typeof attestationObject === 'string') {
+          publicKey = attestationObject;
+        } else {
+          publicKey = this.arrayBufferToBase64(attestationObject);
+        }
+      }
       const counter = 0;
 
       return {

@@ -6,19 +6,35 @@ import ErrorPage, { ErrorType } from './ErrorPages';
 
 import { logger } from '@/lib/logger';
 
+/**
+ * خصائص مكون ErrorBoundary
+ */
 interface Props {
+  /** المكونات الفرعية */
   children: ReactNode;
+  /** مكون بديل يُعرض عند حدوث خطأ */
   fallback?: ReactNode;
+  /** دالة callback تُستدعى عند حدوث خطأ */
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
+  /** نوع الخطأ لتخصيص صفحة الخطأ */
   errorType?: ErrorType;
+  /** هل يتم عرض صفحة خطأ مخصصة؟ */
   showErrorPage?: boolean;
+  /** هل يتم عرض تفاصيل الخطأ؟ */
   showDetails?: boolean;
 }
 
+/**
+ * حالة مكون ErrorBoundary
+ */
 interface State {
+  /** هل حدث خطأ؟ */
   hasError: boolean;
+  /** كائن الخطأ */
   error: Error | null;
+  /** معلومات إضافية عن الخطأ */
   errorInfo: ErrorInfo | null;
+  /** معرف فريد للخطأ */
   errorId: string | null;
 }
 

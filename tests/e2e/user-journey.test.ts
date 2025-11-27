@@ -8,9 +8,9 @@ if (typeof global.fetch === 'undefined') {
     global.fetch = require('node-fetch');
   } catch (_e) {
     // If node-fetch is not available, use a simple mock
-    global.fetch = async (_url: string, _options?: any) => {
+    global.fetch = (async (_url: RequestInfo | URL, _options?: any) => {
       throw new Error('fetch is not available in test environment. Please install node-fetch or start the dev server for E2E tests.');
-    };
+    }) as any;
   }
 }
 

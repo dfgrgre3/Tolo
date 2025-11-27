@@ -11,14 +11,7 @@ export async function GET(request: NextRequest) {
 			const teachers = await prisma.user.findMany({
 				where: {
 					role: {
-						in: TEACHER_ROLES
-					}
-				},
-				include: {
-					subjectEnrollments: {
-						select: {
-							subject: true
-						}
+						in: TEACHER_ROLES as unknown as string[]
 					}
 				},
 				select: {
@@ -28,7 +21,11 @@ export async function GET(request: NextRequest) {
 					avatar: true,
 					subjectEnrollments: {
 						select: {
-							subject: true
+							subject: {
+								select: {
+									name: true
+								}
+							}
 						}
 					}
 				}
@@ -42,7 +39,7 @@ export async function GET(request: NextRequest) {
 					return teacher.subjectEnrollments.map(enrollment => ({
 						id: teacher.id,
 						name: teacher.name || teacher.email || "معلم",
-						subject: enrollment.subject,
+						subject: enrollment.subject.name,
 						onlineUrl: null
 					}));
 				}
@@ -101,7 +98,7 @@ export async function POST(req: NextRequest) {
 				const existingEnrollment = await prisma.subjectEnrollment.findFirst({
 					where: {
 						userId: user.id,
-						subject: subject
+						subjectId: subject
 					}
 				});
 
@@ -110,7 +107,7 @@ export async function POST(req: NextRequest) {
 						data: {
 							id: `${user.id}_${subject}_${Date.now()}`,
 							userId: user.id,
-							subject: subject
+							subjectId: subject
 						}
 					});
 				}

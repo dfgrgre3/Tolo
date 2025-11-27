@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
 
 			const subjectsPromise = prisma.subjectEnrollment.findMany({
 				where: { userId: targetUserId },
-				orderBy: { subject: "asc" }
+				orderBy: { subjectId: "asc" }
 			});
 
 			const subjectsTimeoutPromise = new Promise<never>((resolve, reject) => {
@@ -147,13 +147,13 @@ export async function POST(req: NextRequest) {
 				});
 				
 				// Create a map for quick lookup
-				type EnrollmentType = { subject: string; id: string };
-				const existingMap = new Map<string, EnrollmentType>(existing.map((e: EnrollmentType) => [e.subject, e]));
+				type EnrollmentType = { subjectId: string; id: string };
+				const existingMap = new Map<string, EnrollmentType>(existing.map((e: EnrollmentType) => [e.subjectId, e]));
 				const incomingSubjects = new Set(subjects.map((s: { subject: string }) => s.subject));
 				
 				// Delete enrollments that are not in the incoming list
 				const toDelete = existing
-					.filter((e: EnrollmentType) => !incomingSubjects.has(e.subject))
+					.filter((e: EnrollmentType) => !incomingSubjects.has(e.subjectId))
 					.map((e: EnrollmentType) => e.id);
 				
 				if (toDelete.length > 0) {
@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
 								data: {
 									id: randomUUID(),
 									userId: targetUserId,
-									subject: s.subject,
+									subjectId: s.subject,
 									targetWeeklyHours: hours
 								}
 							}).catch(async (err: unknown) => {
@@ -205,7 +205,7 @@ export async function POST(req: NextRequest) {
 								const error = err as { code?: string; message?: string };
 								if (error?.code === 'P2002' || error?.message?.includes('Unique constraint') || error?.message?.includes('UNIQUE constraint')) {
 									const existing = await prisma.subjectEnrollment.findFirst({
-										where: { userId: targetUserId, subject: s.subject }
+										where: { userId: targetUserId, subjectId: s.subject }
 									});
 									if (existing) {
 										return prisma.subjectEnrollment.update({

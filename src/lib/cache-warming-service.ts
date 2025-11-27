@@ -17,22 +17,22 @@ export async function warmEducationalContentCache(): Promise<void> {
     // Fetch frequently accessed subjects from enrollments
     // Note: There's no Subject model, so we get subjects from SubjectEnrollment
     const subjectEnrollments = await prisma.subjectEnrollment.groupBy({
-      by: ['subject'],
+      by: ['subjectId'],
       _count: {
-        subject: true,
+        subjectId: true,
       },
       orderBy: {
         _count: {
-          subject: 'desc',
+          subjectId: 'desc',
         },
       },
       take: 50,
     });
     
     const subjects = subjectEnrollments.map((se) => ({
-      id: se.subject,
-      subject: se.subject,
-      enrollmentCount: se._count.subject,
+      id: se.subjectId,
+      subject: se.subjectId,
+      enrollmentCount: se._count.subjectId,
     }));
     
     // Prepare cache items for subjects
@@ -160,7 +160,7 @@ export async function warmSystemStatsCache(): Promise<void> {
     
     // Cache total subject count (count distinct subjects from enrollments)
     const subjectCountResult = await prisma.subjectEnrollment.groupBy({
-      by: ['subject'],
+      by: ['subjectId'],
     });
     const subjectCount = subjectCountResult.length;
     await CacheService.set('system:stats:subject_count', subjectCount, 3600); // 1 hour

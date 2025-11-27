@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
 				const teachersPromise = prisma.user.findMany({
 					where: {
 						AND: [
-							{ role: { in: TEACHER_ROLES } },
+							{ role: { in: TEACHER_ROLES as unknown as string[] } },
 							{
 								OR: [
 									{ name: { contains: query, mode: "insensitive" } },

@@ -1,0 +1,157 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "Components Configuration",
+    "description": "تكوين المكونات والإعدادات الافتراضية",
+    "type": "object",
+    "properties": {
+        "theme": {
+            "type": "object",
+            "description": "إعدادات السمة",
+            "properties": {
+                "defaultColors": {
+                    "type": "object",
+                    "properties": {
+                        "primary": {
+                            "type": "string",
+                            "default": "#4f46e5",
+                            "description": "اللون الأساسي"
+                        },
+                        "secondary": {
+                            "type": "string",
+                            "default": "#818cf8",
+                            "description": "اللون الثانوي"
+                        },
+                        "success": {
+                            "type": "string",
+                            "default": "#10b981",
+                            "description": "لون النجاح"
+                        },
+                        "error": {
+                            "type": "string",
+                            "default": "#ef4444",
+                            "description": "لون الخطأ"
+                        },
+                        "warning": {
+                            "type": "string",
+                            "default": "#f59e0b",
+                            "description": "لون التحذير"
+                        },
+                        "info": {
+                            "type": "string",
+                            "default": "#3b82f6",
+                            "description": "لون المعلومات"
+                        }
+                    }
+                }
+            }
+        },
+        "loading": {
+            "type": "object",
+            "description": "إعدادات التحميل",
+            "properties": {
+                "defaultSize": {
+                    "type": "string",
+                    "enum": [
+                        "sm",
+                        "md",
+                        "lg",
+                        "xl"
+                    ],
+                    "default": "md",
+                    "description": "الحجم الافتراضي للمؤشر"
+                },
+                "defaultText": {
+                    "type": "string",
+                    "default": "جارٍ التحميل...",
+                    "description": "النص الافتراضي للتحميل"
+                }
+            }
+        },
+        "alerts": {
+            "type": "object",
+            "description": "إعدادات التنبيهات",
+            "properties": {
+                "defaultPosition": {
+                    "type": "string",
+                    "enum": [
+                        "top-right",
+                        "top-left",
+                        "bottom-right",
+                        "bottom-left",
+                        "top-center",
+                        "bottom-center"
+                    ],
+                    "default": "top-right",
+                    "description": "الموضع الافتراضي للتنبيهات"
+                },
+                "autoDismissTime": {
+                    "type": "number",
+                    "default": 5000,
+                    "description": "وقت الإغلاق التلقائي بالميلي ثانية"
+                }
+            }
+        },
+        "charts": {
+            "type": "object",
+            "description": "إعدادات الرسوم البيانية",
+            "properties": {
+                "defaultMode": {
+                    "type": "string",
+                    "enum": [
+                        "weekly",
+                        "monthly"
+                    ],
+                    "default": "weekly",
+                    "description": "الوضع الافتراضي للرسوم البيانية"
+                },
+                "animationDuration": {
+                    "type": "number",
+                    "default": 1000,
+                    "description": "مدة الحركة بالميلي ثانية"
+                }
+            }
+        },
+        "accessibility": {
+            "type": "object",
+            "description": "إعدادات إمكانية الوصول",
+            "properties": {
+                "enableKeyboardNavigation": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "تفعيل التنقل بلوحة المفاتيح"
+                },
+                "enableAriaLabels": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "تفعيل ARIA labels"
+                },
+                "enableFocusIndicators": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "تفعيل مؤشرات التركيز"
+                }
+            }
+        },
+        "performance": {
+            "type": "object",
+            "description": "إعدادات الأداء",
+            "properties": {
+                "enableMemoization": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "تفعيل React.memo"
+                },
+                "enableLazyLoading": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "تفعيل التحميل الكسول"
+                },
+                "debounceTime": {
+                    "type": "number",
+                    "default": 300,
+                    "description": "وقت التأخير للبحث بالميلي ثانية"
+                }
+            }
+        }
+    }
+}

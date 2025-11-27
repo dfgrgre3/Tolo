@@ -96,7 +96,10 @@ describe('URL Validator', () => {
     });
 
     afterEach(() => {
-      window.location = originalLocation;
+      Object.defineProperty(window, 'location', {
+        value: originalLocation,
+        writable: true,
+      });
     });
 
     it('should navigate to safe URLs', () => {

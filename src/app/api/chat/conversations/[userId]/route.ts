@@ -39,7 +39,7 @@ export async function GET(
             id: true,
             name: true,
             avatar: true,
-            lastSeen: true
+            lastLogin: true
           }
         });
 
@@ -58,7 +58,7 @@ export async function GET(
             userId: partnerId,
             name: partner.name,
             avatar: partner.avatar,
-            lastSeen: partner.lastSeen,
+            lastSeen: partner.lastLogin,
             lastMessage: message.content,
             lastMessageTime: message.createdAt,
             unreadCount,

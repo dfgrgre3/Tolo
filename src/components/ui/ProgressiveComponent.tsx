@@ -144,7 +144,7 @@ export function ProgressiveComponent<T = any>({
 // Higher-order component for easier usage
 export function withProgressiveLoading<T extends object>(
   importFunc: () => Promise<{ default: ComponentType<T> }>,
-  options: Omit<ProgressiveComponentProps<T>, 'importFunc' | 'componentProps'> = {}
+  options: Omit<ProgressiveComponentProps<T>, 'importFunc' | 'componentProps'> & { displayName?: string; componentName?: string } = {}
 ) {
   const Component = React.forwardRef<any, T>((props, ref) => (
     <ProgressiveComponent

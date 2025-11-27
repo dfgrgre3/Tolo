@@ -1,33 +1,93 @@
 import React, { useState, useEffect, useRef } from 'react';
-import PropTypes from 'prop-types';
 import { motion, AnimatePresence } from 'framer-motion';
 import html2canvas from 'html2canvas';
 
-export const DailyProgressChart = React.memo(({ 
+/**
+ * بيانات نقطة في الرسم البياني
+ */
+export interface ChartDataPoint {
+  /** اليوم أو التاريخ */
+  day: string;
+  /** نسبة التقدم (0-100) */
+  progress: number;
+  /** تفاصيل إضافية اختيارية */
+  details?: string;
+}
+
+/**
+ * ألوان السمة للرسم البياني
+ */
+export interface ThemeColors {
+  /** لون السمة الفاتحة */
+  light: string;
+  /** لون السمة الداكنة */
+  dark: string;
+}
+
+/**
+ * خصائص مكون الرسم البياني
+ */
+export interface DailyProgressChartProps {
+  /** بيانات الرسم البياني */
+  chartData: ChartDataPoint[];
+  /** وضع العرض: أسبوعي أو شهري */
+  mode?: 'weekly' | 'monthly';
+  /** ألوان السمة */
+  themeColors?: ThemeColors;
+}
+
+/**
+ * مكون الرسم البياني اليومي للتقدم
+ * 
+ * يعرض تقدم المستخدم على مدار فترة زمنية محددة
+ * مع إمكانية التفاعل والتصدير
+ * 
+ * @example
+ * ```tsx
+ * <DailyProgressChart 
+ *   chartData={[
+ *     { day: 'السبت', progress: 75 },
+ *     { day: 'الأحد', progress: 85 }
+ *   ]}
+ *   mode="weekly"
+ * />
+ * ```
+ */
+export const DailyProgressChart = React.memo<DailyProgressChartProps>(({ 
   chartData,
-  mode = 'weekly', // weekly/monthly
+  mode = 'weekly',
   themeColors = {
     light: '#4f46e5',
     dark: '#818cf8'
   }
 }) => {
-  const chartRef = useRef(null);
-  const [hoveredIndex, setHoveredIndex] = useState(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const exportChart = async () => {
+
+  /**
+   * تصدير الرسم البياني كصورة PNG
+   */
+  const exportChart = async (): Promise<void> => {
     if (chartRef.current) {
-      const canvas = await html2canvas(chartRef.current);
-      const link = document.createElement('a');
-      link.download = 'progress-chart.png';
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      try {
+        const canvas = await html2canvas(chartRef.current);
+        const link = document.createElement('a');
+        link.download = 'progress-chart.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } catch (error) {
+        console.error('فشل تصدير الرسم البياني:', error);
+      }
     }
   };
+
   useEffect(() => {
-    setIsLoading(false);
     const timer = setTimeout(() => setIsLoading(false), 500);
     return () => clearTimeout(timer);
   }, [chartData]);
+
+  // التحقق من صحة البيانات
   if (!Array.isArray(chartData) || chartData.length === 0) {
     return (
       <motion.div 
@@ -37,33 +97,52 @@ export const DailyProgressChart = React.memo(({
         className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg mb-6"
         ref={chartRef}
       >
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">لا تتوفر بيانات لعرض الرسم البياني.</div>
+        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+          لا تتوفر بيانات لعرض الرسم البياني.
+        </div>
       </motion.div>
     );
   }
+
+  // إعدادات الرسم البياني
   const width = 600;
   const height = 180;
   const padding = 25;
   const fixedMin = 50;
   const fixedMax = 100;
   const rangeY = fixedMax - fixedMin;
-  const scaleX = (index) => {
+
+  /**
+   * حساب موقع X للنقطة
+   */
+  const scaleX = (index: number): number => {
     const divisor = chartData.length > 1 ? chartData.length - 1 : 1;
     return (index / divisor) * (width - 2 * padding) + padding;
   };
-  const scaleY = (value) => {
+
+  /**
+   * حساب موقع Y للقيمة
+   */
+  const scaleY = (value: number): number => {
     const normalizedValue = (value - fixedMin) / rangeY;
     return height - padding - (normalizedValue * (height - 2 * padding));
   };
-  const points = chartData.map((d, i) => {
-    const x = scaleX(i);
-    const y = scaleY(d.progress);
-    return `${x},${y}`;
-  }).join(' L ');
+
+  // إنشاء نقاط المسار
+  const points = chartData
+    .map((d, i) => {
+      const x = scaleX(i);
+      const y = scaleY(d.progress);
+      return `${x},${y}`;
+    })
+    .join(' L ');
+
+  // النقطة الأخيرة
   const lastIndex = chartData.length - 1;
   const lastPoint = chartData[lastIndex];
   const lastX = scaleX(lastIndex);
   const lastY = scaleY(lastPoint.progress);
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -78,22 +157,33 @@ export const DailyProgressChart = React.memo(({
         </h3>
         <div className="flex gap-2">
           <button 
-            onClick={() => exportChart()}
-            className="px-3 py-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 rounded-md"
+            onClick={exportChart}
+            className="px-3 py-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-200 rounded-md hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+            aria-label="تصدير الرسم البياني"
           >
             تصدير
           </button>
         </div>
       </div>
+
       <div className="relative overflow-x-auto">
-        <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '300px' }}>
+        <svg 
+          viewBox={`0 0 ${width} ${height}`} 
+          className="w-full" 
+          preserveAspectRatio="xMidYMid meet" 
+          style={{ minWidth: '300px' }}
+          role="img"
+          aria-label="رسم بياني لتقدم الأداء"
+        >
           <defs>
             <linearGradient id="progressGradient" x1="0" x2="0" y1="0" y2="1">
               <stop offset="0%" stopColor={themeColors.light} stopOpacity={0.3} />
               <stop offset="100%" stopColor={themeColors.light} stopOpacity={0.05} />
             </linearGradient>
           </defs>
-          {[100, 90, 80, 70, 60, 50].map((value, i) => {
+
+          {/* خطوط الشبكة */}
+          {[100, 90, 80, 70, 60, 50].map((value) => {
             const y = scaleY(value);
             return (
               <React.Fragment key={value}>
@@ -119,11 +209,15 @@ export const DailyProgressChart = React.memo(({
               </React.Fragment>
             );
           })}
+
+          {/* منطقة التعبئة */}
           <path
             d={`M ${padding},${height - padding} L ${points} L ${width - padding},${height - padding} Z`}
             fill="url(#progressGradient)"
             className="transition-all duration-1000 ease-out"
           />
+
+          {/* خط الرسم البياني */}
           <path 
             d={`M ${points}`} 
             fill="none" 
@@ -133,6 +227,8 @@ export const DailyProgressChart = React.memo(({
             strokeLinejoin="round"
             className="transition-all duration-1000 ease-out"
           />
+
+          {/* النقاط التفاعلية */}
           {chartData.map((d, i) => (
             <g key={d.day}>
               <circle
@@ -145,6 +241,9 @@ export const DailyProgressChart = React.memo(({
                 className="dark:stroke-gray-800 transition-all duration-300 ease-out cursor-pointer"
                 onMouseEnter={() => setHoveredIndex(i)}
                 onMouseLeave={() => setHoveredIndex(null)}
+                role="button"
+                tabIndex={0}
+                aria-label={`${d.day}: ${d.progress}%`}
               />
               {hoveredIndex === i && (
                 <foreignObject 
@@ -168,6 +267,8 @@ export const DailyProgressChart = React.memo(({
               )}
             </g>
           ))}
+
+          {/* تسميات المحور X */}
           {chartData.map((d, i) => (
             <text
               key={`label-${d.day}`}
@@ -182,6 +283,8 @@ export const DailyProgressChart = React.memo(({
               {d.day}
             </text>
           ))}
+
+          {/* قيمة النقطة الأخيرة */}
           <text
             x={lastX}
             y={lastY - 10}
@@ -195,9 +298,11 @@ export const DailyProgressChart = React.memo(({
           </text>
         </svg>
       </div>
+
       <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
         ملاحظة: هذا الرسم البياني يمثل تطورك على مدار آخر سبع وحدات دراسية أو أيام.
       </p>
+
       <AnimatePresence>
         {isLoading && (
           <motion.div 
@@ -209,6 +314,8 @@ export const DailyProgressChart = React.memo(({
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
               className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"
+              role="status"
+              aria-label="جارٍ التحميل"
             />
           </motion.div>
         )}
@@ -216,19 +323,6 @@ export const DailyProgressChart = React.memo(({
     </motion.div>
   );
 });
-
-DailyProgressChart.propTypes = {
-  chartData: PropTypes.arrayOf(PropTypes.shape({
-    day: PropTypes.string.isRequired,
-    progress: PropTypes.number.isRequired,
-    details: PropTypes.string
-  })).isRequired,
-  mode: PropTypes.oneOf(['weekly', 'monthly']),
-  themeColors: PropTypes.shape({
-    light: PropTypes.string,
-    dark: PropTypes.string
-  })
-};
 
 DailyProgressChart.displayName = 'DailyProgressChart';
 

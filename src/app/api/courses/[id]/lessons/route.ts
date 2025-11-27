@@ -105,7 +105,6 @@ export async function POST(
     const newLesson = await prisma.subTopic.create({
       data: {
         name: title,
-        nameAr: title, // Using same name for Arabic
         description,
         topicId,
         order

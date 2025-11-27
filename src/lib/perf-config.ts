@@ -62,7 +62,7 @@ async function getLogger(): Promise<Logger> {
     }
   }
   
-  return loggerInstance;
+  return loggerInstance || createConsoleLogger();
 }
 
 const getPerfConfig = () => {

@@ -100,7 +100,7 @@ export function safeGetItem<T = unknown>(
     try {
       return JSON.parse(item);
     } catch {
-      return item;
+      return item as unknown as T;
     }
   } catch (e) {
     logger.warn(`Failed to get item "${key}" from ${storageType}Storage:`, e);
@@ -196,7 +196,7 @@ export function useSafeLocalStorage<T = any>(
   useEffect(() => {
     setMounted(true);
     const value = safeGetItem(key, { fallback: initialValue });
-    setStoredValue(value);
+    setStoredValue(value as T);
   }, [key, initialValue]);
   
   // دالة لتحديث القيمة
@@ -232,7 +232,7 @@ export function useSafeSessionStorage<T = any>(
       fallback: initialValue,
       storageType: 'session'
     });
-    setStoredValue(value);
+    setStoredValue(value as T);
   }, [key, initialValue]);
   
   const setValue = useCallback((value: T | ((prev: T) => T)) => {

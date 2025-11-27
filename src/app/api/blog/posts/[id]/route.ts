@@ -40,11 +40,7 @@ export async function GET(
       authorName: post.author.name,
       categoryId: post.categoryId,
       categoryName: post.category.name,
-      coverImageUrl: post.coverImageUrl,
-      publishedAt: post.publishedAt.toISOString(),
-      readTime: post.readTime,
-      views: post.views,
-      tags: post.tags
+      publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null
     };
 
     return NextResponse.json(transformedPost);
@@ -67,14 +63,15 @@ export async function POST(
     try {
       const { id } = await params;
 
+    // Views tracking removed as field does not exist in schema
+    /*
     await prisma.blogPost.update({
       where: { id },
       data: {
-        views: {
-          increment: 1
-        }
+        // views: { increment: 1 }
       }
     });
+    */
 
     return NextResponse.json({ success: true });
   } catch (error) {

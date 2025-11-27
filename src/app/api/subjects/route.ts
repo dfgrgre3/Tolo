@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
       const existingEnrollment = await prisma.subjectEnrollment.findFirst({
         where: {
           userId,
-          subject
+          subjectId: subject
         }
       });
       
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
         data: {
           id: `${userId}_${subject}_${Date.now()}`,
           userId,
-          subject
+          subjectId: subject
         }
       });
       
@@ -96,7 +96,7 @@ export async function DELETE(req: NextRequest) {
       const enrollment = await prisma.subjectEnrollment.findFirst({
         where: {
           userId,
-          subject
+          subjectId: subject
         }
       });
       

@@ -96,6 +96,17 @@ ON CONFLICT ("name") DO NOTHING;
 -- Step 3: Update SubjectEnrollment.subjectId to reference the new Subject records
 UPDATE "SubjectEnrollment" se
 SET "subjectId" = s."id"
+FROM "Subject" s
+WHERE se."subject" = s."name";
+
+-- Step 4: Make subjectId NOT NULL after data migration
+ALTER TABLE "SubjectEnrollment" ALTER COLUMN "subjectId" SET NOT NULL;
+
+-- Step 5: Add foreign key constraint
+ALTER TABLE "SubjectEnrollment" ADD CONSTRAINT "SubjectEnrollment_subjectId_fkey" 
+FOREIGN KEY ("subjectId") REFERENCES "Subject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Step 6: Drop the old subject column
 ALTER TABLE "SubjectEnrollment" DROP COLUMN "subject";
 
 -- Step 7: Update indexes to use subjectId instead of subject

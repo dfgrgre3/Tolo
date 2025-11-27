@@ -37,7 +37,7 @@ export async function POST(
     const existingEnrollment = await prisma.subjectEnrollment.findFirst({
       where: {
         userId,
-        subject
+        subjectId: subject
       }
     });
 
@@ -53,7 +53,7 @@ export async function POST(
       data: {
         id: crypto.randomUUID(),
         userId,
-        subject,
+        subjectId: subject,
         targetWeeklyHours: 0 // Default value, can be updated later
       }
     });
@@ -90,7 +90,7 @@ export async function GET(
     const enrollment = await prisma.subjectEnrollment.findFirst({
       where: {
         userId,
-        subject: id
+        subjectId: id
       }
     });
 
@@ -137,7 +137,7 @@ export async function DELETE(
       const enrollment = await prisma.subjectEnrollment.findFirst({
         where: {
           userId,
-          subject: id
+          subjectId: id
         }
       });
 

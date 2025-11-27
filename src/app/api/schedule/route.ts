@@ -47,7 +47,10 @@ export async function GET(req: NextRequest) {
           data: { 
             userId, 
             name: "مخصص", 
-            weeklyHours: 0, 
+            title: "Default Schedule",
+            startTime: new Date(),
+            endTime: new Date(),
+            // weeklyHours: 0, // Removed
             planJson: JSON.stringify({}), 
             active: true 
           } 
@@ -95,10 +98,8 @@ export async function POST(req: NextRequest) {
       
       const existing = await prisma.schedule.findFirst({
         where: { 
-          userId_active: { 
-            userId, 
-            active: true 
-          } 
+          userId, 
+          active: true 
         }
       });
 
@@ -123,7 +124,10 @@ export async function POST(req: NextRequest) {
         create: { 
           userId, 
           name: "مخصص", 
-          weeklyHours: 0, 
+          title: "Default Schedule",
+          startTime: new Date(),
+          endTime: new Date(),
+          // weeklyHours: 0, // Removed
           planJson: JSON.stringify(plan), 
           active: true,
           version: Date.now()

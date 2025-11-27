@@ -43,7 +43,7 @@ export async function GET(
       categoryId: post.categoryId,
       categoryName: post.category.name,
       createdAt: post.createdAt.toISOString(),
-      views: post.views,
+      views: post.viewCount,
       repliesCount: post._count.replies,
       isPinned: post.isPinned
     };
@@ -71,7 +71,7 @@ export async function POST(
       await prisma.forumPost.update({
         where: { id },
         data: {
-          views: {
+          viewCount: {
             increment: 1
           }
         }
