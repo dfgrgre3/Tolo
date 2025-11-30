@@ -39,7 +39,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
       setIsLoading(true);
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor', {
+      const response = await fetch('/api/auth/2fa/status', {
         credentials: 'include',
       });
 
@@ -58,7 +58,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor/totp/setup', {
+      const response = await fetch('/api/auth/2fa/setup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -84,13 +84,16 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor/totp/verify', {
+      const response = await fetch('/api/auth/2fa/enable', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ code }),
+        body: JSON.stringify({ 
+          token: code,
+          secret: totpSecret 
+        }),
       });
 
       if (response.ok) {
@@ -118,18 +121,14 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     }
 
     try {
-      const code = prompt('أدخل رمز التحقق من تطبيق المصادقة لإلغاء التفعيل:');
-      if (!code) return;
-
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor', {
+      const response = await fetch('/api/auth/2fa/disable', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ action: 'disable', code }),
       });
 
       if (response.ok) {

@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
 		// Whitelist allowed fields to prevent mass assignment
 		const allowedFields = ['title', 'description', 'scheduledAt', 'completed', 'priority'];
-		const updates: any = {};
+		const updates: Record<string, unknown> = {};
 
 		for (const field of allowedFields) {
 			if (field in body) {
@@ -45,10 +45,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 			return NextResponse.json({ error: 'Cannot change reminder ownership' }, { status: 400 });
 		}
 
-		const reminder = await prisma.reminder.update({ where: { id }, data: updates });
+		const reminder = await prisma.reminder.update({ where: { id }, data: updates as any });
 		return NextResponse.json(reminder);
-	} catch (e: any) {
-		return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+	} catch (e: unknown) {
+		const errorMessage = e instanceof Error ? e.message : "Server error";
+		return NextResponse.json({ error: errorMessage }, { status: 500 });
 	}
 }
 
@@ -76,7 +77,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
 		await prisma.reminder.delete({ where: { id } });
 		return NextResponse.json({ ok: true });
-	} catch (e: any) {
-		return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+	} catch (e: unknown) {
+		const errorMessage = e instanceof Error ? e.message : "Server error";
+		return NextResponse.json({ error: errorMessage }, { status: 500 });
 	}
 }

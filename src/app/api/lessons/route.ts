@@ -26,8 +26,9 @@ export async function GET(req: NextRequest) {
 			orderBy: { startTime: "asc" }
 		});
 		return NextResponse.json(lessons);
-	} catch (e: any) {
-		return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+	} catch (e: unknown) {
+		const errorMessage = e instanceof Error ? e.message : "Server error";
+		return NextResponse.json({ error: errorMessage }, { status: 500 });
 	}
 }
 
@@ -66,7 +67,8 @@ export async function POST(req: NextRequest) {
 			},
 		});
 		return NextResponse.json(lesson);
-	} catch (e: any) {
-		return NextResponse.json({ error: e?.message ?? "Server error" }, { status: 500 });
+	} catch (e: unknown) {
+		const errorMessage = e instanceof Error ? e.message : "Server error";
+		return NextResponse.json({ error: errorMessage }, { status: 500 });
 	}
 }

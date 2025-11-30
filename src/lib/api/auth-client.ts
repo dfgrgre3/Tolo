@@ -692,6 +692,48 @@ export async function verifyBiometric(
   });
 }
 
+
+/**
+ * Get Passkey Registration Options
+ */
+export async function getPasskeyRegistrationOptions(userId: string): Promise<any> {
+  return apiFetch('/passkey/register-options', {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+}
+
+/**
+ * Verify Passkey Registration
+ */
+export async function verifyPasskeyRegistration(data: any): Promise<any> {
+  return apiFetch('/passkey/register', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Get Passkey Authentication Options
+ */
+export async function getPasskeyAuthenticationOptions(userId?: string): Promise<any> {
+  return apiFetch('/passkey/authenticate-options', {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+}
+
+/**
+ * Verify Passkey Authentication
+ */
+export async function verifyPasskeyAuthentication(data: any): Promise<LoginResponse> {
+    return apiFetch<LoginResponse>('/passkey/authenticate', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+}
+
+
 /**
  * Logout API
  */

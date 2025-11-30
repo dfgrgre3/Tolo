@@ -630,7 +630,7 @@ export const useLoginForm = () => {
                      ? (data.user.lastLogin as Date).toISOString() 
                      : data.user.lastLogin ? String(data.user.lastLogin) : undefined),
       };
-      await handleLoginSuccess({ ...data, user: userData });
+      await handleLoginSuccess({ ...data, user: userData as any });
     } catch (error: unknown) {
       if (process.env.NODE_ENV === 'development') {
         logger.error('Login error:', error);
@@ -677,7 +677,7 @@ export const useLoginForm = () => {
                      ? (data.user.lastLogin as Date).toISOString() 
                      : data.user.lastLogin ? String(data.user.lastLogin) : undefined),
       };
-      await handleLoginSuccess({ ...data, user: userData });
+      await handleLoginSuccess({ ...data, user: userData as any });
     } catch (error: unknown) {
       if (process.env.NODE_ENV === 'development') {
         logger.error('2FA verification error:', error);

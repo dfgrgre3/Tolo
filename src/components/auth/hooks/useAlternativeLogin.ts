@@ -1,5 +1,5 @@
 /**
- * Custom hook for alternative login methods (biometric, test account)
+ * Custom hook for alternative login methods (passkey, test account)
  */
 
 import { useState } from 'react';
@@ -7,14 +7,9 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useUnifiedAuth } from '@/contexts/auth-context';
 import { logger } from '@/lib/logger';
-import { safeWindow } from '@/lib/safe-client-utils';
 import { getRedirectPath, clearStoredRedirect } from '../utils/login-form.utils';
-import { 
-  getBiometricChallenge, 
-  verifyBiometric, 
-  loginUser, 
-  createTestAccount 
-} from '@/lib/api/auth-client';
+import { getPasskeyAuthenticationOptions, verifyPasskeyAuthentication, loginUser, createTestAccount } from '@/lib/api/auth-client';
+import { getPasskeyManager } from '../passkeys/PasskeyManager';
 
 export const useAlternativeLogin = () => {
   const router = useRouter();
@@ -22,159 +17,50 @@ export const useAlternativeLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * Handle biometric login
+   * Handle passkey login
    */
-  const handleBiometricLogin = async () => {
-    const hasPublicKeyCredential = safeWindow((w) => !!w.PublicKeyCredential, false);
-    if (!hasPublicKeyCredential) {
-      toast.error('المصادقة البيومترية غير مدعومة في هذا المتصفح');
+  const handlePasskeyLogin = async () => {
+    const passkeyManager = getPasskeyManager();
+    if (!passkeyManager.isSupported()) {
+      toast.error('المصادقة بمفاتيح المرور غير مدعومة في هذا المتصفح');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // Create an AbortController for timeout
-      const challengeController = new AbortController();
-      const challengeTimeout = setTimeout(() => challengeController.abort(), 30000);
+      // 1. Get authentication options from the server
+      const options = await getPasskeyAuthenticationOptions();
 
-      let challenge: string;
+      // 2. Use PasskeyManager to authenticate with the browser
+      const authenticationResponse = await passkeyManager.authenticateWithPasskey(options);
 
-      try {
-        const challengeData = await getBiometricChallenge({ type: 'authenticate' });
-        challenge = challengeData.challenge;
-        clearTimeout(challengeTimeout);
-      } catch (fetchError: unknown) {
-        clearTimeout(challengeTimeout);
-
-        const error =
-          fetchError instanceof Error ? fetchError : new Error(String(fetchError));
-        if (error.name === 'AbortError' || error.message?.includes('aborted')) {
-          toast.error(
-            'انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
-            { duration: 5000 }
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        if (
-          error.message?.includes('Failed to fetch') ||
-          error.message?.includes('NetworkError') ||
-          !navigator.onLine
-        ) {
-          toast.error(
-            'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
-            { duration: 5000 }
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        toast.error(error.message || 'فشلت المصادقة البيومترية', { duration: 5000 });
-        setIsLoading(false);
-        return;
+      // 3. Verify the authentication response with the server
+      const data = await verifyPasskeyAuthentication(authenticationResponse);
+      
+      if (!data.token) {
+        throw new Error('فشل الحصول على رمز الدخول');
       }
+      
+      // 4. Handle successful login
+      await unifiedLogin(data.token, {
+        id: data.user.id,
+        email: data.user.email,
+        name: data.user.name ?? undefined,
+        role: data.user.role || 'user',
+        emailVerified: data.user.emailVerified || false,
+        twoFactorEnabled: data.user.twoFactorEnabled || false,
+      });
+      
+      toast.success('تم تسجيل الدخول بنجاح!');
+      const redirectPath = getRedirectPath();
+      clearStoredRedirect();
+      router.replace(redirectPath);
 
-      // Request credential
-      let credential: PublicKeyCredential | null = null;
-      try {
-        credential = (await navigator.credentials.get({
-          publicKey: {
-            challenge: Uint8Array.from(atob(challenge), (c) => c.charCodeAt(0)),
-            timeout: 60000,
-            userVerification: 'required',
-          },
-        })) as PublicKeyCredential | null;
-
-        if (!credential) {
-          toast.error('فشلت المصادقة البيومترية');
-          setIsLoading(false);
-          return;
-        }
-      } catch (credError: unknown) {
-        const error =
-          credError instanceof Error ? credError : new Error(String(credError));
-        if (error.name === 'NotAllowedError' || error.name === 'NotSupportedError') {
-          toast.error('تم إلغاء المصادقة البيومترية أو غير مدعومة');
-        } else {
-          toast.error('فشلت المصادقة البيومترية');
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      // Verify credential
-      try {
-        const data = await verifyBiometric({
-          credential,
-          challenge,
-        });
-
-        try {
-          await unifiedLogin(data.token, {
-            id: data.user.id,
-            email: data.user.email,
-            name: data.user.name ?? undefined,
-            role: data.user.role || 'user',
-            emailVerified: data.user.emailVerified || false,
-            twoFactorEnabled: data.user.twoFactorEnabled || false,
-          });
-          toast.success('تم تسجيل الدخول بنجاح!');
-          setIsLoading(false);
-
-          const redirectPath = getRedirectPath();
-          clearStoredRedirect();
-
-          setTimeout(() => {
-            router.replace(redirectPath);
-          }, 500);
-        } catch (loginError) {
-          logger.error('Error in login function:', loginError);
-          toast.error('حدث خطأ أثناء حفظ بيانات تسجيل الدخول');
-          setIsLoading(false);
-        }
-      } catch (verifyError: unknown) {
-        const error =
-          verifyError instanceof Error ? verifyError : new Error(String(verifyError));
-        const errorMessage = (verifyError as any)?.error || error.message || 'فشلت المصادقة';
-        
-        if (
-          errorMessage.includes('Failed to fetch') ||
-          errorMessage.includes('NetworkError') ||
-          !navigator.onLine
-        ) {
-          toast.error(
-            'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
-            { duration: 5000 }
-          );
-          setIsLoading(false);
-          return;
-        }
-
-        toast.error(errorMessage);
-        setIsLoading(false);
-        return;
-      }
     } catch (error: unknown) {
-      if (process.env.NODE_ENV === 'development') {
-        logger.error('Biometric login error:', error);
-      }
-
-      const err = error instanceof Error ? error : new Error(String(error));
-      if (
-        err.message?.includes('Failed to fetch') ||
-        err.message?.includes('NetworkError') ||
-        err.name === 'TypeError' ||
-        !navigator.onLine
-      ) {
-        toast.error(
-          'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
-          { duration: 5000 }
-        );
-      } else {
-        toast.error(err.message || 'فشلت المصادقة البيومترية');
-      }
+      const errorMessage = error instanceof Error ? error.message : 'فشلت المصادقة باستخدام مفتاح المرور';
+      toast.error(errorMessage);
+      logger.error('Passkey login error:', error);
     } finally {
       setIsLoading(false);
     }
@@ -207,7 +93,6 @@ export const useAlternativeLogin = () => {
           clearStoredRedirect();
           router.push(redirectPath);
           router.refresh();
-          setIsLoading(false);
           return;
         }
       } catch (loginError: any) {
@@ -240,7 +125,6 @@ export const useAlternativeLogin = () => {
               clearStoredRedirect();
               router.push(redirectPath);
               router.refresh();
-              setIsLoading(false);
               return;
             }
           } catch (createError) {
@@ -248,7 +132,6 @@ export const useAlternativeLogin = () => {
           }
 
           toast.error('فشل تسجيل الدخول بالحساب التجريبي. يرجى المحاولة يدوياً.');
-          setIsLoading(false);
           return;
         }
 
@@ -265,7 +148,7 @@ export const useAlternativeLogin = () => {
 
   return {
     isLoading,
-    handleBiometricLogin,
+    handlePasskeyLogin,
     handleTestAccountLogin,
   };
 };

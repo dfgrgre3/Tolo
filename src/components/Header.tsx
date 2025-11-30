@@ -17,9 +17,9 @@ import { HeaderMobileMenu } from "./header/HeaderMobileMenu";
 import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
 import { useUnifiedAuth } from "@/contexts/auth-context";
 import { useMegaMenuState } from "./header/useMegaMenuState";
-import { useKeyboardShortcuts } from "@/app/time/hooks/useKeyboardShortcuts";
 import { HeaderCustomization, useHeaderPreferences } from "./header/HeaderCustomization";
 import ProgressIndicator from "./header/ProgressIndicator";
+import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 
 // Dynamic imports for better performance (Next.js code splitting)
 // Using robust error handling to prevent HMR issues
@@ -43,10 +43,6 @@ const ContextualHelp = dynamic(
 	{ ssr: false, loading: () => null }
 );
 
-const KeyboardShortcutsDisplay = dynamic(
-	() => import("./header/KeyboardShortcutsDisplay").then((mod) => ({ default: mod.KeyboardShortcutsDisplay })).catch(() => ({ default: () => null })),
-	{ ssr: false, loading: () => null }
-);
 
 const SmartNavigationSuggestions = dynamic(
 	() => import("./header/SmartNavigationSuggestions").then((mod) => ({ default: mod.SmartNavigationSuggestions })).catch(() => ({ default: () => null })),
@@ -96,6 +92,13 @@ export default function Header() {
 	// Header preferences
 	const { preferences: headerPreferences } = useHeaderPreferences();
 
+	// Keyboard shortcuts
+	useKeyboardShortcuts({
+		mounted,
+		isMobileMenuOpen,
+		setIsMobileMenuOpen,
+	});
+
 	// Handle scroll effect with throttling for better performance
 	useEffect(() => {
 		if (!mounted || typeof window === "undefined") return;
@@ -137,38 +140,9 @@ export default function Header() {
 		return pathname.startsWith(href);
 	}, [pathname]);
 
-	// Keyboard shortcuts handler
-	useKeyboardShortcuts({
-		mounted,
-		isMobileMenuOpen,
-		setIsMobileMenuOpen,
-	});
 
-	// Command Palette keyboard shortcut
-	useEffect(() => {
-		if (!mounted) return;
 
-		const handleKeyDown = (e: KeyboardEvent) => {
-			// Ignore if typing in input/textarea
-			const target = e.target as HTMLElement;
-			if (
-				target.tagName === "INPUT" ||
-				target.tagName === "TEXTAREA" ||
-				target.isContentEditable
-			) {
-				return;
-			}
 
-			// Ctrl/Cmd + K for command palette
-			if ((e.ctrlKey || e.metaKey) && e.key === "k" && !e.shiftKey && !e.altKey) {
-				e.preventDefault();
-				setIsCommandPaletteOpen((prev) => !prev);
-			}
-		};
-
-		window.addEventListener("keydown", handleKeyDown);
-		return () => window.removeEventListener("keydown", handleKeyDown);
-	}, [mounted]);
 
 	// Toggle mobile menu with better state management
 	const toggleMobileMenu = useCallback(() => {
@@ -252,8 +226,6 @@ export default function Header() {
 						{/* Contextual Help */}
 						<ContextualHelp />
 
-						{/* Keyboard Shortcuts Display */}
-						<KeyboardShortcutsDisplay />
 
 						{/* Header Customization */}
 						<HeaderCustomization />
@@ -261,7 +233,7 @@ export default function Header() {
 						{/* Theme Toggle */}
 						{mounted && (
 							<div className="hidden md:flex" suppressHydrationWarning>
-								<ThemeToggle />
+							<ThemeToggle />
 							</div>
 						)}
 

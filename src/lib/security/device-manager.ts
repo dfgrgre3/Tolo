@@ -301,7 +301,8 @@ export class DeviceManagerService {
   }
 
   // Parsing helpers for existing session data
-  private parseDeviceName(deviceInfo: string): string {
+  private parseDeviceName(deviceInfo: string | null): string {
+    if (!deviceInfo) return 'جهاز غير معروف';
     try {
       const info = JSON.parse(deviceInfo);
       return info.name || 'جهاز غير معروف';
@@ -310,7 +311,8 @@ export class DeviceManagerService {
     }
   }
 
-  private parseDeviceType(deviceInfo: string): 'mobile' | 'tablet' | 'desktop' | 'unknown' {
+  private parseDeviceType(deviceInfo: string | null): 'mobile' | 'tablet' | 'desktop' | 'unknown' {
+    if (!deviceInfo) return 'unknown';
     try {
       const info = JSON.parse(deviceInfo);
       return info.type || 'unknown';

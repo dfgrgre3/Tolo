@@ -430,7 +430,7 @@ export function useHydrationStatus() {
     const startTime = performance.now();
     setIsHydrated(true);
     setHydrationTime(performance.now() - startTime);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   return { isHydrated, hydrationTime };

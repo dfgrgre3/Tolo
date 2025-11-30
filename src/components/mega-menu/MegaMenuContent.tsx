@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect, useRef } from "react";
+import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { X, Search, Filter, Sparkles, TrendingUp, Command, Zap, ArrowRight, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,27 +27,30 @@ export function MegaMenuContent({
 	const menuRef = useRef<HTMLDivElement>(null);
 
 	// Fetch notification count for authenticated users
-	useEffect(() => {
+	const fetchNotificationCount = useCallback(async () => {
 		if (!user) {
 			setNotificationCount(0);
 			return;
 		}
 		
-		fetch("/api/notifications/unread-count")
-			.then(async (res) => {
-				if (!res.ok) {
-					throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-				}
-				const data = await res.json();
-				if (data.count !== undefined) {
-					setNotificationCount(data.count);
-				}
-			})
-			.catch((error) => {
-				logger.debug("Failed to fetch notification count:", error);
-				setNotificationCount(0);
-			});
+		try {
+			const res = await fetch("/api/notifications/unread-count");
+			if (!res.ok) {
+				throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+			}
+			const data = await res.json();
+			if (data.count !== undefined) {
+				setNotificationCount(data.count);
+			}
+		} catch (error) {
+			logger.debug("Failed to fetch notification count:", error);
+			setNotificationCount(0);
+		}
 	}, [user]);
+
+	useEffect(() => {
+		fetchNotificationCount();
+	}, [fetchNotificationCount]);
 	
 	// Mouse tracking for interactive effects
 	const mouseX = useMotionValue(0);
@@ -74,21 +77,21 @@ export function MegaMenuContent({
 	}, [categories, searchQuery]);
 
 	// Keyboard navigation support
+	const handleKeyDown = useCallback((e: KeyboardEvent) => {
+		if (e.key === "Escape") {
+			onClose();
+		} else if (e.key === "/" && !isSearchFocused) {
+			e.preventDefault();
+			searchInputRef.current?.focus();
+		}
+	}, [onClose, isSearchFocused]);
+
 	useEffect(() => {
 		if (!isOpen) return;
 
-		const handleKeyDown = (e: KeyboardEvent) => {
-			if (e.key === "Escape") {
-				onClose();
-			} else if (e.key === "/" && !isSearchFocused) {
-				e.preventDefault();
-				searchInputRef.current?.focus();
-			}
-		};
-
 		document.addEventListener("keydown", handleKeyDown);
 		return () => document.removeEventListener("keydown", handleKeyDown);
-	}, [isOpen, onClose, isSearchFocused]);
+	}, [isOpen, handleKeyDown]);
 
 	// Auto-focus search on open
 	useEffect(() => {
@@ -98,22 +101,22 @@ export function MegaMenuContent({
 	}, [isOpen]);
 
 	// Mouse tracking for interactive glow effect
-	useEffect(() => {
-		const handleMouseMove = (e: MouseEvent) => {
-			if (!menuRef.current) return;
-			const rect = menuRef.current.getBoundingClientRect();
-			const x = e.clientX - rect.left;
-			const y = e.clientY - rect.top;
-			mouseX.set(x);
-			mouseY.set(y);
-			setMousePosition({ x, y });
-		};
+	const handleMouseMove = useCallback((e: MouseEvent) => {
+		if (!menuRef.current) return;
+		const rect = menuRef.current.getBoundingClientRect();
+		const x = e.clientX - rect.left;
+		const y = e.clientY - rect.top;
+		mouseX.set(x);
+		mouseY.set(y);
+		setMousePosition({ x, y });
+	}, [mouseX, mouseY]);
 
-		if (isOpen && menuRef.current) {
-			window.addEventListener("mousemove", handleMouseMove);
-			return () => window.removeEventListener("mousemove", handleMouseMove);
-		}
-	}, [isOpen, mouseX, mouseY]);
+	useEffect(() => {
+		if (!isOpen || !menuRef.current) return;
+		
+		window.addEventListener("mousemove", handleMouseMove);
+		return () => window.removeEventListener("mousemove", handleMouseMove);
+	}, [isOpen, handleMouseMove]);
 
 	if (!isOpen) return null;
 
@@ -148,6 +151,7 @@ export function MegaMenuContent({
 				transition={{ duration: 0.3 }}
 				className="fixed inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/60 backdrop-blur-xl z-40"
 				onClick={onClose}
+				aria-hidden="true"
 			/>
 			<motion.div
 				ref={menuRef}
@@ -165,6 +169,9 @@ export function MegaMenuContent({
 				onMouseLeave={onClose}
 				data-mega-menu-content
 				suppressHydrationWarning
+				role="dialog"
+				aria-modal="true"
+				aria-label="القائمة الرئيسية"
 			>
 				{/* Advanced glassmorphism container */}
 				<div className="relative bg-gradient-to-br from-popover/98 via-popover/95 to-popover/98 backdrop-blur-2xl rounded-b-3xl border border-border/60 shadow-2xl shadow-black/50 overflow-hidden">

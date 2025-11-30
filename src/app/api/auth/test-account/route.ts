@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         smsNotifications: false,
         twoFactorEnabled: false,
         biometricEnabled: false,
-        biometricCredentials: [],
+
         // Gamification defaults with some initial data
         totalXP: 100,
         level: 2,

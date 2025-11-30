@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { authService, AuthService } from '@/lib/auth-service';
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
+import { passwordHistoryService } from '@/lib/services/password-history-service';
 import { prisma } from '@/lib/prisma';
 import { createErrorResponse, passwordSchema, isConnectionError } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -36,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
-    const verification = await authService.verifyToken(token);
+    const verification = await authService.verifyTokenFromInput(token);
 
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
@@ -150,6 +151,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // التحقق من أن كلمة المرور الجديدة ليست في السجل
+    const historyCheck = await passwordHistoryService.checkPasswordInHistory(userId, newPassword);
+    if (historyCheck.exists) {
+      return NextResponse.json(
+        {
+          error: historyCheck.message || 'لا يمكن إعادة استخدام كلمة المرور هذه. يرجى اختيار كلمة مرور جديدة.',
+          code: 'PASSWORD_IN_HISTORY',
+        },
+        { status: 400 }
+      );
+    }
+
     // تشفير كلمة المرور الجديدة
     let newPasswordHash: string;
     try {
@@ -165,13 +178,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // تحديث كلمة المرور
+    // تحديث كلمة المرور وحفظ القديمة في السجل
     try {
+      // حفظ كلمة المرور القديمة في السجل قبل تحديثها
+      await passwordHistoryService.savePasswordHistory(userId, user.passwordHash);
+      
+      const now = new Date();
       await prisma.user.update({
         where: { id: userId },
         data: {
           passwordHash: newPasswordHash,
-          updatedAt: new Date(),
+          passwordChangedAt: now,
+          updatedAt: now,
         },
       });
     } catch (dbError) {
@@ -214,7 +232,7 @@ export async function POST(request: NextRequest) {
       const authHeader = req.headers.get('Authorization');
       if (authHeader?.startsWith('Bearer ')) {
         const token = authHeader.substring(7);
-        const verification = await authService.verifyToken(token);
+        const verification = await authService.verifyTokenFromInput(token);
         if (verification.isValid && verification.user) {
           await authService.logSecurityEvent(verification.user.id, 'password_change_error', ip, {
             userAgent,

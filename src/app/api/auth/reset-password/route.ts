@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { authService, AuthService } from '@/lib/auth-service';
 import { securityNotificationService } from '@/lib/security/security-notifications';
+import { passwordHistoryService } from '@/lib/services/password-history-service';
 import { createErrorResponse, passwordSchema, resetTokenSchema, isConnectionError } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
         select: {
           id: true,
           email: true,
+          passwordHash: true,
           resetToken: true,
           resetTokenExpires: true,
         },
@@ -126,6 +128,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if new password is in history (only if user has existing password)
+    if (user.passwordHash && user.passwordHash !== 'oauth_user') {
+      const historyCheck = await passwordHistoryService.checkPasswordInHistory(user.id, password);
+      if (historyCheck.exists) {
+        return NextResponse.json(
+          {
+            error: historyCheck.message || 'لا يمكن إعادة استخدام كلمة المرور هذه. يرجى اختيار كلمة مرور جديدة.',
+            code: 'PASSWORD_IN_HISTORY',
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // Hash new password
     let passwordHash: string;
     try {
@@ -143,13 +159,20 @@ export async function POST(request: NextRequest) {
 
     // Update user password and clear reset token
     try {
+      // Save old password to history before updating (if exists)
+      if (user.passwordHash && user.passwordHash !== 'oauth_user') {
+        await passwordHistoryService.savePasswordHistory(user.id, user.passwordHash);
+      }
+      
+      const now = new Date();
       await prisma.user.update({
         where: { id: user.id },
         data: {
           passwordHash,
+          passwordChangedAt: now,
           resetToken: null,
           resetTokenExpires: null,
-          updatedAt: new Date(),
+          updatedAt: now,
         },
       });
     } catch (dbError) {

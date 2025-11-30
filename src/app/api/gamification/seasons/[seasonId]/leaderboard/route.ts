@@ -12,24 +12,25 @@ export async function GET(
     try {
       const { seasonId } = await params;
       const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '50');
+      const limit = parseInt(searchParams.get('limit') || '50');
 
-    const leaderboard = await advancedGamificationService.getSeasonLeaderboard(
-      seasonId,
-      limit
-    );
+      const leaderboard = await advancedGamificationService.getSeasonLeaderboard(
+        seasonId,
+        limit
+      );
 
-    return NextResponse.json({
-      leaderboard,
-      seasonId,
-      totalEntries: leaderboard.length
-    });
-  } catch (error: any) {
-    logger.error('Error fetching season leaderboard:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch season leaderboard', details: error.message },
-      { status: 500 }
-    );
+      return NextResponse.json({
+        leaderboard,
+        seasonId,
+        totalEntries: leaderboard.length
+      });
+    } catch (error: unknown) {
+      logger.error('Error fetching season leaderboard:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return NextResponse.json(
+        { error: 'Failed to fetch season leaderboard', details: errorMessage },
+        { status: 500 }
+      );
     }
   });
 }

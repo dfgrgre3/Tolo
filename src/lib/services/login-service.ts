@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { authService, AuthService } from '@/lib/auth-service';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
 import { prisma } from '@/lib/prisma';
-import { generateDeviceFingerprint } from '@/lib/security/device-fingerprint';
+import { generateDeviceFingerprint } from '@/lib/security/device-fingerprint-shared';
 import { riskAssessmentService } from '@/lib/security/risk-assessment';
 import { deviceManagerService } from '@/lib/security/device-manager';
 import { securityNotificationService } from '@/lib/security/security-notifications';
@@ -687,7 +687,45 @@ export class LoginService {
       };
     }
 
-    // Check if user has 2FA enabled
+    // Check if user has TOTP 2FA enabled
+    if (user.twoFactorEnabled && user.twoFactorSecret) {
+      const tempToken = await authService.generate2FATempToken({
+        id: user.id,
+        email: user.email,
+        name: user.name || undefined,
+        role: user.role || undefined,
+      });
+
+      await authService.logSecurityEvent(
+        user.id,
+        'two_factor_challenge_created_totp',
+        ip,
+        {
+          userAgent,
+          delivery: 'totp',
+        }
+      );
+
+      return {
+        success: true,
+        response: {
+          requiresTwoFactor: true,
+          method: 'totp',
+          tempToken,
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || undefined,
+            role: (user as any).role || 'user',
+            emailVerified: user.emailVerified || false,
+            twoFactorEnabled: true,
+          },
+        },
+        statusCode: 200,
+      };
+    }
+
+    // Check if user has Email 2FA enabled (legacy or fallback)
     if (user.twoFactorEnabled) {
       const code = generateTwoFactorCode();
       const challengeId = await TwoFactorChallengeService.createChallenge(
@@ -750,7 +788,10 @@ export class LoginService {
     // Create session with timeout protection
     let session;
     try {
-      const sessionPromise = authService.createSession(user.id, userAgent, ip);
+      const deviceInfo = riskAssessment?.deviceFingerprint 
+        ? JSON.stringify(riskAssessment.deviceFingerprint) 
+        : '{}';
+      const sessionPromise = authService.createSession(user.id, userAgent, ip, deviceInfo);
       const timeoutPromise = new Promise<any>((resolve, reject) => {
         setTimeout(() => reject(new Error('Session creation timeout')), 5000);
       });

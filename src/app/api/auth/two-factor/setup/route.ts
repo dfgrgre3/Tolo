@@ -1,54 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
-import { randomBytes } from 'crypto';
+import { authService } from '@/lib/auth-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // In a real implementation, you would use proper authentication
-      // For now, we'll just simulate the endpoint
       const { enable, userId } = await req.json();
 
-    if (!userId) {
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'User ID is required' },
+          { status: 400 }
+        );
+      }
+
+      // Verify authorization
+      const verification = await authService.verifyTokenFromRequest(req);
+      if (!verification.isValid || !verification.user || verification.user.id !== userId) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+
+      if (!enable) {
+        await authService.disableTwoFactor(userId);
+        return NextResponse.json({
+          message: 'Two-factor authentication disabled successfully',
+          user: {
+            id: userId,
+            twoFactorEnabled: false,
+          },
+        });
+      }
+
+      // If enabling, we should not do it here directly without verification.
+      // The client should use /api/auth/two-factor/totp/setup and /verify
       return NextResponse.json(
-        { error: 'User ID is required' },
+        { error: 'To enable 2FA, please use the TOTP setup flow' },
         { status: 400 }
       );
-    }
 
-    // Generate a secret for 2FA if enabling
-    let twoFactorSecret = null;
-    if (enable) {
-      twoFactorSecret = randomBytes(20).toString('hex');
-    }
-
-    // Update user
-    const user = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        twoFactorEnabled: enable,
-        twoFactorSecret,
-      },
-    });
-
-    return NextResponse.json({
-      message: enable 
-        ? 'Two-factor authentication enabled successfully' 
-        : 'Two-factor authentication disabled successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        twoFactorEnabled: user.twoFactorEnabled,
-      },
-    });
-  } catch (error) {
-    logger.error('Error updating two-factor authentication:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    } catch (error) {
+      logger.error('Error updating two-factor authentication:', error);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
     }
   });
 }

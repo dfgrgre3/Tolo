@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.substring(7);
-    const verification = await authService.verifyToken(token);
+    const verification = await authService.verifyTokenFromInput(token);
 
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(

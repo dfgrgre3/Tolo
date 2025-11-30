@@ -1,34 +1,11 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { authService } from '@/lib/auth-service';
-import { getDeviceInfo, getLocationFromIP } from '@/lib/security-utils';
-import crypto from 'crypto';
-import {
-  verifyAuthenticationResponse,
-  verifyRegistrationResponse,
-  generateAuthenticationOptions,
-  generateRegistrationOptions
-} from '@simplewebauthn/server';
-import { isoUint8Array } from '@simplewebauthn/server/helpers';
-import type {
-  PublicKeyCredentialRequestOptionsJSON,
-  PublicKeyCredentialCreationOptionsJSON,
-  AuthenticationResponseJSON,
-  RegistrationResponseJSON
-} from '@simplewebauthn/types';
+import { webAuthnService, WebAuthnCredential } from '@/lib/security/webauthn';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { getSecureCookieOptions } from '@/app/api/auth/_helpers';
-import { BiometricChallengeService } from '@/lib/auth-challenges-service';
-
-// Helper function to validate environment variables
-function validateEnvironment() {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-  const rpId = new URL(baseUrl).hostname;
-
-  return { baseUrl, rpId };
-}
+import { setAuthCookies } from '@/app/api/auth/_helpers';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -63,7 +40,7 @@ export async function POST(request: NextRequest) {
 
 async function handleBiometricRegistration(
   request: NextRequest,
-  data: { userId: string; response: RegistrationResponseJSON }
+  data: { userId: string; response: any }
 ) {
   const { userId, response } = data;
 
@@ -86,34 +63,31 @@ async function handleBiometricRegistration(
   }
 
   // Get the registration challenge from database
-  const challengeResult = await BiometricChallengeService.getChallenge(`register-${userId}`);
+  const challenge = await prisma.biometricChallenge.findFirst({
+    where: {
+      userId,
+      type: 'register',
+      used: false,
+      expiresAt: { gt: new Date() }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
 
-  if (!challengeResult) {
+  if (!challenge) {
     return NextResponse.json(
-      { error: 'No registration challenge found' },
+      { error: 'No active registration challenge found' },
       { status: 400 }
     );
   }
 
-  // Verify the challenge is still valid
-  if (new Date() > challengeResult.expiresAt || challengeResult.used) {
-    await BiometricChallengeService.deleteChallenge(`register-${userId}`);
-    return NextResponse.json(
-      { error: 'Challenge expired or already used' },
-      { status: 400 }
-    );
-  }
+  // Verify registration response
+  const verificationResult = await webAuthnService.verifyRegistration(
+    response,
+    challenge.challenge
+  );
 
-  let verification;
-  try {
-    verification = await verifyRegistrationResponse({
-      response,
-      expectedChallenge: challengeResult.challenge,
-      expectedOrigin: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-      expectedRPID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
-    });
-  } catch (error) {
-    logger.error('Registration verification failed:', error);
+  if (!verificationResult.verified || !verificationResult.credential) {
+    logger.error('Registration verification failed:', verificationResult.error);
     return NextResponse.json(
       { error: 'Registration verification failed' },
       { status: 400 }
@@ -121,35 +95,26 @@ async function handleBiometricRegistration(
   }
 
   // Mark challenge as used
-  await BiometricChallengeService.deleteChallenge(`register-${userId}`);
+  await prisma.biometricChallenge.update({
+    where: { id: challenge.id },
+    data: { used: true }
+  });
 
-  const { verified, registrationInfo } = verification;
-  if (!verified || !registrationInfo) {
-    return NextResponse.json(
-      { error: 'Registration could not be verified' },
-      { status: 400 }
-    );
-  }
-
-  // Convert credential data to hex strings
-  const credentialId = Buffer.from(registrationInfo.credential.id).toString('hex');
-  const publicKey = Buffer.from(registrationInfo.credential.publicKey).toString('hex');
+  // Save credential
+  await prisma.biometricCredential.create({
+    data: {
+      userId: user.id,
+      credentialId: verificationResult.credential.credentialId,
+      publicKey: verificationResult.credential.publicKey,
+      counter: verificationResult.credential.counter,
+      transports: [], // Default empty
+      deviceType: 'singleDevice', // Default
+    }
+  });
 
   await prisma.user.update({
     where: { id: userId },
-    data: {
-      biometricEnabled: true,
-      biometricCredentials: {
-        push: {
-          credentialId,
-          publicKey,
-          counter: registrationInfo.credential.counter || 0,
-          backedUp: false,
-          deviceType: 'singleDevice',
-          createdAt: new Date()
-        }
-      }
-    }
+    data: { biometricEnabled: true }
   });
 
   return NextResponse.json({
@@ -160,7 +125,7 @@ async function handleBiometricRegistration(
 
 async function handleBiometricAuthentication(
   request: NextRequest,
-  data: { response: AuthenticationResponseJSON }
+  data: { response: any }
 ) {
   const { response } = data;
 
@@ -171,52 +136,24 @@ async function handleBiometricAuthentication(
     );
   }
 
-  const ip = request.headers.get('x-forwarded-for') ||
-             request.headers.get('x-real-ip') ||
-             'unknown';
-  const userAgent = request.headers.get('user-agent') || 'unknown';
+  const ip = authService.getClientIP(request);
+  const userAgent = authService.getUserAgent(request);
   const clientId = `${ip}-${userAgent}`;
 
-  // Get the authentication challenge from database
-  const challengeResult = await BiometricChallengeService.getChallenge(`auth-${response.id}`);
-
-  if (!challengeResult) {
-    return NextResponse.json(
-      { error: 'No authentication challenge found' },
-      { status: 400 }
-    );
-  }
-
-  // Verify the challenge is still valid
-  if (new Date() > challengeResult.expiresAt || challengeResult.used) {
-    await BiometricChallengeService.deleteChallenge(`auth-${response.id}`);
-    return NextResponse.json(
-      { error: 'Challenge expired or already used' },
-      { status: 400 }
-    );
-  }
-
-  // Find user by credential ID
-  // Since biometricCredentials is a JSON field, we need to query all users with biometric enabled
-  // and filter in JavaScript
-  const users = await prisma.user.findMany({
-    where: {
-      biometricEnabled: true
-    }
+  // Find credential
+  const credential = await prisma.biometricCredential.findUnique({
+    where: { credentialId: response.id },
+    include: { user: true }
   });
 
-  const credentialIdHex = isoUint8Array.toHex(isoUint8Array.fromHex(response.id));
-  const user = users.find((u: any) => {
-    const creds = Array.isArray(u.biometricCredentials) ? u.biometricCredentials : [];
-    return creds.some((cred: any) => cred.credentialId === credentialIdHex);
-  });
-
-  if (!user) {
+  if (!credential || !credential.user) {
     return NextResponse.json(
-      { error: 'Biometric credential not found' },
+      { error: 'Credential not found' },
       { status: 404 }
     );
   }
+
+  const user = credential.user;
 
   if (!user.biometricEnabled) {
     return NextResponse.json(
@@ -225,31 +162,45 @@ async function handleBiometricAuthentication(
     );
   }
 
-  // Find the matching credential
-  const credentials = (Array.isArray(user.biometricCredentials) ? user.biometricCredentials : []) as any[];
-  const credential = credentials.find(
-    (cred: any) => cred.credentialId === isoUint8Array.toHex(isoUint8Array.fromHex(response.id))
-  );
+  // Get the authentication challenge
+  const challenge = await prisma.biometricChallenge.findFirst({
+    where: {
+      userId: user.id,
+      type: 'authenticate',
+      used: false,
+      expiresAt: { gt: new Date() }
+    },
+    orderBy: { createdAt: 'desc' }
+  });
 
-  if (!credential) {
-    return NextResponse.json(
-      { error: 'Credential not recognized' },
+  if (!challenge) {
+     return NextResponse.json(
+      { error: 'No active authentication challenge found' },
       { status: 400 }
     );
   }
 
-  let verification;
-  try {
-    // Use type assertion to work with the API changes
-    verification = await verifyAuthenticationResponse({
-      response,
-      expectedChallenge: challengeResult.challenge,
-      expectedOrigin: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
-      expectedRPID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
-      expectedUserIDs: [user.id],
-    } as any);
-  } catch (error) {
-    logger.error('Authentication verification failed:', error);
+  // Map to WebAuthnCredential
+  const webAuthnCred: WebAuthnCredential = {
+    id: credential.id,
+    userId: credential.userId,
+    credentialId: credential.credentialId,
+    publicKey: credential.publicKey,
+    counter: credential.counter,
+    deviceType: credential.deviceType || 'unknown',
+    transports: credential.transports as any[],
+    createdAt: credential.createdAt,
+  };
+
+  // Verify authentication response
+  const verificationResult = await webAuthnService.verifyAuthentication(
+    response,
+    challenge.challenge,
+    webAuthnCred
+  );
+
+  if (!verificationResult.verified) {
+    logger.error('Authentication verification failed:', verificationResult.error);
     return NextResponse.json(
       { error: 'Authentication verification failed' },
       { status: 400 }
@@ -257,44 +208,31 @@ async function handleBiometricAuthentication(
   }
 
   // Mark challenge as used
-  await BiometricChallengeService.deleteChallenge(`auth-${response.id}`);
-
-  const { verified, authenticationInfo } = verification;
-  if (!verified || !authenticationInfo) {
-    return NextResponse.json(
-      { error: 'Authentication could not be verified' },
-      { status: 400 }
-    );
-  }
+  await prisma.biometricChallenge.update({
+    where: { id: challenge.id },
+    data: { used: true }
+  });
 
   // Update credential counter
-  // Since biometricCredentials is a JSON field, we need to update the entire array
-  const updatedCredentials = ((Array.isArray(user.biometricCredentials) ? user.biometricCredentials : []) as any[]).map((cred: any) =>
-    cred.credentialId === credential.credentialId
-      ? { ...cred, counter: authenticationInfo.newCounter }
-      : cred
-  );
-
-  await prisma.user.update({
-    where: { id: user.id },
-    data: {
-      biometricCredentials: updatedCredentials
-    }
-  });
+  if (verificationResult.newCounter !== undefined) {
+    await prisma.biometricCredential.update({
+      where: { id: credential.id },
+      data: {
+        counter: verificationResult.newCounter
+      }
+    });
+  }
 
   // Create session
   const session = await authService.createSession(user.id, userAgent, ip);
 
-  // Reset rate limiting on successful login
+  // Reset rate limiting
   await authService.resetRateLimit(clientId);
 
-  // Update last login time
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLogin: new Date() }
-  });
+  // Update last login
+  await authService.updateLastLogin(user.id);
 
-  // Create authentication tokens
+  // Create tokens
   const tokensResult = await authService.createTokens(
     {
       id: user.id,
@@ -304,42 +242,27 @@ async function handleBiometricAuthentication(
     },
     session.id
   );
-  const accessToken = tokensResult.accessToken;
-  const refreshToken = tokensResult.refreshToken;
-
-  // Get device info and location for security logging
-  const deviceInfo = await getDeviceInfo(userAgent);
-  const location = await getLocationFromIP(ip);
 
   // Log security event
-  await prisma.securityLog.create({
-    data: {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      eventType: 'BIOMETRIC_LOGIN_SUCCESS',
-      ip,
-      userAgent,
-      deviceInfo: JSON.stringify(deviceInfo),
-      location,
-      metadata: JSON.stringify({ sessionId: session.id, credentialId: credential.credentialId })
-    }
-  });
-
-  // Return user data without password
-  const { passwordHash, refreshToken: _, biometricCredentials, ...userData } = user;
+  await authService.logSecurityEvent(
+    user.id,
+    'biometric_login_success',
+    ip,
+    { userAgent, sessionId: session.id, credentialId: credential.credentialId }
+  );
 
   const responseObj = NextResponse.json({
     message: 'Biometric authentication successful',
-    user: userData,
-    token: accessToken,
-    refreshToken
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+    },
+    token: tokensResult.accessToken,
+    refreshToken: tokensResult.refreshToken
   });
 
-  // Set refresh token in httpOnly cookie (ensure it's a string)
-  // Security: Use centralized secure cookie settings
-  responseObj.cookies.set('refresh_token', refreshToken as string, {
-    ...getSecureCookieOptions({ maxAge: 30 * 24 * 60 * 60 }), // 30 days in seconds
-  });
+  setAuthCookies(responseObj, tokensResult.accessToken, tokensResult.refreshToken, true);
 
   return responseObj;
 }
@@ -357,20 +280,19 @@ async function handleAuthenticationOptions(
     );
   }
 
-  if (action === 'register' && !userId) {
-    return NextResponse.json(
-      { error: 'User ID is required for registration' },
-      { status: 400 }
-    );
-  }
-
-  let options: PublicKeyCredentialCreationOptionsJSON | PublicKeyCredentialRequestOptionsJSON;
-  let challengeKey: string;
+  let options;
+  let targetUserId = userId;
 
   if (action === 'register') {
-    // Generate registration challenge
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required for registration' },
+        { status: 400 }
+      );
+    }
+
     const user = await prisma.user.findUnique({
-      where: { id: userId! }
+      where: { id: userId }
     });
 
     if (!user) {
@@ -380,40 +302,30 @@ async function handleAuthenticationOptions(
       );
     }
 
-    options = await generateRegistrationOptions({
-      rpName: 'Thanawy Educational Platform',
-      rpID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
-      userName: user.email,
-      userDisplayName: user.name || user.email,
-      attestationType: 'none',
-      authenticatorSelection: {
-        residentKey: 'preferred',
-        userVerification: 'preferred',
-      },
+    options = webAuthnService.generateRegistrationOptions({
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined,
     });
-
-    challengeKey = `register-${userId}`;
   } else {
-    // Generate authentication challenge
-    // For now, we'll allow any registered user, but in production you might want to specify which user
-    options = await generateAuthenticationOptions({
-      rpID: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname,
-      userVerification: 'preferred',
-    });
-
-    challengeKey = `auth-${Date.now()}`;
+    // Login options
+    options = webAuthnService.generateAuthenticationOptions();
   }
 
   // Store challenge in database
-  await BiometricChallengeService.createChallenge(
-    (options as any).challenge,
-    action === 'login' ? 'authenticate' : action,
-    action === 'register' ? userId : undefined,
-    5 // 5 minutes
-  );
+  const challenge = await prisma.biometricChallenge.create({
+    data: {
+      id: crypto.randomUUID(),
+      challenge: options.challenge,
+      type: action === 'login' ? 'authenticate' : 'register',
+      userId: targetUserId,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), // 5 minutes
+    }
+  });
 
   return NextResponse.json({
     success: true,
-    options
+    options,
+    challenge: challenge.id // Return challenge ID if client needs it
   });
 }

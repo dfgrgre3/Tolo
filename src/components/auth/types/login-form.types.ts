@@ -9,7 +9,7 @@ export interface LoginFormData {
 }
 
 export interface LoginResponse {
-  token: string;
+  token?: string;
   user: {
     id: string;
     email: string;

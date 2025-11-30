@@ -8,7 +8,7 @@ import { getRedirectPath, clearStoredRedirect } from '../utils/login-form.utils'
 interface AlternativeLoginMethodsProps {
   isLoading: boolean;
   isGoogleOAuthEnabled: boolean;
-  onBiometricLogin?: () => void;
+  onPasskeyLogin?: () => void;
   onTestAccountLogin?: () => void;
   mode?: 'login' | 'register';
 }
@@ -16,7 +16,7 @@ interface AlternativeLoginMethodsProps {
 export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = ({
   isLoading,
   isGoogleOAuthEnabled,
-  onBiometricLogin,
+  onPasskeyLogin,
   onTestAccountLogin,
   mode = 'login',
 }) => {
@@ -61,9 +61,9 @@ export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = (
         transition={{ delay: 0.6 }}
         className="grid gap-3"
       >
-        {/* Biometric Login - Only for Login mode */}
+        {/* Passkey Login - Only for Login mode */}
         <AnimatePresence>
-          {mode === 'login' && onBiometricLogin && safeWindow((w) => !!w.PublicKeyCredential, false) && (
+          {mode === 'login' && onPasskeyLogin && safeWindow((w) => !!w.PublicKeyCredential, false) && (
             <motion.button
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -75,13 +75,13 @@ export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = (
               }}
               whileTap={{ scale: 0.98 }}
               type="button"
-              onClick={onBiometricLogin}
+              onClick={onPasskeyLogin}
               disabled={isLoading}
               className="flex items-center justify-center gap-3 rounded-xl bg-white/10 px-6 py-3 text-sm font-medium text-white transition hover:bg-white/20 disabled:opacity-50"
-              aria-label="تسجيل الدخول باستخدام البصمة"
+              aria-label="تسجيل الدخول باستخدام مفتاح مرور"
             >
               <Fingerprint className="h-5 w-5" aria-hidden="true" />
-              تسجيل الدخول بالبصمة
+              تسجيل الدخول بمفتاح مرور
             </motion.button>
           )}
         </AnimatePresence>

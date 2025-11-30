@@ -176,7 +176,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
                 <p className="font-semibold mb-1">خطوات الإعداد:</p>
                 <ol className="list-decimal list-inside space-y-1 text-xs">
                   <li>قم بتثبيت تطبيق مصادقة على هاتفك</li>
-                  <li>انقر على "بدء الإعداد" لإنشاء QR Code</li>
+                  <li>انقر على &ldquo;بدء الإعداد&rdquo; لإنشاء QR Code</li>
                   <li>امسح QR Code باستخدام التطبيق</li>
                   <li>أدخل رمز التحقق من التطبيق</li>
                 </ol>

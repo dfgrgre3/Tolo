@@ -46,7 +46,7 @@ async function main() {
       smsNotifications: false,
       twoFactorEnabled: false,
       biometricEnabled: false,
-      biometricCredentials: [],
+
       totalXP: 100,
       level: 2,
       currentStreak: 5,

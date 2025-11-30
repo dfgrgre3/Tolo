@@ -408,7 +408,7 @@ ${redirectUriForTokenExchange}
               smsNotifications: false,
               twoFactorEnabled: false,
               biometricEnabled: false,
-              biometricCredentials: [], // JSON array - will be converted to Json type
+
               // Gamification defaults
               totalXP: 0,
               level: 1,

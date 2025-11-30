@@ -24,6 +24,7 @@
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
 import { getSessionSyncManager } from './session-sync';
+import { createAuthFetchInterceptor } from '@/lib/token-refresh-interceptor';
 
 export interface AuthState {
   user: any | null;
@@ -54,6 +55,7 @@ class UnifiedAuthManager extends EventEmitter {
   private activityTimer: NodeJS.Timeout | null = null;
   private syncChannel: BroadcastChannel | null = null;
   private sessionSync: ReturnType<typeof getSessionSyncManager> | null = null;
+  private interceptorCleanup: (() => void) | null = null;
   private isInitialized = false;
 
   constructor() {
@@ -107,6 +109,9 @@ class UnifiedAuthManager extends EventEmitter {
 
     // إعداد مراقبة الاتصال
     this.setupConnectionMonitoring();
+
+    // إعداد Interceptor لتحديث التوكن تلقائياً عند 401
+    this.interceptorCleanup = createAuthFetchInterceptor();
 
     // استعادة الحالة من localStorage
     this.restoreState();
@@ -244,37 +249,48 @@ class UnifiedAuthManager extends EventEmitter {
     try {
       // التحقق من حالة المصادقة من الخادم
       // التوكن في httpOnly cookie - لا حاجة لإرسال Authorization header
-      const response = await fetch('/api/auth/me', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // مهم: إرسال cookies
-        cache: 'no-store',
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        const isJson = contentType?.includes('application/json');
-        
-        if (isJson) {
-          const data = await response.json();
-          if (data.user) {
-            // تحديث الحالة من الخادم
-            this.setState({
-              user: data.user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            return;
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // مهم: إرسال cookies
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          const isJson = contentType?.includes('application/json');
+          
+          if (isJson) {
+            const data = await response.json();
+            if (data.user) {
+              // تحديث الحالة من الخادم
+              this.setState({
+                user: data.user,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+              return;
+            }
           }
+        } else if (response.status === 401) {
+          // انتهت الجلسة - مسح الحالة
+          this.handleSessionExpired();
+        } else if (response.status >= 500) {
+          // خطأ في الخادم - لا نغير الحالة
+          logger.warn('Server error during sync:', response.status);
         }
-      } else if (response.status === 401) {
-        // انتهت الجلسة - مسح الحالة
-        this.handleSessionExpired();
-      } else if (response.status >= 500) {
-        // خطأ في الخادم - لا نغير الحالة
-        logger.warn('Server error during sync:', response.status);
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
       }
     } catch (error) {
       // خطأ في الاتصال - لا نغير الحالة المحلية
@@ -587,44 +603,55 @@ class UnifiedAuthManager extends EventEmitter {
     try {
       // التحقق من الخادم دائماً
       // التوكن في httpOnly cookie - يتم إرساله تلقائياً
-      const response = await fetch('/api/auth/me', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // مهم: إرسال cookies
-        cache: 'no-store',
-      });
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-      if (response.ok) {
-        const contentType = response.headers.get('content-type');
-        const isJson = contentType?.includes('application/json');
-        
-        if (isJson) {
-          const data = await response.json();
-          if (data.user) {
-            // تحديث الحالة من الخادم
-            this.setState({
-              user: data.user,
-              isAuthenticated: true,
-              isLoading: false,
-            });
-            return true;
+      try {
+        const response = await fetch('/api/auth/me', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include', // مهم: إرسال cookies
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
+
+        if (response.ok) {
+          const contentType = response.headers.get('content-type');
+          const isJson = contentType?.includes('application/json');
+          
+          if (isJson) {
+            const data = await response.json();
+            if (data.user) {
+              // تحديث الحالة من الخادم
+              this.setState({
+                user: data.user,
+                isAuthenticated: true,
+                isLoading: false,
+              });
+              return true;
+            }
           }
+        } else if (response.status === 401) {
+          // انتهت الجلسة - مسح الحالة
+          this.handleSessionExpired();
+          return false;
+        } else if (response.status >= 500) {
+          // خطأ في الخادم - نعيد الحالة المحلية
+          logger.warn('Server error during auth check:', response.status);
+          return this.state.isAuthenticated;
         }
-      } else if (response.status === 401) {
-        // انتهت الجلسة - مسح الحالة
+
+        // حالة أخرى - نمسح الحالة
         this.handleSessionExpired();
         return false;
-      } else if (response.status >= 500) {
-        // خطأ في الخادم - نعيد الحالة المحلية
-        logger.warn('Server error during auth check:', response.status);
-        return this.state.isAuthenticated;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        throw error;
       }
-
-      // حالة أخرى - نمسح الحالة
-      this.handleSessionExpired();
-      return false;
     } catch (error) {
       logger.warn('Auth check failed:', error);
       // في حالة الخطأ (مثل انقطاع الشبكة)، نعيد الحالة المحفوظة
@@ -647,6 +674,11 @@ class UnifiedAuthManager extends EventEmitter {
     if (this.syncChannel) {
       this.syncChannel.close();
       this.syncChannel = null;
+    }
+
+    if (this.interceptorCleanup) {
+      this.interceptorCleanup();
+      this.interceptorCleanup = null;
     }
 
     this.removeAllListeners();

@@ -8,29 +8,49 @@
 -- ============================================
 
 -- User table indexes
-CREATE INDEX IF NOT EXISTS "User_username_idx" ON "User"("username") WHERE "username" IS NOT NULL;
-CREATE INDEX IF NOT EXISTS "User_emailVerified_idx" ON "User"("emailVerified") WHERE "emailVerified" = true;
-CREATE INDEX IF NOT EXISTS "User_lastLogin_idx" ON "User"("lastLogin") WHERE "lastLogin" IS NOT NULL;
-CREATE INDEX IF NOT EXISTS "User_twoFactorEnabled_idx" ON "User"("twoFactorEnabled") WHERE "twoFactorEnabled" = true;
-CREATE INDEX IF NOT EXISTS "User_level_idx" ON "User"("level");
-CREATE INDEX IF NOT EXISTS "User_totalXP_idx" ON "User"("totalXP");
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'User') THEN
+        CREATE INDEX IF NOT EXISTS "User_username_idx" ON "User"("username") WHERE "username" IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS "User_emailVerified_idx" ON "User"("emailVerified") WHERE "emailVerified" = true;
+        CREATE INDEX IF NOT EXISTS "User_lastLogin_idx" ON "User"("lastLogin") WHERE "lastLogin" IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS "User_twoFactorEnabled_idx" ON "User"("twoFactorEnabled") WHERE "twoFactorEnabled" = true;
+        CREATE INDEX IF NOT EXISTS "User_level_idx" ON "User"("level");
+        CREATE INDEX IF NOT EXISTS "User_totalXP_idx" ON "User"("totalXP");
+    END IF;
+END $$;
 
 -- SubjectEnrollment indexes
-CREATE INDEX IF NOT EXISTS "SubjectEnrollment_userId_subject_idx" ON "SubjectEnrollment"("userId", "subject");
-CREATE INDEX IF NOT EXISTS "SubjectEnrollment_subject_idx" ON "SubjectEnrollment"("subject");
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'SubjectEnrollment') THEN
+        CREATE INDEX IF NOT EXISTS "SubjectEnrollment_userId_subject_idx" ON "SubjectEnrollment"("userId", "subject");
+        CREATE INDEX IF NOT EXISTS "SubjectEnrollment_subject_idx" ON "SubjectEnrollment"("subject");
+    END IF;
+END $$;
 
 -- StudySession indexes
-CREATE INDEX IF NOT EXISTS "StudySession_userId_subject_idx" ON "StudySession"("userId", "subject");
-CREATE INDEX IF NOT EXISTS "StudySession_subject_idx" ON "StudySession"("subject");
-CREATE INDEX IF NOT EXISTS "StudySession_focusScore_idx" ON "StudySession"("focusScore") WHERE "focusScore" > 0;
-CREATE INDEX IF NOT EXISTS "StudySession_userId_createdAt_idx" ON "StudySession"("userId", "createdAt");
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'StudySession') THEN
+        CREATE INDEX IF NOT EXISTS "StudySession_userId_subject_idx" ON "StudySession"("userId", "subject");
+        CREATE INDEX IF NOT EXISTS "StudySession_subject_idx" ON "StudySession"("subject");
+        CREATE INDEX IF NOT EXISTS "StudySession_focusScore_idx" ON "StudySession"("focusScore") WHERE "focusScore" > 0;
+        CREATE INDEX IF NOT EXISTS "StudySession_userId_createdAt_idx" ON "StudySession"("userId", "createdAt");
+    END IF;
+END $$;
 
 -- Task indexes
-CREATE INDEX IF NOT EXISTS "Task_userId_status_idx" ON "Task"("userId", "status");
-CREATE INDEX IF NOT EXISTS "Task_userId_subject_idx" ON "Task"("userId", "subject") WHERE "subject" IS NOT NULL;
-CREATE INDEX IF NOT EXISTS "Task_status_idx" ON "Task"("status");
-CREATE INDEX IF NOT EXISTS "Task_userId_completedAt_idx" ON "Task"("userId", "completedAt") WHERE "completedAt" IS NOT NULL;
-CREATE INDEX IF NOT EXISTS "Task_userId_scheduledAt_idx" ON "Task"("userId", "scheduledAt") WHERE "scheduledAt" IS NOT NULL;
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Task') THEN
+        CREATE INDEX IF NOT EXISTS "Task_userId_status_idx" ON "Task"("userId", "status");
+        CREATE INDEX IF NOT EXISTS "Task_userId_subject_idx" ON "Task"("userId", "subject") WHERE "subject" IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS "Task_status_idx" ON "Task"("status");
+        CREATE INDEX IF NOT EXISTS "Task_userId_completedAt_idx" ON "Task"("userId", "completedAt") WHERE "completedAt" IS NOT NULL;
+        CREATE INDEX IF NOT EXISTS "Task_userId_scheduledAt_idx" ON "Task"("userId", "scheduledAt") WHERE "scheduledAt" IS NOT NULL;
+    END IF;
+END $$;
 
 -- Reminder indexes
 CREATE INDEX IF NOT EXISTS "Reminder_userId_createdAt_idx" ON "Reminder"("userId", "createdAt");
@@ -166,36 +186,128 @@ CREATE INDEX IF NOT EXISTS "Notification_isRead_createdAt_idx" ON "Notification"
 -- Note: PostgreSQL doesn't support CHECK constraints with functions easily, so we'll handle this in application
 
 -- Ensure score values are in valid range
-ALTER TABLE "ExamResult" ADD CONSTRAINT IF NOT EXISTS "ExamResult_score_check" CHECK ("score" >= 0 AND "score" <= 100);
-ALTER TABLE "ProgressSnapshot" ADD CONSTRAINT IF NOT EXISTS "ProgressSnapshot_gradeAverage_check" CHECK ("gradeAverage" IS NULL OR ("gradeAverage" >= 0 AND "gradeAverage" <= 100));
-ALTER TABLE "ProgressSnapshot" ADD CONSTRAINT IF NOT EXISTS "ProgressSnapshot_improvementRate_check" CHECK ("improvementRate" IS NULL OR "improvementRate" >= -100);
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ExamResult') 
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ExamResult_score_check') THEN
+        ALTER TABLE "ExamResult" ADD CONSTRAINT "ExamResult_score_check" CHECK ("score" >= 0 AND "score" <= 100);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ProgressSnapshot')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ProgressSnapshot_gradeAverage_check') THEN
+        ALTER TABLE "ProgressSnapshot" ADD CONSTRAINT "ProgressSnapshot_gradeAverage_check" CHECK ("gradeAverage" IS NULL OR ("gradeAverage" >= 0 AND "gradeAverage" <= 100));
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ProgressSnapshot')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ProgressSnapshot_improvementRate_check') THEN
+        ALTER TABLE "ProgressSnapshot" ADD CONSTRAINT "ProgressSnapshot_improvementRate_check" CHECK ("improvementRate" IS NULL OR "improvementRate" >= -100);
+    END IF;
+END $$;
 
 -- Ensure XP values are non-negative
-ALTER TABLE "User" ADD CONSTRAINT IF NOT EXISTS "User_totalXP_check" CHECK ("totalXP" >= 0);
-ALTER TABLE "User" ADD CONSTRAINT IF NOT EXISTS "User_level_check" CHECK ("level" >= 1);
-ALTER TABLE "User" ADD CONSTRAINT IF NOT EXISTS "User_currentStreak_check" CHECK ("currentStreak" >= 0);
-ALTER TABLE "User" ADD CONSTRAINT IF NOT EXISTS "User_longestStreak_check" CHECK ("longestStreak" >= 0);
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'User')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_totalXP_check') THEN
+        ALTER TABLE "User" ADD CONSTRAINT "User_totalXP_check" CHECK ("totalXP" >= 0);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'User')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_level_check') THEN
+        ALTER TABLE "User" ADD CONSTRAINT "User_level_check" CHECK ("level" >= 1);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'User')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_currentStreak_check') THEN
+        ALTER TABLE "User" ADD CONSTRAINT "User_currentStreak_check" CHECK ("currentStreak" >= 0);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'User')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'User_longestStreak_check') THEN
+        ALTER TABLE "User" ADD CONSTRAINT "User_longestStreak_check" CHECK ("longestStreak" >= 0);
+    END IF;
+END $$;
 
 -- Ensure duration values are positive
-ALTER TABLE "StudySession" ADD CONSTRAINT IF NOT EXISTS "StudySession_durationMin_check" CHECK ("durationMin" > 0);
-ALTER TABLE "StudySession" ADD CONSTRAINT IF NOT EXISTS "StudySession_focusScore_check" CHECK ("focusScore" >= 0 AND "focusScore" <= 100);
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'StudySession')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'StudySession_durationMin_check') THEN
+        ALTER TABLE "StudySession" ADD CONSTRAINT "StudySession_durationMin_check" CHECK ("durationMin" > 0);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'StudySession')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'StudySession_focusScore_check') THEN
+        ALTER TABLE "StudySession" ADD CONSTRAINT "StudySession_focusScore_check" CHECK ("focusScore" >= 0 AND "focusScore" <= 100);
+    END IF;
+END $$;
 
 -- Ensure dates are logical
-ALTER TABLE "StudySession" ADD CONSTRAINT IF NOT EXISTS "StudySession_time_check" CHECK ("endTime" > "startTime");
-ALTER TABLE "Task" ADD CONSTRAINT IF NOT EXISTS "Task_dueAt_check" CHECK ("dueAt" IS NULL OR "dueAt" >= "createdAt");
-ALTER TABLE "Task" ADD CONSTRAINT IF NOT EXISTS "Task_completedAt_check" CHECK ("completedAt" IS NULL OR "completedAt" >= "createdAt");
-ALTER TABLE "Session" ADD CONSTRAINT IF NOT EXISTS "Session_expiresAt_check" CHECK ("expiresAt" > "createdAt");
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'StudySession')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'StudySession_time_check') THEN
+        ALTER TABLE "StudySession" ADD CONSTRAINT "StudySession_time_check" CHECK ("endTime" > "startTime");
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Task')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Task_dueAt_check') THEN
+        ALTER TABLE "Task" ADD CONSTRAINT "Task_dueAt_check" CHECK ("dueAt" IS NULL OR "dueAt" >= "createdAt");
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Task')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Task_completedAt_check') THEN
+        ALTER TABLE "Task" ADD CONSTRAINT "Task_completedAt_check" CHECK ("completedAt" IS NULL OR "completedAt" >= "createdAt");
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Session')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Session_expiresAt_check') THEN
+        ALTER TABLE "Session" ADD CONSTRAINT "Session_expiresAt_check" CHECK ("expiresAt" > "createdAt");
+    END IF;
+END $$;
 
 -- Ensure rating values are in valid range
-ALTER TABLE "Book" ADD CONSTRAINT IF NOT EXISTS "Book_rating_check" CHECK ("rating" >= 0 AND "rating" <= 5);
-ALTER TABLE "Book" ADD CONSTRAINT IF NOT EXISTS "Book_views_check" CHECK ("views" >= 0);
-ALTER TABLE "Book" ADD CONSTRAINT IF NOT EXISTS "Book_downloads_check" CHECK ("downloads" >= 0);
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Book')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Book_rating_check') THEN
+        ALTER TABLE "Book" ADD CONSTRAINT "Book_rating_check" CHECK ("rating" >= 0 AND "rating" <= 5);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Book')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Book_views_check') THEN
+        ALTER TABLE "Book" ADD CONSTRAINT "Book_views_check" CHECK ("views" >= 0);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'Book')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'Book_downloads_check') THEN
+        ALTER TABLE "Book" ADD CONSTRAINT "Book_downloads_check" CHECK ("downloads" >= 0);
+    END IF;
+END $$;
 
 -- Ensure progress values are in valid range
-ALTER TABLE "ChallengeCompletion" ADD CONSTRAINT IF NOT EXISTS "ChallengeCompletion_progress_check" CHECK ("progress" >= 0 AND "progress" <= 100);
-ALTER TABLE "QuestProgress" ADD CONSTRAINT IF NOT EXISTS "QuestProgress_progress_check" CHECK ("progress" >= 0 AND "progress" <= 100);
-ALTER TABLE "ContentPreference" ADD CONSTRAINT IF NOT EXISTS "ContentPreference_weight_check" CHECK ("weight" > 0);
-ALTER TABLE "MlRecommendation" ADD CONSTRAINT IF NOT EXISTS "MlRecommendation_score_check" CHECK ("score" >= 0 AND "score" <= 1);
+DO $$ 
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ChallengeCompletion')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ChallengeCompletion_progress_check') THEN
+        ALTER TABLE "ChallengeCompletion" ADD CONSTRAINT "ChallengeCompletion_progress_check" CHECK ("progress" >= 0 AND "progress" <= 100);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'QuestProgress')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'QuestProgress_progress_check') THEN
+        ALTER TABLE "QuestProgress" ADD CONSTRAINT "QuestProgress_progress_check" CHECK ("progress" >= 0 AND "progress" <= 100);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'ContentPreference')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ContentPreference_weight_check') THEN
+        ALTER TABLE "ContentPreference" ADD CONSTRAINT "ContentPreference_weight_check" CHECK ("weight" > 0);
+    END IF;
+    
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'MlRecommendation')
+       AND NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'MlRecommendation_score_check') THEN
+        ALTER TABLE "MlRecommendation" ADD CONSTRAINT "MlRecommendation_score_check" CHECK ("score" >= 0 AND "score" <= 1);
+    END IF;
+END $$;
 
 -- ============================================
 -- 8. تحسين أنواع البيانات (VACUUM & ANALYZE)

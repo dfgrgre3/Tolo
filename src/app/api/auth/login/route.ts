@@ -2,8 +2,8 @@
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { logger } from '@/lib/logger';
 import { LoginService } from '@/lib/services/login-service';
-import { 
-  setAuthCookies, 
+import {
+  setAuthCookies,
   createStandardErrorResponse,
   parseRequestBody,
   addSecurityHeaders
@@ -34,7 +34,7 @@ import type { LoginResponse } from '@/types/api/auth';
  */
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  
+
   return opsWrapper(request, async (req) => {
     try {
       // Parse and validate request body using standardized helper
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         email?: string;
         password?: string;
         rememberMe?: boolean;
-        deviceFingerprint?: any;
+        deviceFingerprint?: Record<string, unknown>;
         captchaToken?: string;
       }>(req, {
         maxSize: 2048, // 2KB max (increased for device fingerprint)
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         ...body,
         email: normalizedEmail, // Use normalized email
       });
-      
+
       const timeoutPromise = new Promise<{ success: false; response: { error: string; code: string }; statusCode: number }>((resolve) => {
         setTimeout(() => {
           resolve({
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       });
 
       const result = await Promise.race([loginPromise, timeoutPromise]);
-      
+
       // Check if timeout occurred
       if (result && 'statusCode' in result && result.statusCode === 408) {
         logger.warn('Login request timeout', { email: normalizedEmail });
@@ -169,11 +169,11 @@ export async function POST(request: NextRequest) {
       if (result.success && 'token' in result.response) {
         const loginResponse = result.response as LoginResponse;
         const response = NextResponse.json(loginResponse, { status: result.statusCode });
-        
+
         // Set authentication cookies
         setAuthCookies(
           response,
-          loginResponse.token,
+          loginResponse.token!,
           loginResponse.refreshToken || '',
           body.rememberMe ?? false
         );

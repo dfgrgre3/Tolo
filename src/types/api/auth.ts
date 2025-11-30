@@ -41,7 +41,7 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   message?: string;
-  token: string;
+  token?: string;
   refreshToken?: string;
   sessionId?: string;
   user: User;
@@ -54,6 +54,8 @@ export interface LoginResponse {
   methods?: string[];
   reason?: string;
   debugCode?: string; // Only in development
+  tempToken?: string;
+  method?: 'email' | 'totp';
 }
 
 export interface LoginErrorResponse {

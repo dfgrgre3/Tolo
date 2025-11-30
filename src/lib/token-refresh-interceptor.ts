@@ -229,9 +229,6 @@ export function createAuthFetchInterceptor() {
   const originalFetch = window.fetch;
   
   window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
-    // Try to refresh token before request (token is in cookie, server handles it)
-    await refreshTokenIfNeeded();
-    
     // Ensure credentials are included for cookie-based auth
     if (!init) {
       init = { credentials: 'include' };

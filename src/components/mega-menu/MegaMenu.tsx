@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,27 @@ export function MegaMenu({
 }: MegaMenuComponentProps) {
 	const megaMenuRef = useRef<HTMLDivElement>(null);
 
+	const handleMouseEnter = useCallback(() => {
+		if (onOpen && !isOpen) {
+			onOpen();
+		}
+	}, [onOpen, isOpen]);
+
+	const handleClick = useCallback(() => {
+		if (isOpen) {
+			onClose();
+		} else if (onOpen) {
+			onOpen();
+		}
+	}, [isOpen, onClose, onOpen]);
+
+	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+		if (e.key === 'Enter' || e.key === ' ') {
+			e.preventDefault();
+			handleClick();
+		}
+	}, [handleClick]);
+
 	return (
 		<div className="relative group" ref={megaMenuRef} suppressHydrationWarning>
 			<Button
@@ -37,20 +58,14 @@ export function MegaMenu({
 					isOpen && "bg-primary/15 text-primary shadow-sm",
 					className
 				)}
-				onMouseEnter={() => {
-					if (onOpen && !isOpen) {
-						onOpen();
-					}
-				}}
-				onClick={() => {
-					if (isOpen) {
-						onClose();
-					} else if (onOpen) {
-						onOpen();
-					}
-				}}
+				onMouseEnter={handleMouseEnter}
+				onClick={handleClick}
+				onKeyDown={handleKeyDown}
 				data-mega-menu-trigger
 				suppressHydrationWarning
+				aria-expanded={isOpen}
+				aria-haspopup="dialog"
+				aria-label={`${label} - ${isOpen ? 'مفتوح' : 'مغلق'}`}
 			>
 				<span className="font-medium">{label}</span>
 				<ChevronDown
@@ -58,6 +73,7 @@ export function MegaMenu({
 						"h-4 w-4 transition-all duration-300",
 						isOpen && "rotate-180"
 					)}
+					aria-hidden="true"
 				/>
 				{isOpen && (
 					<motion.div
@@ -66,6 +82,7 @@ export function MegaMenu({
 						initial={false}
 						style={{ transform: 'none' }}
 						transition={{ type: "spring", stiffness: 380, damping: 30 }}
+						aria-hidden="true"
 					/>
 				)}
 			</Button>

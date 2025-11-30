@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         if (typeof token === 'string' && token.trim().length > 0) {
           const tokenParts = token.split('.');
           if (tokenParts.length === 3 && !tokenParts.some(part => part.length === 0)) {
-            const verifyPromise = authService.verifyToken(token);
+            const verifyPromise = authService.verifyTokenFromInput(token);
             const timeoutPromise = new Promise<{ isValid: false }>((resolve) => {
               setTimeout(() => resolve({ isValid: false }), 2000); // 2 second timeout
             });

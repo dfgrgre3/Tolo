@@ -98,7 +98,7 @@ export default function EnhancedLoginForm() {
   // Alternative login methods
   const {
     isLoading: isAltLoading,
-    handleBiometricLogin,
+    handlePasskeyLogin,
     handleTestAccountLogin,
   } = useAlternativeLogin();
 
@@ -236,7 +236,7 @@ export default function EnhancedLoginForm() {
         <AlternativeLoginMethods
           isLoading={isLoading || isAltLoading}
           isGoogleOAuthEnabled={isGoogleOAuthEnabled}
-          onBiometricLogin={handleBiometricLogin}
+          onPasskeyLogin={handlePasskeyLogin}
           onTestAccountLogin={handleTestAccountLogin}
         />
       </form>

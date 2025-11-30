@@ -90,41 +90,37 @@ export function useEnhancedAuth(): EnhancedAuthHook {
       throw new Error(passwordValidation.error || 'كلمة المرور غير صحيحة');
     }
 
-    try {
-      const response = await loginUser({
-        email: normalizedEmail,
-        password: credentials.password, // Don't trim password
-        rememberMe: credentials.rememberMe ?? false,
-      });
+    const response = await loginUser({
+      email: normalizedEmail,
+      password: credentials.password, // Don't trim password
+      rememberMe: credentials.rememberMe ?? false,
+    });
 
-      // If 2FA is required, return the challenge info
-      if (response.requiresTwoFactor) {
-        return {
-          requiresTwoFactor: true,
-          loginAttemptId: response.loginAttemptId,
-          expiresAt: response.expiresAt,
-          methods: response.methods,
-          debugCode: response.debugCode,
-        };
-      }
-
-      // If login is successful, use unified login
-      if (response.token && response.user) {
-        await unifiedLogin(
-          response.token,
-          response.user as User,
-          response.sessionId
-        );
-      }
-
+    // If 2FA is required, return the challenge info
+    if (response.requiresTwoFactor) {
       return {
-        token: response.token,
-        user: response.user as User,
-        sessionId: response.sessionId,
+        requiresTwoFactor: true,
+        loginAttemptId: response.loginAttemptId,
+        expiresAt: response.expiresAt,
+        methods: response.methods,
+        debugCode: response.debugCode,
       };
-    } catch (error) {
-      throw error;
     }
+
+    // If login is successful, use unified login
+    if (response.token && response.user) {
+      await unifiedLogin(
+        response.token,
+        response.user as User,
+        response.sessionId
+      );
+    }
+
+    return {
+      token: response.token,
+      user: response.user as User,
+      sessionId: response.sessionId,
+    };
   };
 
   const verifyTwoFactor = async (params: {
@@ -151,30 +147,26 @@ export function useEnhancedAuth(): EnhancedAuthHook {
     }
     const trimmedCode = codeValidation.normalized!;
 
-    try {
-      const response = await verifyTwoFactorAPI({
-        loginAttemptId: trimmedLoginAttemptId,
-        code: trimmedCode,
-        trustDevice: params.trustDevice ?? false,
-      });
+    const response = await verifyTwoFactorAPI({
+      loginAttemptId: trimmedLoginAttemptId,
+      code: trimmedCode,
+      trustDevice: params.trustDevice ?? false,
+    });
 
-      // Use unified login after successful 2FA verification
-      if (response.token && response.user) {
-        await unifiedLogin(
-          response.token,
-          response.user as User,
-          response.sessionId
-        );
-      }
-
-      return {
-        token: response.token,
-        user: response.user as User,
-        sessionId: response.sessionId,
-      };
-    } catch (error) {
-      throw error;
+    // Use unified login after successful 2FA verification
+    if (response.token && response.user) {
+      await unifiedLogin(
+        response.token,
+        response.user as User,
+        response.sessionId
+      );
     }
+
+    return {
+      token: response.token,
+      user: response.user as User,
+      sessionId: response.sessionId,
+    };
   };
 
   const resendTwoFactorCode = async (params: {

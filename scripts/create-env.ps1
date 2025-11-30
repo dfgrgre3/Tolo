@@ -1,7 +1,7 @@
 # Simple script to create .env file with PostgreSQL DATABASE_URL
 
 $envPath = ".env"
-$defaultDbUrl = "postgresql://postgres:password@localhost:5432/thanawy?schema=public"
+$defaultDbUrl = "postgresql://postgres:postgres@localhost:5432/thanawy?schema=public"
 
 if (Test-Path $envPath) {
     Write-Host "File .env already exists" -ForegroundColor Yellow

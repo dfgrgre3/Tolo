@@ -136,6 +136,7 @@ export default function SessionManagement({ userId }: SessionManagementProps) {
       const response = await fetch('/api/auth/sessions', {
         method: 'DELETE',
         credentials: 'include',
+        body: JSON.stringify({ revokeAll: true }), // Send body to indicate revoke all
       });
 
       if (response.ok) {

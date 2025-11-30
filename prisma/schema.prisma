@@ -26,6 +26,11 @@ model User {
   emailVerified            Boolean?  @default(false)
   lastLogin                DateTime?
   phone                    String?
+  phoneVerified            Boolean?  @default(false)
+  phoneVerificationOTP     String?
+  phoneVerificationExpires DateTime?
+  phoneVerificationAttempts Int      @default(0)
+  phoneVerificationLastSent DateTime?
   refreshToken             String?
   resetToken               String?
   resetTokenExpires        DateTime?
@@ -34,8 +39,13 @@ model User {
   recoveryCodes            String? // JSON array of hashed recovery codes
   smsNotifications         Boolean?  @default(false)
   biometricEnabled         Boolean   @default(false)
-  biometricCredentials     Json      @default("[]")
+  biometricCredentials     BiometricCredential[]
   role                     String?   @default("user")
+
+  // Password management fields
+  passwordChangedAt             DateTime?
+  passwordExpiresAt             DateTime?
+  passwordExpirationWarningSent Boolean   @default(false)
 
   // Gamification fields
   totalXP          Int @default(0)
@@ -86,6 +96,12 @@ model User {
   userInteractions   UserInteraction[]
   contentPreferences ContentPreference[]
   mlRecommendations  MlRecommendation[]
+
+  // Password management relations
+  passwordHistory PasswordHistory[]
+  
+  // Security questions for account recovery
+  securityQuestions SecurityQuestion[]
 }
 
 model SubjectEnrollment {
@@ -259,7 +275,7 @@ model Session {
   userId       String
   userAgent    String
   ip           String
-  deviceInfo   String
+  deviceInfo   String?
   createdAt    DateTime @default(now())
   expiresAt    DateTime
   lastAccessed DateTime @default(now())
@@ -276,7 +292,7 @@ model Session {
 
 model SecurityLog {
   id         String   @id @default(cuid())
-  userId     String
+  userId     String?
   eventType  String
   ip         String
   userAgent  String
@@ -284,7 +300,7 @@ model SecurityLog {
   location   String?
   metadata   String?
   createdAt  DateTime @default(now())
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([userId, eventType])
@@ -931,7 +947,6 @@ model ForumPost {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-
   author   User          @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   category ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   replies  ForumReply[]
@@ -1146,13 +1161,70 @@ model TestResult {
 model BiometricCredential {
   id           String   @id @default(cuid())
   userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   credentialId String   @unique
   publicKey    String
   counter      Int      @default(0)
   deviceType   String?
+  deviceName   String?
+  transports   String[]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   @@index([userId])
   @@index([credentialId])
+}
+
+// Password Management Models
+
+// Password History - Store last N password hashes to prevent reuse
+model PasswordHistory {
+  id           String   @id @default(cuid())
+  userId       String
+  passwordHash String // Hashed password using bcrypt
+  createdAt    DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+// Password Policy - Configurable password policies per role
+model PasswordPolicy {
+  id               String   @id @default(cuid())
+  role             String   @unique // 'user', 'admin', 'teacher', etc. or 'default' for all users
+  expirationDays   Int? // null means no expiration
+  warningDays      Json     @default("[7, 3, 1]") // Array of days to send warnings before expiration
+  minLength        Int      @default(8)
+  maxLength        Int      @default(128)
+  requireUppercase Boolean  @default(true)
+  requireLowercase Boolean  @default(true)
+  requireNumbers   Boolean  @default(true)
+  requireSpecial   Boolean  @default(true)
+  bannedPasswords  Json     @default("[]") // Array of banned/common passwords
+  historyCount     Int      @default(10) // Number of previous passwords to keep
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([role])
+  @@index([isActive])
+}
+
+// Security Questions for Account Recovery
+model SecurityQuestion {
+  id        String   @id @default(cuid())
+  userId    String
+  question  String   // The security question
+  answerHash String  // Hashed answer for security
+  order     Int      @default(0) // Order of questions
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([userId, order])
 }

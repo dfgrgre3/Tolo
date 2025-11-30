@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     // Log successful token refresh
     try {
-      const verification = await authService.verifyToken(tokens.accessToken);
+      const verification = await authService.verifyTokenFromInput(tokens.accessToken);
       if (verification.isValid && verification.user) {
         await logSecurityEventSafely(verification.user.id, 'token_refreshed', {
           ip,
