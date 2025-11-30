@@ -170,7 +170,7 @@ export class PasskeyManager {
         deviceName: deviceName || this.getDeviceName(),
         deviceType: publicKeyOptions.authenticatorSelection?.authenticatorAttachment || 'platform',
         createdAt: new Date(),
-        transports: Array.isArray(transports) ? transports.filter((t): t is AuthenticatorTransport => 
+        transports: Array.isArray(transports) ? transports.filter((t): t is AuthenticatorTransport =>
           ['usb', 'nfc', 'ble', 'internal', 'hybrid'].includes(t)
         ) : undefined,
       };
@@ -181,11 +181,14 @@ export class PasskeyManager {
       toast.success('تم تسجيل المفتاح بنجاح!');
       return passkeyCredential;
     } catch (error: any) {
+      if (error.name === 'NotAllowedError') {
+        logger.info('Passkey registration cancelled by user');
+        throw new Error('تم إلغاء عملية التسجيل');
+      }
+
       logger.error('Passkey registration failed:', error);
 
-      if (error.name === 'NotAllowedError') {
-        throw new Error('تم إلغاء عملية التسجيل');
-      } else if (error.name === 'InvalidStateError') {
+      if (error.name === 'InvalidStateError') {
         throw new Error('هذا المفتاح مسجل بالفعل');
       } else if (error.name === 'NotSupportedError') {
         throw new Error('المتصفح لا يدعم هذه الميزة');
@@ -253,11 +256,14 @@ export class PasskeyManager {
         userHandle,
       };
     } catch (error: any) {
+      if (error.name === 'NotAllowedError') {
+        logger.info('Passkey authentication cancelled by user');
+        throw new Error('تم إلغاء عملية المصادقة');
+      }
+
       logger.error('Passkey authentication failed:', error);
 
-      if (error.name === 'NotAllowedError') {
-        throw new Error('تم إلغاء عملية المصادقة');
-      } else if (error.name === 'NotSupportedError') {
+      if (error.name === 'NotSupportedError') {
         throw new Error('المتصفح لا يدعم هذه الميزة');
       }
 

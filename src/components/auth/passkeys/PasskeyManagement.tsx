@@ -77,7 +77,11 @@ export default function PasskeyManagement() {
       loadPasskeys();
       setShowAddDialog(false);
     } catch (error: any) {
-      toast.error(error.message || 'فشل إضافة المفتاح');
+      if (error.message === 'تم إلغاء عملية التسجيل') {
+        toast.info(error.message);
+      } else {
+        toast.error(error.message || 'فشل إضافة المفتاح');
+      }
     } finally {
       setIsLoading(false);
     }

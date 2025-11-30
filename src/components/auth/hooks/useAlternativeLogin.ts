@@ -37,11 +37,11 @@ export const useAlternativeLogin = () => {
 
       // 3. Verify the authentication response with the server
       const data = await verifyPasskeyAuthentication(authenticationResponse);
-      
+
       if (!data.token) {
         throw new Error('فشل الحصول على رمز الدخول');
       }
-      
+
       // 4. Handle successful login
       await unifiedLogin(data.token, {
         id: data.user.id,
@@ -51,7 +51,7 @@ export const useAlternativeLogin = () => {
         emailVerified: data.user.emailVerified || false,
         twoFactorEnabled: data.user.twoFactorEnabled || false,
       });
-      
+
       toast.success('تم تسجيل الدخول بنجاح!');
       const redirectPath = getRedirectPath();
       clearStoredRedirect();
@@ -59,6 +59,12 @@ export const useAlternativeLogin = () => {
 
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'فشلت المصادقة باستخدام مفتاح المرور';
+      // Check for cancellation error
+      if (errorMessage === 'تم إلغاء عملية المصادقة') {
+        toast.info('تم إلغاء عملية المصادقة');
+        return;
+      }
+
       toast.error(errorMessage);
       logger.error('Passkey login error:', error);
     } finally {

@@ -64,23 +64,23 @@ export function getSecureCookieOptions(options?: {
   maxAge?: number;
 } {
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   // Security: In production, secure MUST be true (no exceptions)
   // Only allow false in development if explicitly set via COOKIE_SECURE=false
-  const isSecure = isProduction 
+  const isSecure = isProduction
     ? true  // Always secure in production
     : (process.env.COOKIE_SECURE === 'true' || process.env.COOKIE_SECURE !== 'false');
-  
+
   // Security: Use 'strict' in production for maximum CSRF protection
   // Allow 'lax' only if explicitly needed (e.g., OAuth redirects) via options parameter
   // Can be overridden via COOKIE_SAME_SITE env variable for special cases
-  const defaultSameSite = isProduction 
+  const defaultSameSite = isProduction
     ? 'strict'  // Maximum security in production
     : 'lax';    // More permissive in development
-  
-  const sameSite = options?.sameSite || 
-                   (process.env.COOKIE_SAME_SITE as 'strict' | 'lax' | 'none') || 
-                   defaultSameSite;
+
+  const sameSite = options?.sameSite ||
+    (process.env.COOKIE_SAME_SITE as 'strict' | 'lax' | 'none') ||
+    defaultSameSite;
 
   // Security warning in production if secure is false (should never happen)
   if (isProduction && !isSecure) {
@@ -111,8 +111,8 @@ export function setAuthCookies(
   });
 
   response.cookies.set('refresh_token', refreshToken, {
-    ...getSecureCookieOptions({ 
-      maxAge: rememberMe ? REFRESH_TOKEN_MAX_AGE_REMEMBER : REFRESH_TOKEN_MAX_AGE_DEFAULT 
+    ...getSecureCookieOptions({
+      maxAge: rememberMe ? REFRESH_TOKEN_MAX_AGE_REMEMBER : REFRESH_TOKEN_MAX_AGE_DEFAULT
     }),
   });
 }
@@ -158,7 +158,7 @@ export function isConnectionError(error: unknown): boolean {
   const errorStack = error instanceof Error ? error.stack : '';
   const errorName = error instanceof Error ? error.name : '';
   const fullError = `${errorName} ${errorMessage} ${errorStack}`.toLowerCase();
-  
+
   // Connection-related keywords
   const connectionKeywords = [
     'connect',
@@ -178,7 +178,7 @@ export function isConnectionError(error: unknown): boolean {
     'socket hang up',
     'econnaborted',
   ];
-  
+
   // Database-related keywords
   const databaseKeywords = [
     'database',
@@ -190,12 +190,12 @@ export function isConnectionError(error: unknown): boolean {
     'cannot read properties',
     'undefined',
   ];
-  
+
   // Check if error message contains any connection keywords
   if (connectionKeywords.some(keyword => fullError.includes(keyword))) {
     return true;
   }
-  
+
   // Check if error message contains database keywords (but not data validation errors)
   if (databaseKeywords.some(keyword => fullError.includes(keyword))) {
     // Exclude data validation errors (P2000-P2009 except P2002)
@@ -204,7 +204,7 @@ export function isConnectionError(error: unknown): boolean {
       return true;
     }
   }
-  
+
   return false;
 }
 
@@ -215,7 +215,7 @@ export function getErrorCode(error: unknown): string {
   const errorMessage = error instanceof Error ? error.message : String(error);
   const errorStack = error instanceof Error ? error.stack : '';
   const fullError = `${errorMessage} ${errorStack}`.toLowerCase();
-  
+
   if (isConnectionError(error)) {
     return 'CONNECTION_ERROR';
   } else if (fullError.includes('unauthorized') || fullError.includes('invalid')) {
@@ -225,7 +225,7 @@ export function getErrorCode(error: unknown): string {
   } else if (fullError.includes('validation')) {
     return 'VALIDATION_ERROR';
   }
-  
+
   // Use SERVER_ERROR for server-side errors to match client expectations
   return 'SERVER_ERROR';
 }
@@ -236,12 +236,13 @@ export function getErrorCode(error: unknown): string {
  */
 export function createErrorResponse(
   error: unknown,
-  defaultMessage: string = 'حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.'
+  defaultMessage: string = 'حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.',
+  statusOverride?: number
 ): NextResponse {
   // Normalize error - handle empty objects and various error formats
   let errorMessage: string;
   let errorCode: string;
-  
+
   if (!error) {
     // No error provided
     errorMessage = defaultMessage;
@@ -256,9 +257,9 @@ export function createErrorResponse(
     errorCode = 'SERVER_ERROR';
   } else if (typeof error === 'object') {
     // Object error - check if it's empty
-    const errorObj = error as { error?: string; code?: string; message?: string; [key: string]: unknown };
+    const errorObj = error as { error?: string; code?: string; message?: string;[key: string]: unknown };
     const keys = Object.keys(errorObj);
-    
+
     if (keys.length === 0) {
       // Empty object
       errorMessage = defaultMessage;
@@ -277,22 +278,24 @@ export function createErrorResponse(
     errorMessage = String(error) || defaultMessage;
     errorCode = 'SERVER_ERROR';
   }
-  
+
   const isConnection = isConnectionError(error);
-  
+
   const userFriendlyMessage = isConnection
     ? 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.'
     : errorMessage;
-  
+
+  const status = statusOverride || (isConnection ? 503 : 500);
+
   const response = NextResponse.json(
     {
       error: userFriendlyMessage,
       code: errorCode,
       details: process.env.NODE_ENV === 'development' ? errorMessage : undefined,
     },
-    { status: isConnection ? 503 : 500 }
+    { status }
   );
-  
+
   return addSecurityHeaders(response);
 }
 
@@ -322,7 +325,7 @@ export function isValidEmail(email: string): boolean {
   if (!email || typeof email !== 'string') {
     return false;
   }
-  
+
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(email.trim());
 }
@@ -334,7 +337,7 @@ export function sanitizeInput(input: string): string {
   if (typeof input !== 'string') {
     return '';
   }
-  
+
   return input
     .trim()
     .replace(/[<>]/g, '') // Remove potential HTML tags
@@ -360,7 +363,7 @@ export function isTrustedRequest(request: Request): boolean {
     const origin = request.headers.get('origin');
     const referer = request.headers.get('referer');
     const allowedOrigin = process.env.NEXT_PUBLIC_APP_URL || '';
-    
+
     // Allow requests from same origin or trusted domains
     if (origin && allowedOrigin) {
       try {
@@ -372,10 +375,10 @@ export function isTrustedRequest(request: Request): boolean {
         return origin.includes(allowedOrigin);
       }
     }
-    
+
     return !origin || origin.includes(allowedOrigin);
   }
-  
+
   // In development, allow all requests
   return true;
 }
@@ -397,7 +400,7 @@ export function normalizeEmail(email: string): string {
   if (!email || typeof email !== 'string') {
     return '';
   }
-  
+
   return email.trim().toLowerCase();
 }
 
@@ -408,13 +411,13 @@ export function isStrongPassword(password: string): boolean {
   if (!password || password.length < 8 || password.length > 128) {
     return false;
   }
-  
+
   // Check for at least one uppercase, lowercase, number, and special char
   const hasUpperCase = /[A-Z]/.test(password);
   const hasLowerCase = /[a-z]/.test(password);
   const hasNumber = /[0-9]/.test(password);
   const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
-  
+
   return hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
 }
 
@@ -428,7 +431,7 @@ export function sanitizeString(
   if (typeof input !== 'string') {
     return '';
   }
-  
+
   return input
     .trim()
     .replace(/[<>]/g, '') // Remove potential HTML tags
@@ -480,11 +483,11 @@ export function extractRequestMetadata(request: NextRequest): {
     const { authService } = require('@/lib/auth-service');
     const ip = authService.getClientIP(request) || 'unknown';
     const userAgent = authService.getUserAgent(request) || 'unknown';
-    
+
     // Sanitize and limit length
     const sanitizedIP = typeof ip === 'string' ? ip.trim().slice(0, 100) : 'unknown';
     const sanitizedUserAgent = typeof userAgent === 'string' ? userAgent.trim().slice(0, 500) : 'unknown';
-    
+
     return {
       ip: sanitizedIP,
       userAgent: sanitizedUserAgent,
@@ -495,11 +498,11 @@ export function extractRequestMetadata(request: NextRequest): {
     logger.warn('Error extracting request metadata with authService, using fallback:', error);
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
-    
+
     // Sanitize and limit length
     const sanitizedIP = typeof ip === 'string' ? ip.trim().slice(0, 100) : 'unknown';
     const sanitizedUserAgent = typeof userAgent === 'string' ? userAgent.trim().slice(0, 500) : 'unknown';
-    
+
     return {
       ip: sanitizedIP,
       userAgent: sanitizedUserAgent,
@@ -539,18 +542,22 @@ export async function parseRequestBody<T = unknown>(
   const validMaxSize = Math.max(1, Math.min(maxSize, 10 * 1024 * 1024)); // 1 byte to 10MB
 
   const contentLength = request.headers.get('content-length');
-  
+
   if (required && (contentLength === '0' || !contentLength)) {
-    return {
-      success: false,
-      error: NextResponse.json(
-        {
-          error: 'الطلب فارغ. يرجى إدخال البيانات المطلوبة.',
-          code: 'EMPTY_REQUEST_BODY',
-        },
-        { status: 400 }
-      ),
-    };
+    // If required but content-length is 0 or missing, we still try to read text to be sure,
+    // unless content-length is explicitly '0'.
+    if (contentLength === '0') {
+      return {
+        success: false,
+        error: NextResponse.json(
+          {
+            error: 'الطلب فارغ. يرجى إدخال البيانات المطلوبة.',
+            code: 'EMPTY_REQUEST_BODY',
+          },
+          { status: 400 }
+        ),
+      };
+    }
   }
 
   if (contentLength) {
@@ -583,24 +590,88 @@ export async function parseRequestBody<T = unknown>(
   }
 
   try {
-    // Add timeout protection for JSON parsing
-    const jsonPromise = request.json() as Promise<T>;
-    const timeoutPromise = new Promise<never>((resolve, reject) => {
+    // Add timeout protection for body reading
+    const textPromise = request.text();
+    const timeoutPromise = new Promise<string>((_, reject) => {
       setTimeout(() => {
-        reject(new Error('Request body parsing timeout'));
+        reject(new Error('Request body reading timeout'));
       }, 5000); // 5 second timeout
     });
 
-    const data = await Promise.race([jsonPromise, timeoutPromise]);
-    return { success: true, data };
-  } catch (jsonError) {
-    logger.error('Error parsing request body:', jsonError);
+    const text = await Promise.race([textPromise, timeoutPromise]);
+
+    // Check if empty
+    if (!text || text.trim().length === 0) {
+      if (required) {
+        return {
+          success: false,
+          error: NextResponse.json(
+            {
+              error: 'الطلب فارغ. يرجى إدخال البيانات المطلوبة.',
+              code: 'EMPTY_REQUEST_BODY',
+            },
+            { status: 400 }
+          ),
+        };
+      }
+      // Return empty object if not required
+      return { success: true, data: {} as T };
+    }
+
+    // Validate actual size
+    if (text.length > validMaxSize) {
+      return {
+        success: false,
+        error: NextResponse.json(
+          {
+            error: 'حجم الطلب كبير جداً.',
+            code: 'REQUEST_TOO_LARGE',
+            maxSize: validMaxSize,
+          },
+          { status: 413 }
+        ),
+      };
+    }
+
+    // Check for suspicious body content (e.g. [object ReadableStream])
+    if (text.startsWith('[object ') && text.endsWith(']')) {
+      logger.warn('Suspicious request body detected:', text);
+      return {
+        success: false,
+        error: NextResponse.json(
+          {
+            error: 'صيغة الطلب غير صالحة.',
+            code: 'INVALID_BODY_FORMAT',
+          },
+          { status: 400 }
+        ),
+      };
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return { success: true, data };
+    } catch (parseError) {
+      logger.error('Error parsing JSON body:', parseError);
+      return {
+        success: false,
+        error: NextResponse.json(
+          {
+            error: 'بيانات الطلب غير صحيحة (JSON غير صالح).',
+            code: 'INVALID_JSON',
+          },
+          { status: 400 }
+        ),
+      };
+    }
+  } catch (error) {
+    logger.error('Error reading request body:', error);
     return {
       success: false,
       error: NextResponse.json(
         {
-          error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.',
-          code: 'INVALID_REQUEST_BODY',
+          error: 'حدث خطأ أثناء قراءة بيانات الطلب.',
+          code: 'BODY_READ_ERROR',
         },
         { status: 400 }
       ),
@@ -616,7 +687,7 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('X-Frame-Options', 'DENY');
   response.headers.set('X-XSS-Protection', '1; mode=block');
-  
+
   // Add CSP header in production
   if (process.env.NODE_ENV === 'production') {
     response.headers.set(
@@ -624,7 +695,7 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
       "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
     );
   }
-  
+
   return response;
 }
 
@@ -636,12 +707,12 @@ export function createSuccessResponse<T = unknown>(
   message?: string,
   status: number = 200
 ): NextResponse {
-  const response: { success?: boolean; message?: string; [key: string]: unknown } = {};
-  
+  const response: { success?: boolean; message?: string;[key: string]: unknown } = {};
+
   if (message) {
     response.message = message;
   }
-  
+
   // If data is already an object, merge it; otherwise set as 'data'
   if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
     Object.assign(response, data);
@@ -665,19 +736,7 @@ export function createStandardErrorResponse(
   defaultMessage: string = 'حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.',
   status: number = 500
 ): NextResponse {
-  const errorResponse = createErrorResponse(error, defaultMessage);
-  
-  // Add security headers to error responses
-  addSecurityHeaders(errorResponse);
-  
-  // Update status if provided
-  if (status !== 500) {
-    const body = JSON.parse(errorResponse.body?.toString() || '{}');
-    const response = NextResponse.json(body, { status });
-    return addSecurityHeaders(response);
-  }
-  
-  return errorResponse;
+  return createErrorResponse(error, defaultMessage, status);
 }
 
 /**
@@ -778,7 +837,7 @@ export async function logSecurityEventSafely(
   }
 
   // Sanitize metadata
-  const sanitizedMetadata: { ip?: string; userAgent?: string; [key: string]: unknown } = {};
+  const sanitizedMetadata: { ip?: string; userAgent?: string;[key: string]: unknown } = {};
   if (metadata.ip && typeof metadata.ip === 'string') {
     sanitizedMetadata.ip = metadata.ip.trim().slice(0, 100);
   }
@@ -801,7 +860,7 @@ export async function logSecurityEventSafely(
 
   try {
     const { authService } = require('@/lib/auth-service');
-    
+
     // Add timeout protection
     const logPromise = authService.logSecurityEvent(
       userId,
@@ -812,7 +871,7 @@ export async function logSecurityEventSafely(
         ...sanitizedMetadata,
       }
     );
-    
+
     const timeoutPromise = new Promise<void>((resolve) => {
       setTimeout(() => {
         logger.warn('Security event logging timeout');

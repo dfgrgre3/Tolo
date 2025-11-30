@@ -150,9 +150,9 @@ export async function refreshToken(): Promise<string | null> {
 
     const contentType = response.headers.get('content-type');
     const isJson = contentType?.includes('application/json') ?? false;
-    
+
     const text = await response.text();
-    
+
     if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
       if (process.env.NODE_ENV === 'development') {
         logger.warn(
@@ -167,19 +167,6 @@ export async function refreshToken(): Promise<string | null> {
       return null;
     }
 
-    if (!response.ok) {
-      if (isJson) {
-        try {
-          const errorData = JSON.parse(text);
-          logger.error('Token refresh failed:', errorData);
-        } catch {
-          // Ignore parsing errors
-        }
-      }
-      clearAuthState();
-      return null;
-    }
-    
     let data;
     try {
       data = JSON.parse(text);

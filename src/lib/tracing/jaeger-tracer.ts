@@ -19,7 +19,7 @@ import { PrismaInstrumentation } from '@prisma/instrumentation';
 import { logger } from '@/lib/logger';
 
 // متغيرات التكوين
-const JAEGER_ENABLED = process.env.JAEGER_ENABLED !== 'false';
+const JAEGER_ENABLED = process.env.JAEGER_ENABLED === 'true';
 const JAEGER_AGENT_HOST = process.env.JAEGER_AGENT_HOST || 'jaeger';
 const JAEGER_AGENT_PORT = parseInt(process.env.JAEGER_AGENT_PORT || '6831', 10);
 const SERVICE_NAME = process.env.SERVICE_NAME || 'thanawy';
@@ -188,13 +188,13 @@ export function traceSync<T>(
 // Extract context from headers (للـ HTTP requests)
 export function extractContext(headers: Record<string, string | string[] | undefined>): any {
   const carrier: Record<string, string> = {};
-  
+
   for (const [key, value] of Object.entries(headers)) {
     if (value) {
       carrier[key] = Array.isArray(value) ? value[0] : value;
     }
   }
-  
+
   return propagation.extract(context.active(), carrier);
 }
 

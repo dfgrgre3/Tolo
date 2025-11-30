@@ -64,8 +64,8 @@ export interface DecodedToken {
 
 export class AuthService {
   private static instance: AuthService;
-  
-  private constructor() {}
+
+  private constructor() { }
 
   public static getInstance(): AuthService {
     if (!AuthService.instance) {
@@ -91,7 +91,7 @@ export class AuthService {
   async createTokens(user: AuthUser, sessionId?: string): Promise<{ accessToken: string; refreshToken: string }> {
     try {
       const { secret: jwtSecret } = getJWTSecretSafe();
-      
+
       const tokenPayload = {
         userId: user.id,
         email: user.email,
@@ -111,10 +111,10 @@ export class AuthService {
         .sign(jwtSecret);
 
       // Create refresh token with 30 days expiration
-      const refreshToken = await new SignJWT({ 
-        userId: user.id, 
+      const refreshToken = await new SignJWT({
+        userId: user.id,
         sessionId,
-        type: 'refresh' 
+        type: 'refresh'
       })
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
@@ -135,7 +135,14 @@ export class AuthService {
   async refreshAccessToken(refreshToken: string, userAgent: string, ip: string): Promise<TokenVerificationResult & { accessToken?: string; refreshToken?: string }> {
     try {
       const { secret: jwtSecret } = getJWTSecretSafe();
-      const { payload } = await jwtVerify(refreshToken, jwtSecret);
+
+      let payload;
+      try {
+        const result = await jwtVerify(refreshToken, jwtSecret);
+        payload = result.payload;
+      } catch (verifyError) {
+        return { isValid: false, error: 'Invalid or expired refresh token' };
+      }
 
       if (payload.type !== 'refresh') {
         return { isValid: false, error: 'Invalid token type' };
@@ -153,7 +160,13 @@ export class AuthService {
           where: { id: sessionId }
         });
 
-        if (!session || session.expiresAt < new Date()) {
+        if (!session) {
+          return { isValid: false, error: 'Session not found' };
+        }
+
+        if (session.expiresAt < new Date()) {
+          // Clean up expired session
+          await this.deleteSession(sessionId);
           return { isValid: false, error: 'Session expired' };
         }
       }
@@ -180,6 +193,9 @@ export class AuthService {
         data: { refreshToken: tokens.refreshToken }
       });
 
+      // Update last login time
+      await this.updateLastLogin(user.id);
+
       return {
         isValid: true,
         user: {
@@ -194,7 +210,8 @@ export class AuthService {
       };
 
     } catch (error) {
-      return { isValid: false, error: 'Invalid refresh token' };
+      logger.error('Refresh token error:', error instanceof Error ? error : new Error(String(error)));
+      return { isValid: false, error: 'Token refresh failed' };
     }
   }
 
@@ -206,7 +223,7 @@ export class AuthService {
     if (!dbClient) throw new Error('Database client not available');
 
     const expiresAt = new Date(Date.now() + SESSION_DURATION * 1000);
-    
+
     try {
       const session = await dbClient.session.create({
         data: {
@@ -240,7 +257,7 @@ export class AuthService {
     try {
       const dbClient = prisma;
       if (!dbClient) return;
-      
+
       await dbClient.user.update({
         where: { id: userId },
         data: { lastLogin: new Date() },
@@ -279,7 +296,7 @@ export class AuthService {
       await dbClient.session.delete({
         where: { id: sessionId }
       });
-      
+
       return true;
     } catch {
       return false;
@@ -372,7 +389,7 @@ export class AuthService {
     // Save secret to DB but don't enable 2FA yet
     const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
-    
+
     await dbClient.user.update({
       where: { id: userId },
       data: {
@@ -392,7 +409,7 @@ export class AuthService {
    */
   async generate2FATempToken(user: { id: string; email: string; name?: string; role?: string }): Promise<string> {
     const { secret: jwtSecret } = getJWTSecretSafe();
-    
+
     return new SignJWT({
       userId: user.id,
       email: user.email,
@@ -427,10 +444,10 @@ export class AuthService {
     }
 
     // Generate recovery codes
-    const recoveryCodes = Array.from({ length: 10 }, () => 
+    const recoveryCodes = Array.from({ length: 10 }, () =>
       Math.random().toString(36).substring(2, 10).toUpperCase()
     );
-    
+
     // Hash recovery codes
     const hashedRecoveryCodes = await Promise.all(
       recoveryCodes.map(code => bcrypt.hash(code, 10))
@@ -455,16 +472,16 @@ export class AuthService {
       // Verify temp token
       const { secret: jwtSecret } = getJWTSecretSafe();
       const { payload } = await jwtVerify(tempToken, jwtSecret);
-      
+
       if (payload.type !== '2fa_pending') {
         return { isValid: false, error: 'Invalid token type' };
       }
 
       const userId = payload.userId as string;
-      
+
       const dbClient = prisma;
       if (!dbClient) throw new Error('Database client not available');
-      
+
       const user = await dbClient.user.findUnique({
         where: { id: userId }
       });
@@ -475,7 +492,7 @@ export class AuthService {
 
       // Verify TOTP
       let isValid = authenticator.verify({ token: code, secret: user.twoFactorSecret });
-      
+
       // If TOTP is invalid, check recovery codes
       if (!isValid && user.recoveryCodes) {
         const recoveryCodes = JSON.parse(user.recoveryCodes as string) as string[];
@@ -500,10 +517,10 @@ export class AuthService {
       // Success - create session
       const safeUserAgent = (userAgent || 'unknown').substring(0, 500);
       const safeIp = (ip || 'unknown').substring(0, 45);
-      
+
       await this.updateLastLogin(user.id);
       const session = await this.createSession(user.id, safeUserAgent, safeIp);
-      
+
       const tokens = await this.createTokens({
         id: user.id,
         email: user.email,
@@ -544,7 +561,7 @@ export class AuthService {
         recoveryCodes: null
       }
     });
-    
+
     return true;
   }
 
@@ -558,7 +575,7 @@ export class AuthService {
     if (!dbClient) throw new Error('Database client not available');
 
     return dbClient.session.findMany({
-      where: { 
+      where: {
         userId,
         expiresAt: { gt: new Date() }
       },
@@ -595,7 +612,7 @@ export class AuthService {
     if (!dbClient) throw new Error('Database client not available');
 
     await dbClient.session.deleteMany({
-      where: { 
+      where: {
         userId,
         NOT: {
           id: currentSessionId
@@ -655,7 +672,7 @@ export class AuthService {
     try {
       const dbClient = prisma;
       if (!dbClient) return;
-      
+
       const logData: any = {
         id: uuidv4(),
         eventType: event,
@@ -701,7 +718,7 @@ export class AuthService {
       try {
         const { secret } = getJWTSecretSafe();
         const { payload } = await jwtVerify(input, secret);
-        
+
         const user: AuthUser = {
           id: payload.userId as string,
           email: payload.email as string,
@@ -714,7 +731,7 @@ export class AuthService {
         if (checkSession && sessionId) {
           const dbClient = prisma;
           if (!dbClient) throw new Error('Database client not available');
-          
+
           const session = await dbClient.session.findUnique({
             where: {
               id: sessionId,
@@ -747,7 +764,7 @@ export class AuthService {
     try {
       const { cookies } = await import('next/headers');
       const cookieStore = await cookies();
-      
+
       const token =
         cookieStore.get('access_token')?.value ||
         cookieStore.get('authToken')?.value ||
@@ -776,7 +793,7 @@ export class AuthService {
    */
   async login(email: string, password: string, userAgent: string, ip: string): Promise<TokenVerificationResult & { accessToken?: string; refreshToken?: string }> {
     const startTime = Date.now();
-    
+
     const emailValidation = validateEmail(email);
     if (!emailValidation.isValid) {
       return { isValid: false, error: emailValidation.error || 'البريد الإلكتروني غير صحيح' };
@@ -817,7 +834,7 @@ export class AuthService {
     // Check if 2FA is enabled
     if (user.twoFactorEnabled) {
       const { secret: jwtSecret } = getJWTSecretSafe();
-      
+
       // Create a temporary token for 2FA verification
       const tempToken = await new SignJWT({
         userId: user.id,
@@ -882,7 +899,7 @@ export class AuthService {
     const hashedPassword = await AuthService.hashPassword(password);
     const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
-    
+
     const user = await dbClient.user.create({
       data: {
         email,
@@ -927,10 +944,10 @@ export class AuthService {
    * Regenerate recovery codes
    */
   async regenerateRecoveryCodes(userId: string, count: number = 10): Promise<string[]> {
-    const recoveryCodes = Array.from({ length: count }, () => 
+    const recoveryCodes = Array.from({ length: count }, () =>
       Math.random().toString(36).substring(2, 10).toUpperCase()
     );
-    
+
     // Hash recovery codes
     const hashedRecoveryCodes = await Promise.all(
       recoveryCodes.map(code => bcrypt.hash(code, 10))

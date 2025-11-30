@@ -15,7 +15,7 @@ class RedisService {
 
   constructor() {
     this.clusterMode = process.env.REDIS_CLUSTER === 'true';
-    
+
     if (this.clusterMode) {
       this.client = new Cluster([
         { host: process.env.REDIS_HOST || 'localhost', port: 6379 }
@@ -42,6 +42,10 @@ class RedisService {
   // Connect to Redis
   async connectRedis() {
     try {
+      if (this.client.isOpen || this.client.isReady) {
+        return;
+      }
+
       if (this.clusterMode) {
         await this.client.connect();
       } else {
@@ -49,6 +53,10 @@ class RedisService {
       }
       logger.info('Connected to Redis');
     } catch (error) {
+      // Ignore "already connected" errors which can happen in race conditions
+      if ((error as any)?.message?.includes('already connecting') || (error as any)?.message?.includes('already connected')) {
+        return;
+      }
       logger.error('Failed to connect to Redis:', error);
     }
   }
@@ -80,10 +88,10 @@ class RedisService {
       const data = await this.client.get(key);
       const duration = Date.now() - start;
       const hit = data !== null;
-      
+
       // Record cache metric
       recordCacheMetric('get', duration, hit);
-      
+
       if (data) {
         const decompressedData = this.decompressData(data);
         return JSON.parse(decompressedData) as T;
@@ -102,7 +110,7 @@ class RedisService {
     try {
       const serializedValue = JSON.stringify(value);
       const compressedValue = this.compressData(serializedValue);
-      
+
       if (ttl) {
         await this.client.setEx(key, ttl, compressedValue);
       } else {
@@ -148,7 +156,7 @@ class RedisService {
       // Count hits (non-null values)
       const hitCount = results.filter((r: any) => r !== null).length;
       recordCacheMetric('mget', duration, hitCount > 0);
-      
+
       return results.map((result: any) => {
         if (result) {
           const decompressedData = this.decompressData(result);
@@ -191,7 +199,7 @@ class RedisService {
     const start = Date.now();
     try {
       if (keys.length === 0) return;
-      
+
       await this.client.del(keys);
       const duration = Date.now() - start;
       recordCacheMetric('mdel', duration, true);
@@ -232,7 +240,7 @@ class RedisService {
 
       // Store in cache with TTL
       await this.set(key, freshData, ttl);
-      
+
       return freshData;
     } catch (error) {
       logger.warn(`Cache error for key ${key}:`, error);
@@ -249,17 +257,17 @@ class RedisService {
         MATCH: pattern,
         COUNT: 100
       });
-      
+
       const keysToDelete: string[] = [];
       for await (const key of stream) {
         keysToDelete.push(key);
       }
-      
+
       // Delete all matching keys in a single operation
       if (keysToDelete.length > 0) {
         await this.mdel(keysToDelete);
       }
-      
+
       const duration = Date.now() - start;
       recordCacheMetric('invalidatePattern', duration, true);
     } catch (error) {
@@ -289,19 +297,19 @@ class RedisService {
       if (this.isConnected()) {
         return true;
       }
-      
+
       // Try to connect if not already connected
       if (!this.client.isOpen && !this.client.isReady) {
         await this.connectRedis();
       }
-      
+
       // Wait a bit for connection to be established
       let attempts = 0;
       while (!this.isConnected() && attempts < 5) {
         await new Promise(resolve => setTimeout(resolve, 100));
         attempts++;
       }
-      
+
       return this.isConnected();
     } catch (error) {
       logger.error('Failed to ensure Redis connection:', error);
@@ -312,7 +320,13 @@ class RedisService {
 }
 
 // Single instance shared across the app
-const redisService = new RedisService();
+const globalForRedis = global as unknown as { redisService: RedisService };
+
+const redisService = globalForRedis.redisService || new RedisService();
+
+if (process.env.NODE_ENV !== 'production') {
+  globalForRedis.redisService = redisService;
+}
 
 // Backward-compatible named export expected by legacy imports
 export const CacheService = redisService;

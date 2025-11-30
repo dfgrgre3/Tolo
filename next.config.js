@@ -10,10 +10,7 @@ const nextConfig = {
     ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
   },
 
-  // Skip ESLint during build (run separately in CI)
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
 
   // Optimize images
   images: {
@@ -49,11 +46,7 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
 
-  // Fix HMR module resolution issues
-  webpackDevMiddleware: {
-    // Improve HMR stability
-    writeToDisk: false,
-  },
+
 
   // Enable compression
   compress: true,
