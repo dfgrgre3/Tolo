@@ -65,7 +65,7 @@ const AchievementsLoader = () => (
     </div>
 );
 
-export function App() {
+export function AchievementsSection() {
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
@@ -363,4 +363,4 @@ export function App() {
   );
 }
 
-export default App;
+export default AchievementsSection;

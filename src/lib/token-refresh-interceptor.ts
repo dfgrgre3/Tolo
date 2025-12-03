@@ -1,75 +1,7 @@
 'use client';
 
-import { getTokenFromStorage, setAuthToken, clearAuthState } from './auth-client';
-
+import { clearAuthState } from './auth-client';
 import { logger } from '@/lib/logger';
-
-interface DecodedToken {
-  exp: number;
-  iat: number;
-  userId: string;
-  email: string;
-}
-
-/**
- * فك تشفير التوكن بدون مكتبة خارجية (فك تشفير بسيط للـ payload فقط)
- */
-function decodeTokenPayload(token: string): DecodedToken | null {
-  try {
-    // JWT format: header.payload.signature
-    const parts = token.split('.');
-    if (parts.length !== 3) return null;
-
-    // فك base64 للـ payload
-    const payload = parts[1];
-    const decoded = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
-
-    return decoded as DecodedToken;
-  } catch (error) {
-    logger.error('Error decoding token:', error);
-    return null;
-  }
-}
-
-/**
- * حساب الوقت المتبقي قبل انتهاء صلاحية التوكن (بالميلي ثانية)
- */
-function getTokenExpirationTime(token: string): number | null {
-  try {
-    const decoded = decodeTokenPayload(token);
-    if (!decoded || !decoded.exp) return null;
-
-    const expirationTime = decoded.exp * 1000; // Convert to milliseconds
-    return expirationTime;
-  } catch (error) {
-    logger.error('Error getting token expiration:', error);
-    return null;
-  }
-}
-
-/**
- * حساب الوقت المتبقي قبل انتهاء صلاحية التوكن
- */
-function getTimeUntilExpiration(token: string): number | null {
-  const expirationTime = getTokenExpirationTime(token);
-  if (!expirationTime) return null;
-
-  const now = Date.now();
-  const timeUntilExpiration = expirationTime - now;
-
-  return timeUntilExpiration;
-}
-
-/**
- * التحقق من صلاحية التوكن
- */
-export function isTokenExpiringSoon(token: string, bufferMinutes: number = 5): boolean {
-  const timeUntilExpiration = getTimeUntilExpiration(token);
-  if (!timeUntilExpiration) return true; // إذا فشل فك التشفير، اعتبره منتهي
-
-  const bufferMs = bufferMinutes * 60 * 1000;
-  return timeUntilExpiration <= bufferMs;
-}
 
 /**
  * تحديث التوكن تلقائياً
@@ -175,7 +107,7 @@ export function setupAutoTokenRefresh(
   onTokenRefreshed?: (token: string) => void,
   onRefreshFailed?: () => void,
   bufferMinutes: number = 5,
-  checkIntervalMinutes: number = 1
+  checkIntervalMinutes: number = 4 // Increase interval to reduce load, server handles expiration
 ): () => void {
   let intervalId: NodeJS.Timeout | null = null;
   let isRefreshing = false;

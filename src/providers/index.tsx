@@ -5,6 +5,7 @@ import { UnifiedAuthProvider } from '@/contexts/auth-context';
 import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/app/ClientLayoutProvider';
+import { ThemeProvider } from '@/components/theme-provider';
 
 type GlobalProvidersProps = {
   children: React.ReactNode;
@@ -28,15 +29,22 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
   return (
     <UnifiedAuthProvider>
       <ClientLayoutProvider>
-        <ToastProvider>
-          {mounted && isReady ? (
-            <WebSocketProvider>
-              {children}
-            </WebSocketProvider>
-          ) : (
-            <>{children}</>
-          )}
-        </ToastProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <ToastProvider>
+            {mounted && isReady ? (
+              <WebSocketProvider>
+                {children}
+              </WebSocketProvider>
+            ) : (
+              <>{children}</>
+            )}
+          </ToastProvider>
+        </ThemeProvider>
       </ClientLayoutProvider>
     </UnifiedAuthProvider>
   );

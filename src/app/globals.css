@@ -1,10 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
 
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind base;
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind components;
-/* stylelint-disable-next-line at-rule-no-unknown */
 @tailwind utilities;
 
 :root {
@@ -40,28 +37,6 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
-  
-  /* Spacing variables for consistent dimensions */
-  --spacing-xs: 0.25rem;
-  --spacing-sm: 0.5rem;
-  --spacing-md: 1rem;
-  --spacing-lg: 1.5rem;
-  --spacing-xl: 2rem;
-  --spacing-2xl: 3rem;
-  --spacing-3xl: 4rem;
-  
-  /* Container max-widths */
-  --container-sm: 640px;
-  --container-md: 768px;
-  --container-lg: 1024px;
-  --container-xl: 1280px;
-  --container-2xl: 1536px;
-  
-  /* Section spacing */
-  --section-spacing-sm: 2rem;
-  --section-spacing-md: 3rem;
-  --section-spacing-lg: 4rem;
-  --section-spacing-xl: 6rem;
 }
 
 .dark {
@@ -100,22 +75,15 @@
 
 @layer base {
   * {
-    border-color: var(--border);
+    @apply border-border;
   }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
   *:focus-visible {
     outline: 2px solid var(--ring);
-  }
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(200%);
+    outline-offset: 2px;
   }
 }

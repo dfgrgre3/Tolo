@@ -123,8 +123,20 @@ export function getCurrentUser(): User | null {
 export function clearAuthState(): void {
   authToken = null;
   currentUser = null;
-  removeTokenFromStorage();
-  removeUserFromStorage();
+
+  // Clean up legacy storage items
+  try {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('user');
+      // Also clean up any other potential legacy keys
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
+  } catch (e) {
+    // Ignore errors during cleanup
+    console.error('Error clearing auth state:', e);
+  }
 }
 
 // Check if user is authenticated (DEPRECATED - check server instead)
