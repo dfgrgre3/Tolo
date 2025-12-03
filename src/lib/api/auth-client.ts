@@ -56,10 +56,10 @@ function isOnline(): boolean {
  */
 function isNetworkError(error: unknown): boolean {
   if (!error) return false;
-  
+
   const errorMessage = (error as Error).message || String(error);
   const errorName = (error as Error).name || '';
-  
+
   return (
     errorName === 'TypeError' ||
     errorMessage.includes('Failed to fetch') ||
@@ -76,10 +76,10 @@ function isNetworkError(error: unknown): boolean {
  */
 function isTimeoutError(error: unknown): boolean {
   if (!error) return false;
-  
+
   const errorName = (error as Error).name || '';
   const errorMessage = (error as Error).message || String(error);
-  
+
   return (
     errorName === 'AbortError' ||
     errorMessage.includes('aborted') ||
@@ -102,11 +102,11 @@ function isRetryableError(error: unknown, status?: number): boolean {
   if (status && RETRYABLE_STATUS_CODES.includes(status)) {
     return true;
   }
-  
+
   if (isTimeoutError(error) || isNetworkError(error)) {
     return true;
   }
-  
+
   return false;
 }
 
@@ -137,7 +137,7 @@ async function apiFetch<T>(
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
-  
+
   // Add connection timeout for faster failure detection
   const connectionTimeoutId = setTimeout(() => {
     if (!controller.signal.aborted) {
@@ -168,20 +168,20 @@ async function apiFetch<T>(
     // Read response body once (can only be read once)
     let responseText = '';
     let responseData: unknown = null;
-    
+
     try {
       responseText = await response.text();
       if (responseText && responseText.trim().length > 0) {
         // Check if it's HTML (error page) - this takes priority
-        const isHtml = responseText.trim().startsWith('<!DOCTYPE html>') || 
-                       responseText.trim().startsWith('<html') ||
-                       responseText.trim().startsWith('<HTML');
-        
+        const isHtml = responseText.trim().startsWith('<!DOCTYPE html>') ||
+          responseText.trim().startsWith('<html') ||
+          responseText.trim().startsWith('<HTML');
+
         if (isHtml) {
           // This is HTML, not JSON - likely an error page from Next.js
           const status = response.status;
           let errorMessage = `خطأ في الخادم (${status})`;
-          
+
           if (status === 404) {
             errorMessage = 'مسار API غير موجود. يرجى التحقق من إعدادات الخادم.';
           } else if (status === 500) {
@@ -193,17 +193,17 @@ async function apiFetch<T>(
           } else if (status >= 500) {
             errorMessage = `خطأ في الخادم (${status}). يرجى المحاولة مرة أخرى لاحقاً.`;
           }
-          
+
           throw {
             error: errorMessage,
-            code: status === 404 ? 'NOT_FOUND' : 
-                  status === 429 ? 'RATE_LIMITED' : 
-                  status >= 500 ? 'SERVER_ERROR' : 
+            code: status === 404 ? 'NOT_FOUND' :
+              status === 429 ? 'RATE_LIMITED' :
+                status >= 500 ? 'SERVER_ERROR' :
                   'SERVER_RESPONSE_ERROR',
             status,
           };
         }
-        
+
         // Try to parse as JSON
         try {
           responseData = JSON.parse(responseText);
@@ -218,7 +218,7 @@ async function apiFetch<T>(
               status,
             };
           }
-          
+
           // Content-type says JSON but parsing failed
           const status = response.status;
           throw {
@@ -246,7 +246,7 @@ async function apiFetch<T>(
       if (readError && (readError as { error?: string; code?: string }).error) {
         throw readError;
       }
-      
+
       // Otherwise, create a generic error
       throw {
         error: 'فشل في قراءة استجابة الخادم',
@@ -259,16 +259,16 @@ async function apiFetch<T>(
     if (!response.ok) {
       // Check if error is retryable and we haven't exceeded max retries
       const isRetryable = isRetryableError(null, response.status);
-      
+
       if (isRetryable && retryCount < MAX_RETRIES) {
         // Exponential backoff: 1s, 2s, 4s
         const delay = RETRY_DELAY * Math.pow(2, retryCount);
         await sleep(delay);
-        
+
         // Retry the request
         return apiFetch<T>(endpoint, options, retryCount + 1);
       }
-      
+
       // Handle error response
       if (responseData && typeof responseData === 'object') {
         // Check if responseData is empty object
@@ -277,25 +277,25 @@ async function apiFetch<T>(
           // Empty object response - create proper error
           throw {
             error: `خطأ في الخادم: ${response.statusText || 'Unknown Error'} (${response.status})`,
-            code: response.status === 429 ? 'RATE_LIMITED' : 
-                  response.status === 404 ? 'NOT_FOUND' :
-                  response.status >= 500 ? 'SERVER_ERROR' : 
+            code: response.status === 429 ? 'RATE_LIMITED' :
+              response.status === 404 ? 'NOT_FOUND' :
+                response.status >= 500 ? 'SERVER_ERROR' :
                   'SERVER_RESPONSE_ERROR',
             status: response.status,
           };
         }
-        
+
         // Valid JSON error response
         const error: any = {
           ...responseData,
           status: response.status,
         };
-        
+
         // Ensure error has at least error message and code
         if (!error.error && !error.message) {
           error.error = `خطأ في الخادم: ${response.statusText || 'Unknown Error'} (${response.status})`;
         }
-        
+
         // Add specific error codes based on status if not present
         if (!error.code) {
           if (response.status === 401) {
@@ -312,23 +312,23 @@ async function apiFetch<T>(
             error.code = 'HTTP_ERROR';
           }
         }
-        
+
         throw error;
       } else {
         // Non-JSON or empty error response
         const statusMessage = response.statusText || 'Unknown Error';
         let errorMessage = `خطأ في الخادم: ${statusMessage} (${response.status})`;
-        
+
         if (responseText && responseText.trim().length > 0 && responseText.length < 200) {
           // Use text response if it's short enough
           errorMessage = responseText;
         }
-        
+
         throw {
           error: errorMessage,
-          code: response.status === 429 ? 'RATE_LIMITED' : 
-                response.status === 404 ? 'NOT_FOUND' :
-                response.status >= 500 ? 'SERVER_ERROR' : 
+          code: response.status === 429 ? 'RATE_LIMITED' :
+            response.status === 404 ? 'NOT_FOUND' :
+              response.status >= 500 ? 'SERVER_ERROR' :
                 'SERVER_RESPONSE_ERROR',
           status: response.status,
         };
@@ -339,7 +339,7 @@ async function apiFetch<T>(
     if (responseData !== null) {
       return responseData as T;
     }
-    
+
     // Empty successful response - for login endpoint, this is an error
     if (endpoint === '/login') {
       throw {
@@ -348,7 +348,7 @@ async function apiFetch<T>(
         status: response.status,
       };
     }
-    
+
     // For other endpoints, return empty object
     return {} as T;
   } catch (error: unknown) {
@@ -360,7 +360,7 @@ async function apiFetch<T>(
       // Exponential backoff: 1s, 2s, 4s
       const delay = RETRY_DELAY * Math.pow(2, retryCount);
       await sleep(delay);
-      
+
       // Retry the request
       return apiFetch<T>(endpoint, options, retryCount + 1);
     }
@@ -372,16 +372,16 @@ async function apiFetch<T>(
         code: 'UNEXPECTED_ERROR',
       };
     }
-    
+
     // If error already has the expected structure, normalize it
-    if (error && typeof error === 'object' && ((error as {error?: string}).error || (error as {code?: string}).code)) {
+    if (error && typeof error === 'object' && ((error as { error?: string }).error || (error as { code?: string }).code)) {
       // Ensure error message is present
       const normalizedError = {
-        error: (error as {error?: string; message?: string}).error || (error as {error?: string; message?: string}).message || 'حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.',
-        code: (error as {code?: string}).code || 'UNEXPECTED_ERROR',
-        ...((error as {status?: number}).status !== undefined && { status: (error as {status?: number}).status }),
-        ...((error as {retryAfterSeconds?: number}).retryAfterSeconds !== undefined && { retryAfterSeconds: (error as {retryAfterSeconds?: number}).retryAfterSeconds }),
-        ...((error as {requiresCaptcha?: boolean}).requiresCaptcha !== undefined && { requiresCaptcha: (error as {requiresCaptcha?: boolean}).requiresCaptcha }),
+        error: (error as { error?: string; message?: string }).error || (error as { error?: string; message?: string }).message || 'حدث خطأ أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.',
+        code: (error as { code?: string }).code || 'UNEXPECTED_ERROR',
+        ...((error as { status?: number }).status !== undefined && { status: (error as { status?: number }).status }),
+        ...((error as { retryAfterSeconds?: number }).retryAfterSeconds !== undefined && { retryAfterSeconds: (error as { retryAfterSeconds?: number }).retryAfterSeconds }),
+        ...((error as { requiresCaptcha?: boolean }).requiresCaptcha !== undefined && { requiresCaptcha: (error as { requiresCaptcha?: boolean }).requiresCaptcha }),
       };
       throw normalizedError;
     }
@@ -408,14 +408,14 @@ async function apiFetch<T>(
       errorMessage = error.message || errorMessage;
     } else if (typeof error === 'string') {
       errorMessage = error || errorMessage;
-    } else if ((error as {message?: string}).message) {
-      errorMessage = (error as {message: string}).message;
-    } else if ((error as {error?: string}).error) {
-      errorMessage = (error as {error: string}).error;
+    } else if ((error as { message?: string }).message) {
+      errorMessage = (error as { message: string }).message;
+    } else if ((error as { error?: string }).error) {
+      errorMessage = (error as { error: string }).error;
     } else {
       errorMessage = String(error) || errorMessage;
     }
-    
+
     throw {
       error: errorMessage,
       code: 'UNEXPECTED_ERROR',
@@ -441,7 +441,7 @@ export async function loginUser(
   request: LoginRequest
 ): Promise<LoginResponse> {
   const startTime = Date.now();
-  
+
   // Validate request structure
   if (!request || typeof request !== 'object' || Array.isArray(request)) {
     throw {
@@ -455,7 +455,8 @@ export async function loginUser(
   if (!emailValidation.isValid) {
     throw {
       error: emailValidation.error || 'البريد الإلكتروني غير صحيح',
-      code: emailValidation.error === 'البريد الإلكتروني مطلوب' ? 'MISSING_EMAIL' : 'INVALID_EMAIL_FORMAT',
+      code: emailValidation.error === 'البريد الإلكتروني مطلوب' ? 'MISSING_EMAIL' :
+        emailValidation.error === 'البريد الإلكتروني طويل جداً' ? 'EMAIL_TOO_LONG' : 'INVALID_EMAIL_FORMAT',
     };
   }
   const email = emailValidation.normalized!;
@@ -465,8 +466,8 @@ export async function loginUser(
   if (!passwordValidation.isValid) {
     throw {
       error: passwordValidation.error || 'كلمة المرور غير صحيحة',
-      code: passwordValidation.error === 'كلمة المرور مطلوبة' ? 'MISSING_PASSWORD' : 
-            passwordValidation.error?.includes('8 أحرف') ? 'PASSWORD_TOO_SHORT' : 'PASSWORD_TOO_LONG',
+      code: passwordValidation.error === 'كلمة المرور مطلوبة' ? 'MISSING_PASSWORD' :
+        passwordValidation.error?.includes('8 أحرف') ? 'PASSWORD_TOO_SHORT' : 'PASSWORD_TOO_LONG',
     };
   }
 
@@ -484,7 +485,7 @@ export async function loginUser(
       method: 'POST',
       body: JSON.stringify(requestBody),
     });
-    
+
     // Validate response structure
     if (!response || typeof response !== 'object' || Array.isArray(response)) {
       throw {
@@ -492,7 +493,7 @@ export async function loginUser(
         code: 'INVALID_RESPONSE',
       };
     }
-    
+
     // If 2FA is required, validate and return the response
     if (response.requiresTwoFactor) {
       if (!response.loginAttemptId || typeof response.loginAttemptId !== 'string') {
@@ -503,7 +504,7 @@ export async function loginUser(
       }
       return response;
     }
-    
+
     // Validate successful login response structure
     if (!response.token || typeof response.token !== 'string' || response.token.trim().length === 0) {
       throw {
@@ -533,23 +534,23 @@ export async function loginUser(
         code: 'INVALID_USER_EMAIL',
       };
     }
-    
+
     // Log successful login duration for monitoring
     const duration = Date.now() - startTime;
     if (process.env.NODE_ENV === 'development') {
       logger.debug(`loginUser API call completed successfully in ${duration}ms`);
     }
-    
+
     return response;
   } catch (error: unknown) {
     // Log error with context
     const duration = Date.now() - startTime;
     if (process.env.NODE_ENV === 'development') {
       logger.debug(`loginUser API call failed after ${duration}ms`, {
-        error: error && typeof error === 'object' && 'error' in error ? (error as {error?: string}).error : String(error),
+        error: error && typeof error === 'object' && 'error' in error ? (error as { error?: string }).error : String(error),
       });
     }
-    
+
     // Check if error is empty object or null/undefined
     if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
       throw {
@@ -557,36 +558,36 @@ export async function loginUser(
         code: 'UNEXPECTED_ERROR',
       };
     }
-    
+
     // Re-throw if it's already a properly formatted error with error or code property
-    if (error && typeof error === 'object' && ((error as {error?: string}).error || (error as {code?: string}).code)) {
+    if (error && typeof error === 'object' && ((error as { error?: string }).error || (error as { code?: string }).code)) {
       // Ensure error message is present
       const normalizedError = {
-        error: (error as {error?: string; message?: string}).error || (error as {error?: string; message?: string}).message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
-        code: (error as {code?: string}).code || 'LOGIN_ERROR',
-        ...((error as {status?: number}).status !== undefined && { status: (error as {status?: number}).status }),
-        ...((error as {retryAfterSeconds?: number}).retryAfterSeconds !== undefined && { retryAfterSeconds: (error as {retryAfterSeconds?: number}).retryAfterSeconds }),
-        ...((error as {requiresCaptcha?: boolean}).requiresCaptcha !== undefined && { requiresCaptcha: (error as {requiresCaptcha?: boolean}).requiresCaptcha }),
-        ...((error as {failedAttempts?: number}).failedAttempts !== undefined && { failedAttempts: (error as {failedAttempts?: number}).failedAttempts }),
+        error: (error as { error?: string; message?: string }).error || (error as { error?: string; message?: string }).message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
+        code: (error as { code?: string }).code || 'LOGIN_ERROR',
+        ...((error as { status?: number }).status !== undefined && { status: (error as { status?: number }).status }),
+        ...((error as { retryAfterSeconds?: number }).retryAfterSeconds !== undefined && { retryAfterSeconds: (error as { retryAfterSeconds?: number }).retryAfterSeconds }),
+        ...((error as { requiresCaptcha?: boolean }).requiresCaptcha !== undefined && { requiresCaptcha: (error as { requiresCaptcha?: boolean }).requiresCaptcha }),
+        ...((error as { failedAttempts?: number }).failedAttempts !== undefined && { failedAttempts: (error as { failedAttempts?: number }).failedAttempts }),
       };
       throw normalizedError;
     }
-    
+
     // Normalize error - handle various formats
     let errorMessage: string;
-    
+
     if (typeof error === 'string') {
       errorMessage = error || 'حدث خطأ أثناء تسجيل الدخول';
     } else if (error instanceof Error) {
       errorMessage = error.message || 'حدث خطأ أثناء تسجيل الدخول';
-    } else if ((error as {message?: string}).message) {
-      errorMessage = (error as {message: string}).message;
-    } else if ((error as {error?: string}).error) {
-      errorMessage = (error as {error: string}).error;
+    } else if ((error as { message?: string }).message) {
+      errorMessage = (error as { message: string }).message;
+    } else if ((error as { error?: string }).error) {
+      errorMessage = (error as { error: string }).error;
     } else {
       errorMessage = String(error) || 'حدث خطأ أثناء تسجيل الدخول';
     }
-    
+
     // Wrap unexpected errors - ensure we always have proper structure
     throw {
       error: errorMessage,
@@ -624,14 +625,14 @@ export async function verifyTwoFactor(
       challengeId: request.challengeId,
       code: request.code,
     });
-    
+
     if (!validation.isValid) {
       throw {
         error: validation.error || 'بيانات التحقق غير صحيحة',
         code: validation.error?.includes('معرف') ? 'MISSING_LOGIN_ATTEMPT_ID' : 'INVALID_CODE_FORMAT',
       };
     }
-    
+
     const response = await apiFetch<TwoFactorVerifyResponse>('/two-factor', {
       method: 'POST',
       body: JSON.stringify({
@@ -640,7 +641,7 @@ export async function verifyTwoFactor(
         trustDevice: request.trustDevice ?? false,
       }),
     });
-    
+
     // Validate response
     if (!response || !response.token || !response.user) {
       throw {
@@ -648,17 +649,17 @@ export async function verifyTwoFactor(
         code: 'INVALID_VERIFICATION_RESPONSE',
       };
     }
-    
+
     return response;
   } catch (error: unknown) {
     // Re-throw if it's already a properly formatted error
-    if (error && ( (error as {error?: string}).error || (error as {code?: string}).code )) {
+    if (error && ((error as { error?: string }).error || (error as { code?: string }).code)) {
       throw error;
     }
-    
+
     // Wrap unexpected errors
     throw {
-      error: (error as {message?: string}).message || 'حدث خطأ أثناء التحقق من رمز المصادقة',
+      error: (error as { message?: string }).message || 'حدث خطأ أثناء التحقق من رمز المصادقة',
       code: 'TWO_FACTOR_ERROR',
     };
   }
@@ -673,7 +674,7 @@ export async function getBiometricChallenge(
   const body = typeof request === 'object' && 'type' in request
     ? { action: request.type === 'authenticate' ? 'authenticate' : request.type === 'register' ? 'register' : 'options', userId: (request as { userId?: string }).userId }
     : request;
-  
+
   return apiFetch<BiometricChallengeResponse & { options?: any; challenge?: string }>('/biometric', {
     method: 'POST',
     body: JSON.stringify(body),
@@ -727,10 +728,10 @@ export async function getPasskeyAuthenticationOptions(userId?: string): Promise<
  * Verify Passkey Authentication
  */
 export async function verifyPasskeyAuthentication(data: any): Promise<LoginResponse> {
-    return apiFetch<LoginResponse>('/passkey/authenticate', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
+  return apiFetch<LoginResponse>('/passkey/authenticate', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
 }
 
 

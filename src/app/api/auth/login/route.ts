@@ -8,6 +8,7 @@ import {
   parseRequestBody,
   addSecurityHeaders
 } from '@/app/api/auth/_helpers';
+import { loginSchema } from '@/lib/auth/schemas';
 import type { LoginResponse } from '@/types/api/auth';
 
 /**
@@ -55,83 +56,29 @@ export async function POST(request: NextRequest) {
 
       const body = bodyResult.data;
 
-      // Enhanced validation for required fields with comprehensive checks
-      if (!body.email || typeof body.email !== 'string') {
-        return NextResponse.json(
-          { error: 'البريد الإلكتروني مطلوب', code: 'MISSING_EMAIL' },
-          { status: 400 }
+      // Validate request body using Zod schema
+      const parsed = loginSchema.safeParse(body);
+
+      if (!parsed.success) {
+        return createStandardErrorResponse(
+          {
+            error: 'VALIDATION_ERROR',
+            details: parsed.error.flatten().fieldErrors as Record<string, string[]>,
+          },
+          'بيانات تسجيل الدخول غير صحيحة.',
+          400
         );
       }
 
-      // Validate email length (RFC 5321 limit)
-      if (body.email.length > 254) {
-        return NextResponse.json(
-          { error: 'البريد الإلكتروني طويل جداً', code: 'EMAIL_TOO_LONG' },
-          { status: 400 }
-        );
-      }
-
-      const normalizedEmail = body.email.trim().toLowerCase();
-      if (normalizedEmail.length === 0) {
-        return NextResponse.json(
-          { error: 'البريد الإلكتروني لا يمكن أن يكون فارغاً', code: 'INVALID_EMAIL' },
-          { status: 400 }
-        );
-      }
-
-      // Enhanced email format validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(normalizedEmail)) {
-        return NextResponse.json(
-          { error: 'صيغة البريد الإلكتروني غير صحيحة', code: 'INVALID_EMAIL_FORMAT' },
-          { status: 400 }
-        );
-      }
-
-      // Additional security: Check for potentially malicious email patterns
-      if (normalizedEmail.includes('..') || normalizedEmail.startsWith('.') || normalizedEmail.endsWith('.')) {
-        return NextResponse.json(
-          { error: 'صيغة البريد الإلكتروني غير صحيحة', code: 'INVALID_EMAIL_FORMAT' },
-          { status: 400 }
-        );
-      }
-
-      // Enhanced password validation with comprehensive checks
-      if (!body.password || typeof body.password !== 'string') {
-        return NextResponse.json(
-          { error: 'كلمة المرور مطلوبة', code: 'MISSING_PASSWORD' },
-          { status: 400 }
-        );
-      }
-
-      if (body.password.length === 0) {
-        return NextResponse.json(
-          { error: 'كلمة المرور لا يمكن أن تكون فارغة', code: 'INVALID_PASSWORD' },
-          { status: 400 }
-        );
-      }
-
-      // Password length validation (security best practice)
-      // Minimum length check (should be handled by schema, but double-check here)
-      if (body.password.length < 8) {
-        return NextResponse.json(
-          { error: 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل', code: 'PASSWORD_TOO_SHORT' },
-          { status: 400 }
-        );
-      }
-
-      // Maximum length validation (security - prevent DoS attacks)
-      if (body.password.length > 128) {
-        return NextResponse.json(
-          { error: 'كلمة المرور طويلة جداً', code: 'PASSWORD_TOO_LONG' },
-          { status: 400 }
-        );
-      }
+      const { email, password, rememberMe, deviceFingerprint, captchaToken } = parsed.data;
 
       // Delegate all business logic to LoginService (with timeout protection)
       const loginPromise = LoginService.login(req, {
-        ...body,
-        email: normalizedEmail, // Use normalized email
+        email,
+        password,
+        rememberMe,
+        deviceFingerprint,
+        captchaToken
       });
 
       const timeoutPromise = new Promise<{ success: false; response: { error: string; code: string }; statusCode: number }>((resolve) => {
@@ -151,7 +98,7 @@ export async function POST(request: NextRequest) {
 
       // Check if timeout occurred
       if (result && 'statusCode' in result && result.statusCode === 408) {
-        logger.warn('Login request timeout', { email: normalizedEmail });
+        logger.warn('Login request timeout', { email });
         const timeoutResponse = NextResponse.json(
           { error: 'انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.', code: 'REQUEST_TIMEOUT' },
           { status: 408 }
@@ -175,7 +122,7 @@ export async function POST(request: NextRequest) {
           response,
           loginResponse.token!,
           loginResponse.refreshToken || '',
-          body.rememberMe ?? false
+          rememberMe
         );
 
         return addSecurityHeaders(response);
