@@ -76,13 +76,13 @@ async function handler(req: NextRequest) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ error: `Verification failed: ${errorMessage}` }, { status: 400 });
   }
-  
+
   const { verified, authenticationInfo } = verification;
 
   if (!verified) {
     return NextResponse.json({ error: 'Could not verify authentication' }, { status: 400 });
   }
-  
+
   // Mark the challenge as used
   await BiometricChallengeService.deleteChallenge(challenges[0].id);
 
@@ -92,10 +92,18 @@ async function handler(req: NextRequest) {
     data: { counter: authenticationInfo.newCounter },
   });
 
+  // Create tokens first to get a refresh token
+  const tempTokens = await authService.createTokens({
+    id: user.id,
+    email: user.email,
+    name: user.name || undefined,
+    role: user.role || undefined,
+  });
+
   // Create session
   const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
   const userAgent = req.headers.get('user-agent') || 'unknown';
-  const session = await authService.createSession(user.id, userAgent, ip);
+  const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
 
   // Create tokens
   const tokensResult = await authService.createTokens(
@@ -107,6 +115,12 @@ async function handler(req: NextRequest) {
     },
     session.id
   );
+
+  // Update session with final refresh token
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { refreshToken: tokensResult.refreshToken }
+  });
 
   // Log security event
   const deviceInfo = await getDeviceInfo(userAgent);

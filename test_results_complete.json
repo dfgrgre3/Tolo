@@ -1,0 +1,80 @@
+{
+  "summary": {
+    "total": 14,
+    "passed": 5,
+    "failed": 9,
+    "success_rate": "35.7%"
+  },
+  "results": [
+    {
+      "test": "TC001_Registration_and_Login",
+      "status": "FAILED",
+      "error": "Locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator(\"button:has-text(\\\"إنشاء حساب جديد\\\")\")\n    - locator resolved to <button type=\"button\" class=\"rounded-full px-5 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 text-indigo-100 hover:bg-white/10 hover:text-white\">إنشاء حساب جديد</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    14 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "test": "TC002_Login_Failure",
+      "status": "FAILED",
+      "error": "Locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator(\"button[type=\\\"submit\\\"]\").first\n    - locator resolved to <button tabindex=\"0\" type=\"submit\" aria-busy=\"false\" aria-label=\"تسجيل الدخول\" class=\"w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-4 font-semibold text-white shadow-lg transition hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden\">…</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    15 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "test": "TC003_OAuth_Login",
+      "status": "FAILED",
+      "error": "OAuth button not found"
+    },
+    {
+      "test": "TC007_Dashboard_Display",
+      "status": "PASSED",
+      "error": null
+    },
+    {
+      "test": "TC008_AI_Chat",
+      "status": "FAILED",
+      "error": "Chat input not found"
+    },
+    {
+      "test": "TC010_Analytics_Dashboard",
+      "status": "PASSED",
+      "error": "Load time: 3.15s"
+    },
+    {
+      "test": "TC012_Task_Management",
+      "status": "FAILED",
+      "error": "Locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator(\"button:has-text(\\\"إنشاء\\\"), button:has-text(\\\"Create\\\"), button:has-text(\\\"Add\\\"), button:has-text(\\\"New\\\")\").first\n    - locator resolved to <button type=\"button\" class=\"rounded-full px-5 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 text-indigo-100 hover:bg-white/10 hover:text-white\">إنشاء حساب جديد</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    10 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "test": "TC014_Exam_Workflow",
+      "status": "FAILED",
+      "error": "Locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator(\"button:has-text(\\\"إنشاء\\\"), button:has-text(\\\"Create\\\"), button:has-text(\\\"New Exam\\\")\").first\n    - locator resolved to <button type=\"button\" class=\"rounded-full px-5 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 text-indigo-100 hover:bg-white/10 hover:text-white\">إنشاء حساب جديد</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    12 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "test": "TC015_Course_Enrollment",
+      "status": "FAILED",
+      "error": "Courses page not accessible"
+    },
+    {
+      "test": "TC016_Library_Search",
+      "status": "PASSED",
+      "error": "Library page accessible"
+    },
+    {
+      "test": "TC017_Forum_Posting",
+      "status": "FAILED",
+      "error": "Locator.click: Timeout 10000ms exceeded.\nCall log:\n  - waiting for locator(\"button:has-text(\\\"إنشاء\\\"), button:has-text(\\\"Create\\\"), button:has-text(\\\"New Post\\\")\").first\n    - locator resolved to <button type=\"button\" class=\"rounded-full px-5 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 text-indigo-100 hover:bg-white/10 hover:text-white\">إنشاء حساب جديد</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is visible, enabled and stable\n      - scrolling into view if needed\n      - done scrolling\n      - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n    - retrying click action\n      - waiting 100ms\n    12 × waiting for element to be visible, enabled and stable\n       - element is visible, enabled and stable\n       - scrolling into view if needed\n       - done scrolling\n       - <nextjs-portal></nextjs-portal> from <script data-nextjs-dev-overlay=\"true\">…</script> subtree intercepts pointer events\n     - retrying click action\n       - waiting 500ms\n"
+    },
+    {
+      "test": "TC020_Global_Search",
+      "status": "FAILED",
+      "error": "Global search not found"
+    },
+    {
+      "test": "TC022_API_Performance",
+      "status": "PASSED",
+      "error": "API endpoints responding"
+    },
+    {
+      "test": "TC025_Monitoring_Endpoints",
+      "status": "PASSED",
+      "error": "/api/healthz: 200; /api/readyz: 503; /api/metrics: 200"
+    }
+  ]
+}

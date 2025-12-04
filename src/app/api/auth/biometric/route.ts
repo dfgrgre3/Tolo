@@ -174,7 +174,7 @@ async function handleBiometricAuthentication(
   });
 
   if (!challenge) {
-     return NextResponse.json(
+    return NextResponse.json(
       { error: 'No active authentication challenge found' },
       { status: 400 }
     );
@@ -223,8 +223,15 @@ async function handleBiometricAuthentication(
     });
   }
 
+  // Create tokens first to get a refresh token
+  const tempTokens = await authService.createTokens({
+    id: user.id,
+    email: user.email,
+    name: user.name || undefined,
+  });
+
   // Create session
-  const session = await authService.createSession(user.id, userAgent, ip);
+  const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
 
   // Reset rate limiting
   await authService.resetRateLimit(clientId);
@@ -242,6 +249,12 @@ async function handleBiometricAuthentication(
     },
     session.id
   );
+
+  // Update session with final refresh token
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { refreshToken: tokensResult.refreshToken }
+  });
 
   // Log security event
   await authService.logSecurityEvent(

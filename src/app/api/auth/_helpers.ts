@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
 import type { LoginErrorResponse } from '@/types/api/auth';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
 
 // ==================== CONSTANTS ====================
 
@@ -13,32 +13,11 @@ export const ACCESS_TOKEN_MAX_AGE = 60 * 60; // 1 hour in seconds
 export const REFRESH_TOKEN_MAX_AGE_REMEMBER = 30 * 24 * 60 * 60; // 30 days in seconds
 export const REFRESH_TOKEN_MAX_AGE_DEFAULT = 24 * 60 * 60; // 24 hours in seconds
 
-// ==================== VALIDATION SCHEMAS ====================
-
-export const emailSchema = z
-  .string()
-  .min(1, 'البريد الإلكتروني مطلوب')
-  .email('البريد الإلكتروني غير صالح')
-  .max(255, 'البريد الإلكتروني طويل جداً')
-  .transform((email) => email.trim().toLowerCase());
-
-export const passwordSchema = z
-  .string()
-  .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
-  .max(128, 'كلمة المرور طويلة جداً')
-  .regex(/[A-Z]/, 'كلمة المرور يجب أن تحتوي على حرف كبير واحد على الأقل')
-  .regex(/[a-z]/, 'كلمة المرور يجب أن تحتوي على حرف صغير واحد على الأقل')
-  .regex(/[0-9]/, 'كلمة المرور يجب أن تحتوي على رقم واحد على الأقل')
-  .regex(/[^A-Za-z0-9]/, 'كلمة المرور يجب أن تحتوي على رمز خاص واحد على الأقل');
-
-export const nameSchema = z
-  .string()
-  .min(1, 'الاسم مطلوب')
-  .max(100, 'الاسم طويل جداً')
-  .regex(/^[\u0600-\u06FFa-zA-Z\s]+$/, 'الاسم يجب أن يحتوي على أحرف فقط')
-  .optional();
+// ==================== SCHEMAS ====================
 
 export const resetTokenSchema = z.string().min(1, 'رمز إعادة التعيين مطلوب');
+export const passwordSchema = z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+export const emailSchema = z.string().email('البريد الإلكتروني غير صالح');
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -319,32 +298,6 @@ export function createCaptchaRequiredResponse(
 }
 
 /**
- * Validate email format
- */
-export function isValidEmail(email: string): boolean {
-  if (!email || typeof email !== 'string') {
-    return false;
-  }
-
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email.trim());
-}
-
-/**
- * Sanitize user input to prevent XSS
- */
-export function sanitizeInput(input: string): string {
-  if (typeof input !== 'string') {
-    return '';
-  }
-
-  return input
-    .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .slice(0, 1000); // Limit length
-}
-
-/**
  * Format lockout time for display
  */
 export function formatLockoutTime(seconds: number): string {
@@ -391,53 +344,6 @@ export function generateRateLimitKey(
   identifier: string
 ): string {
   return `rate_limit:${prefix}:${identifier}`;
-}
-
-/**
- * Validate and normalize email address
- */
-export function normalizeEmail(email: string): string {
-  if (!email || typeof email !== 'string') {
-    return '';
-  }
-
-  return email.trim().toLowerCase();
-}
-
-/**
- * Check if password meets security requirements
- */
-export function isStrongPassword(password: string): boolean {
-  if (!password || password.length < 8 || password.length > 128) {
-    return false;
-  }
-
-  // Check for at least one uppercase, lowercase, number, and special char
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumber = /[0-9]/.test(password);
-  const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
-
-  return hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar;
-}
-
-/**
- * Sanitize and validate user input string
- */
-export function sanitizeString(
-  input: string,
-  maxLength: number = 1000
-): string {
-  if (typeof input !== 'string') {
-    return '';
-  }
-
-  return input
-    .trim()
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .replace(/javascript:/gi, '') // Remove javascript: protocol
-    .replace(/on\w+=/gi, '') // Remove event handlers
-    .slice(0, maxLength); // Limit length
 }
 
 /**

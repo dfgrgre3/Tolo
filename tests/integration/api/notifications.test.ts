@@ -60,7 +60,7 @@ describe('Notifications API Routes', () => {
         userId: 'user-1',
         email: 'test@example.com',
       });
-      
+
       (prisma.notification.findMany as jest.Mock).mockResolvedValue(
         mockNotifications
       );
@@ -77,7 +77,8 @@ describe('Notifications API Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(Array.isArray(data)).toBe(true);
+      expect(Array.isArray(data.notifications)).toBe(true);
+      expect(data.notifications.length).toBe(1);
     });
 
     it('should filter unread notifications', async () => {
@@ -143,8 +144,8 @@ describe('Notifications API Routes', () => {
       const response = await POST(request);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data.title).toBe('Test Notification');
+      expect(response.status).toBe(201);
+      expect(data.notification.title).toBe('Test Notification');
     });
   });
 });

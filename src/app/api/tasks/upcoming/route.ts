@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-service';
+import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -10,13 +10,14 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
-    if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+    if (!verification.isValid || !verification.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    const authUser = verification.user;
 
     // Get current date and tomorrow's date
     const now = new Date();
@@ -26,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get upcoming tasks (due within 24 hours or overdue)
     const tasks = await prisma.task.findMany({
       where: {
-        userId: decodedToken.userId,
+        userId: authUser.id,
         OR: [
           {
             dueAt: {

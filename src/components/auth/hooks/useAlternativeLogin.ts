@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useUnifiedAuth } from '@/contexts/auth-context';
 import { logger } from '@/lib/logger';
 import { getRedirectPath, clearStoredRedirect } from '../utils/login-form.utils';
-import { getPasskeyAuthenticationOptions, verifyPasskeyAuthentication, loginUser, createTestAccount } from '@/lib/api/auth-client';
+import { getPasskeyAuthenticationOptions, verifyPasskeyAuthentication } from '@/lib/api/auth-client';
 import { getPasskeyManager } from '../passkeys/PasskeyManager';
 
 export const useAlternativeLogin = () => {
@@ -72,90 +72,11 @@ export const useAlternativeLogin = () => {
     }
   };
 
-  /**
-   * Handle test account login
-   */
-  const handleTestAccountLogin = async () => {
-    setIsLoading(true);
-    try {
-      try {
-        const loginData = await loginUser({
-          email: 'test@example.com',
-          password: 'Test123!@#',
-          rememberMe: true,
-        });
 
-        if (loginData.token && loginData.user) {
-          await unifiedLogin(loginData.token, {
-            id: loginData.user.id,
-            email: loginData.user.email,
-            name: loginData.user.name ?? undefined,
-            role: loginData.user.role || 'user',
-            emailVerified: loginData.user.emailVerified || false,
-            twoFactorEnabled: loginData.user.twoFactorEnabled || false,
-          });
-          toast.success('تم تسجيل الدخول بحساب تجريبي!', { duration: 3000 });
-          const redirectPath = getRedirectPath();
-          clearStoredRedirect();
-          router.push(redirectPath);
-          router.refresh();
-          return;
-        }
-      } catch (loginError: any) {
-        // If login fails, try to create the test account first
-        if (loginError?.code === 'UNAUTHORIZED' || loginError?.status === 401) {
-          toast.info('جارٍ إنشاء الحساب التجريبي...', { duration: 2000 });
-
-          try {
-            await createTestAccount();
-
-            // Retry login after creating account
-            await new Promise((resolve) => setTimeout(resolve, 1000));
-            const retryData = await loginUser({
-              email: 'test@example.com',
-              password: 'Test123!@#',
-              rememberMe: true,
-            });
-
-            if (retryData.token && retryData.user) {
-              await unifiedLogin(retryData.token, {
-                id: retryData.user.id,
-                email: retryData.user.email,
-                name: retryData.user.name ?? undefined,
-                role: retryData.user.role || 'user',
-                emailVerified: retryData.user.emailVerified || false,
-                twoFactorEnabled: retryData.user.twoFactorEnabled || false,
-              });
-              toast.success('تم تسجيل الدخول بحساب تجريبي!', { duration: 3000 });
-              const redirectPath = getRedirectPath();
-              clearStoredRedirect();
-              router.push(redirectPath);
-              router.refresh();
-              return;
-            }
-          } catch (createError) {
-            logger.error('Failed to create test account:', createError);
-          }
-
-          toast.error('فشل تسجيل الدخول بالحساب التجريبي. يرجى المحاولة يدوياً.');
-          return;
-        }
-
-        const errorMessage = loginError?.error || 'حدث خطأ أثناء تسجيل الدخول';
-        toast.error(errorMessage);
-      }
-    } catch (error) {
-      logger.error('Test account login error:', error);
-      toast.error('حدث خطأ أثناء تسجيل الدخول بالحساب التجريبي');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   return {
     isLoading,
     handlePasskeyLogin,
-    handleTestAccountLogin,
   };
 };
 

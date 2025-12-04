@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { gamificationService } from '@/lib/gamification-service';
 import { startOfWeek, endOfWeek, subDays, startOfDay, differenceInDays } from 'date-fns';
-import { verifyToken } from '@/lib/auth-service';
+import { authService } from '@/lib/auth-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
@@ -21,9 +21,9 @@ export async function GET(request: NextRequest) {
     
       // If not in query params, try to get from authenticated user
       if (!userId) {
-        const decodedToken = verifyToken(req);
-      if (decodedToken) {
-        userId = decodedToken.userId;
+        const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (verification.isValid && verification.user) {
+        userId = verification.user.id;
       }
     }
     

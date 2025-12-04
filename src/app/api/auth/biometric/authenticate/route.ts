@@ -141,9 +141,9 @@ async function handleVerification(req: NextRequest, body: any) {
   // If email is not provided, we might need to look it up via challenge or credential
   // But for now let's require email or try to infer it if possible (not easy without email)
   // The client usually sends email with verify request if it knows it.
-  
+
   if (!email) {
-     return NextResponse.json(
+    return NextResponse.json(
       { error: 'البريد الإلكتروني مطلوب للتحقق' },
       { status: 400 }
     );
@@ -256,7 +256,18 @@ async function handleVerification(req: NextRequest, body: any) {
   const userAgent = authService.getUserAgent(req);
 
   await authService.updateLastLogin(user.id);
-  const session = await authService.createSession(user.id, userAgent, ip);
+
+  // Create tokens first to get a refresh token
+  const tempTokens = await authService.createTokens({
+    id: user.id,
+    email: user.email,
+    name: user.name || undefined,
+  });
+
+  // Create session with the refresh token
+  const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
+
+  // Create final tokens with session ID
   const { accessToken, refreshToken } = await authService.createTokens(
     {
       id: user.id,
@@ -265,6 +276,12 @@ async function handleVerification(req: NextRequest, body: any) {
     },
     session.id
   );
+
+  // Update session with final refresh token
+  await prisma.session.update({
+    where: { id: session.id },
+    data: { refreshToken }
+  });
 
   // Log security event
   await authService.logSecurityEvent(

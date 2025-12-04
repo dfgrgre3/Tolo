@@ -1100,18 +1100,7 @@ export async function verifyMagicLink(token: string): Promise<{
   });
 }
 
-/**
- * Create test account (for development)
- */
-export async function createTestAccount(): Promise<{
-  email: string;
-  password: string;
-  message: string;
-}> {
-  return apiFetch<{ email: string; password: string; message: string }>('/test-account', {
-    method: 'POST',
-  });
-}
+
 
 // Export types for use in components
 export type {

@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 
 export async function GET(req: NextRequest) {
 	try {
 		// Authenticate user
-		const authUser = verifyToken(req);
-		if (!authUser) {
+		const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+		if (!verification.isValid || !verification.user) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+		const authUser = verification.user;
 
 		const { searchParams } = new URL(req.url);
 		const userId = searchParams.get("userId");
 
 		// If userId is provided in query, ensure it matches the authenticated user
-		if (userId && userId !== authUser.userId) {
+		if (userId && userId !== authUser.id) {
 			return NextResponse.json({ error: "Forbidden: Can only access your own lessons" }, { status: 403 });
 		}
 
 		// Use authenticated user's ID if no userId provided in query
-		const targetUserId = userId || authUser.userId;
+		const targetUserId = userId || authUser.id;
 
 		const lessons = await prisma.offlineLesson.findMany({
 			where: { userId: targetUserId },
@@ -35,21 +36,22 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
 	try {
 		// Authenticate user
-		const authUser = verifyToken(req);
-		if (!authUser) {
+		const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+		if (!verification.isValid || !verification.user) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+		const authUser = verification.user;
 
 		const body = await req.json();
 		const { userId, teacherId, title, location, startTime, endTime, subject } = body;
 
 		// If userId is provided in body, ensure it matches the authenticated user
-		if (userId && userId !== authUser.userId) {
+		if (userId && userId !== authUser.id) {
 			return NextResponse.json({ error: "Forbidden: Can only create lessons for yourself" }, { status: 403 });
 		}
 
 		// Use authenticated user's ID if no userId provided in body
-		const targetUserId = userId || authUser.userId;
+		const targetUserId = userId || authUser.id;
 
 		if (!teacherId || !title || !location || !startTime || !endTime || !subject) {
 			return NextResponse.json({ error: "missing fields" }, { status: 400 });

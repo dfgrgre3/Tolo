@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 import { prisma } from "@/lib/prisma";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -14,18 +14,13 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication with timeout protection
-      const verifyPromise = Promise.resolve(verifyToken(req));
-      const verifyTimeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 5000); // 5 second timeout
-      });
-
-      const decodedToken = await Promise.race([verifyPromise, verifyTimeoutPromise]);
-      if (!decodedToken) {
-        const response = NextResponse.json(
-          { error: "Unauthorized", code: 'UNAUTHORIZED' },
-          { status: 401 }
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid) {
+        return createStandardErrorResponse(
+            'Unauthorized',
+            'Unauthorized',
+            401
         );
-        return addSecurityHeaders(response);
       }
 
       // Fetch users with timeout protection

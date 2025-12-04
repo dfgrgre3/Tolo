@@ -385,7 +385,7 @@ class ThanaWyTestSuite:
             await self.wait_for_page_load()
             
             # Look for courses list
-            courses = self.page.locator('[class*="course"], text=/course|دورة/i').first
+            courses = self.page.locator('[class*="course"]').or_(self.page.locator('text=/course|دورة/i')).first
             
             if await courses.count() > 0:
                 # Try to click on first course or enroll button

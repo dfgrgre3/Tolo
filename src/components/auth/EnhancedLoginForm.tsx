@@ -99,7 +99,6 @@ export default function EnhancedLoginForm() {
   const {
     isLoading: isAltLoading,
     handlePasskeyLogin,
-    handleTestAccountLogin,
   } = useAlternativeLogin();
 
   // Show two-factor form if required
@@ -237,7 +236,6 @@ export default function EnhancedLoginForm() {
           isLoading={isLoading || isAltLoading}
           isGoogleOAuthEnabled={isGoogleOAuthEnabled}
           onPasskeyLogin={handlePasskeyLogin}
-          onTestAccountLogin={handleTestAccountLogin}
         />
       </form>
 

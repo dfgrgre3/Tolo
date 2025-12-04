@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-service';
+import { authService } from '@/lib/auth-service';
 import { writeFile } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -11,8 +11,8 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // تحقق من التوثيق
-      const decodedToken = verifyToken(req);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }

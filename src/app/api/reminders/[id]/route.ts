@@ -1,16 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
 	try {
 		const { id } = await params;
 
 		// Authenticate user
-		const authUser = verifyToken(req);
-		if (!authUser) {
+		const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+		if (!verification.isValid || !verification.user) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+		const authUser = verification.user;
 
 		const body = await req.json();
 
@@ -18,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 		const existingReminder = await prisma.reminder.findFirst({
 			where: {
 				id,
-				userId: authUser.userId
+				userId: authUser.id
 			}
 		});
 
@@ -58,16 +59,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 		const { id } = await params;
 
 		// Authenticate user
-		const authUser = verifyToken(req);
-		if (!authUser) {
+		const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+		if (!verification.isValid || !verification.user) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
+		const authUser = verification.user;
 
 		// Validate that the reminder belongs to the authenticated user before deletion
 		const existingReminder = await prisma.reminder.findFirst({
 			where: {
 				id,
-				userId: authUser.userId
+				userId: authUser.id
 			}
 		});
 

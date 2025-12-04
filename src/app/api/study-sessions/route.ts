@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-service';
+import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
@@ -13,25 +13,26 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
+      const authUser = verification.user;
 
       const { searchParams } = new URL(req.url);
     const limit = searchParams.get('limit') || '10';
     const offset = searchParams.get('offset') || '0';
 
     // Use cache key based on user and parameters
-    const cacheKey = `study_sessions_${decodedToken.userId}_limit_${limit}_offset_${offset}`;
+    const cacheKey = `study_sessions_${authUser.id}_limit_${limit}_offset_${offset}`;
 
     const sessions = await LegacyCacheService.getOrSet(cacheKey, async () => {
       return await prisma.studySession.findMany({
         where: {
-          userId: decodedToken.userId,
+          userId: authUser.id,
         },
         take: parseInt(limit),
         skip: parseInt(offset),
@@ -63,33 +64,34 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
+      const authUser = verification.user;
 
       const body = await req.json();
     
     const session = await prisma.studySession.create({
       data: {
         ...body,
-        userId: decodedToken.userId,
+        userId: authUser.id,
       },
     });
 
     // Trigger gamification for study session completion
     try {
       const updatedProgress = await gamificationService.updateUserProgress(
-        decodedToken.userId,
+        authUser.id,
         'study_session_completed',
         { duration: body.durationMin || 0 }
       );
 
       // Update Firestore with new progress
-      await firestoreService.updateUserProgress(decodedToken.userId, {
+      await firestoreService.updateUserProgress(authUser.id, {
         totalXP: updatedProgress.totalXP,
         level: updatedProgress.level,
         currentStreak: updatedProgress.currentStreak,
@@ -106,7 +108,7 @@ export async function POST(request: NextRequest) {
         try {
           // Get user's previous achievements from database to compare
           const user = await prisma.user.findUnique({
-            where: { id: decodedToken.userId },
+            where: { id: authUser.id },
             select: { achievements: { select: { achievementKey: true } } }
           });
 
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
 
             if (achievement) {
               await firestoreService.sendAchievementNotification(
-                decodedToken.userId,
+                authUser.id,
                 {
                   key: achievement.key,
                   title: achievement.title,
@@ -147,15 +149,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Invalidate user's study sessions cache
-    await LegacyCacheService.invalidatePattern(`study_sessions_${decodedToken.userId}*`);
+    await LegacyCacheService.invalidatePattern(`study_sessions_${authUser.id}*`);
 
     // Invalidate user's analytics cache
     const weekStart = startOfWeek(new Date(), { weekStartsOn: 6 });
-    const analyticsCacheKey = `analytics:weekly:${decodedToken.userId}:${weekStart.toISOString()}`;
+    const analyticsCacheKey = `analytics:weekly:${authUser.id}:${weekStart.toISOString()}`;
     await CacheService.del(analyticsCacheKey);
 
     // Invalidate user's progress cache
-    const progressCacheKey = `progress:${decodedToken.userId}`;
+    const progressCacheKey = `progress:${authUser.id}`;
     await CacheService.del(progressCacheKey);
 
     return NextResponse.json(session);

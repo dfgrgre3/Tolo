@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 import { handleApiError, badRequestResponse, successResponse } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
@@ -16,10 +16,11 @@ export async function GET(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
       // Verify authentication
-      const decodedToken = await verifyToken(request);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
       }
+      const authUser = verification.user;
 
       const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
@@ -31,7 +32,7 @@ export async function GET(req: NextRequest) {
       
       // For security, we should only allow fetching the authenticated user's schedule
       // unless there's a specific admin requirement
-      if (userId !== decodedToken.userId) {
+      if (userId !== authUser.id) {
         return badRequestResponse('Invalid userId parameter', 'INVALID_PARAMETER');
       }
       
@@ -68,10 +69,11 @@ export async function POST(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
       // Verify authentication
-      const decodedToken = await verifyToken(request);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
       }
+      const authUser = verification.user;
 
       let body;
       try {
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest) {
       const { userId, plan, version } = parsedBody.data;
       
       // For security, we should only allow modifying the authenticated user's schedule
-      if (userId !== decodedToken.userId) {
+      if (userId !== authUser.id) {
         return badRequestResponse('Invalid userId parameter', 'INVALID_PARAMETER');
       }
       

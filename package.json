@@ -18,6 +18,7 @@
     "test:unit": "dotenv -e tests/test.env jest tests/unit",
     "test:integration": "dotenv -e tests/test.env jest tests/integration",
     "test:e2e": "dotenv -e tests/test.env jest tests/e2e",
+    "test:sprite": "python testsprite_tests/TC000_Complete_Test_Suite.py",
     "test:login": "dotenv -e tests/test.env jest --testPathPattern='login'",
     "test:login:unit": "dotenv -e tests/test.env jest tests/unit/login-service-comprehensive.test.ts tests/unit/auth-client-comprehensive.test.ts",
     "test:login:integration": "dotenv -e tests/test.env jest tests/integration/api/login-comprehensive.test.ts",
@@ -67,7 +68,8 @@
     "prisma:migrate:reset": "npx prisma migrate reset",
     "prisma:db:push": "npx prisma db push",
     "prisma:db:pull": "npx prisma db pull",
-    "prisma:seed": "tsx prisma/seed/main.ts"
+    "prisma:seed": "tsx prisma/seed/main.ts",
+    "audit": "tsx scripts/master-audit.ts"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^8.11.0",

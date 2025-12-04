@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 import { gamificationService } from "@/lib/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -11,15 +11,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     try {
       const { id } = await params;
       // Authenticate user
-      const authUser = verifyToken(request);
-      if (!authUser) {
+      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+      const authUser = verification.user;
 
       const task = await prisma.task.findFirst({
         where: {
           id,
-          userId: authUser.userId // Ensure user can only access their own tasks
+          userId: authUser.id // Ensure user can only access their own tasks
         }
       });
 
@@ -37,10 +38,11 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     try {
       const { id } = await params;
       // Authenticate user
-      const authUser = verifyToken(request);
-      if (!authUser) {
+      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+      const authUser = verification.user;
 
       const data = await request.json();
 
@@ -48,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const existingTask = await prisma.task.findFirst({
         where: {
           id,
-          userId: authUser.userId
+          userId: authUser.id
         }
       });
 
@@ -95,7 +97,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // Trigger gamification if task is being completed
       if (isCompleting) {
         try {
-          await gamificationService.updateUserProgress(authUser.userId, 'task_completed');
+          await gamificationService.updateUserProgress(authUser.id, 'task_completed');
         } catch (gamificationError) {
           logger.error('Error updating gamification for task:', gamificationError);
           // Don't fail the request if gamification fails
@@ -115,16 +117,17 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     try {
       const { id } = await params;
       // Authenticate user
-      const authUser = verifyToken(request);
-      if (!authUser) {
+      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+      const authUser = verification.user;
 
       // Validate that the task belongs to the authenticated user before deletion
       const existingTask = await prisma.task.findFirst({
         where: {
           id,
-          userId: authUser.userId
+          userId: authUser.id
         }
       });
 

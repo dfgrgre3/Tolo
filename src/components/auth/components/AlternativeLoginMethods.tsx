@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { Fingerprint, Chrome, Sparkles } from 'lucide-react';
+import { Fingerprint, Chrome } from 'lucide-react';
 import { safeWindow } from '@/lib/safe-client-utils';
 import { getRedirectPath, clearStoredRedirect } from '../utils/login-form.utils';
 
@@ -9,7 +9,7 @@ interface AlternativeLoginMethodsProps {
   isLoading: boolean;
   isGoogleOAuthEnabled: boolean;
   onPasskeyLogin?: () => void;
-  onTestAccountLogin?: () => void;
+
   mode?: 'login' | 'register';
 }
 
@@ -17,13 +17,9 @@ export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = (
   isLoading,
   isGoogleOAuthEnabled,
   onPasskeyLogin,
-  onTestAccountLogin,
+
   mode = 'login',
 }) => {
-  const showTestAccount =
-    mode === 'login' &&
-    (process.env.NODE_ENV === 'development' ||
-    process.env.NEXT_PUBLIC_ENABLE_TEST_ACCOUNTS === 'true');
 
   return (
     <>
@@ -113,24 +109,7 @@ export const AlternativeLoginMethods: React.FC<AlternativeLoginMethodsProps> = (
           </motion.button>
         )}
 
-        {/* Test Account Login */}
-        {showTestAccount && onTestAccountLogin && (
-          <motion.button
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.75 }}
-            whileHover={{ scale: 1.02, backgroundColor: 'rgba(59, 130, 246, 0.2)' }}
-            whileTap={{ scale: 0.98 }}
-            type="button"
-            onClick={onTestAccountLogin}
-            disabled={isLoading}
-            className="flex items-center justify-center gap-3 rounded-xl bg-blue-500/20 border border-blue-400/30 px-6 py-3 text-sm font-medium text-blue-200 transition hover:bg-blue-500/30 disabled:opacity-50"
-            aria-label="تسجيل الدخول بحساب تجريبي"
-          >
-            <Sparkles className="h-5 w-5" aria-hidden="true" />
-            تسجيل الدخول بحساب تجريبي
-          </motion.button>
-        )}
+
       </motion.div>
     </>
   );

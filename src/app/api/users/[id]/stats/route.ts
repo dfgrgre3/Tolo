@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
@@ -22,12 +22,13 @@ export async function GET(
       const { id } = await params;
 
       // Authenticate user and ensure they can only access their own stats
-      const authUser = verifyToken(req);
-    if (!authUser) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+    if (!verification.isValid || !verification.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const authUser = verification.user;
 
-    if (authUser.userId !== id) {
+    if (authUser.id !== id) {
       return NextResponse.json({ error: "Forbidden: Can only access your own stats" }, { status: 403 });
     }
 

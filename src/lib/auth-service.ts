@@ -155,25 +155,30 @@ export class AuthService {
       if (!dbClient) throw new Error('Database client not available');
 
       // Check if session exists and is valid
-      if (sessionId) {
-        const session = await dbClient.session.findUnique({
-          where: { id: sessionId }
-        });
+      if (!sessionId) {
+        return { isValid: false, error: 'Session ID not found in token' };
+      }
+      
+      const session = await dbClient.session.findUnique({
+        where: { id: sessionId },
+        include: { user: true }
+      });
 
-        if (!session) {
-          return { isValid: false, error: 'Session not found' };
-        }
-
-        if (session.expiresAt < new Date()) {
-          // Clean up expired session
-          await this.deleteSession(sessionId);
-          return { isValid: false, error: 'Session expired' };
-        }
+      if (!session) {
+        return { isValid: false, error: 'Session not found' };
+      }
+      
+      if(session.refreshToken !== refreshToken){
+          return { isValid: false, error: 'Invalid refresh token' };
       }
 
-      const user = await dbClient.user.findUnique({
-        where: { id: userId }
-      });
+      if (session.expiresAt < new Date()) {
+        // Clean up expired session
+        await this.deleteSession(sessionId);
+        return { isValid: false, error: 'Session expired' };
+      }
+      
+      const user = session.user;
 
       if (!user) {
         return { isValid: false, error: 'User not found' };
@@ -188,10 +193,12 @@ export class AuthService {
       }, sessionId);
 
       // Update refresh token in DB
-      await dbClient.user.update({
-        where: { id: user.id },
-        data: { refreshToken: tokens.refreshToken }
-      });
+      if (sessionId) {
+        await dbClient.session.update({
+          where: { id: sessionId },
+          data: { refreshToken: tokens.refreshToken }
+        });
+      }
 
       // Update last login time
       await this.updateLastLogin(user.id);
@@ -218,7 +225,7 @@ export class AuthService {
   /**
    * Create a new session
    */
-  async createSession(userId: string, userAgent: string, ip: string, deviceInfo?: string): Promise<SessionData> {
+  async createSession(userId: string, userAgent: string, ip: string, refreshToken: string, deviceInfo?: string): Promise<SessionData> {
     const dbClient = prisma;
     if (!dbClient) throw new Error('Database client not available');
 
@@ -233,6 +240,7 @@ export class AuthService {
           userAgent: userAgent || 'unknown',
           ip: ip || 'unknown',
           deviceInfo,
+          refreshToken,
         },
       });
 
@@ -284,6 +292,49 @@ export class AuthService {
     return dbClient.user.findUnique({
       where: { email },
     });
+  }
+
+  /**
+   * Create a new user
+   */
+  async createUser(data: { email: string; name?: string; passwordHash?: string; emailVerified?: boolean; }): Promise<AuthUser> {
+    const dbClient = prisma;
+    if (!dbClient) throw new Error('Database client not available');
+
+    const user = await dbClient.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        passwordHash: data.passwordHash,
+        emailVerified: data.emailVerified,
+      },
+    });
+
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name || undefined,
+      role: user.role || undefined,
+    };
+  }
+
+  /**
+   * Find a user by email, or create them if they don't exist.
+   * Useful for OAuth flows.
+   */
+  async findOrCreateUser(data: { email: string; name?: string; emailVerified?: boolean; }): Promise<{ user: AuthUser; isNewUser: boolean; }> {
+    const existingUser = await this.findUserByEmail(data.email);
+
+    if (existingUser) {
+      return { user: existingUser, isNewUser: false };
+    }
+
+    const newUser = await this.createUser({
+      ...data,
+      passwordHash: 'oauth_user', // Indicate that this user uses OAuth
+    });
+
+    return { user: newUser, isNewUser: true };
   }
 
   /**
@@ -519,9 +570,17 @@ export class AuthService {
       const safeIp = (ip || 'unknown').substring(0, 45);
 
       await this.updateLastLogin(user.id);
-      const session = await this.createSession(user.id, safeUserAgent, safeIp);
-
+      
       const tokens = await this.createTokens({
+        id: user.id,
+        email: user.email,
+        name: user.name || undefined,
+        role: user.role || undefined,
+      });
+
+      const session = await this.createSession(user.id, safeUserAgent, safeIp, tokens.refreshToken);
+
+      const finalTokens = await this.createTokens({
         id: user.id,
         email: user.email,
         name: user.name || undefined,
@@ -536,8 +595,8 @@ export class AuthService {
           name: user.name || undefined,
           role: user.role || undefined,
         },
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
+        accessToken: finalTokens.accessToken,
+        refreshToken: finalTokens.refreshToken,
         sessionId: session.id,
       };
 
@@ -788,136 +847,6 @@ export class AuthService {
 
   // ==================== AUTHENTICATION OPERATIONS ====================
 
-  /**
-   * Authenticate user login
-   */
-  async login(email: string, password: string, userAgent: string, ip: string): Promise<TokenVerificationResult & { accessToken?: string; refreshToken?: string }> {
-    const startTime = Date.now();
-
-    const emailValidation = validateEmail(email);
-    if (!emailValidation.isValid) {
-      return { isValid: false, error: emailValidation.error || 'البريد الإلكتروني غير صحيح' };
-    }
-    const normalizedEmail = emailValidation.normalized!;
-
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      return { isValid: false, error: passwordValidation.error || 'كلمة المرور غير صحيحة' };
-    }
-
-    const safeUserAgent = (userAgent || 'unknown').substring(0, 500);
-    const safeIp = (ip || 'unknown').substring(0, 45);
-    const clientId = `${safeIp}-${safeUserAgent}`;
-
-    try {
-      const isRateLimited = await this.isRateLimited(clientId);
-      if (isRateLimited) {
-        await this.recordFailedAttempt(clientId);
-        return { isValid: false, error: 'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة.' };
-      }
-    } catch (error) {
-      logger.debug('Rate limit check failed', error);
-    }
-
-    const user = await this.findUserByEmail(normalizedEmail);
-    if (!user || !user.passwordHash || user.passwordHash === 'oauth_user') {
-      await this.recordFailedAttempt(clientId);
-      return { isValid: false, error: 'بيانات تسجيل الدخول غير صحيحة' };
-    }
-
-    const isValid = await AuthService.comparePasswords(password, user.passwordHash);
-    if (!isValid) {
-      await this.recordFailedAttempt(clientId);
-      return { isValid: false, error: 'بيانات تسجيل الدخول غير صحيحة' };
-    }
-
-    // Check if 2FA is enabled
-    if (user.twoFactorEnabled) {
-      const { secret: jwtSecret } = getJWTSecretSafe();
-
-      // Create a temporary token for 2FA verification
-      const tempToken = await new SignJWT({
-        userId: user.id,
-        email: user.email,
-        type: '2fa_pending'
-      })
-        .setProtectedHeader({ alg: 'HS256' })
-        .setIssuedAt()
-        .setExpirationTime('5m')
-        .setIssuer('thanawy-auth')
-        .sign(jwtSecret);
-
-      return {
-        isValid: true,
-        requiresTwoFactor: true,
-        tempToken,
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name || undefined,
-          role: user.role || undefined,
-        }
-      };
-    }
-
-    await Promise.all([
-      this.updateLastLogin(user.id),
-      this.resetRateLimit(clientId),
-    ]);
-
-    const session = await this.createSession(user.id, safeUserAgent, safeIp);
-    const tokens = await this.createTokens({
-      id: user.id,
-      email: user.email,
-      name: user.name || undefined,
-      role: user.role || undefined,
-    }, session.id);
-
-    return {
-      isValid: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name || undefined,
-        role: user.role || undefined,
-      },
-      accessToken: tokens.accessToken,
-      refreshToken: tokens.refreshToken,
-      sessionId: session.id,
-    };
-  }
-
-  /**
-   * Register a new user
-   */
-  async register(email: string, password: string, name?: string): Promise<TokenVerificationResult & { user?: AuthUser }> {
-    const existing = await this.findUserByEmail(email);
-    if (existing) {
-      return { isValid: false, error: 'Email already registered' };
-    }
-
-    const hashedPassword = await AuthService.hashPassword(password);
-    const dbClient = prisma;
-    if (!dbClient) throw new Error('Database client not available');
-
-    const user = await dbClient.user.create({
-      data: {
-        email,
-        passwordHash: hashedPassword,
-        name,
-      },
-    });
-
-    return {
-      isValid: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name || undefined,
-        role: user.role || undefined,
-      },
-    };
-  }
   /**
    * Get remaining recovery codes count
    */

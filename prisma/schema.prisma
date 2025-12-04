@@ -31,7 +31,6 @@ model User {
   phoneVerificationExpires DateTime?
   phoneVerificationAttempts Int      @default(0)
   phoneVerificationLastSent DateTime?
-  refreshToken             String?
   resetToken               String?
   resetTokenExpires        DateTime?
   twoFactorEnabled         Boolean   @default(false)
@@ -93,6 +92,7 @@ model User {
   sentimentAnalyses  SentimentAnalysis[]
   aiChatMessages     AiChatMessage[]
   aiGeneratedContent AiGeneratedContent[]
+  aiGeneratedExams   AiGeneratedExam[]
   userInteractions   UserInteraction[]
   contentPreferences ContentPreference[]
   mlRecommendations  MlRecommendation[]
@@ -280,6 +280,7 @@ model Session {
   expiresAt    DateTime
   lastAccessed DateTime @default(now())
   isActive     Boolean  @default(true)
+  refreshToken String?
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -288,6 +289,7 @@ model Session {
   @@index([expiresAt])
   @@index([isActive, expiresAt])
   @@index([userId, lastAccessed])
+  @@index([refreshToken])
 }
 
 model SecurityLog {
@@ -1112,6 +1114,7 @@ model AiGeneratedExam {
   year       Int?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   questions AiQuestion[]
   results   TestResult[]

@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-service';
+import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -9,13 +9,14 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
+      const authUser = verification.user;
 
       // Get all exams that the user hasn't taken yet
       // Note: Exam model doesn't have a date field, so we return all untaken exams
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
         include: {
           results: {
             where: {
-              userId: decodedToken.userId,
+              userId: authUser.id,
             },
           },
         },

@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-service';
+import { authService } from '@/lib/auth-service';
 import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -10,17 +10,18 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
-    if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+    if (!verification.isValid || !verification.user) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+    const authUser = verification.user;
 
     // Get user notification settings
     const user = await prisma.user.findUnique({
-      where: { id: decodedToken.userId },
+      where: { id: authUser.id },
       select: { 
         emailNotifications: true,
         smsNotifications: true,
@@ -55,19 +56,20 @@ export async function PUT(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
+      const authUser = verification.user;
 
       const { emailNotifications, smsNotifications, phone } = await req.json();
 
     // Update user notification settings
     const updatedUser = await prisma.user.update({
-      where: { id: decodedToken.userId },
+      where: { id: authUser.id },
       data: {
         emailNotifications,
         smsNotifications,

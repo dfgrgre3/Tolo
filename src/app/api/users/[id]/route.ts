@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 import { prisma } from "@/lib/prisma";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -13,16 +13,17 @@ export async function GET(
     try {
       const { id } = await params;
       // Verify authentication
-      const decodedToken = verifyToken(req);
-    if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+    if (!verification.isValid || !verification.user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+    const authUser = verification.user;
 
     // Users can only view their own profile
-    if (decodedToken.userId !== id) {
+    if (authUser.id !== id) {
       return NextResponse.json(
         { error: "Access denied" },
         { status: 403 }
@@ -69,16 +70,17 @@ export async function PATCH(
     try {
       const { id } = await params;
       // Verify authentication
-      const decodedToken = verifyToken(req);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
+      const authUser = verification.user;
 
       // Users can only update their own profile
-      if (decodedToken.userId !== id) {
+      if (authUser.id !== id) {
         return NextResponse.json(
           { error: "Access denied" },
           { status: 403 }
@@ -122,16 +124,17 @@ export async function DELETE(
     try {
       const { id } = await params;
       // Verify authentication
-      const decodedToken = verifyToken(req);
-      if (!decodedToken) {
+      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
+      if (!verification.isValid || !verification.user) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
+      const authUser = verification.user;
 
       // Users can only delete their own account
-      if (decodedToken.userId !== id) {
+      if (authUser.id !== id) {
         return NextResponse.json(
           { error: "Access denied" },
           { status: 403 }

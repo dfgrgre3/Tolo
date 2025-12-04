@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { SubjectType, FocusStrategy } from "@/types/settings";
 import { SettingsUpdateRequest } from "@/types/settings";
-import { verifyToken } from "@/lib/auth-service";
+import { authService } from "@/lib/auth-service";
 import { randomUUID } from "crypto";
 import { logger } from '@/lib/logger';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -10,29 +10,28 @@ import {
 	parseRequestBody,
 	createStandardErrorResponse,
 	createSuccessResponse,
-	addSecurityHeaders
 } from '@/app/api/auth/_helpers';
 
 export async function GET(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
 		try {
 			// Authenticate user
-			const authUser = verifyToken(request);
-			if (!authUser) {
-				return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+			const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
+			if (!verification.isValid || !verification.user) {
+				return createStandardErrorResponse('Unauthorized', 'Unauthorized', 401);
 			}
+			const authUser = verification.user;
 
 			const { searchParams } = new URL(request.url);
 			const userId = searchParams.get("userId");
 
 			// If userId is provided in query, ensure it matches the authenticated user
-			if (userId && userId !== authUser.userId) {
-				const response = NextResponse.json({ error: "Forbidden: Can only access your own settings", code: 'FORBIDDEN' }, { status: 403 });
-				return addSecurityHeaders(response);
+			if (userId && userId !== authUser.id) {
+				return createStandardErrorResponse('Forbidden: Can only access your own settings', 'Forbidden', 403);
 			}
 
 			// Use authenticated user's ID if no userId provided in query
-			const targetUserId = userId || authUser.userId;
+			const targetUserId = userId || authUser.id;
 
 			// Fetch user with timeout protection
 			const userPromise = prisma.user.findUnique({
@@ -73,16 +72,12 @@ export async function POST(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
 		try {
 			// Authenticate user with timeout protection
-			const verifyPromise = Promise.resolve(verifyToken(request));
-			const verifyTimeoutPromise = new Promise<null>((resolve) => {
-				setTimeout(() => resolve(null), 5000); // 5 second timeout
-			});
-
-			const authUser = await Promise.race([verifyPromise, verifyTimeoutPromise]);
-			if (!authUser) {
-				const response = NextResponse.json({ error: "Unauthorized", code: 'UNAUTHORIZED' }, { status: 401 });
-				return addSecurityHeaders(response);
+			const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
+			if (!verification.isValid || !verification.user) {
+				return createStandardErrorResponse('Unauthorized', 'Unauthorized', 401);
 			}
+			const authUser = verification.user;
+
 
 			// Parse request body with timeout protection using standardized helper
 			const bodyResult = await parseRequestBody<SettingsUpdateRequest>(request, {
@@ -98,13 +93,12 @@ export async function POST(req: NextRequest) {
 			const { userId, wakeUpTime, sleepTime, focusStrategy, subjects } = body;
 
 			// If userId is provided in body, ensure it matches the authenticated user
-			if (userId && userId !== authUser.userId) {
-				const response = NextResponse.json({ error: "Forbidden: Can only update your own settings", code: 'FORBIDDEN' }, { status: 403 });
-				return addSecurityHeaders(response);
+			if (userId && userId !== authUser.id) {
+				return createStandardErrorResponse('Forbidden: Can only update your own settings', 'Forbidden', 403);
 			}
 
 			// Use authenticated user's ID if no userId provided in body
-			const targetUserId = userId || authUser.userId;
+			const targetUserId = userId || authUser.id;
 
 			// Verify user exists with timeout protection
 			const userExistsPromise = prisma.user.findUnique({
@@ -119,8 +113,7 @@ export async function POST(req: NextRequest) {
 			const userExists = await Promise.race([userExistsPromise, userExistsTimeoutPromise]);
 
 			if (!userExists) {
-				const response = NextResponse.json({ error: "User not found", code: 'USER_NOT_FOUND' }, { status: 404 });
-				return addSecurityHeaders(response);
+				return createStandardErrorResponse('User not found', 'User not found', 404);
 			}
 
 			// Update user settings with timeout protection

@@ -14,12 +14,12 @@
 // ============================================
 export { default as Header } from './Header';
 export { default as Footer } from './Footer';
-export { default as Dashboard } from './Dashboard';
+export * as Dashboard from './dashboard';
 
 // ============================================
 // مكونات المهام والوقت (Tasks & Time)
 // ============================================
-export { default as TodoItem } from './TodoItem';
+
 export { default as TimeTracker } from './TimeTracker';
 export { default as CalendarScheduler } from './CalendarScheduler';
 
@@ -51,15 +51,15 @@ export { default as WebSocketIndicator } from './WebSocketIndicator';
 // ============================================
 // مكونات التحليلات (Analytics)
 // ============================================
-export { 
-  DailyProgressChart, 
-  StatusMessage 
+export {
+  DailyProgressChart,
+  StatusMessage
 } from './analytics';
-export type { 
-  DailyProgressChartProps, 
-  ChartDataPoint, 
+export type {
+  DailyProgressChartProps,
+  ChartDataPoint,
   ThemeColors,
-  StatusMessageProps 
+  StatusMessageProps
 } from './analytics';
 
 // ============================================

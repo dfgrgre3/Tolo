@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 import { UnifiedAuthProvider } from '@/contexts/auth-context';
 import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
@@ -28,24 +28,26 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
   // ✅ تم إزالة AuthProvider لتجنب التضارب - نظام واحد فقط يدير الحالة
   return (
     <UnifiedAuthProvider>
-      <ClientLayoutProvider>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <ToastProvider>
-            {mounted && isReady ? (
-              <WebSocketProvider>
-                {children}
-              </WebSocketProvider>
-            ) : (
-              <>{children}</>
-            )}
-          </ToastProvider>
-        </ThemeProvider>
-      </ClientLayoutProvider>
+      <Suspense fallback={null}>
+        <ClientLayoutProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <ToastProvider>
+              {mounted && isReady ? (
+                <WebSocketProvider>
+                  {children}
+                </WebSocketProvider>
+              ) : (
+                <>{children}</>
+              )}
+            </ToastProvider>
+          </ThemeProvider>
+        </ClientLayoutProvider>
+      </Suspense>
     </UnifiedAuthProvider>
   );
 }
