@@ -44,25 +44,25 @@ function getJWTSecretSafe(): Uint8Array {
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-    // Generate a 6-digit code
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
+      // Generate a 6-digit code
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Generate a unique ID for this login attempt
-    const loginAttemptId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      // Generate a unique ID for this login attempt
+      const loginAttemptId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 
-    // Store the attempt in database (expires in 10 minutes)
-    await TwoFactorChallengeService.createChallenge('', code, 10);
+      // Store the attempt in database (expires in 10 minutes)
+      await TwoFactorChallengeService.createChallenge('', code, 10);
 
-    return NextResponse.json({
-      loginAttemptId
-      // Removed code from response for security - it should only be sent via email/SMS
-    });
-  } catch (error) {
-    logger.error('Error generating 2FA code:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+      return NextResponse.json({
+        loginAttemptId
+        // Removed code from response for security - it should only be sent via email/SMS
+      });
+    } catch (error) {
+      logger.error('Error generating 2FA code:', error);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
     }
   });
 }
@@ -72,240 +72,253 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const body = await req.json();
-    const { loginAttemptId, code, action, userId, backupCode } = body;
+      const { loginAttemptId, code, action, userId, backupCode } = body;
 
-    // If loginAttemptId is provided, this is a login verification request
-    if (loginAttemptId) {
-      // Verify 2FA code for login
-      if (!code) {
+      // If loginAttemptId is provided, this is a login verification request
+      if (loginAttemptId) {
+        // Verify 2FA code for login
+        if (!code) {
+          return NextResponse.json(
+            { error: 'Code is required' },
+            { status: 400 }
+          );
+        }
+
+        // Enhanced code validation with comprehensive checks
+        if (!code || typeof code !== 'string') {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'رمز التحقق مطلوب',
+            code: 'MISSING_CODE',
+          };
+          return NextResponse.json(errorResponse, { status: 400 });
+        }
+
+        const trimmedCode = code.trim();
+        if (trimmedCode.length === 0) {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'رمز التحقق لا يمكن أن يكون فارغاً',
+            code: 'EMPTY_CODE',
+          };
+          return NextResponse.json(errorResponse, { status: 400 });
+        }
+
+        // Validate code format (must be exactly 6 digits)
+        if (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'رمز التحقق يجب أن يكون مكون من 6 أرقام',
+            code: 'INVALID_CODE_FORMAT',
+          };
+          return NextResponse.json(errorResponse, { status: 400 });
+        }
+
+        // Validate loginAttemptId format
+        if (!loginAttemptId || typeof loginAttemptId !== 'string' || loginAttemptId.trim().length === 0) {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'معرف محاولة تسجيل الدخول مطلوب',
+            code: 'MISSING_LOGIN_ATTEMPT_ID',
+          };
+          return NextResponse.json(errorResponse, { status: 400 });
+        }
+
+        const trimmedLoginAttemptId = loginAttemptId.trim();
+        if (trimmedLoginAttemptId.length < 10 || trimmedLoginAttemptId.length > 100) {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'معرف محاولة تسجيل الدخول غير صحيح',
+            code: 'INVALID_LOGIN_ATTEMPT_ID',
+          };
+          return NextResponse.json(errorResponse, { status: 400 });
+        }
+
+        // Verify and consume the challenge from database (with timeout)
+        // Use trimmed values for consistency
+        const challengePromise = TwoFactorChallengeService.verifyAndConsumeChallenge(trimmedLoginAttemptId, trimmedCode);
+        const timeoutPromise = new Promise<{ valid: false }>((resolve) => {
+          setTimeout(() => resolve({ valid: false }), 5000); // 5 second timeout
+        });
+
+        const challengeResult = await Promise.race([challengePromise, timeoutPromise]);
+
+        if (!challengeResult.valid) {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
+            code: 'INVALID_OR_EXPIRED',
+          };
+          return NextResponse.json(errorResponse, { status: 400 });
+        }
+
+        if (!challengeResult.userId) {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
+            code: 'INVALID_OR_EXPIRED',
+          };
+          return NextResponse.json(errorResponse, { status: 400 });
+        }
+
+        // Fetch user with timeout
+        const userPromise = prisma.user.findUnique({
+          where: { id: challengeResult.userId },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            twoFactorEnabled: true,
+            lastLogin: true,
+          }
+        });
+
+        const userTimeoutPromise = new Promise<null>((resolve) => {
+          setTimeout(() => resolve(null), 3000); // 3 second timeout
+        });
+
+        const user = await Promise.race([userPromise, userTimeoutPromise]);
+
+        if (!user) {
+          const errorResponse: TwoFactorErrorResponse = {
+            error: 'المستخدم غير موجود',
+            code: 'USER_NOT_FOUND',
+          };
+          return NextResponse.json(errorResponse, { status: 404 });
+        }
+
+        const ip = authService.getClientIP(req);
+        const userAgent = authService.getUserAgent(req);
+        const clientId = `${ip}-${userAgent}`;
+        const rememberDevice = Boolean(body.trustDevice);
+        const loginTimestamp = new Date();
+
+        await authService.resetRateLimit(clientId);
+
+        // Create tokens first to get a refresh token
+        const tempTokens = await authService.createTokens({
+          id: user.id,
+          email: user.email,
+          name: user.name || undefined,
+          role: user.role || undefined,
+        });
+
+        const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
+        const { accessToken, refreshToken } = await authService.createTokens(
+          {
+            id: user.id,
+            email: user.email,
+            name: user.name || undefined,
+            role: user.role || undefined,
+          },
+          session.id,
+        );
+
+        // Update session with final refresh token
+        await prisma.session.update({
+          where: { id: session.id },
+          data: { refreshToken }
+        });
+
+        // Update user (non-blocking, with timeout)
+        Promise.allSettled([
+          prisma.user.update({
+            where: { id: user.id },
+            data: {
+              lastLogin: loginTimestamp,
+            },
+          }),
+          authService.logSecurityEvent(user.id, 'two_factor_verified', ip, {
+            userAgent,
+            sessionId: session.id,
+          }),
+        ]).catch(() => {
+          // Non-critical errors - login can proceed
+        });
+
+        const twoFactorResponse: TwoFactorVerifyResponse = {
+          message: 'تم التحقق من الرمز بنجاح.',
+          user: {
+            id: user.id,
+            email: user.email,
+            name: user.name || undefined,
+            role: user.role || 'user',
+            emailVerified: false, // Add if available from user
+            twoFactorEnabled: user.twoFactorEnabled || false,
+            lastLogin: loginTimestamp,
+          },
+          token: accessToken,
+          refreshToken,
+          sessionId: session.id,
+        };
+
+        const response = NextResponse.json(twoFactorResponse);
+        setAuthCookies(response, accessToken, refreshToken, rememberDevice);
+        return response;
+      }
+
+      // Otherwise, handle 2FA management actions
+      if (!action) {
         return NextResponse.json(
-          { error: 'Code is required' },
+          { error: 'Action is required for 2FA management' },
           { status: 400 }
         );
       }
 
-      // Enhanced code validation with comprehensive checks
-      if (!code || typeof code !== 'string') {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'رمز التحقق مطلوب',
-          code: 'MISSING_CODE',
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
+      // Get user ID from token if not provided
+      let targetUserId = userId;
+      if (!targetUserId) {
+        const authHeader = req.headers.get('authorization');
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+          return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: 401 }
+          );
+        }
+
+        const token = authHeader.substring(7);
+        const { payload } = await jwtVerify(token, getJWTSecretSafe());
+
+        targetUserId = payload.userId as string;
       }
 
-      const trimmedCode = code.trim();
-      if (trimmedCode.length === 0) {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'رمز التحقق لا يمكن أن يكون فارغاً',
-          code: 'EMPTY_CODE',
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
-      }
-
-      // Validate code format (must be exactly 6 digits)
-      if (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'رمز التحقق يجب أن يكون مكون من 6 أرقام',
-          code: 'INVALID_CODE_FORMAT',
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
-      }
-
-      // Validate loginAttemptId format
-      if (!loginAttemptId || typeof loginAttemptId !== 'string' || loginAttemptId.trim().length === 0) {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'معرف محاولة تسجيل الدخول مطلوب',
-          code: 'MISSING_LOGIN_ATTEMPT_ID',
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
-      }
-
-      const trimmedLoginAttemptId = loginAttemptId.trim();
-      if (trimmedLoginAttemptId.length < 10 || trimmedLoginAttemptId.length > 100) {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'معرف محاولة تسجيل الدخول غير صحيح',
-          code: 'INVALID_LOGIN_ATTEMPT_ID',
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
-      }
-
-      // Verify and consume the challenge from database (with timeout)
-      // Use trimmed values for consistency
-      const challengePromise = TwoFactorChallengeService.verifyAndConsumeChallenge(trimmedLoginAttemptId, trimmedCode);
-      const timeoutPromise = new Promise<{ valid: false }>((resolve) => {
-        setTimeout(() => resolve({ valid: false }), 5000); // 5 second timeout
-      });
-
-      const challengeResult = await Promise.race([challengePromise, timeoutPromise]);
-
-      if (!challengeResult.valid) {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
-          code: 'INVALID_OR_EXPIRED',
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
-      }
-
-      if (!challengeResult.userId) {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
-          code: 'INVALID_OR_EXPIRED',
-        };
-        return NextResponse.json(errorResponse, { status: 400 });
-      }
-
-      // Fetch user with timeout
-      const userPromise = prisma.user.findUnique({
-        where: { id: challengeResult.userId },
+      // Get user with required 2FA fields
+      const user = await prisma.user.findUnique({
+        where: { id: targetUserId },
         select: {
           id: true,
           email: true,
           name: true,
           role: true,
           twoFactorEnabled: true,
-          lastLogin: true,
+          twoFactorSecret: true,
+          recoveryCodes: true,
         }
       });
 
-      const userTimeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 3000); // 3 second timeout
-      });
-
-      const user = await Promise.race([userPromise, userTimeoutPromise]);
-
       if (!user) {
-        const errorResponse: TwoFactorErrorResponse = {
-          error: 'المستخدم غير موجود',
-          code: 'USER_NOT_FOUND',
-        };
-        return NextResponse.json(errorResponse, { status: 404 });
-      }
-
-      const ip = authService.getClientIP(req);
-      const userAgent = authService.getUserAgent(req);
-      const clientId = `${ip}-${userAgent}`;
-      const rememberDevice = Boolean(body.trustDevice);
-      const loginTimestamp = new Date();
-
-      await authService.resetRateLimit(clientId);
-
-      const session = await authService.createSession(user.id, userAgent, ip);
-      const { accessToken, refreshToken } = await authService.createTokens(
-        {
-          id: user.id,
-          email: user.email,
-          name: user.name || undefined,
-          role: user.role || undefined,
-        },
-        session.id,
-      );
-
-      // Update user (non-blocking, with timeout)
-      Promise.allSettled([
-        prisma.user.update({
-          where: { id: user.id },
-          data: {
-            refreshToken,
-            lastLogin: loginTimestamp,
-          },
-        }),
-        authService.logSecurityEvent(user.id, 'two_factor_verified', ip, {
-          userAgent,
-          sessionId: session.id,
-        }),
-      ]).catch(() => {
-        // Non-critical errors - login can proceed
-      });
-
-      const twoFactorResponse: TwoFactorVerifyResponse = {
-        message: 'تم التحقق من الرمز بنجاح.',
-        user: {
-          id: user.id,
-          email: user.email,
-          name: user.name || undefined,
-          role: user.role || 'user',
-          emailVerified: false, // Add if available from user
-          twoFactorEnabled: user.twoFactorEnabled || false,
-          lastLogin: loginTimestamp,
-        },
-        token: accessToken,
-        refreshToken,
-        sessionId: session.id,
-      };
-      
-      const response = NextResponse.json(twoFactorResponse);
-      setAuthCookies(response, accessToken, refreshToken, rememberDevice);
-      return response;
-    }
-
-    // Otherwise, handle 2FA management actions
-    if (!action) {
-      return NextResponse.json(
-        { error: 'Action is required for 2FA management' },
-        { status: 400 }
-      );
-    }
-
-    // Get user ID from token if not provided
-    let targetUserId = userId;
-    if (!targetUserId) {
-      const authHeader = req.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401 }
+          { error: 'User not found' },
+          { status: 404 }
         );
       }
 
-      const token = authHeader.substring(7);
-      const { payload } = await jwtVerify(token, getJWTSecretSafe());
-
-      targetUserId = payload.userId as string;
-    }
-
-    // Get user with required 2FA fields
-    const user = await prisma.user.findUnique({
-      where: { id: targetUserId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        role: true,
-        twoFactorEnabled: true,
-        twoFactorSecret: true,
-        recoveryCodes: true,
+      // Handle different actions
+      switch (action) {
+        case 'setup':
+          return await handleSetup2FA(user);
+        case 'verify':
+          return await handleVerify2FA(user, code, req);
+        case 'disable':
+          return await handleDisable2FA(user, code, req);
+        case 'backup-code':
+          return await handleBackupCode(user, backupCode, req);
+        default:
+          return NextResponse.json(
+            { error: 'Invalid action' },
+            { status: 400 }
+          );
       }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+    } catch (error) {
+      logger.error('Two-factor authentication error:', error);
+      return createErrorResponse(
+        error,
+        'حدث خطأ غير متوقع أثناء معالجة طلب التحقق ثنائي العامل. حاول مرة أخرى لاحقاً.'
       );
-    }
-
-    // Handle different actions
-    switch (action) {
-      case 'setup':
-        return await handleSetup2FA(user);
-      case 'verify':
-        return await handleVerify2FA(user, code, req);
-      case 'disable':
-        return await handleDisable2FA(user, code, req);
-      case 'backup-code':
-        return await handleBackupCode(user, backupCode, req);
-      default:
-        return NextResponse.json(
-          { error: 'Invalid action' },
-          { status: 400 }
-        );
-    }
-  } catch (error) {
-    logger.error('Two-factor authentication error:', error);
-    return createErrorResponse(
-      error,
-      'حدث خطأ غير متوقع أثناء معالجة طلب التحقق ثنائي العامل. حاول مرة أخرى لاحقاً.'
-    );
     }
   });
 }
@@ -322,7 +335,7 @@ async function handleSetup2FA(user: UserWith2FA) {
     // Store the secret temporarily (not enabled yet)
     await prisma.user.update({
       where: { id: user.id },
-      data: { 
+      data: {
         twoFactorSecret: secret,
         recoveryCodes: JSON.stringify(backupCodes)
       }
@@ -564,8 +577,8 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
       select: { recoveryCodes: true },
     });
 
-    const remainingCodes = userWithCodes?.recoveryCodes 
-      ? JSON.parse(userWithCodes.recoveryCodes as string).length 
+    const remainingCodes = userWithCodes?.recoveryCodes
+      ? JSON.parse(userWithCodes.recoveryCodes as string).length
       : 0;
 
     // Log security events
