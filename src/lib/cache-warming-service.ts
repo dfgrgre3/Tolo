@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+﻿import { prisma } from '@/lib/db';
 import { cacheMultipleEducationalItems } from "@/lib/educational-cache-service";
 import { CacheService } from "@/lib/cache-service-unified";
 
@@ -189,5 +189,5 @@ export async function warmAllCache(): Promise<void> {
 }
 
 export class CacheWarmingService {
-  // ... تنفيذ الخدمة ...
+  // ... طھظ†ظپظٹط° ط§ظ„ط®ط¯ظ…ط© ...
 }

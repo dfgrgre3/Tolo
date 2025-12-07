@@ -1,9 +1,9 @@
-import { GET as healthCheck } from '@/app/api/healthz/route';
+﻿import { GET as healthCheck } from '@/app/api/healthz/route';
 import { GET as readyCheck } from '@/app/api/readyz/route';
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     $queryRaw: jest.fn(),
   },

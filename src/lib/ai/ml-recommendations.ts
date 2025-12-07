@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/prisma';
+﻿import { prisma } from '@/lib/db';
 
 export interface Recommendation {
   itemId: string;
@@ -99,7 +99,7 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
         title: '',
         score: normalizedScore,
         algorithm: 'collaborative',
-        reason: `مستخدمون مشابهون لك أعجبهم هذا المحتوى`,
+        reason: `ظ…ط³طھط®ط¯ظ…ظˆظ† ظ…ط´ط§ط¨ظ‡ظˆظ† ظ„ظƒ ط£ط¹ط¬ط¨ظ‡ظ… ظ‡ط°ط§ ط§ظ„ظ…ط­طھظˆظ‰`,
         priority: 'medium' as const
       } as Recommendation);
     }
@@ -159,7 +159,7 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
             description: (item as { description?: string }).description,
             score: 0.7,
             algorithm: 'content_based',
-            reason: `مشابه لمحتوى أعجبك`,
+            reason: `ظ…ط´ط§ط¨ظ‡ ظ„ظ…ط­طھظˆظ‰ ط£ط¹ط¬ط¨ظƒ`,
             priority: 'medium' as const
           } as Recommendation);
         } else {
@@ -242,7 +242,7 @@ export async function getHybridRecommendations(
     if (existing) {
       existing.score = Math.min(1, existing.score + (rec.score * 0.4));
       existing.algorithm = 'hybrid';
-      existing.reason = `مزيج من التوصيات التعاونية والقائمة على المحتوى`;
+      existing.reason = `ظ…ط²ظٹط¬ ظ…ظ† ط§ظ„طھظˆطµظٹط§طھ ط§ظ„طھط¹ط§ظˆظ†ظٹط© ظˆط§ظ„ظ‚ط§ط¦ظ…ط© ط¹ظ„ظ‰ ط§ظ„ظ…ط­طھظˆظ‰`;
     } else {
       combined.set(key, {
         ...rec,

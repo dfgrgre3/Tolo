@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { authService } from '@/lib/auth-service';
 import { webAuthnService, WebAuthnCredential } from '@/lib/security/webauthn';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";

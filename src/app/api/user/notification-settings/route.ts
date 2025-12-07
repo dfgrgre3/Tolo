@@ -1,11 +1,11 @@
-
+﻿
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
-// جلب إعدادات الإشعارات
+// ط¬ظ„ط¨ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
   });
 }
 
-// تحديث إعدادات الإشعارات
+// طھط­ط¯ظٹط« ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ
 export async function PUT(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {

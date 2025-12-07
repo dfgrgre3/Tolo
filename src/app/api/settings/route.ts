@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { SubjectType, FocusStrategy } from "@/types/settings";
 import { SettingsUpdateRequest } from "@/types/settings";
 import { authService } from "@/lib/auth-service";

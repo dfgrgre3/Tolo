@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { TEACHER_ROLES } from '@/lib/constants';
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 		// Validate limit parameter
 		if (isNaN(limit) || limit < 1 || limit > 100) {
 			const response = NextResponse.json(
-				{ error: "حد غير صحيح. يجب أن يكون بين 1 و 100", code: 'INVALID_LIMIT' },
+				{ error: "ط­ط¯ ط؛ظٹط± طµط­ظٹط­. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط¨ظٹظ† 1 ظˆ 100", code: 'INVALID_LIMIT' },
 				{ status: 400 }
 			);
 			return addSecurityHeaders(response);
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 				const courses = await Promise.race([coursesPromise, timeoutPromise]);
 
 				courses.forEach((course: { id: string; name: string | null; description: string | null; type: string | null }) => {
-					const title = course.name || "مادة بدون عنوان";
+					const title = course.name || "ظ…ط§ط¯ط© ط¨ط¯ظˆظ† ط¹ظ†ظˆط§ظ†";
 					const description = course.description || "";
 					const relevance = Math.max(
 						calculateRelevance(title, searchTerm),
@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
 						type: "course",
 						title,
 						description,
-						category: course.type || "عام",
+						category: course.type || "ط¹ط§ظ…",
 						url: `/courses/${course.id}`,
 						relevance,
 					});
@@ -132,15 +132,15 @@ export async function GET(request: NextRequest) {
 				const teachers = await Promise.race([teachersPromise, teachersTimeoutPromise]);
 
 				teachers.forEach((teacher: { id: string; name: string | null; email: string }) => {
-					const title = teacher.name || teacher.email || "معلم";
+					const title = teacher.name || teacher.email || "ظ…ط¹ظ„ظ…";
 					const relevance = calculateRelevance(title, searchTerm);
 
 					results.push({
 						id: `teacher-${teacher.id}`,
 						type: "teacher",
 						title,
-						description: `معلم - ${teacher.email}`,
-						category: "معلمين",
+						description: `ظ…ط¹ظ„ظ… - ${teacher.email}`,
+						category: "ظ…ط¹ظ„ظ…ظٹظ†",
 						url: `/teachers/${teacher.id}`,
 						relevance,
 					});
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
 				const posts = await Promise.race([postsPromise, postsTimeoutPromise]);
 
 				posts.forEach((post: { id: string; title: string | null; content: string | null; category: { name: string } | null }) => {
-					const title = post.title || "موضوع بدون عنوان";
+					const title = post.title || "ظ…ظˆط¶ظˆط¹ ط¨ط¯ظˆظ† ط¹ظ†ظˆط§ظ†";
 					const content = post.content || "";
 					const relevance = Math.max(
 						calculateRelevance(title, searchTerm),
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
 						type: "forum",
 						title,
 						description: content.substring(0, 150) + (content.length > 150 ? "..." : ""),
-						category: post.category?.name || "عام",
+						category: post.category?.name || "ط¹ط§ظ…",
 						url: `/forum/${post.id}`,
 						relevance,
 					});
@@ -222,7 +222,7 @@ export async function GET(request: NextRequest) {
 				const exams = await Promise.race([examsPromise, examsTimeoutPromise]);
 
 				exams.forEach((exam: { id: string; title: string; subject: string; year: number }) => {
-					const title = exam.title || "امتحان بدون عنوان";
+					const title = exam.title || "ط§ظ…طھط­ط§ظ† ط¨ط¯ظˆظ† ط¹ظ†ظˆط§ظ†";
 					const relevance = Math.max(
 						calculateRelevance(title, searchTerm),
 						calculateRelevance(exam.subject || "", searchTerm)
@@ -232,8 +232,8 @@ export async function GET(request: NextRequest) {
 						id: `exam-${exam.id}`,
 						type: "exam",
 						title,
-						description: `امتحان ${exam.subject} - ${exam.year}`,
-						category: exam.subject || "عام",
+						description: `ط§ظ…طھط­ط§ظ† ${exam.subject} - ${exam.year}`,
+						category: exam.subject || "ط¹ط§ظ…",
 						url: `/exams/${exam.id}`,
 						relevance,
 					});
@@ -258,7 +258,7 @@ export async function GET(request: NextRequest) {
 		logger.error("Error in search API:", error);
 		return createStandardErrorResponse(
 			error,
-			"حدث خطأ في البحث"
+			"ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط¨ط­ط«"
 		);
 		}
 	});

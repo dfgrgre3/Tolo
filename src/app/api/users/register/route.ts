@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import bcrypt from "bcrypt";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
+import bcrypt from "bcryptjs";
 import { handleApiError, badRequestResponse, successResponse } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
 			}
 
 			const { email, password, name } = body;
-			
+
 			if (!email || !password) {
 				return badRequestResponse('Email and password are required', 'MISSING_CREDENTIALS');
 			}
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
 			const passwordHash = await bcrypt.hash(password, 10);
 			const user = await prisma.user.create({ data: { email, passwordHash, name } });
-			
+
 			return successResponse(
 				{ id: user.id, email: user.email, name: user.name },
 				'User registered successfully',

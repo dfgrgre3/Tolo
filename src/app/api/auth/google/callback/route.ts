@@ -1,7 +1,7 @@
-
+﻿
 import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig, verifyState, generateToken, validateRedirectUri } from '@/lib/oauth';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { isConnectionError, getSecureCookieOptions } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -25,17 +25,17 @@ export async function GET(request: NextRequest) {
         isConfigured: oauthConfig.google.isConfigured(),
       });
       
-      let errorMessage = 'حدث خطأ أثناء تسجيل الدخول بجوجل';
+      let errorMessage = 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ط¬ظˆط¬ظ„';
       
       // Map Google error codes to user-friendly Arabic messages
       const errorMessages: Record<string, string> = {
-        'access_denied': 'تم إلغاء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
-        'invalid_request': 'طلب غير صحيح. يرجى التحقق من إعدادات Redirect URI في Google Console.',
-        'unauthorized_client': 'تطبيق غير مصرح به. يرجى التحقق من client_id في Google Console.',
-        'unsupported_response_type': 'نوع استجابة غير مدعوم. يرجى التواصل مع الدعم الفني.',
-        'invalid_scope': 'نطاق غير صحيح. يرجى التواصل مع الدعم الفني.',
-        'server_error': 'خطأ في خادم Google. يرجى المحاولة مرة أخرى لاحقاً.',
-        'temporarily_unavailable': 'الخدمة غير متاحة مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً.',
+        'access_denied': 'طھظ… ط¥ظ„ط؛ط§ط، طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.',
+        'invalid_request': 'ط·ظ„ط¨ ط؛ظٹط± طµط­ظٹط­. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ Redirect URI ظپظٹ Google Console.',
+        'unauthorized_client': 'طھط·ط¨ظٹظ‚ ط؛ظٹط± ظ…طµط±ط­ ط¨ظ‡. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† client_id ظپظٹ Google Console.',
+        'unsupported_response_type': 'ظ†ظˆط¹ ط§ط³طھط¬ط§ط¨ط© ط؛ظٹط± ظ…ط¯ط¹ظˆظ…. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.',
+        'invalid_scope': 'ظ†ط·ط§ظ‚ ط؛ظٹط± طµط­ظٹط­. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.',
+        'server_error': 'ط®ط·ط£ ظپظٹ ط®ط§ط¯ظ… Google. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
+        'temporarily_unavailable': 'ط§ظ„ط®ط¯ظ…ط© ط؛ظٹط± ظ…طھط§ط­ط© ظ…ط¤ظ‚طھط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
       };
       
       // Special handling for invalid_request which often means redirect_uri mismatch
@@ -43,12 +43,12 @@ export async function GET(request: NextRequest) {
         const redirectUri = oauthConfig.google.redirectUri;
         const redirectUriValidation = validateRedirectUri(redirectUri);
         
-        errorMessage = `طلب غير صحيح. يرجى التحقق من:
-1. Redirect URI في Google Cloud Console يجب أن يكون بالضبط: ${redirectUri}
-   ${redirectUriValidation.valid ? '✅' : '⚠️'} ${redirectUriValidation.error || 'صيغة صحيحة'}
-2. OAuth Consent Screen يجب أن يكون مكتملاً
-3. إذا كان التطبيق في وضع الاختبار، تأكد من إضافة بريدك الإلكتروني في "Test users"
-4. تأكد من تطابق البروتوكول (http/https) والنطاق والمنفذ والمسار بالضبط`;
+        errorMessage = `ط·ظ„ط¨ ط؛ظٹط± طµط­ظٹط­. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ†:
+1. Redirect URI ظپظٹ Google Cloud Console ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط¨ط§ظ„ط¶ط¨ط·: ${redirectUri}
+   ${redirectUriValidation.valid ? 'âœ…' : 'âڑ ï¸ڈ'} ${redirectUriValidation.error || 'طµظٹط؛ط© طµط­ظٹط­ط©'}
+2. OAuth Consent Screen ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظ…ظƒطھظ…ظ„ط§ظ‹
+3. ط¥ط°ط§ ظƒط§ظ† ط§ظ„طھط·ط¨ظٹظ‚ ظپظٹ ظˆط¶ط¹ ط§ظ„ط§ط®طھط¨ط§ط±طŒ طھط£ظƒط¯ ظ…ظ† ط¥ط¶ط§ظپط© ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظپظٹ "Test users"
+4. طھط£ظƒط¯ ظ…ظ† طھط·ط§ط¨ظ‚ ط§ظ„ط¨ط±ظˆطھظˆظƒظˆظ„ (http/https) ظˆط§ظ„ظ†ط·ط§ظ‚ ظˆط§ظ„ظ…ظ†ظپط° ظˆط§ظ„ظ…ط³ط§ط± ط¨ط§ظ„ط¶ط¨ط·`;
         
         logger.error('Google OAuth redirect_uri mismatch detected', {
           expectedRedirectUri: redirectUri,
@@ -69,14 +69,14 @@ export async function GET(request: NextRequest) {
     if (!state || !savedState || !verifyState(state, savedState)) {
       logger.error('Google OAuth: Invalid state parameter', { state, savedState });
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_state&message=${encodeURIComponent('فشل التحقق من الأمان. يرجى المحاولة مرة أخرى.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_state&message=${encodeURIComponent('ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط£ظ…ط§ظ†. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')}`
       );
     }
 
     if (!code) {
       logger.error('Google OAuth: No authorization code received');
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=no_code&message=${encodeURIComponent('لم يتم استلام رمز التفويض من Google. يرجى المحاولة مرة أخرى.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=no_code&message=${encodeURIComponent('ظ„ظ… ظٹطھظ… ط§ط³طھظ„ط§ظ… ط±ظ…ط² ط§ظ„طھظپظˆظٹط¶ ظ…ظ† Google. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')}`
       );
     }
 
@@ -92,8 +92,8 @@ export async function GET(request: NextRequest) {
       }
       
       const errorMessage = missingFields.length > 0
-        ? `إعدادات Google OAuth غير مكتملة. المتغيرات المفقودة: ${missingFields.join(', ')}. يرجى إضافة هذه المتغيرات إلى ملف .env.local`
-        : 'إعدادات Google OAuth غير مكتملة. يرجى التحقق من إعدادات الخادم.';
+        ? `ط¥ط¹ط¯ط§ط¯ط§طھ Google OAuth ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©. ط§ظ„ظ…طھط؛ظٹط±ط§طھ ط§ظ„ظ…ظپظ‚ظˆط¯ط©: ${missingFields.join(', ')}. ظٹط±ط¬ظ‰ ط¥ط¶ط§ظپط© ظ‡ط°ظ‡ ط§ظ„ظ…طھط؛ظٹط±ط§طھ ط¥ظ„ظ‰ ظ…ظ„ظپ .env.local`
+        : 'ط¥ط¹ط¯ط§ط¯ط§طھ Google OAuth ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®ط§ط¯ظ….';
       
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_not_configured&message=${encodeURIComponent(errorMessage)}`
@@ -148,25 +148,25 @@ export async function GET(request: NextRequest) {
         note: 'If error is "redirect_uri_mismatch", ensure the redirect_uri in Google Cloud Console matches exactly: ' + redirectUriForTokenExchange,
       });
       
-      let errorMessage = 'فشل الحصول على رمز الوصول من Google.';
+      let errorMessage = 'ظپط´ظ„ ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط±ظ…ط² ط§ظ„ظˆطµظˆظ„ ظ…ظ† Google.';
       try {
         const errorData = JSON.parse(errorText);
         if (errorData.error === 'invalid_grant') {
-          errorMessage = 'رمز التفويض غير صحيح أو منتهي الصلاحية. يرجى المحاولة مرة أخرى.';
+          errorMessage = 'ط±ظ…ط² ط§ظ„طھظپظˆظٹط¶ ط؛ظٹط± طµط­ظٹط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
         } else if (errorData.error === 'invalid_client') {
-          errorMessage = 'معرف العميل غير صحيح. يرجى التواصل مع الدعم الفني.';
+          errorMessage = 'ظ…ط¹ط±ظپ ط§ظ„ط¹ظ…ظٹظ„ ط؛ظٹط± طµط­ظٹط­. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.';
         } else if (errorData.error === 'redirect_uri_mismatch') {
           // Special handling for redirect_uri mismatch - most common OAuth configuration error
-          errorMessage = `عدم تطابق redirect_uri. يجب أن يكون العنوان في Google Cloud Console بالضبط:
+          errorMessage = `ط¹ط¯ظ… طھط·ط§ط¨ظ‚ redirect_uri. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط§ظ„ط¹ظ†ظˆط§ظ† ظپظٹ Google Cloud Console ط¨ط§ظ„ط¶ط¨ط·:
 ${redirectUriForTokenExchange}
 
-📝 خطوات الإصلاح:
-1. افتح Google Cloud Console: https://console.cloud.google.com/
-2. انتقل إلى: APIs & Services → Credentials
-3. اختر OAuth 2.0 Client ID الخاص بك
-4. تأكد من وجود هذا العنوان بالضبط في "Authorized redirect URIs":
+ًں“‌ ط®ط·ظˆط§طھ ط§ظ„ط¥طµظ„ط§ط­:
+1. ط§ظپطھط­ Google Cloud Console: https://console.cloud.google.com/
+2. ط§ظ†طھظ‚ظ„ ط¥ظ„ظ‰: APIs & Services â†’ Credentials
+3. ط§ط®طھط± OAuth 2.0 Client ID ط§ظ„ط®ط§طµ ط¨ظƒ
+4. طھط£ظƒط¯ ظ…ظ† ظˆط¬ظˆط¯ ظ‡ط°ط§ ط§ظ„ط¹ظ†ظˆط§ظ† ط¨ط§ظ„ط¶ط¨ط· ظپظٹ "Authorized redirect URIs":
    ${redirectUriForTokenExchange}
-5. تأكد من التطابق التام: نفس البروتوكول (http/https)، نفس النطاق، نفس المنفذ، نفس المسار`;
+5. طھط£ظƒط¯ ظ…ظ† ط§ظ„طھط·ط§ط¨ظ‚ ط§ظ„طھط§ظ…: ظ†ظپط³ ط§ظ„ط¨ط±ظˆطھظˆظƒظˆظ„ (http/https)طŒ ظ†ظپط³ ط§ظ„ظ†ط·ط§ظ‚طŒ ظ†ظپط³ ط§ظ„ظ…ظ†ظپط°طŒ ظ†ظپط³ ط§ظ„ظ…ط³ط§ط±`;
           logger.error('Google OAuth redirect_uri mismatch detected', {
             expectedRedirectUri: redirectUriForTokenExchange,
             errorFromGoogle: errorData.error_description || errorData.error,
@@ -187,7 +187,7 @@ ${redirectUriForTokenExchange}
 
     if (tokenData.error) {
       logger.error('Google OAuth token error:', tokenData);
-      let errorMessage = 'فشل الحصول على رمز الوصول من Google.';
+      let errorMessage = 'ظپط´ظ„ ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط±ظ…ط² ط§ظ„ظˆطµظˆظ„ ظ…ظ† Google.';
       if (tokenData.error_description) {
         errorMessage = tokenData.error_description;
       }
@@ -200,7 +200,7 @@ ${redirectUriForTokenExchange}
     if (!tokenData.access_token) {
       logger.error('Google OAuth: No access token in response');
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=token_error&message=${encodeURIComponent('لم يتم استلام رمز الوصول من Google. يرجى المحاولة مرة أخرى.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=token_error&message=${encodeURIComponent('ظ„ظ… ظٹطھظ… ط§ط³طھظ„ط§ظ… ط±ظ…ط² ط§ظ„ظˆطµظˆظ„ ظ…ظ† Google. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')}`
       );
     }
 
@@ -217,7 +217,7 @@ ${redirectUriForTokenExchange}
         statusText: userResponse.statusText,
       });
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=user_info_error&message=${encodeURIComponent('فشل الحصول على معلومات المستخدم من Google. يرجى المحاولة مرة أخرى.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=user_info_error&message=${encodeURIComponent('ظپط´ظ„ ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ظ† Google. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')}`
       );
     }
 
@@ -226,7 +226,7 @@ ${redirectUriForTokenExchange}
     if (!userData.email) {
       logger.error('Google OAuth: No email in user data');
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=user_info_error&message=${encodeURIComponent('لم يتم استلام البريد الإلكتروني من Google. يرجى التأكد من منح التطبيق صلاحية الوصول إلى البريد الإلكتروني.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=user_info_error&message=${encodeURIComponent('ظ„ظ… ظٹطھظ… ط§ط³طھظ„ط§ظ… ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ظ† Google. ظٹط±ط¬ظ‰ ط§ظ„طھط£ظƒط¯ ظ…ظ† ظ…ظ†ط­ ط§ظ„طھط·ط¨ظٹظ‚ طµظ„ط§ط­ظٹط© ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ.')}`
       );
     }
 
@@ -286,7 +286,7 @@ ${redirectUriForTokenExchange}
     if (!isConnected) {
       logger.error('Database is not connected, cannot proceed with OAuth');
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل الاتصال بقاعدة البيانات. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')}`
       );
     }
     
@@ -369,16 +369,16 @@ ${redirectUriForTokenExchange}
       });
       
       // Provide user-friendly error message
-      let errorMessage = 'حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى.';
+      let errorMessage = 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
       
       if (isConnectionError(dbError)) {
-        errorMessage = 'فشل الاتصال بقاعدة البيانات. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
+        errorMessage = 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
       } else if (dbError.code === 'P1001') {
-        errorMessage = 'لا يمكن الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقاً.';
+        errorMessage = 'ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.';
       } else if (dbError.code === 'P1017') {
-        errorMessage = 'تم إغلاق الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
+        errorMessage = 'طھظ… ط¥ط؛ظ„ط§ظ‚ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
       } else if (dbError.message?.includes('timeout')) {
-        errorMessage = 'انتهت مهلة الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
+        errorMessage = 'ط§ظ†طھظ‡طھ ظ…ظ‡ظ„ط© ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
       }
       
       return NextResponse.redirect(
@@ -450,7 +450,7 @@ ${redirectUriForTokenExchange}
             if (!user) {
               logger.error('User not found after duplicate error');
               return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل العثور على المستخدم. يرجى المحاولة مرة أخرى.')}`
+                `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('ظپط´ظ„ ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ظ…ط³طھط®ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')}`
               );
             }
             
@@ -465,9 +465,9 @@ ${redirectUriForTokenExchange}
               meta: findError.meta,
             });
             
-            let errorMessage = 'فشل العثور على المستخدم. يرجى المحاولة مرة أخرى.';
+            let errorMessage = 'ظپط´ظ„ ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ظ„ظ…ط³طھط®ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
             if (isConnectionError(findError)) {
-              errorMessage = 'فشل الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
+              errorMessage = 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
             }
             
             return NextResponse.redirect(
@@ -476,20 +476,20 @@ ${redirectUriForTokenExchange}
           }
         } else {
           // Return detailed error for debugging
-          let errorMessage = 'فشل إنشاء حساب جديد. يرجى المحاولة مرة أخرى.';
+          let errorMessage = 'ظپط´ظ„ ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨ ط¬ط¯ظٹط¯. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
           
           if (isConnectionError(createError)) {
-            errorMessage = 'فشل الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
+            errorMessage = 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
           } else if (createError.code === 'P1001') {
-            errorMessage = 'لا يمكن الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقاً.';
+            errorMessage = 'ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.';
           } else if (createError.code === 'P1017') {
-            errorMessage = 'تم إغلاق الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
+            errorMessage = 'طھظ… ط¥ط؛ظ„ط§ظ‚ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
           } else if (createError.meta?.target) {
-            errorMessage = `فشل إنشاء حساب: ${createError.meta.target.join(', ')}`;
+            errorMessage = `ظپط´ظ„ ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨: ${createError.meta.target.join(', ')}`;
           } else if (createError.message) {
             // In development, show more details
             if (process.env.NODE_ENV === 'development') {
-              errorMessage = `فشل إنشاء حساب: ${createError.message}`;
+              errorMessage = `ظپط´ظ„ ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨: ${createError.message}`;
             }
           }
           
@@ -504,7 +504,7 @@ ${redirectUriForTokenExchange}
     if (!user) {
       logger.error('Google OAuth: User is null after all attempts');
       return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل الحصول على معلومات المستخدم. يرجى المحاولة مرة أخرى.')}`
+        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('ظپط´ظ„ ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.')}`
       );
     }
 
@@ -553,7 +553,7 @@ ${redirectUriForTokenExchange}
     
     logger.error('Error in Google OAuth callback:', errorDetails);
     
-    let errorMessage = 'حدث خطأ غير متوقع أثناء تسجيل الدخول بجوجل. يرجى المحاولة مرة أخرى.';
+    let errorMessage = 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ط¬ظˆط¬ظ„. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
     let errorCode = 'server_error';
     
     if (error instanceof Error) {
@@ -563,7 +563,7 @@ ${redirectUriForTokenExchange}
       if (errorMsg.includes('fetch') || errorMsg.includes('network') || 
           errorMsg.includes('econnrefused') || errorMsg.includes('enotfound') ||
           errorMsg.includes('etimedout') || errorMsg.includes('econnreset')) {
-        errorMessage = 'فشل الاتصال بخادم Google. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
+        errorMessage = 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط®ط§ط¯ظ… Google. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
         errorCode = 'network_error';
       } 
       // Database connection errors
@@ -575,7 +575,7 @@ ${redirectUriForTokenExchange}
                errorMsg.includes('p2002') ||
                errorMsg.includes('connection') ||
                errorMsg.includes('timeout')) {
-        errorMessage = 'فشل الاتصال بقاعدة البيانات. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
+        errorMessage = 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§طھطµط§ظ„ ط§ظ„ط¥ظ†طھط±ظ†طھ ظˆط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
         errorCode = 'database_error';
         
         // Try to ensure database is properly closed on error
@@ -590,22 +590,22 @@ ${redirectUriForTokenExchange}
       // OAuth configuration errors
       else if (errorMsg.includes('oauth') || errorMsg.includes('client_id') || 
                errorMsg.includes('client_secret') || errorMsg.includes('secret')) {
-        errorMessage = 'خطأ في إعدادات تسجيل الدخول. يرجى التواصل مع الدعم الفني.';
+        errorMessage = 'ط®ط·ط£ ظپظٹ ط¥ط¹ط¯ط§ط¯ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.';
         errorCode = 'oauth_error';
       }
       // JWT/Token errors (check before timeout since jwt/token are more specific)
       else if ((errorMsg.includes('jwt') || errorMsg.includes('token')) && !errorMsg.includes('timeout')) {
-        errorMessage = 'خطأ في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.';
+        errorMessage = 'ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط±ظ…ط² ط§ظ„ظ…طµط§ط¯ظ‚ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
         errorCode = 'token_error';
       }
       // Timeout errors (check after token to avoid conflicts)
       else if (errorMsg.includes('timeout')) {
-        errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
+        errorMessage = 'ط§ظ†طھظ‡طھ ظ…ظ‡ظ„ط© ط§ظ„ط§طھطµط§ظ„. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
         errorCode = 'timeout_error';
       }
       // Development mode - show more details
       else if (process.env.NODE_ENV === 'development') {
-        errorMessage = `خطأ في التطوير: ${error.message}`;
+        errorMessage = `ط®ط·ط£ ظپظٹ ط§ظ„طھط·ظˆظٹط±: ${error.message}`;
       }
     } else if (error && typeof error === 'object') {
       // Handle object errors (Prisma errors, etc.)
@@ -613,10 +613,10 @@ ${redirectUriForTokenExchange}
       if (errorObj.code) {
         const prismaCode = String(errorObj.code);
         if (prismaCode.startsWith('P1')) {
-          errorMessage = 'فشل الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
+          errorMessage = 'ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
           errorCode = 'database_error';
         } else if (prismaCode.startsWith('P2')) {
-          errorMessage = 'حدث خطأ أثناء معالجة البيانات. يرجى المحاولة مرة أخرى.';
+          errorMessage = 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.';
           errorCode = 'database_error';
         } else {
           errorCode = prismaCode.toLowerCase();

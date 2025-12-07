@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { Prisma } from '@prisma/client';
@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
       if (!verification.isValid || !verification.user) {
         return NextResponse.json(
-          { error: 'غير مصرح' },
+          { error: 'ط؛ظٹط± ظ…طµط±ط­' },
           { status: 401 }
         );
       }
@@ -76,7 +76,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error('Failed to fetch security events:', error);
       return NextResponse.json(
-        { error: 'فشل جلب الأحداث الأمنية' },
+        { error: 'ظپط´ظ„ ط¬ظ„ط¨ ط§ظ„ط£ط­ط¯ط§ط« ط§ظ„ط£ظ…ظ†ظٹط©' },
         { status: 500 }
       );
     }

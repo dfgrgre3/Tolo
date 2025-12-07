@@ -1,6 +1,5 @@
 
 import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
 import bcryptjs from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -44,18 +43,10 @@ async function verifyTestUsers() {
       continue;
     }
 
-    // Check with bcrypt (native)
-    try {
-      const matchNative = await bcrypt.compare(userData.password, user.passwordHash);
-      console.log(`  bcrypt (native) match: ${matchNative ? '✅ YES' : '❌ NO'}`);
-    } catch (e: any) {
-      console.log(`  bcrypt (native) error: ${e.message}`);
-    }
-
     // Check with bcryptjs
     try {
-      const matchJs = await bcryptjs.compare(userData.password, user.passwordHash);
-      console.log(`  bcryptjs match: ${matchJs ? '✅ YES' : '❌ NO'}`);
+      const match = await bcryptjs.compare(userData.password, user.passwordHash);
+      console.log(`  bcryptjs match: ${match ? '✅ YES' : '❌ NO'}`);
     } catch (e: any) {
       console.log(`  bcryptjs error: ${e.message}`);
     }

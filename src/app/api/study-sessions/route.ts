@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';

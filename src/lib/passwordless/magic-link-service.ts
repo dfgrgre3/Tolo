@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Magic Link Authentication Service
- * خدمة تسجيل الدخول بدون كلمة مرور عبر رابط سحري
+ * ط®ط¯ظ…ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ط¯ظˆظ† ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¹ط¨ط± ط±ط§ط¨ط· ط³ط­ط±ظٹ
  */
 
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { sendEmailNotification } from '@/lib/notification-sender-new';
 import { securityLogger } from '@/lib/security-logger';
 import { logger } from '@/lib/logger';
@@ -59,40 +59,40 @@ export async function createAndSendMagicLink(
     // Send email
     await sendEmailNotification({
       to: user.email,
-      subject: '🔗 رابط تسجيل الدخول السحري',
+      subject: 'ًں”— ط±ط§ط¨ط· طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط§ظ„ط³ط­ط±ظٹ',
       html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
           <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #3b82f6; margin: 0;">ثناوي</h1>
+            <h1 style="color: #3b82f6; margin: 0;">ط«ظ†ط§ظˆظٹ</h1>
           </div>
           <div style="background-color: #f9fafb; padding: 20px; border-radius: 6px; margin-bottom: 20px;">
-            <h2 style="color: #1e293b; margin-top: 0; margin-bottom: 10px;">تسجيل دخول بدون كلمة مرور</h2>
+            <h2 style="color: #1e293b; margin-top: 0; margin-bottom: 10px;">طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ط¨ط¯ظˆظ† ظƒظ„ظ…ط© ظ…ط±ظˆط±</h2>
             <p style="color: #4b5563; margin: 0; line-height: 1.6;">
-              انقر على الرابط أدناه لتسجيل الدخول إلى حسابك بدون إدخال كلمة المرور.
+              ط§ظ†ظ‚ط± ط¹ظ„ظ‰ ط§ظ„ط±ط§ط¨ط· ط£ط¯ظ†ط§ظ‡ ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ ط¨ط¯ظˆظ† ط¥ط¯ط®ط§ظ„ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.
             </p>
           </div>
           <div style="text-align: center; margin: 30px 0;">
             <a href="${magicLink}" style="background-color: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px;">
-              تسجيل الدخول
+              طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
             </a>
           </div>
           <div style="background-color: #fef3c7; padding: 15px; border-radius: 6px; margin-bottom: 20px; border-right: 4px solid #f59e0b;">
             <p style="color: #92400e; margin: 0; font-size: 14px;">
-              <strong>⚠️ تنبيه أمني:</strong>
+              <strong>âڑ ï¸ڈ طھظ†ط¨ظٹظ‡ ط£ظ…ظ†ظٹ:</strong>
             </p>
             <ul style="color: #92400e; margin: 8px 0 0 0; padding-right: 20px; font-size: 13px;">
-              <li>هذا الرابط صالح لمدة ${MAGIC_LINK_EXPIRY_MINUTES} دقائق فقط</li>
-              <li>لا تشارك هذا الرابط مع أي شخص</li>
-              <li>إذا لم تطلب هذا الرابط، يمكنك تجاهل هذا البريد</li>
+              <li>ظ‡ط°ط§ ط§ظ„ط±ط§ط¨ط· طµط§ظ„ط­ ظ„ظ…ط¯ط© ${MAGIC_LINK_EXPIRY_MINUTES} ط¯ظ‚ط§ط¦ظ‚ ظپظ‚ط·</li>
+              <li>ظ„ط§ طھط´ط§ط±ظƒ ظ‡ط°ط§ ط§ظ„ط±ط§ط¨ط· ظ…ط¹ ط£ظٹ ط´ط®طµ</li>
+              <li>ط¥ط°ط§ ظ„ظ… طھط·ظ„ط¨ ظ‡ط°ط§ ط§ظ„ط±ط§ط¨ط·طŒ ظٹظ…ظƒظ†ظƒ طھط¬ط§ظ‡ظ„ ظ‡ط°ط§ ط§ظ„ط¨ط±ظٹط¯</li>
             </ul>
           </div>
           <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-            <p>تم إرسال هذه الرسالة من منصة ثناوي التعليمية</p>
-            <p>© ${new Date().getFullYear()} جميع الحقوق محفوظة</p>
+            <p>طھظ… ط¥ط±ط³ط§ظ„ ظ‡ط°ظ‡ ط§ظ„ط±ط³ط§ظ„ط© ظ…ظ† ظ…ظ†طµط© ط«ظ†ط§ظˆظٹ ط§ظ„طھط¹ظ„ظٹظ…ظٹط©</p>
+            <p>آ© ${new Date().getFullYear()} ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ‚ ظ…ط­ظپظˆط¸ط©</p>
           </div>
         </div>
       `,
-      text: `تسجيل دخول بدون كلمة مرور\n\nانقر على الرابط التالي لتسجيل الدخول:\n${magicLink}\n\nهذا الرابط صالح لمدة ${MAGIC_LINK_EXPIRY_MINUTES} دقائق فقط.\n\nإذا لم تطلب هذا الرابط، يمكنك تجاهل هذا البريد.`,
+      text: `طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ط¨ط¯ظˆظ† ظƒظ„ظ…ط© ظ…ط±ظˆط±\n\nط§ظ†ظ‚ط± ط¹ظ„ظ‰ ط§ظ„ط±ط§ط¨ط· ط§ظ„طھط§ظ„ظٹ ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„:\n${magicLink}\n\nظ‡ط°ط§ ط§ظ„ط±ط§ط¨ط· طµط§ظ„ط­ ظ„ظ…ط¯ط© ${MAGIC_LINK_EXPIRY_MINUTES} ط¯ظ‚ط§ط¦ظ‚ ظپظ‚ط·.\n\nط¥ط°ط§ ظ„ظ… طھط·ظ„ط¨ ظ‡ط°ط§ ط§ظ„ط±ط§ط¨ط·طŒ ظٹظ…ظƒظ†ظƒ طھط¬ط§ظ‡ظ„ ظ‡ط°ط§ ط§ظ„ط¨ط±ظٹط¯.`,
     });
 
     // Log event
@@ -151,7 +151,7 @@ export async function verifyMagicLink(
     if (!user) {
       return {
         valid: false,
-        error: 'الرابط غير صالح أو منتهي الصلاحية',
+        error: 'ط§ظ„ط±ط§ط¨ط· ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©',
       };
     }
 
@@ -184,7 +184,7 @@ export async function verifyMagicLink(
     logger.error('Magic link verification error:', error);
     return {
       valid: false,
-      error: 'حدث خطأ أثناء التحقق من الرابط',
+      error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط±ط§ط¨ط·',
     };
   }
 }

@@ -1,8 +1,8 @@
-import { SignJWT, jwtVerify } from 'jose';
+﻿import { SignJWT, jwtVerify } from 'jose';
 import jwt, { JwtPayload } from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { rateLimitingService } from '@/lib/rate-limiting-service';
 import { validateEmail, validatePassword } from '@/lib/auth/validation';
@@ -158,7 +158,7 @@ export class AuthService {
       if (!sessionId) {
         return { isValid: false, error: 'Session ID not found in token' };
       }
-      
+
       const session = await dbClient.session.findUnique({
         where: { id: sessionId },
         include: { user: true }
@@ -167,9 +167,9 @@ export class AuthService {
       if (!session) {
         return { isValid: false, error: 'Session not found' };
       }
-      
-      if(session.refreshToken !== refreshToken){
-          return { isValid: false, error: 'Invalid refresh token' };
+
+      if (session.refreshToken !== refreshToken) {
+        return { isValid: false, error: 'Invalid refresh token' };
       }
 
       if (session.expiresAt < new Date()) {
@@ -177,7 +177,7 @@ export class AuthService {
         await this.deleteSession(sessionId);
         return { isValid: false, error: 'Session expired' };
       }
-      
+
       const user = session.user;
 
       if (!user) {
@@ -305,7 +305,7 @@ export class AuthService {
       data: {
         email: data.email,
         name: data.name,
-        passwordHash: data.passwordHash,
+        passwordHash: data.passwordHash || '',
         emailVerified: data.emailVerified,
       },
     });
@@ -326,7 +326,14 @@ export class AuthService {
     const existingUser = await this.findUserByEmail(data.email);
 
     if (existingUser) {
-      return { user: existingUser, isNewUser: false };
+      // Convert database user to AuthUser (handle null vs undefined)
+      const authUser: AuthUser = {
+        id: existingUser.id,
+        email: existingUser.email,
+        name: existingUser.name || undefined,
+        role: existingUser.role || undefined,
+      };
+      return { user: authUser, isNewUser: false };
     }
 
     const newUser = await this.createUser({
@@ -570,7 +577,7 @@ export class AuthService {
       const safeIp = (ip || 'unknown').substring(0, 45);
 
       await this.updateLastLogin(user.id);
-      
+
       const tokens = await this.createTokens({
         id: user.id,
         email: user.email,

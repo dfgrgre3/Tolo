@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { authService } from "@/lib/auth-service";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { 
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       logger.error("Error fetching users:", error);
       return createStandardErrorResponse(
         error,
-        "حدث خطأ في جلب المستخدمين"
+        "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ…ظٹظ†"
       );
     }
   });

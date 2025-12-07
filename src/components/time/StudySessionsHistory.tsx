@@ -36,7 +36,6 @@ import {
 import { cn } from '@/lib/utils';
 import { format, startOfWeek, subDays, subMonths, startOfMonth } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import styles from './StudySessionsHistory.module.css';
 
 import { logger } from '@/lib/logger';
 
@@ -574,8 +573,8 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                     <div className="flex items-center gap-2">
                       {/* CSS variables for dynamic values are acceptable */}
                       <div 
-                        className={cn(styles.chartBar, styles.chartBarWidth)}
-                        style={{ '--chart-width': `${(day.hours / maxHours) * 100}%` } as React.CSSProperties & { '--chart-width': string }}
+                        className="bg-primary h-6 rounded min-w-[2px]"
+                        style={{ width: `${(day.hours / maxHours) * 100}%` }}
                       />
                       <span className="text-sm font-medium">{day.hours}س</span>
                     </div>
@@ -885,11 +884,11 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                         trendColor = "text-green-600";
                         trendPrefix = '+';
                         TrendIcon = TrendingUp;
-                        iconClassName = styles.trendIconGreen;
+                        iconClassName = "text-green-600";
                       } else if (stats.weeklyTrend < 0) {
                         trendColor = "text-red-600";
                         TrendIcon = TrendingDown;
-                        iconClassName = styles.trendIconRed;
+                        iconClassName = "text-red-600";
                       }
                       
                       return (
@@ -923,11 +922,11 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                         trendColor = "text-green-600";
                         trendPrefix = '+';
                         TrendIcon = TrendingUp;
-                        iconClassName = styles.trendIconGreen;
+                        iconClassName = "text-green-600";
                       } else if (stats.monthlyTrend < 0) {
                         trendColor = "text-red-600";
                         TrendIcon = TrendingDown;
-                        iconClassName = styles.trendIconRed;
+                        iconClassName = "text-red-600";
                       }
                       
                       return (

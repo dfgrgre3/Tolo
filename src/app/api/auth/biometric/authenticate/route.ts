@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { webAuthnService } from '@/lib/security/webauthn';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { getSecureCookieOptions, setAuthCookies } from '@/app/api/auth/_helpers';
@@ -23,13 +23,13 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { error: 'بيانات غير مكتملة' },
+        { error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©' },
         { status: 400 }
       );
     } catch (error) {
       logger.error('Biometric API error:', error);
       return NextResponse.json(
-        { error: 'حدث خطأ في الخادم' },
+        { error: 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط®ط§ط¯ظ…' },
         { status: 500 }
       );
     }
@@ -44,7 +44,7 @@ export async function PUT(request: NextRequest) {
     } catch (error) {
       logger.error('Biometric verification error:', error);
       return NextResponse.json(
-        { error: 'حدث خطأ أثناء التحقق' },
+        { error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚' },
         { status: 500 }
       );
     }
@@ -56,7 +56,7 @@ async function handleOptions(req: NextRequest, body: any) {
 
   if (!email) {
     return NextResponse.json(
-      { error: 'البريد الإلكتروني مطلوب' },
+      { error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط·ظ„ظˆط¨' },
       { status: 400 }
     );
   }
@@ -75,7 +75,7 @@ async function handleOptions(req: NextRequest, body: any) {
 
   if (!user || !user.biometricEnabled) {
     return NextResponse.json(
-      { error: 'المصادقة البيومترية غير مفعلة لهذا الحساب' },
+      { error: 'ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ط؛ظٹط± ظ…ظپط¹ظ„ط© ظ„ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨' },
       { status: 404 }
     );
   }
@@ -84,7 +84,7 @@ async function handleOptions(req: NextRequest, body: any) {
 
   if (credentials.length === 0) {
     return NextResponse.json(
-      { error: 'لا توجد بيانات اعتماد بيومترية' },
+      { error: 'ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط§ط¹طھظ…ط§ط¯ ط¨ظٹظˆظ…طھط±ظٹط©' },
       { status: 404 }
     );
   }
@@ -133,7 +133,7 @@ async function handleVerification(req: NextRequest, body: any) {
 
   if (!credential || !challenge) {
     return NextResponse.json(
-      { error: 'بيانات غير مكتملة' },
+      { error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©' },
       { status: 400 }
     );
   }
@@ -144,7 +144,7 @@ async function handleVerification(req: NextRequest, body: any) {
 
   if (!email) {
     return NextResponse.json(
-      { error: 'البريد الإلكتروني مطلوب للتحقق' },
+      { error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط·ظ„ظˆط¨ ظ„ظ„طھط­ظ‚ظ‚' },
       { status: 400 }
     );
   }
@@ -163,7 +163,7 @@ async function handleVerification(req: NextRequest, body: any) {
 
   if (!user || !user.biometricEnabled) {
     return NextResponse.json(
-      { error: 'المصادقة البيومترية غير مفعلة' },
+      { error: 'ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ط؛ظٹط± ظ…ظپط¹ظ„ط©' },
       { status: 404 }
     );
   }
@@ -183,7 +183,7 @@ async function handleVerification(req: NextRequest, body: any) {
 
   if (!storedChallenge) {
     return NextResponse.json(
-      { error: 'التحدي غير صالح أو منتهي الصلاحية' },
+      { error: 'ط§ظ„طھط­ط¯ظٹ ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©' },
       { status: 400 }
     );
   }
@@ -196,7 +196,7 @@ async function handleVerification(req: NextRequest, body: any) {
 
   if (!matchingCredential) {
     return NextResponse.json(
-      { error: 'بيانات الاعتماد غير صالحة' },
+      { error: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط¹طھظ…ط§ط¯ ط؛ظٹط± طµط§ظ„ط­ط©' },
       { status: 400 }
     );
   }
@@ -227,7 +227,7 @@ async function handleVerification(req: NextRequest, body: any) {
     });
 
     return NextResponse.json(
-      { error: 'فشل التحقق من المصادقة البيومترية' },
+      { error: 'ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط©' },
       { status: 400 }
     );
   }
@@ -292,7 +292,7 @@ async function handleVerification(req: NextRequest, body: any) {
   );
 
   const response = NextResponse.json({
-    message: 'تم تسجيل الدخول بنجاح',
+    message: 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­',
     token: accessToken,
     refreshToken,
     sessionId: session.id,

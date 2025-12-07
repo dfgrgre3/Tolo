@@ -1,11 +1,11 @@
-import { prisma } from '@/lib/prisma';
+﻿import { prisma } from '@/lib/db';
 import { sendEmailNotification, sendSMSNotification, sendMultiChannelNotification } from '@/lib/notification-sender-new';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 import { PhoneVerificationService } from './phone-verification-service';
 
 /**
- * خدمة استرداد الحساب المحسّنة
+ * ط®ط¯ظ…ط© ط§ط³طھط±ط¯ط§ط¯ ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظ…ط­ط³ظ‘ظ†ط©
  */
 export class AccountRecoveryService {
   private static readonly MAX_SECURITY_QUESTIONS = 3;
@@ -43,14 +43,14 @@ export class AccountRecoveryService {
       if (questions.length < this.MIN_REQUIRED_QUESTIONS) {
         return {
           success: false,
-          message: `يجب إضافة على الأقل ${this.MIN_REQUIRED_QUESTIONS} سؤال أمان`,
+          message: `ظٹط¬ط¨ ط¥ط¶ط§ظپط© ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ${this.MIN_REQUIRED_QUESTIONS} ط³ط¤ط§ظ„ ط£ظ…ط§ظ†`,
         };
       }
 
       if (questions.length > this.MAX_SECURITY_QUESTIONS) {
         return {
           success: false,
-          message: `يمكن إضافة حتى ${this.MAX_SECURITY_QUESTIONS} أسئلة أمان فقط`,
+          message: `ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ط­طھظ‰ ${this.MAX_SECURITY_QUESTIONS} ط£ط³ط¦ظ„ط© ط£ظ…ط§ظ† ظپظ‚ط·`,
         };
       }
 
@@ -59,7 +59,7 @@ export class AccountRecoveryService {
         if (!q.question?.trim() || !q.answer?.trim()) {
           return {
             success: false,
-            message: 'جميع الأسئلة والأجوبة مطلوبة',
+            message: 'ط¬ظ…ظٹط¹ ط§ظ„ط£ط³ط¦ظ„ط© ظˆط§ظ„ط£ط¬ظˆط¨ط© ظ…ط·ظ„ظˆط¨ط©',
           };
         }
       }
@@ -83,13 +83,13 @@ export class AccountRecoveryService {
 
       return {
         success: true,
-        message: 'تم حفظ أسئلة الأمان بنجاح',
+        message: 'طھظ… ط­ظپط¸ ط£ط³ط¦ظ„ط© ط§ظ„ط£ظ…ط§ظ† ط¨ظ†ط¬ط§ط­',
       };
     } catch (error) {
       logger.error('Error setting security questions:', error);
       return {
         success: false,
-        message: 'حدث خطأ أثناء حفظ أسئلة الأمان',
+        message: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط­ظپط¸ ط£ط³ط¦ظ„ط© ط§ظ„ط£ظ…ط§ظ†',
       };
     }
   }
@@ -121,7 +121,7 @@ export class AccountRecoveryService {
       logger.error('Error getting security questions:', error);
       return {
         success: false,
-        message: 'حدث خطأ أثناء جلب أسئلة الأمان',
+        message: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط£ط³ط¦ظ„ط© ط§ظ„ط£ظ…ط§ظ†',
       };
     }
   }
@@ -147,14 +147,14 @@ export class AccountRecoveryService {
       if (userQuestions.length === 0) {
         return {
           success: false,
-          message: 'لا توجد أسئلة أمان مسجلة لهذا الحساب',
+          message: 'ظ„ط§ طھظˆط¬ط¯ ط£ط³ط¦ظ„ط© ط£ظ…ط§ظ† ظ…ط³ط¬ظ„ط© ظ„ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨',
         };
       }
 
       if (answers.length !== userQuestions.length) {
         return {
           success: false,
-          message: 'يجب الإجابة على جميع أسئلة الأمان',
+          message: 'ظٹط¬ط¨ ط§ظ„ط¥ط¬ط§ط¨ط© ط¹ظ„ظ‰ ط¬ظ…ظٹط¹ ط£ط³ط¦ظ„ط© ط§ظ„ط£ظ…ط§ظ†',
         };
       }
 
@@ -173,8 +173,8 @@ export class AccountRecoveryService {
       return {
         success: isVerified,
         message: isVerified
-          ? 'تم التحقق من أسئلة الأمان بنجاح'
-          : `إجابات غير صحيحة. يجب الإجابة بشكل صحيح على ${requiredCorrect} من ${userQuestions.length} أسئلة على الأقل`,
+          ? 'طھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ط³ط¦ظ„ط© ط§ظ„ط£ظ…ط§ظ† ط¨ظ†ط¬ط§ط­'
+          : `ط¥ط¬ط§ط¨ط§طھ ط؛ظٹط± طµط­ظٹط­ط©. ظٹط¬ط¨ ط§ظ„ط¥ط¬ط§ط¨ط© ط¨ط´ظƒظ„ طµط­ظٹط­ ط¹ظ„ظ‰ ${requiredCorrect} ظ…ظ† ${userQuestions.length} ط£ط³ط¦ظ„ط© ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„`,
         correctCount,
         totalCount: userQuestions.length,
       };
@@ -182,7 +182,7 @@ export class AccountRecoveryService {
       logger.error('Error verifying security questions:', error);
       return {
         success: false,
-        message: 'حدث خطأ أثناء التحقق من أسئلة الأمان',
+        message: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ط³ط¦ظ„ط© ط§ظ„ط£ظ…ط§ظ†',
       };
     }
   }
@@ -219,7 +219,7 @@ export class AccountRecoveryService {
         // Don't reveal if user exists
         return {
           success: true,
-          message: 'إذا كان بريدك الإلكتروني مسجلاً لدينا، ستتلقى تعليمات الاسترداد',
+          message: 'ط¥ط°ط§ ظƒط§ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط³ط¬ظ„ط§ظ‹ ظ„ط¯ظٹظ†ط§طŒ ط³طھطھظ„ظ‚ظ‰ طھط¹ظ„ظٹظ…ط§طھ ط§ظ„ط§ط³طھط±ط¯ط§ط¯',
           requiresVerification: false,
         };
       }
@@ -265,17 +265,17 @@ export class AccountRecoveryService {
         
         await sendEmailNotification({
           to: user.email,
-          subject: 'استرداد حسابك في منصة ثناوي',
+          subject: 'ط§ط³طھط±ط¯ط§ط¯ ط­ط³ط§ط¨ظƒ ظپظٹ ظ…ظ†طµط© ط«ظ†ط§ظˆظٹ',
           html: `
             <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2>استرداد الحساب</h2>
-              <p>تم طلب استرداد حسابك. استخدم الرابط التالي لإعادة تعيين كلمة المرور:</p>
+              <h2>ط§ط³طھط±ط¯ط§ط¯ ط§ظ„ط­ط³ط§ط¨</h2>
+              <p>طھظ… ط·ظ„ط¨ ط§ط³طھط±ط¯ط§ط¯ ط­ط³ط§ط¨ظƒ. ط§ط³طھط®ط¯ظ… ط§ظ„ط±ط§ط¨ط· ط§ظ„طھط§ظ„ظٹ ظ„ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±:</p>
               <div style="text-align: center; margin: 30px 0;">
-                <a href="${recoveryLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">استرداد الحساب</a>
+                <a href="${recoveryLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">ط§ط³طھط±ط¯ط§ط¯ ط§ظ„ط­ط³ط§ط¨</a>
               </div>
-              <p>أو يمكنك نسخ الرابط التالي:</p>
+              <p>ط£ظˆ ظٹظ…ظƒظ†ظƒ ظ†ط³ط® ط§ظ„ط±ط§ط¨ط· ط§ظ„طھط§ظ„ظٹ:</p>
               <p style="background-color: #f3f4f6; padding: 10px; border-radius: 4px; word-break: break-all;">${recoveryLink}</p>
-              <p>صلاحية الرابط ساعة واحدة. إذا لم تطلب هذا الرابط، يرجى تجاهل هذه الرسالة.</p>
+              <p>طµظ„ط§ط­ظٹط© ط§ظ„ط±ط§ط¨ط· ط³ط§ط¹ط© ظˆط§ط­ط¯ط©. ط¥ط°ط§ ظ„ظ… طھط·ظ„ط¨ ظ‡ط°ط§ ط§ظ„ط±ط§ط¨ط·طŒ ظٹط±ط¬ظ‰ طھط¬ط§ظ‡ظ„ ظ‡ط°ظ‡ ط§ظ„ط±ط³ط§ظ„ط©.</p>
             </div>
           `,
         });
@@ -291,7 +291,7 @@ export class AccountRecoveryService {
 
       return {
         success: true,
-        message: 'تم إرسال تعليمات الاسترداد',
+        message: 'طھظ… ط¥ط±ط³ط§ظ„ طھط¹ظ„ظٹظ…ط§طھ ط§ظ„ط§ط³طھط±ط¯ط§ط¯',
         recoveryToken,
         requiresVerification: verificationMethods.length > 1,
         verificationMethods,
@@ -300,7 +300,7 @@ export class AccountRecoveryService {
       logger.error('Error initiating account recovery:', error);
       return {
         success: false,
-        message: 'حدث خطأ أثناء بدء عملية الاسترداد',
+        message: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¨ط¯ط، ط¹ظ…ظ„ظٹط© ط§ظ„ط§ط³طھط±ط¯ط§ط¯',
       };
     }
   }
@@ -341,7 +341,7 @@ export class AccountRecoveryService {
       if (!user) {
         return {
           success: false,
-          message: 'رمز الاسترداد غير صالح أو منتهي الصلاحية',
+          message: 'ط±ظ…ط² ط§ظ„ط§ط³طھط±ط¯ط§ط¯ ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©',
         };
       }
 
@@ -365,7 +365,7 @@ export class AccountRecoveryService {
       if (verificationResults.length > 0 && !verificationResults.some(r => r)) {
         return {
           success: false,
-          message: 'فشل التحقق. يرجى التأكد من صحة جميع المعلومات المقدمة',
+          message: 'ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط§ظ„طھط£ظƒط¯ ظ…ظ† طµط­ط© ط¬ظ…ظٹط¹ ط§ظ„ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ظ‚ط¯ظ…ط©',
         };
       }
 
@@ -387,8 +387,8 @@ export class AccountRecoveryService {
       // Send notification via multiple channels
       await sendMultiChannelNotification({
         userId: user.id,
-        title: 'تم تغيير كلمة المرور',
-        message: 'تم تغيير كلمة المرور بنجاح. إذا لم تقم بهذا الإجراء، يرجى الاتصال بالدعم فوراً.',
+        title: 'طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',
+        message: 'طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¨ظ†ط¬ط§ط­. ط¥ط°ط§ ظ„ظ… طھظ‚ظ… ط¨ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط،طŒ ظٹط±ط¬ظ‰ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¯ط¹ظ… ظپظˆط±ط§ظ‹.',
         type: 'warning',
         channels: ['app', 'email', 'sms'],
       });
@@ -397,13 +397,13 @@ export class AccountRecoveryService {
 
       return {
         success: true,
-        message: 'تم استرداد الحساب وتغيير كلمة المرور بنجاح',
+        message: 'طھظ… ط§ط³طھط±ط¯ط§ط¯ ط§ظ„ط­ط³ط§ط¨ ظˆطھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¨ظ†ط¬ط§ط­',
       };
     } catch (error) {
       logger.error('Error completing account recovery:', error);
       return {
         success: false,
-        message: 'حدث خطأ أثناء استرداد الحساب',
+        message: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ط³طھط±ط¯ط§ط¯ ط§ظ„ط­ط³ط§ط¨',
       };
     }
   }

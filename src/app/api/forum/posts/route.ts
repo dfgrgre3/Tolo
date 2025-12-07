@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching forum posts:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في جلب المواضيع" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظˆط§ط¶ظٹط¹" },
       { status: 500 }
     );
     }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
       if (!userId || !title || !content || !categoryId) {
         return NextResponse.json(
-          { error: "جميع الحقول مطلوبة" },
+          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ظ…ط·ظ„ظˆط¨ط©" },
           { status: 400 }
         );
       }
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "المستخدم غير موجود" },
+        { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
     if (!category) {
       return NextResponse.json(
-        { error: "التصنيف غير موجود" },
+        { error: "ط§ظ„طھطµظ†ظٹظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error creating forum post:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في إنشاء الموضوع" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظˆط¶ظˆط¹" },
       { status: 500 }
     );
     }

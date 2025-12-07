@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching blog posts:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في جلب المقالات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظ‚ط§ظ„ط§طھ" },
       { status: 500 }
     );
     }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !title || !excerpt || !content || !categoryId) {
       return NextResponse.json(
-        { error: "جميع الحقول المطلوبة يجب ملؤها" },
+        { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
         { status: 400 }
       );
     }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "المستخدم غير موجود" },
+        { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
 
     if (!category) {
       return NextResponse.json(
-        { error: "التصنيف غير موجود" },
+        { error: "ط§ظ„طھطµظ†ظٹظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error creating blog post:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في إنشاء المقال" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظ‚ط§ظ„" },
       { status: 500 }
     );
     }

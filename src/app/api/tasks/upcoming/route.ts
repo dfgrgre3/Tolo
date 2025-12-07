@@ -1,7 +1,7 @@
-
+﻿
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { TASK_STATUS } from '@/lib/constants';

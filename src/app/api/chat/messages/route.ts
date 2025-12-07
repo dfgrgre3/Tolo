@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
 
     if (!senderId || !receiverId || !content) {
       return NextResponse.json(
-        { error: "جميع الحقول المطلوبة يجب ملؤها" },
+        { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
         { status: 400 }
       );
     }
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     if (!sender) {
       return NextResponse.json(
-        { error: "المرسل غير موجود" },
+        { error: "ط§ظ„ظ…ط±ط³ظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     if (!receiver) {
       return NextResponse.json(
-        { error: "المستقبل غير موجود" },
+        { error: "ط§ظ„ظ…ط³طھظ‚ط¨ظ„ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error creating message:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في إرسال الرسالة" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط©" },
       { status: 500 }
     );
     }

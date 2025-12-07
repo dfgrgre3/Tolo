@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Comprehensive Login System Tests
  * Tests all aspects of the improved login system including:
  * - Input validation and sanitization
@@ -21,7 +21,7 @@ jest.mock('@/app/api/auth/_helpers', () => {
           return {
             success: false,
             error: NextResponse.json(
-              { error: 'الطلب فارغ. يرجى إدخال البيانات المطلوبة.', code: 'EMPTY_REQUEST_BODY' },
+              { error: 'ط§ظ„ط·ظ„ط¨ ظپط§ط±ط؛. ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط·ظ„ظˆط¨ط©.', code: 'EMPTY_REQUEST_BODY' },
               { status: 400 }
             ),
           };
@@ -31,7 +31,7 @@ jest.mock('@/app/api/auth/_helpers', () => {
         return {
           success: false,
           error: NextResponse.json(
-            { error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.', code: 'INVALID_REQUEST_BODY' },
+            { error: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ظ„ط¨ ط؛ظٹط± طµط­ظٹط­ط©. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµط­ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ط³ظ„ط©.', code: 'INVALID_REQUEST_BODY' },
             { status: 400 }
           ),
         };
@@ -54,11 +54,11 @@ jest.mock('@/app/api/auth/_helpers', () => {
     }),
     addSecurityHeaders: jest.fn((res) => res),
     // Use actual zod to create emailSchema - this ensures it works with loginSchema
-    emailSchema: z.string().min(1, 'البريد الإلكتروني مطلوب').email('البريد الإلكتروني غير صالح').max(255, 'البريد الإلكتروني طويل جداً').transform((email: string) => email.trim().toLowerCase()),
+    emailSchema: z.string().min(1, 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط·ظ„ظˆط¨').email('ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± طµط§ظ„ط­').max(255, 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹').transform((email: string) => email.trim().toLowerCase()),
     createErrorResponse: jest.fn(),
     createCaptchaRequiredResponse: jest.fn(() => ({
       json: async () => ({
-        error: 'يرجى إكمال التحقق من CAPTCHA للمتابعة. تم اكتشاف محاولات تسجيل دخول متكررة.',
+        error: 'ظٹط±ط¬ظ‰ ط¥ظƒظ…ط§ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† CAPTCHA ظ„ظ„ظ…طھط§ط¨ط¹ط©. طھظ… ط§ظƒطھط´ط§ظپ ظ…ط­ط§ظˆظ„ط§طھ طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…طھظƒط±ط±ط©.',
         requiresCaptcha: true,
         failedAttempts: 4,
         code: 'CAPTCHA_REQUIRED',
@@ -93,7 +93,7 @@ jest.mock('jose', () => ({
 }));
 
 // Mock dependencies
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

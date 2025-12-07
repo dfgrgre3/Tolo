@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { authService } from '@/lib/auth-service';
 import { getDeviceInfo, getLocationFromIP } from '@/lib/security-utils';
 import crypto from 'crypto';

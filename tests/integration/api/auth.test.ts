@@ -1,4 +1,4 @@
-import { POST as loginHandler } from '@/app/api/auth/login/route';
+﻿import { POST as loginHandler } from '@/app/api/auth/login/route';
 import { POST as registerHandler } from '@/app/api/auth/register/route';
 import { NextRequest } from 'next/server';
 
@@ -14,7 +14,7 @@ jest.mock('@/app/api/auth/_helpers', () => {
           return {
             success: false,
             error: NextResponse.json(
-              { error: 'الطلب فارغ. يرجى إدخال البيانات المطلوبة.', code: 'EMPTY_REQUEST_BODY' },
+              { error: 'ط§ظ„ط·ظ„ط¨ ظپط§ط±ط؛. ظٹط±ط¬ظ‰ ط¥ط¯ط®ط§ظ„ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط·ظ„ظˆط¨ط©.', code: 'EMPTY_REQUEST_BODY' },
               { status: 400 }
             ),
           };
@@ -24,7 +24,7 @@ jest.mock('@/app/api/auth/_helpers', () => {
         return {
           success: false,
           error: NextResponse.json(
-            { error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.', code: 'INVALID_REQUEST_BODY' },
+            { error: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ظ„ط¨ ط؛ظٹط± طµط­ظٹط­ط©. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµط­ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ط³ظ„ط©.', code: 'INVALID_REQUEST_BODY' },
             { status: 400 }
           ),
         };
@@ -49,7 +49,7 @@ jest.mock('@/app/api/auth/_helpers', () => {
   };
 });
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

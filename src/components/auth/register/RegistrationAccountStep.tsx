@@ -29,10 +29,10 @@ export function RegistrationAccountStep({
       <div className="space-y-2">
         <Label
           htmlFor="full-name"
-          className="flex items-center justify-end gap-2 text-sm text-slate-600 dark:text-slate-200"
+          className="flex items-center justify-end gap-2 text-sm text-muted-foreground"
         >
           الاسم الكامل
-          <User className="h-4 w-4 text-indigo-500" />
+          <User className="h-4 w-4 text-primary" />
         </Label>
         <Input
           id="full-name"
@@ -44,7 +44,7 @@ export function RegistrationAccountStep({
           className={cn(
             'text-right',
             errors.fullName
-              ? 'border-rose-500 focus-visible:ring-rose-500 focus-visible:ring-offset-0'
+              ? 'border-destructive focus-visible:ring-destructive focus-visible:ring-offset-0'
               : '',
           )}
           aria-invalid={Boolean(errors.fullName)}
@@ -53,7 +53,7 @@ export function RegistrationAccountStep({
         {errors.fullName && (
           <p
             id="register-fullname-error"
-            className="text-xs font-medium text-rose-600 dark:text-rose-400 text-right"
+            className="text-xs font-medium text-destructive text-right"
           >
             {errors.fullName}
           </p>
@@ -63,10 +63,10 @@ export function RegistrationAccountStep({
       <div className="space-y-2">
         <Label
           htmlFor="register-email"
-          className="flex items-center justify-end gap-2 text-sm text-slate-600 dark:text-slate-200"
+          className="flex items-center justify-end gap-2 text-sm text-muted-foreground"
         >
           البريد الإلكتروني
-          <Mail className="h-4 w-4 text-indigo-500" />
+          <Mail className="h-4 w-4 text-primary" />
         </Label>
         <Input
           id="register-email"
@@ -79,7 +79,7 @@ export function RegistrationAccountStep({
           className={cn(
             'text-right',
             errors.email
-              ? 'border-rose-500 focus-visible:ring-rose-500 focus-visible:ring-offset-0'
+              ? 'border-destructive focus-visible:ring-destructive focus-visible:ring-offset-0'
               : '',
           )}
           autoComplete="email"
@@ -89,7 +89,7 @@ export function RegistrationAccountStep({
         {errors.email && (
           <p
             id="register-email-error"
-            className="text-xs font-medium text-rose-600 dark:text-rose-400 text-right"
+            className="text-xs font-medium text-destructive text-right"
           >
             {errors.email}
           </p>
@@ -98,7 +98,7 @@ export function RegistrationAccountStep({
 
       <Button
         type="submit"
-        className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
+        className="w-full"
         disabled={isSubmitting}
       >
         المتابعة إلى الحماية

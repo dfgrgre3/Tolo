@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import redisService from '@/lib/redis';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -9,10 +9,10 @@ import 'server-only';
 /**
  * GET /api/readyz
  * 
- * Readiness check endpoint للـ Kubernetes readiness probe
- * يتحقق من أن التطبيق جاهز لتلقي الطلبات
+ * Readiness check endpoint ظ„ظ„ظ€ Kubernetes readiness probe
+ * ظٹطھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ط§ظ„طھط·ط¨ظٹظ‚ ط¬ط§ظ‡ط² ظ„طھظ„ظ‚ظٹ ط§ظ„ط·ظ„ط¨ط§طھ
  * 
- * هذا endpoint يتحقق من الاتصال بقاعدة البيانات و Redis
+ * ظ‡ط°ط§ endpoint ظٹطھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆ Redis
  */
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async () => {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    // فحص قاعدة البيانات
+    // ظپط­طµ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
     try {
       await prisma.$queryRaw`SELECT 1`;
       checks.database = true;
@@ -31,13 +31,13 @@ export async function GET(request: NextRequest) {
       checks.database = false;
     }
 
-    // فحص Redis
+    // ظپط­طµ Redis
     try {
       const client = redisService.getClient();
       if (client && typeof client.ping === 'function') {
         await client.ping();
       } else if (redisService.isConnected()) {
-        // إذا كان client متصل، نعتبره جاهز
+        // ط¥ط°ط§ ظƒط§ظ† client ظ…طھطµظ„طŒ ظ†ط¹طھط¨ط±ظ‡ ط¬ط§ظ‡ط²
         checks.redis = true;
       } else {
         checks.redis = false;

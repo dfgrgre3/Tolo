@@ -39,6 +39,7 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    color-scheme: light;
   }
 
   .dark {
@@ -74,20 +75,32 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    color-scheme: dark;
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    box-sizing: border-box;
+  }
+
+  html {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: inherit;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+    line-height: 1.5;
   }
 
   *:focus-visible {
-    outline: 2px solid var(--ring);
+    outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
   }
 }

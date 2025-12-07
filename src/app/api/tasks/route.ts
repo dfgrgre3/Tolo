@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { authService } from '@/lib/auth-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';

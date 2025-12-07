@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching forum categories:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في جلب التصنيفات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„طھطµظ†ظٹظپط§طھ" },
       { status: 500 }
     );
     }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
 
     if (!name || !description) {
       return NextResponse.json(
-        { error: "الاسم والوصف مطلوبان" },
+        { error: "ط§ظ„ط§ط³ظ… ظˆط§ظ„ظˆطµظپ ظ…ط·ظ„ظˆط¨ط§ظ†" },
         { status: 400 }
       );
     }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
         name,
         description,
         slug: name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
-        icon: icon || "📝"
+        icon: icon || "ًں“‌"
       }
     });
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error creating forum category:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في إنشاء التصنيف" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„طھطµظ†ظٹظپ" },
       { status: 500 }
     );
     }

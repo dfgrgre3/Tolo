@@ -23,6 +23,8 @@ import {
 import { toast } from 'sonner';
 import { getPasskeyManager, type PasskeyCredential } from './PasskeyManager';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 
 export default function PasskeyManagement() {
   const [passkeys, setPasskeys] = useState<PasskeyCredential[]>([]);
@@ -146,14 +148,14 @@ export default function PasskeyManagement() {
 
   if (!isSupported) {
     return (
-      <div className="rounded-xl bg-red-500/10 border border-red-500/20 p-6">
+      <div className="rounded-xl bg-destructive/10 border border-destructive/20 p-6">
         <div className="flex items-start gap-3">
-          <AlertCircle className="h-6 w-6 text-red-400 flex-shrink-0 mt-0.5" />
+          <AlertCircle className="h-6 w-6 text-destructive flex-shrink-0 mt-0.5" />
           <div>
-            <h3 className="text-lg font-semibold text-red-300 mb-2">
+            <h3 className="text-lg font-semibold text-destructive mb-2">
               غير مدعوم
             </h3>
-            <p className="text-sm text-red-200">
+            <p className="text-sm text-destructive/80">
               متصفحك لا يدعم مفاتيح المرور (Passkeys). يرجى استخدام متصفح حديث مثل
               Chrome أو Safari أو Edge.
             </p>
@@ -168,34 +170,32 @@ export default function PasskeyManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-            <Key className="h-7 w-7 text-indigo-400" />
+          <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
+            <Key className="h-7 w-7 text-primary" />
             مفاتيح المرور
           </h2>
-          <p className="mt-1 text-sm text-slate-300">
+          <p className="mt-1 text-sm text-muted-foreground">
             قم بإدارة مفاتيح المرور الخاصة بك للدخول بدون كلمة مرور
           </p>
         </div>
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+        <Button
           onClick={() => setShowAddDialog(true)}
           disabled={isLoading}
-          className="flex items-center gap-2 rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="gap-2"
         >
           <Plus className="h-4 w-4" />
           إضافة مفتاح جديد
-        </motion.button>
+        </Button>
       </div>
 
       {/* Info Banner */}
       {isPlatformAvailable && (
-        <div className="rounded-xl bg-indigo-500/10 border border-indigo-500/20 p-4">
+        <div className="rounded-xl bg-primary/10 border border-primary/20 p-4">
           <div className="flex items-start gap-3">
-            <Shield className="h-5 w-5 text-indigo-400 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-indigo-200">
-              <p className="font-medium mb-1">مصادقة آمنة بدون كلمة مرور</p>
-              <p className="text-indigo-300">
+            <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-primary/80">
+              <p className="font-medium mb-1 text-primary">مصادقة آمنة بدون كلمة مرور</p>
+              <p>
                 استخدم بصمة الإصبع أو التعرف على الوجه أو رقم PIN للدخول بسرعة وأمان.
               </p>
             </div>
@@ -211,11 +211,11 @@ export default function PasskeyManagement() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="rounded-xl bg-white/5 border border-white/10 p-8 text-center"
+              className="rounded-xl bg-muted/50 border border-border p-8 text-center"
             >
-              <Key className="h-12 w-12 text-slate-500 mx-auto mb-3" />
-              <p className="text-slate-400">لم تقم بإضافة أي مفاتيح مرور بعد</p>
-              <p className="text-sm text-slate-500 mt-1">
+              <Key className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+              <p className="text-muted-foreground">لم تقم بإضافة أي مفاتيح مرور بعد</p>
+              <p className="text-sm text-muted-foreground/80 mt-1">
                 قم بإضافة مفتاح مرور للدخول بسرعة وأمان
               </p>
             </motion.div>
@@ -227,47 +227,51 @@ export default function PasskeyManagement() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ delay: index * 0.05 }}
-                className="rounded-xl bg-white/5 border border-white/10 p-4 hover:bg-white/10 transition-colors"
+                className="rounded-xl bg-card border border-border p-4 hover:bg-accent/50 transition-colors"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3 flex-1">
-                    <div className="rounded-lg bg-indigo-500/20 p-2 text-indigo-400">
+                    <div className="rounded-lg bg-primary/10 p-2 text-primary">
                       {getDeviceIcon(passkey.deviceType)}
                     </div>
                     <div className="flex-1 min-w-0">
                       {editingId === passkey.id ? (
                         <div className="flex items-center gap-2 mb-2">
-                          <input
+                          <Input
                             type="text"
                             value={editingName}
                             onChange={(e) => setEditingName(e.target.value)}
-                            className="flex-1 rounded-lg bg-white/10 px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                            className="flex-1 h-8"
                             autoFocus
                           />
-                          <button
+                          <Button
+                            size="icon"
+                            variant="ghost"
                             onClick={() => handleSaveEdit(passkey.credentialId)}
-                            className="rounded-lg bg-green-500/20 p-1.5 text-green-400 hover:bg-green-500/30"
+                            className="h-8 w-8 text-green-500 hover:text-green-600 hover:bg-green-500/10"
                           >
                             <Check className="h-4 w-4" />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
                             onClick={handleCancelEdit}
-                            className="rounded-lg bg-red-500/20 p-1.5 text-red-400 hover:bg-red-500/30"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
                             <X className="h-4 w-4" />
-                          </button>
+                          </Button>
                         </div>
                       ) : (
-                        <h3 className="text-base font-medium text-white mb-1">
+                        <h3 className="text-base font-medium text-foreground mb-1">
                           {passkey.deviceName}
                         </h3>
                       )}
-                      <div className="space-y-1 text-xs text-slate-400">
+                      <div className="space-y-1 text-xs text-muted-foreground">
                         <p>تم الإنشاء: {formatDate(passkey.createdAt)}</p>
                         {passkey.lastUsedAt && (
                           <p>آخر استخدام: {formatDate(passkey.lastUsedAt)}</p>
                         )}
-                        <p className="text-slate-500">
+                        <p>
                           النوع: {passkey.deviceType === 'platform' ? 'جهاز' : 'خارجي'}
                         </p>
                       </div>
@@ -275,22 +279,22 @@ export default function PasskeyManagement() {
                   </div>
                   {editingId !== passkey.id && (
                     <div className="flex items-center gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         onClick={() => handleStartEdit(passkey)}
-                        className="rounded-lg bg-blue-500/20 p-2 text-blue-400 hover:bg-blue-500/30"
+                        className="h-8 w-8 text-muted-foreground hover:text-primary"
                       >
                         <Edit2 className="h-4 w-4" />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
                         onClick={() => handleDeletePasskey(passkey.credentialId)}
-                        className="rounded-lg bg-red-500/20 p-2 text-red-400 hover:bg-red-500/30"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
-                      </motion.button>
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -308,7 +312,7 @@ export default function PasskeyManagement() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
               onClick={() => !isLoading && setShowAddDialog(false)}
             />
             <motion.div
@@ -317,22 +321,19 @@ export default function PasskeyManagement() {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50"
             >
-              <div className="rounded-2xl bg-slate-900 border border-white/10 p-6 shadow-2xl">
-                <h3 className="text-xl font-bold text-white mb-4">
+              <div className="rounded-2xl bg-card border border-border p-6 shadow-2xl">
+                <h3 className="text-xl font-bold text-foreground mb-4">
                   إضافة مفتاح مرور جديد
                 </h3>
-                <p className="text-sm text-slate-300 mb-6">
+                <p className="text-sm text-muted-foreground mb-6">
                   سيطلب منك المتصفح التحقق من هويتك باستخدام بصمة الإصبع أو التعرف
                   على الوجه أو رقم PIN.
                 </p>
                 <div className="flex gap-3">
-                  <button
+                  <Button
                     onClick={handleAddPasskey}
                     disabled={isLoading}
-                    className={cn(
-                      'flex-1 rounded-xl bg-indigo-500 px-4 py-3 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed',
-                      'flex items-center justify-center gap-2'
-                    )}
+                    className="flex-1 gap-2"
                   >
                     {isLoading ? (
                       <>
@@ -345,14 +346,15 @@ export default function PasskeyManagement() {
                         إضافة
                       </>
                     )}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() => setShowAddDialog(false)}
                     disabled={isLoading}
-                    className="flex-1 rounded-xl bg-white/10 px-4 py-3 text-sm font-medium text-white hover:bg-white/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1"
                   >
                     إلغاء
-                  </button>
+                  </Button>
                 </div>
               </div>
             </motion.div>
@@ -362,4 +364,3 @@ export default function PasskeyManagement() {
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
-
+﻿
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { gamificationService } from "@/lib/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -13,12 +13,12 @@ export async function GET(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json(
-        { error: "معرف المستخدم مطلوب" },
+        { error: "ظ…ط¹ط±ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ط·ظ„ظˆط¨" },
         { status: 400 }
       );
     }
 
-    // الحصول على جميع الامتحانات التي أخذها المستخدم
+    // ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط¬ظ…ظٹط¹ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„طھظٹ ط£ط®ط°ظ‡ط§ ط§ظ„ظ…ط³طھط®ط¯ظ…
     const userExams = await prisma.examResult.findMany({
       where: { userId },
       include: {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // الحصول على جميع الدرجات المسجلة للمستخدم
+    // ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط¬ظ…ظٹط¹ ط§ظ„ط¯ط±ط¬ط§طھ ط§ظ„ظ…ط³ط¬ظ„ط© ظ„ظ„ظ…ط³طھط®ط¯ظ…
     const userGrades = await prisma.userGrade.findMany({
       where: { userId },
       orderBy: {
@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching exam grades:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في جلب البيانات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ" },
       { status: 500 }
     );
     }
@@ -58,24 +58,24 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !examId || score === undefined) {
       return NextResponse.json(
-        { error: "البيانات المطلوبة غير مكتملة" },
+        { error: "ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©" },
         { status: 400 }
       );
     }
 
-    // التحقق من وجود الامتحان
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ط§ظ„ط§ظ…طھط­ط§ظ†
     const exam = await prisma.exam.findUnique({
       where: { id: examId }
     });
 
     if (!exam) {
       return NextResponse.json(
-        { error: "الامتحان غير موجود" },
+        { error: "ط§ظ„ط§ظ…طھط­ط§ظ† ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
 
-    // تسجيل نتيجة الامتحان
+    // طھط³ط¬ظٹظ„ ظ†طھظٹط¬ط© ط§ظ„ط§ظ…طھط­ط§ظ†
     const examResult = await prisma.examResult.create({
       data: {
         userId,
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // إذا كانت هناك ملاحظات، قم بحفظها كدرجة منفصلة
+    // ط¥ط°ط§ ظƒط§ظ†طھ ظ‡ظ†ط§ظƒ ظ…ظ„ط§ط­ط¸ط§طھطŒ ظ‚ظ… ط¨ط­ظپط¸ظ‡ط§ ظƒط¯ط±ط¬ط© ظ…ظ†ظپطµظ„ط©
     if (notes) {
       await prisma.userGrade.create({
         data: {
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error saving exam grade:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في حفظ البيانات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ" },
       { status: 500 }
     );
     }

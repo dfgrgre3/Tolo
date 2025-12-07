@@ -1,9 +1,9 @@
-/**
+﻿/**
  * IP Blocking Service
  * Provides IP-based blocking and rate limiting
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export interface BlockedIP {
   ip: string;

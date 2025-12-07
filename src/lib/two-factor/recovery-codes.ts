@@ -1,10 +1,10 @@
-/**
+﻿/**
  * Recovery Codes Service
- * خدمة رموز الاسترداد للـ 2FA
+ * ط®ط¯ظ…ط© ط±ظ…ظˆط² ط§ظ„ط§ط³طھط±ط¯ط§ط¯ ظ„ظ„ظ€ 2FA
  */
 
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 /**
  * Generate recovery codes

@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
-// واجهة برمجة تطبيقات اليوتيب للبحث عن القنوات التعليمية
+// ظˆط§ط¬ظ‡ط© ط¨ط±ظ…ط¬ط© طھط·ط¨ظٹظ‚ط§طھ ط§ظ„ظٹظˆطھظٹط¨ ظ„ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ‚ظ†ظˆط§طھ ط§ظ„طھط¹ظ„ظٹظ…ظٹط©
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 
@@ -15,33 +15,33 @@ export async function POST(request: NextRequest) {
 
     if (!subject) {
       return NextResponse.json(
-        { error: "الرجاء توفير المادة الدراسية" },
+        { error: "ط§ظ„ط±ط¬ط§ط، طھظˆظپظٹط± ط§ظ„ظ…ط§ط¯ط© ط§ظ„ط¯ط±ط§ط³ظٹط©" },
         { status: 400 }
       );
     }
 
-    // تحديد مقدم الخدمة
+    // طھط­ط¯ظٹط¯ ظ…ظ‚ط¯ظ… ط§ظ„ط®ط¯ظ…ط©
     const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
 
-    // التحقق من مفتاح API
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ…ظپطھط§ط­ API
     if (!validateApiKey(selectedProvider === AI_PROVIDERS.OPENAI ? 'OPENAI' : 'GEMINI')) {
       logger.error(`API key for ${selectedProvider.name} is not configured`);
       return NextResponse.json(
-        { error: `مفتاح API لـ ${selectedProvider.name} غير مهيأ. يرجى التواصل مع فريق الدعم لإضافة مفتاح API صالح.` },
+        { error: `ظ…ظپطھط§ط­ API ظ„ظ€ ${selectedProvider.name} ط؛ظٹط± ظ…ظ‡ظٹط£. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ… ظ„ط¥ط¶ط§ظپط© ظ…ظپطھط§ط­ API طµط§ظ„ط­.` },
         { status: 500 }
       );
     }
 
-    // التحقق من مفتاح YouTube API إذا كان مطلوبًا
-    if ((!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("يوتيوب")) && !YOUTUBE_API_KEY) {
+    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ…ظپطھط§ط­ YouTube API ط¥ط°ط§ ظƒط§ظ† ظ…ط·ظ„ظˆط¨ظ‹ط§
+    if ((!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("ظٹظˆطھظٹظˆط¨")) && !YOUTUBE_API_KEY) {
       logger.error("YouTube API key is not configured");
       return NextResponse.json(
-        { error: "مفتاح YouTube API غير مهيأ. يرجى التواصل مع فريق الدعم." },
+        { error: "ظ…ظپطھط§ط­ YouTube API ط؛ظٹط± ظ…ظ‡ظٹط£. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ…." },
         { status: 500 }
       );
     }
 
-    // البحث في قاعدة البيانات المحلية أولاً
+    // ط§ظ„ط¨ط­ط« ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ظ„ظٹط© ط£ظˆظ„ط§ظ‹
     let localTeachers: any[] = [];
     try {
       localTeachers = await prisma.teacher.findMany({
@@ -51,30 +51,30 @@ export async function POST(request: NextRequest) {
       });
     } catch (dbError) {
       logger.error("Error fetching teachers from database:", dbError);
-      // استمر حتى لو فشل البحث في قاعدة البيانات
+      // ط§ط³طھظ…ط± ط­طھظ‰ ظ„ظˆ ظپط´ظ„ ط§ظ„ط¨ط­ط« ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
     }
 
-    // إنشاء رسالة النظام لتوجيه الذكاء الاصطناعي للبحث عن مدرسين
-    const systemPrompt = `أنت مساعد ذكاء اصطناعي متخصص في البحث عن المدرسين والمحتوى التعليمي المصري لمنصة ثناوي.
-    مهمتك هي البحث عن أفضل مدرسين ومصادر تعليمية لمادة ${subject} ${keywords ? `مع التركيز على: ${keywords}` : ''}.
-    ${platform ? `مع التركيز على منصة: ${platform}` : ''}
+    // ط¥ظ†ط´ط§ط، ط±ط³ط§ظ„ط© ط§ظ„ظ†ط¸ط§ظ… ظ„طھظˆط¬ظٹظ‡ ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ ظ„ظ„ط¨ط­ط« ط¹ظ† ظ…ط¯ط±ط³ظٹظ†
+    const systemPrompt = `ط£ظ†طھ ظ…ط³ط§ط¹ط¯ ط°ظƒط§ط، ط§طµط·ظ†ط§ط¹ظٹ ظ…طھط®طµطµ ظپظٹ ط§ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ط¯ط±ط³ظٹظ† ظˆط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„طھط¹ظ„ظٹظ…ظٹ ط§ظ„ظ…طµط±ظٹ ظ„ظ…ظ†طµط© ط«ظ†ط§ظˆظٹ.
+    ظ…ظ‡ظ…طھظƒ ظ‡ظٹ ط§ظ„ط¨ط­ط« ط¹ظ† ط£ظپط¶ظ„ ظ…ط¯ط±ط³ظٹظ† ظˆظ…طµط§ط¯ط± طھط¹ظ„ظٹظ…ظٹط© ظ„ظ…ط§ط¯ط© ${subject} ${keywords ? `ظ…ط¹ ط§ظ„طھط±ظƒظٹط² ط¹ظ„ظ‰: ${keywords}` : ''}.
+    ${platform ? `ظ…ط¹ ط§ظ„طھط±ظƒظٹط² ط¹ظ„ظ‰ ظ…ظ†طµط©: ${platform}` : ''}
 
-    قم بتوفير قائمة من 5-10 مدرسين أو قنوات تعليمية مصرية معلوماتهم كالتالي:
-    1. اسم المدرس أو القناة
-    2. المادة التي يدرسها
-    3. رابط القناة أو الملف الشخصي
-    4. وصف موجز لأسلوب التدريس والمحتوى
-    5. تقييم تقريبي (من 1 إلى 5)
+    ظ‚ظ… ط¨طھظˆظپظٹط± ظ‚ط§ط¦ظ…ط© ظ…ظ† 5-10 ظ…ط¯ط±ط³ظٹظ† ط£ظˆ ظ‚ظ†ظˆط§طھ طھط¹ظ„ظٹظ…ظٹط© ظ…طµط±ظٹط© ظ…ط¹ظ„ظˆظ…ط§طھظ‡ظ… ظƒط§ظ„طھط§ظ„ظٹ:
+    1. ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³ ط£ظˆ ط§ظ„ظ‚ظ†ط§ط©
+    2. ط§ظ„ظ…ط§ط¯ط© ط§ظ„طھظٹ ظٹط¯ط±ط³ظ‡ط§
+    3. ط±ط§ط¨ط· ط§ظ„ظ‚ظ†ط§ط© ط£ظˆ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ
+    4. ظˆطµظپ ظ…ظˆط¬ط² ظ„ط£ط³ظ„ظˆط¨ ط§ظ„طھط¯ط±ظٹط³ ظˆط§ظ„ظ…ط­طھظˆظ‰
+    5. طھظ‚ظٹظٹظ… طھظ‚ط±ظٹط¨ظٹ (ظ…ظ† 1 ط¥ظ„ظ‰ 5)
 
-    يجب أن تكون جميع الروابط لمصادر مصرية حقيقية وموثوقة.
-    قم بتنسيق الإجابة كـ JSON مع المصفوفات التالية:
+    ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط¬ظ…ظٹط¹ ط§ظ„ط±ظˆط§ط¨ط· ظ„ظ…طµط§ط¯ط± ظ…طµط±ظٹط© ط­ظ‚ظٹظ‚ظٹط© ظˆظ…ظˆط«ظˆظ‚ط©.
+    ظ‚ظ… ط¨طھظ†ط³ظٹظ‚ ط§ظ„ط¥ط¬ط§ط¨ط© ظƒظ€ JSON ظ…ط¹ ط§ظ„ظ…طµظپظˆظپط§طھ ط§ظ„طھط§ظ„ظٹط©:
     {
       "teachers": [
         {
-          "name": "اسم المدرس أو القناة",
-          "subject": "المادة",
-          "url": "رابط القناة أو الملف الشخصي",
-          "description": "وصف موجز",
+          "name": "ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³ ط£ظˆ ط§ظ„ظ‚ظ†ط§ط©",
+          "subject": "ط§ظ„ظ…ط§ط¯ط©",
+          "url": "ط±ط§ط¨ط· ط§ظ„ظ‚ظ†ط§ط© ط£ظˆ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ",
+          "description": "ظˆطµظپ ظ…ظˆط¬ط²",
           "rating": 4.5
         }
       ]
@@ -83,9 +83,9 @@ export async function POST(request: NextRequest) {
     let aiTeachers: any[] = [];
     let youtubeResults: any[] = [];
 
-    // إذا كان طلب البحث يشمل اليوتيب، قم بالبحث هناك أيضاً
-    if (!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("يوتيوب")) {
-      const searchQuery = `${subject} مدرس مصري ${keywords || ""}`;
+    // ط¥ط°ط§ ظƒط§ظ† ط·ظ„ط¨ ط§ظ„ط¨ط­ط« ظٹط´ظ…ظ„ ط§ظ„ظٹظˆطھظٹط¨طŒ ظ‚ظ… ط¨ط§ظ„ط¨ط­ط« ظ‡ظ†ط§ظƒ ط£ظٹط¶ط§ظ‹
+    if (!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("ظٹظˆطھظٹظˆط¨")) {
+      const searchQuery = `${subject} ظ…ط¯ط±ط³ ظ…طµط±ظٹ ${keywords || ""}`;
 
       try {
         const youtubeResponse = await fetch(
@@ -108,10 +108,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // معالجة استجابة الذكاء الاصطناعي
+    // ظ…ط¹ط§ظ„ط¬ط© ط§ط³طھط¬ط§ط¨ط© ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ
     try {
       if (selectedProvider === AI_PROVIDERS.OPENAI) {
-        // استخدام OpenAI API
+        // ط§ط³طھط®ط¯ط§ظ… OpenAI API
         const response = await fetch(selectedProvider.baseUrl, {
           method: "POST",
           headers: {
@@ -134,12 +134,12 @@ export async function POST(request: NextRequest) {
             const teachersData = JSON.parse(teachersContent);
             aiTeachers = teachersData.teachers || [];
 
-            // حفظ المدرسين الجدد في قاعدة البيانات
+            // ط­ظپط¸ ط§ظ„ظ…ط¯ط±ط³ظٹظ† ط§ظ„ط¬ط¯ط¯ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
             for (const teacher of aiTeachers) {
               try {
                 await prisma.teacher.upsert({
                   where: {
-                    // استخدام اسم المدرس والمادة كمفتاح فريد
+                    // ط§ط³طھط®ط¯ط§ظ… ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³ ظˆط§ظ„ظ…ط§ط¯ط© ظƒظ…ظپطھط§ط­ ظپط±ظٹط¯
                     name_subject: {
                       name: teacher.name,
                       subject: teacher.subject
@@ -169,30 +169,30 @@ export async function POST(request: NextRequest) {
       }
     } catch (aiError) {
       logger.error("Error with AI provider:", aiError);
-      // استمر حتى لو فشل الذكاء الاصطناعي
+      // ط§ط³طھظ…ط± ط­طھظ‰ ظ„ظˆ ظپط´ظ„ ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ
     }
 
-    // دمج النتائج من المصادر المختلفة
-    // التأكد من أن جميع المصفوفات موجودة
+    // ط¯ظ…ط¬ ط§ظ„ظ†طھط§ط¦ط¬ ظ…ظ† ط§ظ„ظ…طµط§ط¯ط± ط§ظ„ظ…ط®طھظ„ظپط©
+    // ط§ظ„طھط£ظƒط¯ ظ…ظ† ط£ظ† ط¬ظ…ظٹط¹ ط§ظ„ظ…طµظپظˆظپط§طھ ظ…ظˆط¬ظˆط¯ط©
     const result = {
       localTeachers: localTeachers || [],
       aiTeachers: aiTeachers || [],
       youtubeResults: youtubeResults || [],
-      message: "تم العثور على قائمة المدرسين بنجاح",
+      message: "طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط¯ط±ط³ظٹظ† ط¨ظ†ط¬ط§ط­",
       provider: selectedProvider.name
     };
 
     return NextResponse.json(result);
   } catch (error) {
     logger.error("Error in AI teachers search API:", error);
-    let errorMessage = "حدث خطأ في معالجة طلبك";
+    let errorMessage = "ط­ط¯ط« ط®ط·ط£ ظپظٹ ظ…ط¹ط§ظ„ط¬ط© ط·ظ„ط¨ظƒ";
 
-    // تحديد رسالة الخطأ بناءً على نوع الخطأ
+    // طھط­ط¯ظٹط¯ ط±ط³ط§ظ„ط© ط§ظ„ط®ط·ط£ ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ظ†ظˆط¹ ط§ظ„ط®ط·ط£
     if (error instanceof Error) {
       if (error.message.includes("API key")) {
-        errorMessage = "مفتاح API لـ Google Gemini غير مهيأ. يرجى التواصل مع فريق الدعم.";
+        errorMessage = "ظ…ظپطھط§ط­ API ظ„ظ€ Google Gemini ط؛ظٹط± ظ…ظ‡ظٹط£. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ….";
       } else if (error.message.includes("fetch")) {
-        errorMessage = "فشل الاتصال بخدمة الذكاء الاصطناعي. يرجى المحاولة مرة أخرى لاحقاً.";
+        errorMessage = "ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط®ط¯ظ…ط© ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.";
       }
     }
 

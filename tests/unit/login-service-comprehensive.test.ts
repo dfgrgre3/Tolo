@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Comprehensive LoginService Unit Tests
  * Tests all methods and edge cases in LoginService
  */
@@ -57,7 +57,7 @@ jest.mock('@/lib/auth-service', () => ({
   },
 }));
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

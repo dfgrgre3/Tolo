@@ -1,10 +1,10 @@
-import { GET as getQuests } from '@/app/api/gamification/quests/route';
+﻿import { GET as getQuests } from '@/app/api/gamification/quests/route';
 import { GET as getChallenges } from '@/app/api/gamification/challenges/route';
 import { GET as getLeaderboard } from '@/app/api/gamification/leaderboard/route';
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     quest: {
       findMany: jest.fn(),

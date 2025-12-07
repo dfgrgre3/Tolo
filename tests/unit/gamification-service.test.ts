@@ -1,7 +1,7 @@
-import { gamificationService } from '@/lib/gamification-service';
-import { prisma } from '@/lib/prisma';
+﻿import { gamificationService } from '@/lib/gamification-service';
+import { prisma } from '@/lib/db';
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     user: {
       findUnique: jest.fn(),

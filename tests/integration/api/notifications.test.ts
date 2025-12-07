@@ -1,8 +1,8 @@
-import { GET, POST } from '@/app/api/notifications/route';
+﻿import { GET, POST } from '@/app/api/notifications/route';
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     notification: {
       findMany: jest.fn(),

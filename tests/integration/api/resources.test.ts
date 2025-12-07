@@ -1,8 +1,8 @@
-import { GET } from '@/app/api/resources/route';
+﻿import { GET } from '@/app/api/resources/route';
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     resource: {
       findMany: jest.fn(),

@@ -1,10 +1,10 @@
-import { prisma } from '@/lib/prisma';
+﻿import { prisma } from '@/lib/db';
 import { sendSMSNotification } from '@/lib/notification-sender-new';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 
 /**
- * خدمة التحقق من رقم الهاتف عبر OTP
+ * ط®ط¯ظ…ط© ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط¹ط¨ط± OTP
  */
 export class PhoneVerificationService {
   private static readonly OTP_LENGTH = 6;
@@ -58,7 +58,7 @@ export class PhoneVerificationService {
       if (!normalizedPhone) {
         return {
           success: false,
-          message: 'رقم الهاتف غير صالح',
+          message: 'ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط؛ظٹط± طµط§ظ„ط­',
         };
       }
 
@@ -79,7 +79,7 @@ export class PhoneVerificationService {
       if (!user) {
         return {
           success: false,
-          message: 'المستخدم غير موجود',
+          message: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯',
         };
       }
 
@@ -87,7 +87,7 @@ export class PhoneVerificationService {
       if (user.phoneVerified && user.phone === normalizedPhone) {
         return {
           success: false,
-          message: 'رقم الهاتف مفعّل بالفعل',
+          message: 'ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظ…ظپط¹ظ‘ظ„ ط¨ط§ظ„ظپط¹ظ„',
         };
       }
 
@@ -98,7 +98,7 @@ export class PhoneVerificationService {
           const remainingSeconds = Math.ceil((this.RESEND_COOLDOWN_MS - timeSinceLastSend) / 1000);
           return {
             success: false,
-            message: `يرجى الانتظار ${remainingSeconds} ثانية قبل إعادة الإرسال`,
+            message: `ظٹط±ط¬ظ‰ ط§ظ„ط§ظ†طھط¸ط§ط± ${remainingSeconds} ط«ط§ظ†ظٹط© ظ‚ط¨ظ„ ط¥ط¹ط§ط¯ط© ط§ظ„ط¥ط±ط³ط§ظ„`,
             canResendAfter: this.RESEND_COOLDOWN_MS - timeSinceLastSend,
           };
         }
@@ -123,7 +123,7 @@ export class PhoneVerificationService {
       });
 
       // Send SMS
-      const smsBody = `رمز التحقق من رقم الهاتف في منصة ثناوي: ${otp}\n\nصلاحية الرمز 10 دقائق.`;
+      const smsBody = `ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظپظٹ ظ…ظ†طµط© ط«ظ†ط§ظˆظٹ: ${otp}\n\nطµظ„ط§ط­ظٹط© ط§ظ„ط±ظ…ط² 10 ط¯ظ‚ط§ط¦ظ‚.`;
       const smsResult = await sendSMSNotification({
         to: normalizedPhone,
         body: smsBody,
@@ -135,7 +135,7 @@ export class PhoneVerificationService {
         if (process.env.NODE_ENV === 'production') {
           return {
             success: false,
-            message: 'فشل إرسال الرسالة النصية. يرجى المحاولة مرة أخرى لاحقاً.',
+            message: 'ظپط´ظ„ ط¥ط±ط³ط§ظ„ ط§ظ„ط±ط³ط§ظ„ط© ط§ظ„ظ†طµظٹط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
           };
         }
       }
@@ -144,7 +144,7 @@ export class PhoneVerificationService {
 
       return {
         success: true,
-        message: 'تم إرسال رمز التحقق بنجاح',
+        message: 'طھظ… ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط¨ظ†ط¬ط§ط­',
         expiresIn: this.OTP_EXPIRY_MS / 1000, // in seconds
         canResendAfter: this.RESEND_COOLDOWN_MS,
         // In development, return OTP for testing
@@ -154,7 +154,7 @@ export class PhoneVerificationService {
       logger.error('Error sending phone verification OTP:', error);
       return {
         success: false,
-        message: 'حدث خطأ أثناء إرسال رمز التحقق',
+        message: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚',
       };
     }
   }
@@ -175,7 +175,7 @@ export class PhoneVerificationService {
       if (!otp || otp.length !== this.OTP_LENGTH || !/^\d+$/.test(otp)) {
         return {
           success: false,
-          message: 'رمز التحقق يجب أن يكون 6 أرقام',
+          message: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† 6 ط£ط±ظ‚ط§ظ…',
         };
       }
 
@@ -195,7 +195,7 @@ export class PhoneVerificationService {
       if (!user) {
         return {
           success: false,
-          message: 'المستخدم غير موجود',
+          message: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯',
         };
       }
 
@@ -203,7 +203,7 @@ export class PhoneVerificationService {
       if (user.phoneVerified) {
         return {
           success: true,
-          message: 'رقم الهاتف مفعّل بالفعل',
+          message: 'ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ظ…ظپط¹ظ‘ظ„ ط¨ط§ظ„ظپط¹ظ„',
           verified: true,
         };
       }
@@ -212,7 +212,7 @@ export class PhoneVerificationService {
       if (!user.phoneVerificationOTP || !user.phoneVerificationExpires) {
         return {
           success: false,
-          message: 'لم يتم إرسال رمز التحقق. يرجى طلب رمز جديد',
+          message: 'ظ„ظ… ظٹطھظ… ط¥ط±ط³ط§ظ„ ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط·ظ„ط¨ ط±ظ…ط² ط¬ط¯ظٹط¯',
         };
       }
 
@@ -220,7 +220,7 @@ export class PhoneVerificationService {
       if (user.phoneVerificationExpires.getTime() < Date.now()) {
         return {
           success: false,
-          message: 'انتهت صلاحية رمز التحقق. يرجى طلب رمز جديد',
+          message: 'ط§ظ†طھظ‡طھ طµظ„ط§ط­ظٹط© ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط·ظ„ط¨ ط±ظ…ط² ط¬ط¯ظٹط¯',
         };
       }
 
@@ -229,7 +229,7 @@ export class PhoneVerificationService {
       if (attempts >= this.MAX_ATTEMPTS) {
         return {
           success: false,
-          message: 'تم تجاوز عدد المحاولات المسموح بها. يرجى طلب رمز جديد',
+          message: 'طھظ… طھط¬ط§ظˆط² ط¹ط¯ط¯ ط§ظ„ظ…ط­ط§ظˆظ„ط§طھ ط§ظ„ظ…ط³ظ…ظˆط­ ط¨ظ‡ط§. ظٹط±ط¬ظ‰ ط·ظ„ط¨ ط±ظ…ط² ط¬ط¯ظٹط¯',
         };
       }
 
@@ -248,7 +248,7 @@ export class PhoneVerificationService {
         const remainingAttempts = this.MAX_ATTEMPTS - (attempts + 1);
         return {
           success: false,
-          message: `رمز التحقق غير صحيح. محاولات متبقية: ${remainingAttempts}`,
+          message: `ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط­ظٹط­. ظ…ط­ط§ظˆظ„ط§طھ ظ…طھط¨ظ‚ظٹط©: ${remainingAttempts}`,
         };
       }
 
@@ -267,14 +267,14 @@ export class PhoneVerificationService {
 
       return {
         success: true,
-        message: 'تم التحقق من رقم الهاتف بنجاح',
+        message: 'طھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط¨ظ†ط¬ط§ط­',
         verified: true,
       };
     } catch (error) {
       logger.error('Error verifying phone OTP:', error);
       return {
         success: false,
-        message: 'حدث خطأ أثناء التحقق من الرمز',
+        message: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط±ظ…ط²',
       };
     }
   }
@@ -333,7 +333,7 @@ export class PhoneVerificationService {
     if (!user || !user.phone) {
       return {
         success: false,
-        message: 'رقم الهاتف غير مسجل',
+        message: 'ط±ظ‚ظ… ط§ظ„ظ‡ط§طھظپ ط؛ظٹط± ظ…ط³ط¬ظ„',
       };
     }
 

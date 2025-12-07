@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { verifyToken } from '@/lib/auth-service';
 import { generateSecureToken } from '@/lib/security-utils';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // التحقق من وجود هيدر التوثيق وصحته
+      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ‡ظٹط¯ط± ط§ظ„طھظˆط«ظٹظ‚ ظˆطµط­طھظ‡
       const authHeader = req.headers.get('authorization');
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
         return NextResponse.json(
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // جلب المستخدم
+      // ط¬ظ„ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ…
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId }
       });
@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // توليد بيانات بيومترية وهمية (في التطبيق الحقيقي يتم توليد بيانات WebAuthn)
+      // طھظˆظ„ظٹط¯ ط¨ظٹط§ظ†ط§طھ ط¨ظٹظˆظ…طھط±ظٹط© ظˆظ‡ظ…ظٹط© (ظپظٹ ط§ظ„طھط·ط¨ظٹظ‚ ط§ظ„ط­ظ‚ظٹظ‚ظٹ ظٹطھظ… طھظˆظ„ظٹط¯ ط¨ظٹط§ظ†ط§طھ WebAuthn)
       const credentialId = generateSecureToken(32);
       const publicKey = generateSecureToken(64);
       const deviceName = req.headers.get('user-agent') || 'Unknown device';
 
-    // حفظ بيانات الاعتماد البيومترية
+    // ط­ظپط¸ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط¹طھظ…ط§ط¯ ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط©
     await prisma.biometricCredential.create({
       data: {
         userId: user.id,
@@ -52,14 +52,14 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    // تفعيل المصادقة البيومترية للمستخدم
+    // طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ظ„ظ„ظ…ط³طھط®ط¯ظ…
     await prisma.user.update({
       where: { id: user.id },
       data: { biometricEnabled: true }
     });
 
       return NextResponse.json({
-        message: 'تم إعداد المصادقة البيومترية بنجاح',
+        message: 'طھظ… ط¥ط¹ط¯ط§ط¯ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ط¨ظ†ط¬ط§ط­',
         credentialId,
         challenge: generateSecureToken(32)
       });
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // التحقق من وجود هيدر التوثيق وصحته
+      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ‡ظٹط¯ط± ط§ظ„طھظˆط«ظٹظ‚ ظˆطµط­طھظ‡
       const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
@@ -95,19 +95,19 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // حذف بيانات الاعتماد البيومترية للمستخدم
+    // ط­ط°ظپ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط¹طھظ…ط§ط¯ ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ظ„ظ„ظ…ط³طھط®ط¯ظ…
     await prisma.biometricCredential.deleteMany({
       where: { userId: decoded.userId }
     });
 
-    // تعطيل المصادقة البيومترية للمستخدم
+    // طھط¹ط·ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ظ„ظ„ظ…ط³طھط®ط¯ظ…
     await prisma.user.update({
       where: { id: decoded.userId },
       data: { biometricEnabled: false }
     });
 
     return NextResponse.json({
-      message: 'تم إزالة المصادقة البيومترية بنجاح'
+      message: 'طھظ… ط¥ط²ط§ظ„ط© ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ط¨ظ†ط¬ط§ط­'
     });
   } catch (error) {
     logger.error('Biometric removal error:', error);

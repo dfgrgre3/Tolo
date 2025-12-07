@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { emailService } from '@/lib/services/email-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { authService } from '@/lib/auth-service';
 import { extractRequestMetadata } from '@/app/api/auth/_helpers';
 import { z } from 'zod';
 
-const emailSchema = z.string().email('البريد الإلكتروني غير صالح').toLowerCase().trim();
+const emailSchema = z.string().email('ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± طµط§ظ„ط­').toLowerCase().trim();
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
           return NextResponse.json(
             {
-              error: 'تم تعليق محاولات إرسال رسائل التحقق مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً.',
+              error: 'طھظ… طھط¹ظ„ظٹظ‚ ظ…ط­ط§ظˆظ„ط§طھ ط¥ط±ط³ط§ظ„ ط±ط³ط§ط¦ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ط¤ظ‚طھط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
               code: 'RATE_LIMITED',
               retryAfterSeconds,
             },
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
       if (!emailValidation.success) {
         return NextResponse.json(
           { 
-            error: 'البريد الإلكتروني غير صالح',
+            error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± طµط§ظ„ط­',
             code: 'INVALID_EMAIL'
           },
           { status: 400 }
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json({
-          message: 'إذا كان بريدك الإلكتروني مسجلاً لدينا، ستتلقى رابط التحقق.',
+          message: 'ط¥ط°ط§ ظƒط§ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط³ط¬ظ„ط§ظ‹ ظ„ط¯ظٹظ†ط§طŒ ط³طھطھظ„ظ‚ظ‰ ط±ط§ط¨ط· ط§ظ„طھط­ظ‚ظ‚.',
         });
       }
 
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json({
-          message: 'البريد الإلكتروني مفعّل بالفعل.',
+          message: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ظپط¹ظ‘ظ„ ط¨ط§ظ„ظپط¹ظ„.',
           alreadyVerified: true
         });
       }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 
       if (recentVerification) {
         return NextResponse.json({
-          message: 'تم إرسال رابط التحقق مؤخراً. يرجى التحقق من بريدك الإلكتروني أو المحاولة بعد دقيقتين.',
+          message: 'طھظ… ط¥ط±ط³ط§ظ„ ط±ط§ط¨ط· ط§ظ„طھط­ظ‚ظ‚ ظ…ط¤ط®ط±ط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط£ظˆ ط§ظ„ظ…ط­ط§ظˆظ„ط© ط¨ط¹ط¯ ط¯ظ‚ظٹظ‚طھظٹظ†.',
           code: 'RECENT_EMAIL_SENT',
           canResendAfter: 2 * 60 * 1000, // 2 minutes in milliseconds
         }, { status: 429 });
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({
-        message: 'تم إرسال رابط التحقق بنجاح. يرجى التحقق من بريدك الإلكتروني.',
+        message: 'طھظ… ط¥ط±ط³ط§ظ„ ط±ط§ط¨ط· ط§ظ„طھط­ظ‚ظ‚ ط¨ظ†ط¬ط§ط­. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ.',
         expiresIn: 24 * 60 * 60, // 24 hours in seconds
         // In development, return the token for testing
         ...(process.env.NODE_ENV === 'development' && { token }),
@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         { 
-          error: 'حدث خطأ أثناء إرسال رابط التحقق. يرجى المحاولة مرة أخرى لاحقاً.',
+          error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¥ط±ط³ط§ظ„ ط±ط§ط¨ط· ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
           code: 'INTERNAL_ERROR'
         },
         { status: 500 }

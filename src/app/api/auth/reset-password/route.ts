@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { authService, AuthService } from '@/lib/auth-service';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { passwordHistoryService } from '@/lib/services/password-history-service';
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
           {
-            error: 'تم تعليق محاولات إعادة تعيين كلمة المرور مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً.',
+            error: 'طھظ… طھط¹ظ„ظٹظ‚ ظ…ط­ط§ظˆظ„ط§طھ ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ…ط¤ظ‚طھط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
             code: 'RATE_LIMITED',
             retryAfterSeconds,
           },
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: 'بيانات غير صحيحة',
+          error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± طµط­ظٹط­ط©',
           code: 'VALIDATION_ERROR',
           details: parsed.error.flatten().fieldErrors,
         },
@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       if (isConnectionError(dbError)) {
         return NextResponse.json(
           {
-            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
+            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
             code: 'CONNECTION_ERROR',
           },
           { status: 503 }
@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: 'رمز إعادة التعيين غير صالح أو منتهي الصلاحية. يرجى طلب رابط جديد.',
+          error: 'ط±ظ…ط² ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ† ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©. ظٹط±ط¬ظ‰ ط·ظ„ط¨ ط±ط§ط¨ط· ط¬ط¯ظٹط¯.',
           code: 'INVALID_OR_EXPIRED_TOKEN',
         },
         { status: 400 }
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
       if (historyCheck.exists) {
         return NextResponse.json(
           {
-            error: historyCheck.message || 'لا يمكن إعادة استخدام كلمة المرور هذه. يرجى اختيار كلمة مرور جديدة.',
+            error: historyCheck.message || 'ظ„ط§ ظٹظ…ظƒظ† ط¥ط¹ط§ط¯ط© ط§ط³طھط®ط¯ط§ظ… ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ‡ط°ظ‡. ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط©.',
             code: 'PASSWORD_IN_HISTORY',
           },
           { status: 400 }
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       logger.error('Password hashing error:', hashError);
       return NextResponse.json(
         {
-          error: 'حدث خطأ أثناء معالجة كلمة المرور. حاول مرة أخرى.',
+          error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
           code: 'HASH_ERROR',
         },
         { status: 500 }
@@ -181,7 +181,7 @@ export async function POST(request: NextRequest) {
       if (isConnectionError(dbError)) {
         return NextResponse.json(
           {
-            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
+            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
             code: 'CONNECTION_ERROR',
           },
           { status: 503 }
@@ -198,12 +198,12 @@ export async function POST(request: NextRequest) {
       });
       await securityNotificationService.notifyPasswordChanged(user.id, ip);
     } catch (notificationError) {
-      // لا نفشل العملية إذا فشل الإشعار
+      // ظ„ط§ ظ†ظپط´ظ„ ط§ظ„ط¹ظ…ظ„ظٹط© ط¥ط°ط§ ظپط´ظ„ ط§ظ„ط¥ط´ط¹ط§ط±
       logger.error('Failed to send password reset notification:', notificationError);
     }
 
     return NextResponse.json({
-      message: 'تم إعادة تعيين كلمة المرور بنجاح.',
+      message: 'طھظ… ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¨ظ†ط¬ط§ط­.',
       success: true,
     });
   } catch (error) {
@@ -221,7 +221,7 @@ export async function POST(request: NextRequest) {
 
     return createErrorResponse(
       error,
-      'حدث خطأ غير متوقع أثناء إعادة تعيين كلمة المرور. حاول مرة أخرى لاحقاً.'
+      'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.'
     );
     }
   });

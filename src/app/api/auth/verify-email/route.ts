@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { authService } from '@/lib/auth-service';
 import { isConnectionError } from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
-const tokenParamSchema = z.string().min(1, 'رمز التحقق مطلوب');
+const tokenParamSchema = z.string().min(1, 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظ…ط·ظ„ظˆط¨');
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'رمز التحقق مفقود.',
+          error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظ…ظپظ‚ظˆط¯.',
           code: 'TOKEN_MISSING',
         },
         { status: 400 }
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'رمز التحقق غير صالح.',
+          error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط§ظ„ط­.',
           code: 'INVALID_TOKEN_FORMAT',
         },
         { status: 400 }
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
+            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
             code: 'CONNECTION_ERROR',
           },
           { status: 503 }
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'رمز التحقق غير صالح أو تم استخدامه مسبقاً.',
+          error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ طھظ… ط§ط³طھط®ط¯ط§ظ…ظ‡ ظ…ط³ط¨ظ‚ط§ظ‹.',
           code: 'INVALID_OR_USED_TOKEN',
         },
         { status: 404 }
@@ -96,7 +96,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         alreadyVerified: true,
-        message: 'تم تفعيل البريد مسبقاً، يمكنك متابعة استخدام الحساب.',
+        message: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ط¨ط±ظٹط¯ ظ…ط³ط¨ظ‚ط§ظ‹طŒ ظٹظ…ظƒظ†ظƒ ظ…طھط§ط¨ط¹ط© ط§ط³طھط®ط¯ط§ظ… ط§ظ„ط­ط³ط§ط¨.',
       });
     }
 
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: 'انتهت صلاحية رابط التفعيل. يرجى طلب رابط جديد من صفحة الحساب.',
+          error: 'ط§ظ†طھظ‡طھ طµظ„ط§ط­ظٹط© ط±ط§ط¨ط· ط§ظ„طھظپط¹ظٹظ„. ظٹط±ط¬ظ‰ ط·ظ„ط¨ ط±ط§ط¨ط· ط¬ط¯ظٹط¯ ظ…ظ† طµظپط­ط© ط§ظ„ط­ط³ط§ط¨.',
           code: 'TOKEN_EXPIRED',
         },
         { status: 410 }
@@ -137,7 +137,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           {
             success: false,
-            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
+            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
             code: 'CONNECTION_ERROR',
           },
           { status: 503 }
@@ -154,7 +154,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'تم تفعيل البريد الإلكتروني بنجاح.',
+      message: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط¨ظ†ط¬ط§ط­.',
     });
   } catch (error) {
     logger.error('Email verification error:', error);
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       {
         success: false,
-        error: 'حدث خطأ غير متوقع أثناء التفعيل.',
+        error: 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، ط§ظ„طھظپط¹ظٹظ„.',
         code: 'INTERNAL_ERROR',
       },
       { status: 500 }

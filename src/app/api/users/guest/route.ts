@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 
 // Create a lightweight guest user and return its id for local usage
 // The time management page stores this id in localStorage and uses it
@@ -12,7 +12,7 @@ export async function POST(_req: NextRequest) {
       data: {
         email,
         passwordHash: rand, // random placeholder for required field
-        name: "ضيف",
+        name: "ط¶ظٹظپ",
       },
       select: { id: true },
     });

@@ -1,5 +1,5 @@
-import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
-import { prisma } from '@/lib/prisma';
+﻿import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
+import { prisma } from '@/lib/db';
 
 import { logger } from '@/lib/logger';
 
@@ -23,22 +23,22 @@ export async function generateSummary(
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
   
-  const prompt = `قم بإنشاء ملخص شامل ومفيد للنص التالي بالعربية. يجب أن يكون الملخص:
-- واضح ومختصر (بحد أقصى ${maxLength} كلمة)
-- يحتوي على النقاط الرئيسية
-- مناسب للطلاب
-- منظم في نقاط أو فقرات قصيرة
+  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ظ…ظ„ط®طµ ط´ط§ظ…ظ„ ظˆظ…ظپظٹط¯ ظ„ظ„ظ†طµ ط§ظ„طھط§ظ„ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط©. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط§ظ„ظ…ظ„ط®طµ:
+- ظˆط§ط¶ط­ ظˆظ…ط®طھطµط± (ط¨ط­ط¯ ط£ظ‚طµظ‰ ${maxLength} ظƒظ„ظ…ط©)
+- ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط§ظ„ظ†ظ‚ط§ط· ط§ظ„ط±ط¦ظٹط³ظٹط©
+- ظ…ظ†ط§ط³ط¨ ظ„ظ„ط·ظ„ط§ط¨
+- ظ…ظ†ط¸ظ… ظپظٹ ظ†ظ‚ط§ط· ط£ظˆ ظپظ‚ط±ط§طھ ظ‚طµظٹط±ط©
 
-النص:
+ط§ظ„ظ†طµ:
 ${text}
 
-أجب بصيغة JSON:
+ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
 {
-  "title": "عنوان الملخص",
-  "summary": "الملخص هنا",
-  "keyPoints": ["نقطة 1", "نقطة 2", "نقطة 3"],
+  "title": "ط¹ظ†ظˆط§ظ† ط§ظ„ظ…ظ„ط®طµ",
+  "summary": "ط§ظ„ظ…ظ„ط®طµ ظ‡ظ†ط§",
+  "keyPoints": ["ظ†ظ‚ط·ط© 1", "ظ†ظ‚ط·ط© 2", "ظ†ظ‚ط·ط© 3"],
   "difficulty": "easy|medium|hard",
-  "estimatedReadTime": "عدد الدقائق"
+  "estimatedReadTime": "ط¹ط¯ط¯ ط§ظ„ط¯ظ‚ط§ط¦ظ‚"
 }`;
 
   const content = await callAI(prompt, provider);
@@ -52,7 +52,7 @@ ${text}
     data: {
       userId,
       type: 'summary',
-      title: summary.title || 'ملخص تلقائي',
+      title: summary.title || 'ظ…ظ„ط®طµ طھظ„ظ‚ط§ط¦ظٹ',
       content: JSON.stringify(summary),
       subject: subject || null,
       metadata: {
@@ -66,7 +66,7 @@ ${text}
   return {
     id: saved.id,
     type: 'summary',
-    title: summary.title || 'ملخص تلقائي',
+    title: summary.title || 'ظ…ظ„ط®طµ طھظ„ظ‚ط§ط¦ظٹ',
     content: summary,
     subject,
     metadata: saved.metadata as any
@@ -84,22 +84,22 @@ export async function generateFlashcards(
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
   
-  const prompt = `قم بإنشاء ${count} بطاقة تعليمية (Flashcard) من النص التالي بالعربية. كل بطاقة يجب أن تحتوي على:
-- سؤال أو مفهوم من الجانب الأمامي
-- إجابة أو شرح من الجانب الخلفي
-- موضوع أو فئة (اختياري)
+  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ${count} ط¨ط·ط§ظ‚ط© طھط¹ظ„ظٹظ…ظٹط© (Flashcard) ظ…ظ† ط§ظ„ظ†طµ ط§ظ„طھط§ظ„ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط©. ظƒظ„ ط¨ط·ط§ظ‚ط© ظٹط¬ط¨ ط£ظ† طھط­طھظˆظٹ ط¹ظ„ظ‰:
+- ط³ط¤ط§ظ„ ط£ظˆ ظ…ظپظ‡ظˆظ… ظ…ظ† ط§ظ„ط¬ط§ظ†ط¨ ط§ظ„ط£ظ…ط§ظ…ظٹ
+- ط¥ط¬ط§ط¨ط© ط£ظˆ ط´ط±ط­ ظ…ظ† ط§ظ„ط¬ط§ظ†ط¨ ط§ظ„ط®ظ„ظپظٹ
+- ظ…ظˆط¶ظˆط¹ ط£ظˆ ظپط¦ط© (ط§ط®طھظٹط§ط±ظٹ)
 
-النص:
+ط§ظ„ظ†طµ:
 ${text}
 
-أجب بصيغة JSON:
+ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
 {
-  "title": "بطاقات تعليمية",
+  "title": "ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©",
   "flashcards": [
     {
-      "front": "السؤال أو المفهوم",
-      "back": "الإجابة أو الشرح",
-      "category": "الفئة"
+      "front": "ط§ظ„ط³ط¤ط§ظ„ ط£ظˆ ط§ظ„ظ…ظپظ‡ظˆظ…",
+      "back": "ط§ظ„ط¥ط¬ط§ط¨ط© ط£ظˆ ط§ظ„ط´ط±ط­",
+      "category": "ط§ظ„ظپط¦ط©"
     }
   ]
 }`;
@@ -115,7 +115,7 @@ ${text}
     data: {
       userId,
       type: 'flashcard',
-      title: flashcards.title || 'بطاقات تعليمية',
+      title: flashcards.title || 'ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©',
       content: JSON.stringify(flashcards),
       subject: subject || null,
       metadata: {
@@ -127,7 +127,7 @@ ${text}
   return {
     id: saved.id,
     type: 'flashcard',
-    title: flashcards.title || 'بطاقات تعليمية',
+    title: flashcards.title || 'ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©',
     content: flashcards,
     subject,
     metadata: saved.metadata as any
@@ -158,36 +158,36 @@ export async function generateStudyPlan(
     date: s.startTime
   }));
 
-  const prompt = `قم بإنشاء خطة دراسية مفصلة بالعربية لمدة ${duration} أيام بمعدل ${hoursPerDay} ساعة يومياً.
+  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ط®ط·ط© ط¯ط±ط§ط³ظٹط© ظ…ظپطµظ„ط© ط¨ط§ظ„ط¹ط±ط¨ظٹط© ظ„ظ…ط¯ط© ${duration} ط£ظٹط§ظ… ط¨ظ…ط¹ط¯ظ„ ${hoursPerDay} ط³ط§ط¹ط© ظٹظˆظ…ظٹط§ظ‹.
 
-المواد الدراسية:
+ط§ظ„ظ…ظˆط§ط¯ ط§ظ„ط¯ط±ط§ط³ظٹط©:
 ${subjects.join(', ')}
 
-سجل الدراسة السابق:
+ط³ط¬ظ„ ط§ظ„ط¯ط±ط§ط³ط© ط§ظ„ط³ط§ط¨ظ‚:
 ${JSON.stringify(studyHistory, null, 2)}
 
-أجب بصيغة JSON:
+ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
 {
-  "title": "خطة دراسية",
+  "title": "ط®ط·ط© ط¯ط±ط§ط³ظٹط©",
   "duration": ${duration},
   "totalHours": ${duration * hoursPerDay},
   "dailySchedule": [
     {
-      "day": "اليوم 1",
+      "day": "ط§ظ„ظٹظˆظ… 1",
       "date": "2024-01-01",
       "subjects": [
         {
-          "subject": "اسم المادة",
-          "duration": "ساعة",
-          "topics": ["موضوع 1", "موضوع 2"],
-          "activities": ["قراءة", "حل تمارين"]
+          "subject": "ط§ط³ظ… ط§ظ„ظ…ط§ط¯ط©",
+          "duration": "ط³ط§ط¹ط©",
+          "topics": ["ظ…ظˆط¶ظˆط¹ 1", "ظ…ظˆط¶ظˆط¹ 2"],
+          "activities": ["ظ‚ط±ط§ط،ط©", "ط­ظ„ طھظ…ط§ط±ظٹظ†"]
         }
       ],
       "totalHours": ${hoursPerDay}
     }
   ],
-  "tips": ["نصيحة 1", "نصيحة 2"],
-  "goals": ["هدف 1", "هدف 2"]
+  "tips": ["ظ†طµظٹط­ط© 1", "ظ†طµظٹط­ط© 2"],
+  "goals": ["ظ‡ط¯ظپ 1", "ظ‡ط¯ظپ 2"]
 }`;
 
   const content = await callAI(prompt, provider);
@@ -201,7 +201,7 @@ ${JSON.stringify(studyHistory, null, 2)}
     data: {
       userId,
       type: 'study_plan',
-      title: studyPlan.title || 'خطة دراسية',
+      title: studyPlan.title || 'ط®ط·ط© ط¯ط±ط§ط³ظٹط©',
       content: JSON.stringify(studyPlan),
       metadata: {
         duration,
@@ -214,7 +214,7 @@ ${JSON.stringify(studyHistory, null, 2)}
   return {
     id: saved.id,
     type: 'study_plan',
-    title: studyPlan.title || 'خطة دراسية',
+    title: studyPlan.title || 'ط®ط·ط© ط¯ط±ط§ط³ظٹط©',
     content: studyPlan,
     metadata: saved.metadata as any
   };
@@ -232,29 +232,29 @@ export async function generatePracticeQuestions(
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
   
-  const prompt = `قم بإنشاء ${count} سؤال تدريبي بالعربية حول الموضوع التالي بمستوى صعوبة ${difficulty}.
+  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ${count} ط³ط¤ط§ظ„ طھط¯ط±ظٹط¨ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط© ط­ظˆظ„ ط§ظ„ظ…ظˆط¶ظˆط¹ ط§ظ„طھط§ظ„ظٹ ط¨ظ…ط³طھظˆظ‰ طµط¹ظˆط¨ط© ${difficulty}.
 
-الموضوع: ${topic}
+ط§ظ„ظ…ظˆط¶ظˆط¹: ${topic}
 
-كل سؤال يجب أن يحتوي على:
-- نص السؤال
-- نوع السؤال (اختيار من متعدد، صح/خطأ، إجابة قصيرة)
-- الخيارات (إن كان اختيار من متعدد)
-- الإجابة الصحيحة
-- شرح الإجابة (اختياري)
+ظƒظ„ ط³ط¤ط§ظ„ ظٹط¬ط¨ ط£ظ† ظٹط­طھظˆظٹ ط¹ظ„ظ‰:
+- ظ†طµ ط§ظ„ط³ط¤ط§ظ„
+- ظ†ظˆط¹ ط§ظ„ط³ط¤ط§ظ„ (ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯طŒ طµط­/ط®ط·ط£طŒ ط¥ط¬ط§ط¨ط© ظ‚طµظٹط±ط©)
+- ط§ظ„ط®ظٹط§ط±ط§طھ (ط¥ظ† ظƒط§ظ† ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯)
+- ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط©
+- ط´ط±ط­ ط§ظ„ط¥ط¬ط§ط¨ط© (ط§ط®طھظٹط§ط±ظٹ)
 
-أجب بصيغة JSON:
+ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
 {
-  "title": "أسئلة تدريبية",
+  "title": "ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©",
   "topic": "${topic}",
   "difficulty": "${difficulty}",
   "questions": [
     {
-      "question": "نص السؤال",
+      "question": "ظ†طµ ط§ظ„ط³ط¤ط§ظ„",
       "type": "multiple_choice|true_false|short_answer",
-      "options": ["خيار 1", "خيار 2", "خيار 3", "خيار 4"],
-      "correctAnswer": "الإجابة الصحيحة",
-      "explanation": "شرح الإجابة"
+      "options": ["ط®ظٹط§ط± 1", "ط®ظٹط§ط± 2", "ط®ظٹط§ط± 3", "ط®ظٹط§ط± 4"],
+      "correctAnswer": "ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط©",
+      "explanation": "ط´ط±ط­ ط§ظ„ط¥ط¬ط§ط¨ط©"
     }
   ]
 }`;
@@ -270,7 +270,7 @@ export async function generatePracticeQuestions(
     data: {
       userId,
       type: 'practice_question',
-      title: questions.title || 'أسئلة تدريبية',
+      title: questions.title || 'ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©',
       content: JSON.stringify(questions),
       subject: subject || null,
       metadata: {
@@ -284,7 +284,7 @@ export async function generatePracticeQuestions(
   return {
     id: saved.id,
     type: 'practice_question',
-    title: questions.title || 'أسئلة تدريبية',
+    title: questions.title || 'ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©',
     content: questions,
     subject,
     metadata: saved.metadata as any
@@ -307,7 +307,7 @@ async function callAI(prompt: string, provider: typeof AI_PROVIDERS.OPENAI | typ
         messages: [
           {
             role: 'system',
-            content: 'أنت مساعد ذكاء اصطناعي متخصص في التعليم. يجب أن تجيب بصيغة JSON فقط.'
+            content: 'ط£ظ†طھ ظ…ط³ط§ط¹ط¯ ط°ظƒط§ط، ط§طµط·ظ†ط§ط¹ظٹ ظ…طھط®طµطµ ظپظٹ ط§ظ„طھط¹ظ„ظٹظ…. ظٹط¬ط¨ ط£ظ† طھط¬ظٹط¨ ط¨طµظٹط؛ط© JSON ظپظ‚ط·.'
           },
           {
             role: 'user',
@@ -369,7 +369,7 @@ function parseJSONResponse(text: string): any {
     logger.error('Error parsing JSON response:', error);
     // Return a fallback structure
     return {
-      title: 'محتوى منشأ',
+      title: 'ظ…ط­طھظˆظ‰ ظ…ظ†ط´ط£',
       content: text
     };
   }
@@ -416,10 +416,10 @@ export async function generateChatResponse(
 ): Promise<string> {
   const provider = getDefaultProvider();
   
-  const prompt = `أنت مساعد تعليمي ذكي للطلاب. أجب على سؤال الطالب التالي:
+  const prompt = `ط£ظ†طھ ظ…ط³ط§ط¹ط¯ طھط¹ظ„ظٹظ…ظٹ ط°ظƒظٹ ظ„ظ„ط·ظ„ط§ط¨. ط£ط¬ط¨ ط¹ظ„ظ‰ ط³ط¤ط§ظ„ ط§ظ„ط·ط§ظ„ط¨ ط§ظ„طھط§ظ„ظٹ:
 ${message}
 
-تاريخ المحادثة:
+طھط§ط±ظٹط® ط§ظ„ظ…ط­ط§ط¯ط«ط©:
 ${history.map(m => `${m.role}: ${m.content}`).join('\n')}
 `;
 

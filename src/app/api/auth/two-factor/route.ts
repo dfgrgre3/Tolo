@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { SignJWT, jwtVerify } from 'jose';
 import { TextEncoder } from 'util';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         // Enhanced code validation with comprehensive checks
         if (!code || typeof code !== 'string') {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'رمز التحقق مطلوب',
+            error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظ…ط·ظ„ظˆط¨',
             code: 'MISSING_CODE',
           };
           return NextResponse.json(errorResponse, { status: 400 });
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         const trimmedCode = code.trim();
         if (trimmedCode.length === 0) {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'رمز التحقق لا يمكن أن يكون فارغاً',
+            error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظ„ط§ ظٹظ…ظƒظ† ط£ظ† ظٹظƒظˆظ† ظپط§ط±ط؛ط§ظ‹',
             code: 'EMPTY_CODE',
           };
           return NextResponse.json(errorResponse, { status: 400 });
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
         // Validate code format (must be exactly 6 digits)
         if (trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'رمز التحقق يجب أن يكون مكون من 6 أرقام',
+            error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ظ…ظƒظˆظ† ظ…ظ† 6 ط£ط±ظ‚ط§ظ…',
             code: 'INVALID_CODE_FORMAT',
           };
           return NextResponse.json(errorResponse, { status: 400 });
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
         // Validate loginAttemptId format
         if (!loginAttemptId || typeof loginAttemptId !== 'string' || loginAttemptId.trim().length === 0) {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'معرف محاولة تسجيل الدخول مطلوب',
+            error: 'ظ…ط¹ط±ظپ ظ…ط­ط§ظˆظ„ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط·ظ„ظˆط¨',
             code: 'MISSING_LOGIN_ATTEMPT_ID',
           };
           return NextResponse.json(errorResponse, { status: 400 });
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
         const trimmedLoginAttemptId = loginAttemptId.trim();
         if (trimmedLoginAttemptId.length < 10 || trimmedLoginAttemptId.length > 100) {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'معرف محاولة تسجيل الدخول غير صحيح',
+            error: 'ظ…ط¹ط±ظپ ظ…ط­ط§ظˆظ„ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­',
             code: 'INVALID_LOGIN_ATTEMPT_ID',
           };
           return NextResponse.json(errorResponse, { status: 400 });
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
 
         if (!challengeResult.valid) {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
+            error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط­ظٹط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©',
             code: 'INVALID_OR_EXPIRED',
           };
           return NextResponse.json(errorResponse, { status: 400 });
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
         if (!challengeResult.userId) {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'رمز التحقق غير صحيح أو منتهي الصلاحية',
+            error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط­ظٹط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©',
             code: 'INVALID_OR_EXPIRED',
           };
           return NextResponse.json(errorResponse, { status: 400 });
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 
         if (!user) {
           const errorResponse: TwoFactorErrorResponse = {
-            error: 'المستخدم غير موجود',
+            error: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯',
             code: 'USER_NOT_FOUND',
           };
           return NextResponse.json(errorResponse, { status: 404 });
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
         });
 
         const twoFactorResponse: TwoFactorVerifyResponse = {
-          message: 'تم التحقق من الرمز بنجاح.',
+          message: 'طھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط±ظ…ط² ط¨ظ†ط¬ط§ط­.',
           user: {
             id: user.id,
             email: user.email,
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
       logger.error('Two-factor authentication error:', error);
       return createErrorResponse(
         error,
-        'حدث خطأ غير متوقع أثناء معالجة طلب التحقق ثنائي العامل. حاول مرة أخرى لاحقاً.'
+        'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط·ظ„ط¨ ط§ظ„طھط­ظ‚ظ‚ ط«ظ†ط§ط¦ظٹ ط§ظ„ط¹ط§ظ…ظ„. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.'
       );
     }
   });
@@ -399,7 +399,7 @@ async function handleVerify2FA(user: UserWith2FA, code: string, request: NextReq
       });
 
       return NextResponse.json(
-        { error: 'رمز التحقق غير صحيح' },
+        { error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط­ظٹط­' },
         { status: 400 }
       );
     }
@@ -429,7 +429,7 @@ async function handleVerify2FA(user: UserWith2FA, code: string, request: NextReq
     });
 
     return NextResponse.json({
-      message: 'تم تفعيل المصادقة الثنائية بنجاح'
+      message: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ط¨ظ†ط¬ط§ط­'
     });
   } catch (error) {
     logger.error('2FA verification error:', error);
@@ -490,7 +490,7 @@ async function handleDisable2FA(user: UserWith2FA, code: string, request: NextRe
       });
 
       return NextResponse.json(
-        { error: 'رمز التحقق غير صحيح' },
+        { error: 'ط±ظ…ط² ط§ظ„طھط­ظ‚ظ‚ ط؛ظٹط± طµط­ظٹط­' },
         { status: 400 }
       );
     }
@@ -515,7 +515,7 @@ async function handleDisable2FA(user: UserWith2FA, code: string, request: NextRe
     });
 
     return NextResponse.json({
-      message: 'تم إلغاء تفعيل المصادقة الثنائية بنجاح'
+      message: 'طھظ… ط¥ظ„ط؛ط§ط، طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ط¨ظ†ط¬ط§ط­'
     });
   } catch (error) {
     logger.error('2FA disable error:', error);
@@ -566,7 +566,7 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
       });
 
       return NextResponse.json(
-        { error: 'رمز الاسترداد غير صحيح أو مستخدم' },
+        { error: 'ط±ظ…ط² ط§ظ„ط§ط³طھط±ط¯ط§ط¯ ط؛ظٹط± طµط­ظٹط­ ط£ظˆ ظ…ط³طھط®ط¯ظ…' },
         { status: 400 }
       );
     }
@@ -611,7 +611,7 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
       .sign(getJWTSecretSafe());
 
     return NextResponse.json({
-      message: 'تم التحقق من رمز الاسترداد بنجاح',
+      message: 'طھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط±ظ…ط² ط§ظ„ط§ط³طھط±ط¯ط§ط¯ ط¨ظ†ط¬ط§ط­',
       token,
       remainingBackupCodes: remainingCodes
     });

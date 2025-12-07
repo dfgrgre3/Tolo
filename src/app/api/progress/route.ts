@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -105,7 +105,7 @@ async function handleGetRequest(request: NextRequest) {
       where: {
         userId: decodedToken.userId,
         title: {
-          contains: 'هدف',
+          contains: 'ظ‡ط¯ظپ',
         },
       },
       orderBy: {

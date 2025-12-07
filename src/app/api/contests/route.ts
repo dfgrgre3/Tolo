@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching contests:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في جلب المسابقات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ط³ط§ط¨ظ‚ط§طھ" },
       { status: 500 }
     );
     }
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (!userId || !title || !description || !startDate || !endDate) {
       return NextResponse.json(
-        { error: "جميع الحقول المطلوبة يجب ملؤها" },
+        { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
         { status: 400 }
       );
     }
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "المستخدم غير موجود" },
+        { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
         { status: 404 }
       );
     }
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error creating contest:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في إنشاء المسابقة" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط³ط§ط¨ظ‚ط©" },
       { status: 500 }
     );
     }

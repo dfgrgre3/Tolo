@@ -1,8 +1,8 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { z } from 'zod';
 import { authService, AuthService } from '@/lib/auth-service';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { generateDeviceFingerprint } from '@/lib/security/device-fingerprint-shared';
 import { riskAssessmentService } from '@/lib/security/risk-assessment';
 import { deviceManagerService } from '@/lib/security/device-manager';
@@ -33,8 +33,8 @@ const loginSchema = z.object({
   email: emailSchema,
   password: z
     .string()
-    .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
-    .max(128, 'كلمة المرور طويلة جداً'),
+    .min(8, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظٹط¬ط¨ ط£ظ† طھطھظƒظˆظ† ظ…ظ† 8 ط£ط­ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„')
+    .max(128, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط·ظˆظٹظ„ط© ط¬ط¯ط§ظ‹'),
   rememberMe: z.boolean().optional().default(false),
   deviceFingerprint: z.any().optional(),
   captchaToken: z.string().optional(),
@@ -190,7 +190,7 @@ const handleFailedLogin = async (
   return {
     success: false,
     response: {
-      error: 'بيانات تسجيل الدخول غير صحيحة.',
+      error: 'ط¨ظٹط§ظ†ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©.',
       code: 'INVALID_CREDENTIALS',
     },
     statusCode: 401,
@@ -271,8 +271,8 @@ const createSuccessResponse = (
 
   return {
     message: accountWasCreated
-      ? 'تم إنشاء الحساب وتسجيل الدخول بنجاح!'
-      : 'تم تسجيل الدخول بنجاح.',
+      ? 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨ ظˆطھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­!'
+      : 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­.',
     token: accessToken,
     refreshToken,
     sessionId,
@@ -383,7 +383,7 @@ export class LoginService {
         return {
           success: false,
           response: {
-            error: `تم حظر عنوان IP هذا بسبب محاولات غير مصرح بها. السبب: ${ipBlockStatus.reason}`,
+            error: `طھظ… ط­ط¸ط± ط¹ظ†ظˆط§ظ† IP ظ‡ط°ط§ ط¨ط³ط¨ط¨ ظ…ط­ط§ظˆظ„ط§طھ ط؛ظٹط± ظ…طµط±ط­ ط¨ظ‡ط§. ط§ظ„ط³ط¨ط¨: ${ipBlockStatus.reason}`,
             code: 'IP_BLOCKED',
             blockedUntil: ipBlockStatus.blockedUntil?.toISOString(),
           },
@@ -431,7 +431,7 @@ export class LoginService {
       return {
         success: false,
         response: {
-          error: 'تم تعليق محاولات تسجيل الدخول مؤقتاً بسبب محاولات متكررة. يمكنك المحاولة مرة أخرى بعد انتهاء العد التنازلي.',
+          error: 'طھظ… طھط¹ظ„ظٹظ‚ ظ…ط­ط§ظˆظ„ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط¤ظ‚طھط§ظ‹ ط¨ط³ط¨ط¨ ظ…ط­ط§ظˆظ„ط§طھ ظ…طھظƒط±ط±ط©. ظٹظ…ظƒظ†ظƒ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ط¨ط¹ط¯ ط§ظ†طھظ‡ط§ط، ط§ظ„ط¹ط¯ ط§ظ„طھظ†ط§ط²ظ„ظٹ.',
           code: 'RATE_LIMITED',
           retryAfterSeconds,
           lockedUntil: lockoutUntil ? new Date(lockoutUntil).toISOString() : undefined,
@@ -453,7 +453,7 @@ export class LoginService {
       return {
         valid: false,
         error: {
-          error: 'بيانات الطلب غير صحيحة. يرجى التحقق من صحة البيانات المرسلة.',
+          error: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ظ„ط¨ ط؛ظٹط± طµط­ظٹط­ط©. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµط­ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ط³ظ„ط©.',
           code: 'INVALID_REQUEST_BODY',
         },
       };
@@ -465,7 +465,7 @@ export class LoginService {
       return {
         valid: false,
         error: {
-          error: 'بيانات تسجيل الدخول غير صحيحة',
+          error: 'ط¨ظٹط§ظ†ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©',
           code: 'VALIDATION_ERROR',
           details: parsed.error.flatten().fieldErrors as Record<string, string[]>,
         },
@@ -489,7 +489,7 @@ export class LoginService {
         return {
           success: false,
           response: {
-            error: 'يرجى إكمال التحقق من CAPTCHA للمتابعة. تم اكتشاف محاولات تسجيل دخول متكررة.',
+            error: 'ظٹط±ط¬ظ‰ ط¥ظƒظ…ط§ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† CAPTCHA ظ„ظ„ظ…طھط§ط¨ط¹ط©. طھظ… ط§ظƒطھط´ط§ظپ ظ…ط­ط§ظˆظ„ط§طھ طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…طھظƒط±ط±ط©.',
             requiresCaptcha: true,
             failedAttempts: currentAttempts,
             code: 'CAPTCHA_REQUIRED',
@@ -508,7 +508,7 @@ export class LoginService {
         return {
           success: false,
           response: {
-            error: 'فشل التحقق من CAPTCHA. يرجى المحاولة مرة أخرى.',
+            error: 'ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† CAPTCHA. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.',
             requiresCaptcha: true,
             failedAttempts: currentAttempts,
             code: 'CAPTCHA_INVALID',
@@ -798,7 +798,7 @@ export class LoginService {
       tempRefreshToken = tokens.refreshToken;
     } catch (tokenError) {
       logger.error('Failed to generate temp tokens:', tokenError);
-      throw new Error('فشل في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.');
+      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط±ظ…ط² ط§ظ„ظ…طµط§ط¯ظ‚ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
     }
 
     // Create session with timeout protection
@@ -815,12 +815,12 @@ export class LoginService {
       session = await Promise.race([sessionPromise, timeoutPromise]);
     } catch (sessionError) {
       logger.error('Failed to create session:', sessionError);
-      throw new Error('فشل في إنشاء الجلسة. يرجى المحاولة مرة أخرى.');
+      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¬ظ„ط³ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
     }
 
     if (!session || !session.id) {
       logger.error('Invalid session created', { session });
-      throw new Error('فشل في إنشاء الجلسة. يرجى المحاولة مرة أخرى.');
+      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¬ظ„ط³ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
     }
 
     // Generate final tokens with timeout protection
@@ -845,12 +845,12 @@ export class LoginService {
       refreshToken = tokens.refreshToken;
     } catch (tokenError) {
       logger.error('Failed to generate tokens:', tokenError);
-      throw new Error('فشل في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.');
+      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط±ظ…ط² ط§ظ„ظ…طµط§ط¯ظ‚ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
     }
 
     if (!accessToken || !refreshToken || accessToken.trim().length === 0 || refreshToken.trim().length === 0) {
       logger.error('Invalid tokens generated', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
-      throw new Error('فشل في إنشاء رمز المصادقة. يرجى المحاولة مرة أخرى.');
+      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط±ظ…ط² ط§ظ„ظ…طµط§ط¯ظ‚ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
     }
 
     // Update session with final refresh token
@@ -934,7 +934,7 @@ export class LoginService {
       return {
         success: false,
         response: {
-          error: 'خطأ في إعدادات الخادم: مفتاح المصادقة غير مُعد بشكل صحيح. يرجى التواصل مع الدعم الفني.',
+          error: 'ط®ط·ط£ ظپظٹ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®ط§ط¯ظ…: ظ…ظپطھط§ط­ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط؛ظٹط± ظ…ظڈط¹ط¯ ط¨ط´ظƒظ„ طµط­ظٹط­. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.',
           code: 'CONFIGURATION_ERROR',
         },
         statusCode: 500,
@@ -1036,7 +1036,7 @@ export class LoginService {
         return {
           success: false,
           response: {
-            error: 'البريد الإلكتروني غير مفعل. يرجى تفعيل حسابك من خلال الرابط المرسل إلى بريدك الإلكتروني.',
+            error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± ظ…ظپط¹ظ„. ظٹط±ط¬ظ‰ طھظپط¹ظٹظ„ ط­ط³ط§ط¨ظƒ ظ…ظ† ط®ظ„ط§ظ„ ط§ظ„ط±ط§ط¨ط· ط§ظ„ظ…ط±ط³ظ„ ط¥ظ„ظ‰ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ.',
             code: 'EMAIL_NOT_VERIFIED',
           },
           statusCode: 403,
@@ -1100,7 +1100,7 @@ export class LoginService {
         return {
           success: false,
           response: {
-            error: 'تم رفض تسجيل الدخول بسبب تقييم مخاطر عالي. يرجى التواصل مع الدعم الفني.',
+            error: 'طھظ… ط±ظپط¶ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ط³ط¨ط¨ طھظ‚ظٹظٹظ… ظ…ط®ط§ط·ط± ط¹ط§ظ„ظٹ. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.',
             code: 'HIGH_RISK',
             riskLevel: riskAssessment.level,
           },
@@ -1155,7 +1155,7 @@ export class LoginService {
       return {
         success: false,
         response: {
-          error: 'حدث خطأ غير متوقع أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى لاحقاً.',
+          error: 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
           code: 'INTERNAL_SERVER_ERROR',
         },
         statusCode: 500,

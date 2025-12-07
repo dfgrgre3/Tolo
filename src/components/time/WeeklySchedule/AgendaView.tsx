@@ -8,7 +8,6 @@ import { ar } from 'date-fns/locale';
 import { getWeekDays, formatTimeRange } from './utils';
 import { BLOCK_TYPES } from './constants';
 import type { TimeBlock } from './types';
-import styles from './styles.module.css';
 
 interface AgendaViewProps {
   readonly currentWeek: Date;
@@ -89,12 +88,9 @@ export function AgendaView({
                       )}
                       onClick={() => onBlockEdit(block)}
                     >
-                      {/* CSS variables for dynamic values are acceptable */}
                       <div 
-                        className={cn(styles.blockIcon, typeInfo.color, block.color && styles.blockIconWithColor)}
-                        {...(block.color ? { 
-                          style: { '--block-color': block.color } as React.CSSProperties & { '--block-color': string }
-                        } : {})}
+                        className={cn("p-2 rounded", typeInfo.color)}
+                        style={block.color ? { backgroundColor: block.color } : {}}
                       >
                         <Icon className="w-4 h-4 text-white" />
                       </div>
@@ -186,4 +182,3 @@ export function AgendaView({
     </div>
   );
 }
-

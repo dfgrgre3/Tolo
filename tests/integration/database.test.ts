@@ -1,6 +1,6 @@
-import { prisma } from '@/lib/prisma';
+﻿import { prisma } from '@/lib/db';
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     $connect: jest.fn(),
     $disconnect: jest.fn(),

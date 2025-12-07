@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Security Notifications Service
- * نظام ذكي للإشعارات الأمنية
+ * ظ†ط¸ط§ظ… ط°ظƒظٹ ظ„ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ط£ظ…ظ†ظٹط©
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { RiskAssessment } from './risk-assessment';
 import { DeviceFingerprint } from './device-fingerprint';
 
@@ -233,85 +233,85 @@ export class SecurityNotificationService {
     switch (type) {
       case 'new_device_login':
         return {
-          title: 'تسجيل دخول من جهاز جديد',
-          message: `تم تسجيل الدخول إلى حسابك من جهاز جديد (${metadata?.device?.browser} على ${metadata?.device?.os})${metadata?.location ? ` من ${metadata.location.city || metadata.location.country}` : ''}.`,
+          title: 'طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ظ† ط¬ظ‡ط§ط² ط¬ط¯ظٹط¯',
+          message: `طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ ظ…ظ† ط¬ظ‡ط§ط² ط¬ط¯ظٹط¯ (${metadata?.device?.browser} ط¹ظ„ظ‰ ${metadata?.device?.os})${metadata?.location ? ` ظ…ظ† ${metadata.location.city || metadata.location.country}` : ''}.`,
           severity: 'warning',
         };
 
       case 'new_location_login':
         return {
-          title: 'تسجيل دخول من موقع جديد',
-          message: `تم تسجيل الدخول إلى حسابك من موقع جديد: ${metadata?.location?.city || metadata?.location?.country || 'غير معروف'}.`,
+          title: 'طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ظ† ظ…ظˆظ‚ط¹ ط¬ط¯ظٹط¯',
+          message: `طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ ظ…ظ† ظ…ظˆظ‚ط¹ ط¬ط¯ظٹط¯: ${metadata?.location?.city || metadata?.location?.country || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}.`,
           severity: 'warning',
         };
 
       case 'suspicious_login':
         return {
-          title: 'محاولة تسجيل دخول مشبوهة',
-          message: `تم اكتشاف محاولة تسجيل دخول مشبوهة لحسابك. مستوى الخطر: ${metadata?.riskLevel}. إذا لم تكن أنت، قم بتغيير كلمة المرور فوراً.`,
+          title: 'ظ…ط­ط§ظˆظ„ط© طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ط´ط¨ظˆظ‡ط©',
+          message: `طھظ… ط§ظƒطھط´ط§ظپ ظ…ط­ط§ظˆظ„ط© طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ط´ط¨ظˆظ‡ط© ظ„ط­ط³ط§ط¨ظƒ. ظ…ط³طھظˆظ‰ ط§ظ„ط®ط·ط±: ${metadata?.riskLevel}. ط¥ط°ط§ ظ„ظ… طھظƒظ† ط£ظ†طھطŒ ظ‚ظ… ط¨طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظپظˆط±ط§ظ‹.`,
           severity: 'critical',
         };
 
       case 'password_changed':
         return {
-          title: 'تم تغيير كلمة المرور',
-          message: 'تم تغيير كلمة مرور حسابك بنجاح. إذا لم تقم بذلك، اتصل بالدعم فوراً.',
+          title: 'طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',
+          message: 'طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ظ…ط±ظˆط± ط­ط³ط§ط¨ظƒ ط¨ظ†ط¬ط§ط­. ط¥ط°ط§ ظ„ظ… طھظ‚ظ… ط¨ط°ظ„ظƒطŒ ط§طھطµظ„ ط¨ط§ظ„ط¯ط¹ظ… ظپظˆط±ط§ظ‹.',
           severity: 'critical',
         };
 
       case 'email_changed':
         return {
-          title: 'تم تغيير البريد الإلكتروني',
-          message: 'تم تغيير البريد الإلكتروني لحسابك. إذا لم تقم بذلك، اتصل بالدعم فوراً.',
+          title: 'طھظ… طھط؛ظٹظٹط± ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ',
+          message: 'طھظ… طھط؛ظٹظٹط± ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ„ط­ط³ط§ط¨ظƒ. ط¥ط°ط§ ظ„ظ… طھظ‚ظ… ط¨ط°ظ„ظƒطŒ ط§طھطµظ„ ط¨ط§ظ„ط¯ط¹ظ… ظپظˆط±ط§ظ‹.',
           severity: 'critical',
         };
 
       case '2fa_enabled':
         return {
-          title: 'تم تفعيل المصادقة الثنائية',
-          message: 'تم تفعيل المصادقة الثنائية لحسابك. حسابك الآن أكثر أماناً.',
+          title: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط©',
+          message: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ظ„ط­ط³ط§ط¨ظƒ. ط­ط³ط§ط¨ظƒ ط§ظ„ط¢ظ† ط£ظƒط«ط± ط£ظ…ط§ظ†ط§ظ‹.',
           severity: 'info',
         };
 
       case '2fa_disabled':
         return {
-          title: 'تم تعطيل المصادقة الثنائية',
-          message: 'تم تعطيل المصادقة الثنائية لحسابك. نوصي بإعادة تفعيلها لحماية أفضل.',
+          title: 'طھظ… طھط¹ط·ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط©',
+          message: 'طھظ… طھط¹ط·ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ظ„ط­ط³ط§ط¨ظƒ. ظ†ظˆطµظٹ ط¨ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ظ‡ط§ ظ„ط­ظ…ط§ظٹط© ط£ظپط¶ظ„.',
           severity: 'warning',
         };
 
       case 'device_removed':
         return {
-          title: 'تم إزالة جهاز',
-          message: 'تم إزالة جهاز من الأجهزة الموثوقة لحسابك.',
+          title: 'طھظ… ط¥ط²ط§ظ„ط© ط¬ظ‡ط§ط²',
+          message: 'طھظ… ط¥ط²ط§ظ„ط© ط¬ظ‡ط§ط² ظ…ظ† ط§ظ„ط£ط¬ظ‡ط²ط© ط§ظ„ظ…ظˆط«ظˆظ‚ط© ظ„ط­ط³ط§ط¨ظƒ.',
           severity: 'info',
         };
 
       case 'multiple_failed_attempts':
         return {
-          title: 'محاولات دخول فاشلة متعددة',
-          message: `تم رصد ${metadata?.attemptCount || 'عدة'} محاولات فاشلة لتسجيل الدخول إلى حسابك. إذا لم تكن أنت، قم بتغيير كلمة المرور.`,
+          title: 'ظ…ط­ط§ظˆظ„ط§طھ ط¯ط®ظˆظ„ ظپط§ط´ظ„ط© ظ…طھط¹ط¯ط¯ط©',
+          message: `طھظ… ط±طµط¯ ${metadata?.attemptCount || 'ط¹ط¯ط©'} ظ…ط­ط§ظˆظ„ط§طھ ظپط§ط´ظ„ط© ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ. ط¥ط°ط§ ظ„ظ… طھظƒظ† ط£ظ†طھطŒ ظ‚ظ… ط¨طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.`,
           severity: 'warning',
         };
 
       case 'account_locked':
         return {
-          title: 'تم قفل الحساب مؤقتاً',
-          message: 'تم قفل حسابك مؤقتاً بسبب محاولات تسجيل دخول مشبوهة. سيتم إلغاء القفل خلال 30 دقيقة.',
+          title: 'طھظ… ظ‚ظپظ„ ط§ظ„ط­ط³ط§ط¨ ظ…ط¤ظ‚طھط§ظ‹',
+          message: 'طھظ… ظ‚ظپظ„ ط­ط³ط§ط¨ظƒ ظ…ط¤ظ‚طھط§ظ‹ ط¨ط³ط¨ط¨ ظ…ط­ط§ظˆظ„ط§طھ طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ط´ط¨ظˆظ‡ط©. ط³ظٹطھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ظ‚ظپظ„ ط®ظ„ط§ظ„ 30 ط¯ظ‚ظٹظ‚ط©.',
           severity: 'critical',
         };
 
       case 'unusual_activity':
         return {
-          title: 'نشاط غير معتاد',
-          message: 'تم رصد نشاط غير معتاد على حسابك. يرجى مراجعة سجل النشاطات.',
+          title: 'ظ†ط´ط§ط· ط؛ظٹط± ظ…ط¹طھط§ط¯',
+          message: 'طھظ… ط±طµط¯ ظ†ط´ط§ط· ط؛ظٹط± ظ…ط¹طھط§ط¯ ط¹ظ„ظ‰ ط­ط³ط§ط¨ظƒ. ظٹط±ط¬ظ‰ ظ…ط±ط§ط¬ط¹ط© ط³ط¬ظ„ ط§ظ„ظ†ط´ط§ط·ط§طھ.',
           severity: 'warning',
         };
 
       default:
         return {
-          title: 'إشعار أمني',
-          message: 'تم رصد حدث أمني على حسابك.',
+          title: 'ط¥ط´ط¹ط§ط± ط£ظ…ظ†ظٹ',
+          message: 'طھظ… ط±طµط¯ ط­ط¯ط« ط£ظ…ظ†ظٹ ط¹ظ„ظ‰ ط­ط³ط§ط¨ظƒ.',
           severity: 'info',
         };
     }
@@ -395,11 +395,11 @@ export class SecurityNotificationService {
       // Send email
       await sendEmailNotification({
         to: user.email,
-        subject: `🔒 ${notification.title}`,
+        subject: `ًں”’ ${notification.title}`,
         html: `
           <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
             <div style="text-align: center; margin-bottom: 20px;">
-              <h1 style="color: #3b82f6; margin: 0;">ثناوي</h1>
+              <h1 style="color: #3b82f6; margin: 0;">ط«ظ†ط§ظˆظٹ</h1>
             </div>
             <div style="background-color: #f9fafb; padding: 20px; border-radius: 6px; margin-bottom: 20px; border-right: 4px solid ${color};">
               <h2 style="color: #1e293b; margin-top: 0; margin-bottom: 10px;">${notification.title}</h2>
@@ -407,29 +407,29 @@ export class SecurityNotificationService {
             </div>
             ${notification.metadata?.device || notification.metadata?.location || notification.metadata?.ip ? `
               <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
-                <h3 style="color: #374151; margin-top: 0; margin-bottom: 10px; font-size: 14px;">تفاصيل الحدث:</h3>
-                ${notification.metadata?.device ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>الجهاز:</strong> ${notification.metadata.device.browser || ''} على ${notification.metadata.device.os || ''}</p>` : ''}
-                ${notification.metadata?.location ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>الموقع:</strong> ${notification.metadata.location.city || notification.metadata.location.country || 'غير معروف'}</p>` : ''}
-                ${notification.metadata?.ip ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>عنوان IP:</strong> ${notification.metadata.ip}</p>` : ''}
-                <p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>الوقت:</strong> ${new Date(notification.createdAt).toLocaleString('ar-EG')}</p>
+                <h3 style="color: #374151; margin-top: 0; margin-bottom: 10px; font-size: 14px;">طھظپط§طµظٹظ„ ط§ظ„ط­ط¯ط«:</h3>
+                ${notification.metadata?.device ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ط¬ظ‡ط§ط²:</strong> ${notification.metadata.device.browser || ''} ط¹ظ„ظ‰ ${notification.metadata.device.os || ''}</p>` : ''}
+                ${notification.metadata?.location ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ظ…ظˆظ‚ط¹:</strong> ${notification.metadata.location.city || notification.metadata.location.country || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}</p>` : ''}
+                ${notification.metadata?.ip ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط¹ظ†ظˆط§ظ† IP:</strong> ${notification.metadata.ip}</p>` : ''}
+                <p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ظˆظ‚طھ:</strong> ${new Date(notification.createdAt).toLocaleString('ar-EG')}</p>
               </div>
             ` : ''}
             ${notification.severity === 'critical' ? `
               <div style="background-color: #fef2f2; padding: 15px; border-radius: 6px; margin-bottom: 20px; border-right: 4px solid #ef4444;">
-                <p style="color: #991b1b; margin: 0; font-weight: bold; font-size: 14px;">⚠️ إجراء عاجل مطلوب</p>
-                <p style="color: #991b1b; margin: 5px 0 0 0; font-size: 13px;">إذا لم تقم بهذا الإجراء، يرجى الاتصال بالدعم فوراً.</p>
+                <p style="color: #991b1b; margin: 0; font-weight: bold; font-size: 14px;">âڑ ï¸ڈ ط¥ط¬ط±ط§ط، ط¹ط§ط¬ظ„ ظ…ط·ظ„ظˆط¨</p>
+                <p style="color: #991b1b; margin: 5px 0 0 0; font-size: 13px;">ط¥ط°ط§ ظ„ظ… طھظ‚ظ… ط¨ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط،طŒ ظٹط±ط¬ظ‰ ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط¯ط¹ظ… ظپظˆط±ط§ظ‹.</p>
               </div>
             ` : ''}
             <div style="text-align: center; margin-top: 30px;">
-              <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://thanawy.com'}/settings/security" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">مراجعة إعدادات الأمان</a>
+              <a href="${process.env.NEXT_PUBLIC_BASE_URL || 'https://thanawy.com'}/settings/security" style="background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block; font-weight: bold;">ظ…ط±ط§ط¬ط¹ط© ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ظ…ط§ظ†</a>
             </div>
             <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-              <p>تم إرسال هذه الرسالة من منصة ثناوي التعليمية</p>
-              <p>© ${new Date().getFullYear()} جميع الحقوق محفوظة</p>
+              <p>طھظ… ط¥ط±ط³ط§ظ„ ظ‡ط°ظ‡ ط§ظ„ط±ط³ط§ظ„ط© ظ…ظ† ظ…ظ†طµط© ط«ظ†ط§ظˆظٹ ط§ظ„طھط¹ظ„ظٹظ…ظٹط©</p>
+              <p>آ© ${new Date().getFullYear()} ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ‚ ظ…ط­ظپظˆط¸ط©</p>
             </div>
           </div>
         `,
-        text: `${notification.title}\n\n${notification.message}\n\nالوقت: ${new Date(notification.createdAt).toLocaleString('ar-EG')}`,
+        text: `${notification.title}\n\n${notification.message}\n\nط§ظ„ظˆظ‚طھ: ${new Date(notification.createdAt).toLocaleString('ar-EG')}`,
       });
     } catch (error) {
       logger.error('Failed to send email notification:', error);

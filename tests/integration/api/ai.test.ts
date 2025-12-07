@@ -1,4 +1,4 @@
-import { POST as aiChatHandler } from '@/app/api/ai/chat/route';
+﻿import { POST as aiChatHandler } from '@/app/api/ai/chat/route';
 import { POST as aiContentHandler } from '@/app/api/ai/content/route';
 import { NextRequest } from 'next/server';
 import { generateChatResponse, generateSummary } from '@/lib/ai/content-generation';
@@ -36,7 +36,7 @@ jest.mock('@/lib/ai-config', () => ({
   validateApiKey: jest.fn(() => true),
 }));
 
-jest.mock('@/lib/prisma', () => ({
+jest.mock('@/lib/db', () => ({
   prisma: {
     aiChatMessage: {
       create: jest.fn(),

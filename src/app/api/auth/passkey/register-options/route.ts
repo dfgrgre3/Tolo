@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
 import { authService } from '@/lib/auth-service';
 import { generateRegistrationOptions } from '@simplewebauthn/server';

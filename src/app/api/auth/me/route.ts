@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+﻿import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { 
   createSuccessResponse, 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       if (!user || !user.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
         return createStandardErrorResponse(
           new Error('Invalid user data from authentication'),
-          'بيانات المستخدم غير صحيحة.',
+          'ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± طµط­ظٹط­ط©.',
           401
         );
       }
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       if (userId.length < 10 || userId.length > 100) {
         return createStandardErrorResponse(
           new Error('Invalid user ID format'),
-          'معرف المستخدم غير صحيح.',
+          'ظ…ط¹ط±ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± طµط­ظٹط­.',
           401
         );
       }
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
         return createStandardErrorResponse(
           new Error('User not found after authentication'),
-          'تعذر العثور على حساب المستخدم.',
+          'طھط¹ط°ط± ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط­ط³ط§ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ….',
           404
         );
       }
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 
       return createStandardErrorResponse(
         error,
-        'حدث خلل أثناء التحقق من الجلسة.'
+        'ط­ط¯ط« ط®ظ„ظ„ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¬ظ„ط³ط©.'
       );
     }
   });

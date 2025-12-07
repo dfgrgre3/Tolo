@@ -18,8 +18,8 @@ export interface EmailPasswordCredentials {
  * Implements the authentication logic for the traditional email and password method.
  */
 export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswordCredentials> {
-  
-  constructor(private authService: AuthService) {}
+
+  constructor(private authService: AuthService) { }
 
   /**
    * Authenticates a user with their email and password.
@@ -47,10 +47,10 @@ export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswo
     if (!user || !user.passwordHash || user.passwordHash === 'oauth_user') {
       return { status: 'error', code: 'USER_NOT_FOUND', message: 'بيانات تسجيل الدخول غير صحيحة' };
     }
-    
+
     // 3. Verify email is verified
     if (!user.emailVerified) {
-        return { status: 'error', code: 'EMAIL_NOT_VERIFIED', message: 'البريد الإلكتروني غير مفعل. يرجى تفعيل حسابك.' };
+      return { status: 'error', code: 'EMAIL_NOT_VERIFIED', message: 'البريد الإلكتروني غير مفعل. يرجى تفعيل حسابك.' };
     }
 
     // 4. Compare passwords
@@ -59,9 +59,9 @@ export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswo
       // Note: We don't handle rate limiting here. The calling service (LoginService) is responsible for it.
       return { status: 'error', code: 'INVALID_CREDENTIALS', message: 'بيانات تسجيل الدخول غير صحيحة' };
     }
-    
-    // 5. Sanitize user object
-    const { passwordHash, twoFactorSecret, recoveryCodes, passwordResetToken, passwordResetExpires, ...sanitizedUser } = user;
+
+    // 5. Sanitize user object - remove sensitive fields
+    const { passwordHash, twoFactorSecret, recoveryCodes, ...sanitizedUser } = user;
     const authenticatedUser: AuthenticatedUser = sanitizedUser;
 
     // 6. Check if 2FA is required

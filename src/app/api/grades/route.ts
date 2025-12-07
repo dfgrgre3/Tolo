@@ -1,6 +1,6 @@
-
+﻿
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -12,12 +12,12 @@ export async function GET(request: NextRequest) {
 
     if (!userId) {
       return NextResponse.json(
-        { error: "معرف المستخدم مطلوب" },
+        { error: "ظ…ط¹ط±ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ط·ظ„ظˆط¨" },
         { status: 400 }
       );
     }
 
-    // الحصول على جميع الدرجات المسجلة للمستخدم
+    // ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط¬ظ…ظٹط¹ ط§ظ„ط¯ط±ط¬ط§طھ ط§ظ„ظ…ط³ط¬ظ„ط© ظ„ظ„ظ…ط³طھط®ط¯ظ…
     const userGrades = await prisma.userGrade.findMany({
       where: { userId },
       orderBy: {
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // حساب المتوسط العام لكل مادة
+    // ط­ط³ط§ط¨ ط§ظ„ظ…طھظˆط³ط· ط§ظ„ط¹ط§ظ… ظ„ظƒظ„ ظ…ط§ط¯ط©
     const subjectAverages = await prisma.userGrade.groupBy({
       by: ['subject'],
       where: { userId },
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching grades:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في جلب البيانات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ" },
       { status: 500 }
     );
     }
@@ -65,12 +65,12 @@ export async function POST(request: NextRequest) {
 
       if (!userId || !subject || grade === undefined) {
       return NextResponse.json(
-        { error: "البيانات المطلوبة غير مكتملة" },
+        { error: "ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©" },
         { status: 400 }
       );
     }
 
-    // تسجيل الدرجة الجديدة
+    // طھط³ط¬ظٹظ„ ط§ظ„ط¯ط±ط¬ط© ط§ظ„ط¬ط¯ظٹط¯ط©
     const newGrade = await prisma.userGrade.create({
       data: {
         userId,
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error saving grade:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في حفظ البيانات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ" },
       { status: 500 }
     );
     }

@@ -1,7 +1,7 @@
-'use server';
+﻿'use server';
 
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { CacheService } from '@/lib/redis';
 import { authService } from '@/lib/auth-service';
 import { logger } from '@/lib/logger';

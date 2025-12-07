@@ -1,10 +1,10 @@
-/**
+﻿/**
  * TOTP (Time-based One-Time Password) Service
- * خدمة المصادقة الثنائية باستخدام تطبيقات المصادقة مثل Google Authenticator
+ * ط®ط¯ظ…ط© ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ط¨ط§ط³طھط®ط¯ط§ظ… طھط·ط¨ظٹظ‚ط§طھ ط§ظ„ظ…طµط§ط¯ظ‚ط© ظ…ط«ظ„ Google Authenticator
  */
 
 import crypto from 'crypto';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 // Base32 encoding functions (needed for TOTP)
@@ -100,7 +100,7 @@ export function generateTOTP(secret: string, timeStep: number = 30): string {
 
 /**
  * Verify TOTP code
- * Allows time window (default ±1 time step = 30 seconds before/after)
+ * Allows time window (default آ±1 time step = 30 seconds before/after)
  */
 export function verifyTOTP(
   secret: string,
@@ -149,7 +149,7 @@ export function verifyTOTP(
 export function generateQRCodeURL(
   secret: string,
   email: string,
-  issuer: string = 'ثناوي'
+  issuer: string = 'ط«ظ†ط§ظˆظٹ'
 ): string {
   // URL format: otpauth://totp/{issuer}:{email}?secret={secret}&issuer={issuer}
   const encodedIssuer = encodeURIComponent(issuer);

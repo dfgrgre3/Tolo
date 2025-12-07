@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+﻿import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching books:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في جلب الكتب" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظƒطھط¨" },
       { status: 500 }
     );
     }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     if (!title || !author || !description || !subject || !downloadUrl) {
       return NextResponse.json(
-        { error: "جميع الحقول المطلوبة يجب ملؤها" },
+        { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
         { status: 400 }
       );
     }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error creating book:", error);
     return NextResponse.json(
-      { error: "حدث خطأ في إضافة الكتاب" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ط¶ط§ظپط© ط§ظ„ظƒطھط§ط¨" },
       { status: 500 }
     );
     }

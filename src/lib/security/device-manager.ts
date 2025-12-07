@@ -1,9 +1,9 @@
-/**
+﻿/**
  * Device Management Service
- * إدارة شاملة للأجهزة المستخدمة في الحساب
+ * ط¥ط¯ط§ط±ط© ط´ط§ظ…ظ„ط© ظ„ظ„ط£ط¬ظ‡ط²ط© ط§ظ„ظ…ط³طھط®ط¯ظ…ط© ظپظٹ ط§ظ„ط­ط³ط§ط¨
  */
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { DeviceFingerprint, DeviceInfo, calculateDeviceTrustLevel } from './device-fingerprint';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -221,7 +221,7 @@ export class DeviceManagerService {
       return {
         level: 'unknown',
         score: 0,
-        reasons: ['الجهاز غير موجود'],
+        reasons: ['ط§ظ„ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ظˆط¬ظˆط¯'],
       };
     }
 
@@ -282,7 +282,7 @@ export class DeviceManagerService {
       parts.push(fingerprint.browser);
     }
 
-    return parts.length > 0 ? parts.join(' - ') : 'جهاز غير معروف';
+    return parts.length > 0 ? parts.join(' - ') : 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
   }
 
   /**
@@ -302,12 +302,12 @@ export class DeviceManagerService {
 
   // Parsing helpers for existing session data
   private parseDeviceName(deviceInfo: string | null): string {
-    if (!deviceInfo) return 'جهاز غير معروف';
+    if (!deviceInfo) return 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
     try {
       const info = JSON.parse(deviceInfo);
-      return info.name || 'جهاز غير معروف';
+      return info.name || 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
     } catch {
-      return 'جهاز غير معروف';
+      return 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
     }
   }
 

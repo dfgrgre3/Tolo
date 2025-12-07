@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { randomBytes } from 'crypto';
 import { authService } from '@/lib/auth-service';
 import { 
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json(
           {
-            error: 'تم تعليق محاولات طلب إعادة تعيين كلمة المرور مؤقتاً. يرجى المحاولة مرة أخرى لاحقاً.',
+            error: 'طھظ… طھط¹ظ„ظٹظ‚ ظ…ط­ط§ظˆظ„ط§طھ ط·ظ„ط¨ ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ…ط¤ظ‚طھط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
             code: 'RATE_LIMITED',
             retryAfterSeconds,
           },
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
             error: 'VALIDATION_ERROR',
             details: parsed.error.flatten().fieldErrors,
           },
-          'البريد الإلكتروني غير صالح',
+          'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± طµط§ظ„ط­',
           400
         );
       }
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
       });
 
       return createSuccessResponse({
-        message: 'إذا كان بريدك الإلكتروني مسجلاً لدينا، ستتلقى رابط إعادة تعيين كلمة المرور.',
+        message: 'ط¥ط°ط§ ظƒط§ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط³ط¬ظ„ط§ظ‹ ظ„ط¯ظٹظ†ط§طŒ ط³طھطھظ„ظ‚ظ‰ ط±ط§ط¨ط· ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.',
       });
     }
 
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     // In production, send email here
     // For now, we return a generic success message
     return createSuccessResponse({
-      message: 'إذا كان بريدك الإلكتروني مسجلاً لدينا، ستتلقى رابط إعادة تعيين كلمة المرور.',
+      message: 'ط¥ط°ط§ ظƒط§ظ† ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط³ط¬ظ„ط§ظ‹ ظ„ط¯ظٹظ†ط§طŒ ط³طھطھظ„ظ‚ظ‰ ط±ط§ط¨ط· ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.',
     });
   } catch (error) {
     logger.error('Forgot password error:', error);
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     return createStandardErrorResponse(
       error,
-      'حدث خطأ غير متوقع أثناء معالجة طلب إعادة تعيين كلمة المرور. حاول مرة أخرى لاحقاً.'
+      'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط·ظ„ط¨ ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.'
     );
     }
   });

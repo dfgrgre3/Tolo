@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/auth-service';
 import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
          // It's a JWT. Verify it.
          const verification = await authService.verifyTokenFromInput(loginAttemptId);
          if (!verification.isValid || !verification.user) {
-            return NextResponse.json({ error: 'جلسة غير صالحة' }, { status: 401 });
+            return NextResponse.json({ error: 'ط¬ظ„ط³ط© ط؛ظٹط± طµط§ظ„ط­ط©' }, { status: 401 });
          }
          
          // If method is email, we can generate a challenge and send it.
@@ -33,22 +33,22 @@ export async function POST(request: NextRequest) {
             
             return NextResponse.json({
                success: true,
-               message: 'تم إرسال الرمز إلى البريد الإلكتروني',
+               message: 'طھظ… ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط² ط¥ظ„ظ‰ ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ',
                loginAttemptId: challengeId // Return new ID for the challenge
             });
          }
          
-         return NextResponse.json({ error: 'لا يمكن إعادة إرسال الرمز لـ TOTP. استخدم رموز الاسترداد.' }, { status: 400 });
+         return NextResponse.json({ error: 'ظ„ط§ ظٹظ…ظƒظ† ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط² ظ„ظ€ TOTP. ط§ط³طھط®ط¯ظ… ط±ظ…ظˆط² ط§ظ„ط§ط³طھط±ط¯ط§ط¯.' }, { status: 400 });
       }
 
       // It's a UUID (Challenge flow)
       const challenge = await TwoFactorChallengeService.getChallenge(loginAttemptId);
       if (!challenge) {
-         return NextResponse.json({ error: 'تحدي غير صالح' }, { status: 400 });
+         return NextResponse.json({ error: 'طھط­ط¯ظٹ ط؛ظٹط± طµط§ظ„ط­' }, { status: 400 });
       }
 
       if (challenge.used) {
-         return NextResponse.json({ error: 'تم استخدام التحدي بالفعل' }, { status: 400 });
+         return NextResponse.json({ error: 'طھظ… ط§ط³طھط®ط¯ط§ظ… ط§ظ„طھط­ط¯ظٹ ط¨ط§ظ„ظپط¹ظ„' }, { status: 400 });
       }
 
       // Generate new code
@@ -63,13 +63,13 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
          success: true,
-         message: 'تم إعادة إرسال الرمز',
+         message: 'طھظ… ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„ط±ظ…ط²',
          loginAttemptId: newChallengeId
       });
 
     } catch (error) {
       logger.error('Resend error:', error);
-      return NextResponse.json({ error: 'حدث خطأ في الخادم' }, { status: 500 });
+      return NextResponse.json({ error: 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط®ط§ط¯ظ…' }, { status: 500 });
     }
   });
 }

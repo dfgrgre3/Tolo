@@ -72,10 +72,10 @@ export function LoginCredentialsStep({
       <div className="space-y-2">
         <Label
           htmlFor="email"
-          className="flex items-center justify-end gap-2 text-sm text-slate-600 dark:text-slate-200"
+          className="flex items-center justify-end gap-2 text-sm text-muted-foreground"
         >
           البريد الإلكتروني
-          <Mail className="h-4 w-4 text-indigo-500" />
+          <Mail className="h-4 w-4 text-primary" />
         </Label>
         <Input
           id="email"
@@ -88,7 +88,7 @@ export function LoginCredentialsStep({
           className={cn(
             'text-right',
             errors.email
-              ? 'border-rose-500 focus-visible:ring-rose-500 focus-visible:ring-offset-0'
+              ? 'border-destructive focus-visible:ring-destructive focus-visible:ring-offset-0'
               : '',
           )}
           autoComplete="email"
@@ -98,7 +98,7 @@ export function LoginCredentialsStep({
         {errors.email && (
           <p
             id="login-email-error"
-            className="text-xs font-medium text-rose-600 dark:text-rose-400 text-right"
+            className="text-xs font-medium text-destructive text-right"
           >
             {errors.email}
           </p>
@@ -108,10 +108,10 @@ export function LoginCredentialsStep({
       <div className="space-y-2">
         <Label
           htmlFor="password"
-          className="flex items-center justify-end gap-2 text-sm text-slate-600 dark:text-slate-200"
+          className="flex items-center justify-end gap-2 text-sm text-muted-foreground"
         >
           كلمة المرور
-          <Lock className="h-4 w-4 text-indigo-500" />
+          <Lock className="h-4 w-4 text-primary" />
         </Label>
         <Input
           id="password"
@@ -123,7 +123,7 @@ export function LoginCredentialsStep({
           className={cn(
             'text-right',
             errors.password
-              ? 'border-rose-500 focus-visible:ring-rose-500 focus-visible:ring-offset-0'
+              ? 'border-destructive focus-visible:ring-destructive focus-visible:ring-offset-0'
               : '',
           )}
           autoComplete="current-password"
@@ -135,17 +135,17 @@ export function LoginCredentialsStep({
         {errors.password && (
           <p
             id="login-password-error"
-            className="text-xs font-medium text-rose-600 dark:text-rose-400 text-right"
+            className="text-xs font-medium text-destructive text-right"
           >
             {errors.password}
           </p>
         )}
       </div>
 
-      <div className="flex items-center justify-between gap-2 text-xs text-slate-500">
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <button
           type="button"
-          className="text-indigo-500 transition hover:text-indigo-600"
+          className="text-primary transition hover:text-primary/80"
         >
           نسيت كلمة المرور؟
         </button>
@@ -162,7 +162,7 @@ export function LoginCredentialsStep({
 
       <Button
         type="submit"
-        className="w-full bg-indigo-600 text-white hover:bg-indigo-700"
+        className="w-full"
         disabled={isSubmitting}
       >
         {isSubmitting ? (
@@ -175,17 +175,17 @@ export function LoginCredentialsStep({
         )}
       </Button>
 
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <span className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700" />
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="flex-1 border-t border-dashed border-border" />
         أو تسجيل الدخول باستخدام
-        <span className="flex-1 border-t border-dashed border-slate-200 dark:border-slate-700" />
+        <span className="flex-1 border-t border-dashed border-border" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-4">
         <Button
           type="button"
           variant="outline"
-          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          className="flex items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary"
           onClick={() => onSocialLogin('google')}
         >
           <GoogleIcon className="h-4 w-4" />
@@ -194,7 +194,7 @@ export function LoginCredentialsStep({
         <Button
           type="button"
           variant="outline"
-          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          className="flex items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary"
           onClick={() => onSocialLogin('github')}
         >
           <GitHubIcon className="h-4 w-4" />
@@ -203,7 +203,7 @@ export function LoginCredentialsStep({
         <Button
           type="button"
           variant="outline"
-          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          className="flex items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary"
           onClick={() => onSocialLogin('twitter')}
         >
           <TwitterIcon className="h-4 w-4" />
@@ -212,18 +212,18 @@ export function LoginCredentialsStep({
         <Button
           type="button"
           variant="outline"
-          className="flex items-center justify-center gap-2 border-slate-200 bg-white/70 text-slate-700 hover:border-indigo-400 hover:text-indigo-600"
+          className="flex items-center justify-center gap-2 text-muted-foreground hover:border-primary hover:text-primary"
           onClick={handleBiometricLogin}
         >
           <Fingerprint className="h-4 w-4" />
           <span>البصمة</span>
         </Button>
       </div>
-      <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+      <p className="text-center text-xs text-muted-foreground">
         لا تملك حساباً؟{' '}
         <Link
           href="/login?view=register"
-          className="font-semibold text-indigo-600 hover:text-indigo-700"
+          className="font-semibold text-primary hover:text-primary/80"
         >
           أنشئ حساباً جديداً
         </Link>
