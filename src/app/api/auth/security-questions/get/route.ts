@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { AccountRecoveryService } from '@/lib/services/account-recovery-service';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { extractRequestMetadata } from '@/app/api/auth/_helpers';
 
 export async function GET(request: NextRequest) {

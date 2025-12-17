@@ -6,7 +6,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
-import EnhancedLoginForm from '@/components/auth/EnhancedLoginForm';
+import EnhancedLoginForm from '@/app/(auth)/components/EnhancedLoginForm';
 import { useUnifiedAuth } from '@/hooks/useUnifiedAuth';
 
 // Mock dependencies

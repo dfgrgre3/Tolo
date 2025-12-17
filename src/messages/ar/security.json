@@ -1,0 +1,151 @@
+{
+    "sessionManager": {
+        "title": "إدارة الجلسات",
+        "description": "عرض وإدارة الأجهزة المتصلة بحسابك",
+        "activeSessions": "{count} جلسة نشطة",
+        "currentSession": "الجلسة الحالية",
+        "revokeSession": "إنهاء الجلسة",
+        "revokeAllOthers": "إنهاء الجلسات الأخرى",
+        "revokeAllConfirm": {
+            "title": "تأكيد إنهاء جميع الجلسات الأخرى",
+            "description": "سيتم تسجيل الخروج من جميع الأجهزة الأخرى ({count} جهاز). ستبقى هذه الجلسة الحالية نشطة فقط.",
+            "confirm": "نعم، إنهاء الجلسات"
+        },
+        "unknownBrowser": "متصفح غير معروف",
+        "unknownOS": "نظام تشغيل غير معروف",
+        "ipAddress": "عنوان IP",
+        "lastActivity": "آخر نشاط",
+        "expiresAt": "تنتهي في",
+        "noSessions": "لا توجد جلسات نشطة",
+        "loadError": "فشل في تحميل الجلسات",
+        "revokeSuccess": "تم إنهاء الجلسة بنجاح",
+        "revokeAllSuccess": "تم إنهاء {count} جلسة بنجاح",
+        "revokeError": "فشل في إنهاء الجلسة"
+    },
+    "passwordBreach": {
+        "checking": "جاري التحقق...",
+        "safe": "كلمة المرور لم تظهر في أي عمليات اختراق معروفة",
+        "breached": "كلمة المرور هذه ظهرت في {count} عملية اختراق",
+        "breachedCritical": "تحذير خطير! كلمة المرور هذه ظهرت في أكثر من مليون عملية اختراق!",
+        "breachedHigh": "تحذير! كلمة المرور هذه ظهرت في {count} عملية اختراق",
+        "recommendation": "ننصحك باختيار كلمة مرور مختلفة للحفاظ على أمان حسابك",
+        "learnMore": "تعرف على المزيد",
+        "checkFailed": "تعذر التحقق من أمان كلمة المرور"
+    },
+    "twoFactor": {
+        "title": "التحقق بخطوتين",
+        "description": "أضف طبقة حماية إضافية لحسابك",
+        "enabled": "مفعّل",
+        "disabled": "معطّل",
+        "enable": "تفعيل",
+        "disable": "تعطيل",
+        "methods": {
+            "app": "تطبيق المصادقة",
+            "sms": "رسالة نصية",
+            "email": "البريد الإلكتروني"
+        },
+        "setup": {
+            "title": "إعداد التحقق بخطوتين",
+            "step1": "قم بتنزيل تطبيق مصادقة مثل Google Authenticator",
+            "step2": "امسح رمز QR أو أدخل الرمز يدوياً",
+            "step3": "أدخل الرمز من التطبيق للتحقق",
+            "secretKey": "المفتاح السري",
+            "verify": "تحقق"
+        },
+        "backupCodes": {
+            "title": "رموز الاحتياط",
+            "description": "احفظ هذه الرموز في مكان آمن. يمكنك استخدام كل رمز مرة واحدة فقط",
+            "remaining": "{count} رموز متبقية",
+            "generate": "إنشاء رموز جديدة",
+            "download": "تنزيل الرموز",
+            "copy": "نسخ الرموز"
+        }
+    },
+    "passkeys": {
+        "title": "مفاتيح المرور",
+        "description": "سجل الدخول بسرعة وأمان باستخدام بصمة الوجه أو الإصبع",
+        "addNew": "إضافة مفتاح مرور",
+        "manage": "إدارة مفاتيح المرور",
+        "noPasskeys": "لا توجد مفاتيح مرور مسجلة",
+        "register": {
+            "title": "تسجيل مفتاح مرور جديد",
+            "description": "استخدم بصمة الوجه أو الإصبع للتسجيل",
+            "name": "اسم مفتاح المرور",
+            "namePlaceholder": "مثال: هاتف iPhone الخاص بي",
+            "submit": "تسجيل"
+        },
+        "device": {
+            "lastUsed": "آخر استخدام",
+            "createdAt": "تاريخ الإنشاء",
+            "delete": "حذف",
+            "deleteConfirm": "هل أنت متأكد من حذف مفتاح المرور هذا؟"
+        },
+        "errors": {
+            "notSupported": "متصفحك لا يدعم مفاتيح المرور",
+            "cancelled": "تم إلغاء العملية",
+            "failed": "فشل في تسجيل مفتاح المرور"
+        }
+    },
+    "activityLog": {
+        "title": "سجل النشاط",
+        "description": "تتبع جميع الأنشطة الأمنية على حسابك",
+        "noActivity": "لا يوجد نشاط حديث",
+        "viewAll": "عرض الكل",
+        "types": {
+            "login": "تسجيل دخول",
+            "logout": "تسجيل خروج",
+            "passwordChange": "تغيير كلمة المرور",
+            "settingsChange": "تغيير الإعدادات",
+            "securityAlert": "تنبيه أمني"
+        },
+        "status": {
+            "success": "ناجح",
+            "warning": "تحذير",
+            "danger": "خطر"
+        }
+    },
+    "securityScore": {
+        "title": "درجة الأمان",
+        "excellent": "ممتازة",
+        "good": "جيدة",
+        "fair": "مقبولة",
+        "poor": "ضعيفة",
+        "recommendations": {
+            "title": "توصيات الأمان",
+            "enable2fa": "تفعيل التحقق بخطوتين",
+            "addPasskey": "إضافة مفتاح مرور",
+            "verifyEmail": "تأكيد البريد الإلكتروني",
+            "strongPassword": "استخدام كلمة مرور قوية",
+            "verifyPhone": "تأكيد رقم الهاتف"
+        }
+    },
+    "adaptiveAuth": {
+        "stepUp": {
+            "title": "تحقق إضافي مطلوب",
+            "description": "اكتشفنا نشاطاً غير معتاد. يرجى التحقق من هويتك",
+            "newDevice": "تم اكتشاف جهاز جديد",
+            "newLocation": "تم اكتشاف موقع جديد",
+            "suspiciousActivity": "تم اكتشاف نشاط مريب",
+            "verifyWith": "التحقق باستخدام",
+            "emailOTP": "رمز عبر البريد",
+            "smsOTP": "رمز عبر SMS",
+            "passkey": "بصمة الوجه/الإصبع"
+        },
+        "riskIndicator": {
+            "low": "مخاطر منخفضة",
+            "medium": "مخاطر متوسطة",
+            "high": "مخاطر عالية",
+            "critical": "مخاطر حرجة"
+        }
+    },
+    "common": {
+        "loading": "جاري التحميل...",
+        "error": "حدث خطأ",
+        "success": "تم بنجاح",
+        "cancel": "إلغاء",
+        "confirm": "تأكيد",
+        "save": "حفظ",
+        "close": "إغلاق",
+        "refresh": "تحديث"
+    }
+}

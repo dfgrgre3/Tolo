@@ -23,13 +23,13 @@ export interface TrustedDevice {
     country?: string;
     city?: string;
   };
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export class DeviceManagerService {
   private static instance: DeviceManagerService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): DeviceManagerService {
     if (!DeviceManagerService.instance) {
@@ -81,7 +81,7 @@ export class DeviceManagerService {
 
     // Store in database (we'll need to add this to schema)
     // For now, we'll store in Session or create a new DeviceModel
-    
+
     return device;
   }
 
@@ -216,12 +216,12 @@ export class DeviceManagerService {
     reasons: string[];
   }> {
     const device = await this.getDeviceById(deviceId);
-    
+
     if (!device) {
       return {
         level: 'unknown',
         score: 0,
-        reasons: ['ط§ظ„ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ظˆط¬ظˆط¯'],
+        reasons: ['الجهاز غير موجود'],
       };
     }
 
@@ -282,7 +282,7 @@ export class DeviceManagerService {
       parts.push(fingerprint.browser);
     }
 
-    return parts.length > 0 ? parts.join(' - ') : 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+    return parts.length > 0 ? parts.join(' - ') : 'جهاز غير معروف';
   }
 
   /**
@@ -292,22 +292,22 @@ export class DeviceManagerService {
     fingerprint: DeviceFingerprint
   ): 'mobile' | 'tablet' | 'desktop' | 'unknown' {
     const device = fingerprint.device.toLowerCase();
-    
+
     if (device.includes('mobile')) return 'mobile';
     if (device.includes('tablet') || device.includes('ipad')) return 'tablet';
     if (device.includes('desktop')) return 'desktop';
-    
+
     return 'unknown';
   }
 
   // Parsing helpers for existing session data
   private parseDeviceName(deviceInfo: string | null): string {
-    if (!deviceInfo) return 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+    if (!deviceInfo) return 'جهاز غير معروف';
     try {
       const info = JSON.parse(deviceInfo);
-      return info.name || 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+      return info.name || 'جهاز غير معروف';
     } catch {
-      return 'ط¬ظ‡ط§ط² ط؛ظٹط± ظ…ط¹ط±ظˆظپ';
+      return 'جهاز غير معروف';
     }
   }
 

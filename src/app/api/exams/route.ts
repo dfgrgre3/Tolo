@@ -5,11 +5,11 @@ import { SubjectType, ExamType } from "@/types/settings";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { randomUUID } from "crypto";
-import { 
-  parseRequestBody, 
-  createStandardErrorResponse, 
-  createSuccessResponse,
-  addSecurityHeaders 
+import {
+	parseRequestBody,
+	createStandardErrorResponse,
+	createSuccessResponse,
+	addSecurityHeaders
 } from '@/app/api/auth/_helpers';
 
 export async function GET(request: NextRequest) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 			}
 
 			// Build where clause
-			const where: any = {};
+			const where: Prisma.ExamWhereInput = {};
 			if (subject && typeof subject === 'string' && subject.trim().length > 0) {
 				where.subject = subject.trim();
 			}
@@ -79,24 +79,24 @@ export async function GET(request: NextRequest) {
 				...(limit && { hasMore: exams.length === limit })
 			});
 			return addSecurityHeaders(response);
-		} catch (error) {
+		} catch (error: unknown) {
 			// طھط³ط¬ظٹظ„ ط§ظ„ط®ط·ط£ ط¨ط´ظƒظ„ ط£ظƒط«ط± طھظپطµظٹظ„ط§ظ‹ ظپظٹ ظˆط¶ط¹ ط§ظ„طھط·ظˆظٹط±
 			if (process.env.NODE_ENV === 'development') {
 				logger.error("Error fetching exams:", error);
 			}
-			
+
 			// طھط­ط¯ظٹط¯ ط±ط³ط§ظ„ط© ط§ظ„ط®ط·ط£ ط§ظ„ظ…ظ†ط§ط³ط¨ط©
 			let errorMessage = "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ";
 			let errorDetails = "Unknown error";
 			let errorCode = 'FETCH_ERROR';
-			
+
 			if (error instanceof Error) {
 				errorDetails = error.message;
-				
+
 				// ط±ط³ط§ط¦ظ„ ط®ط·ط£ ط£ظƒط«ط± ظˆط¶ظˆط­ط§ظ‹ ظ„ظ„ظ…ط´ط§ظƒظ„ ط§ظ„ط´ط§ط¦ط¹ط©
-				if (error.message.includes('did not initialize yet') || 
-				    error.message.includes('prisma generate') ||
-				    error.message.includes('has not been generated')) {
+				if (error.message.includes('did not initialize yet') ||
+					error.message.includes('prisma generate') ||
+					error.message.includes('has not been generated')) {
 					errorMessage = "Prisma Client ظ„ظ… ظٹطھظ… طھظˆظ„ظٹط¯ظ‡. ظٹط±ط¬ظ‰ طھط´ط؛ظٹظ„: npx prisma generate";
 					errorCode = 'PRISMA_NOT_INITIALIZED';
 				} else if (error.message.includes('P1001') || error.message.includes('connection')) {
@@ -109,8 +109,10 @@ export async function GET(request: NextRequest) {
 					errorMessage = "ط§ظ†طھظ‡طھ ظ…ظ‡ظ„ط© ط§ظ„ط·ظ„ط¨. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰";
 					errorCode = 'REQUEST_TIMEOUT';
 				}
+			} else {
+				errorDetails = String(error);
 			}
-			
+
 			return createStandardErrorResponse(
 				error,
 				errorMessage
@@ -236,4 +238,4 @@ export async function POST(request: NextRequest) {
 			);
 		}
 	});
-} 
+}

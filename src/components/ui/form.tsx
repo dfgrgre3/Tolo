@@ -1,12 +1,17 @@
 import React from "react";
-import { useFormContext, Controller } from "react-hook-form";
+import { useFormContext, Controller, ControllerProps, FieldValues, Path } from "react-hook-form";
 
 export function Form({ children, ...props }: React.FormHTMLAttributes<HTMLFormElement>) {
   return <form {...props}>{children}</form>;
 }
 
-export function FormField({ name, control, render }: { name: string; control: any; render: any }) {
-  return <Controller name={name} control={control} render={render} />;
+export function FormField<
+  TFieldValues extends FieldValues = FieldValues,
+  TName extends Path<TFieldValues> = Path<TFieldValues>
+>({
+  ...props
+}: ControllerProps<TFieldValues, TName>) {
+  return <Controller {...props} />;
 }
 
 export function FormItem({ children }: { children: React.ReactNode }) {

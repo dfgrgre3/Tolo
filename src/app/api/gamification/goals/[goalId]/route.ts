@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { gamificationService } from '@/lib/gamification-service';
+import { gamificationService } from '@/lib/services/gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -11,24 +11,25 @@ export async function PATCH(
     try {
       const { goalId } = await params;
       const body = await req.json();
-    const { currentValue } = body;
+      const { currentValue } = body;
 
-    if (currentValue === undefined) {
-      return NextResponse.json({ error: 'currentValue is required' }, { status: 400 });
-    }
+      if (currentValue === undefined) {
+        return NextResponse.json({ error: 'currentValue is required' }, { status: 400 });
+      }
 
-    const updatedGoal = await gamificationService.updateCustomGoal(goalId, currentValue);
-    return NextResponse.json(updatedGoal);
+      const updatedGoal = await gamificationService.updateCustomGoal(goalId, currentValue);
+      return NextResponse.json(updatedGoal);
 
-  } catch (error: any) {
-    logger.error('Error updating custom goal:', error);
-    if (error.message?.includes('not found')) {
-      return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
-    }
-    return NextResponse.json(
-      { error: 'Failed to update custom goal' },
-      { status: 500 }
-    );
+    } catch (error: unknown) {
+      logger.error('Error updating custom goal:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('not found')) {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+      }
+      return NextResponse.json(
+        { error: 'Failed to update custom goal' },
+        { status: 500 }
+      );
     }
   });
 }
@@ -40,18 +41,19 @@ export async function DELETE(
   return opsWrapper(request, async (req) => {
     try {
       const { goalId } = await params;
-    await gamificationService.deleteCustomGoal(goalId);
-    return NextResponse.json({ message: 'Goal deleted successfully' });
+      await gamificationService.deleteCustomGoal(goalId);
+      return NextResponse.json({ message: 'Goal deleted successfully' });
 
-  } catch (error: any) {
-    logger.error('Error deleting custom goal:', error);
-    if (error.message?.includes('not found')) {
-      return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
-    }
-    return NextResponse.json(
-      { error: 'Failed to delete custom goal' },
-      { status: 500 }
-    );
+    } catch (error: unknown) {
+      logger.error('Error deleting custom goal:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage?.includes('not found')) {
+        return NextResponse.json({ error: 'Goal not found' }, { status: 404 });
+      }
+      return NextResponse.json(
+        { error: 'Failed to delete custom goal' },
+        { status: 500 }
+      );
     }
   });
 }

@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useEffect, useRef, memo } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { NavItem } from "./types";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 
 interface MegaMenuItemProps {
 	item: NavItem;
@@ -13,6 +14,7 @@ interface MegaMenuItemProps {
 	delay?: number;
 	isCompact?: boolean;
 	searchQuery?: string;
+	isFocused?: boolean;
 }
 
 // Helper function to highlight search matches (supports Arabic)
@@ -31,7 +33,10 @@ function highlightText(text: string, query: string) {
 		const isMatch = partLower === queryLower && part.length > 0;
 		
 		return isMatch ? (
-			<span key={index} className="bg-primary/20 text-primary font-semibold rounded px-0.5">
+			<span 
+				key={index} 
+				className="bg-primary/25 text-primary font-semibold rounded px-0.5 ring-1 ring-primary/30"
+			>
 				{part}
 			</span>
 		) : (
@@ -40,14 +45,17 @@ function highlightText(text: string, query: string) {
 	});
 }
 
-export function MegaMenuItem({ 
+export const MegaMenuItem = memo(function MegaMenuItem({ 
 	item, 
 	isActive, 
 	onClick, 
 	delay = 0, 
 	isCompact = false,
-	searchQuery = "" 
+	searchQuery = "",
+	isFocused = false
 }: MegaMenuItemProps) {
+	const itemRef = useRef<HTMLAnchorElement>(null);
+
 	const hasSearchMatch = useMemo(() => {
 		if (!searchQuery.trim()) return false;
 		const query = searchQuery.toLowerCase();
@@ -55,6 +63,17 @@ export function MegaMenuItem({
 		       item.description?.toLowerCase().includes(query) ||
 		       item.href.toLowerCase().includes(query);
 	}, [item.label, item.description, item.href, searchQuery]);
+
+	// Check if it's an external link
+	const isExternalLink = item.href?.startsWith('http') || item.href?.startsWith('//');
+
+	// Scroll into view when focused
+	useEffect(() => {
+		if (isFocused && itemRef.current) {
+			itemRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			itemRef.current.focus();
+		}
+	}, [isFocused]);
 
 	return (
 		<motion.div
@@ -67,21 +86,27 @@ export function MegaMenuItem({
 			}}
 			whileHover={{ scale: 1.02, x: 2 }}
 			whileTap={{ scale: 0.98 }}
+			role="listitem"
 		>
 		<Link
+			ref={itemRef}
 			href={item.href}
 			onClick={onClick}
+			target={isExternalLink ? "_blank" : undefined}
+			rel={isExternalLink ? "noopener noreferrer" : undefined}
 			className={cn(
 				"relative flex items-center gap-2.5 rounded-xl transition-all duration-300 group/item overflow-hidden",
 				"hover:bg-gradient-to-r hover:from-primary/12 hover:via-primary/8 hover:to-primary/6",
 				"hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5",
 				"border border-border/30 hover:border-primary/40",
-				"backdrop-blur-sm",
+				"backdrop-blur-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2",
 				isActive && "bg-gradient-to-r from-primary/20 via-primary/15 to-primary/10 border-primary/50 shadow-lg shadow-primary/25",
 				hasSearchMatch && !isActive && "bg-gradient-to-r from-primary/8 via-primary/5 to-primary/8 border-primary/30",
+				isFocused && !isActive && "bg-gradient-to-r from-primary/10 via-primary/6 to-primary/10 border-primary/40 ring-2 ring-primary/40",
 				isCompact ? "p-2" : "p-2.5 md:p-3"
 			)}
 			suppressHydrationWarning
+			aria-current={isActive ? "page" : undefined}
 		>
 				{/* Animated background glow */}
 				<motion.div
@@ -106,6 +131,15 @@ export function MegaMenuItem({
 						className="absolute right-0 top-0 bottom-0 bg-primary/40 rounded-l-full"
 					/>
 				)}
+
+				{/* Focus indicator */}
+				{isFocused && !isActive && (
+					<motion.div
+						initial={{ width: 0 }}
+						animate={{ width: 4 }}
+						className="absolute right-0 top-0 bottom-0 bg-primary/60 rounded-l-full"
+					/>
+				)}
 				
 				{/* Icon container with enhanced animations */}
 				<motion.div
@@ -123,6 +157,7 @@ export function MegaMenuItem({
 						"border border-border/20 group-hover/item:border-primary/30",
 						isActive && "from-primary/35 via-primary/25 to-primary/18 shadow-lg shadow-primary/25 border-primary/40",
 						hasSearchMatch && !isActive && "from-primary/20 via-primary/15 to-primary/10 border-primary/25",
+						isFocused && !isActive && "from-primary/25 via-primary/18 to-primary/12 border-primary/35",
 						isCompact ? "p-1.5" : "p-2"
 					)}
 				>
@@ -143,6 +178,7 @@ export function MegaMenuItem({
 						"group-hover/item:text-primary",
 						isActive && "text-primary",
 						hasSearchMatch && !isActive && "text-primary/90",
+						isFocused && !isActive && "text-primary",
 						isCompact ? "h-3 w-3" : "h-3.5 w-3.5"
 					)}
 				>
@@ -150,6 +186,7 @@ export function MegaMenuItem({
 					</motion.div>
 				</motion.div>
 
+				{/* Content */}
 				<div className="flex-1 min-w-0 z-10">
 					<div className="flex items-center gap-1.5 flex-wrap">
 						<span className={cn(
@@ -157,10 +194,13 @@ export function MegaMenuItem({
 							"group-hover/item:text-primary",
 							isActive && "text-primary",
 							hasSearchMatch && !isActive && "text-primary/90",
+							isFocused && !isActive && "text-primary",
 							isCompact ? "text-xs md:text-sm" : "text-sm md:text-base"
 						)}>
 							{searchQuery ? highlightText(item.label, searchQuery) : item.label}
 						</span>
+						
+						{/* Badge */}
 						{item.badge && (
 							<motion.span 
 								initial={{ scale: 0, rotate: -180 }}
@@ -180,13 +220,24 @@ export function MegaMenuItem({
 								{item.badge}
 							</motion.span>
 						)}
+
+						{/* External link indicator */}
+						{isExternalLink && (
+							<ExternalLink className={cn(
+								"text-muted-foreground/50 group-hover/item:text-primary/50 transition-colors",
+								isCompact ? "h-3 w-3" : "h-3.5 w-3.5"
+							)} />
+						)}
 					</div>
+					
+					{/* Description */}
 					{item.description && !isCompact && (
 						<span className={cn(
 							"text-muted-foreground line-clamp-1 leading-snug transition-colors duration-300",
 							"group-hover/item:text-foreground/90",
 							isActive && "text-foreground/80",
 							hasSearchMatch && !isActive && "text-foreground/70",
+							isFocused && !isActive && "text-foreground/80",
 							"text-xs md:text-sm mt-0.5"
 						)}>
 							{searchQuery ? highlightText(item.description || "", searchQuery) : item.description}
@@ -196,16 +247,23 @@ export function MegaMenuItem({
 
 				{/* Hover arrow indicator */}
 				<motion.div
-					initial={{ opacity: 0, x: -5 }}
+					initial={{ opacity: 0, x: 5 }}
+					animate={isFocused || isActive ? { opacity: 1, x: 0 } : {}}
 					whileHover={{ opacity: 1, x: 0 }}
-					className="absolute left-2 top-1/2 -translate-y-1/2 text-primary/40 group-hover/item:text-primary/60 transition-colors"
+					className={cn(
+						"text-primary/40 group-hover/item:text-primary/70 transition-colors z-10",
+						isFocused && "text-primary/70",
+						isActive && "text-primary"
+					)}
 				>
-					<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-						<path d="M4 2L8 6L4 10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-					</svg>
+					<ArrowLeft className={cn(
+						"transition-transform group-hover/item:-translate-x-1",
+						isCompact ? "h-3 w-3" : "h-4 w-4"
+					)} />
 				</motion.div>
 			</Link>
 		</motion.div>
 	);
-}
+});
 
+MegaMenuItem.displayName = "MegaMenuItem";

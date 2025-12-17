@@ -28,7 +28,7 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
 
   // Build user-item matrix
   const userItemMatrix: Record<string, Record<string, number>> = {};
-  
+
   // Get all users and their interactions
   const allInteractions = await prisma.userInteraction.findMany({
     take: 10000 // Limit for performance
@@ -41,7 +41,7 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
     }
     const key = `${interaction.itemType}:${interaction.itemId}`;
     const weight = getInteractionWeight(interaction.type);
-    userItemMatrix[interaction.userId][key] = 
+    userItemMatrix[interaction.userId][key] =
       (userItemMatrix[interaction.userId][key] || 0) + weight;
   });
 
@@ -51,10 +51,10 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
 
   Object.keys(userItemMatrix).forEach(otherUserId => {
     if (otherUserId === userId) return;
-    
+
     const otherVector = userItemMatrix[otherUserId];
     const similarity = cosineSimilarity(userVector, otherVector);
-    
+
     if (similarity > 0.1) { // Only consider users with some similarity
       similarities.push({ userId: otherUserId, similarity });
     }
@@ -69,13 +69,13 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
 
   for (const { userId: similarUserId, similarity } of similarities.slice(0, 20)) {
     const similarUserItems = userItemMatrix[similarUserId] || {};
-    
+
     Object.keys(similarUserItems).forEach(itemKey => {
       if (!userItemKeys.has(itemKey) && similarUserItems[itemKey] > 0) {
         const [itemType, itemId] = itemKey.split(':');
         const currentScore = recommendations.get(itemKey)?.score || 0;
         const newScore = currentScore + (similarity * similarUserItems[itemKey]);
-        
+
         recommendations.set(itemKey, {
           score: newScore,
           itemType,
@@ -90,7 +90,7 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
   for (const [itemKey, { itemType, itemId, score }] of recommendations.entries()) {
     // Normalize score to 0-1 range
     const normalizedScore = Math.min(1, score / 10);
-    
+
     if (normalizedScore > 0.1) {
       result.push({
         id: itemId,
@@ -144,12 +144,12 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
   for (const interaction of positiveInteractions) {
     // Get similar items based on item type and metadata
     const similarItems = await findSimilarItems(interaction.itemType, interaction.itemId);
-    
+
     for (const item of similarItems) {
       if (item.itemId !== interaction.itemId) {
         const key = `${item.itemType}:${item.itemId}`;
         const existing = recommendations.get(key);
-        
+
         if (!existing) {
           recommendations.set(key, {
             id: item.itemId || '',
@@ -180,13 +180,13 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
 async function findSimilarItems(itemType: string, itemId: string): Promise<Array<{ itemType: string; itemId: string; title: string }>> {
   // This is a simplified version - in production, you'd use more sophisticated matching
   const results: Array<{ itemType: string; itemId: string; title: string }> = [];
-  
+
   // Example: if it's a resource, find other resources in the same subject
   if (itemType === 'resource') {
     const resource = await prisma.resource.findUnique({
       where: { id: itemId }
     });
-    
+
     if (resource) {
       const similarResources = await prisma.resource.findMany({
         where: {
@@ -195,8 +195,8 @@ async function findSimilarItems(itemType: string, itemId: string): Promise<Array
         },
         take: 5
       });
-      
-      similarResources.forEach((r: { id: string; title: string; description: string | null; [key: string]: unknown }) => {
+
+      similarResources.forEach((r: { id: string; title: string; description: string | null;[key: string]: unknown }) => {
         results.push({
           itemType: 'resource',
           itemId: r.id,
@@ -205,7 +205,7 @@ async function findSimilarItems(itemType: string, itemId: string): Promise<Array
       });
     }
   }
-  
+
   return results;
 }
 
@@ -238,7 +238,7 @@ export async function getHybridRecommendations(
   contentBased.forEach(rec => {
     const key = `${rec.itemType}:${rec.itemId}`;
     const existing = combined.get(key);
-    
+
     if (existing) {
       existing.score = Math.min(1, existing.score + (rec.score * 0.4));
       existing.algorithm = 'hybrid';
@@ -292,7 +292,7 @@ export async function trackInteraction(
       type,
       itemType,
       itemId,
-      metadata: metadata || {}
+      metadata: JSON.stringify(metadata || {})
     }
   });
 
@@ -304,7 +304,7 @@ export async function trackInteraction(
       const resource = await prisma.resource.findUnique({
         where: { id: itemId }
       });
-      
+
       if (resource) {
         await updatePreference(userId, 'subject', resource.subject, 1.2);
       }
@@ -362,22 +362,22 @@ function getInteractionWeight(type: string): number {
  */
 function cosineSimilarity(vecA: Record<string, number>, vecB: Record<string, number>): number {
   const allKeys = new Set([...Object.keys(vecA), ...Object.keys(vecB)]);
-  
+
   let dotProduct = 0;
   let normA = 0;
   let normB = 0;
-  
+
   for (const key of allKeys) {
     const a = vecA[key] || 0;
     const b = vecB[key] || 0;
-    
+
     dotProduct += a * b;
     normA += a * a;
     normB += b * b;
   }
-  
+
   if (normA === 0 || normB === 0) return 0;
-  
+
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 

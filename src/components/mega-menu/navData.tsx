@@ -489,48 +489,114 @@ export const moreMegaMenu: MegaMenuCategory[] = [
 	},
 ];
 
+// AI-Powered Suggestions Mega Menu
+export const aiSuggestionsMegaMenu: MegaMenuCategory[] = [
+  {
+    title: "توصيات ذكية",
+    items: [
+      {
+        href: "/ai",
+        label: "المساعد الذكي",
+        icon: Brain,
+        description: "مساعد ذكي للتعلم والدراسة",
+        badge: "AI",
+      },
+      {
+        href: "/ai/recommendations",
+        label: "التوصيات الشخصية",
+        icon: Sparkles,
+        description: "محتوى مخصص بناءً على نشاطك",
+        badge: "جديد",
+      },
+      {
+        href: "/ai/learning-path",
+        label: "مسار التعلم",
+        icon: Target,
+        description: "خطة دراسية مخصصة",
+      },
+    ],
+  },
+  {
+    title: "أدوات الذكاء الاصطناعي",
+    items: [
+      {
+        href: "/ai/content-generator",
+        label: "إنشاء المحتوى",
+        icon: Lightbulb,
+        description: "أنشئ محتوى تعليمي بمساعدة الذكاء الاصطناعي",
+      },
+      {
+        href: "/ai/summarizer",
+        label: "تلخيص النصوص",
+        icon: FileText,
+        description: "تلخيص المقالات والكتب",
+      },
+      {
+        href: "/ai/quiz-generator",
+        label: "إنشاء الاختبارات",
+        icon: CheckCircle,
+        description: "أنشئ اختبارات تفاعلية",
+      },
+      {
+        href: "/ai/progress-analysis",
+        label: "تحليل التقدم",
+        icon: BarChart3,
+        description: "تحليل شامل لتقدمك الدراسي",
+      },
+    ],
+  },
+];
+
 export const mainNavItemsWithMegaMenu: NavItemWithMegaMenu[] = [
-	{
-		href: "/",
-		label: "الرئيسية",
-		icon: Home,
-		description: "الصفحة الرئيسية",
-	},
-	{
-		href: "/courses",
-		label: "الدورات",
-		icon: BookOpen,
-		description: "الدورات التعليمية",
-		badge: "جديد",
-		megaMenu: coursesMegaMenu,
-	},
-	{
-		href: "/schedule",
-		label: "الجدول الدراسي",
-		icon: Calendar,
-		description: "جدولك الدراسي",
-		megaMenu: scheduleMegaMenu,
-	},
-	{
-		href: "/time",
-		label: "إدارة الوقت",
-		icon: Clock,
-		description: "تنظيم الوقت",
-		megaMenu: timeManagementMegaMenu,
-	},
-	{
-		href: "/library",
-		label: "المكتبة",
-		icon: Library,
-		description: "المكتبة الرقمية",
-		megaMenu: libraryMegaMenu,
-	},
-	{
-		href: "/analytics",
-		label: "التحليلات",
-		icon: BarChart3,
-		description: "إحصائيات التقدم",
-		megaMenu: analyticsMegaMenu,
-	},
+  {
+    href: "/",
+    label: "الرئيسية",
+    icon: Home,
+    description: "الصفحة الرئيسية",
+  },
+  {
+    href: "/courses",
+    label: "الدورات",
+    icon: BookOpen,
+    description: "الدورات التعليمية",
+    badge: "جديد",
+    megaMenu: coursesMegaMenu,
+  },
+  {
+    href: "/schedule",
+    label: "الجدول الدراسي",
+    icon: Calendar,
+    description: "جدولك الدراسي",
+    megaMenu: scheduleMegaMenu,
+  },
+  {
+    href: "/time",
+    label: "إدارة الوقت",
+    icon: Clock,
+    description: "تنظيم الوقت",
+    megaMenu: timeManagementMegaMenu,
+  },
+  {
+    href: "/library",
+    label: "المكتبة",
+    icon: Library,
+    description: "المكتبة الرقمية",
+    megaMenu: libraryMegaMenu,
+  },
+  {
+    href: "/analytics",
+    label: "التحليلات",
+    icon: BarChart3,
+    description: "إحصائيات التقدم",
+    megaMenu: analyticsMegaMenu,
+  },
+  {
+    href: "/ai",
+    label: "الذكاء الاصطناعي",
+    icon: Brain,
+    description: "أدوات الذكاء الاصطناعي",
+    badge: "AI",
+    megaMenu: aiSuggestionsMegaMenu,
+  },
 ];
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -12,44 +12,44 @@ export async function GET(
     try {
       const { id } = await params;
 
-    const post = await prisma.blogPost.findUnique({
-      where: { id },
-      include: {
-        author: {
-          select: { name: true }
-        },
-        category: {
-          select: { name: true }
+      const post = await prisma.blogPost.findUnique({
+        where: { id },
+        include: {
+          author: {
+            select: { name: true }
+          },
+          category: {
+            select: { name: true }
+          }
         }
+      });
+
+      if (!post) {
+        return NextResponse.json(
+          { error: "المقال غير موجود" },
+          { status: 404 }
+        );
       }
-    });
 
-    if (!post) {
+      // Transform the data to match the frontend structure
+      const transformedPost = {
+        id: post.id,
+        title: post.title,
+        excerpt: post.excerpt,
+        content: post.content,
+        authorName: post.author.name,
+        categoryId: post.categoryId,
+        categoryName: post.category.name,
+        publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null
+      };
+
+      return NextResponse.json(transformedPost);
+    } catch (error) {
+      logger.error("Error fetching blog post:", error);
       return NextResponse.json(
-        { error: "المقال غير موجود" },
-        { status: 404 }
+        { error: "حدث خطأ في جلب المقال" },
+        { status: 500 }
       );
-    }
-
-    // Transform the data to match the frontend structure
-    const transformedPost = {
-      id: post.id,
-      title: post.title,
-      excerpt: post.excerpt,
-      content: post.content,
-      authorName: post.author.name,
-      categoryId: post.categoryId,
-      categoryName: post.category.name,
-      publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null
-    };
-
-    return NextResponse.json(transformedPost);
-  } catch (error) {
-    logger.error("Error fetching blog post:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في جلب المقال" },
-      { status: 500 }
-    );
     }
   });
 }
@@ -63,23 +63,23 @@ export async function POST(
     try {
       const { id } = await params;
 
-    // Views tracking removed as field does not exist in schema
-    /*
-    await prisma.blogPost.update({
-      where: { id },
-      data: {
-        // views: { increment: 1 }
-      }
-    });
-    */
+      // Views tracking removed as field does not exist in schema
+      /*
+      await prisma.blogPost.update({
+        where: { id },
+        data: {
+          // views: { increment: 1 }
+        }
+      });
+      */
 
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    logger.error("Error incrementing view count:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في تحديث عدد المشاهدات" },
-      { status: 500 }
-    );
+      return NextResponse.json({ success: true });
+    } catch (error) {
+      logger.error("Error incrementing view count:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ في تحديث عدد المشاهدات" },
+        { status: 500 }
+      );
     }
   });
 }

@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
+import { NextRequest, NextResponse } from 'next/server';
+import { authService } from '@/lib/services/auth-service';
 import { withEnhancedAuth } from '@/lib/auth/enhanced-middleware';
 import { prisma } from '@/lib/db';
 import { isConnectionError } from '@/app/api/auth/_helpers';
@@ -9,16 +9,16 @@ import { logger } from '@/lib/logger';
 /**
  * GET /api/auth/status
  * 
- * طھط­ظ‚ظ‚ ظ…ظ† ط­ط§ظ„ط© ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط­ط§ظ„ظٹط© ظ„ظ„ظ…ط³طھط®ط¯ظ…
- * ظٹط¹ظٹط¯ ظ…ط¹ظ„ظˆظ…ط§طھ ط£ط³ط§ط³ظٹط© ط¹ظ† ط­ط§ظ„ط© ط§ظ„ط¬ظ„ط³ط© ط¨ط¯ظˆظ† ظƒط´ظپ ظ…ط¹ظ„ظˆظ…ط§طھ ط­ط³ط§ط³ط©
+ * تحقق من حالة المصادقة الحالية للمستخدم
+ * يعيد معلومات أساسية عن حالة الجلسة بدون كشف معلومات حساسة
  * 
  * Response:
- * - authenticated: boolean - ظ‡ظ„ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ط³ط¬ظ„ ط¯ط®ظˆظ„
- * - user: { id, email, name, role } - ظ…ط¹ظ„ظˆظ…ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ط§ظ„ط£ط³ط§ط³ظٹط©
- * - sessionId: string - ظ…ط¹ط±ظپ ط§ظ„ط¬ظ„ط³ط©
- * - expiresAt: string - طھط§ط±ظٹط® ط§ظ†طھظ‡ط§ط، ط§ظ„ط¬ظ„ط³ط©
- * - twoFactorEnabled: boolean - ظ‡ظ„ طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط¨ط®ط·ظˆطھظٹظ†
- * - emailVerified: boolean - ظ‡ظ„ طھظ… ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ
+ * - authenticated: boolean - هل المستخدم مسجل دخول
+ * - user: { id, email, name, role } - معلومات المستخدم الأساسية
+ * - sessionId: string - معرف الجلسة
+ * - expiresAt: string - تاريخ انتهاء الجلسة
+ * - twoFactorEnabled: boolean - هل تم تفعيل المصادقة بخطوتين
+ * - emailVerified: boolean - هل تم التحقق من البريد الإلكتروني
  */
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -27,14 +27,14 @@ export async function GET(request: NextRequest) {
       const authResult = await withEnhancedAuth(req, {
         requireAuth: false, // Don't require auth, just check if exists
         checkSession: true,
-        autoRetry: true, // ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط© ط§ظ„طھظ„ظ‚ط§ط¦ظٹط©
+        autoRetry: true, // إعادة المحاولة التلقائية
       });
 
       // If not authenticated, return unauthenticated status
       if (!authResult.success || !authResult.user) {
         return NextResponse.json({
           authenticated: false,
-          message: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ط³ط¬ظ„ ط¯ط®ظˆظ„',
+          message: 'المستخدم غير مسجل دخول',
         });
       }
 
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
             },
             sessionId,
             expiresAt: expiresAt?.toISOString(),
-            warning: 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ',
+            warning: 'حدث خطأ في الاتصال بقاعدة البيانات',
           });
         }
         
@@ -95,7 +95,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json(
           {
             authenticated: false,
-            error: 'طھط¹ط°ط± ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط­ط³ط§ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ….',
+            error: 'تعذر العثور على حساب المستخدم.',
             code: 'USER_NOT_FOUND',
           },
           { status: 404 }
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           authenticated: false,
-          error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط­ط§ظ„ط© ط§ظ„ظ…طµط§ط¯ظ‚ط©.',
+          error: 'حدث خطأ أثناء التحقق من حالة المصادقة.',
           code: 'STATUS_CHECK_ERROR',
         },
         { status: 500 }

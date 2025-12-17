@@ -1,9 +1,9 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { generateRegistrationOptions } from '@simplewebauthn/server';
-import { BiometricChallengeService } from '@/lib/auth-challenges-service';
+import { BiometricChallengeService } from '@/lib/services/auth-challenges-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

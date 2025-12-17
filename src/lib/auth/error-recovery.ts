@@ -20,7 +20,7 @@ export interface RetryOptions {
 
 export interface ErrorContext {
   operation: string;
-  error: Error | any;
+  error: Error | unknown;
   attempt: number;
   maxRetries: number;
 }
@@ -43,16 +43,17 @@ class ErrorRecoveryManager {
   /**
    * التحقق من إمكانية إعادة المحاولة
    */
-  isRetryable(error: Error | any, retryableErrors?: string[]): boolean {
+  isRetryable(error: Error | unknown, retryableErrors?: string[]): boolean {
     const errors = retryableErrors || this.DEFAULT_OPTIONS.retryableErrors;
-    
+
     // التحقق من نوع الخطأ
-    if (error?.code && errors.includes(error.code)) {
+    const err = error as { code?: string; message?: string; status?: number };
+    if (err?.code && errors.includes(err.code)) {
       return true;
     }
 
     // التحقق من رسالة الخطأ
-    const errorMessage = error?.message || String(error);
+    const errorMessage = err?.message || String(error);
     if (errors.some(code => errorMessage.includes(code))) {
       return true;
     }
@@ -84,17 +85,17 @@ class ErrorRecoveryManager {
     options: RetryOptions = {}
   ): Promise<T> {
     const opts = { ...this.DEFAULT_OPTIONS, ...options };
-    let lastError: Error | any;
+    let lastError: Error | unknown;
 
     for (let attempt = 1; attempt <= opts.maxRetries; attempt++) {
       try {
         const result = await operation();
-        
+
         // نجحت العملية - مسح تاريخ الأخطاء
         this.clearErrorHistory(operation.name);
-        
+
         return result;
-      } catch (error: any) {
+      } catch (error: unknown) {
         lastError = error;
 
         // التحقق من إمكانية إعادة المحاولة
@@ -162,21 +163,23 @@ class ErrorRecoveryManager {
   /**
    * معالجة خطأ المصادقة
    */
-  async handleAuthError(error: Error | any, context: ErrorContext): Promise<boolean> {
+  async handleAuthError(error: Error | unknown, context: ErrorContext): Promise<boolean> {
     // تسجيل الخطأ
     logger.error('Auth error:', {
       operation: context.operation,
-      error: error?.message || String(error),
+      error: (error as Error)?.message || String(error),
       attempt: context.attempt,
     });
 
+    const err = error as { code?: string; status?: number };
+
     // التحقق من نوع الخطأ
-    if (error?.code === 'UNAUTHORIZED' || error?.status === 401) {
+    if (err?.code === 'UNAUTHORIZED' || err?.status === 401) {
       // انتهت الجلسة - لا نحاول إعادة المحاولة
       return false;
     }
 
-    if (error?.code === 'FORBIDDEN' || error?.status === 403) {
+    if (err?.code === 'FORBIDDEN' || err?.status === 403) {
       // ليس لديه صلاحية - لا نحاول إعادة المحاولة
       return false;
     }
@@ -219,8 +222,9 @@ class ErrorRecoveryManager {
         maxRetries: 2,
         retryDelay: 500,
       });
-    } catch (error: any) {
-      if (error?.code === 'UNAUTHORIZED' || error?.status === 401) {
+    } catch (error: unknown) {
+      const err = error as { code?: string; status?: number };
+      if (err?.code === 'UNAUTHORIZED' || err?.status === 401) {
         onUnauthorized?.();
         return null;
       }

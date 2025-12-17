@@ -1,11 +1,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../../tailwind.config.js";
 
 @layer base {
   :root {
+    --font-inter: 'Inter';
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -77,30 +76,20 @@
     --sidebar-ring: 217.2 91.2% 59.8%;
     color-scheme: dark;
   }
-}
 
-@layer base {
   * {
-    @apply border-border;
     box-sizing: border-box;
   }
 
   html {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: inherit;
     min-height: 100vh;
     margin: 0;
     padding: 0;
-    line-height: 1.5;
-  }
-
-  *:focus-visible {
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
   }
 }

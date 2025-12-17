@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";

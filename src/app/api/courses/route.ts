@@ -3,11 +3,11 @@ import { prisma } from '@/lib/db';
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 import { logger } from '@/lib/logger';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { 
-  parseRequestBody, 
-  createStandardErrorResponse, 
+import {
+  parseRequestBody,
+  createStandardErrorResponse,
   createSuccessResponse,
-  addSecurityHeaders 
+  addSecurityHeaders
 } from '@/app/api/auth/_helpers';
 
 // GET all courses (now subjects)
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       }
 
       const trimmedUserId = userId?.trim() || null;
-    
+
       // Get all subjects with timeout protection
       const subjectsPromise = getOrSetEnhanced(
         'subjects:all',
@@ -71,13 +71,13 @@ export async function GET(request: NextRequest) {
           });
 
           const userEnrollments = await Promise.race([enrollmentsPromise, enrollmentsTimeoutPromise]);
-          
-          enrollments = userEnrollments.reduce((acc: any, enrollment: any) => {
-            if (enrollment.subject) {
-              acc[enrollment.subject] = enrollment;
+
+          enrollments = userEnrollments.reduce((acc, enrollment) => {
+            if (enrollment.subjectId) {
+              acc[enrollment.subjectId] = enrollment;
             }
             return acc;
-          }, {});
+          }, {} as Record<string, typeof userEnrollments[0]>);
         } catch (enrollmentError) {
           // Log but don't block response - enrollments are optional
           logger.warn('Error fetching enrollments:', enrollmentError);

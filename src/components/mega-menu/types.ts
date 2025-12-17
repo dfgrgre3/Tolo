@@ -14,11 +14,13 @@ export interface MegaMenuCategory {
 	items: NavItem[];
 }
 
+import type { User } from "@/types/api/auth";
+
 export interface MegaMenuProps {
 	categories: MegaMenuCategory[];
 	isOpen: boolean;
 	onClose: () => void;
 	activeRoute?: (href: string) => boolean;
-	user?: any;
+	user?: User | null;
 }
 

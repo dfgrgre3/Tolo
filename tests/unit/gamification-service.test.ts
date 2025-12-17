@@ -1,4 +1,4 @@
-﻿import { gamificationService } from '@/lib/gamification-service';
+﻿import { gamificationService } from '@/lib/services/gamification-service';
 import { prisma } from '@/lib/db';
 
 jest.mock('@/lib/db', () => ({

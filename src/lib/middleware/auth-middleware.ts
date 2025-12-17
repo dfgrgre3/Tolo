@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
-import type { TokenVerificationResult } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
+import type { TokenVerificationResult } from '@/lib/services/auth-service';
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {

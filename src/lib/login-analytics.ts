@@ -3,7 +3,7 @@
  * خدمة تحليلات تسجيل الدخول
  */
 
-import { prisma } from './prisma';
+import { prisma } from './db';
 
 export interface LoginAnalytics {
   totalLogins: number;
@@ -87,11 +87,11 @@ export async function getLoginAnalytics(
 
   // Calculate statistics
   const successfulLogins = loginEvents.filter(
-    (e) => e.eventType === 'LOGIN_SUCCESS' || 
-           e.eventType === 'BIOMETRIC_LOGIN_SUCCESS' || 
-           e.eventType === 'MAGIC_LINK_USED'
+    (e) => e.eventType === 'LOGIN_SUCCESS' ||
+      e.eventType === 'BIOMETRIC_LOGIN_SUCCESS' ||
+      e.eventType === 'MAGIC_LINK_USED'
   ).length;
-  
+
   const failedLogins = loginEvents.filter(
     (e) => e.eventType === 'LOGIN_FAILED'
   ).length;

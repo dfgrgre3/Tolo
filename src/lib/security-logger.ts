@@ -1,6 +1,7 @@
 // Import prisma singleton to prevent multiple connection pools
-// This uses the singleton instance from prisma.ts (which uses db-unified.ts)
-import { prisma } from './prisma';
+// This uses the unified singleton instance from db.ts
+import { prisma } from './db';
+import { DeviceInfo, SecurityMetadata } from '@/types/services';
 
 // Lazy load elkLogger to prevent client bundling of server-only code
 let elkLoggerInstance: any = null;
@@ -10,10 +11,10 @@ async function getElkLogger() {
     if (typeof window !== 'undefined') {
       // Return a no-op logger on client side
       return {
-        error: () => {},
-        warn: () => {},
-        info: () => {},
-        debug: () => {},
+        error: () => { },
+        warn: () => { },
+        info: () => { },
+        debug: () => { },
       };
     }
     const elkLoggerModule = await import('@/lib/logging/elk-logger');
@@ -57,13 +58,13 @@ export type SecurityEventType =
   | 'MAGIC_LINK_USED';
 
 export interface SecurityLogData {
-  userId: string;
+  userId: string | null;
   eventType: SecurityEventType;
   ip: string;
   userAgent: string;
-  deviceInfo?: any;
-  location?: string;
-  metadata?: any;
+  deviceInfo?: DeviceInfo;
+  location?: string | null;
+  metadata?: SecurityMetadata;
 }
 
 /**
@@ -72,7 +73,7 @@ export interface SecurityLogData {
 export class SecurityLogger {
   private static instance: SecurityLogger;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SecurityLogger {
     if (!SecurityLogger.instance) {
@@ -126,7 +127,7 @@ export class SecurityLogger {
     userId: string,
     ip: string,
     userAgent: string,
-    deviceInfo?: any,
+    deviceInfo?: DeviceInfo,
     location?: string
   ): Promise<void> {
     await this.logEvent({
@@ -147,7 +148,7 @@ export class SecurityLogger {
     ip: string,
     userAgent: string,
     reason?: string,
-    deviceInfo?: any
+    deviceInfo?: DeviceInfo
   ): Promise<void> {
     await this.logEvent({
       userId: userId || 'unknown',
@@ -166,7 +167,7 @@ export class SecurityLogger {
     userId: string,
     ip: string,
     userAgent: string,
-    metadata?: any
+    metadata?: SecurityMetadata
   ): Promise<void> {
     await this.logEvent({
       userId,
@@ -234,7 +235,7 @@ export class SecurityLogger {
     ip: string,
     userAgent: string,
     reason: string,
-    deviceInfo?: any,
+    deviceInfo?: DeviceInfo,
     location?: string
   ): Promise<void> {
     await this.logEvent({
@@ -274,7 +275,7 @@ export class SecurityLogger {
     userId: string,
     limit: number = 50,
     offset: number = 0
-  ): Promise<any[]> {
+  ): Promise<SecurityLogData[]> {
     try {
       const dbClient = prisma;
       const logs = await dbClient.securityLog.findMany({
@@ -286,8 +287,10 @@ export class SecurityLogger {
 
       return logs.map((log) => ({
         ...log,
-        deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : null,
-        metadata: log.metadata ? JSON.parse(log.metadata) : null,
+        eventType: log.eventType as SecurityEventType,
+        deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : undefined,
+        metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
+        location: log.location || null,
       }));
     } catch (error) {
       try {
@@ -311,7 +314,7 @@ export class SecurityLogger {
     userId: string,
     eventType: SecurityEventType,
     limit: number = 50
-  ): Promise<any[]> {
+  ): Promise<SecurityLogData[]> {
     try {
       const dbClient = prisma;
       const logs = await dbClient.securityLog.findMany({
@@ -325,8 +328,10 @@ export class SecurityLogger {
 
       return logs.map((log) => ({
         ...log,
-        deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : null,
-        metadata: log.metadata ? JSON.parse(log.metadata) : null,
+        eventType: log.eventType as SecurityEventType,
+        deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : undefined,
+        metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
+        location: log.location || null,
       }));
     } catch (error) {
       try {
@@ -349,7 +354,7 @@ export class SecurityLogger {
   async getLastEventOfType(
     userId: string,
     eventType: SecurityEventType
-  ): Promise<any | null> {
+  ): Promise<SecurityLogData | null> {
     try {
       const dbClient = prisma;
       const log = await dbClient.securityLog.findFirst({
@@ -364,8 +369,10 @@ export class SecurityLogger {
 
       return {
         ...log,
-        deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : null,
-        metadata: log.metadata ? JSON.parse(log.metadata) : null,
+        eventType: log.eventType as SecurityEventType,
+        deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : undefined,
+        metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
+        location: log.location || null,
       };
     } catch (error) {
       try {
@@ -384,4 +391,3 @@ export class SecurityLogger {
 }
 
 export const securityLogger = SecurityLogger.getInstance();
-

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { logger } from '@/lib/logging/unified-logger'
 
 /**
  * Supabase Client Configuration
@@ -53,7 +54,10 @@ export async function getTodos() {
     .select()
 
   if (error) {
-    console.error('Error fetching todos:', error)
+    if (error) {
+      logger.error('Error fetching todos', error)
+      throw error
+    }
     throw error
   }
 
@@ -94,7 +98,10 @@ export async function getTodosWithFilters(filters?: {
   const { data, error } = await query
 
   if (error) {
-    console.error('Error fetching todos with filters:', error)
+    if (error) {
+      logger.error('Error fetching todos with filters', error)
+      throw error
+    }
     throw error
   }
 
@@ -115,7 +122,10 @@ export async function createTodo(todo: Omit<Todo, 'id' | 'created_at' | 'updated
     .single()
 
   if (error) {
-    console.error('Error creating todo:', error)
+    if (error) {
+      logger.error('Error creating todo', error)
+      throw error
+    }
     throw error
   }
 
@@ -138,7 +148,10 @@ export async function updateTodo(id: string, updates: Partial<Todo>) {
     .single()
 
   if (error) {
-    console.error('Error updating todo:', error)
+    if (error) {
+      logger.error('Error updating todo', error)
+      throw error
+    }
     throw error
   }
 
@@ -160,7 +173,10 @@ export async function deleteTodo(id: string) {
     .single()
 
   if (error) {
-    console.error('Error deleting todo:', error)
+    if (error) {
+      logger.error('Error deleting todo', error)
+      throw error
+    }
     throw error
   }
 

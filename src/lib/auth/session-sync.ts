@@ -10,10 +10,12 @@
 
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
+import type { AuthUser } from '@/lib/services/auth-service';
+import type { AuthState } from './unified-auth-manager';
 
 export interface SyncMessage {
   type: 'login' | 'logout' | 'state_update' | 'token_refresh' | 'session_expired';
-  data?: any;
+  data?: unknown;
   timestamp: number;
   tabId: string;
 }
@@ -27,7 +29,7 @@ class SessionSyncManager extends EventEmitter {
   constructor() {
     super();
     this.tabId = this.generateTabId();
-    
+
     if (typeof window !== 'undefined') {
       this.initialize();
     }
@@ -98,19 +100,19 @@ class SessionSyncManager extends EventEmitter {
       case 'login':
         this.emit('login', message.data);
         break;
-      
+
       case 'logout':
         this.emit('logout', message.data);
         break;
-      
+
       case 'state_update':
         this.emit('state_update', message.data);
         break;
-      
+
       case 'token_refresh':
         this.emit('token_refresh', message.data);
         break;
-      
+
       case 'session_expired':
         this.emit('session_expired', message.data);
         break;
@@ -159,7 +161,7 @@ class SessionSyncManager extends EventEmitter {
   /**
    * إشعار بتسجيل الدخول
    */
-  notifyLogin(userData: any) {
+  notifyLogin(userData: AuthUser) {
     this.broadcast({
       type: 'login',
       data: { user: userData },
@@ -180,7 +182,7 @@ class SessionSyncManager extends EventEmitter {
   /**
    * إشعار بتحديث الحالة
    */
-  notifyStateUpdate(state: any) {
+  notifyStateUpdate(state: AuthState) {
     this.broadcast({
       type: 'state_update',
       data: { state },
@@ -236,19 +238,19 @@ export function getSessionSyncManager(): SessionSyncManager {
   if (typeof window === 'undefined') {
     // في SSR، نعيد instance وهمي
     return {
-      broadcast: () => {},
-      notifyLogin: () => {},
-      notifyLogout: () => {},
-      notifyStateUpdate: () => {},
-      notifyTokenRefresh: () => {},
-      notifySessionExpired: () => {},
+      broadcast: () => { },
+      notifyLogin: () => { },
+      notifyLogout: () => { },
+      notifyStateUpdate: () => { },
+      notifyTokenRefresh: () => { },
+      notifySessionExpired: () => { },
       getTabId: () => 'ssr',
       on: ((event: string, listener: (...args: unknown[]) => void): SessionSyncManager => {
         return {} as SessionSyncManager;
       }) as (event: string, listener: (...args: unknown[]) => void) => SessionSyncManager,
-      off: () => {},
+      off: () => { },
       emit: () => false,
-      destroy: () => {},
+      destroy: () => { },
     } as any;
   }
 

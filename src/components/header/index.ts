@@ -4,7 +4,15 @@ export { HeaderNavigation } from "./HeaderNavigation";
 export { HeaderNotifications } from "./HeaderNotifications";
 export { HeaderUserMenu } from "./HeaderUserMenu";
 export { HeaderMobileMenu } from "./HeaderMobileMenu";
+export { HeaderMobileMenuEnhanced } from "./HeaderMobileMenuEnhanced";
 export { useMegaMenuState } from "./useMegaMenuState";
+
+// New Enhanced Components
+export { ReadingProgressBar, MinimalProgressIndicator } from "./ReadingProgressBar";
+export { FocusModeToggle, FocusModeIndicator } from "./FocusModeToggle";
+
+// Enhanced Hooks
+export * from "./hooks";
 
 // Header Enhancements Documentation
 export {

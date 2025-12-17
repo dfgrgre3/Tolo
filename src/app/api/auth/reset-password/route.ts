@@ -1,228 +1,68 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { z } from 'zod';
-import { prisma } from '@/lib/db';
-import { authService, AuthService } from '@/lib/auth-service';
-import { securityNotificationService } from '@/lib/security/security-notifications';
-import { passwordHistoryService } from '@/lib/services/password-history-service';
-import { createErrorResponse, passwordSchema, resetTokenSchema, isConnectionError } from '@/app/api/auth/_helpers';
-import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { NextRequest, NextResponse } from 'next/server';
+import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { logger } from '@/lib/logger';
+import { authService } from '@/lib/services/auth-service';
+import {
+    createStandardErrorResponse,
+    createSuccessResponse,
+    parseRequestBody,
+    extractRequestMetadata,
+    logSecurityEventSafely,
+    addSecurityHeaders
+} from '@/app/api/auth/_helpers';
+import { z } from 'zod';
 
 const resetPasswordSchema = z.object({
-  token: resetTokenSchema,
-  password: passwordSchema,
+    token: z.string().min(1, 'رمز إعادة التعيين مطلوب'),
+    password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'),
 });
 
-const buildClientId = (ip: string, userAgent: string) =>
-  `${ip || 'unknown'}-${userAgent || 'unknown'}`;
-
 export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
-    const ip = authService.getClientIP(req);
-    const userAgent = authService.getUserAgent(req);
-    const clientId = buildClientId(ip, userAgent);
+    return opsWrapper(request, async (req) => {
+        const { ip, userAgent } = extractRequestMetadata(req);
 
-    try {
-    // Rate limiting check
-    try {
-      const { RateLimitingService } = await import('@/lib/rate-limiting-service');
-      const { getRedisClient } = await import('@/lib/redis');
-      
-      const redis = await getRedisClient();
-      const rateLimitService = new RateLimitingService(redis);
-      const rateLimitStatus = await rateLimitService.checkRateLimit(clientId, {
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        maxAttempts: 5, // 5 attempts per 15 minutes
-        lockoutMs: 30 * 60 * 1000, // 30 minutes lockout
-      });
+        try {
+            const bodyResult = await parseRequestBody<{ token?: string; password?: string }>(req, {
+                maxSize: 1024,
+                required: true,
+            });
 
-      if (!rateLimitStatus.allowed) {
-        const retryAfterSeconds = Math.max(
-          1,
-          Math.ceil((rateLimitStatus.remainingTime || 900) / 60)
-        );
+            if (!bodyResult.success) {
+                return bodyResult.error;
+            }
 
-        await authService.logSecurityEvent(null, 'reset_password_rate_limited', ip, {
-          userAgent,
-          attempts: rateLimitStatus.attempts,
-          retryAfterSeconds,
-        });
+            const parsed = resetPasswordSchema.safeParse(bodyResult.data);
 
-        return NextResponse.json(
-          {
-            error: 'طھظ… طھط¹ظ„ظٹظ‚ ظ…ط­ط§ظˆظ„ط§طھ ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ…ط¤ظ‚طھط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
-            code: 'RATE_LIMITED',
-            retryAfterSeconds,
-          },
-          { status: 429 }
-        );
-      }
-    } catch (redisError) {
-      // If Redis is unavailable, log but continue
-      logger.warn('Redis unavailable for rate limiting:', redisError);
-    }
+            if (!parsed.success) {
+                return createStandardErrorResponse(
+                    {
+                        error: 'VALIDATION_ERROR',
+                        details: parsed.error.flatten().fieldErrors,
+                    },
+                    'البيانات المدخلة غير صحيحة.',
+                    400
+                );
+            }
 
-      const body = await req.json().catch(() => ({}));
-    const parsed = resetPasswordSchema.safeParse(body);
+            const { token, password } = parsed.data;
 
-    if (!parsed.success) {
-      return NextResponse.json(
-        {
-          error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± طµط­ظٹط­ط©',
-          code: 'VALIDATION_ERROR',
-          details: parsed.error.flatten().fieldErrors,
-        },
-        { status: 400 }
-      );
-    }
+            await authService.resetPassword(token, password, ip, userAgent);
 
-    const { token, password } = parsed.data;
+            await logSecurityEventSafely(null, 'password_reset_success', {
+                ip,
+                userAgent,
+            });
 
-    // Find user with valid reset token
-    let user;
-    try {
-      user = await prisma.user.findFirst({
-        where: {
-          resetToken: token,
-          resetTokenExpires: {
-            gte: new Date(),
-          },
-        },
-        select: {
-          id: true,
-          email: true,
-          passwordHash: true,
-          resetToken: true,
-          resetTokenExpires: true,
-        },
-      });
-    } catch (dbError) {
-      logger.error('Database error while finding user:', dbError);
-      
-      if (isConnectionError(dbError)) {
-        return NextResponse.json(
-          {
-            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
-            code: 'CONNECTION_ERROR',
-          },
-          { status: 503 }
-        );
-      }
-      
-      throw dbError;
-    }
+            return createSuccessResponse({
+                message: 'تم تغيير كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.',
+            });
 
-    if (!user) {
-      // Log failed attempt for security monitoring
-      await authService.logSecurityEvent(null, 'reset_password_invalid_token', ip, {
-        userAgent,
-        tokenLength: token.length,
-      });
-
-      return NextResponse.json(
-        {
-          error: 'ط±ظ…ط² ط¥ط¹ط§ط¯ط© ط§ظ„طھط¹ظٹظٹظ† ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©. ظٹط±ط¬ظ‰ ط·ظ„ط¨ ط±ط§ط¨ط· ط¬ط¯ظٹط¯.',
-          code: 'INVALID_OR_EXPIRED_TOKEN',
-        },
-        { status: 400 }
-      );
-    }
-
-    // Check if new password is in history (only if user has existing password)
-    if (user.passwordHash && user.passwordHash !== 'oauth_user') {
-      const historyCheck = await passwordHistoryService.checkPasswordInHistory(user.id, password);
-      if (historyCheck.exists) {
-        return NextResponse.json(
-          {
-            error: historyCheck.message || 'ظ„ط§ ظٹظ…ظƒظ† ط¥ط¹ط§ط¯ط© ط§ط³طھط®ط¯ط§ظ… ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ‡ط°ظ‡. ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط©.',
-            code: 'PASSWORD_IN_HISTORY',
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Hash new password
-    let passwordHash: string;
-    try {
-      passwordHash = await AuthService.hashPassword(password);
-    } catch (hashError) {
-      logger.error('Password hashing error:', hashError);
-      return NextResponse.json(
-        {
-          error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
-          code: 'HASH_ERROR',
-        },
-        { status: 500 }
-      );
-    }
-
-    // Update user password and clear reset token
-    try {
-      // Save old password to history before updating (if exists)
-      if (user.passwordHash && user.passwordHash !== 'oauth_user') {
-        await passwordHistoryService.savePasswordHistory(user.id, user.passwordHash);
-      }
-      
-      const now = new Date();
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          passwordHash,
-          passwordChangedAt: now,
-          resetToken: null,
-          resetTokenExpires: null,
-          updatedAt: now,
-        },
-      });
-    } catch (dbError) {
-      logger.error('Database error while updating password:', dbError);
-      
-      if (isConnectionError(dbError)) {
-        return NextResponse.json(
-          {
-            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
-            code: 'CONNECTION_ERROR',
-          },
-          { status: 503 }
-        );
-      }
-      
-      throw dbError;
-    }
-
-    // Log security event and send notification
-    try {
-      await authService.logSecurityEvent(user.id, 'password_reset_success', ip, {
-        userAgent,
-      });
-      await securityNotificationService.notifyPasswordChanged(user.id, ip);
-    } catch (notificationError) {
-      // ظ„ط§ ظ†ظپط´ظ„ ط§ظ„ط¹ظ…ظ„ظٹط© ط¥ط°ط§ ظپط´ظ„ ط§ظ„ط¥ط´ط¹ط§ط±
-      logger.error('Failed to send password reset notification:', notificationError);
-    }
-
-    return NextResponse.json({
-      message: 'طھظ… ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¨ظ†ط¬ط§ط­.',
-      success: true,
+        } catch (error) {
+            logger.error('Reset password route error:', error);
+            return createStandardErrorResponse(
+                error,
+                'حدث خطأ أثناء إعادة تعيين كلمة المرور. قد يكون الرابط منتهي الصلاحية.'
+            );
+        }
     });
-  } catch (error) {
-    logger.error('Reset password error:', error);
-    
-    // Log security event safely
-    try {
-      await authService.logSecurityEvent(null, 'reset_password_error', ip, {
-        userAgent,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      });
-    } catch (logError) {
-      logger.error('Failed to log security event:', logError);
-    }
-
-    return createErrorResponse(
-      error,
-      'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.'
-    );
-    }
-  });
 }

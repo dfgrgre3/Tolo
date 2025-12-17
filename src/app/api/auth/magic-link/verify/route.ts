@@ -1,13 +1,13 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { verifyMagicLink } from '@/lib/passwordless/magic-link-service';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/magic-link/verify
- * ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط±ط§ط¨ط· ط³ط­ط±ظٹ ظˆطھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
+ * التحقق من رابط سحري وتسجيل الدخول
  */
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
 
       if (!token || !email) {
         return NextResponse.json(
-          { error: 'ط§ظ„ط±ظ…ط² ظˆط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط·ظ„ظˆط¨ط§ظ†' },
+          { error: 'الرمز والبريد الإلكتروني مطلوبان' },
           { status: 400 }
         );
       }
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
         });
 
         return NextResponse.json(
-          { error: result.error || 'ط§ظ„ط±ط§ط¨ط· ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©' },
+          { error: result.error || 'الرابط غير صالح أو منتهي الصلاحية' },
           { status: 400 }
         );
       }
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
       if (!user) {
         return NextResponse.json(
-          { error: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯' },
+          { error: 'المستخدم غير موجود' },
           { status: 404 }
         );
       }
@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
       });
 
       return NextResponse.json({
-        message: 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­',
+        message: 'تم تسجيل الدخول بنجاح',
         token: accessToken,
         refreshToken,
         sessionId: session.id,
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.error('Magic link verify error:', error);
       return NextResponse.json(
-        { error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط±ط§ط¨ط· طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„' },
+        { error: 'حدث خطأ أثناء التحقق من رابط تسجيل الدخول' },
         { status: 500 }
       );
     }

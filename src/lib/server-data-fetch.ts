@@ -1,9 +1,9 @@
-﻿'use server';
+'use server';
 
 import { cookies } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { CacheService } from '@/lib/redis';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { logger } from '@/lib/logger';
 
 export interface ProgressSummary {
@@ -27,7 +27,7 @@ async function getServerUserId(): Promise<string | null> {
     // Fallback: check for guest user ID in cookies
     const cookieStore = await cookies();
     const guestUserId = cookieStore.get('tw_user_id')?.value;
-    
+
     if (guestUserId && guestUserId !== 'undefined') {
       return guestUserId;
     }
@@ -75,20 +75,20 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
 
       // Calculate total minutes
       const totalMinutes = sessions.reduce(
-        (sum: number, session: any) => sum + (session.durationMin || 0),
+        (sum: number, session) => sum + (session.durationMin || 0),
         0
       );
 
       // Calculate average focus
       const focusSessions = sessions.filter(
-        (session: any) => session.focusScore !== null
+        (session) => session.focusScore !== null
       );
       const averageFocus =
         focusSessions.length > 0
           ? focusSessions.reduce(
-              (sum: number, session: any) => sum + (session.focusScore || 0),
-              0
-            ) / focusSessions.length
+            (sum: number, session) => sum + (session.focusScore || 0),
+            0
+          ) / focusSessions.length
           : 0;
 
       // Count completed tasks
@@ -109,7 +109,7 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
         currentDate.setHours(0, 0, 0, 0);
 
         // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session: any) => {
+        const studiedToday = sessions.some((session) => {
           const sessionDate = new Date(session.createdAt);
           sessionDate.setHours(0, 0, 0, 0);
           return sessionDate.getTime() === currentDate.getTime();
@@ -124,7 +124,7 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
 
           while (found) {
             checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session: any) => {
+            found = sessions.some((session) => {
               const sessionDate = new Date(session.createdAt);
               sessionDate.setHours(0, 0, 0, 0);
               return sessionDate.getTime() === checkDate.getTime();

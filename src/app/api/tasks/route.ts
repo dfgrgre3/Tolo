@@ -1,12 +1,12 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
-import { gamificationService } from '@/lib/gamification-service';
-import { firestoreService } from '@/lib/firestore-service';
+import { gamificationService } from '@/lib/services/gamification-service';
+import { firestoreService } from '@/lib/services/firestore-service';
 import { rateLimit, handleApiError, badRequestResponse, unauthorizedResponse, successResponse } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { TASK_STATUS, TASK_STATUS_VALUES, TASK_PRIORITY, TASK_PRIORITY_VALUES, TASK_PRIORITY_MAP, TASK_DEFAULTS, type TaskStatus, type TaskPriority } from '@/lib/constants';

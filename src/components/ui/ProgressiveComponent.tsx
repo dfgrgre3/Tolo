@@ -1,14 +1,14 @@
 "use client";
 
-import React, { ComponentType, ReactNode, useState, useCallback, useEffect, useRef } from 'react';
+import React, { ComponentType, ReactNode, useState, useCallback, useRef } from 'react';
 import { LazyLoadSection } from './LazyLoadSection';
 import { SkeletonLoader } from './SkeletonLoader';
-import { useClientEffect, useClientEffectSafe } from '@/hooks/use-client-effect';
+import { useClientEffect } from '@/hooks/use-client-effect';
 import { useProgressiveComponent } from '@/hooks/use-progressive-loading';
 
-interface ProgressiveComponentProps<T = any> {
-  importFunc: () => Promise<{ default: ComponentType<T> }>;
-  componentProps?: T;
+interface ProgressiveComponentProps<P = unknown> {
+  importFunc: () => Promise<{ default: ComponentType<P> }>;
+  componentProps?: P;
   fallback?: ReactNode;
   errorFallback?: ReactNode;
   priority?: boolean;
@@ -19,7 +19,7 @@ interface ProgressiveComponentProps<T = any> {
   className?: string;
 }
 
-export function ProgressiveComponent<T = any>({
+export function ProgressiveComponent<P = unknown>({
   importFunc,
   componentProps,
   fallback,
@@ -30,7 +30,7 @@ export function ProgressiveComponent<T = any>({
   onLoadComplete,
   onError,
   className = ""
-}: ProgressiveComponentProps<T>) {
+}: ProgressiveComponentProps<P>) {
   const [hasError, setHasError] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const retryCountRef = useRef(0);
@@ -40,7 +40,6 @@ export function ProgressiveComponent<T = any>({
     data: Component,
     isLoading,
     error: hookError,
-    isHydrated,
     load,
     retry,
     canRetry
@@ -103,8 +102,7 @@ export function ProgressiveComponent<T = any>({
       {hasError ? (
         errorFallback || defaultErrorFallback
       ) : Component ? (
-        // @ts-ignore - Complex generic type inference
-        <Component {...(componentProps as any)} />
+        <Component {...(componentProps as P & React.JSX.IntrinsicAttributes)} />
       ) : isLoading ? (
         fallback || defaultFallback
       ) : null}
@@ -142,14 +140,14 @@ export function ProgressiveComponent<T = any>({
 }
 
 // Higher-order component for easier usage
-export function withProgressiveLoading<T extends object>(
-  importFunc: () => Promise<{ default: ComponentType<T> }>,
-  options: Omit<ProgressiveComponentProps<T>, 'importFunc' | 'componentProps'> & { displayName?: string; componentName?: string } = {}
+export function withProgressiveLoading<P extends object>(
+  importFunc: () => Promise<{ default: ComponentType<P> }>,
+  options: Omit<ProgressiveComponentProps<P>, 'importFunc' | 'componentProps'> & { displayName?: string; componentName?: string } = {}
 ) {
-  const Component = React.forwardRef<any, T>((props, ref) => (
+  const Component = React.forwardRef<unknown, P>((props, ref) => (
     <ProgressiveComponent
       importFunc={importFunc}
-      componentProps={{ ...props, ref } as T & { ref?: React.ForwardedRef<any> }}
+      componentProps={{ ...props, ref } as P}
       {...options}
     />
   ));
@@ -158,17 +156,17 @@ export function withProgressiveLoading<T extends object>(
 }
 
 // Utility function for creating progressive sections
-export function createProgressiveSection<T = any>(
-  importFunc: () => Promise<{ default: ComponentType<T> }>,
+export function createProgressiveSection<P = unknown>(
+  importFunc: () => Promise<{ default: ComponentType<P> }>,
   displayName: string
 ) {
-  const ProgressiveSection = React.forwardRef<any, ProgressiveComponentProps<T>>((props, ref) => {
-    const { importFunc: _, ...restProps } = props;
+  const ProgressiveSection = React.forwardRef<unknown, Omit<ProgressiveComponentProps<P>, 'importFunc'>>((props, ref) => {
     return (
       <ProgressiveComponent
         importFunc={importFunc}
-        {...(restProps as any)}
-        ref={ref}
+        {...props}
+        // ref is not passed to ProgressiveComponent as it doesn't accept it, 
+        // but we could wrap it if needed. For now, we ignore ref to avoid type issues.
       />
     );
   });

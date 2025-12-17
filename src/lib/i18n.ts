@@ -3,7 +3,9 @@
  * Implements protection against prototype pollution attacks
  */
 
-type TranslationValue = string | Record<string, any>;
+import { logger } from '@/lib/logger';
+
+type TranslationValue = string | Record<string, unknown>;
 type Translations = Record<string, TranslationValue>;
 
 /**
@@ -32,17 +34,17 @@ function isSafeKey(key: string): boolean {
  * Safely get a nested property from an object
  * Uses Object.hasOwnProperty.call() to prevent prototype pollution
  */
-function safeGet(obj: any, key: string): any {
+function safeGet(obj: unknown, key: string): unknown {
   // Validate key is safe
   if (!isSafeKey(key)) {
-    console.warn(`[i18n] Blocked access to dangerous property: ${key}`);
+    logger.warn(`[i18n] Blocked access to dangerous property: ${key}`);
     return undefined;
   }
 
   // Use Object.hasOwnProperty.call() instead of 'in' operator
   // This ensures we only access own properties, not inherited ones
   if (obj && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, key)) {
-    return obj[key];
+    return (obj as Record<string, unknown>)[key];
   }
 
   return undefined;
@@ -62,33 +64,33 @@ export function getTranslation(
 ): string {
   // Validate inputs
   if (!translations || typeof translations !== 'object') {
-    console.warn('[i18n] Invalid translations object');
+    logger.warn('[i18n] Invalid translations object');
     return fallback || keyPath;
   }
 
   if (!keyPath || typeof keyPath !== 'string') {
-    console.warn('[i18n] Invalid key path');
+    logger.warn('[i18n] Invalid key path');
     return fallback || '';
   }
 
   // Split the key path
   const keys = keyPath.split('.');
-  
+
   // Validate all keys are safe before processing
   for (const key of keys) {
     if (!isSafeKey(key)) {
-      console.warn(`[i18n] Blocked dangerous key in path: ${keyPath}`);
+      logger.warn(`[i18n] Blocked dangerous key in path: ${keyPath}`);
       return fallback || keyPath;
     }
   }
 
   // Navigate through the object safely
-  let value: any = translations;
+  let value: unknown = translations;
 
   for (const key of keys) {
     // Use safe getter that checks hasOwnProperty
     value = safeGet(value, key);
-    
+
     if (value === undefined) {
       // Key not found, return fallback
       return fallback || keyPath;
@@ -100,7 +102,7 @@ export function getTranslation(
     return value;
   }
 
-  console.warn(`[i18n] Translation value is not a string for key: ${keyPath}`);
+  logger.warn(`[i18n] Translation value is not a string for key: ${keyPath}`);
   return fallback || keyPath;
 }
 
@@ -117,7 +119,7 @@ export function createTranslator(
   return (keyPath: string, fallback?: string): string => {
     // Try primary translations first
     const primaryValue = getTranslation(translations, keyPath);
-    
+
     // If not found and we have fallback translations, try those
     if (primaryValue === keyPath && fallbackTranslations) {
       const fallbackValue = getTranslation(fallbackTranslations, keyPath);
@@ -163,7 +165,7 @@ export function mergeTranslations(
  * Validate and sanitize a translations object
  * Removes any dangerous keys and creates a safe copy
  */
-export function sanitizeTranslations(translations: any): Translations {
+export function sanitizeTranslations(translations: unknown): Translations {
   if (!translations || typeof translations !== 'object') {
     return Object.create(null);
   }
@@ -174,8 +176,8 @@ export function sanitizeTranslations(translations: any): Translations {
   for (const key in translations) {
     // Only copy own properties with safe keys
     if (Object.prototype.hasOwnProperty.call(translations, key) && isSafeKey(key)) {
-      const value = translations[key];
-      
+      const value = (translations as Record<string, unknown>)[key];
+
       // Recursively sanitize nested objects
       if (typeof value === 'object' && value !== null) {
         sanitized[key] = sanitizeTranslations(value);

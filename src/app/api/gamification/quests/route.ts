@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { advancedGamificationService } from '@/lib/advanced-gamification-service';
+import { advancedGamificationService } from '@/lib/services/advanced-gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -8,24 +8,25 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
-    const chainId = searchParams.get('chainId');
+      const userId = searchParams.get('userId');
+      const chainId = searchParams.get('chainId');
 
-    if (userId && chainId) {
-      // Get quest progress for a specific chain
-      const quests = await advancedGamificationService.getQuestProgress(userId, chainId);
-      return NextResponse.json({ quests, chainId });
-    } else {
-      // Get all active quest chains
-      const chains = await advancedGamificationService.getActiveQuestChains(userId || undefined);
-      return NextResponse.json({ chains });
-    }
-  } catch (error: any) {
-    logger.error('Error fetching quests:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch quests', details: error.message },
-      { status: 500 }
-    );
+      if (userId && chainId) {
+        // Get quest progress for a specific chain
+        const quests = await advancedGamificationService.getQuestProgress(userId, chainId);
+        return NextResponse.json({ quests, chainId });
+      } else {
+        // Get all active quest chains
+        const chains = await advancedGamificationService.getActiveQuestChains(userId || undefined);
+        return NextResponse.json({ chains });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('Error fetching quests:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch quests', details: errorMessage },
+        { status: 500 }
+      );
     }
   });
 }

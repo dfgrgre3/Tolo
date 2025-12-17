@@ -1,5 +1,5 @@
-﻿import { prisma } from '@/lib/db';
-import { AuthService } from '@/lib/auth-service';
+import { prisma } from '@/lib/db';
+import { AuthService } from '@/lib/services/auth-service';
 import { logger } from '@/lib/logger';
 
 export class PasswordHistoryService {
@@ -31,7 +31,7 @@ export class PasswordHistoryService {
         if (isMatch) {
           return {
             exists: true,
-            message: 'ظ„ط§ ظٹظ…ظƒظ† ط§ط³طھط®ط¯ط§ظ… ظƒظ„ظ…ط© ظ…ط±ظˆط± طھظ… ط§ط³طھط®ط¯ط§ظ…ظ‡ط§ ظ…ط¤ط®ط±ط§ظ‹. ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط©.',
+            message: 'لا يمكن استخدام كلمة مرور تم استخدامها مؤخراً. يرجى اختيار كلمة مرور جديدة.',
           };
         }
       }

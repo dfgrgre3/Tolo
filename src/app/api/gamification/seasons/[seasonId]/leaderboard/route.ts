@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { advancedGamificationService } from '@/lib/advanced-gamification-service';
+import { advancedGamificationService } from '@/lib/services/advanced-gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

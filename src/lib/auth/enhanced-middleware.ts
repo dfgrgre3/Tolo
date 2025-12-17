@@ -10,10 +10,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { getErrorRecoveryManager } from './error-recovery';
 import { logger } from '@/lib/logger';
-import type { TokenVerificationResult } from '@/lib/auth-service';
+import type { TokenVerificationResult } from '@/lib/services/auth-service';
 
 type AuthUser = NonNullable<TokenVerificationResult['user']>;
 

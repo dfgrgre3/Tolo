@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { getOrSetEnhanced } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -32,17 +32,17 @@ export async function GET(
 
       // Check enrollment if userId is provided
       const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
-    let enrollment = null;
-    
-    if (userId) {
-      enrollment = await prisma.subjectEnrollment.findFirst({
-        where: {
-          userId,
-          subjectId: subject.id
-        }
-      });
-    }
+      const userId = searchParams.get("userId");
+      let enrollment = null;
+
+      if (userId) {
+        enrollment = await prisma.subjectEnrollment.findFirst({
+          where: {
+            userId,
+            subjectId: subject.id
+          }
+        });
+      }
 
       return NextResponse.json({
         subject,

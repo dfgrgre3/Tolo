@@ -2,41 +2,27 @@
 // Ensures type safety when accessing settings properties
 
 // Enums from the database schema
-export enum SubjectType {
-  MATH = 'MATH',
-  PHYSICS = 'PHYSICS',
-  CHEMISTRY = 'CHEMISTRY',
-  ARABIC = 'ARABIC',
-  ENGLISH = 'ENGLISH'
-}
+import { SubjectType, ExamType, FocusStrategy } from './enums';
+import { DateString } from './api/common';
 
-export enum ExamType {
-  FINAL = 'FINAL',
-  MIDTERM = 'MIDTERM',
-  QUIZ = 'QUIZ',
-  PRACTICE = 'PRACTICE',
-  OTHER = 'OTHER'
-}
-
-export enum FocusStrategy {
-  POMODORO = 'POMODORO',
-  EIGHTY_TWENTY = 'EIGHTY_TWENTY',
-  DEEP_WORK = 'DEEP_WORK',
-  TIME_BLOCKING = 'TIME_BLOCKING',
-  NO_DISTRACTION = 'NO_DISTRACTION'
-}
+export { SubjectType, ExamType, FocusStrategy };
 
 // Subject enrollment interface
 export interface SubjectEnrollment {
+  /** The subject identifier */
   subject: SubjectType;
+  /** Target hours to study per week */
   targetWeeklyHours: number;
 }
 
 // User settings interface
 export interface UserSettings {
   id: string;
+  /** Preferred wake up time (HH:mm) */
   wakeUpTime?: string | null;
+  /** Preferred sleep time (HH:mm) */
   sleepTime?: string | null;
+  /** Strategy used for focus sessions */
   focusStrategy?: FocusStrategy | null;
   twoFactorEnabled?: boolean;
   emailNotifications?: boolean;
@@ -95,8 +81,11 @@ export interface SecuritySettings {
 // Session information interface
 export interface SessionInfo {
   id: string;
+  /** Human readable device information */
   deviceInfo: string;
-  lastAccessed: Date;
+  /** Last time the session was active */
+  lastAccessed: DateString | Date;
+  /** Whether this is the current session */
   isActive: boolean;
 }
 

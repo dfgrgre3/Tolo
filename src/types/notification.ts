@@ -1,4 +1,6 @@
 
+import { DateString } from './api/common';
+
 export type NotificationType = 'info' | 'success' | 'warning' | 'error';
 
 export interface Notification {
@@ -9,7 +11,7 @@ export interface Notification {
   isRead: boolean;
   actionUrl?: string;
   icon?: string;
-  createdAt: string;
+  createdAt: DateString;
 }
 
 export interface NotificationTemplate {

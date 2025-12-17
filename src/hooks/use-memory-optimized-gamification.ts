@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { useGamification } from './use-gamification';
-import { firestoreService } from '@/lib/firestore-service';
+import { firestoreService } from '@/lib/services/firestore-service';
 import { logger } from '@/lib/logger';
 
 interface UseMemoryOptimizedGamificationOptions {

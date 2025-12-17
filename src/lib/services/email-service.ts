@@ -122,6 +122,27 @@ class EmailService {
 
     return this.sendEmail({ to, subject, text, html });
   }
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(to: string, code: string): Promise<boolean> {
+    const subject = 'إعادة تعيين كلمة المرور';
+    const text = `رمز إعادة تعيين كلمة المرور الخاص بك هو: ${code}\n\nصلاحية الرمز 30 دقيقة.`;
+    const html = `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2>إعادة تعيين كلمة المرور</h2>
+        <p>لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك.</p>
+        <p>استخدم الرمز التالي لإكمال العملية:</p>
+        <div style="text-align: center; margin: 30px 0;">
+          <span style="background-color: #f3f4f6; padding: 15px 30px; font-size: 24px; letter-spacing: 5px; font-weight: bold; border-radius: 8px; border: 1px solid #e5e7eb;">${code}</span>
+        </div>
+        <p>صلاحية الرمز 30 دقيقة.</p>
+        <p>إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذه الرسالة.</p>
+      </div>
+    `;
+
+    return this.sendEmail({ to, subject, text, html });
+  }
 }
 
 export const emailService = new EmailService();

@@ -3,7 +3,7 @@
  * Provides utilities for database connection management
  */
 
-import { prisma } from './prisma';
+import { prisma } from './db';
 
 /**
  * Check database health

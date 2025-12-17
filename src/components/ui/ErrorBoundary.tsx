@@ -1,6 +1,6 @@
 "use client";
 
-import React, { Component, ReactNode, useState, useEffect, useCallback } from 'react';
+import React, { Component, ReactNode, useState, useCallback } from 'react';
 import { useClientEffect } from '@/hooks/use-client-effect';
 
 import { logger } from '@/lib/logger';

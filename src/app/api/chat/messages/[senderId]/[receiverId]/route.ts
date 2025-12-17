@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -10,39 +10,39 @@ export async function GET(
 ) {
   return opsWrapper(request, async () => {
     try {
-    const { senderId, receiverId } = await params;
+      const { senderId, receiverId } = await params;
 
-    const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { senderId, receiverId },
-          { senderId: receiverId, receiverId: senderId }
-        ]
-      },
-      orderBy: {
-        createdAt: "asc"
-      }
-    });
+      const messages = await prisma.message.findMany({
+        where: {
+          OR: [
+            { senderId, receiverId },
+            { senderId: receiverId, receiverId: senderId }
+          ]
+        },
+        orderBy: {
+          createdAt: "asc"
+        }
+      });
 
-    // Mark messages as read
-    await prisma.message.updateMany({
-      where: {
-        senderId: receiverId,
-        receiverId: senderId,
-        isRead: false
-      },
-      data: {
-        isRead: true
-      }
-    });
+      // Mark messages as read
+      await prisma.message.updateMany({
+        where: {
+          senderId: receiverId,
+          receiverId: senderId,
+          isRead: false
+        },
+        data: {
+          isRead: true
+        }
+      });
 
-    return NextResponse.json(messages);
-  } catch (error) {
-    logger.error("Error fetching messages:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في جلب الرسائل" },
-      { status: 500 }
-    );
+      return NextResponse.json(messages);
+    } catch (error) {
+      logger.error("Error fetching messages:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ في جلب الرسائل" },
+        { status: 500 }
+      );
     }
   });
 }

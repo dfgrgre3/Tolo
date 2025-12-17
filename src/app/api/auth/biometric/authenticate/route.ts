@@ -1,16 +1,27 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { webAuthnService } from '@/lib/security/webauthn';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { getSecureCookieOptions, setAuthCookies } from '@/app/api/auth/_helpers';
+import {
+  getSecureCookieOptions,
+  setAuthCookies,
+  createErrorResponse,
+  createSuccessResponse
+} from '@/app/api/auth/_helpers';
 import crypto from 'crypto';
+
+interface BiometricAuthBody {
+  email?: string;
+  credential?: any;
+  challenge?: string;
+}
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as BiometricAuthBody;
 
       // Check if this is a verification request (has credential)
       if (body.credential && body.challenge) {
@@ -22,16 +33,10 @@ export async function POST(request: NextRequest) {
         return handleOptions(req, body);
       }
 
-      return NextResponse.json(
-        { error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©' },
-        { status: 400 }
-      );
+      return createErrorResponse('بيانات غير مكتملة', 'بيانات غير مكتملة', 400);
     } catch (error) {
       logger.error('Biometric API error:', error);
-      return NextResponse.json(
-        { error: 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط®ط§ط¯ظ…' },
-        { status: 500 }
-      );
+      return createErrorResponse(error, 'حدث خطأ في الخادم', 500);
     }
   });
 }
@@ -39,26 +44,20 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const body = await req.json();
+      const body = await req.json() as BiometricAuthBody;
       return handleVerification(req, body);
     } catch (error) {
       logger.error('Biometric verification error:', error);
-      return NextResponse.json(
-        { error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚' },
-        { status: 500 }
-      );
+      return createErrorResponse(error, 'حدث خطأ أثناء التحقق', 500);
     }
   });
 }
 
-async function handleOptions(req: NextRequest, body: any) {
+async function handleOptions(req: NextRequest, body: BiometricAuthBody) {
   const { email } = body;
 
   if (!email) {
-    return NextResponse.json(
-      { error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط·ظ„ظˆط¨' },
-      { status: 400 }
-    );
+    return createErrorResponse('البريد الإلكتروني مطلوب', 'البريد الإلكتروني مطلوب', 400);
   }
 
   // Find user
@@ -74,19 +73,13 @@ async function handleOptions(req: NextRequest, body: any) {
   });
 
   if (!user || !user.biometricEnabled) {
-    return NextResponse.json(
-      { error: 'ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ط؛ظٹط± ظ…ظپط¹ظ„ط© ظ„ظ‡ط°ط§ ط§ظ„ط­ط³ط§ط¨' },
-      { status: 404 }
-    );
+    return createErrorResponse('المصادقة البيومترية غير مفعلة لهذا الحساب', 'المصادقة البيومترية غير مفعلة لهذا الحساب', 404);
   }
 
-  const credentials = user.biometricCredentials as any[] || [];
+  const credentials = user.biometricCredentials || [];
 
   if (credentials.length === 0) {
-    return NextResponse.json(
-      { error: 'ظ„ط§ طھظˆط¬ط¯ ط¨ظٹط§ظ†ط§طھ ط§ط¹طھظ…ط§ط¯ ط¨ظٹظˆظ…طھط±ظٹط©' },
-      { status: 404 }
-    );
+    return createErrorResponse('لا توجد بيانات اعتماد بيومترية', 'لا توجد بيانات اعتماد بيومترية', 404);
   }
 
   // Generate authentication options
@@ -123,30 +116,18 @@ async function handleOptions(req: NextRequest, body: any) {
     // Non-blocking log failure
   });
 
-  return NextResponse.json({
-    options,
-  });
+  return createSuccessResponse({ options });
 }
 
-async function handleVerification(req: NextRequest, body: any) {
+async function handleVerification(req: NextRequest, body: BiometricAuthBody) {
   const { credential, challenge, email } = body;
 
   if (!credential || !challenge) {
-    return NextResponse.json(
-      { error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©' },
-      { status: 400 }
-    );
+    return createErrorResponse('بيانات غير مكتملة', 'بيانات غير مكتملة', 400);
   }
 
-  // If email is not provided, we might need to look it up via challenge or credential
-  // But for now let's require email or try to infer it if possible (not easy without email)
-  // The client usually sends email with verify request if it knows it.
-
   if (!email) {
-    return NextResponse.json(
-      { error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط·ظ„ظˆط¨ ظ„ظ„طھط­ظ‚ظ‚' },
-      { status: 400 }
-    );
+    return createErrorResponse('البريد الإلكتروني مطلوب للتحقق', 'البريد الإلكتروني مطلوب للتحقق', 400);
   }
 
   // Find user
@@ -162,10 +143,7 @@ async function handleVerification(req: NextRequest, body: any) {
   });
 
   if (!user || !user.biometricEnabled) {
-    return NextResponse.json(
-      { error: 'ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ط؛ظٹط± ظ…ظپط¹ظ„ط©' },
-      { status: 404 }
-    );
+    return createErrorResponse('المصادقة البيومترية غير مفعلة', 'المصادقة البيومترية غير مفعلة', 404);
   }
 
   // Verify challenge
@@ -182,23 +160,17 @@ async function handleVerification(req: NextRequest, body: any) {
   });
 
   if (!storedChallenge) {
-    return NextResponse.json(
-      { error: 'ط§ظ„طھط­ط¯ظٹ ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©' },
-      { status: 400 }
-    );
+    return createErrorResponse('الحالة غير صالحة', 'الحالة غير صالحة', 400);
   }
 
   // Find matching credential
-  const credentials = user.biometricCredentials as any[] || [];
+  const credentials = user.biometricCredentials || [];
   const matchingCredential = credentials.find(
     (cred) => cred.credentialId === credential.id
   );
 
   if (!matchingCredential) {
-    return NextResponse.json(
-      { error: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط¹طھظ…ط§ط¯ ط؛ظٹط± طµط§ظ„ط­ط©' },
-      { status: 400 }
-    );
+    return createErrorResponse('بيانات الاعتماد غير صالحة', 'بيانات الاعتماد غير صالحة', 400);
   }
 
   // Verify authentication response
@@ -226,10 +198,7 @@ async function handleVerification(req: NextRequest, body: any) {
       // Non-blocking log failure
     });
 
-    return NextResponse.json(
-      { error: 'ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط©' },
-      { status: 400 }
-    );
+    return createErrorResponse('فشل التحقق من المصادقة البيومترية', 'فشل التحقق من المصادقة البيومترية', 400);
   }
 
   // Update counter
@@ -238,9 +207,6 @@ async function handleVerification(req: NextRequest, body: any) {
       where: { id: matchingCredential.id },
       data: {
         counter: verificationResult.newCounter,
-        // lastUsed is not in the schema currently, so we skip it or add it if needed. 
-        // Schema showed: createdAt, updatedAt. No lastUsed.
-        // If we want lastUsed, we need to add it to schema. For now, just update counter.
       },
     });
   }
@@ -291,8 +257,7 @@ async function handleVerification(req: NextRequest, body: any) {
     { userAgent, sessionId: session.id }
   );
 
-  const response = NextResponse.json({
-    message: 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­',
+  const response = createSuccessResponse({
     token: accessToken,
     refreshToken,
     sessionId: session.id,
@@ -301,7 +266,7 @@ async function handleVerification(req: NextRequest, body: any) {
       email: user.email,
       name: user.name,
     },
-  });
+  }, 'تم تسجيل الدخول بنجاح');
 
   // Set cookies
   setAuthCookies(response, accessToken, refreshToken, true);

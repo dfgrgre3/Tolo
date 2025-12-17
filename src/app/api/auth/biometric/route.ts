@@ -1,6 +1,6 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { webAuthnService, WebAuthnCredential } from '@/lib/security/webauthn';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
       }
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Biometric authentication error:', error);
       return NextResponse.json(
         { error: 'Internal server error' },
@@ -107,7 +107,7 @@ async function handleBiometricRegistration(
       credentialId: verificationResult.credential.credentialId,
       publicKey: verificationResult.credential.publicKey,
       counter: verificationResult.credential.counter,
-      transports: [], // Default empty
+      transports: JSON.stringify([]), // Default empty
       deviceType: 'singleDevice', // Default
     }
   });
@@ -188,7 +188,7 @@ async function handleBiometricAuthentication(
     publicKey: credential.publicKey,
     counter: credential.counter,
     deviceType: credential.deviceType || 'unknown',
-    transports: credential.transports as any[],
+    transports: JSON.parse(credential.transports || '[]'),
     createdAt: credential.createdAt,
   };
 

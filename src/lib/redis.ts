@@ -9,8 +9,10 @@ import { recordCacheMetric } from './db-monitor';
 
 import { logger } from '@/lib/logger';
 
+export type RedisClient = ReturnType<typeof createClient> | InstanceType<typeof Cluster>;
+
 class RedisService {
-  private client: any;
+  private client: RedisClient;
   private clusterMode: boolean;
 
   constructor() {
@@ -46,11 +48,16 @@ class RedisService {
         return;
       }
 
-      if (this.clusterMode) {
-        await this.client.connect();
-      } else {
-        await this.client.connect();
-      }
+      // Add connection timeout to prevent hanging when Redis is unavailable
+      // Reduced from 5s to 2s for faster fallback
+      const connectWithTimeout = Promise.race([
+        this.client.connect(),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Redis connection timeout')), 1500)
+        )
+      ]);
+
+      await connectWithTimeout;
       logger.info('Connected to Redis');
     } catch (error) {
       // Ignore "already connected" errors which can happen in race conditions
@@ -154,10 +161,10 @@ class RedisService {
       const results = await this.client.mGet(keys);
       const duration = Date.now() - start;
       // Count hits (non-null values)
-      const hitCount = results.filter((r: any) => r !== null).length;
+      const hitCount = results.filter((r: string | null) => r !== null).length;
       recordCacheMetric('mget', duration, hitCount > 0);
 
-      return results.map((result: any) => {
+      return results.map((result: string | null) => {
         if (result) {
           const decompressedData = this.decompressData(result);
           return JSON.parse(decompressedData) as T;
@@ -333,7 +340,7 @@ export const CacheService = redisService;
 
 // Export the raw Redis client for advanced usage (like rate limiting)
 // We need to access the private client property
-export const redis = (redisService as any).client;
+export const redis = (redisService as unknown as { client: RedisClient }).client;
 
 // Export getRedisClient function for rate limiting service
 export async function getRedisClient() {

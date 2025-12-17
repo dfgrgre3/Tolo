@@ -1,7 +1,17 @@
 'use client';
 
-import { clearAuthState } from './auth-client';
 import { logger } from '@/lib/logger';
+import { safeRemoveItem } from '@/lib/safe-client-utils';
+
+/**
+ * Clear authentication state from local storage
+ */
+function clearAuthState(): void {
+  safeRemoveItem('authToken');
+  safeRemoveItem('user');
+  safeRemoveItem('token');
+  safeRemoveItem('refreshToken');
+}
 
 /**
  * تحديث التوكن تلقائياً
@@ -76,7 +86,7 @@ export async function refreshTokenIfNeeded(bufferMinutes: number = 5): Promise<s
     }
 
     // محاولة تحليل JSON من النص
-    let data;
+    let data: { token?: string };
     try {
       data = JSON.parse(text);
     } catch (parseError) {

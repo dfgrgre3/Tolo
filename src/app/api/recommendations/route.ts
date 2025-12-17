@@ -1,8 +1,8 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { gamificationService } from '@/lib/gamification-service';
+import { gamificationService } from '@/lib/services/gamification-service';
 import { startOfWeek, endOfWeek, subDays, startOfDay, differenceInDays } from 'date-fns';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
@@ -157,11 +157,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
       id: `study_plan_weekly_${Date.now()}`,
       type: "study_plan",
       category: "study_plan",
-      title: "ط²ظٹط§ط¯ط© ظˆظ‚طھ ط§ظ„ط¯ط±ط§ط³ط© ط§ظ„ط£ط³ط¨ظˆط¹ظٹ",
-      description: `ط£ظ†طھ طھط¯ط±ط³ ط­ط§ظ„ظٹط§ظ‹ ${weeklyHours.toFixed(1)} ط³ط§ط¹ط© ط£ط³ط¨ظˆط¹ظٹط§ظ‹. ظ†ظˆطµظٹ ط¨ط²ظٹط§ط¯ط© ط§ظ„ظˆظ‚طھ ط¥ظ„ظ‰ ${targetHours} ط³ط§ط¹ط© ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„ ظ„طھط­ظ‚ظٹظ‚ ط£ظ‡ط¯ط§ظپظƒ ط§ظ„طھط¹ظ„ظٹظ…ظٹط©.`,
+      title: "زيادة وقت الدراسة الأسبوعي",
+      description: `أنت تدرس حالياً ${weeklyHours.toFixed(1)} ساعة أسبوعياً. نوصي بزيادة الوقت إلى ${targetHours} ساعة على الأقل لتحقيق أهدافك التعليمية.`,
       priority: "high",
       impact: Math.min(95, 60 + Math.floor(deficit * 5)),
-      estimatedTime: `${Math.ceil(deficit * 60)} ط¯ظ‚ظٹظ‚ط©`,
+      estimatedTime: `${Math.ceil(deficit * 60)} دقيقة`,
       icon: "target",
       actionUrl: "/schedule"
     });
@@ -170,7 +170,7 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
   // 2. Subject Balance Analysis
   const subjectStats: Record<string, { minutes: number; count: number }> = {};
   studySessions.forEach(session => {
-    const subject = session.subject || 'ط؛ظٹط± ظ…ط­ط¯ط¯';
+    const subject = session.subject || 'غير محدد';
     if (!subjectStats[subject]) {
       subjectStats[subject] = { minutes: 0, count: 0 };
     }
@@ -188,11 +188,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
         id: `study_plan_${subject}_${Date.now()}`,
         type: "study_plan",
         category: "study_plan",
-        title: `ط²ظٹط§ط¯ط© ظˆظ‚طھ ط§ظ„ط¯ط±ط§ط³ط© ظپظٹ ${subject}`,
-        description: `ط£ظ†طھ طھط¯ط±ط³ ${subject} ط£ظ‚ظ„ ظ…ظ† ط§ظ„ظ…طھظˆط³ط·. ظ†ظˆطµظٹ ط¨طھط®طµظٹطµ ظˆظ‚طھ ط£ظƒط«ط± ظ„ظ‡ط°ظ‡ ط§ظ„ظ…ط§ط¯ط© ظ„طھط­ط³ظٹظ† ط§ظ„طھظˆط§ط²ظ†.`,
+        title: `زيادة وقت الدراسة في ${subject}`,
+        description: `أنت تدرس ${subject} أقل من المتوسط. نوصي بتخصيص وقت أكثر لهذه المادة لتحسين التوازن.`,
         priority: "medium",
         impact: 75,
-        estimatedTime: `${Math.ceil((avgMinutesPerSubject - stats.minutes) / 60)} ط³ط§ط¹ط©`,
+        estimatedTime: `${Math.ceil((avgMinutesPerSubject - stats.minutes) / 60)} ساعة`,
         icon: "book-open",
         actionUrl: `/schedule?subject=${encodeURIComponent(subject)}`
       });
@@ -215,11 +215,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
         id: `task_overdue_${Date.now()}`,
         type: "task",
         category: "task",
-        title: `${overdueTasks.length} ظ…ظ‡ظ…ط© ظ…طھط£ط®ط±ط©`,
-        description: `ظ„ط¯ظٹظƒ ${overdueTasks.length} ظ…ظ‡ظ…ط© طھط¬ط§ظˆط²طھ ظ…ظˆط¹ط¯ظ‡ط§. ظ†ظˆطµظٹ ط¨ظ…ط±ط§ط¬ط¹طھظ‡ط§ ظˆط¥ظƒظ…ط§ظ„ظ‡ط§ ظپظٹ ط£ظ‚ط±ط¨ ظˆظ‚طھ.`,
+        title: `${overdueTasks.length} مهمة متأخرة`,
+        description: `لديك ${overdueTasks.length} مهمة تجاوزت موعدها. نوصي بمراجعتها وإكمالها في أقرب وقت.`,
         priority: "high",
         impact: 90,
-        estimatedTime: `${overdueTasks.length * 30} ط¯ظ‚ظٹظ‚ط©`,
+        estimatedTime: `${overdueTasks.length * 30} دقيقة`,
         icon: "clock",
         actionUrl: "/tasks?filter=overdue"
       });
@@ -228,11 +228,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
         id: `task_pending_${Date.now()}`,
         type: "task",
         category: "task",
-        title: `ط¥ظƒظ…ط§ظ„ ${pendingTasks.length} ظ…ظ‡ظ…ط© ظ…ط¹ظ„ظ‚ط©`,
-        description: `ظ„ط¯ظٹظƒ ${pendingTasks.length} ظ…ظ‡ظ…ط© ظ…ط¹ظ„ظ‚ط©. ظ…ط¹ط¯ظ„ ط§ظ„ط¥ظƒظ…ط§ظ„ ط§ظ„ط­ط§ظ„ظٹ ${completionRate.toFixed(0)}%. ظ†ظˆطµظٹ ط¨طھط­ط³ظٹظ† ظ‡ط°ط§ ط§ظ„ظ…ط¹ط¯ظ„.`,
+        title: `إكمال ${pendingTasks.length} مهمة معلقة`,
+        description: `لديك ${pendingTasks.length} مهمة معلقة. معدل الإكمال الحالي ${completionRate.toFixed(0)}%. نوصي بتحسين هذا المعدل.`,
         priority: "medium",
         impact: 80,
-        estimatedTime: `${pendingTasks.length * 25} ط¯ظ‚ظٹظ‚ط©`,
+        estimatedTime: `${pendingTasks.length * 25} دقيقة`,
         icon: "check-circle-2",
         actionUrl: "/tasks"
       });
@@ -249,11 +249,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
         id: `exam_prep_average_${Date.now()}`,
         type: "exam_prep",
         category: "exam_prep",
-        title: "طھط­ط³ظٹظ† ط§ظ„ط£ط¯ط§ط، ظپظٹ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ",
-        description: `ظ…طھظˆط³ط· ط¯ط±ط¬ط§طھظƒ ${avgScore.toFixed(0)}%. ظ†ظˆطµظٹ ط¨ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ظˆط§ط¯ ط§ظ„طھظٹ ط­طµظ„طھ ظپظٹظ‡ط§ ط¹ظ„ظ‰ ط¯ط±ط¬ط§طھ ظ…ظ†ط®ظپط¶ط© ظˆط§ظ„طھط­ط¶ظٹط± ط¨ط´ظƒظ„ ط£ظپط¶ظ„ ظ„ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ظ‚ط§ط¯ظ…ط©.`,
+        title: "تحسين الأداء في الامتحانات",
+        description: `متوسط درجاتك ${avgScore.toFixed(0)}%. نوصي بمراجعة المواد التي حصلت فيها على درجات منخفضة والتحضير بشكل أفضل للامتحانات القادمة.`,
         priority: "high",
         impact: 85,
-        estimatedTime: "60 ط¯ظ‚ظٹظ‚ط©",
+        estimatedTime: "60 دقيقة",
         icon: "target",
         actionUrl: "/exams"
       });
@@ -262,7 +262,7 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
     // Subject-specific recommendations based on grades
     const subjectScores: Record<string, number[]> = {};
     userGrades.forEach(result => {
-      const subject = result.exam?.subject || 'ط؛ظٹط± ظ…ط­ط¯ط¯';
+      const subject = result.exam?.subject || 'غير محدد';
       if (!subjectScores[subject]) {
         subjectScores[subject] = [];
       }
@@ -276,11 +276,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
           id: `exam_prep_${subject}_${Date.now()}`,
           type: "exam_prep",
           category: "exam_prep",
-          title: `طھط­ط³ظٹظ† ط§ظ„ط£ط¯ط§ط، ظپظٹ ${subject}`,
-          description: `ظ…طھظˆط³ط· ط¯ط±ط¬ط§طھظƒ ظپظٹ ${subject} ظ‡ظˆ ${avgSubjectScore.toFixed(0)}%. ظ†ظˆطµظٹ ط¨ظ…ط±ط§ط¬ط¹ط© ط´ط§ظ…ظ„ط© ظ„ظ„ظ…ط§ط¯ط© ظ‚ط¨ظ„ ط§ظ„ط§ظ…طھط­ط§ظ† ط§ظ„ظ‚ط§ط¯ظ….`,
+          title: `تحسين الأداء في ${subject}`,
+          description: `متوسط درجاتك في ${subject} هو ${avgSubjectScore.toFixed(0)}%. نوصي بمراجعة شاملة للمادة قبل الامتحان القادم.`,
           priority: "high",
           impact: 88,
-          estimatedTime: "90 ط¯ظ‚ظٹظ‚ط©",
+          estimatedTime: "90 دقيقة",
           icon: "book-open",
           actionUrl: `/exams?subject=${encodeURIComponent(subject)}`
         });
@@ -297,11 +297,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
         id: `streak_rebuild_${Date.now()}`,
         type: "study_plan",
         category: "study_plan",
-        title: "ط¥ط¹ط§ط¯ط© ط¨ظ†ط§ط، ط³ظ„ط³ظ„ط© ط§ظ„ط¯ط±ط§ط³ط©",
-        description: "ظ„ظ… طھط¯ط±ط³ ظ…ظ†ط° ظپطھط±ط©. ظ†ظˆطµظٹ ط¨ط¨ط¯ط، ط¬ظ„ط³ط© ط¯ط±ط§ط³ط© ط§ظ„ظٹظˆظ… ظ„ط¨ط¯ط، ط³ظ„ط³ظ„ط© ط¬ط¯ظٹط¯ط©!",
+        title: "إعادة بناء سلسلة الدراسة",
+        description: "لم تدرس منذ فترة. نوصي ببدء جلسة دراسة اليوم لبدء سلسلة جديدة!",
         priority: "high",
         impact: 85,
-        estimatedTime: "30 ط¯ظ‚ظٹظ‚ط©",
+        estimatedTime: "30 دقيقة",
         icon: "zap",
         actionUrl: "/time"
       });
@@ -310,11 +310,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
         id: `streak_week_${Date.now()}`,
         type: "study_plan",
         category: "study_plan",
-        title: `${currentStreak} ظٹظˆظ… ظ…طھطھط§ظ„ظٹ - ط§ط³طھظ…ط±!`,
-        description: `ط£ظ†طھ ط¹ظ„ظ‰ ط³ظ„ط³ظ„ط© ${currentStreak} ط£ظٹط§ظ…! ط§ط³طھظ…ط± ط­طھظ‰ طھطµظ„ ط¥ظ„ظ‰ ط£ط³ط¨ظˆط¹ ظƒط§ظ…ظ„ ظˆط§ط­طµظ„ ط¹ظ„ظ‰ ط¥ظ†ط¬ط§ط² ط®ط§طµ.`,
+        title: `${currentStreak} يوم متتالي - استمر!`,
+        description: `أنت على سلسلة ${currentStreak} أيام! استمر حتى تصل إلى أسبوع كامل واحصل على إنجاز خاص.`,
         priority: "medium",
         impact: 70,
-        estimatedTime: "30 ط¯ظ‚ظٹظ‚ط©",
+        estimatedTime: "30 دقيقة",
         icon: "trending-up",
         actionUrl: "/time"
       });
@@ -327,11 +327,11 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
       id: `study_pattern_${Date.now()}`,
       type: "tip",
       category: "tip",
-      title: "طھط­ط³ظٹظ† ظ†ظ…ط· ط§ظ„ط¯ط±ط§ط³ط© ط§ظ„ظٹظˆظ…ظٹ",
-      description: `ظ…طھظˆط³ط· ظˆظ‚طھ ط§ظ„ط¯ط±ط§ط³ط© ط§ظ„ظٹظˆظ…ظٹ ظ‡ظˆ ${Math.round(avgDailyMinutes)} ط¯ظ‚ظٹظ‚ط©. ظ†ظˆطµظٹ ط¨ط²ظٹط§ط¯ط© ظ‡ط°ط§ ط§ظ„ظˆظ‚طھ ط¥ظ„ظ‰ 60-90 ط¯ظ‚ظٹظ‚ط© ظٹظˆظ…ظٹط§ظ‹ ظ„طھط­ظ‚ظٹظ‚ ظ†طھط§ط¦ط¬ ط£ظپط¶ظ„.`,
+      title: "تحسين نمط الدراسة اليومي",
+      description: `متوسط وقت الدراسة اليومي هو ${Math.round(avgDailyMinutes)} دقيقة. نوصي بزيادة هذا الوقت إلى 60-90 دقيقة يومياً لتحقيق نتائج أفضل.`,
       priority: "medium",
       impact: 75,
-      estimatedTime: `${60 - Math.round(avgDailyMinutes)} ط¯ظ‚ظٹظ‚ط©`,
+      estimatedTime: `${60 - Math.round(avgDailyMinutes)} دقيقة`,
       icon: "lightbulb",
       actionUrl: "/time"
     });
@@ -344,16 +344,16 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
     const daysSinceOldest = differenceInDays(new Date(), new Date(oldestRecentSession.startTime));
     
     if (daysSinceOldest > 3) {
-      const subject = oldestRecentSession.subject || 'ط§ظ„ظ…ظˆط§ط¯';
+      const subject = oldestRecentSession.subject || 'المواد';
       recommendations.push({
         id: `review_${Date.now()}`,
         type: "task",
         category: "task",
-        title: "ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ظˆط§ط¯ ط§ظ„ظ‚ط¯ظٹظ…ط©",
-        description: `ظ…ط± ${daysSinceOldest} ط£ظٹط§ظ… ظ…ظ†ط° ط¢ط®ط± ط¯ط±ط§ط³ط© ظ„ظ€${subject}. ظ†ظˆطµظٹ ط¨ظ…ط±ط§ط¬ط¹ط© ظ‡ط°ظ‡ ط§ظ„ظ…ظˆط§ط¯ ط§ظ„ط¢ظ† ظ„طھط­ط³ظٹظ† ط§ظ„ط§ط³طھ retention.`,
+        title: "مراجعة المواد القديمة",
+        description: `مر ${daysSinceOldest} أيام منذ آخر دراسة لـ${subject}. نوصي بمراجعة هذه المواد الآن لتحسين الاست retention.`,
         priority: "medium",
         impact: 80,
-        estimatedTime: "30 ط¯ظ‚ظٹظ‚ط©",
+        estimatedTime: "30 دقيقة",
         icon: "book-open",
         actionUrl: `/tasks?subject=${encodeURIComponent(subject)}`
       });
@@ -366,8 +366,8 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
       id: `resource_improvement_${Date.now()}`,
       type: "resource",
       category: "resource",
-      title: "ظ…طµط§ط¯ط± طھط¹ظ„ظٹظ…ظٹط© ط¥ط¶ط§ظپظٹط©",
-      description: "ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط£ط¯ط§ط¦ظƒ ظپظٹ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھطŒ ظ†ظˆطµظٹ ط¨ط§ط³طھط®ط¯ط§ظ… ظ…طµط§ط¯ط± طھط¹ظ„ظٹظ…ظٹط© ط¥ط¶ط§ظپظٹط© ظ…ط«ظ„ ط§ظ„ظپظٹط¯ظٹظˆظ‡ط§طھ ظˆط§ظ„طھظ…ط§ط±ظٹظ† ط§ظ„طھظپط§ط¹ظ„ظٹط© ظ„طھط­ط³ظٹظ† ظپظ‡ظ…ظƒ.",
+      title: "مصادر تعليمية إضافية",
+      description: "بناءً على أدائك في الامتحانات، نوصي باستخدام مصادر تعليمية إضافية مثل الفيديوهات والتمارين التفاعلية لتحسين فهمك.",
       priority: "medium",
       impact: 75,
       icon: "lightbulb",

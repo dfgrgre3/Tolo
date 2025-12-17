@@ -9,47 +9,47 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const category = searchParams.get('category');
+      const limit = parseInt(searchParams.get('limit') || '10');
+      const category = searchParams.get('category');
 
-    // Create cache key based on parameters
-    const cacheKey = `announcements_${category ? `category_${category}_` : ''}limit_${limit}`;
+      // Create cache key based on parameters
+      const cacheKey = `announcements_${category ? `category_${category}_` : ''}limit_${limit}`;
 
-    // Use distributed cache with fallback to database query
-    const announcements = await CacheService.getOrSet(
-      cacheKey,
-      async () => {
-        const announcements = await prisma.announcement.findMany({
-          take: limit,
-          where: {
-            isActive: true,
-            ...(category && { priority: category })
-          },
-          orderBy: {
-            createdAt: "desc"
-          }
-        });
+      // Use distributed cache with fallback to database query
+      const announcements = await CacheService.getOrSet(
+        cacheKey,
+        async () => {
+          const announcements = await prisma.announcement.findMany({
+            take: limit,
+            where: {
+              isActive: true,
+              ...(category && { priority: category })
+            },
+            orderBy: {
+              createdAt: "desc"
+            }
+          });
 
-        // Transform the data to match the frontend structure
-        return announcements.map((announcement: any) => ({
-          id: announcement.id,
-          title: announcement.title,
-          content: announcement.content,
-          createdAt: announcement.createdAt.toISOString(),
-          priority: announcement.priority,
-          isActive: announcement.isActive
-        }));
-      },
-      600 // Cache for 10 minutes
-    );
+          // Transform the data to match the frontend structure
+          return announcements.map((announcement) => ({
+            id: announcement.id,
+            title: announcement.title,
+            content: announcement.content,
+            createdAt: announcement.createdAt.toISOString(),
+            priority: announcement.priority,
+            isActive: announcement.isActive
+          }));
+        },
+        600 // Cache for 10 minutes
+      );
 
-    return NextResponse.json(announcements);
-  } catch (error) {
-    logger.error("Error fetching announcements:", error);
-    return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط¥ط¹ظ„ط§ظ†ط§طھ" },
-      { status: 500 }
-    );
+      return NextResponse.json(announcements);
+    } catch (error: unknown) {
+      logger.error("Error fetching announcements:", error);
+      return NextResponse.json(
+        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط¥ط¹ظ„ط§ظ†ط§طھ" },
+        { status: 500 }
+      );
     }
   });
 }
@@ -58,47 +58,47 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const { 
-        title, 
-        content, 
-        priority
-      } = await req.json();
-
-    if (!title || !content || !priority) {
-      return NextResponse.json(
-        { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
-        { status: 400 }
-      );
-    }
-
-    const newAnnouncement = await prisma.announcement.create({
-      data: {
+      const {
         title,
         content,
         priority
+      } = await req.json();
+
+      if (!title || !content || !priority) {
+        return NextResponse.json(
+          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
+          { status: 400 }
+        );
       }
-    });
 
-    // Transform the data to match the frontend structure
-    const transformedAnnouncement = {
-      id: newAnnouncement.id,
-      title: newAnnouncement.title,
-      content: newAnnouncement.content,
-      createdAt: newAnnouncement.createdAt.toISOString(),
-      priority: newAnnouncement.priority,
-      isActive: newAnnouncement.isActive
-    };
+      const newAnnouncement = await prisma.announcement.create({
+        data: {
+          title,
+          content,
+          priority
+        }
+      });
 
-    // Invalidate all announcements cache when creating new announcement
-    await CacheService.invalidatePattern('announcements*');
+      // Transform the data to match the frontend structure
+      const transformedAnnouncement = {
+        id: newAnnouncement.id,
+        title: newAnnouncement.title,
+        content: newAnnouncement.content,
+        createdAt: newAnnouncement.createdAt.toISOString(),
+        priority: newAnnouncement.priority,
+        isActive: newAnnouncement.isActive
+      };
 
-    return NextResponse.json(transformedAnnouncement, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating announcement:", error);
-    return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¥ط¹ظ„ط§ظ†" },
-      { status: 500 }
-    );
+      // Invalidate all announcements cache when creating new announcement
+      await CacheService.invalidatePattern('announcements*');
+
+      return NextResponse.json(transformedAnnouncement, { status: 201 });
+    } catch (error: unknown) {
+      logger.error("Error creating announcement:", error);
+      return NextResponse.json(
+        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¥ط¹ظ„ط§ظ†" },
+        { status: 500 }
+      );
     }
   });
 }

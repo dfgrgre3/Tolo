@@ -16,6 +16,7 @@ jest.mock('@/app/api/auth/_helpers', () => {
 });
 
 import { LoginService } from '@/lib/services/login-service';
+import { SecurityCheckService } from '@/lib/services/security-check-service';
 
 // Mock jose library (ES modules)
 jest.mock('jose', () => ({
@@ -187,7 +188,7 @@ describe('LoginService Comprehensive Tests', () => {
     it('should return null if IP is not blocked', async () => {
       (ipBlockingService.isBlocked as jest.Mock).mockReturnValue({ blocked: false });
 
-      const result = await LoginService.checkIPBlocking('192.168.1.1');
+      const result = await SecurityCheckService.checkIPBlocking('192.168.1.1');
 
       expect(result).toBeNull();
     });
@@ -199,7 +200,7 @@ describe('LoginService Comprehensive Tests', () => {
         blockedUntil: new Date(Date.now() + 3600000),
       });
 
-      const result = await LoginService.checkIPBlocking('192.168.1.1');
+      const result = await SecurityCheckService.checkIPBlocking('192.168.1.1');
 
       expect(result).not.toBeNull();
       expect(result?.success).toBe(false);
@@ -214,7 +215,7 @@ describe('LoginService Comprehensive Tests', () => {
         attempts: 2,
       };
 
-      const result = await LoginService.checkRateLimiting(
+      const result = await SecurityCheckService.checkRateLimiting(
         rateLimitStatus,
         '192.168.1.1',
         'test-agent'
@@ -230,7 +231,7 @@ describe('LoginService Comprehensive Tests', () => {
         lockedUntil: Date.now() + 1800000,
       };
 
-      const result = await LoginService.checkRateLimiting(
+      const result = await SecurityCheckService.checkRateLimiting(
         rateLimitStatus,
         '192.168.1.1',
         'test-agent'
@@ -246,7 +247,7 @@ describe('LoginService Comprehensive Tests', () => {
     it('should return null if CAPTCHA is not required', async () => {
       (captchaService.shouldRequireCaptcha as jest.Mock).mockReturnValue(false);
 
-      const result = await LoginService.checkCaptcha(
+      const result = await SecurityCheckService.checkCaptcha(
         2,
         undefined,
         '192.168.1.1',
@@ -259,7 +260,7 @@ describe('LoginService Comprehensive Tests', () => {
     it('should return error if CAPTCHA is required but not provided', async () => {
       (captchaService.shouldRequireCaptcha as jest.Mock).mockReturnValue(true);
 
-      const result = await LoginService.checkCaptcha(
+      const result = await SecurityCheckService.checkCaptcha(
         4,
         undefined,
         '192.168.1.1',
@@ -275,7 +276,7 @@ describe('LoginService Comprehensive Tests', () => {
       (captchaService.shouldRequireCaptcha as jest.Mock).mockReturnValue(true);
       (captchaService.verifyCaptcha as jest.Mock).mockResolvedValue(true);
 
-      const result = await LoginService.checkCaptcha(
+      const result = await SecurityCheckService.checkCaptcha(
         4,
         'valid-captcha-token',
         '192.168.1.1',
@@ -293,7 +294,7 @@ describe('LoginService Comprehensive Tests', () => {
       (captchaService.shouldRequireCaptcha as jest.Mock).mockReturnValue(true);
       (captchaService.verifyCaptcha as jest.Mock).mockResolvedValue(false);
 
-      const result = await LoginService.checkCaptcha(
+      const result = await SecurityCheckService.checkCaptcha(
         4,
         'invalid-captcha-token',
         '192.168.1.1',

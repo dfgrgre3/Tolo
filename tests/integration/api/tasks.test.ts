@@ -57,7 +57,7 @@ jest.mock('@/lib/cache-invalidation-service', () => ({
   invalidateUserCache: jest.fn().mockResolvedValue(undefined),
 }));
 
-jest.mock('@/lib/gamification-service', () => ({
+jest.mock('@/lib/services/gamification-service', () => ({
   gamificationService: {
     updateUserProgress: jest.fn().mockResolvedValue(undefined),
   },

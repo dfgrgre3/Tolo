@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { forwardRef, memo } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Zap } from "lucide-react";
+import { Sparkles, Zap, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MegaMenuCategory as MegaMenuCategoryType } from "./types";
 import { MegaMenuItem } from "./MegaMenuItem";
@@ -14,21 +14,24 @@ interface MegaMenuCategoryProps {
 	activeRoute?: (href: string) => boolean;
 	isCompact?: boolean;
 	searchQuery?: string;
+	focusedItemIndex?: number;
 }
 
-export function MegaMenuCategory({ 
+export const MegaMenuCategory = memo(forwardRef<HTMLDivElement, MegaMenuCategoryProps>(function MegaMenuCategory({ 
 	category, 
 	categoryIndex, 
 	onItemClick,
 	activeRoute,
 	isCompact = false,
-	searchQuery = ""
-}: MegaMenuCategoryProps) {
+	searchQuery = "",
+	focusedItemIndex = -1
+}, ref) {
 	const hasActiveSearch = Boolean(searchQuery?.trim());
 	const itemCount = category.items.length;
 
 	return (
 		<motion.div
+			ref={ref}
 			initial={{ opacity: 0, y: 10, scale: 0.98 }}
 			animate={{ opacity: 1, y: 0, scale: 1 }}
 			transition={{ 
@@ -43,6 +46,8 @@ export function MegaMenuCategory({
 				"border border-transparent hover:border-primary/20",
 				isCompact && "space-y-2 p-2 md:p-3"
 			)}
+			role="group"
+			aria-labelledby={`category-title-${categoryIndex}`}
 		>
 			{/* Animated background glow */}
 			<motion.div
@@ -50,6 +55,7 @@ export function MegaMenuCategory({
 				initial={false}
 			/>
 
+			{/* Category Header */}
 			<div className={cn(
 				"flex items-center gap-2 mb-3 pb-3 border-b border-border/40 group-hover/category:border-primary/50 transition-all duration-300 relative z-10",
 				isCompact && "mb-2 pb-2 gap-1.5"
@@ -62,6 +68,7 @@ export function MegaMenuCategory({
 					transition={{ duration: 0.4, ease: "easeOut" }}
 				/>
 				
+				{/* Icon */}
 				<motion.div
 					whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
 					whileTap={{ scale: 0.95 }}
@@ -80,26 +87,47 @@ export function MegaMenuCategory({
 					)}
 				</motion.div>
 				
+				{/* Title and Count */}
 				<div className="flex-1 flex items-center justify-between">
-					<h3 className={cn(
-						"font-semibold text-foreground group-hover/category:text-primary transition-colors duration-300",
-						isCompact ? "text-sm" : "text-base md:text-lg"
-					)}>
+					<h3 
+						id={`category-title-${categoryIndex}`}
+						className={cn(
+							"font-semibold text-foreground group-hover/category:text-primary transition-colors duration-300",
+							isCompact ? "text-sm" : "text-base md:text-lg"
+						)}
+					>
 						{category.title}
 					</h3>
-					{hasActiveSearch && (
-						<motion.span
-							initial={{ opacity: 0, scale: 0.8 }}
-							animate={{ opacity: 1, scale: 1 }}
-							className="text-xs font-medium px-2 py-0.5 rounded-full bg-primary/10 text-primary"
-						>
-							{itemCount}
-						</motion.span>
-					)}
+					
+					{/* Item count badge */}
+					<motion.span
+						initial={{ opacity: 0, scale: 0.8 }}
+						animate={{ opacity: 1, scale: 1 }}
+						className={cn(
+							"text-xs font-medium px-2 py-0.5 rounded-full transition-colors",
+							hasActiveSearch 
+								? "bg-primary/15 text-primary border border-primary/30" 
+								: "bg-muted/50 text-muted-foreground border border-border/50"
+						)}
+					>
+						{itemCount}
+					</motion.span>
 				</div>
+
+				{/* Expand indicator */}
+				<motion.div
+					className="text-muted-foreground/50 group-hover/category:text-primary/50 transition-colors"
+					whileHover={{ x: -3 }}
+				>
+					<ChevronLeft className={cn("h-4 w-4", isCompact && "h-3.5 w-3.5")} />
+				</motion.div>
 			</div>
 			
-			<div className={cn("space-y-2 relative z-10", isCompact && "space-y-1.5")}>
+			{/* Items List */}
+			<div 
+				className={cn("space-y-2 relative z-10", isCompact && "space-y-1.5")}
+				role="list"
+			>
 				{category.items.map((item, itemIndex) => (
 					<MegaMenuItem
 						key={item.href}
@@ -109,10 +137,30 @@ export function MegaMenuCategory({
 						delay={categoryIndex * 0.03 + itemIndex * 0.02}
 						isCompact={isCompact}
 						searchQuery={searchQuery}
+						isFocused={focusedItemIndex === itemIndex}
 					/>
 				))}
 			</div>
+
+			{/* View All Link for categories with many items */}
+			{itemCount > 4 && !isCompact && (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					transition={{ delay: 0.3 }}
+					className="pt-2 relative z-10"
+				>
+					<button
+						onClick={onItemClick}
+						className="text-xs text-primary/70 hover:text-primary font-medium flex items-center gap-1 transition-colors"
+					>
+						<span>عرض الكل</span>
+						<ChevronLeft className="h-3 w-3" />
+					</button>
+				</motion.div>
+			)}
 		</motion.div>
 	);
-}
+}));
 
+MegaMenuCategory.displayName = "MegaMenuCategory";

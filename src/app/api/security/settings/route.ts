@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
+import { NextRequest, NextResponse } from 'next/server';
+import { authService } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
       if (!verification.isValid || !verification.user) {
         return NextResponse.json(
-          { error: 'ط؛ظٹط± ظ…طµط±ط­' },
+          { error: 'غير مصرح' },
           { status: 401 }
         );
       }
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
       if (!user) {
         return NextResponse.json(
-          { error: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯' },
+          { error: 'المستخدم غير موجود' },
           { status: 404 }
         );
       }
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error('Failed to fetch security settings:', error);
       return NextResponse.json(
-        { error: 'ظپط´ظ„ ط¬ظ„ط¨ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ظ…ط§ظ†' },
+        { error: 'فشل جلب إعدادات الأمان' },
         { status: 500 }
       );
     }
@@ -66,7 +66,7 @@ export async function PATCH(request: NextRequest) {
 
       if (!verification.isValid || !verification.user) {
         return NextResponse.json(
-          { error: 'ط؛ظٹط± ظ…طµط±ط­' },
+          { error: 'غير مصرح' },
           { status: 401 }
         );
       }
@@ -102,7 +102,7 @@ export async function PATCH(request: NextRequest) {
 
       if (Object.keys(updateData).length === 0) {
         return NextResponse.json(
-          { error: 'ظ„ط§ طھظˆط¬ط¯ ط­ظ‚ظˆظ„ طµط§ظ„ط­ط© ظ„ظ„طھط­ط¯ظٹط«' },
+          { error: 'لا توجد حقول صالحة للتحديث' },
           { status: 400 }
         );
       }
@@ -124,14 +124,14 @@ export async function PATCH(request: NextRequest) {
       );
 
       return NextResponse.json({
-        message: 'طھظ… طھط­ط¯ظٹط« ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ط¨ظ†ط¬ط§ط­',
+        message: 'تم تحديث الإعدادات بنجاح',
         settings: updateData,
       });
 
     } catch (error) {
       logger.error('Failed to update security settings:', error);
       return NextResponse.json(
-        { error: 'ظپط´ظ„ طھط­ط¯ظٹط« ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£ظ…ط§ظ†' },
+        { error: 'فشل تحديث إعدادات الأمان' },
         { status: 500 }
       );
     }

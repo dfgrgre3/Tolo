@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -12,41 +12,41 @@ export async function GET(
     try {
       const { id } = await params;
 
-    const post = await prisma.forumPost.findUnique({
-      where: { id },
-      include: {
-        author: {
-          select: { name: true }
-        },
-        category: {
-          select: { name: true }
-        },
-        _count: {
-          select: { replies: true }
+      const post = await prisma.forumPost.findUnique({
+        where: { id },
+        include: {
+          author: {
+            select: { name: true }
+          },
+          category: {
+            select: { name: true }
+          },
+          _count: {
+            select: { replies: true }
+          }
         }
+      });
+
+      if (!post) {
+        return NextResponse.json(
+          { error: "الموضوع غير موجود" },
+          { status: 404 }
+        );
       }
-    });
 
-    if (!post) {
-      return NextResponse.json(
-        { error: "الموضوع غير موجود" },
-        { status: 404 }
-      );
-    }
-
-    // Transform the data to match the frontend structure
-    const transformedPost = {
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      authorName: post.author.name,
-      categoryId: post.categoryId,
-      categoryName: post.category.name,
-      createdAt: post.createdAt.toISOString(),
-      views: post.viewCount,
-      repliesCount: post._count.replies,
-      isPinned: post.isPinned
-    };
+      // Transform the data to match the frontend structure
+      const transformedPost = {
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        authorName: post.author.name,
+        categoryId: post.categoryId,
+        categoryName: post.category.name,
+        createdAt: post.createdAt.toISOString(),
+        views: post.viewCount,
+        repliesCount: post._count.replies,
+        isPinned: post.isPinned
+      };
 
       return NextResponse.json(transformedPost);
     } catch (error) {

@@ -4,10 +4,10 @@
 
 // Define logger interface type
 interface Logger {
-  info: (...args: any[]) => void;
-  warn: (...args: any[]) => void;
-  error: (...args: any[]) => void;
-  debug: (...args: any[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
 }
 
 // Initialize logger instance safely
@@ -16,22 +16,22 @@ let loggerInstance: Logger | null = null;
 
 // Create a console-based logger for client-side use
 const createConsoleLogger = () => ({
-  info: (...args: any[]) => {
+  info: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.info) {
       console.info(...args);
     }
   },
-  warn: (...args: any[]) => {
+  warn: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.warn) {
       console.warn(...args);
     }
   },
-  error: (...args: any[]) => {
+  error: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.error) {
       console.error(...args);
     }
   },
-  debug: (...args: any[]) => {
+  debug: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.debug) {
       console.debug(...args);
     }
@@ -42,12 +42,12 @@ async function getLogger(): Promise<Logger> {
   // Always use console logger on client side to avoid bundling server-only code
   // This prevents the bundler from trying to include server-only dependencies
   const isClient = typeof window !== 'undefined';
-  
+
   if (isClient) {
     // On client, always return console logger immediately
     return createConsoleLogger();
   }
-  
+
   // Server-side only: lazy load the actual logger
   if (!loggerInstance) {
     try {
@@ -61,7 +61,7 @@ async function getLogger(): Promise<Logger> {
       loggerInstance = createConsoleLogger();
     }
   }
-  
+
   return loggerInstance || createConsoleLogger();
 }
 
@@ -71,7 +71,7 @@ const getPerfConfig = () => {
   try {
     // Check if we're on the client side
     const isClient = typeof window !== "undefined";
-    
+
     if (isClient && typeof window.location !== "undefined") {
       // Client-side: check hostname
       isDevelopment = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";

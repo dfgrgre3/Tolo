@@ -1,15 +1,15 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { generateAuthenticationOptions } from '@simplewebauthn/server';
 import type { PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
-import { BiometricChallengeService } from '@/lib/auth-challenges-service';
+import { BiometricChallengeService } from '@/lib/services/auth-challenges-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 async function handler(req: NextRequest) {
   const { userId } = await req.json();
 
-  let allowCredentials: any[] | undefined = undefined;
+  let allowCredentials: PublicKeyCredentialRequestOptionsJSON['allowCredentials'] = undefined;
 
   if (userId) {
     const user = await prisma.user.findUnique({
@@ -21,7 +21,7 @@ async function handler(req: NextRequest) {
       allowCredentials = user.biometricCredentials.map((cred) => ({
         id: cred.credentialId,
         type: 'public-key',
-        transports: cred.transports,
+        transports: cred.transports ? JSON.parse(cred.transports) : [],
       }));
     }
   }
@@ -41,7 +41,7 @@ async function handler(req: NextRequest) {
   // The client will then send it back during the verification step.
   // However, to maintain consistency with the existing (flawed) pattern, we'll create a challenge
   // that is not tied to a user or credential ID yet. The verification step will have to look for it.
-  
+
   // Let's create a temporary ID for the challenge.
   const challengeId = `auth-challenge-${Date.now()}`;
   await BiometricChallengeService.createChallenge(
@@ -50,7 +50,7 @@ async function handler(req: NextRequest) {
     userId, // Store userId if available
     5 // 5 minutes validity
   );
-  
+
   // We'll add the challenge itself to the response so the client can use it to find the challenge later.
   // This is not ideal, but it's a way to work with the current challenge service.
   // A better solution would be to return a unique challenge identifier.

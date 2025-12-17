@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
-import { addSecurityHeaders, createStandardErrorResponse, parseRequestBody } from '@/app/api/auth/_helpers';
+import { authService } from '@/lib/services/auth-service';
+import {
+  addSecurityHeaders,
+  createStandardErrorResponse,
+  parseRequestBody,
+  createSuccessResponse
+} from '@/app/api/auth/_helpers';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
     const authResult = await authService.getCurrentUser();
     if (!authResult.isValid || !authResult.user) {
-      return NextResponse.json(
+      return createStandardErrorResponse(
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
-        { status: 401 }
+        'غير مصرح',
+        401
       );
     }
 
@@ -19,30 +25,30 @@ export async function POST(request: NextRequest) {
     const { token } = bodyResult.data;
 
     if (!token) {
-      return NextResponse.json(
+      return createStandardErrorResponse(
         { error: 'Token is required', code: 'MISSING_FIELDS' },
-        { status: 400 }
+        'رمز التحقق مطلوب',
+        400
       );
     }
 
     const result = await authService.enableTwoFactor(authResult.user.id, token);
 
     if (!result.success) {
-      return NextResponse.json(
+      return createStandardErrorResponse(
         { error: result.error || 'Invalid verification code', code: 'INVALID_CODE' },
-        { status: 400 }
+        'رمز التحقق غير صالح',
+        400
       );
     }
 
-    const response = NextResponse.json({
-      success: true,
+    const response = createSuccessResponse({
       recoveryCodes: result.recoveryCodes,
-      message: 'Two-factor authentication enabled successfully'
-    });
+    }, 'تم تفعيل المصادقة الثنائية بنجاح');
 
     return addSecurityHeaders(response);
   } catch (error) {
     logger.error('2FA enable error:', error);
-    return createStandardErrorResponse(error, 'Failed to enable 2FA');
+    return createStandardErrorResponse(error, 'فشل تفعيل المصادقة الثنائية');
   }
 }

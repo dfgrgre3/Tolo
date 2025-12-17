@@ -10,6 +10,7 @@ import {
 } from '@/app/api/auth/_helpers';
 import { loginSchema } from '@/lib/auth/schemas';
 import type { LoginResponse } from '@/types/api/auth';
+import { LOGIN_ERRORS } from '@/lib/auth/login-errors';
 
 /**
  * POST /api/auth/login
@@ -65,7 +66,7 @@ export async function POST(request: NextRequest) {
             error: 'VALIDATION_ERROR',
             details: parsed.error.flatten().fieldErrors as Record<string, string[]>,
           },
-          'بيانات تسجيل الدخول غير صحيحة.',
+          LOGIN_ERRORS.VALIDATION_ERROR,
           400
         );
       }
@@ -86,7 +87,7 @@ export async function POST(request: NextRequest) {
           resolve({
             success: false,
             response: {
-              error: 'انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.',
+              error: LOGIN_ERRORS.REQUEST_TIMEOUT,
               code: 'REQUEST_TIMEOUT',
             },
             statusCode: 408,
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       if (result && 'statusCode' in result && result.statusCode === 408) {
         logger.warn('Login request timeout', { email });
         const timeoutResponse = NextResponse.json(
-          { error: 'انتهت مهلة الطلب. يرجى المحاولة مرة أخرى.', code: 'REQUEST_TIMEOUT' },
+          { error: LOGIN_ERRORS.REQUEST_TIMEOUT, code: 'REQUEST_TIMEOUT' },
           { status: 408 }
         );
         return addSecurityHeaders(timeoutResponse);
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
       // while full details are logged on the server only
       return createStandardErrorResponse(
         error,
-        'حدث خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً.'
+        LOGIN_ERRORS.UNKNOWN_ERROR
       );
     }
   });

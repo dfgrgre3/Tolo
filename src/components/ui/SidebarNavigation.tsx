@@ -22,8 +22,7 @@ import {
   Bell,
   Search,
   HelpCircle,
-  LogOut,
-  Star
+  LogOut
 } from 'lucide-react';
 import { useUnifiedAuth } from '@/contexts/auth-context';
 

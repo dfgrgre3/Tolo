@@ -17,7 +17,7 @@ export const REFRESH_TOKEN_MAX_AGE_DEFAULT = 24 * 60 * 60; // 24 hours in second
 
 export const resetTokenSchema = z.string().min(1, 'رمز إعادة التعيين مطلوب');
 export const passwordSchema = z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل');
-export const emailSchema = z.string().email('البريد الإلكتروني غير صالح');
+export const emailSchema = z.string().email('البريد الإلكتروني غير صالح').regex(/^(?!.*\.\.)/, 'البريد الإلكتروني غير صالح');
 
 // ==================== HELPER FUNCTIONS ====================
 
@@ -386,7 +386,7 @@ export function extractRequestMetadata(request: NextRequest): {
 
   // This will use authService if available, otherwise fallback
   try {
-    const { authService } = require('@/lib/auth-service');
+    const { authService } = require('@/lib/services/auth-service');
     const ip = authService.getClientIP(request) || 'unknown';
     const userAgent = authService.getUserAgent(request) || 'unknown';
 
@@ -765,7 +765,7 @@ export async function logSecurityEventSafely(
   }
 
   try {
-    const { authService } = require('@/lib/auth-service');
+    const { authService } = require('@/lib/services/auth-service');
 
     // Add timeout protection
     const logPromise = authService.logSecurityEvent(

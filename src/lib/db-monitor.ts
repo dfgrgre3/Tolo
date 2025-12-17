@@ -3,7 +3,7 @@
  * Provides monitoring and statistics for database connections
  */
 
-import { prisma } from './prisma';
+import { prisma } from './db';
 
 export interface DatabaseConnectionPoolStats {
   activeConnections: number;
@@ -53,7 +53,7 @@ export function getDatabaseConfig() {
 export async function monitorDatabasePerformance() {
   const stats = await getConnectionPoolStats();
   const config = getDatabaseConfig();
-  
+
   return {
     stats,
     config,
@@ -79,7 +79,7 @@ export const dbMonitor = {
   getHealthReport: async () => {
     const stats = await getConnectionPoolStats();
     const config = getDatabaseConfig();
-    
+
     return {
       status: stats.totalConnections < config.maxConnections ? 'healthy' : 'warning',
       stats,
@@ -87,13 +87,13 @@ export const dbMonitor = {
       timestamp: new Date().toISOString(),
     };
   },
-  
+
   resetStats: () => {
     // Placeholder for resetting stats
     // In a real implementation, this would reset collected metrics
     return true;
   },
-  
+
   getConnectionPoolStats,
   getDatabaseConfig,
   monitorDatabasePerformance,

@@ -27,7 +27,7 @@ export async function analyzeSentiment(
   context?: string
 ): Promise<SentimentResult> {
   const provider = getDefaultProvider();
-  
+
   if (!provider.apiKey) {
     // Fallback to simple keyword-based analysis
     return simpleSentimentAnalysis(text);
@@ -133,7 +133,7 @@ export async function analyzeSentiment(
           sentiment: result.sentiment,
           score: result.score,
           confidence: result.confidence,
-          emotions: result.emotions || {},
+          emotions: JSON.stringify(result.emotions || {}),
           context: context || 'chat'
         }
       });
@@ -152,18 +152,18 @@ export async function analyzeSentiment(
  */
 function simpleSentimentAnalysis(text: string): SentimentResult {
   const lowerText = text.toLowerCase();
-  
+
   // Negative keywords
   const negativeKeywords = ['طµط¹ط¨', 'ظ…ط³طھط­ظٹظ„', 'ظ…ط´', 'ظ„ط§', 'ظ…ط´ظƒظ„ط©', 'ظپط´ظ„', 'ط®ط·ط£', 'ظ…ط­طھط§ط¬', 'ظ…ط­طھط§ط¬ ظ…ط³ط§ط¹ط¯ط©'];
   const frustratedKeywords = ['ظ…ط­طھط§ط¬', 'ظ…ط´ ظپط§ظ‡ظ…', 'ظ…ط´ ط¹ط§ط±ظپ', 'ظ…ط´ ط¹ط§ط±ظپ ط£ط¹ظ…ظ„ ط¥ظٹظ‡', 'ظ…ط´ ط¹ط§ط±ظپ', 'ظ…ط­طھط§ط¬ ظ…ط³ط§ط¹ط¯ط©'];
   const tiredKeywords = ['ظ…طھط¹ط¨', 'طھط¹ط¨ط§ظ†', 'ظ…ط´ ظ‚ط§ط¯ط±', 'ظ…ط´ ظ‡ظ‚ط¯ط±', 'ظ…ط´ ط¹ط§ظٹط²', 'ظ…ط´ ط¹ط§ظٹط² ط£ط¯ط±ط³'];
-  
+
   // Positive keywords
   const positiveKeywords = ['طھظ…ط§ظ…', 'ظ…ظ…طھط§ط²', 'ط±ط§ط¦ط¹', 'ط´ظƒط±ط§ظ‹', 'ط´ظƒط±ط§', 'طھظ…ط§ظ…', 'ط­ظ„ظˆ', 'ط²ظٹ ط§ظ„ظپظ„'];
-  
+
   let score = 0;
   let sentiment: SentimentResult['sentiment'] = 'neutral';
-  
+
   // Check for frustration
   if (frustratedKeywords.some(kw => lowerText.includes(kw))) {
     sentiment = 'frustrated';
@@ -184,7 +184,7 @@ function simpleSentimentAnalysis(text: string): SentimentResult {
     sentiment = 'positive';
     score = 0.6;
   }
-  
+
   return {
     sentiment,
     score,
@@ -208,7 +208,7 @@ function parseSentimentResponse(content: string): SentimentResult {
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
     const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
     const parsed = JSON.parse(jsonStr);
-    
+
     return {
       sentiment: parsed.sentiment || 'neutral',
       score: typeof parsed.score === 'number' ? parsed.score : 0,
@@ -229,7 +229,7 @@ function parseSentimentResponse(content: string): SentimentResult {
 export async function getUserSentimentTrends(userId: string, days: number = 7) {
   const since = new Date();
   since.setDate(since.getDate() - days);
-  
+
   const analyses = await prisma.sentimentAnalysis.findMany({
     where: {
       userId,
@@ -241,7 +241,7 @@ export async function getUserSentimentTrends(userId: string, days: number = 7) {
       createdAt: 'desc'
     }
   });
-  
+
   if (analyses.length === 0) {
     return {
       averageScore: 0,
@@ -249,17 +249,17 @@ export async function getUserSentimentTrends(userId: string, days: number = 7) {
       trends: []
     };
   }
-  
+
   const averageScore = analyses.reduce((sum: number, a: { score: number }) => sum + a.score, 0) / analyses.length;
-  
+
   const sentimentCounts: Record<string, number> = {};
   analyses.forEach((a: { sentiment: string }) => {
     sentimentCounts[a.sentiment] = (sentimentCounts[a.sentiment] || 0) + 1;
   });
-  
+
   const dominantSentiment = Object.entries(sentimentCounts)
     .sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0][0] as SentimentResult['sentiment'];
-  
+
   return {
     averageScore,
     dominantSentiment,

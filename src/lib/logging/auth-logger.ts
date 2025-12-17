@@ -76,7 +76,7 @@ export class AuthLogger {
     if (typeof window === 'undefined') {
       try {
         // Use string concatenation to prevent webpack from statically analyzing the import
-        const authServiceModule = await import('../' + 'auth-service');
+        const authServiceModule = await import('../services/' + 'auth-service');
         await authServiceModule.authService.logSecurityEvent(userId, event, ip, {
           ...metadata,
           level,
@@ -102,7 +102,7 @@ export class AuthLogger {
       userAgent: metadata?.userAgent,
       ...metadata,
     };
-    
+
     switch (level) {
       case AuthLogLevel.ERROR:
         elkLogger.error(
@@ -163,11 +163,11 @@ export class AuthLogger {
     metadata?: Record<string, any>
   ): Promise<T> {
     const startTime = Date.now();
-    
+
     try {
       const result = await operation();
       const duration = Date.now() - startTime;
-      
+
       await this.log(
         AuthLogLevel.INFO,
         event,
@@ -175,12 +175,12 @@ export class AuthLogger {
         ip,
         { ...metadata, duration },
       );
-      
+
       return result;
     } catch (error) {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
-      
+
       await this.log(
         AuthLogLevel.ERROR,
         `${event}_failed`,
@@ -189,7 +189,7 @@ export class AuthLogger {
         { ...metadata, duration },
         errorMessage
       );
-      
+
       throw error;
     }
   }
@@ -265,7 +265,7 @@ export class AuthLogger {
     for (const log of this.logs) {
       byLevel[log.level]++;
       byEvent[log.event] = (byEvent[log.event] || 0) + 1;
-      
+
       if (log.level === AuthLogLevel.ERROR && log.timestamp.getTime() > oneHourAgo) {
         recentErrors++;
       }

@@ -25,9 +25,10 @@ import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
 import { getSessionSyncManager } from './session-sync';
 import { createAuthFetchInterceptor } from '@/lib/token-refresh-interceptor';
+import type { AuthUser } from '@/lib/services/auth-service';
 
 export interface AuthState {
-  user: any | null;
+  user: AuthUser | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   sessionId: string | null;
@@ -37,7 +38,7 @@ export interface AuthState {
 
 export interface AuthEvent {
   type: 'login' | 'logout' | 'token_refresh' | 'session_expired' | 'error' | 'state_change';
-  data?: any;
+  data?: unknown;
   timestamp: number;
 }
 
@@ -61,7 +62,7 @@ class UnifiedAuthManager extends EventEmitter {
   constructor() {
     super();
     this.setMaxListeners(50); // Allow many listeners
-    
+
     if (typeof window !== 'undefined') {
       this.initialize();
     }
@@ -72,7 +73,7 @@ class UnifiedAuthManager extends EventEmitter {
    */
   private initialize() {
     if (this.isInitialized) return;
-    
+
     // إعداد BroadcastChannel للمزامنة عبر التبويبات
     if (typeof BroadcastChannel !== 'undefined') {
       this.syncChannel = new BroadcastChannel('auth-sync');
@@ -268,7 +269,7 @@ class UnifiedAuthManager extends EventEmitter {
         if (response.ok) {
           const contentType = response.headers.get('content-type');
           const isJson = contentType?.includes('application/json');
-          
+
           if (isJson) {
             const data = await response.json();
             if (data.user) {
@@ -296,7 +297,7 @@ class UnifiedAuthManager extends EventEmitter {
       // خطأ في الاتصال - لا نغير الحالة المحلية
       // قد يكون خطأ مؤقت في الشبكة
       logger.warn('Failed to sync with server:', error);
-      
+
       // إذا كان المستخدم مسجلاً دخولاً محلياً، نحتفظ بالحالة
       // وإلا نمسح الحالة
       if (!this.state.user) {
@@ -314,7 +315,7 @@ class UnifiedAuthManager extends EventEmitter {
   setState(updates: Partial<AuthState>) {
     const oldState = { ...this.state };
     this.state = { ...this.state, ...updates };
-    
+
     // حفظ الحالة
     if (this.state.isAuthenticated) {
       this.persistState();
@@ -323,9 +324,9 @@ class UnifiedAuthManager extends EventEmitter {
     }
 
     // إرسال حدث التغيير
-    this.emit('state_change', { 
-      state: this.state, 
-      previousState: oldState 
+    this.emit('state_change', {
+      state: this.state,
+      previousState: oldState
     });
 
     // مزامنة عبر التبويبات
@@ -334,7 +335,7 @@ class UnifiedAuthManager extends EventEmitter {
       data: { state: this.state },
       timestamp: Date.now(),
     });
-    
+
     // إشعار Session Sync Manager
     this.sessionSync?.notifyStateUpdate(this.state);
   }
@@ -352,7 +353,7 @@ class UnifiedAuthManager extends EventEmitter {
    * التوكن يتم حفظه في httpOnly cookie من الخادم
    * محسّن مع تحقق شامل من البيانات والأمان
    */
-  async login(token: string, userData: any, sessionId?: string): Promise<void> {
+  async login(token: string, userData: AuthUser, sessionId?: string): Promise<void> {
     try {
       // Enhanced validation with comprehensive checks
       if (!userData || typeof userData !== 'object' || Array.isArray(userData)) {
@@ -416,7 +417,7 @@ class UnifiedAuthManager extends EventEmitter {
         data: { user: userData },
         timestamp: Date.now(),
       });
-      
+
       // إشعار Session Sync Manager
       this.sessionSync?.notifyLogin(userData);
 
@@ -485,13 +486,13 @@ class UnifiedAuthManager extends EventEmitter {
         type: 'logout',
         timestamp: Date.now(),
       });
-      
+
       // إشعار Session Sync Manager
       this.sessionSync?.notifyLogout();
     } catch (error) {
       logger.error('Logout error:', error);
       this.emit('error', { type: 'logout_error', error });
-      
+
       // حتى في حالة الخطأ، نمسح الحالة المحلية
       this.setState({
         user: null,
@@ -506,7 +507,7 @@ class UnifiedAuthManager extends EventEmitter {
   /**
    * تحديث بيانات المستخدم
    */
-  updateUser(userData: Partial<any>) {
+  updateUser(userData: Partial<AuthUser>) {
     if (this.state.user) {
       this.setState({
         user: { ...this.state.user, ...userData },
@@ -547,7 +548,7 @@ class UnifiedAuthManager extends EventEmitter {
             type: 'token_refresh',
             timestamp: Date.now(),
           });
-          
+
           // إشعار Session Sync Manager
           this.sessionSync?.notifyTokenRefresh();
         } else if (response.status === 401) {
@@ -622,7 +623,7 @@ class UnifiedAuthManager extends EventEmitter {
         if (response.ok) {
           const contentType = response.headers.get('content-type');
           const isJson = contentType?.includes('application/json');
-          
+
           if (isJson) {
             const data = await response.json();
             if (data.user) {
@@ -665,7 +666,7 @@ class UnifiedAuthManager extends EventEmitter {
    */
   destroy() {
     this.clearTokenRefresh();
-    
+
     if (this.activityTimer) {
       clearInterval(this.activityTimer);
       this.activityTimer = null;
@@ -701,16 +702,16 @@ export function getAuthManager(): UnifiedAuthManager {
         lastActivity: Date.now(),
         tokenExpiry: null,
       }),
-      setState: () => {},
-      login: async () => {},
-      logout: async () => {},
-      updateUser: () => {},
+      setState: () => { },
+      login: async () => { },
+      logout: async () => { },
+      updateUser: () => { },
       checkAuth: async () => false,
       on: ((event: string, listener: (...args: unknown[]) => void): UnifiedAuthManager => {
         return {} as UnifiedAuthManager;
       }) as (event: string, listener: (...args: unknown[]) => void) => UnifiedAuthManager,
       emit: () => false,
-      destroy: () => {},
+      destroy: () => { },
     } as any;
   }
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { 
   setAuthCookies, 

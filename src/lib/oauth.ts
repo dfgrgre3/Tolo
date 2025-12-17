@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
 import { getJWTSecret } from './env-validation';
+import { logger } from '@/lib/logger';
 
 // Security: JWT_SECRET is required - no fallback values allowed
 let JWT_SECRET: Uint8Array | null = null;
@@ -48,36 +49,36 @@ export function validateRedirectUri(redirectUri: string): { valid: boolean; erro
 
   try {
     const url = new URL(redirectUri);
-    
+
     // Check protocol
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-      return { 
-        valid: false, 
-        error: `Invalid protocol: ${url.protocol}. Must be http:// or https://` 
+      return {
+        valid: false,
+        error: `Invalid protocol: ${url.protocol}. Must be http:// or https://`
       };
     }
 
     // Check for trailing slash (common mistake)
     if (redirectUri.endsWith('/') && !redirectUri.endsWith('/callback/')) {
-      return { 
-        valid: false, 
-        error: 'Redirect URI should not end with a trailing slash (except /callback/)' 
+      return {
+        valid: false,
+        error: 'Redirect URI should not end with a trailing slash (except /callback/)'
       };
     }
 
     // Check path format
     if (!url.pathname.startsWith('/api/auth/')) {
-      return { 
-        valid: false, 
-        error: 'Redirect URI path must start with /api/auth/' 
+      return {
+        valid: false,
+        error: 'Redirect URI path must start with /api/auth/'
       };
     }
 
     return { valid: true };
   } catch (error) {
-    return { 
-      valid: false, 
-      error: `Invalid redirect URI format: ${error instanceof Error ? error.message : String(error)}` 
+    return {
+      valid: false,
+      error: `Invalid redirect URI format: ${error instanceof Error ? error.message : String(error)}`
     };
   }
 }
@@ -118,7 +119,7 @@ export function normalizeRedirectUri(redirectUri: string): string {
     // - Remove double slashes (except after protocol)
     // - Remove trailing slash (except for /callback/)
     let pathname = url.pathname.replace(/\/+/g, '/');
-    
+
     // Remove trailing slash unless it's /callback/
     if (pathname.endsWith('/') && pathname !== '/callback/') {
       pathname = pathname.slice(0, -1);
@@ -131,7 +132,7 @@ export function normalizeRedirectUri(redirectUri: string): string {
     // Remove query parameters and hash (Google OAuth redirect_uri should not have them)
     // But keep them if they exist for backward compatibility warning
     if (url.search || url.hash) {
-      console.warn('⚠️ Redirect URI contains query parameters or hash. Google OAuth redirect_uri should only contain the base URL and path.');
+      logger.warn('⚠️ Redirect URI contains query parameters or hash. Google OAuth redirect_uri should only contain the base URL and path.');
     }
 
     return normalized;
@@ -159,10 +160,10 @@ function getOAuthConfig() {
   // Get base URL from environment variable (should be just the domain, e.g., http://localhost:3000)
   // The redirect URI path will be appended automatically
   const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').trim();
-  
+
   // Remove trailing slash if present to avoid double slashes
   const cleanBaseUrl = baseUrl.replace(/\/+$/, '');
-  
+
   // Build the complete redirect URI (this is what will be sent to Google OAuth)
   // This must match EXACTLY what is configured in Google Cloud Console
   // The normalizeRedirectUri function ensures consistency:
@@ -175,32 +176,32 @@ function getOAuthConfig() {
     googleRedirectUri = normalizeRedirectUri(`${cleanBaseUrl}/api/auth/google/callback`);
   } catch (error) {
     // If normalization fails, log error and use basic normalization as fallback
-    console.error('⚠️ Failed to normalize Google OAuth redirect URI:', error);
+    logger.error('⚠️ Failed to normalize Google OAuth redirect URI:', error);
     googleRedirectUri = `${cleanBaseUrl}/api/auth/google/callback`.replace(/\/+$/, '');
-    console.warn('⚠️ Using fallback redirect URI. This may cause OAuth failures if not configured correctly in Google Cloud Console.');
+    logger.warn('⚠️ Using fallback redirect URI. This may cause OAuth failures if not configured correctly in Google Cloud Console.');
   }
-  
+
   // Validate the redirect URI format
   const validation = validateRedirectUri(googleRedirectUri);
   if (!validation.valid) {
-    console.error('⚠️ Invalid Google OAuth redirect URI:', validation.error);
-    console.error('Redirect URI:', googleRedirectUri);
-    console.error('Base URL:', baseUrl);
-    console.error('📝 To fix: Add this EXACT redirect URI to Google Cloud Console:');
-    console.error(`   ${googleRedirectUri}`);
+    logger.error('⚠️ Invalid Google OAuth redirect URI:', validation.error);
+    logger.error('Redirect URI:', googleRedirectUri);
+    logger.error('Base URL:', baseUrl);
+    logger.error('📝 To fix: Add this EXACT redirect URI to Google Cloud Console:');
+    logger.error(`   ${googleRedirectUri}`);
     // Don't throw in production, but log the error
     if (process.env.NODE_ENV === 'development') {
-      console.warn('This may cause OAuth failures. Please check your NEXT_PUBLIC_BASE_URL environment variable.');
-      console.warn('Run "npm run check:oauth" to verify your OAuth configuration.');
+      logger.warn('This may cause OAuth failures. Please check your NEXT_PUBLIC_BASE_URL environment variable.');
+      logger.warn('Run "npm run check:oauth" to verify your OAuth configuration.');
     }
   } else {
     // Log the exact redirect URI for easy copy-paste to Google Cloud Console
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Google OAuth redirect URI:', googleRedirectUri);
-      console.log('📝 Add this EXACT value to Google Cloud Console → OAuth 2.0 Client IDs → Authorized redirect URIs');
+      logger.info('✅ Google OAuth redirect URI:', googleRedirectUri);
+      logger.info('📝 Add this EXACT value to Google Cloud Console → OAuth 2.0 Client IDs → Authorized redirect URIs');
     }
   }
-  
+
   return {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
@@ -226,6 +227,19 @@ function getOAuthConfig() {
         const clientId = process.env.FACEBOOK_CLIENT_ID || '';
         const clientSecret = process.env.FACEBOOK_CLIENT_SECRET || '';
         return clientId.trim() !== '' && clientSecret.trim() !== '';
+      },
+    },
+    apple: {
+      clientId: process.env.APPLE_CLIENT_ID || '',
+      teamId: process.env.APPLE_TEAM_ID || '',
+      keyId: process.env.APPLE_KEY_ID || '',
+      privateKey: process.env.APPLE_PRIVATE_KEY || '',
+      // Complete redirect URI stored internally
+      redirectUri: normalizeRedirectUri(`${cleanBaseUrl}/api/auth/apple/callback`),
+      isConfigured: () => {
+        const clientId = process.env.APPLE_CLIENT_ID || '';
+        const teamId = process.env.APPLE_TEAM_ID || '';
+        return clientId.trim() !== '' && teamId.trim() !== '';
       },
     },
   };

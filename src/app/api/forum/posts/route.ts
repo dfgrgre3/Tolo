@@ -10,48 +10,48 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(req.url);
       const categoryId = searchParams.get("categoryId");
 
-    const where = categoryId ? { categoryId } : {};
+      const where = categoryId ? { categoryId } : {};
 
-    const posts = await prisma.forumPost.findMany({
-      where,
-      include: {
-        author: {
-          select: { name: true }
+      const posts = await prisma.forumPost.findMany({
+        where,
+        include: {
+          author: {
+            select: { name: true }
+          },
+          category: {
+            select: { name: true }
+          },
+          _count: {
+            select: { replies: true }
+          }
         },
-        category: {
-          select: { name: true }
-        },
-        _count: {
-          select: { replies: true }
-        }
-      },
-      orderBy: [
-        { isPinned: "desc" },
-        { createdAt: "desc" }
-      ]
-    });
+        orderBy: [
+          { isPinned: "desc" },
+          { createdAt: "desc" }
+        ]
+      });
 
-    // Transform the data to match the frontend structure
-    const transformedPosts = posts.map((post: any) => ({
-      id: post.id,
-      title: post.title,
-      content: post.content,
-      authorName: post.author.name,
-      categoryId: post.categoryId,
-      categoryName: post.category.name,
-      createdAt: post.createdAt.toISOString(),
-      views: post.views,
-      repliesCount: post._count.replies,
-      isPinned: post.isPinned
-    }));
+      // Transform the data to match the frontend structure
+      const transformedPosts = posts.map((post) => ({
+        id: post.id,
+        title: post.title,
+        content: post.content,
+        authorName: post.author.name,
+        categoryId: post.categoryId,
+        categoryName: post.category.name,
+        createdAt: post.createdAt.toISOString(),
+        views: post.viewCount,
+        repliesCount: post._count.replies,
+        isPinned: post.isPinned
+      }));
 
-    return NextResponse.json(transformedPosts);
-  } catch (error) {
-    logger.error("Error fetching forum posts:", error);
-    return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظˆط§ط¶ظٹط¹" },
-      { status: 500 }
-    );
+      return NextResponse.json(transformedPosts);
+    } catch (error: unknown) {
+      logger.error("Error fetching forum posts:", error);
+      return NextResponse.json(
+        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظˆط§ط¶ظٹط¹" },
+        { status: 500 }
+      );
     }
   });
 }
@@ -71,52 +71,52 @@ export async function POST(request: NextRequest) {
 
       // Check if user exists
       const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
+        where: { id: userId }
+      });
 
-    if (!user) {
-      return NextResponse.json(
-        { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
-        { status: 404 }
-      );
-    }
-
-    // Check if category exists
-    const category = await prisma.forumCategory.findUnique({
-      where: { id: categoryId }
-    });
-
-    if (!category) {
-      return NextResponse.json(
-        { error: "ط§ظ„طھطµظ†ظٹظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
-        { status: 404 }
-      );
-    }
-
-    const newPost = await prisma.forumPost.create({
-      data: {
-        title,
-        content,
-        authorId: userId,
-        categoryId
-      },
-      include: {
-        author: {
-          select: { name: true }
-        },
-        category: {
-          select: { name: true }
-        }
+      if (!user) {
+        return NextResponse.json(
+          { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
+          { status: 404 }
+        );
       }
-    });
 
-    return NextResponse.json(newPost, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating forum post:", error);
-    return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظˆط¶ظˆط¹" },
-      { status: 500 }
-    );
+      // Check if category exists
+      const category = await prisma.forumCategory.findUnique({
+        where: { id: categoryId }
+      });
+
+      if (!category) {
+        return NextResponse.json(
+          { error: "ط§ظ„طھطµظ†ظٹظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
+          { status: 404 }
+        );
+      }
+
+      const newPost = await prisma.forumPost.create({
+        data: {
+          title,
+          content,
+          authorId: userId,
+          categoryId
+        },
+        include: {
+          author: {
+            select: { name: true }
+          },
+          category: {
+            select: { name: true }
+          }
+        }
+      });
+
+      return NextResponse.json(newPost, { status: 201 });
+    } catch (error: unknown) {
+      logger.error("Error creating forum post:", error);
+      return NextResponse.json(
+        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظˆط¶ظˆط¹" },
+        { status: 500 }
+      );
     }
   });
 }

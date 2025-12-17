@@ -16,7 +16,7 @@ export interface SecurityNotification {
   severity: 'info' | 'warning' | 'critical';
   title: string;
   message: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   read: boolean;
   actioned: boolean;
   createdAt: Date;
@@ -39,7 +39,7 @@ export type SecurityNotificationType =
 export class SecurityNotificationService {
   private static instance: SecurityNotificationService;
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): SecurityNotificationService {
     if (!SecurityNotificationService.instance) {
@@ -54,7 +54,7 @@ export class SecurityNotificationService {
   async createNotification(
     userId: string,
     type: SecurityNotificationType,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): Promise<SecurityNotification> {
     const { title, message, severity } = this.getNotificationContent(type, metadata);
 
@@ -82,10 +82,10 @@ export class SecurityNotificationService {
     // Critical: always send
     // Warning: send for important security events
     // Info: don't send by default
-    const shouldSendEmail = 
-      severity === 'critical' || 
+    const shouldSendEmail =
+      severity === 'critical' ||
       (severity === 'warning' && ['new_device_login', 'new_location_login', 'multiple_failed_attempts', 'suspicious_login'].includes(type));
-    
+
     if (shouldSendEmail) {
       await this.sendEmailNotification(userId, notification);
     }
@@ -224,7 +224,7 @@ export class SecurityNotificationService {
    */
   private getNotificationContent(
     type: SecurityNotificationType,
-    metadata?: Record<string, any>
+    metadata?: Record<string, unknown>
   ): {
     title: string;
     message: string;
@@ -233,85 +233,85 @@ export class SecurityNotificationService {
     switch (type) {
       case 'new_device_login':
         return {
-          title: 'طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ظ† ط¬ظ‡ط§ط² ط¬ط¯ظٹط¯',
-          message: `طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ ظ…ظ† ط¬ظ‡ط§ط² ط¬ط¯ظٹط¯ (${metadata?.device?.browser} ط¹ظ„ظ‰ ${metadata?.device?.os})${metadata?.location ? ` ظ…ظ† ${metadata.location.city || metadata.location.country}` : ''}.`,
+          title: 'تسجيل دخول من جهاز جديد',
+          message: `تم تسجيل الدخول إلى حسابك من جهاز جديد (${(metadata as any)?.device?.browser} على ${(metadata as any)?.device?.os})${(metadata as any)?.location ? ` من ${(metadata as any).location.city || (metadata as any).location.country}` : ''}.`,
           severity: 'warning',
         };
 
       case 'new_location_login':
         return {
-          title: 'طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ظ† ظ…ظˆظ‚ط¹ ط¬ط¯ظٹط¯',
-          message: `طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ ظ…ظ† ظ…ظˆظ‚ط¹ ط¬ط¯ظٹط¯: ${metadata?.location?.city || metadata?.location?.country || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}.`,
+          title: 'تسجيل دخول من موقع جديد',
+          message: `تم تسجيل الدخول إلى حسابك من موقع جديد: ${(metadata as any)?.location?.city || (metadata as any)?.location?.country || 'غير معروف'}.`,
           severity: 'warning',
         };
 
       case 'suspicious_login':
         return {
-          title: 'ظ…ط­ط§ظˆظ„ط© طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ط´ط¨ظˆظ‡ط©',
-          message: `طھظ… ط§ظƒطھط´ط§ظپ ظ…ط­ط§ظˆظ„ط© طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ط´ط¨ظˆظ‡ط© ظ„ط­ط³ط§ط¨ظƒ. ظ…ط³طھظˆظ‰ ط§ظ„ط®ط·ط±: ${metadata?.riskLevel}. ط¥ط°ط§ ظ„ظ… طھظƒظ† ط£ظ†طھطŒ ظ‚ظ… ط¨طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظپظˆط±ط§ظ‹.`,
+          title: 'محاولة تسجيل دخول مشبوهة',
+          message: `تم اكتشاف محاولة تسجيل دخول مشبوهة لحسابك. مستوى الخطر: ${(metadata as any)?.riskLevel}. إذا لم تكن أنت، قم بتغيير كلمة المرور فوراً.`,
           severity: 'critical',
         };
 
       case 'password_changed':
         return {
-          title: 'طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±',
-          message: 'طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ظ…ط±ظˆط± ط­ط³ط§ط¨ظƒ ط¨ظ†ط¬ط§ط­. ط¥ط°ط§ ظ„ظ… طھظ‚ظ… ط¨ط°ظ„ظƒطŒ ط§طھطµظ„ ط¨ط§ظ„ط¯ط¹ظ… ظپظˆط±ط§ظ‹.',
+          title: 'تم تغيير كلمة المرور',
+          message: 'تم تغيير كلمة مرور حسابك بنجاح. إذا لم تقم بذلك، اتصل بالدعم فوراً.',
           severity: 'critical',
         };
 
       case 'email_changed':
         return {
-          title: 'طھظ… طھط؛ظٹظٹط± ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ',
-          message: 'طھظ… طھط؛ظٹظٹط± ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ„ط­ط³ط§ط¨ظƒ. ط¥ط°ط§ ظ„ظ… طھظ‚ظ… ط¨ط°ظ„ظƒطŒ ط§طھطµظ„ ط¨ط§ظ„ط¯ط¹ظ… ظپظˆط±ط§ظ‹.',
+          title: 'تم تغيير البريد الإلكتروني',
+          message: 'تم تغيير البريد الإلكتروني لحسابك. إذا لم تقم بذلك، اتصل بالدعم فوراً.',
           severity: 'critical',
         };
 
       case '2fa_enabled':
         return {
-          title: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط©',
-          message: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ظ„ط­ط³ط§ط¨ظƒ. ط­ط³ط§ط¨ظƒ ط§ظ„ط¢ظ† ط£ظƒط«ط± ط£ظ…ط§ظ†ط§ظ‹.',
+          title: 'تم تفعيل المصادقة الثنائية',
+          message: 'تم تفعيل المصادقة الثنائية لحسابك. حسابك الآن أكثر أماناً.',
           severity: 'info',
         };
 
       case '2fa_disabled':
         return {
-          title: 'طھظ… طھط¹ط·ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط©',
-          message: 'طھظ… طھط¹ط·ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ظ„ط­ط³ط§ط¨ظƒ. ظ†ظˆطµظٹ ط¨ط¥ط¹ط§ط¯ط© طھظپط¹ظٹظ„ظ‡ط§ ظ„ط­ظ…ط§ظٹط© ط£ظپط¶ظ„.',
+          title: 'تم تعطيل المصادقة الثنائية',
+          message: 'تم تعطيل المصادقة الثنائية لحسابك. نوصي بإعادة تفعيلها لحماية أفضل.',
           severity: 'warning',
         };
 
       case 'device_removed':
         return {
-          title: 'طھظ… ط¥ط²ط§ظ„ط© ط¬ظ‡ط§ط²',
-          message: 'طھظ… ط¥ط²ط§ظ„ط© ط¬ظ‡ط§ط² ظ…ظ† ط§ظ„ط£ط¬ظ‡ط²ط© ط§ظ„ظ…ظˆط«ظˆظ‚ط© ظ„ط­ط³ط§ط¨ظƒ.',
+          title: 'تم إزالة جهاز',
+          message: 'تم إزالة جهاز من الأجهزة الموثوقة لحسابك.',
           severity: 'info',
         };
 
       case 'multiple_failed_attempts':
         return {
-          title: 'ظ…ط­ط§ظˆظ„ط§طھ ط¯ط®ظˆظ„ ظپط§ط´ظ„ط© ظ…طھط¹ط¯ط¯ط©',
-          message: `طھظ… ط±طµط¯ ${metadata?.attemptCount || 'ط¹ط¯ط©'} ظ…ط­ط§ظˆظ„ط§طھ ظپط§ط´ظ„ط© ظ„طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¥ظ„ظ‰ ط­ط³ط§ط¨ظƒ. ط¥ط°ط§ ظ„ظ… طھظƒظ† ط£ظ†طھطŒ ظ‚ظ… ط¨طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±.`,
+          title: 'محاولات دخول فاشلة متعددة',
+          message: `تم رصد ${(metadata as any)?.attemptCount || 'عدة'} محاولات فاشلة لتسجيل الدخول إلى حسابك. إذا لم تكن أنت، قم بتغيير كلمة المرور.`,
           severity: 'warning',
         };
 
       case 'account_locked':
         return {
-          title: 'طھظ… ظ‚ظپظ„ ط§ظ„ط­ط³ط§ط¨ ظ…ط¤ظ‚طھط§ظ‹',
-          message: 'طھظ… ظ‚ظپظ„ ط­ط³ط§ط¨ظƒ ظ…ط¤ظ‚طھط§ظ‹ ط¨ط³ط¨ط¨ ظ…ط­ط§ظˆظ„ط§طھ طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…ط´ط¨ظˆظ‡ط©. ط³ظٹطھظ… ط¥ظ„ط؛ط§ط، ط§ظ„ظ‚ظپظ„ ط®ظ„ط§ظ„ 30 ط¯ظ‚ظٹظ‚ط©.',
+          title: 'تم قفل الحساب مؤقتاً',
+          message: 'تم قفل حسابك مؤقتاً بسبب محاولات تسجيل دخول مشبوهة. سيتم إلغاء القفل خلال 30 دقيقة.',
           severity: 'critical',
         };
 
       case 'unusual_activity':
         return {
-          title: 'ظ†ط´ط§ط· ط؛ظٹط± ظ…ط¹طھط§ط¯',
-          message: 'طھظ… ط±طµط¯ ظ†ط´ط§ط· ط؛ظٹط± ظ…ط¹طھط§ط¯ ط¹ظ„ظ‰ ط­ط³ط§ط¨ظƒ. ظٹط±ط¬ظ‰ ظ…ط±ط§ط¬ط¹ط© ط³ط¬ظ„ ط§ظ„ظ†ط´ط§ط·ط§طھ.',
+          title: 'نشاط غير معتاد',
+          message: 'تم رصد نشاط غير معتاد على حسابك. يرجى مراجعة سجل النشاطات.',
           severity: 'warning',
         };
 
       default:
         return {
-          title: 'ط¥ط´ط¹ط§ط± ط£ظ…ظ†ظٹ',
-          message: 'طھظ… ط±طµط¯ ط­ط¯ط« ط£ظ…ظ†ظٹ ط¹ظ„ظ‰ ط­ط³ط§ط¨ظƒ.',
+          title: 'إشعار أمني',
+          message: 'تم رصد حدث أمني على حسابك.',
           severity: 'info',
         };
     }
@@ -328,8 +328,8 @@ export class SecurityNotificationService {
         id: crypto.randomUUID(),
         userId: notification.userId,
         eventType: `notification_${notification.type}`,
-        ip: notification.metadata?.ip || 'unknown',
-        userAgent: notification.metadata?.userAgent || 'system',
+        ip: (notification.metadata as any)?.ip || 'unknown',
+        userAgent: (notification.metadata as any)?.userAgent || 'system',
         metadata: JSON.stringify({
           notificationId: notification.id,
           severity: notification.severity,
@@ -405,12 +405,12 @@ export class SecurityNotificationService {
               <h2 style="color: #1e293b; margin-top: 0; margin-bottom: 10px;">${notification.title}</h2>
               <p style="color: #4b5563; margin: 0; line-height: 1.6;">${notification.message}</p>
             </div>
-            ${notification.metadata?.device || notification.metadata?.location || notification.metadata?.ip ? `
+            ${(notification.metadata as any)?.device || (notification.metadata as any)?.location || (notification.metadata as any)?.ip ? `
               <div style="background-color: #f3f4f6; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
                 <h3 style="color: #374151; margin-top: 0; margin-bottom: 10px; font-size: 14px;">طھظپط§طµظٹظ„ ط§ظ„ط­ط¯ط«:</h3>
-                ${notification.metadata?.device ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ط¬ظ‡ط§ط²:</strong> ${notification.metadata.device.browser || ''} ط¹ظ„ظ‰ ${notification.metadata.device.os || ''}</p>` : ''}
-                ${notification.metadata?.location ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ظ…ظˆظ‚ط¹:</strong> ${notification.metadata.location.city || notification.metadata.location.country || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}</p>` : ''}
-                ${notification.metadata?.ip ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط¹ظ†ظˆط§ظ† IP:</strong> ${notification.metadata.ip}</p>` : ''}
+                ${(notification.metadata as any)?.device ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ط¬ظ‡ط§ط²:</strong> ${(notification.metadata as any).device.browser || ''} ط¹ظ„ظ‰ ${(notification.metadata as any).device.os || ''}</p>` : ''}
+                ${(notification.metadata as any)?.location ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ظ…ظˆظ‚ط¹:</strong> ${(notification.metadata as any).location.city || (notification.metadata as any).location.country || 'ط؛ظٹط± ظ…ط¹ط±ظˆظپ'}</p>` : ''}
+                ${(notification.metadata as any)?.ip ? `<p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط¹ظ†ظˆط§ظ† IP:</strong> ${(notification.metadata as any).ip}</p>` : ''}
                 <p style="color: #6b7280; margin: 5px 0; font-size: 13px;"><strong>ط§ظ„ظˆظ‚طھ:</strong> ${new Date(notification.createdAt).toLocaleString('ar-EG')}</p>
               </div>
             ` : ''}

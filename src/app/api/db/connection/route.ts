@@ -54,12 +54,12 @@ export async function GET(request: NextRequest) {
             }
           });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Database connection API error:', error);
       return NextResponse.json(
         {
           success: false,
-          error: error?.message || 'Unknown error',
+          error: error instanceof Error ? error.message : String(error),
           message: 'Failed to check database connection'
         },
         { status: 500 }
@@ -112,12 +112,12 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       logger.error('Database connection API error:', error);
       return NextResponse.json(
         {
           success: false,
-          error: error?.message || 'Unknown error',
+          error: error instanceof Error ? error.message : String(error),
           message: 'Failed to process database connection request'
         },
         { status: 500 }

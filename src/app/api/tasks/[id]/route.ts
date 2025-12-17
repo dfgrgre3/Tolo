@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from "@/lib/prisma";
-import { authService } from "@/lib/auth-service";
-import { gamificationService } from "@/lib/gamification-service";
+import { prisma } from "@/lib/db";
+import { authService } from "@/lib/services/auth-service";
+import { gamificationService } from "@/lib/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { TASK_STATUS } from '@/lib/constants';

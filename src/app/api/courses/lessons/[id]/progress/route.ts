@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
 // POST to update lesson progress
@@ -54,16 +54,16 @@ export async function POST(
       const subjectData = await prisma.subject.findFirst({
         where: { name: subject }
       });
-      
+
       if (subjectData) {
         const subjectTopics = await prisma.topic.findMany({
           where: { subjectId: subjectData.id },
           include: { subTopics: true }
         });
-        
-        const allSubTopics = subjectTopics.flatMap((topic: any) => topic.subTopics);
-        const subTopicIds = allSubTopics.map((st: any) => st.id);
-        
+
+        const allSubTopics = subjectTopics.flatMap((topic) => topic.subTopics);
+        const subTopicIds = allSubTopics.map((st) => st.id);
+
         // Get user progress for all subtopics in this subject
         const userProgress = await prisma.topicProgress.findMany({
           where: {
@@ -71,11 +71,11 @@ export async function POST(
             subTopicId: { in: subTopicIds }
           }
         });
-        
-        const completedCount = userProgress.filter((p: any) => p.completed).length;
+
+        const completedCount = userProgress.filter((p) => p.completed).length;
         const totalCount = subTopicIds.length;
         const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-        
+
         // Update subject enrollment with progress - skipped as field doesn't exist
         // await prisma.subjectEnrollment.updateMany({ ... });
       }

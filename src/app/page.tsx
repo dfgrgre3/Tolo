@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getProgressSummary } from "@/lib/server-data-fetch";
-import { HomeClient } from "./home-client";
+import { HomeClient } from "@/app/components/home/HomeClient";
 import { SkeletonLoader } from "@/components/ui/SkeletonLoader";
 
 /**

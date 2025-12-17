@@ -1,0 +1,151 @@
+{
+    "sessionManager": {
+        "title": "Session Management",
+        "description": "View and manage devices connected to your account",
+        "activeSessions": "{count} active sessions",
+        "currentSession": "Current Session",
+        "revokeSession": "Revoke Session",
+        "revokeAllOthers": "Revoke All Others",
+        "revokeAllConfirm": {
+            "title": "Confirm Revoke All Other Sessions",
+            "description": "You will be signed out of all other devices ({count} devices). Only this current session will remain active.",
+            "confirm": "Yes, Revoke Sessions"
+        },
+        "unknownBrowser": "Unknown browser",
+        "unknownOS": "Unknown OS",
+        "ipAddress": "IP Address",
+        "lastActivity": "Last activity",
+        "expiresAt": "Expires at",
+        "noSessions": "No active sessions",
+        "loadError": "Failed to load sessions",
+        "revokeSuccess": "Session revoked successfully",
+        "revokeAllSuccess": "{count} sessions revoked successfully",
+        "revokeError": "Failed to revoke session"
+    },
+    "passwordBreach": {
+        "checking": "Checking...",
+        "safe": "Password has not appeared in any known data breaches",
+        "breached": "This password appeared in {count} data breaches",
+        "breachedCritical": "Critical warning! This password appeared in over 1 million data breaches!",
+        "breachedHigh": "Warning! This password appeared in {count} data breaches",
+        "recommendation": "We recommend choosing a different password to keep your account secure",
+        "learnMore": "Learn more",
+        "checkFailed": "Unable to verify password security"
+    },
+    "twoFactor": {
+        "title": "Two-Factor Authentication",
+        "description": "Add an extra layer of security to your account",
+        "enabled": "Enabled",
+        "disabled": "Disabled",
+        "enable": "Enable",
+        "disable": "Disable",
+        "methods": {
+            "app": "Authenticator App",
+            "sms": "SMS",
+            "email": "Email"
+        },
+        "setup": {
+            "title": "Set up Two-Factor Authentication",
+            "step1": "Download an authenticator app like Google Authenticator",
+            "step2": "Scan the QR code or enter the key manually",
+            "step3": "Enter the code from the app to verify",
+            "secretKey": "Secret Key",
+            "verify": "Verify"
+        },
+        "backupCodes": {
+            "title": "Backup Codes",
+            "description": "Save these codes in a safe place. Each code can only be used once",
+            "remaining": "{count} codes remaining",
+            "generate": "Generate New Codes",
+            "download": "Download Codes",
+            "copy": "Copy Codes"
+        }
+    },
+    "passkeys": {
+        "title": "Passkeys",
+        "description": "Sign in quickly and securely using Face ID or fingerprint",
+        "addNew": "Add Passkey",
+        "manage": "Manage Passkeys",
+        "noPasskeys": "No passkeys registered",
+        "register": {
+            "title": "Register New Passkey",
+            "description": "Use Face ID or fingerprint to register",
+            "name": "Passkey Name",
+            "namePlaceholder": "e.g., My iPhone",
+            "submit": "Register"
+        },
+        "device": {
+            "lastUsed": "Last used",
+            "createdAt": "Created at",
+            "delete": "Delete",
+            "deleteConfirm": "Are you sure you want to delete this passkey?"
+        },
+        "errors": {
+            "notSupported": "Your browser doesn't support passkeys",
+            "cancelled": "Operation cancelled",
+            "failed": "Failed to register passkey"
+        }
+    },
+    "activityLog": {
+        "title": "Activity Log",
+        "description": "Track all security activities on your account",
+        "noActivity": "No recent activity",
+        "viewAll": "View All",
+        "types": {
+            "login": "Login",
+            "logout": "Logout",
+            "passwordChange": "Password Change",
+            "settingsChange": "Settings Change",
+            "securityAlert": "Security Alert"
+        },
+        "status": {
+            "success": "Success",
+            "warning": "Warning",
+            "danger": "Danger"
+        }
+    },
+    "securityScore": {
+        "title": "Security Score",
+        "excellent": "Excellent",
+        "good": "Good",
+        "fair": "Fair",
+        "poor": "Poor",
+        "recommendations": {
+            "title": "Security Recommendations",
+            "enable2fa": "Enable two-factor authentication",
+            "addPasskey": "Add a passkey",
+            "verifyEmail": "Verify your email",
+            "strongPassword": "Use a strong password",
+            "verifyPhone": "Verify your phone number"
+        }
+    },
+    "adaptiveAuth": {
+        "stepUp": {
+            "title": "Additional Verification Required",
+            "description": "We detected unusual activity. Please verify your identity",
+            "newDevice": "New device detected",
+            "newLocation": "New location detected",
+            "suspiciousActivity": "Suspicious activity detected",
+            "verifyWith": "Verify with",
+            "emailOTP": "Email code",
+            "smsOTP": "SMS code",
+            "passkey": "Face ID/Fingerprint"
+        },
+        "riskIndicator": {
+            "low": "Low risk",
+            "medium": "Medium risk",
+            "high": "High risk",
+            "critical": "Critical risk"
+        }
+    },
+    "common": {
+        "loading": "Loading...",
+        "error": "An error occurred",
+        "success": "Success",
+        "cancel": "Cancel",
+        "confirm": "Confirm",
+        "save": "Save",
+        "close": "Close",
+        "refresh": "Refresh"
+    }
+}

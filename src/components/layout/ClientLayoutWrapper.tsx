@@ -4,19 +4,26 @@ import React, { useEffect } from "react";
 import { ErrorBoundary, FallbackProps } from "react-error-boundary";
 
 // Lazy load logger to prevent server-only bundling issues
-let loggerInstance: any = null;
+interface Logger {
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+}
+
+let loggerInstance: Logger | null = null;
 async function getLogger() {
   if (!loggerInstance) {
     try {
       const loggerModule = await import('@/lib/logger');
-      loggerInstance = loggerModule.logger;
+      loggerInstance = loggerModule.logger as unknown as Logger;
     } catch (error) {
       // Fallback to console if logger fails to load
       loggerInstance = {
-        info: (...args: any[]) => console.info(...args),
-        warn: (...args: any[]) => console.warn(...args),
-        error: (...args: any[]) => console.error(...args),
-        debug: (...args: any[]) => console.debug(...args),
+        info: (...args: unknown[]) => console.info(...args),
+        warn: (...args: unknown[]) => console.warn(...args),
+        error: (...args: unknown[]) => console.error(...args),
+        debug: (...args: unknown[]) => console.debug(...args),
       };
     }
   }

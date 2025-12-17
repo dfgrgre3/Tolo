@@ -1,4 +1,4 @@
-import { sendTemplatedNotification } from './notification-service';
+import { sendTemplatedNotification } from '@/lib/services/notification-service';
 // Token is in httpOnly cookie - no need to import getSafeAuthToken
 
 import { logger } from '@/lib/logger';

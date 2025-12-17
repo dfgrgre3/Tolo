@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { advancedGamificationService } from '@/lib/advanced-gamification-service';
+import { advancedGamificationService } from '@/lib/services/advanced-gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -12,38 +12,39 @@ export async function POST(
     try {
       const { questId } = await params;
       const body = await req.json();
-    const { userId, progress } = body;
+      const { userId, progress } = body;
 
-    if (!userId || progress === undefined) {
-      return NextResponse.json(
-        { error: 'User ID and progress are required' },
-        { status: 400 }
+      if (!userId || progress === undefined) {
+        return NextResponse.json(
+          { error: 'User ID and progress are required' },
+          { status: 400 }
+        );
+      }
+
+      if (progress < 0 || progress > 100) {
+        return NextResponse.json(
+          { error: 'Progress must be between 0 and 100' },
+          { status: 400 }
+        );
+      }
+
+      await advancedGamificationService.updateQuestProgress(
+        userId,
+        questId,
+        progress
       );
-    }
 
-    if (progress < 0 || progress > 100) {
+      return NextResponse.json({
+        success: true,
+        message: 'تم تحديث تقدم المهمة بنجاح'
+      });
+    } catch (error: unknown) {
+      logger.error('Error updating quest progress:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return NextResponse.json(
-        { error: 'Progress must be between 0 and 100' },
-        { status: 400 }
+        { error: 'Failed to update quest progress', details: errorMessage },
+        { status: 500 }
       );
-    }
-
-    await advancedGamificationService.updateQuestProgress(
-      userId,
-      questId,
-      progress
-    );
-
-    return NextResponse.json({ 
-      success: true,
-      message: 'تم تحديث تقدم المهمة بنجاح' 
-    });
-  } catch (error: any) {
-    logger.error('Error updating quest progress:', error);
-    return NextResponse.json(
-      { error: 'Failed to update quest progress', details: error.message },
-      { status: 500 }
-    );
     }
   });
 }

@@ -1,11 +1,10 @@
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
+  provider = "postgresql"
 }
 
 model User {
@@ -226,7 +225,7 @@ model Book {
   downloads   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  tags        Json     @default("[]") // Array of tags as JSON (SQLite compatibility)
+  tags        String     @default("[]") // Array of tags as JSON (SQLite compatibility)
 
   @@index([subject])
   @@index([subject, rating])
@@ -324,7 +323,7 @@ model Achievement {
   difficulty    String // 'easy', 'medium', 'hard', 'expert'
   rarity        String   @default("common") // 'common', 'rare', 'epic', 'legendary'
   xpReward      Int
-  requirements  Json
+  requirements  String
   isSecret      Boolean  @default(false)
   unlockedCount Int      @default(0) // Track how many users unlocked it
   createdAt     DateTime @default(now())
@@ -434,7 +433,7 @@ model Season {
   startDate   DateTime
   endDate     DateTime
   isActive    Boolean  @default(true)
-  rewards     Json? // Rewards for top performers
+  rewards     String? // Rewards for top performers
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -473,12 +472,12 @@ model Challenge {
   category     String // 'study', 'tasks', 'exams', 'streak', 'mixed'
   difficulty   String // 'easy', 'medium', 'hard'
   xpReward     Int
-  requirements Json // Requirements to complete challenge
+  requirements String // Requirements to complete challenge
   startDate    DateTime
   endDate      DateTime
   isActive     Boolean  @default(true)
   subject      String? // Optional subject filter
-  levelRange   Json? // Optional level range [min, max]
+  levelRange   String? // Optional level range [min, max]
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -532,8 +531,8 @@ model Quest {
   description   String
   order         Int // Order in the chain
   xpReward      Int
-  requirements  Json // Requirements to complete
-  prerequisites Json? // Previous quests that must be completed
+  requirements  String // Requirements to complete
+  prerequisites String? // Previous quests that must be completed
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
 
@@ -572,7 +571,7 @@ model Reward {
   type        String // 'virtual', 'nft', 'badge', 'title'
   rarity      String // 'common', 'rare', 'epic', 'legendary'
   imageUrl    String?
-  metadata    Json? // NFT metadata, badge info, etc.
+  metadata    String? // NFT metadata, badge info, etc.
   isTradeable Boolean  @default(false)
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
@@ -641,7 +640,7 @@ model SentimentAnalysis {
   sentiment  String // 'positive', 'negative', 'neutral', 'frustrated', 'tired'
   score      Float // -1.0 to 1.0
   confidence Float // 0.0 to 1.0
-  emotions   Json? // Detected emotions (frustration, fatigue, etc.)
+  emotions   String? // Detected emotions (frustration, fatigue, etc.)
   context    String? // Context where sentiment was detected (chat, task, etc.)
   createdAt  DateTime @default(now())
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -661,7 +660,7 @@ model AiChatMessage {
   role      String // 'user', 'assistant'
   content   String
   sentiment String? // Sentiment of the message
-  metadata  Json? // Additional context, voice input data, etc.
+  metadata  String? // Additional context, voice input data, etc.
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -680,7 +679,7 @@ model AiGeneratedContent {
   title     String
   content   String // JSON string for structured content
   subject   String?
-  metadata  Json? // Additional metadata (difficulty, topics, etc.)
+  metadata  String? // Additional metadata (difficulty, topics, etc.)
   isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -703,7 +702,7 @@ model UserInteraction {
   type      String // 'view', 'click', 'complete', 'like', 'dislike', 'bookmark'
   itemType  String // 'resource', 'course', 'exam', 'content', 'teacher'
   itemId    String
-  metadata  Json? // Additional interaction data
+  metadata  String? // Additional interaction data
   timestamp DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -988,7 +987,7 @@ model Event {
   organizerId  String
   category     String
   isPublic     Boolean  @default(true)
-  tags         Json     @default("[]")
+  tags         String     @default("[]")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1026,7 +1025,7 @@ model Contest {
   startDate   DateTime
   endDate     DateTime
   rules       String?
-  prizes      Json?
+  prizes      String?
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -1129,7 +1128,7 @@ model AiQuestion {
   id            String   @id @default(cuid())
   examId        String
   question      String
-  options       Json // Array of options
+  options       String // Array of options
   correctAnswer String
   explanation   String?
   points        Int      @default(1)
@@ -1148,7 +1147,7 @@ model TestResult {
   examId      String
   score       Float
   totalScore  Float
-  answers     Json // User's answers
+  answers     String // User's answers
   timeTaken   Int // in seconds
   completedAt DateTime @default(now())
 
@@ -1170,7 +1169,7 @@ model BiometricCredential {
   counter      Int      @default(0)
   deviceType   String?
   deviceName   String?
-  transports   String[]
+  transports   String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -1199,14 +1198,14 @@ model PasswordPolicy {
   id               String   @id @default(cuid())
   role             String   @unique // 'user', 'admin', 'teacher', etc. or 'default' for all users
   expirationDays   Int? // null means no expiration
-  warningDays      Json     @default("[7, 3, 1]") // Array of days to send warnings before expiration
+  warningDays      String     @default("[7, 3, 1]") // Array of days to send warnings before expiration
   minLength        Int      @default(8)
   maxLength        Int      @default(128)
   requireUppercase Boolean  @default(true)
   requireLowercase Boolean  @default(true)
   requireNumbers   Boolean  @default(true)
   requireSpecial   Boolean  @default(true)
-  bannedPasswords  Json     @default("[]") // Array of banned/common passwords
+  bannedPasswords  String     @default("[]") // Array of banned/common passwords
   historyCount     Int      @default(10) // Number of previous passwords to keep
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())

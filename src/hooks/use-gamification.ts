@@ -1,58 +1,11 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { firestoreService, FirestoreUserProgress, FirestoreLeaderboardEntry } from '@/lib/firestore-service';
-import { logger } from '@/lib/logger';
-
-// Types (copied from gamification-service to avoid import)
-export interface UserProgress {
-  userId: string;
-  totalXP: number;
-  level: number;
-  currentStreak: number;
-  longestStreak: number;
-  totalStudyTime: number;
-  tasksCompleted: number;
-  examsPassed: number;
-  achievements: string[];
-  customGoals: CustomGoal[];
-}
-
-export interface Achievement {
-  id: string;
-  key: string;
-  title: string;
-  description: string;
-  icon: string;
-  category: 'study' | 'tasks' | 'exams' | 'time' | 'streak';
-  difficulty: 'easy' | 'medium' | 'hard' | 'expert';
-  xpReward: number;
-  requirements: Record<string, any>;
-  isSecret?: boolean;
-}
-
-export interface LeaderboardEntry {
-  userId: string;
-  username: string;
-  totalXP: number;
-  level: number;
-  rank: number;
-  avatar?: string;
-}
-
-export interface CustomGoal {
-  id: string;
-  userId: string;
-  title: string;
-  description?: string;
-  targetValue: number;
-  currentValue: number;
-  unit: string;
-  category: string;
-  isCompleted: boolean;
-  createdAt: Date;
-  completedAt?: Date;
-}
+import { firestoreService, FirestoreUserProgress, FirestoreLeaderboardEntry } from '@/lib/services/firestore-service';
+import { logger } from '@/lib/logger';
+import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/lib/services/gamification-service';
+export type { CustomGoal };
+import * as gamificationApi from '@/lib/api/gamification-client';
 
 interface UseGamificationOptions {
   userId: string;
@@ -96,24 +49,20 @@ export function useGamification({
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-      // Load user progress from API
-      const progressRes = await fetch(`/api/gamification/progress?userId=${userId}`);
-      const userProgress = progressRes.ok ? await progressRes.json() : null;
-
-      // Load all achievements from API
-      const achievementsRes = await fetch(`/api/gamification/achievements`);
-      const achievementsData = achievementsRes.ok ? await achievementsRes.json() : { achievements: [] };
-      const achievements = achievementsData.achievements || [];
-
-      // Load leaderboard from API
-      const leaderboardRes = await fetch(`/api/gamification/leaderboard?type=global&limit=50`);
-      let leaderboard: LeaderboardEntry[] = [];
-      if (leaderboardRes.ok) {
-        const leaderboardData = await leaderboardRes.json();
-        // API returns { leaderboard: [...], ... }, so extract the leaderboard array
-        leaderboard = Array.isArray(leaderboardData.leaderboard) ? leaderboardData.leaderboard : 
-                      (Array.isArray(leaderboardData) ? leaderboardData : []);
-      }
+      const [userProgress, achievements, leaderboard] = await Promise.all([
+        gamificationApi.fetchUserProgress(userId).catch(err => {
+          logger.error('Error fetching user progress:', err);
+          return null;
+        }),
+        gamificationApi.fetchAchievements().catch(err => {
+          logger.error('Error fetching achievements:', err);
+          return [] as Achievement[];
+        }),
+        gamificationApi.fetchLeaderboard('global', 50).catch(err => {
+          logger.error('Error fetching leaderboard:', err);
+          return [] as LeaderboardEntry[];
+        })
+      ]);
 
       setState(prev => ({
         ...prev,
@@ -240,16 +189,7 @@ export function useGamification({
     if (!userId) return null;
 
     try {
-      // Update progress via API
-      const updateRes = await fetch(`/api/gamification/progress`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action, data })
-      });
-
-      if (!updateRes.ok) throw new Error('Failed to update progress');
-
-      const updatedProgress = await updateRes.json();
+      const updatedProgress = await gamificationApi.updateUserProgress(userId, action, data);
 
       // Update Firestore
       await firestoreService.updateUserProgress(userId, {
@@ -286,19 +226,20 @@ export function useGamification({
     if (!userId) return null;
 
     try {
-      // Create goal via API
-      const createRes = await fetch(`/api/gamification/goals`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, ...goalData })
-      });
-
-      if (!createRes.ok) throw new Error('Failed to create goal');
-
-      const newGoal = await createRes.json();
+      const newGoal = await gamificationApi.createCustomGoal(userId, goalData);
 
       // Refresh user progress to include the new goal
-      await loadInitialData();
+      // We could also manually update the state to avoid a fetch
+      setState(prev => {
+        if (!prev.userProgress) return prev;
+        return {
+          ...prev,
+          userProgress: {
+            ...prev.userProgress,
+            customGoals: [...prev.userProgress.customGoals, newGoal]
+          }
+        };
+      });
 
       return newGoal;
     } catch (error) {
@@ -309,7 +250,7 @@ export function useGamification({
       }));
       return null;
     }
-  }, [userId, loadInitialData]);
+  }, [userId]);
 
   // Update custom goal
   const updateCustomGoal = useCallback(async (
@@ -317,19 +258,21 @@ export function useGamification({
     currentValue: number
   ): Promise<CustomGoal | null> => {
     try {
-      // Update goal via API
-      const updateRes = await fetch(`/api/gamification/goals/${goalId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentValue })
+      const updatedGoal = await gamificationApi.updateCustomGoal(goalId, currentValue);
+
+      // Update state locally
+      setState(prev => {
+        if (!prev.userProgress) return prev;
+        return {
+          ...prev,
+          userProgress: {
+            ...prev.userProgress,
+            customGoals: prev.userProgress.customGoals.map(g =>
+              g.id === goalId ? updatedGoal : g
+            )
+          }
+        };
       });
-
-      if (!updateRes.ok) throw new Error('Failed to update goal');
-
-      const updatedGoal = await updateRes.json();
-
-      // Refresh user progress to reflect the updated goal
-      await loadInitialData();
 
       return updatedGoal;
     } catch (error) {
@@ -340,7 +283,7 @@ export function useGamification({
       }));
       return null;
     }
-  }, [loadInitialData]);
+  }, []);
 
   // Clear achievement notification
   const clearAchievementNotification = useCallback(() => {

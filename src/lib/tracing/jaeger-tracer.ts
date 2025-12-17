@@ -36,12 +36,12 @@ export async function initializeTracer(): Promise<void> {
 
   try {
     // استيراد ديناميكي لـ JaegerExporter لتجنب مشاكل التحميل
-    let JaegerExporter: any;
+    let JaegerExporter: typeof import('@opentelemetry/exporter-jaeger').JaegerExporter;
     try {
       const jaegerModule = await import('@opentelemetry/exporter-jaeger');
       JaegerExporter = jaegerModule.JaegerExporter;
-    } catch (importError: any) {
-      logger.warn('Jaeger exporter not available, disabling tracing:', importError?.message);
+    } catch (importError: unknown) {
+      logger.warn('Jaeger exporter not available, disabling tracing:', (importError as Error)?.message);
       return;
     }
 
@@ -90,11 +90,12 @@ export async function initializeTracer(): Promise<void> {
     tracer = trace.getTracer(SERVICE_NAME);
 
     logger.info('Jaeger tracing initialized successfully');
-  } catch (error: any) {
-    logger.error('Failed to initialize Jaeger tracing:', error?.message || error);
+  } catch (error: unknown) {
+    const err = error as { message?: string; code?: string };
+    logger.error('Failed to initialize Jaeger tracing:', err?.message || String(error));
     // لا نرمي خطأ حتى لا نؤثر على التطبيق
     // تعطيل Jaeger تلقائياً في حالة الفشل
-    if (error?.code === 'ENOENT' || error?.message?.includes('jaeger') || error?.message?.includes('thrift')) {
+    if (err?.code === 'ENOENT' || err?.message?.includes('jaeger') || err?.message?.includes('thrift')) {
       logger.warn('Jaeger dependencies missing, tracing will be disabled');
     }
   }
@@ -110,10 +111,10 @@ export function getTracer() {
 }
 
 // إنشاء Span جديد
-export function startSpan(name: string, options?: { attributes?: Record<string, any> }): Span {
+export function startSpan(name: string, options?: { attributes?: Record<string, unknown> }): Span {
   const tracerInstance = getTracer();
   const span = tracerInstance.startSpan(name, {
-    attributes: options?.attributes || {},
+    attributes: (options?.attributes || {}) as any,
   });
   return span;
 }
@@ -135,11 +136,11 @@ export function startSpanWithContext(
 export async function traceAsync<T>(
   name: string,
   operation: (span: Span) => Promise<T>,
-  attributes?: Record<string, any>
+  attributes?: Record<string, unknown>
 ): Promise<T> {
   const tracerInstance = getTracer();
   return tracerInstance.startActiveSpan(name, {
-    attributes: attributes || {},
+    attributes: (attributes || {}) as any,
   }, async (span) => {
     try {
       const result = await operation(span);
@@ -162,11 +163,11 @@ export async function traceAsync<T>(
 export function traceSync<T>(
   name: string,
   operation: (span: Span) => T,
-  attributes?: Record<string, any>
+  attributes?: Record<string, unknown>
 ): T {
   const tracerInstance = getTracer();
   return tracerInstance.startActiveSpan(name, {
-    attributes: attributes || {},
+    attributes: (attributes || {}) as any,
   }, (span) => {
     try {
       const result = operation(span);
@@ -186,7 +187,7 @@ export function traceSync<T>(
 }
 
 // Extract context from headers (للـ HTTP requests)
-export function extractContext(headers: Record<string, string | string[] | undefined>): any {
+export function extractContext(headers: Record<string, string | string[] | undefined>): Context | undefined {
   const carrier: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(headers)) {

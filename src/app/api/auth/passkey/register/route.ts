@@ -1,8 +1,8 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { verifyRegistrationResponse } from '@simplewebauthn/server';
 import type { RegistrationResponseJSON } from '@simplewebauthn/types';
-import { BiometricChallengeService } from '@/lib/auth-challenges-service';
+import { BiometricChallengeService } from '@/lib/services/auth-challenges-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { isoUint8Array } from '@simplewebauthn/server/helpers';
@@ -83,7 +83,7 @@ async function handler(req: NextRequest) {
       // The PasskeyManager doesn't seem to send deviceType, so we'll leave it nullable
       // deviceType: registrationResponse.transports,
       deviceName: deviceName,
-      transports: transports
+      transports: Array.isArray(transports) ? transports.join(',') : transports
     }
   });
 

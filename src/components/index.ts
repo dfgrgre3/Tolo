@@ -20,8 +20,8 @@ export * as Dashboard from './dashboard';
 // مكونات المهام والوقت (Tasks & Time)
 // ============================================
 
-export { default as TimeTracker } from './TimeTracker';
-export { default as CalendarScheduler } from './CalendarScheduler';
+// TimeTracker moved to app/(dashboard)/time/components
+// CalendarScheduler removed
 
 // ============================================
 // مكونات معالجة الأخطاء (Error Handling)
@@ -35,57 +35,34 @@ export { default as ErrorToastContainer } from './ErrorToastContainer';
 // مكونات الإشعارات (Notifications)
 // ============================================
 export { default as NotificationsClient } from './NotificationsClient';
-export { NotificationsProvider } from './NotificationsProvider';
+export { NotificationsProvider } from '@/providers/NotificationsProvider';
 
 // ============================================
 // مكونات المزودين (Providers)
 // ============================================
-export { CombinedProviders } from './CombinedProviders';
-export { ThemeProvider } from './theme-provider';
+export { CombinedProviders } from '@/providers/CombinedProviders';
+export { ThemeProvider } from '@/providers/ThemeProvider';
 
 // ============================================
 // مكونات WebSocket
 // ============================================
-export { default as WebSocketIndicator } from './WebSocketIndicator';
+// WebSocketIndicator removed
 
 // ============================================
 // مكونات التحليلات (Analytics)
 // ============================================
-export {
-  DailyProgressChart,
-  StatusMessage
-} from './analytics';
-export type {
-  DailyProgressChartProps,
-  ChartDataPoint,
-  ThemeColors,
-  StatusMessageProps
-} from './analytics';
+export { DailyProgressChart } from '@/app/(dashboard)/analytics/components/DailyProgressChart';
+export { default as StatusMessage } from '@/app/(dashboard)/analytics/components/StatusMessage';
+export type { DailyProgressChartProps, ChartDataPoint, ThemeColors } from '@/app/(dashboard)/analytics/components/DailyProgressChart';
+export type { StatusMessageProps } from '@/app/(dashboard)/analytics/components/StatusMessage';
 
 // ============================================
 // مكونات الذكاء الاصطناعي (AI)
 // ============================================
-export { default as AIAssistant } from './ai/AIAssistant';
-export { default as AIAssistantEnhanced } from './ai/AIAssistantEnhanced';
-export { default as ExamGenerator } from './ai/ExamGenerator';
-export { default as TeacherSearch } from './ai/TeacherSearch';
-export { default as TipsGenerator } from './ai/TipsGenerator';
+// AI components moved to app/(dashboard)/ai/components
 
 // ============================================
 // مكونات المصادقة (Authentication)
 // ============================================
-export { AuthGuard } from './auth/AuthGuard';
-export { AuthSessionWrapper } from './auth/AuthSessionWrapper';
-export { default as BiometricManagement } from './auth/BiometricManagement';
-export { CaptchaWidget } from './auth/CaptchaWidget';
-export { default as ChangePassword } from './auth/ChangePassword';
-export { default as EnhancedLoginForm } from './auth/EnhancedLoginForm';
-export { default as EnhancedRegisterForm } from './auth/EnhancedRegisterForm';
-export { default as RecoveryCodesDisplay } from './auth/RecoveryCodesDisplay';
-export { default as SecurityLog } from './auth/SecurityLog';
-export { default as SecurityOnboarding } from './auth/SecurityOnboarding';
-export { default as SessionManager } from './auth/SessionManager';
-export { default as TOTPSetup } from './auth/TOTPSetup';
-export { default as TwoFactorSettings } from './auth/TwoFactorSettings';
-export { UnifiedAuthProvider } from './auth/UnifiedAuthProvider';
+// Auth components moved to app/(auth)/components
 

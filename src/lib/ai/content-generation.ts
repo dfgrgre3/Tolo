@@ -22,7 +22,7 @@ export async function generateSummary(
   maxLength: number = 500
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
-  
+
   const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ظ…ظ„ط®طµ ط´ط§ظ…ظ„ ظˆظ…ظپظٹط¯ ظ„ظ„ظ†طµ ط§ظ„طھط§ظ„ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط©. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط§ظ„ظ…ظ„ط®طµ:
 - ظˆط§ط¶ط­ ظˆظ…ط®طھطµط± (ط¨ط­ط¯ ط£ظ‚طµظ‰ ${maxLength} ظƒظ„ظ…ط©)
 - ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط§ظ„ظ†ظ‚ط§ط· ط§ظ„ط±ط¦ظٹط³ظٹط©
@@ -42,8 +42,8 @@ ${text}
 }`;
 
   const content = await callAI(prompt, provider);
-  
-  const summary = typeof content === 'string' 
+
+  const summary = typeof content === 'string'
     ? parseJSONResponse(content)
     : content;
 
@@ -55,11 +55,11 @@ ${text}
       title: summary.title || 'ظ…ظ„ط®طµ طھظ„ظ‚ط§ط¦ظٹ',
       content: JSON.stringify(summary),
       subject: subject || null,
-      metadata: {
+      metadata: JSON.stringify({
         originalLength: text.length,
         summaryLength: summary.summary?.length || 0,
         maxLength
-      }
+      })
     }
   });
 
@@ -83,7 +83,7 @@ export async function generateFlashcards(
   count: number = 10
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
-  
+
   const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ${count} ط¨ط·ط§ظ‚ط© طھط¹ظ„ظٹظ…ظٹط© (Flashcard) ظ…ظ† ط§ظ„ظ†طµ ط§ظ„طھط§ظ„ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط©. ظƒظ„ ط¨ط·ط§ظ‚ط© ظٹط¬ط¨ ط£ظ† طھط­طھظˆظٹ ط¹ظ„ظ‰:
 - ط³ط¤ط§ظ„ ط£ظˆ ظ…ظپظ‡ظˆظ… ظ…ظ† ط§ظ„ط¬ط§ظ†ط¨ ط§ظ„ط£ظ…ط§ظ…ظٹ
 - ط¥ط¬ط§ط¨ط© ط£ظˆ ط´ط±ط­ ظ…ظ† ط§ظ„ط¬ط§ظ†ط¨ ط§ظ„ط®ظ„ظپظٹ
@@ -105,7 +105,7 @@ ${text}
 }`;
 
   const content = await callAI(prompt, provider);
-  
+
   const flashcards = typeof content === 'string'
     ? parseJSONResponse(content)
     : content;
@@ -118,9 +118,9 @@ ${text}
       title: flashcards.title || 'ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©',
       content: JSON.stringify(flashcards),
       subject: subject || null,
-      metadata: {
+      metadata: JSON.stringify({
         count: flashcards.flashcards?.length || 0
-      }
+      })
     }
   });
 
@@ -191,7 +191,7 @@ ${JSON.stringify(studyHistory, null, 2)}
 }`;
 
   const content = await callAI(prompt, provider);
-  
+
   const studyPlan = typeof content === 'string'
     ? parseJSONResponse(content)
     : content;
@@ -203,11 +203,11 @@ ${JSON.stringify(studyHistory, null, 2)}
       type: 'study_plan',
       title: studyPlan.title || 'ط®ط·ط© ط¯ط±ط§ط³ظٹط©',
       content: JSON.stringify(studyPlan),
-      metadata: {
+      metadata: JSON.stringify({
         duration,
         hoursPerDay,
         subjects
-      }
+      })
     }
   });
 
@@ -231,7 +231,7 @@ export async function generatePracticeQuestions(
   difficulty: 'easy' | 'medium' | 'hard' = 'medium'
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
-  
+
   const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ${count} ط³ط¤ط§ظ„ طھط¯ط±ظٹط¨ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط© ط­ظˆظ„ ط§ظ„ظ…ظˆط¶ظˆط¹ ط§ظ„طھط§ظ„ظٹ ط¨ظ…ط³طھظˆظ‰ طµط¹ظˆط¨ط© ${difficulty}.
 
 ط§ظ„ظ…ظˆط¶ظˆط¹: ${topic}
@@ -260,7 +260,7 @@ export async function generatePracticeQuestions(
 }`;
 
   const content = await callAI(prompt, provider);
-  
+
   const questions = typeof content === 'string'
     ? parseJSONResponse(content)
     : content;
@@ -273,11 +273,11 @@ export async function generatePracticeQuestions(
       title: questions.title || 'ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©',
       content: JSON.stringify(questions),
       subject: subject || null,
-      metadata: {
+      metadata: JSON.stringify({
         count: questions.questions?.length || 0,
         difficulty,
         topic
-      }
+      })
     }
   });
 
@@ -394,7 +394,7 @@ export async function getUserGeneratedContent(
     take: limit
   });
 
-  return content.map((item: { id: string; type: string; [key: string]: unknown }) => ({
+  return content.map((item: { id: string; type: string;[key: string]: unknown }) => ({
     id: item.id,
     type: item.type as any,
     title: item.title,
@@ -415,7 +415,7 @@ export async function generateChatResponse(
   history: { role: 'user' | 'assistant'; content: string }[] = []
 ): Promise<string> {
   const provider = getDefaultProvider();
-  
+
   const prompt = `ط£ظ†طھ ظ…ط³ط§ط¹ط¯ طھط¹ظ„ظٹظ…ظٹ ط°ظƒظٹ ظ„ظ„ط·ظ„ط§ط¨. ط£ط¬ط¨ ط¹ظ„ظ‰ ط³ط¤ط§ظ„ ط§ظ„ط·ط§ظ„ط¨ ط§ظ„طھط§ظ„ظٹ:
 ${message}
 

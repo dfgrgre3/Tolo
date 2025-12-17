@@ -3,6 +3,9 @@
  * These types are used by both frontend components and backend API routes
  */
 
+import { ApiSuccessResponse, ApiErrorResponse, ApiResponse, DateString } from './common';
+export type { ApiSuccessResponse, ApiErrorResponse, ApiResponse, DateString };
+
 export interface User {
   id: string;
   email: string;
@@ -10,9 +13,9 @@ export interface User {
   role: string;
   emailVerified: boolean;
   twoFactorEnabled: boolean;
-  lastLogin?: string | Date | null;
+  lastLogin?: DateString | Date | null;
   provider?: 'local' | 'google' | 'facebook';
-  createdAt?: string | Date;
+  createdAt?: DateString | Date;
 }
 
 export interface RiskAssessment {
@@ -27,6 +30,7 @@ export interface RiskAssessment {
   recommendations?: string[];
   requireAdditionalAuth?: boolean;
   blockAccess?: boolean;
+  deviceFingerprint?: Record<string, unknown>;
 }
 
 // ==================== Login Types ====================
@@ -35,7 +39,7 @@ export interface LoginRequest {
   email: string;
   password: string;
   rememberMe?: boolean;
-  deviceFingerprint?: any;
+  deviceFingerprint?: Record<string, unknown>;
   captchaToken?: string;
 }
 
@@ -50,7 +54,7 @@ export interface LoginResponse {
   accountWasCreated?: boolean; // Indicates if account was auto-created during login
   requiresTwoFactor?: boolean;
   loginAttemptId?: string;
-  expiresAt?: string;
+  expiresAt?: DateString;
   methods?: string[];
   reason?: string;
   debugCode?: string; // Only in development
@@ -136,7 +140,7 @@ export interface BiometricChallengeResponse {
 }
 
 export interface BiometricVerifyRequest {
-  credential: any;
+  credential: unknown;
   challenge: string;
 }
 
@@ -148,21 +152,8 @@ export interface BiometricVerifyResponse {
 
 // ==================== Generic API Response ====================
 
-export interface ApiSuccessResponse<T = any> {
-  success: true;
-  data: T;
-  message?: string;
-}
+// Re-exported from ./common
 
-export interface ApiErrorResponse {
-  success: false;
-  error: string;
-  code?: string;
-  details?: Record<string, any>;
-  status?: number;
-}
-
-export type ApiResponse<T = any> = ApiSuccessResponse<T> | ApiErrorResponse;
 
 // ==================== Rate Limiting ====================
 
@@ -181,9 +172,9 @@ export interface Session {
   userId: string;
   userAgent: string;
   ip: string;
-  createdAt: string;
-  expiresAt: string;
-  lastActivity: string;
+  createdAt: DateString;
+  expiresAt: DateString;
+  lastActivity: DateString;
 }
 
 export interface SessionListResponse {
@@ -199,8 +190,8 @@ export interface SecurityLog {
   eventType: string;
   ip: string;
   userAgent: string;
-  metadata?: Record<string, any>;
-  createdAt: string;
+  metadata?: Record<string, unknown>;
+  createdAt: DateString;
 }
 
 export interface SecurityLogsResponse {

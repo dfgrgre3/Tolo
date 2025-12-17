@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
@@ -14,57 +14,57 @@ export async function POST(
       const { id } = await params;
       const { userId, subject } = await req.json();
 
-    if (!userId || !subject) {
-      return NextResponse.json(
-        { error: "معرف المستخدم والمادة مطلوبان" },
-        { status: 400 }
-      );
-    }
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "المستخدم غير موجود" },
-        { status: 404 }
-      );
-    }
-
-    // Check if already enrolled
-    const existingEnrollment = await prisma.subjectEnrollment.findFirst({
-      where: {
-        userId,
-        subjectId: subject
+      if (!userId || !subject) {
+        return NextResponse.json(
+          { error: "معرف المستخدم والمادة مطلوبان" },
+          { status: 400 }
+        );
       }
-    });
 
-    if (existingEnrollment) {
-      return NextResponse.json(
-        { error: "المستخدم مسجل بالفعل في هذه المادة" },
-        { status: 400 }
-      );
-    }
+      // Check if user exists
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
 
-    // Create enrollment
-    const enrollment = await prisma.subjectEnrollment.create({
-      data: {
-        id: crypto.randomUUID(),
-        userId,
-        subjectId: subject,
-        targetWeeklyHours: 0 // Default value, can be updated later
+      if (!user) {
+        return NextResponse.json(
+          { error: "المستخدم غير موجود" },
+          { status: 404 }
+        );
       }
-    });
 
-    return NextResponse.json(enrollment);
-  } catch (error) {
-    logger.error("Error enrolling in course:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ أثناء معالجة الطلب" },
-      { status: 500 }
-    );
+      // Check if already enrolled
+      const existingEnrollment = await prisma.subjectEnrollment.findFirst({
+        where: {
+          userId,
+          subjectId: subject
+        }
+      });
+
+      if (existingEnrollment) {
+        return NextResponse.json(
+          { error: "المستخدم مسجل بالفعل في هذه المادة" },
+          { status: 400 }
+        );
+      }
+
+      // Create enrollment
+      const enrollment = await prisma.subjectEnrollment.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId,
+          subjectId: subject,
+          targetWeeklyHours: 0 // Default value, can be updated later
+        }
+      });
+
+      return NextResponse.json(enrollment);
+    } catch (error) {
+      logger.error("Error enrolling in course:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ أثناء معالجة الطلب" },
+        { status: 500 }
+      );
     }
   });
 }
@@ -78,39 +78,39 @@ export async function GET(
     try {
       const { id } = await params; // This would be the subject
       const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
+      const userId = searchParams.get("userId");
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: "معرف المستخدم مطلوب" },
-        { status: 400 }
-      );
-    }
-
-    const enrollment = await prisma.subjectEnrollment.findFirst({
-      where: {
-        userId,
-        subjectId: id
+      if (!userId) {
+        return NextResponse.json(
+          { error: "معرف المستخدم مطلوب" },
+          { status: 400 }
+        );
       }
-    });
 
-    if (!enrollment) {
+      const enrollment = await prisma.subjectEnrollment.findFirst({
+        where: {
+          userId,
+          subjectId: id
+        }
+      });
+
+      if (!enrollment) {
+        return NextResponse.json(
+          { enrolled: false },
+          { status: 200 }
+        );
+      }
+
+      return NextResponse.json({
+        enrolled: true,
+        enrollment
+      });
+    } catch (error) {
+      logger.error("Error checking enrollment status:", error);
       return NextResponse.json(
-        { enrolled: false },
-        { status: 200 }
+        { error: "حدث خطأ أثناء معالجة الطلب" },
+        { status: 500 }
       );
-    }
-
-    return NextResponse.json({
-      enrolled: true,
-      enrollment
-    });
-  } catch (error) {
-    logger.error("Error checking enrollment status:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ أثناء معالجة الطلب" },
-      { status: 500 }
-    );
     }
   });
 }

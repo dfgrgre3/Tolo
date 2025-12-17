@@ -1,6 +1,6 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authService, AuthService } from '@/lib/auth-service';
+import { authService, AuthService } from '@/lib/services/auth-service';
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { passwordHistoryService } from '@/lib/services/password-history-service';
@@ -11,10 +11,10 @@ import { logger } from '@/lib/logger';
 
 /**
  * POST /api/auth/change-password
- * طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ„ظ„ظ…ط³طھط®ط¯ظ…
+ * تغيير كلمة المرور للمستخدم
  */
 const changePasswordSchema = z.object({
-  currentPassword: z.string().min(1, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط­ط§ظ„ظٹط© ظ…ط·ظ„ظˆط¨ط©'),
+  currentPassword: z.string().min(1, 'كلمة المرور الحالية مطلوبة'),
   newPassword: passwordSchema,
 });
 
@@ -24,12 +24,12 @@ export async function POST(request: NextRequest) {
     const userAgent = authService.getUserAgent(req);
 
     try {
-      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„طھظˆظƒظ†
+      // التحقق من التوكن
       const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json(
         {
-          error: 'ط؛ظٹط± ظ…طµط±ط­. ظٹط±ط¬ظ‰ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط£ظˆظ„ط§ظ‹.',
+          error: 'غير مصرح. يرجى تسجيل الدخول أولاً.',
           code: 'UNAUTHORIZED',
         },
         { status: 401 }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     if (!verification.isValid || !verification.user) {
       return NextResponse.json(
         {
-          error: 'ط±ظ…ط² ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©.',
+          error: 'رمز غير صالح أو منتهي الصلاحية.',
           code: 'INVALID_TOKEN',
         },
         { status: 401 }
@@ -51,14 +51,14 @@ export async function POST(request: NextRequest) {
 
     const userId = verification.user.id;
 
-      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµط­ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط¯ط®ظ„ط©
+      // التحقق من صحة البيانات المدخلة
       const body = await req.json().catch(() => ({}));
     const parsed = changePasswordSchema.safeParse(body);
 
     if (!parsed.success) {
       return NextResponse.json(
         {
-          error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± طµط­ظٹط­ط©',
+          error: 'بيانات غير صحيحة',
           code: 'VALIDATION_ERROR',
           details: parsed.error.flatten().fieldErrors,
         },
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
     const { currentPassword, newPassword } = parsed.data;
 
-    // ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ظ† ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
+    // الحصول على المستخدم من قاعدة البيانات
     let user;
     try {
       user = await prisma.user.findUnique({
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       if (isConnectionError(dbError)) {
         return NextResponse.json(
           {
-            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
+            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
             code: 'CONNECTION_ERROR',
           },
           { status: 503 }
@@ -98,21 +98,21 @@ export async function POST(request: NextRequest) {
     if (!user || !user.passwordHash) {
       return NextResponse.json(
         {
-          error: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯.',
+          error: 'المستخدم غير موجود.',
           code: 'USER_NOT_FOUND',
         },
         { status: 404 }
       );
     }
 
-    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط­ط§ظ„ظٹط©
+    // التحقق من كلمة المرور الحالية
     const isCurrentPasswordValid = await AuthService.comparePasswords(
       currentPassword,
       user.passwordHash
     );
 
     if (!isCurrentPasswordValid) {
-      // طھط³ط¬ظٹظ„ ظ…ط­ط§ظˆظ„ط© ظپط§ط´ظ„ط©
+      // تسجيل محاولة فاشلة
       await securityLogger.logEvent({
         userId,
         eventType: 'LOGIN_FAILED',
@@ -128,14 +128,14 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json(
         {
-          error: 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط­ط§ظ„ظٹط© ط؛ظٹط± طµط­ظٹط­ط©.',
+          error: 'كلمة المرور الحالية غير صحيحة.',
           code: 'INVALID_CURRENT_PASSWORD',
         },
         { status: 401 }
       );
     }
 
-    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط© ظ…ط®طھظ„ظپط©
+    // التحقق من أن كلمة المرور الجديدة مختلفة
     const isSamePassword = await AuthService.comparePasswords(
       newPassword,
       user.passwordHash
@@ -144,26 +144,26 @@ export async function POST(request: NextRequest) {
     if (isSamePassword) {
       return NextResponse.json(
         {
-          error: 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط© ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ظ…ط®طھظ„ظپط© ط¹ظ† ط§ظ„ط­ط§ظ„ظٹط©.',
+          error: 'كلمة المرور الجديدة يجب أن تكون مختلفة عن الحالية.',
           code: 'SAME_PASSWORD',
         },
         { status: 400 }
       );
     }
 
-    // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط© ظ„ظٹط³طھ ظپظٹ ط§ظ„ط³ط¬ظ„
+    // التحقق من أن كلمة المرور الجديدة ليست في السجل
     const historyCheck = await passwordHistoryService.checkPasswordInHistory(userId, newPassword);
     if (historyCheck.exists) {
       return NextResponse.json(
         {
-          error: historyCheck.message || 'ظ„ط§ ظٹظ…ظƒظ† ط¥ط¹ط§ط¯ط© ط§ط³طھط®ط¯ط§ظ… ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظ‡ط°ظ‡. ظٹط±ط¬ظ‰ ط§ط®طھظٹط§ط± ظƒظ„ظ…ط© ظ…ط±ظˆط± ط¬ط¯ظٹط¯ط©.',
+          error: historyCheck.message || 'لا يمكن إعادة استخدام كلمة المرور هذه. يرجى اختيار كلمة مرور جديدة.',
           code: 'PASSWORD_IN_HISTORY',
         },
         { status: 400 }
       );
     }
 
-    // طھط´ظپظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ط¬ط¯ظٹط¯ط©
+    // تشفير كلمة المرور الجديدة
     let newPasswordHash: string;
     try {
       newPasswordHash = await AuthService.hashPassword(newPassword);
@@ -171,16 +171,16 @@ export async function POST(request: NextRequest) {
       logger.error('Password hashing error:', hashError);
       return NextResponse.json(
         {
-          error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
+          error: 'حدث خطأ أثناء معالجة كلمة المرور. حاول مرة أخرى.',
           code: 'HASH_ERROR',
         },
         { status: 500 }
       );
     }
 
-    // طھط­ط¯ظٹط« ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظˆط­ظپط¸ ط§ظ„ظ‚ط¯ظٹظ…ط© ظپظٹ ط§ظ„ط³ط¬ظ„
+    // تحديث كلمة المرور وحفظ القديمة في السجل
     try {
-      // ط­ظپط¸ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط§ظ„ظ‚ط¯ظٹظ…ط© ظپظٹ ط§ظ„ط³ط¬ظ„ ظ‚ط¨ظ„ طھط­ط¯ظٹط«ظ‡ط§
+      // حفظ كلمة المرور القديمة في السجل قبل تحديثها
       await passwordHistoryService.savePasswordHistory(userId, user.passwordHash);
       
       const now = new Date();
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
       if (isConnectionError(dbError)) {
         return NextResponse.json(
           {
-            error: 'ط®ط·ط£ ظپظٹ ط§ظ„ط§طھطµط§ظ„: ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„ط§طھطµط§ظ„ ط¨ط§ظ„ط®ط§ط¯ظ…. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
+            error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً.',
             code: 'CONNECTION_ERROR',
           },
           { status: 503 }
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
       throw dbError;
     }
 
-    // طھط³ط¬ظٹظ„ ط§ظ„ط­ط¯ط« ظˆط¥ط±ط³ط§ظ„ ط¥ط´ط¹ط§ط±
+    // تسجيل الحدث وإرسال إشعار
     try {
       await securityLogger.logPasswordChanged(userId, ip, userAgent);
       await authService.logSecurityEvent(userId, 'password_changed', ip, {
@@ -216,12 +216,12 @@ export async function POST(request: NextRequest) {
       });
       await securityNotificationService.notifyPasswordChanged(userId, ip);
     } catch (notificationError) {
-      // ظ„ط§ ظ†ظپط´ظ„ ط§ظ„ط¹ظ…ظ„ظٹط© ط¥ط°ط§ ظپط´ظ„ ط§ظ„ط¥ط´ط¹ط§ط±
+      // لا نفشل العملية إذا فشل الإشعار
       logger.error('Failed to send password change notification:', notificationError);
     }
 
     return NextResponse.json({
-      message: 'طھظ… طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط¨ظ†ط¬ط§ط­.',
+      message: 'تم تغيير كلمة المرور بنجاح.',
       success: true,
     });
   } catch (error) {
@@ -246,7 +246,7 @@ export async function POST(request: NextRequest) {
 
     return createErrorResponse(
       error,
-      'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، طھط؛ظٹظٹط± ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.'
+      'حدث خطأ غير متوقع أثناء تغيير كلمة المرور. حاول مرة أخرى لاحقاً.'
     );
     }
   });

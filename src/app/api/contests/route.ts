@@ -7,34 +7,34 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async () => {
     try {
-    const contests = await prisma.contest.findMany({
-      orderBy: {
-        startDate: "asc"
-      }
-    });
+      const contests = await prisma.contest.findMany({
+        orderBy: {
+          startDate: "asc"
+        }
+      });
 
-    // Transform the data to match the frontend structure
-    const transformedContests = contests.map((contest: any) => ({
-      id: contest.id,
-      title: contest.title,
-      description: contest.description,
-      // imageUrl: contest.imageUrl, // Not in schema
-      startDate: contest.startDate.toISOString(),
-      endDate: contest.endDate.toISOString(),
-      prize: contest.prizes, // Schema has prizes (Json)
-      // category: contest.category, // Not in schema
-      // organizerName: contest.organizer?.name, // Not in schema
-      // tags: contest.tags, // Not in schema
-      // participantsCount: contest._count?.participants // Not in schema
-    }));
+      // Transform the data to match the frontend structure
+      const transformedContests = contests.map((contest) => ({
+        id: contest.id,
+        title: contest.title,
+        description: contest.description,
+        // imageUrl: contest.imageUrl, // Not in schema
+        startDate: contest.startDate.toISOString(),
+        endDate: contest.endDate.toISOString(),
+        prize: contest.prizes, // Schema has prizes (Json)
+        // category: contest.category, // Not in schema
+        // organizerName: contest.organizer?.name, // Not in schema
+        // tags: contest.tags, // Not in schema
+        // participantsCount: contest._count?.participants // Not in schema
+      }));
 
-    return NextResponse.json(transformedContests);
-  } catch (error) {
-    logger.error("Error fetching contests:", error);
-    return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ط³ط§ط¨ظ‚ط§طھ" },
-      { status: 500 }
-    );
+      return NextResponse.json(transformedContests);
+    } catch (error: unknown) {
+      logger.error("Error fetching contests:", error);
+      return NextResponse.json(
+        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ط³ط§ط¨ظ‚ط§طھ" },
+        { status: 500 }
+      );
     }
   });
 }
@@ -43,73 +43,73 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const { 
-        userId, 
-        title, 
-        description, 
-        imageUrl, 
-        startDate, 
-        endDate, 
-        prize, 
-        category, 
-        tags 
-      } = await req.json();
-
-    if (!userId || !title || !description || !startDate || !endDate) {
-      return NextResponse.json(
-        { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
-        { status: 400 }
-      );
-    }
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
-        { status: 404 }
-      );
-    }
-
-    const newContest = await prisma.contest.create({
-      data: {
+      const {
+        userId,
         title,
         description,
-        // imageUrl, // Not in schema
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
-        prizes: prize ? JSON.stringify(prize) : undefined, // Schema has prizes
-        // category, // Not in schema
-        // organizerId: userId, // Not in schema
-        // tags: tags || [] // Not in schema
+        imageUrl,
+        startDate,
+        endDate,
+        prize,
+        category,
+        tags
+      } = await req.json();
+
+      if (!userId || !title || !description || !startDate || !endDate) {
+        return NextResponse.json(
+          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
+          { status: 400 }
+        );
       }
-    });
 
-    // Transform the data to match the frontend structure
-    const transformedContest = {
-      id: newContest.id,
-      title: newContest.title,
-      description: newContest.description,
-      // imageUrl: newContest.imageUrl,
-      startDate: newContest.startDate.toISOString(),
-      endDate: newContest.endDate.toISOString(),
-      prize: newContest.prizes,
-      // category: newContest.category,
-      // organizerName: user.name,
-      // tags: newContest.tags,
-      // participantsCount: 0
-    };
+      // Check if user exists
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
 
-    return NextResponse.json(transformedContest, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating contest:", error);
-    return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط³ط§ط¨ظ‚ط©" },
-      { status: 500 }
-    );
+      if (!user) {
+        return NextResponse.json(
+          { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
+          { status: 404 }
+        );
+      }
+
+      const newContest = await prisma.contest.create({
+        data: {
+          title,
+          description,
+          // imageUrl, // Not in schema
+          startDate: new Date(startDate),
+          endDate: new Date(endDate),
+          prizes: prize ? JSON.stringify(prize) : undefined, // Schema has prizes
+          // category, // Not in schema
+          // organizerId: userId, // Not in schema
+          // tags: tags || [] // Not in schema
+        }
+      });
+
+      // Transform the data to match the frontend structure
+      const transformedContest = {
+        id: newContest.id,
+        title: newContest.title,
+        description: newContest.description,
+        // imageUrl: newContest.imageUrl,
+        startDate: newContest.startDate.toISOString(),
+        endDate: newContest.endDate.toISOString(),
+        prize: newContest.prizes,
+        // category: newContest.category,
+        // organizerName: user.name,
+        // tags: newContest.tags,
+        // participantsCount: 0
+      };
+
+      return NextResponse.json(transformedContest, { status: 201 });
+    } catch (error: unknown) {
+      logger.error("Error creating contest:", error);
+      return NextResponse.json(
+        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط³ط§ط¨ظ‚ط©" },
+        { status: 500 }
+      );
     }
   });
 }

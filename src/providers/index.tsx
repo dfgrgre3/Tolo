@@ -4,8 +4,8 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { UnifiedAuthProvider } from '@/contexts/auth-context';
 import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
-import ClientLayoutProvider from '@/app/ClientLayoutProvider';
-import { ThemeProvider } from '@/components/theme-provider';
+import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
+import { ThemeProvider } from '@/providers/ThemeProvider';
 
 type GlobalProvidersProps = {
   children: React.ReactNode;

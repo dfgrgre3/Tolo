@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/auth-service';
+import { NextRequest, NextResponse } from 'next/server';
+import { authService } from '@/lib/services/auth-service';
 import { webAuthnService } from '@/lib/security/webauthn';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -18,10 +18,10 @@ export async function POST(request: NextRequest) {
 
       // Otherwise, it's a request for options
       return handleOptions(req);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Biometric registration error:', error);
       return NextResponse.json(
-        { error: 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط®ط§ط¯ظ…' },
+        { error: 'حدث خطأ في الخادم' },
         { status: 500 }
       );
     }
@@ -33,10 +33,10 @@ export async function PUT(request: NextRequest) {
     try {
       const body = await req.json();
       return handleRegistration(req, body);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error('Biometric registration error:', error);
       return NextResponse.json(
-        { error: 'ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط®ط§ط¯ظ…' },
+        { error: 'حدث خطأ في الخادم' },
         { status: 500 }
       );
     }
@@ -49,7 +49,7 @@ async function handleOptions(req: NextRequest) {
 
   if (!verification.isValid || !verification.user) {
     return NextResponse.json(
-      { error: 'ط؛ظٹط± ظ…طµط±ط­' },
+      { error: 'غير مصرح' },
       { status: 401 }
     );
   }
@@ -68,7 +68,7 @@ async function handleOptions(req: NextRequest) {
 
   if (!userDetails) {
     return NextResponse.json(
-      { error: 'ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯' },
+      { error: 'المستخدم غير موجود' },
       { status: 404 }
     );
   }
@@ -106,13 +106,13 @@ async function handleOptions(req: NextRequest) {
   });
 }
 
-async function handleRegistration(req: NextRequest, body: any) {
+async function handleRegistration(req: NextRequest, body: { credential: any; challenge: string }) {
   // Verify authentication
   const verification = await authService.verifyTokenFromRequest(req);
 
   if (!verification.isValid || !verification.user) {
     return NextResponse.json(
-      { error: 'ط؛ظٹط± ظ…طµط±ط­' },
+      { error: 'غير مصرح' },
       { status: 401 }
     );
   }
@@ -122,7 +122,7 @@ async function handleRegistration(req: NextRequest, body: any) {
 
   if (!credential || !challenge) {
     return NextResponse.json(
-      { error: 'ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©' },
+      { error: 'بيانات غير مكتملة' },
       { status: 400 }
     );
   }
@@ -142,7 +142,7 @@ async function handleRegistration(req: NextRequest, body: any) {
 
   if (!storedChallenge) {
     return NextResponse.json(
-      { error: 'ط§ظ„طھط­ط¯ظٹ ط؛ظٹط± طµط§ظ„ط­ ط£ظˆ ظ…ظ†طھظ‡ظٹ ط§ظ„طµظ„ط§ط­ظٹط©' },
+      { error: 'التحدي غير صالح أو منتهي الصلاحية' },
       { status: 400 }
     );
   }
@@ -155,7 +155,7 @@ async function handleRegistration(req: NextRequest, body: any) {
 
   if (!verificationResult.verified || !verificationResult.credential) {
     return NextResponse.json(
-      { error: 'ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط©' },
+      { error: 'فشل التحقق من المصادقة البيومترية' },
       { status: 400 }
     );
   }
@@ -167,7 +167,7 @@ async function handleRegistration(req: NextRequest, body: any) {
       credentialId: verificationResult.credential.credentialId,
       publicKey: verificationResult.credential.publicKey,
       counter: verificationResult.credential.counter,
-      transports: [], // Default empty
+      transports: JSON.stringify([]), // Default empty
       deviceType: 'singleDevice', // Default
     }
   });
@@ -196,7 +196,7 @@ async function handleRegistration(req: NextRequest, body: any) {
   );
 
   return NextResponse.json({
-    message: 'طھظ… طھظپط¹ظٹظ„ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط¨ظٹظˆظ…طھط±ظٹط© ط¨ظ†ط¬ط§ط­',
+    message: 'تم تفعيل المصادقة البيومترية بنجاح',
     biometricEnabled: true,
     credentialId: verificationResult.credential.credentialId,
   });

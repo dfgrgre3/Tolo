@@ -1,18 +1,7 @@
 
-export enum SubjectType {
-  MATH = 'MATH',
-  PHYSICS = 'PHYSICS',
-  CHEMISTRY = 'CHEMISTRY',
-  ARABIC = 'ARABIC',
-  ENGLISH = 'ENGLISH',
-}
-
-export enum TaskStatus {
-  PENDING = 'PENDING',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COMPLETED = 'COMPLETED',
-  CANCELLED = 'CANCELLED',
-}
+import { SubjectType, TaskStatus } from './enums';
+import { DateString } from './api/common';
+export { SubjectType, TaskStatus };
 
 export interface Task {
   id: string;
@@ -20,6 +9,6 @@ export interface Task {
   description?: string | null;
   subject?: SubjectType | null;
   status: TaskStatus;
-  dueAt?: string | null;
+  dueAt?: DateString | null;
   priority: number;
 }

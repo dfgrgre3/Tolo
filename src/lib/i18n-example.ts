@@ -127,14 +127,14 @@ export const tEn = createTranslator(englishTranslations);
 // ============================================================================
 
 // Basic usage
-console.log(t('auth.login.title')); // Output: 'تسجيل الدخول'
-console.log(t('common.save')); // Output: 'حفظ'
+// console.log(t('auth.login.title')); // Output: 'تسجيل الدخول'
+// console.log(t('common.save')); // Output: 'حفظ'
 
 // With fallback
-console.log(t('missing.key', 'Default Value')); // Output: 'Default Value'
+// console.log(t('missing.key', 'Default Value')); // Output: 'Default Value'
 
 // Nested translations
-console.log(t('dashboard.stats.users')); // Output: 'المستخدمين'
+// console.log(t('dashboard.stats.users')); // Output: 'المستخدمين'
 
 // ============================================================================
 // 4. React Component Example
@@ -176,11 +176,11 @@ export function LoginForm() {
 export function loadExternalTranslations(externalData: any) {
   // ❌ NEVER DO THIS:
   // const t = createTranslator(externalData);
-  
+
   // ✅ ALWAYS DO THIS:
   const sanitized = sanitizeTranslations(externalData);
   const t = createTranslator(sanitized, englishTranslations);
-  
+
   return t;
 }
 
@@ -210,7 +210,7 @@ const translations: Record<Locale, any> = {
 export function createLocaleTranslator(locale: Locale) {
   const primary = translations[locale];
   const fallback = locale === 'ar' ? englishTranslations : undefined;
-  
+
   return createTranslator(primary, fallback);
 }
 
@@ -225,14 +225,14 @@ export function createLocaleTranslator(locale: Locale) {
 /**
  * For better TypeScript support, you can create a type-safe wrapper
  */
-type TranslationKey = 
+type TranslationKey =
   | 'auth.login.title'
   | 'auth.login.email'
   | 'auth.login.password'
   | 'auth.login.button'
   | 'common.save'
   | 'common.cancel'
-  // ... add all your keys here
+// ... add all your keys here
 
 export function typedT(key: TranslationKey, fallback?: string): string {
   return t(key, fallback);

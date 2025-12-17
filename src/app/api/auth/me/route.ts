@@ -1,8 +1,8 @@
 ﻿import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
-import { 
-  createSuccessResponse, 
+import {
+  createSuccessResponse,
   createStandardErrorResponse,
   extractRequestMetadata,
   logSecurityEventSafely,
@@ -43,12 +43,12 @@ export async function GET(request: NextRequest) {
 
       // TypeScript now knows authResult.success is true
       const { user, sessionId } = authResult;
-      
+
       // Enhanced user ID validation
       if (!user || !user.id || typeof user.id !== 'string' || user.id.trim().length === 0) {
         return createStandardErrorResponse(
           new Error('Invalid user data from authentication'),
-          'ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± طµط­ظٹط­ط©.',
+          'بيانات المستخدم غير صحيحة.',
           401
         );
       }
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       if (userId.length < 10 || userId.length > 100) {
         return createStandardErrorResponse(
           new Error('Invalid user ID format'),
-          'ظ…ط¹ط±ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± طµط­ظٹط­.',
+          'معرف المستخدم غير صحيح.',
           401
         );
       }
@@ -106,7 +106,7 @@ export async function GET(request: NextRequest) {
 
         return createStandardErrorResponse(
           new Error('User not found after authentication'),
-          'طھط¹ط°ط± ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط­ط³ط§ط¨ ط§ظ„ظ…ط³طھط®ط¯ظ….',
+          'تعذر العثور على حساب المستخدم.',
           404
         );
       }
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       });
     } catch (error) {
       logger.error('Auth verification error:', error);
-      
+
       // Log security event safely
       try {
         const authResult = await withEnhancedAuth(req, { requireAuth: false });
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 
       return createStandardErrorResponse(
         error,
-        'ط­ط¯ط« ط®ظ„ظ„ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¬ظ„ط³ط©.'
+        'حدث خلل أثناء التحقق من الجلسة.'
       );
     }
   });

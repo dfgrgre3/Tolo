@@ -1,6 +1,7 @@
-﻿import { z } from 'zod';
-import { authService, AuthService } from '@/lib/auth-service';
+import { z } from 'zod';
+import { authService, AuthService } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
+import { User, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
@@ -13,7 +14,7 @@ import {
 
 export interface RegisterResult {
     success: boolean;
-    response: RegisterResponse | { error: string; code: string; details?: any };
+    response: RegisterResponse | { error: string; code: string; details?: unknown };
     statusCode: number;
 }
 
@@ -36,7 +37,7 @@ export class RegisterService {
                 return {
                     success: false,
                     response: {
-                        error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± طµط§ظ„ط­.',
+                        error: 'البريد الإلكتروني غير صالح.',
                         code: 'INVALID_EMAIL',
                     },
                     statusCode: 400,
@@ -50,7 +51,7 @@ export class RegisterService {
                 return {
                     success: false,
                     response: {
-                        error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ظپط¹ظ„.',
+                        error: 'البريد الإلكتروني مستخدم بالفعل.',
                         code: 'USER_EXISTS',
                     },
                     statusCode: 409,
@@ -66,7 +67,7 @@ export class RegisterService {
                 return {
                     success: false,
                     response: {
-                        error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
+                        error: 'حدث خطأ أثناء معالجة كلمة المرور. حاول مرة أخرى.',
                         code: 'PASSWORD_HASH_ERROR',
                     },
                     statusCode: 500,
@@ -81,7 +82,7 @@ export class RegisterService {
             const userId = uuidv4();
 
             // Create new user
-            let newUser;
+            let newUser: User;
             try {
                 newUser = await prisma.user.create({
                     data: {
@@ -112,14 +113,14 @@ export class RegisterService {
                 logger.error('Database error during registration:', dbError);
 
                 const isUniqueConstraintError =
-                    (dbError && typeof dbError === 'object' && 'code' in dbError && (dbError as any).code === 'P2002') ||
+                    (dbError instanceof Prisma.PrismaClientKnownRequestError && dbError.code === 'P2002') ||
                     (dbError instanceof Error && dbError.message?.includes('unique'));
 
                 if (isUniqueConstraintError) {
                     return {
                         success: false,
                         response: {
-                            error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ظپط¹ظ„.',
+                            error: 'البريد الإلكتروني مستخدم بالفعل.',
                             code: 'USER_EXISTS',
                         },
                         statusCode: 409,
@@ -129,7 +130,7 @@ export class RegisterService {
                 return {
                     success: false,
                     response: {
-                        error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
+                        error: 'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى لاحقاً.',
                         code: 'DB_ERROR',
                     },
                     statusCode: 500,
@@ -140,7 +141,7 @@ export class RegisterService {
                 return {
                     success: false,
                     response: {
-                        error: 'ظپط´ظ„ ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
+                        error: 'فشل إنشاء الحساب. حاول مرة أخرى.',
                         code: 'CREATION_FAILED',
                     },
                     statusCode: 500,
@@ -184,7 +185,7 @@ export class RegisterService {
                     return {
                         success: false,
                         response: {
-                            error: 'ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰.',
+                            error: 'حدث خطأ أثناء إنشاء الحساب. حاول مرة أخرى.',
                             code: 'VERIFICATION_FAILED',
                         },
                         statusCode: 500,
@@ -195,7 +196,7 @@ export class RegisterService {
                     success: true,
                     response: {
                         success: true,
-                        message: 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨ ط¨ظ†ط¬ط§ط­!',
+                        message: 'تم إنشاء الحساب بنجاح!',
                         user: {
                             id: verifiedUser.id,
                             email: verifiedUser.email,
@@ -217,19 +218,19 @@ export class RegisterService {
                     success: true,
                     response: {
                         success: true,
-                        message: 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨ ط¨ظ†ط¬ط§ط­!',
+                        message: 'تم إنشاء الحساب بنجاح!',
                         user: {
                             id: newUser.id,
                             email: newUser.email,
                             name: newUser.name,
                             emailVerified: newUser.emailVerified || false,
                             twoFactorEnabled: newUser.twoFactorEnabled || false,
-                            role: (newUser as any).role || 'user',
+                            role: newUser.role || 'user',
                             createdAt: newUser.createdAt,
                         },
                         verificationLink: process.env.NODE_ENV === 'development' ? verificationLink : undefined,
                         requiresEmailVerification: true,
-                        warning: 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨ ظˆظ„ظƒظ† ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط§ظ„طھط­ظ‚ظ‚. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.',
+                        warning: 'تم إنشاء الحساب ولكن حدث خطأ أثناء التحقق. يرجى المحاولة مرة أخرى.',
                     },
                     statusCode: 201,
                 };
@@ -239,7 +240,7 @@ export class RegisterService {
             return {
                 success: false,
                 response: {
-                    error: 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، ط§ظ„طھط³ط¬ظٹظ„. ط­ط§ظˆظ„ ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
+                    error: 'حدث خطأ غير متوقع أثناء التسجيل. حاول مرة أخرى لاحقاً.',
                     code: 'INTERNAL_ERROR',
                 },
                 statusCode: 500,

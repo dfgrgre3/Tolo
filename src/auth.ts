@@ -21,7 +21,7 @@
  *      import { auth } from '@/auth'
  *   
  *   ✅ في API Routes: 
- *      import { authService } from '@/lib/auth-service'
+ *      import { authService } from '@/lib/services/auth-service'
  *   
  *   ✅ في Client Components: 
  *      import { useUnifiedAuth } from '@/contexts/auth-context'
@@ -31,7 +31,7 @@
 
 import 'server-only';
 import { logger } from '@/lib/logger';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 
 /**
  * Server-side auth function

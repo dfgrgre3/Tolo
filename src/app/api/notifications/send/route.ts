@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/auth-service';
+import { verifyToken } from '@/lib/services/auth-service';
 import { sendMultiChannelNotification } from '@/lib/notification-sender-new';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 

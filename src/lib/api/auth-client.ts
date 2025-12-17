@@ -36,13 +36,14 @@ import type {
 } from '@/types/api/auth';
 import { logger } from '@/lib/logger';
 import { authValidator } from '@/lib/auth/validation-interface';
+import type { AuthUser } from '@/lib/services/auth-service';
 
 const API_TIMEOUT = 30000; // 30 seconds
 const API_BASE_URL = '/api/auth';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
-const CONNECTION_TIMEOUT = 5000; // 5 seconds for connection timeout
+const CONNECTION_TIMEOUT = 15000; // 15 seconds for connection timeout
 
 /**
  * Check if device is online
@@ -141,7 +142,7 @@ async function apiFetch<T>(
   // Add connection timeout for faster failure detection
   const connectionTimeoutId = setTimeout(() => {
     if (!controller.signal.aborted) {
-      controller.abort();
+      controller.abort(new Error('Connection timeout'));
     }
   }, CONNECTION_TIMEOUT);
 
@@ -286,7 +287,7 @@ async function apiFetch<T>(
         }
 
         // Valid JSON error response
-        const error: any = {
+        const error: Record<string, unknown> = {
           ...responseData,
           status: response.status,
         };
@@ -367,9 +368,15 @@ async function apiFetch<T>(
 
     // Check if error is empty object first
     if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+      // Log this weird case
+      if (process.env.NODE_ENV === 'development') {
+        console.error('apiFetch caught empty error:', error);
+      }
+
       throw {
         error: 'حدث خطأ غير متوقع أثناء معالجة الطلب. يرجى المحاولة مرة أخرى.',
         code: 'UNEXPECTED_ERROR',
+        originalError: String(error)
       };
     }
 
@@ -461,13 +468,26 @@ export async function loginUser(
   }
   const email = emailValidation.normalized!;
 
-  // Enhanced password validation using centralized validation
-  const passwordValidation = authValidator.validatePassword(request.password);
-  if (!passwordValidation.isValid) {
+  // Login-specific password validation (only check presence and length limits)
+  // Password strength requirements (special chars, uppercase, etc.) are only for registration
+  if (!request.password || typeof request.password !== 'string') {
     throw {
-      error: passwordValidation.error || 'كلمة المرور غير صحيحة',
-      code: passwordValidation.error === 'كلمة المرور مطلوبة' ? 'MISSING_PASSWORD' :
-        passwordValidation.error?.includes('8 أحرف') ? 'PASSWORD_TOO_SHORT' : 'PASSWORD_TOO_LONG',
+      error: 'كلمة المرور مطلوبة',
+      code: 'MISSING_PASSWORD',
+    };
+  }
+
+  if (request.password.length < 8) {
+    throw {
+      error: 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل',
+      code: 'PASSWORD_TOO_SHORT',
+    };
+  }
+
+  if (request.password.length > 128) {
+    throw {
+      error: 'كلمة المرور طويلة جداً',
+      code: 'PASSWORD_TOO_LONG',
     };
   }
 
@@ -670,7 +690,7 @@ export async function verifyTwoFactor(
  */
 export async function getBiometricChallenge(
   request: BiometricChallengeRequest | { type: 'authenticate' | 'register' | 'options'; userId?: string }
-): Promise<BiometricChallengeResponse & { options?: any; challenge?: string }> {
+): Promise<BiometricChallengeResponse & { options?: unknown; challenge?: string }> {
   const body = typeof request === 'object' && 'type' in request
     ? { action: request.type === 'authenticate' ? 'authenticate' : request.type === 'register' ? 'register' : 'options', userId: (request as { userId?: string }).userId }
     : request;
@@ -697,7 +717,7 @@ export async function verifyBiometric(
 /**
  * Get Passkey Registration Options
  */
-export async function getPasskeyRegistrationOptions(userId: string): Promise<any> {
+export async function getPasskeyRegistrationOptions(userId: string): Promise<unknown> {
   return apiFetch('/passkey/register-options', {
     method: 'POST',
     body: JSON.stringify({ userId }),
@@ -707,7 +727,7 @@ export async function getPasskeyRegistrationOptions(userId: string): Promise<any
 /**
  * Verify Passkey Registration
  */
-export async function verifyPasskeyRegistration(data: any): Promise<any> {
+export async function verifyPasskeyRegistration(data: unknown): Promise<unknown> {
   return apiFetch('/passkey/register', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -717,7 +737,7 @@ export async function verifyPasskeyRegistration(data: any): Promise<any> {
 /**
  * Get Passkey Authentication Options
  */
-export async function getPasskeyAuthenticationOptions(userId?: string): Promise<any> {
+export async function getPasskeyAuthenticationOptions(userId?: string): Promise<unknown> {
   return apiFetch('/passkey/authenticate-options', {
     method: 'POST',
     body: JSON.stringify({ userId }),
@@ -727,7 +747,7 @@ export async function getPasskeyAuthenticationOptions(userId?: string): Promise<
 /**
  * Verify Passkey Authentication
  */
-export async function verifyPasskeyAuthentication(data: any): Promise<LoginResponse> {
+export async function verifyPasskeyAuthentication(data: unknown): Promise<LoginResponse> {
   return apiFetch<LoginResponse>('/passkey/authenticate', {
     method: 'POST',
     body: JSON.stringify(data),
@@ -747,8 +767,8 @@ export async function logoutUser(): Promise<void> {
 /**
  * Get current user
  */
-export async function getCurrentUser(): Promise<{ user: any }> {
-  return apiFetch<{ user: any }>('/me', {
+export async function getCurrentUser(): Promise<{ user: AuthUser }> {
+  return apiFetch<{ user: AuthUser }>('/me', {
     method: 'GET',
   });
 }
@@ -787,6 +807,19 @@ export async function forgotPassword(email: string): Promise<{
   return apiFetch<{ message: string }>('/forgot-password', {
     method: 'POST',
     body: JSON.stringify({ email }),
+  });
+}
+
+/**
+ * Verify reset code
+ */
+export async function verifyResetCode(data: {
+  email: string;
+  code: string;
+}): Promise<{ message: string; resetToken: string }> {
+  return apiFetch<{ message: string; resetToken: string }>('/verify-reset-code', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }
 

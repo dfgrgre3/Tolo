@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authService } from "@/lib/auth-service";
-import { prisma } from "@/lib/prisma";
+import { authService } from "@/lib/services/auth-service";
+import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -14,32 +14,32 @@ export async function GET(
       const { id } = await params;
       // Verify authentication
       const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-    if (!verification.isValid || !verification.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-    const authUser = verification.user;
+      if (!verification.isValid || !verification.user) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+      const authUser = verification.user;
 
-    // Users can only view their own profile
-    if (authUser.id !== id) {
-      return NextResponse.json(
-        { error: "Access denied" },
-        { status: 403 }
-      );
-    }
+      // Users can only view their own profile
+      if (authUser.id !== id) {
+        return NextResponse.json(
+          { error: "Access denied" },
+          { status: 403 }
+        );
+      }
 
-    const user = await prisma.user.findUnique({
-      where: { id },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        createdAt: true,
-        emailVerified: true,
-        phone: true
+      const user = await prisma.user.findUnique({
+        where: { id },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          createdAt: true,
+          emailVerified: true,
+          phone: true
         }
       });
 
@@ -89,19 +89,19 @@ export async function PATCH(
 
       const { name, email } = await req.json();
 
-    const updatedUser = await prisma.user.update({
-      where: { id },
-      data: {
-        ...(name && { name }),
-        ...(email && { email })
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        avatar: true,
-        createdAt: true
-      }
+      const updatedUser = await prisma.user.update({
+        where: { id },
+        data: {
+          ...(name && { name }),
+          ...(email && { email })
+        },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          avatar: true,
+          createdAt: true
+        }
       });
 
       return NextResponse.json(updatedUser);
@@ -147,8 +147,8 @@ export async function DELETE(
         where: { id }
       });
 
-      return NextResponse.json({ 
-        message: "تم حذف الحساب بنجاح" 
+      return NextResponse.json({
+        message: "تم حذف الحساب بنجاح"
       });
     } catch (error) {
       logger.error("Error deleting user:", error);

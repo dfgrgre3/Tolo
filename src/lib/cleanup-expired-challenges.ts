@@ -4,8 +4,9 @@
  * In production, this would be run as a cron job or scheduled task
  */
 
-import { AuthChallengesCleanupService } from './auth-challenges-service';
-import { logger } from '@/lib/logger';
+import { AuthChallengesCleanupService } from './services/auth-challenges-service';
+
+import { logger } from '@/lib/logger';
 
 /**
  * Main cleanup function

@@ -1,6 +1,6 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { getDeviceInfo, getLocationFromIP } from '@/lib/security-utils';
 import crypto from 'crypto';
 import { verifyAuthenticationResponse } from '@simplewebauthn/server';
@@ -9,7 +9,7 @@ import type { AuthenticationResponseJSON } from '@simplewebauthn/types';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { getSecureCookieOptions } from '@/app/api/auth/_helpers';
-import { BiometricChallengeService } from '@/lib/auth-challenges-service';
+import { BiometricChallengeService } from '@/lib/services/auth-challenges-service';
 
 async function handler(req: NextRequest) {
   const responseBody: AuthenticationResponseJSON = await req.json();

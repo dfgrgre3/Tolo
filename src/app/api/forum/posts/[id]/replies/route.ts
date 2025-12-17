@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -10,45 +10,45 @@ export async function GET(
 ) {
   return opsWrapper(request, async () => {
     try {
-    const { id } = await params;
+      const { id } = await params;
 
-    // Check if post exists
-    const post = await prisma.forumPost.findUnique({
-      where: { id }
-    });
+      // Check if post exists
+      const post = await prisma.forumPost.findUnique({
+        where: { id }
+      });
 
-    if (!post) {
+      if (!post) {
+        return NextResponse.json(
+          { error: "الموضوع غير موجود" },
+          { status: 404 }
+        );
+      }
+
+      const replies = await prisma.forumReply.findMany({
+        where: { postId: id },
+        include: {
+          author: {
+            select: { name: true }
+          }
+        },
+        orderBy: { createdAt: "asc" }
+      });
+
+      // Transform the data to match the frontend structure
+      const transformedReplies = replies.map((reply) => ({
+        id: reply.id,
+        content: reply.content,
+        authorName: reply.author.name,
+        createdAt: reply.createdAt.toISOString()
+      }));
+
+      return NextResponse.json(transformedReplies);
+    } catch (error: unknown) {
+      logger.error("Error fetching forum replies:", error);
       return NextResponse.json(
-        { error: "الموضوع غير موجود" },
-        { status: 404 }
+        { error: "حدث خطأ في جلب الردود" },
+        { status: 500 }
       );
-    }
-
-    const replies = await prisma.forumReply.findMany({
-      where: { postId: id },
-      include: {
-        author: {
-          select: { name: true }
-        }
-      },
-      orderBy: { createdAt: "asc" }
-    });
-
-    // Transform the data to match the frontend structure
-    const transformedReplies = replies.map((reply: any) => ({
-      id: reply.id,
-      content: reply.content,
-      authorName: reply.author.name,
-      createdAt: reply.createdAt.toISOString()
-    }));
-
-    return NextResponse.json(transformedReplies);
-  } catch (error) {
-    logger.error("Error fetching forum replies:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في جلب الردود" },
-      { status: 500 }
-    );
     }
   });
 }
@@ -63,65 +63,65 @@ export async function POST(
       const { id } = await params;
       const { userId, content } = await req.json();
 
-    if (!userId || !content) {
-      return NextResponse.json(
-        { error: "المستخدم والمحتوى مطلوبان" },
-        { status: 400 }
-      );
-    }
-
-    // Check if post exists
-    const post = await prisma.forumPost.findUnique({
-      where: { id }
-    });
-
-    if (!post) {
-      return NextResponse.json(
-        { error: "الموضوع غير موجود" },
-        { status: 404 }
-      );
-    }
-
-    // Check if user exists
-    const user = await prisma.user.findUnique({
-      where: { id: userId }
-    });
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "المستخدم غير موجود" },
-        { status: 404 }
-      );
-    }
-
-    const newReply = await prisma.forumReply.create({
-      data: {
-        content,
-        authorId: userId,
-        postId: id
-      },
-      include: {
-        author: {
-          select: { name: true }
-        }
+      if (!userId || !content) {
+        return NextResponse.json(
+          { error: "المستخدم والمحتوى مطلوبان" },
+          { status: 400 }
+        );
       }
-    });
 
-    // Transform the data to match the frontend structure
-    const transformedReply = {
-      id: newReply.id,
-      content: newReply.content,
-      authorName: newReply.author.name,
-      createdAt: newReply.createdAt.toISOString()
-    };
+      // Check if post exists
+      const post = await prisma.forumPost.findUnique({
+        where: { id }
+      });
 
-    return NextResponse.json(transformedReply, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating forum reply:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في إنشاء الرد" },
-      { status: 500 }
-    );
+      if (!post) {
+        return NextResponse.json(
+          { error: "الموضوع غير موجود" },
+          { status: 404 }
+        );
+      }
+
+      // Check if user exists
+      const user = await prisma.user.findUnique({
+        where: { id: userId }
+      });
+
+      if (!user) {
+        return NextResponse.json(
+          { error: "المستخدم غير موجود" },
+          { status: 404 }
+        );
+      }
+
+      const newReply = await prisma.forumReply.create({
+        data: {
+          content,
+          authorId: userId,
+          postId: id
+        },
+        include: {
+          author: {
+            select: { name: true }
+          }
+        }
+      });
+
+      // Transform the data to match the frontend structure
+      const transformedReply = {
+        id: newReply.id,
+        content: newReply.content,
+        authorName: newReply.author.name,
+        createdAt: newReply.createdAt.toISOString()
+      };
+
+      return NextResponse.json(transformedReply, { status: 201 });
+    } catch (error: unknown) {
+      logger.error("Error creating forum reply:", error);
+      return NextResponse.json(
+        { error: "حدث خطأ في إنشاء الرد" },
+        { status: 500 }
+      );
     }
   });
 }

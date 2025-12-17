@@ -1,282 +1,336 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { HeaderLogo } from "./header/HeaderLogo";
 import { HeaderSearch } from "./header/HeaderSearch";
 import { HeaderNavigation } from "./header/HeaderNavigation";
-import { HeaderNotifications } from "./header/HeaderNotifications";
 import { EnhancedNotifications } from "./header/EnhancedNotifications";
 import { HeaderUserMenu } from "./header/HeaderUserMenu";
-import { HeaderMobileMenu } from "./header/HeaderMobileMenu";
 import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
 import { useUnifiedAuth } from "@/contexts/auth-context";
 import { useMegaMenuState } from "./header/useMegaMenuState";
-import { HeaderCustomization, useHeaderPreferences } from "./header/HeaderCustomization";
 import ProgressIndicator from "./header/ProgressIndicator";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 
-// Dynamic imports for better performance (Next.js code splitting)
-// Using robust error handling to prevent HMR issues
+// New enhanced imports
+import { useStickyHeader } from "./header/hooks/useStickyHeader";
+
+// Dynamic imports for better performance
 const CommandPalette = dynamic(
-	() => import("./header/CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
-	{ ssr: false, loading: () => null }
+  () => import("./header/CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
 );
 
 const QuickActions = dynamic(
-	() => import("./header/QuickActions").then((mod) => ({ default: mod.QuickActions })).catch(() => ({ default: () => null })),
-	{ ssr: false, loading: () => null }
+  () => import("./header/QuickActions").then((mod) => ({ default: mod.QuickActions })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
 );
 
 const ActivityWidget = dynamic(
-	() => import("./header/ActivityWidget").then((mod) => ({ default: mod.ActivityWidget })).catch(() => ({ default: () => null })),
-	{ ssr: false, loading: () => null }
+  () => import("./header/ActivityWidget").then((mod) => ({ default: mod.ActivityWidget })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
 );
 
 const ContextualHelp = dynamic(
-	() => import("./header/ContextualHelp").then((mod) => ({ default: mod.ContextualHelp })).catch(() => ({ default: () => null })),
-	{ ssr: false, loading: () => null }
+  () => import("./header/ContextualHelp").then((mod) => ({ default: mod.ContextualHelp })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
 );
 
-
 const SmartNavigationSuggestions = dynamic(
-	() => import("./header/SmartNavigationSuggestions").then((mod) => ({ default: mod.SmartNavigationSuggestions })).catch(() => ({ default: () => null })),
-	{ ssr: false, loading: () => null }
+  () => import("./header/SmartNavigationSuggestions").then((mod) => ({ default: mod.SmartNavigationSuggestions })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
 );
 
 const LanguageSwitch = dynamic(
-	() => import("./header/LanguageSwitch").then((mod) => ({ default: mod.LanguageSwitch })).catch(() => ({ default: () => null })),
-	{ ssr: false, loading: () => null }
+  () => import("./header/LanguageSwitch").then((mod) => ({ default: mod.LanguageSwitch })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
 );
 
-// Throttle function for scroll optimization
-function throttle<T extends (...args: unknown[]) => unknown>(
-	func: T,
-	limit: number
-): (...args: Parameters<T>) => void {
-	let inThrottle: boolean;
-	return function (this: unknown, ...args: Parameters<T>) {
-		if (!inThrottle) {
-			func.apply(this, args);
-			inThrottle = true;
-			setTimeout(() => (inThrottle = false), limit);
-		}
-	};
-}
+// Enhanced mobile menu
+const HeaderMobileMenuEnhanced = dynamic(
+  () => import("./header/HeaderMobileMenuEnhanced").then((mod) => ({ default: mod.HeaderMobileMenuEnhanced })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
+);
+
+// Reading progress bar
+const ReadingProgressBar = dynamic(
+  () => import("./header/ReadingProgressBar").then((mod) => ({ default: mod.ReadingProgressBar })).catch(() => ({ default: () => null })),
+  { ssr: false, loading: () => null }
+);
+
+// Memoized components for better performance
+const MemoizedHeaderLogo = memo(HeaderLogo);
+const MemoizedHeaderSearch = memo(HeaderSearch);
+const MemoizedHeaderNavigation = memo(HeaderNavigation);
+const MemoizedHeaderBreadcrumbs = memo(HeaderBreadcrumbs);
 
 export default function Header() {
-	const pathname = usePathname();
-	const [isMounted, setIsMounted] = useState(false);
-	
-	// Ensure component is mounted before using hooks
-	useEffect(() => {
-		setIsMounted(true);
-	}, []);
-	
-	// Safely get user - useUnifiedAuth is the unified authentication hook
-	const authContext = useUnifiedAuth();
-	const user = authContext?.user ?? null;
-	const [isScrolled, setIsScrolled] = useState(false);
-	const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-	const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-	const scrollTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-	
-	// استخدام hook مشترك لإدارة حالة Mega Menu
-	const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
-	
-	// Header preferences
-	const { preferences: headerPreferences } = useHeaderPreferences();
+  const pathname = usePathname();
+  const shouldReduceMotion = useReducedMotion();
+  const [isMounted, setIsMounted] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  
+  // Enhanced sticky header with shrink animation
+  const { isScrolled, isShrunk, isHidden, scrollProgress, headerClasses } = useStickyHeader({
+    shrinkThreshold: 80,
+    hideThreshold: 300,
+    showOnScrollUp: true,
+    enableProgress: true,
+  });
 
-	// Keyboard shortcuts
-	useKeyboardShortcuts({
-		mounted,
-		isMobileMenuOpen,
-		setIsMobileMenuOpen,
-	});
+  // Focus mode REMOVED - hardcoded visibility
+  const focusVisibility = {
+    headerVisible: true,
+    showNavigation: true,
+    showSearch: true,
+    showNotifications: true,
+    showUserMenu: true,
+  };
 
-	// Handle scroll effect with throttling for better performance
-	useEffect(() => {
-		if (!mounted || typeof window === "undefined") return;
-		
-		const handleScroll = throttle(() => {
-			const scrolled = window.scrollY > 10;
-			setIsScrolled(scrolled);
-		}, 16); // ~60fps
-		
-		// Initial check
-		handleScroll();
-		
-		// Add scroll listener with passive option for better performance
-		window.addEventListener("scroll", handleScroll, { passive: true });
-		
-		// Cleanup
-		return () => {
-			window.removeEventListener("scroll", handleScroll);
-			if (scrollTimeoutRef.current) {
-				clearTimeout(scrollTimeoutRef.current);
-			}
-		};
-	}, [mounted]);
+  // Auth context
+  const authContext = useUnifiedAuth();
+  const user = authContext?.user ?? null;
 
-	// إغلاق القائمة المحمولة عند تغيير المسار
-	useEffect(() => {
-		setIsMobileMenuOpen(false);
-		setOpenMegaMenu(null);
-	}, [pathname, setOpenMegaMenu]);
+  // Mega menu state
+  const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
 
-	// Memoized active route checker
-	const isActiveRoute = useCallback((href: string) => {
-		if (!pathname) {
-			return false;
-		}
-		if (href === "/") {
-			return pathname === "/";
-		}
-		return pathname.startsWith(href);
-	}, [pathname]);
+  // Header preferences REMOVED - hardcoded preferences
+  const headerPreferences = {
+    compactMode: false,
+    showProgress: true,
+    showSuggestions: true,
+    showActivity: true,
+  };
 
+  // Ensure component is mounted
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    mounted,
+    isMobileMenuOpen,
+    setIsMobileMenuOpen,
+  });
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setOpenMegaMenu(null);
+  }, [pathname, setOpenMegaMenu]);
 
+  // Toggle mobile menu
+  const toggleMobileMenu = useCallback(() => {
+    setIsMobileMenuOpen((prev) => !prev);
+  }, []);
 
-	// Toggle mobile menu with better state management
-	const toggleMobileMenu = useCallback(() => {
-		setIsMobileMenuOpen((prev) => {
-			const newState = !prev;
-			// Prevent body scroll when menu is open
-			if (typeof document !== "undefined") {
-				if (newState) {
-					document.body.style.overflow = "hidden";
-				} else {
-					document.body.style.overflow = "";
-				}
-			}
-			return newState;
-		});
-	}, []);
+  // Memoized active route checker
+  const isActiveRoute = useCallback((href: string) => {
+    if (!pathname) return false;
+    if (href === "/") return pathname === "/";
+    return pathname.startsWith(href);
+  }, [pathname]);
 
-	// Cleanup body overflow on unmount
-	useEffect(() => {
-		return () => {
-			if (typeof document !== "undefined") {
-				document.body.style.overflow = "";
-			}
-		};
-	}, []);
+  // Memoized header classes
+  const computedHeaderClasses = useMemo(() => {
+    const base = cn(
+      "sticky top-0 z-50 w-full border-b transition-all",
+      shouldReduceMotion ? "duration-0" : "duration-300 ease-out",
+      // Blur and background
+      "backdrop-blur-xl supports-[backdrop-filter]:bg-background/80",
+      // Hide on scroll
+      focusVisibility.headerVisible && !isHidden ? "translate-y-0" : "-translate-y-full",
+      // Scrolled state
+      isScrolled && "bg-background/90 shadow-lg shadow-black/5 dark:shadow-black/20 border-border/50",
+      // Shrunk state
+      isShrunk && headerPreferences.compactMode && "py-0",
+      // User logged in premium effect
+      isMounted && user && !isScrolled && "border-primary/10 bg-gradient-to-r from-primary/5 via-background to-primary/5",
+    );
+    return base;
+  }, [
+    shouldReduceMotion,
+    isScrolled,
+    isShrunk,
+    isHidden,
+    isMounted,
+    user,
+    headerPreferences.compactMode,
+    focusVisibility.headerVisible,
+  ]);
 
-	// Memoized header classes for better performance
-	const headerClasses = useMemo(
-		() =>
-			cn(
-				"sticky top-0 z-50 w-full border-b transition-all duration-500 ease-in-out",
-				"bg-background/80 backdrop-blur-2xl supports-[backdrop-filter]:bg-background/70",
-				mounted &&
-					isScrolled &&
-					"shadow-xl shadow-black/10 dark:shadow-black/30 border-b-border/50",
-				isMounted && user &&
-					"border-primary/20 dark:border-primary/30 bg-gradient-to-r from-primary/5 via-background/80 to-primary/5 dark:from-primary/10 dark:via-background/70 dark:to-primary/10 shadow-primary/10",
-				headerPreferences.compactMode && "h-12"
-			),
-		[mounted, isScrolled, isMounted, user, headerPreferences.compactMode]
-	);
+  // Container height based on shrink state
+  const containerHeight = useMemo(() => {
+    if (headerPreferences.compactMode || isShrunk) return "h-12";
+    return "h-16";
+  }, [headerPreferences.compactMode, isShrunk]);
 
-	return (
-		<header
-			className={headerClasses}
-			suppressHydrationWarning
-			role="banner"
-			aria-label="رأس الصفحة الرئيسي"
-		>
-			<div className="container mx-auto px-4">
-				<div className={cn("flex items-center justify-between gap-4", headerPreferences.compactMode ? "h-12" : "h-16")}>
-					{/* Logo */}
-					<HeaderLogo />
+  return (
+    <>
+      {/* Reading Progress Bar */}
+      {headerPreferences.showProgress && (
+        <ReadingProgressBar
+          position="top"
+          height={2}
+          animate={!shouldReduceMotion}
+        />
+      )}
 
-					{/* Desktop Navigation */}
-					<HeaderNavigation
-						openMegaMenu={openMegaMenu}
-						setOpenMegaMenu={setOpenMegaMenu}
-						isActiveRoute={isActiveRoute}
-						mounted={mounted}
-						user={user}
-					/>
+      <motion.header
+        className={computedHeaderClasses}
+        initial={false}
+        animate={{
+          y: focusVisibility.headerVisible && !isHidden ? 0 : -100,
+        }}
+        transition={{
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        }}
+        suppressHydrationWarning
+        role="banner"
+        aria-label="رأس الصفحة الرئيسي"
+      >
+        <div className="container mx-auto px-4">
+          <div className={cn("flex items-center justify-between gap-4 transition-all", containerHeight)}>
+            {/* Logo */}
+            <MemoizedHeaderLogo />
 
-					{/* Right Side Actions */}
-					<div className="flex items-center gap-2" role="toolbar" aria-label="أدوات الرأس">
-						{/* Progress Indicator */}
-						{headerPreferences.showProgress && <ProgressIndicator />}
+            {/* Desktop Navigation */}
+            {focusVisibility.showNavigation && (
+              <MemoizedHeaderNavigation
+                openMegaMenu={openMegaMenu}
+                setOpenMegaMenu={setOpenMegaMenu}
+                isActiveRoute={isActiveRoute}
+                mounted={mounted}
+                user={user}
+              />
+            )}
 
-						{/* Smart Navigation Suggestions */}
-						{headerPreferences.showSuggestions && <SmartNavigationSuggestions />}
+            {/* Right Side Actions */}
+            <div className="flex items-center gap-1 md:gap-2" role="toolbar" aria-label="أدوات الرأس">
+              {/* Progress Indicator (compact) */}
+              {headerPreferences.showProgress && isShrunk && (
+                <AnimatePresence>
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className="hidden md:flex"
+                  >
+                    <ProgressIndicator />
+                  </motion.div>
+                </AnimatePresence>
+              )}
 
-						{/* Search */}
-						<HeaderSearch />
+              {/* Smart Navigation Suggestions */}
+              {headerPreferences.showSuggestions && focusVisibility.showNavigation && (
+                <div className="hidden lg:block">
+                  <SmartNavigationSuggestions />
+                </div>
+              )}
 
-						{/* Quick Actions */}
-						<QuickActions />
+              {/* Search */}
+              {focusVisibility.showSearch && (
+                <MemoizedHeaderSearch />
+              )}
 
-						{/* Activity Widget */}
-						{headerPreferences.showActivity && <ActivityWidget />}
+              {/* Quick Actions */}
+              <div className="hidden md:block">
+                <QuickActions />
+              </div>
 
-						{/* Contextual Help */}
-						<ContextualHelp />
+              {/* Activity Widget */}
+              {headerPreferences.showActivity && (
+                <div className="hidden lg:block">
+                  <ActivityWidget />
+                </div>
+              )}
 
+              {/* Contextual Help */}
+              <div className="hidden md:block">
+                <ContextualHelp />
+              </div>
 
-						{/* Header Customization */}
-						<HeaderCustomization />
+              {/* Theme Toggle */}
+              {mounted && (
+                <div className="hidden md:flex" suppressHydrationWarning>
+                  <ThemeToggle />
+                </div>
+              )}
 
-						{/* Theme Toggle */}
-						{mounted && (
-							<div className="hidden md:flex" suppressHydrationWarning>
-							<ThemeToggle />
-							</div>
-						)}
+              {/* Notifications */}
+              {isMounted && focusVisibility.showNotifications && (
+                <EnhancedNotifications user={user} mounted={mounted} />
+              )}
 
-						{/* Notifications Dropdown */}
-						{isMounted && <EnhancedNotifications user={user} mounted={mounted} />}
+              {/* User Menu */}
+              {focusVisibility.showUserMenu && (
+                <HeaderUserMenu />
+              )}
 
-						{/* User Menu / Login */}
-						<HeaderUserMenu />
+              {/* Mobile Menu Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="lg:hidden relative overflow-hidden"
+                onClick={toggleMobileMenu}
+                aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
+                aria-expanded={isMobileMenuOpen}
+                aria-controls="mobile-menu"
+                data-mobile-menu-trigger
+              >
+                <AnimatePresence mode="wait">
+                  {isMobileMenuOpen ? (
+                    <motion.div
+                      key="close"
+                      initial={{ rotate: -90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: 90, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <X className="h-5 w-5" aria-hidden="true" />
+                    </motion.div>
+                  ) : (
+                    <motion.div
+                      key="menu"
+                      initial={{ rotate: 90, opacity: 0 }}
+                      animate={{ rotate: 0, opacity: 1 }}
+                      exit={{ rotate: -90, opacity: 0 }}
+                      transition={{ duration: 0.15 }}
+                    >
+                      <Menu className="h-5 w-5" aria-hidden="true" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </Button>
+            </div>
+          </div>
+        </div>
 
-						{/* Mobile Menu Button */}
-						<Button
-							variant="ghost"
-							size="icon"
-							className="lg:hidden"
-							onClick={toggleMobileMenu}
-							aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
-							aria-expanded={isMobileMenuOpen}
-							aria-controls="mobile-menu"
-							data-mobile-menu-trigger
-						>
-							{isMobileMenuOpen ? (
-								<X className="h-5 w-5" aria-hidden="true" />
-							) : (
-								<Menu className="h-5 w-5" aria-hidden="true" />
-							)}
-						</Button>
-					</div>
-				</div>
-			</div>
+        {/* Breadcrumbs */}
+        {!isShrunk && <MemoizedHeaderBreadcrumbs />}
 
-			{/* Breadcrumbs */}
-			<HeaderBreadcrumbs />
+        {/* Mobile Menu */}
+        <HeaderMobileMenuEnhanced
+          isMobileMenuOpen={isMobileMenuOpen}
+          setIsMobileMenuOpen={setIsMobileMenuOpen}
+          isActiveRoute={isActiveRoute}
+          mounted={mounted}
+        />
 
-			{/* Mobile Menu */}
-			<HeaderMobileMenu
-				isMobileMenuOpen={isMobileMenuOpen}
-				setIsMobileMenuOpen={setIsMobileMenuOpen}
-				isActiveRoute={isActiveRoute}
-				mounted={mounted}
-			/>
-
-			{/* Command Palette */}
-			<CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
-		</header>
-	);
+        {/* Command Palette */}
+        <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
+      </motion.header>
+    </>
+  );
 }

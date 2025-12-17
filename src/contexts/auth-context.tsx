@@ -32,7 +32,7 @@
  *      import { auth } from '@/auth'
  *   
  *   ✅ في API Routes: 
- *      import { authService } from '@/lib/auth-service'
+ *      import { authService } from '@/lib/services/auth-service'
  * 
  * 📚 راجع AUTH_STRUCTURE_UNIFIED.md للتفاصيل الكاملة
  */
@@ -43,9 +43,9 @@
 // ✅ النظام الموحد (Unified Auth System) - المصدر الأساسي
 // ============================================
 // هذا هو النظام الموصى به والوحيد الموثوق
-export { UnifiedAuthContext, useUnifiedAuth, UnifiedAuthProvider } from "@/components/auth/UnifiedAuthProvider";
-export type { UnifiedAuthContextType } from "@/components/auth/UnifiedAuthProvider";
-export type { User } from "@/components/auth/UnifiedAuthProvider";
+export { UnifiedAuthContext, useUnifiedAuth, UnifiedAuthProvider } from "@/app/(auth)/components/UnifiedAuthProvider";
+export type { UnifiedAuthContextType } from "@/app/(auth)/components/UnifiedAuthProvider";
+export type { User } from "@/app/(auth)/components/UnifiedAuthProvider";
 
 // ============================================
 // ⚠️ النظام القديم (Legacy System) - REMOVED
@@ -64,4 +64,4 @@ export type { User } from "@/components/auth/UnifiedAuthProvider";
 // لكن يُنصح بشدة بالترقية إلى النظام الموحد
 
 // Re-export User type from UnifiedAuthProvider as the primary source
-export type { User as AuthUser } from "@/components/auth/UnifiedAuthProvider";
+export type { User as AuthUser } from "@/app/(auth)/components/UnifiedAuthProvider";

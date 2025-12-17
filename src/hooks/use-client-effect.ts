@@ -1,7 +1,9 @@
-import React, { useEffect, useLayoutEffect, useRef, useCallback } from 'react';
+"use client";
+
+import { useEffect, useLayoutEffect, useRef, useState, DependencyList } from 'react';
 
 // Lazy load logger to prevent server-only bundling issues
-let loggerInstance: any = null;
+let loggerInstance: unknown = null;
 async function getLogger() {
   if (!loggerInstance) {
     try {
@@ -10,14 +12,19 @@ async function getLogger() {
     } catch (error) {
       // Fallback to console if logger fails to load
       loggerInstance = {
-        info: (...args: any[]) => console.info(...args),
-        warn: (...args: any[]) => console.warn(...args),
-        error: (...args: any[]) => console.error(...args),
-        debug: (...args: any[]) => console.debug(...args),
+        info: (...args: unknown[]) => console.info(...args),
+        warn: (...args: unknown[]) => console.warn(...args),
+        error: (...args: unknown[]) => console.error(...args),
+        debug: (...args: unknown[]) => console.debug(...args),
       };
     }
   }
-  return loggerInstance;
+  return loggerInstance as {
+    info: (...args: unknown[]) => void;
+    warn: (...args: unknown[]) => void;
+    error: (...args: unknown[]) => void;
+    debug: (...args: unknown[]) => void;
+  };
 }
 
 /**
@@ -31,7 +38,7 @@ async function getLogger() {
  */
 export function useClientEffect(
   effect: () => void | (() => void),
-  deps?: React.DependencyList,
+  deps?: DependencyList,
   options?: {
     priority?: 'low' | 'normal' | 'high';
     skipHydration?: boolean;
@@ -105,14 +112,14 @@ export function useClientEffect(
  */
 export function useClientEffectSafe(
   effect: () => void | (() => void),
-  deps?: React.DependencyList,
+  deps?: DependencyList,
   options?: {
     skipHydration?: boolean;
     priority?: 'low' | 'normal' | 'high';
   }
 ) {
-  const [isHydrated, setIsHydrated] = React.useState(false);
-  const [hasRun, setHasRun] = React.useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
+  const [hasRun, setHasRun] = useState(false);
 
   // Mark as hydrated on client
   useEffect(() => {
@@ -151,7 +158,7 @@ export function useClientEffectSafe(
  * @param effect The effect function to run
  * @param deps Dependency array for the effect
  */
-export function useClientLayoutEffect(effect: () => void | (() => void), deps?: React.DependencyList) {
+export function useClientLayoutEffect(effect: () => void | (() => void), deps?: DependencyList) {
   useLayoutEffect(() => {
     // Only run the effect on the client side
     if (typeof window !== 'undefined' && typeof effect === 'function') {
@@ -165,7 +172,7 @@ export function useClientLayoutEffect(effect: () => void | (() => void), deps?: 
  * Returns null during SSR and the actual object on client
  */
 export function useWindow() {
-  const [windowObj, setWindowObj] = React.useState<Window | null>(null);
+  const [windowObj, setWindowObj] = useState<Window | null>(null);
 
   useClientEffect(() => {
     if (typeof window !== 'undefined') {
@@ -181,7 +188,7 @@ export function useWindow() {
  * Returns null during SSR and the actual localStorage on client
  */
 export function useLocalStorage() {
-  const [storage, setStorage] = React.useState<Storage | null>(null);
+  const [storage, setStorage] = useState<Storage | null>(null);
 
   useClientEffect(() => {
     if (typeof window !== 'undefined') {

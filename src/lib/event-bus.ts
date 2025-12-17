@@ -1,5 +1,6 @@
 import { EventHandler } from '../types';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export class EventBus {
   private handlers = new Map<string, EventHandler[]>();
@@ -11,9 +12,9 @@ export class EventBus {
     this.handlers.get(event)?.push(handler);
   }
 
-  async publish(event: string, payload: any) {
+  async publish(event: string, payload: unknown) {
     const handlers = this.handlers.get(event) || [];
-    
+
     await Promise.all(
       handlers.map(handler => {
         try {
@@ -28,7 +29,7 @@ export class EventBus {
   }
 
   // For batch processing
-  async publishBatch(event: string, items: any[]) {
+  async publishBatch(event: string, items: unknown[]) {
     const batchSize = 100;
     for (let i = 0; i < items.length; i += batchSize) {
       const batch = items.slice(i, i + batchSize);

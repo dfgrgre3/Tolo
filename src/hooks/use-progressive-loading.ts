@@ -1,5 +1,8 @@
+"use client";
+
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useClientEffect } from './use-client-effect';
+import { safeGetItem, safeSetItem, isBrowser } from '@/lib/safe-client-utils';
 
 interface ProgressiveLoadingOptions {
   priority?: boolean;
@@ -54,7 +57,6 @@ export function useProgressiveLoading<T>(
   const timeoutRef = useRef<NodeJS.Timeout>();
   const retryTimeoutRef = useRef<NodeJS.Timeout>();
   const abortControllerRef = useRef<AbortController>();
-  const hasLoadedRef = useRef(false);
 
   // Mark as hydrated on client with better error handling
   useEffect(() => {
@@ -139,9 +141,9 @@ export function useProgressiveLoading<T>(
       const err = error instanceof Error ? error : new Error('Unknown error occurred');
 
       // Check if we should retry
-      const shouldRetry = attempt < retryAttempts && 
-                         !abortControllerRef.current?.signal.aborted &&
-                         !err.message.includes('aborted');
+      const shouldRetry = attempt < retryAttempts &&
+        !abortControllerRef.current?.signal.aborted &&
+        !err.message.includes('aborted');
 
       if (shouldRetry) {
         onRetry?.(attempt);
@@ -257,15 +259,13 @@ export function useProgressiveData<T>(
   const { cacheTime = 5 * 60 * 1000, staleWhileRevalidate = true, ...loadingOptions } = safeOptions;
 
   const loadFunction = useCallback(async () => {
-    const { safeGetItem, safeSetItem, isBrowser } = require('@/lib/safe-client-utils');
-    
     // Check cache first (client-side only)
     if (isBrowser()) {
       try {
         const cached = safeGetItem(`progressive_cache_${key}`, { fallback: null });
         if (cached) {
           const cacheData = typeof cached === 'string' ? JSON.parse(cached) : cached;
-          const { data, timestamp } = cacheData;
+          const { data, timestamp } = cacheData as { data: T; timestamp: number };
           const isExpired = Date.now() - timestamp > cacheTime;
 
           if (!isExpired) {

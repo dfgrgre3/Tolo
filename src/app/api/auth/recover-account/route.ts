@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { AccountRecoveryService } from '@/lib/services/account-recovery-service';
-import { authService } from '@/lib/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { extractRequestMetadata } from '@/app/api/auth/_helpers';
 import { z } from 'zod';
 
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     try {
       // Rate limiting check
       try {
-        const { RateLimitingService } = await import('@/lib/rate-limiting-service');
+        const { RateLimitingService } = await import('@/lib/services/rate-limiting-service');
         const { getRedisClient } = await import('@/lib/redis');
         
         const redis = await getRedisClient();

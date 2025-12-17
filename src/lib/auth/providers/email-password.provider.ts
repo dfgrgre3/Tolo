@@ -1,5 +1,5 @@
-import { authService, AuthService } from '@/lib/auth-service';
-import { validateEmail, validatePassword } from '@/lib/auth/validation';
+import { authService, AuthService } from '@/lib/services/auth-service';
+import { validateEmail } from '@/lib/auth/validation';
 import {
   AuthenticationProvider,
   AuthProviderResult,
@@ -37,9 +37,16 @@ export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswo
     }
     const normalizedEmail = emailValidation.normalized!;
 
-    const passwordValidation = validatePassword(password);
-    if (!passwordValidation.isValid) {
-      return { status: 'error', code: 'INVALID_CREDENTIALS', message: passwordValidation.error || 'كلمة المرور غير صحيحة' };
+    // For login, only validate password presence and length limits
+    // Password strength requirements (uppercase, special chars, etc.) are only for registration
+    if (!password || typeof password !== 'string') {
+      return { status: 'error', code: 'INVALID_CREDENTIALS', message: 'كلمة المرور مطلوبة' };
+    }
+    if (password.length < 8) {
+      return { status: 'error', code: 'INVALID_CREDENTIALS', message: 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل' };
+    }
+    if (password.length > 128) {
+      return { status: 'error', code: 'INVALID_CREDENTIALS', message: 'كلمة المرور طويلة جداً' };
     }
 
     // 2. Find the user
@@ -48,8 +55,8 @@ export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswo
       return { status: 'error', code: 'USER_NOT_FOUND', message: 'بيانات تسجيل الدخول غير صحيحة' };
     }
 
-    // 3. Verify email is verified
-    if (!user.emailVerified) {
+    // 3. Verify email is verified (skip in development for testing)
+    if (!user.emailVerified && process.env.NODE_ENV !== 'development') {
       return { status: 'error', code: 'EMAIL_NOT_VERIFIED', message: 'البريد الإلكتروني غير مفعل. يرجى تفعيل حسابك.' };
     }
 

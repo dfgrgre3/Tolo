@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState, ReactNode, useCallback } from "react";
 import { useClientEffect, useClientLayoutEffect } from "@/hooks/use-client-effect";
+import { logger } from "@/lib/logger";
 
 interface LazyLoadSectionProps {
   children: ReactNode;
@@ -43,7 +44,7 @@ export function LazyLoadSection({
       try {
         // Report to performance monitoring if available
         if (duration !== undefined && process.env.NODE_ENV === 'development') {
-          console.debug(`LazyLoadSection: ${action} took ${duration}ms`);
+          logger.debug(`LazyLoadSection: ${action} took ${duration}ms`);
         }
       } catch (error) {
         // Silently fail performance reporting
@@ -98,7 +99,7 @@ export function LazyLoadSection({
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        console.warn('LazyLoadSection: Failed to create IntersectionObserver, falling back to immediate load', error);
+        logger.warn('LazyLoadSection: Failed to create IntersectionObserver, falling back to immediate load', { error });
       }
       setIsVisible(true);
     }

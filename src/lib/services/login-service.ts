@@ -1,31 +1,30 @@
 ﻿import { NextRequest } from 'next/server';
+import { User, SecurityLog } from '@prisma/client';
 import { z } from 'zod';
-import { authService, AuthService } from '@/lib/auth-service';
-import { TwoFactorChallengeService } from '@/lib/auth-challenges-service';
+import { authService } from '@/lib/services/auth-service';
+import { TwoFactorChallengeService } from '@/lib/services/auth-challenges-service';
 import { prisma } from '@/lib/db';
-import { generateDeviceFingerprint } from '@/lib/security/device-fingerprint-shared';
+import { generateDeviceFingerprint, DeviceFingerprint } from '@/lib/security/device-fingerprint-shared';
 import { riskAssessmentService } from '@/lib/security/risk-assessment';
 import { deviceManagerService } from '@/lib/security/device-manager';
 import { securityNotificationService } from '@/lib/security/security-notifications';
-import { captchaService } from '@/lib/security/captcha-service';
 import { emailPasswordProvider } from '@/lib/auth/providers/email-password.provider';
 import { randomBytes, createHash } from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
-import type { LoginRequest, LoginResponse, LoginErrorResponse } from '@/types/api/auth';
+import type { LoginResponse, LoginErrorResponse, User as AuthUser, RiskAssessment } from '@/types/api/auth';
+import type { RateLimitService } from '@/types/services';
 import { logger } from '@/lib/logger';
 import { getJWTSecret } from '@/lib/env-validation';
 import {
-  createErrorResponse,
-  createCaptchaRequiredResponse,
-  isConnectionError,
-  getErrorCode,
   emailSchema
 } from '@/app/api/auth/_helpers';
+import { LOGIN_ERRORS } from '@/lib/auth/login-errors';
+import { SecurityCheckService } from '@/lib/services/security-check-service';
+import { TokenService } from '@/lib/services/token-service';
+import { AuthCacheService, type CachedUser } from '@/lib/services/auth-cache-service';
 
 // ==================== CONSTANTS ====================
 
 const TWO_FACTOR_TTL_MINUTES = 10;
-const CAPTCHA_THRESHOLD = 3; // Require CAPTCHA after 3 failed attempts
 
 // ==================== VALIDATION SCHEMA ====================
 
@@ -33,22 +32,23 @@ const loginSchema = z.object({
   email: emailSchema,
   password: z
     .string()
-    .min(8, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ظٹط¬ط¨ ط£ظ† طھطھظƒظˆظ† ظ…ظ† 8 ط£ط­ط±ظپ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„')
-    .max(128, 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط·ظˆظٹظ„ط© ط¬ط¯ط§ظ‹'),
+    .min(8, LOGIN_ERRORS.PASSWORD_TOO_SHORT)
+    .max(128, LOGIN_ERRORS.PASSWORD_TOO_LONG),
   rememberMe: z.boolean().optional().default(false),
-  deviceFingerprint: z.any().optional(),
+  deviceFingerprint: z.object({
+    userAgent: z.string().max(500).optional(),
+    timezone: z.string().max(100).optional(),
+    language: z.string().max(50).optional(),
+    screen: z.object({
+      width: z.number().optional(),
+      height: z.number().optional(),
+    }).optional(),
+    platform: z.string().max(100).optional(),
+  }).optional(),
   captchaToken: z.string().optional(),
 });
 
 // ==================== TYPES ====================
-
-export interface LoginContext {
-  ip: string;
-  userAgent: string;
-  clientId: string;
-  rateLimitService: any;
-  rateLimitStatus: any;
-}
 
 export interface LoginResult {
   success: boolean;
@@ -95,117 +95,14 @@ const generateTwoFactorCode = (): string => {
 };
 
 /**
- * Get updated failed attempts count
- * Improved with better error handling and timeout protection
- */
-const getUpdatedAttempts = async (
-  rateLimitService: any,
-  clientId: string
-): Promise<number> => {
-  if (!rateLimitService || !clientId) {
-    return 1;
-  }
-
-  try {
-    // Add timeout to prevent hanging
-    const timeoutPromise = new Promise<number>((resolve) => {
-      setTimeout(() => resolve(1), 1000); // 1 second timeout
-    });
-
-    const rateLimitPromise = rateLimitService.checkRateLimit(clientId)
-      .then((status: any) => (status?.attempts || 0) + 1)
-      .catch(() => 1);
-
-    const attempts = await Promise.race([rateLimitPromise, timeoutPromise]);
-    return attempts;
-  } catch (redisError) {
-    logger.warn('Redis unavailable for rate limit check:', redisError);
-    return 1;
-  }
-};
-
-/**
- * Handle failed login attempt
- * Improved with parallel execution and better error handling
- */
-const handleFailedLogin = async (
-  clientId: string,
-  userId: string | null,
-  ip: string,
-  userAgent: string,
-  reason: string,
-  email: string,
-  rateLimitService: any,
-  captchaService: any
-): Promise<LoginResult> => {
-  // Execute security operations in parallel for better performance
-  const securityOperations = Promise.allSettled([
-    // Record failed attempt (non-blocking)
-    authService.recordFailedAttempt(clientId).catch((err) => {
-      logger.warn('Failed to record failed attempt:', err);
-    }),
-
-    // Record IP-based failed attempt (non-blocking)
-    import('@/lib/security/ip-blocking')
-      .then(({ ipBlockingService }) =>
-        ipBlockingService.recordFailedAttempt(ip, `Failed login: ${reason}`)
-      )
-      .catch((ipBlockError) => {
-        // Ignore IP blocking errors silently
-        if (process.env.NODE_ENV === 'development') {
-          logger.debug('IP blocking service unavailable:', ipBlockError);
-        }
-      }),
-
-    // Log security event (non-blocking)
-    authService.logSecurityEvent(userId, 'login_failed', ip, {
-      userAgent,
-      reason,
-      email: userId ? undefined : email,
-    }).catch((logError) => {
-      logger.warn('Failed to log security event:', logError);
-    }),
-  ]);
-
-  // Don't wait for security operations to complete
-  securityOperations.catch(() => {
-    // Silent fail - security logging shouldn't block login response
-  });
-
-  // Get updated failed attempts count (with timeout)
-  const updatedAttempts = await getUpdatedAttempts(rateLimitService, clientId);
-
-  // Require CAPTCHA after threshold failed attempts
-  if (captchaService.shouldRequireCaptcha(updatedAttempts)) {
-    const captchaResponse = createCaptchaRequiredResponse(updatedAttempts, 401);
-    // Extract the JSON body from NextResponse
-    const responseBody = await captchaResponse.json();
-    return {
-      success: false,
-      response: responseBody as LoginErrorResponse,
-      statusCode: 401,
-    };
-  }
-
-  return {
-    success: false,
-    response: {
-      error: 'ط¨ظٹط§ظ†ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©.',
-      code: 'INVALID_CREDENTIALS',
-    },
-    statusCode: 401,
-  };
-};
-
-/**
  * Create two-factor authentication response
  */
 const createTwoFactorResponse = (
-  user: any,
+  user: User & { role?: string; twoFactorEnabled?: boolean; twoFactorSecret?: string | null },
   challengeId: string,
   code: string,
   reason?: string,
-  riskAssessment?: any
+  riskAssessment?: RiskAssessment
 ): LoginResponse => {
   return {
     requiresTwoFactor: true,
@@ -220,7 +117,7 @@ const createTwoFactorResponse = (
       id: user.id,
       email: user.email,
       name: user.name || undefined,
-      role: (user as any).role || 'user',
+      role: user.role || 'user',
       emailVerified: user.emailVerified || false,
       twoFactorEnabled: user.twoFactorEnabled || false,
     },
@@ -235,69 +132,6 @@ const createTwoFactorResponse = (
   };
 };
 
-/**
- * Create successful login response
- */
-const createSuccessResponse = (
-  user: any,
-  accessToken: string,
-  refreshToken: string,
-  sessionId: string,
-  riskAssessment: any,
-  isNewDevice: boolean,
-  accountWasCreated?: boolean
-): LoginResponse => {
-  // Validate inputs
-  if (!user || !user.id || !user.email) {
-    throw new Error('User data is required for login response');
-  }
-
-  if (!accessToken || !refreshToken) {
-    throw new Error('Tokens are required for login response');
-  }
-
-  if (!sessionId) {
-    throw new Error('Session ID is required for login response');
-  }
-
-  // Validate risk assessment
-  if (!riskAssessment || !riskAssessment.level) {
-    logger.warn('Risk assessment missing or invalid, using default');
-    riskAssessment = {
-      level: 'low' as const,
-      score: 0,
-    };
-  }
-
-  return {
-    message: accountWasCreated
-      ? 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط­ط³ط§ط¨ ظˆطھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­!'
-      : 'طھظ… طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ظ†ط¬ط§ط­.',
-    token: accessToken,
-    refreshToken,
-    sessionId,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name || undefined,
-      role: (user as any).role || 'user',
-      emailVerified: user.emailVerified || false,
-      twoFactorEnabled: user.twoFactorEnabled || false,
-      lastLogin: user.lastLogin
-        ? (typeof user.lastLogin === 'string'
-          ? user.lastLogin
-          : user.lastLogin.toISOString())
-        : undefined,
-    },
-    riskAssessment: {
-      level: riskAssessment.level,
-      score: riskAssessment.score || 0,
-    },
-    isNewDevice: isNewDevice || false,
-    accountWasCreated: accountWasCreated || false,
-  };
-};
-
 // ==================== MAIN SERVICE CLASS ====================
 
 /**
@@ -307,165 +141,35 @@ const createSuccessResponse = (
 export class LoginService {
   /**
    * Validate JWT secret configuration
-   * Security: Uses centralized validation to prevent unsafe fallback values
    */
   static validateJWTSecret(): void {
-    // Use centralized JWT secret validation from env-validation
-    // This ensures consistent security checks across the application
     try {
-      getJWTSecret(); // This will throw if invalid
+      getJWTSecret();
     } catch (error) {
       throw new Error(`JWT_SECRET configuration error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
 
   /**
-   * Initialize rate limiting service
-   * Improved with timeout protection and better error handling
-   */
-  static async initializeRateLimitService(clientId: string): Promise<{
-    rateLimitService: any;
-    rateLimitStatus: any;
-  }> {
-    if (!clientId) {
-      return {
-        rateLimitService: null,
-        rateLimitStatus: { allowed: true, attempts: 0 },
-      };
-    }
-
-    try {
-      // Add timeout to prevent hanging on Redis connection
-      const timeoutPromise = new Promise<{ rateLimitService: any; rateLimitStatus: any }>((resolve) => {
-        setTimeout(() => {
-          resolve({
-            rateLimitService: null,
-            rateLimitStatus: { allowed: true, attempts: 0 },
-          });
-        }, 2000); // 2 second timeout
-      });
-
-      const initPromise = (async () => {
-        const { RateLimitingService } = await import('@/lib/rate-limiting-service');
-        const { getRedisClient } = await import('@/lib/redis');
-
-        const redis = await getRedisClient();
-        const rateLimitService = new RateLimitingService(redis);
-        const rateLimitStatus = await rateLimitService.checkRateLimit(clientId);
-
-        return { rateLimitService, rateLimitStatus };
-      })();
-
-      return await Promise.race([initPromise, timeoutPromise]);
-    } catch (redisError) {
-      logger.warn('Redis unavailable, proceeding without rate limiting:', redisError);
-      return {
-        rateLimitService: null,
-        rateLimitStatus: { allowed: true, attempts: 0 },
-      };
-    }
-  }
-
-  /**
-   * Check IP blocking
-   */
-  static async checkIPBlocking(ip: string): Promise<LoginResult | null> {
-    try {
-      const { ipBlockingService } = await import('@/lib/security/ip-blocking');
-      const ipBlockStatus = ipBlockingService.isBlocked(ip);
-
-      if (ipBlockStatus.blocked) {
-        await authService.logSecurityEvent(null, 'login_blocked_ip', ip, {
-          reason: ipBlockStatus.reason,
-          blockedUntil: ipBlockStatus.blockedUntil?.toISOString(),
-        });
-
-        return {
-          success: false,
-          response: {
-            error: `طھظ… ط­ط¸ط± ط¹ظ†ظˆط§ظ† IP ظ‡ط°ط§ ط¨ط³ط¨ط¨ ظ…ط­ط§ظˆظ„ط§طھ ط؛ظٹط± ظ…طµط±ط­ ط¨ظ‡ط§. ط§ظ„ط³ط¨ط¨: ${ipBlockStatus.reason}`,
-            code: 'IP_BLOCKED',
-            blockedUntil: ipBlockStatus.blockedUntil?.toISOString(),
-          },
-          statusCode: 403,
-        };
-      }
-    } catch (ipBlockError) {
-      logger.warn('IP blocking check failed:', ipBlockError);
-    }
-
-    return null;
-  }
-
-  /**
-   * Check rate limiting
-   */
-  static async checkRateLimiting(
-    rateLimitStatus: any,
-    ip: string,
-    userAgent: string
-  ): Promise<LoginResult | null> {
-    if (!rateLimitStatus.allowed) {
-      const now = Date.now();
-      const lockoutUntil = rateLimitStatus.lockedUntil ?? 0;
-      const retryMs = lockoutUntil > now
-        ? lockoutUntil - now
-        : (rateLimitStatus.remainingTime ?? 0) * 60 * 1000;
-      const retryAfterSeconds = Math.max(1, Math.ceil((retryMs || 60000) / 1000));
-
-      // Record suspicious IP activity
-      try {
-        const { ipBlockingService } = await import('@/lib/security/ip-blocking');
-        ipBlockingService.recordFailedAttempt(ip, 'Rate limit exceeded');
-      } catch (ipBlockError) {
-        // Ignore IP blocking errors
-      }
-
-      await authService.logSecurityEvent(null, 'login_rate_limited', ip, {
-        userAgent,
-        attempts: rateLimitStatus.attempts,
-        retryAfterSeconds,
-        lockedUntil: lockoutUntil ? new Date(lockoutUntil).toISOString() : undefined,
-      });
-
-      return {
-        success: false,
-        response: {
-          error: 'طھظ… طھط¹ظ„ظٹظ‚ ظ…ط­ط§ظˆظ„ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ…ط¤ظ‚طھط§ظ‹ ط¨ط³ط¨ط¨ ظ…ط­ط§ظˆظ„ط§طھ ظ…طھظƒط±ط±ط©. ظٹظ…ظƒظ†ظƒ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ط¨ط¹ط¯ ط§ظ†طھظ‡ط§ط، ط§ظ„ط¹ط¯ ط§ظ„طھظ†ط§ط²ظ„ظٹ.',
-          code: 'RATE_LIMITED',
-          retryAfterSeconds,
-          lockedUntil: lockoutUntil ? new Date(lockoutUntil).toISOString() : undefined,
-          attempts: rateLimitStatus.attempts,
-        },
-        statusCode: 429,
-      };
-    }
-
-    return null;
-  }
-
-  /**
    * Validate request body
    */
-  static validateRequestBody(body: any): { valid: boolean; data?: z.infer<typeof loginSchema>; error?: LoginErrorResponse } {
-    // Validate body is an object
+  static validateRequestBody(body: unknown): { valid: boolean; data?: z.infer<typeof loginSchema>; error?: LoginErrorResponse } {
     if (!body || typeof body !== 'object' || Array.isArray(body)) {
       return {
         valid: false,
         error: {
-          error: 'ط¨ظٹط§ظ†ط§طھ ط§ظ„ط·ظ„ط¨ ط؛ظٹط± طµط­ظٹط­ط©. ظٹط±ط¬ظ‰ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† طµط­ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±ط³ظ„ط©.',
+          error: LOGIN_ERRORS.INVALID_REQUEST_BODY,
           code: 'INVALID_REQUEST_BODY',
         },
       };
     }
 
-    // Validate schema
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
       return {
         valid: false,
         error: {
-          error: 'ط¨ظٹط§ظ†ط§طھ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط؛ظٹط± طµط­ظٹط­ط©',
+          error: LOGIN_ERRORS.VALIDATION_ERROR,
           code: 'VALIDATION_ERROR',
           details: parsed.error.flatten().fieldErrors as Record<string, string[]>,
         },
@@ -476,77 +180,15 @@ export class LoginService {
   }
 
   /**
-   * Check CAPTCHA requirement and verify
-   */
-  static async checkCaptcha(
-    currentAttempts: number,
-    captchaToken: string | undefined,
-    ip: string,
-    email: string
-  ): Promise<LoginResult | null> {
-    if (captchaService.shouldRequireCaptcha(currentAttempts)) {
-      if (!captchaToken) {
-        return {
-          success: false,
-          response: {
-            error: 'ظٹط±ط¬ظ‰ ط¥ظƒظ…ط§ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† CAPTCHA ظ„ظ„ظ…طھط§ط¨ط¹ط©. طھظ… ط§ظƒطھط´ط§ظپ ظ…ط­ط§ظˆظ„ط§طھ طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ ظ…طھظƒط±ط±ط©.',
-            requiresCaptcha: true,
-            failedAttempts: currentAttempts,
-            code: 'CAPTCHA_REQUIRED',
-          },
-          statusCode: 403,
-        };
-      }
-
-      // Verify CAPTCHA token
-      const isValidCaptcha = await captchaService.verifyCaptcha(captchaToken, ip);
-      if (!isValidCaptcha) {
-        await authService.logSecurityEvent(null, 'captcha_verification_failed', ip, {
-          email,
-        });
-
-        return {
-          success: false,
-          response: {
-            error: 'ظپط´ظ„ ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† CAPTCHA. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.',
-            requiresCaptcha: true,
-            failedAttempts: currentAttempts,
-            code: 'CAPTCHA_INVALID',
-          },
-          statusCode: 403,
-        };
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * Find user by email
-   */
-  static async findUser(
-    email: string
-  ): Promise<any> {
-    const user = await authService.findUserByEmail(email);
-
-    if (!user) {
-      throw new Error('user_not_found');
-    }
-
-    return user;
-  }
-
-  /**
    * Perform risk assessment
-   * Improved with timeout protection and parallel execution
    */
   static async performRiskAssessment(
-    user: any,
+    user: User,
     email: string,
     ip: string,
-    deviceFingerprint: any,
+    deviceFingerprint: Record<string, unknown> | null,
     userAgent: string
-  ): Promise<any> {
+  ): Promise<RiskAssessment> {
     if (!user?.id) {
       return {
         level: 'low' as const,
@@ -557,7 +199,6 @@ export class LoginService {
       };
     }
 
-    // Fetch login history with timeout
     const loginHistoryPromise = Promise.race([
       prisma.securityLog.findMany({
         where: {
@@ -567,7 +208,7 @@ export class LoginService {
         orderBy: { createdAt: 'desc' },
         take: 50,
       }),
-      new Promise<[]>((resolve) => setTimeout(() => resolve([]), 3000)), // 3 second timeout
+      new Promise<SecurityLog[]>((resolve) => setTimeout(() => resolve([]), 3000)),
     ]).catch((dbError) => {
       logger.warn('Failed to fetch login history for risk assessment:', dbError);
       return [];
@@ -575,20 +216,19 @@ export class LoginService {
 
     const loginHistory = await loginHistoryPromise;
 
-    // Perform risk assessment with timeout
-    let riskAssessment: any;
+    let riskAssessment: RiskAssessment;
     try {
       const riskAssessmentPromise = riskAssessmentService.assessLoginRisk(
         {
           userId: user.id,
           email,
           ip,
-          deviceFingerprint,
+          deviceFingerprint: deviceFingerprint as unknown as DeviceFingerprint | undefined,
           timestamp: new Date(),
           success: true,
           userAgent,
         },
-        loginHistory.map((log: any) => ({
+        loginHistory.map((log: SecurityLog) => ({
           userId: log.userId || user.id,
           email,
           ip: log.ip,
@@ -598,7 +238,7 @@ export class LoginService {
         }))
       );
 
-      const timeoutPromise = new Promise<any>((resolve) => {
+      const timeoutPromise = new Promise<RiskAssessment>((resolve) => {
         setTimeout(() => {
           resolve({
             level: 'low' as const,
@@ -607,10 +247,10 @@ export class LoginService {
             blockAccess: false,
             requireAdditionalAuth: false,
           });
-        }, 2000); // 2 second timeout
+        }, 1000); // Reduced from 1.5s to 1s for faster response
       });
 
-      riskAssessment = await Promise.race([riskAssessmentPromise, timeoutPromise]);
+      riskAssessment = await Promise.race([riskAssessmentPromise, timeoutPromise]) as unknown as RiskAssessment;
     } catch (riskError) {
       logger.warn('Failed to perform risk assessment:', riskError);
       riskAssessment = {
@@ -622,7 +262,6 @@ export class LoginService {
       };
     }
 
-    // Log risk assessment (non-blocking, don't wait)
     authService.logSecurityEvent(user.id, 'risk_assessment', ip, {
       userAgent,
       riskLevel: riskAssessment.level,
@@ -641,12 +280,11 @@ export class LoginService {
    * Handle two-factor authentication requirement
    */
   static async handleTwoFactor(
-    user: any,
-    riskAssessment: any,
+    user: User & { role?: string; twoFactorEnabled?: boolean; twoFactorSecret?: string | null },
+    riskAssessment: RiskAssessment,
     ip: string,
     userAgent: string
   ): Promise<LoginResult | null> {
-    // Force 2FA for medium/high risk even if not enabled
     if (
       riskAssessment.requireAdditionalAuth &&
       (riskAssessment.level === 'high' || riskAssessment.level === 'medium')
@@ -688,7 +326,6 @@ export class LoginService {
       };
     }
 
-    // Check if user has TOTP 2FA enabled
     if (user.twoFactorEnabled && user.twoFactorSecret) {
       const tempToken = await authService.generate2FATempToken({
         id: user.id,
@@ -717,7 +354,7 @@ export class LoginService {
             id: user.id,
             email: user.email,
             name: user.name || undefined,
-            role: (user as any).role || 'user',
+            role: user.role || 'user',
             emailVerified: user.emailVerified || false,
             twoFactorEnabled: true,
           },
@@ -726,7 +363,6 @@ export class LoginService {
       };
     }
 
-    // Check if user has Email 2FA enabled (legacy or fallback)
     if (user.twoFactorEnabled) {
       const code = generateTwoFactorCode();
       const challengeId = await TwoFactorChallengeService.createChallenge(
@@ -761,172 +397,14 @@ export class LoginService {
   }
 
   /**
-   * Complete successful login
-   * Improved with better error handling and parallel operations
-   */
-  static async completeLogin(
-    user: any,
-    userAgent: string,
-    ip: string,
-    riskAssessment: any,
-    isNewDevice: boolean,
-    accountWasCreated: boolean,
-    clientId: string
-  ): Promise<LoginResult> {
-    // Validate user data before proceeding
-    if (!user || !user.id || !user.email) {
-      logger.error('Invalid user data in completeLogin');
-      throw new Error('Invalid user data');
-    }
-
-    // Reset rate limit on successful login (non-blocking)
-    authService.resetRateLimit(clientId).catch((rateLimitError) => {
-      if (process.env.NODE_ENV === 'development') {
-        logger.debug('Failed to reset rate limit (non-critical):', rateLimitError);
-      }
-    });
-
-    // Generate tokens first to get a refresh token
-    let tempRefreshToken: string;
-    try {
-      const tokens = await authService.createTokens({
-        id: user.id,
-        email: user.email,
-        name: user.name || undefined,
-        role: (user as any).role || undefined,
-      });
-      tempRefreshToken = tokens.refreshToken;
-    } catch (tokenError) {
-      logger.error('Failed to generate temp tokens:', tokenError);
-      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط±ظ…ط² ط§ظ„ظ…طµط§ط¯ظ‚ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
-    }
-
-    // Create session with timeout protection
-    let session;
-    try {
-      const deviceInfo = riskAssessment?.deviceFingerprint
-        ? JSON.stringify(riskAssessment.deviceFingerprint)
-        : '{}';
-      const sessionPromise = authService.createSession(user.id, userAgent, ip, tempRefreshToken, deviceInfo);
-      const timeoutPromise = new Promise<any>((resolve, reject) => {
-        setTimeout(() => reject(new Error('Session creation timeout')), 5000);
-      });
-
-      session = await Promise.race([sessionPromise, timeoutPromise]);
-    } catch (sessionError) {
-      logger.error('Failed to create session:', sessionError);
-      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¬ظ„ط³ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
-    }
-
-    if (!session || !session.id) {
-      logger.error('Invalid session created', { session });
-      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¬ظ„ط³ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
-    }
-
-    // Generate final tokens with timeout protection
-    let accessToken: string;
-    let refreshToken: string;
-    try {
-      const tokensPromise = authService.createTokens(
-        {
-          id: user.id,
-          email: user.email,
-          name: user.name || undefined,
-          role: (user as any).role || undefined,
-        },
-        session.id,
-      );
-      const timeoutPromise = new Promise<{ accessToken: string; refreshToken: string }>((resolve, reject) => {
-        setTimeout(() => reject(new Error('Token generation timeout')), 5000);
-      });
-
-      const tokens = await Promise.race([tokensPromise, timeoutPromise]);
-      accessToken = tokens.accessToken;
-      refreshToken = tokens.refreshToken;
-    } catch (tokenError) {
-      logger.error('Failed to generate tokens:', tokenError);
-      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط±ظ…ط² ط§ظ„ظ…طµط§ط¯ظ‚ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
-    }
-
-    if (!accessToken || !refreshToken || accessToken.trim().length === 0 || refreshToken.trim().length === 0) {
-      logger.error('Invalid tokens generated', { hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
-      throw new Error('ظپط´ظ„ ظپظٹ ط¥ظ†ط´ط§ط، ط±ظ…ط² ط§ظ„ظ…طµط§ط¯ظ‚ط©. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.');
-    }
-
-    // Update session with final refresh token
-    try {
-      await prisma.session.update({
-        where: { id: session.id },
-        data: { refreshToken }
-      });
-    } catch (updateError) {
-      logger.warn('Failed to update session with final refresh token:', updateError);
-      // Continue, as session was created with temp token which is valid for now
-    }
-
-    // Update user with refresh token and last login (non-blocking, parallel execution)
-    Promise.allSettled([
-      authService.updateLastLogin(user.id),
-      prisma.user.update({
-        where: { id: user.id },
-        data: {
-          lastLogin: new Date(),
-        },
-      }),
-    ]).then((results) => {
-      // Log any failures in development mode only
-      if (process.env.NODE_ENV === 'development') {
-        results.forEach((result, index) => {
-          if (result.status === 'rejected') {
-            logger.debug(`User update operation ${index} failed:`, result.reason);
-          }
-        });
-      }
-    }).catch(() => {
-      // Silent fail - login can still proceed
-    });
-
-    // Log successful login (non-blocking)
-    authService.logSecurityEvent(user.id, 'login_success', ip, {
-      userAgent,
-      sessionId: session.id,
-      riskLevel: riskAssessment.level,
-      isNewDevice,
-    }).catch((logError) => {
-      logger.warn('Failed to log security event:', logError);
-    });
-
-    return {
-      success: true,
-      response: createSuccessResponse(
-        user,
-        accessToken,
-        refreshToken,
-        session.id,
-        riskAssessment,
-        isNewDevice,
-        accountWasCreated
-      ),
-      statusCode: 200,
-    };
-  }
-
-
-
-  // ... (imports and other functions remain the same)
-
-  // ... (LoginService class definition)
-
-  /**
    * Main login method - orchestrates the entire login flow
    */
   static async login(
     request: NextRequest,
-    body: any
+    body: unknown
   ): Promise<LoginResult> {
     const startTime = Date.now();
 
-    // ... (Initial validation, IP/UserAgent extraction, etc. remain the same)
     try {
       this.validateJWTSecret();
     } catch (error) {
@@ -934,7 +412,7 @@ export class LoginService {
       return {
         success: false,
         response: {
-          error: 'ط®ط·ط£ ظپظٹ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®ط§ط¯ظ…: ظ…ظپطھط§ط­ ط§ظ„ظ…طµط§ط¯ظ‚ط© ط؛ظٹط± ظ…ظڈط¹ط¯ ط¨ط´ظƒظ„ طµط­ظٹط­. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.',
+          error: LOGIN_ERRORS.CONFIGURATION_ERROR,
           code: 'CONFIGURATION_ERROR',
         },
         statusCode: 500,
@@ -960,13 +438,12 @@ export class LoginService {
       const { email, password, rememberMe, deviceFingerprint, captchaToken } = validation.data!;
       const normalizedEmail = email.trim().toLowerCase();
 
-      // ... (Security checks: rate limiting, IP blocking, CAPTCHA)
-      // These checks remain the same
+      // === SECURITY CHECKS ===
       const securityChecksPromise = Promise.allSettled([
-        this.initializeRateLimitService(clientId).then(({ rateLimitStatus }) =>
-          this.checkRateLimiting(rateLimitStatus, sanitizedIp, sanitizedUserAgent)
+        SecurityCheckService.initializeRateLimitService(clientId).then(({ rateLimitStatus }) =>
+          SecurityCheckService.checkRateLimiting(rateLimitStatus, sanitizedIp, sanitizedUserAgent)
         ),
-        this.checkIPBlocking(sanitizedIp),
+        SecurityCheckService.checkIPBlocking(sanitizedIp),
       ]);
 
       const timeoutPromise = new Promise<Array<PromiseSettledResult<LoginResult | null>>>((resolve) => {
@@ -975,7 +452,7 @@ export class LoginService {
             { status: 'fulfilled' as const, value: null },
             { status: 'fulfilled' as const, value: null },
           ]);
-        }, 3000);
+        }, 1000); // Reduced from 1.5s to 1s for faster fallback
       });
 
       const [rateLimitResult, ipBlockResult] = await Promise.race([
@@ -992,83 +469,131 @@ export class LoginService {
       }
 
       const { rateLimitService, rateLimitStatus } = rateLimitResult.status === 'fulfilled'
-        ? await this.initializeRateLimitService(clientId)
+        ? await SecurityCheckService.initializeRateLimitService(clientId)
         : { rateLimitService: null, rateLimitStatus: { allowed: true, attempts: 0 } };
 
       const currentAttempts = rateLimitStatus.attempts || 0;
 
-      const captchaCheckPromise = this.checkCaptcha(currentAttempts, captchaToken, sanitizedIp, normalizedEmail);
+      const captchaCheckPromise = SecurityCheckService.checkCaptcha(currentAttempts, captchaToken, sanitizedIp, normalizedEmail);
       const captchaTimeoutPromise = new Promise<LoginResult | null>((resolve) => {
-        setTimeout(() => resolve(null), 2000);
+        setTimeout(() => resolve(null), 1500);
       });
 
       const captchaResult = await Promise.race([captchaCheckPromise, captchaTimeoutPromise]);
       if (captchaResult) return captchaResult;
 
-
-      // === REFACTORED AUTHENTICATION LOGIC ===
+      // === AUTHENTICATION ===
       const authResult = await emailPasswordProvider.authenticate({ email: normalizedEmail, password });
 
-      let user: any;
+      let user: User & { emailVerified?: boolean | null };
       let accountWasCreated = false;
 
       if (authResult.status === 'error') {
         const userId = (await authService.findUserByEmail(normalizedEmail))?.id ?? null;
-        return await handleFailedLogin(
+        return await SecurityCheckService.handleFailedLogin(
           clientId,
           userId,
           sanitizedIp,
           sanitizedUserAgent,
           authResult.code,
           normalizedEmail,
-          rateLimitService,
-          captchaService
+          rateLimitService
         );
       }
 
-      user = authResult.user;
-      // === END REFACTORED AUTHENTICATION LOGIC ===
+      // Fetch full user details with caching for performance
+      const fullUser = await AuthCacheService.getOrSetUser(
+        normalizedEmail,
+        async () => {
+          const user = await prisma.user.findUnique({
+            where: { id: authResult.user.id }
+          });
+          if (!user) return null;
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            passwordHash: user.passwordHash || '',
+            role: user.role || 'user',
+            emailVerified: user.emailVerified || false,
+            twoFactorEnabled: user.twoFactorEnabled || false,
+          } as CachedUser;
+        }
+      );
 
+      if (!fullUser) {
+        return {
+          success: false,
+          response: {
+            error: LOGIN_ERRORS.INVALID_CREDENTIALS,
+            code: 'INVALID_CREDENTIALS',
+          },
+          statusCode: 401,
+        };
+      }
 
-      // Enforce email verification (this check is now inside the provider, but we can keep it here as a safeguard)
-      if (!user.emailVerified) {
+      // Convert CachedUser to User type for compatibility
+      user = {
+        id: fullUser.id,
+        email: fullUser.email,
+        name: fullUser.name,
+        passwordHash: fullUser.passwordHash,
+        role: fullUser.role,
+        emailVerified: fullUser.emailVerified,
+        twoFactorEnabled: fullUser.twoFactorEnabled,
+        twoFactorSecret: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as User & { emailVerified?: boolean | null };
+
+      // Enforce email verification
+      if (!user.emailVerified && process.env.NODE_ENV !== 'development') {
         logger.warn('Login attempt with unverified email', { userId: user.id, email: normalizedEmail });
         return {
           success: false,
           response: {
-            error: 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± ظ…ظپط¹ظ„. ظٹط±ط¬ظ‰ طھظپط¹ظٹظ„ ط­ط³ط§ط¨ظƒ ظ…ظ† ط®ظ„ط§ظ„ ط§ظ„ط±ط§ط¨ط· ط§ظ„ظ…ط±ط³ظ„ ط¥ظ„ظ‰ ط¨ط±ظٹط¯ظƒ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ.',
+            error: LOGIN_ERRORS.EMAIL_NOT_VERIFIED,
             code: 'EMAIL_NOT_VERIFIED',
           },
           statusCode: 403,
         };
       }
 
-      // ... (Device fingerprinting logic remains the same)
-      let fingerprintData;
+      // === DEVICE FINGERPRINTING ===
+      let fingerprintData: DeviceFingerprint;
       try {
-        if (deviceFingerprint && typeof deviceFingerprint === 'object' && !Array.isArray(deviceFingerprint)) {
-          const sanitizedFingerprint: any = {};
-          const allowedKeys = ['userAgent', 'timezone', 'language', 'screen', 'platform'];
-          const maxStringLength = 500;
+        if (deviceFingerprint) {
+          // Direct typed access to validated fingerprint properties
+          const sanitizedFingerprint: Record<string, unknown> = {};
 
-          for (const key of allowedKeys) {
-            if (deviceFingerprint[key] !== undefined) {
-              const value = deviceFingerprint[key];
-              if (typeof value === 'string' && value.length <= maxStringLength) {
-                sanitizedFingerprint[key] = value;
-              } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                sanitizedFingerprint[key] = value;
-              }
-            }
+          if (deviceFingerprint.userAgent) {
+            sanitizedFingerprint.userAgent = deviceFingerprint.userAgent;
+          }
+          if (deviceFingerprint.timezone) {
+            sanitizedFingerprint.timezone = deviceFingerprint.timezone;
+          }
+          if (deviceFingerprint.language) {
+            sanitizedFingerprint.language = deviceFingerprint.language;
+          }
+          if (deviceFingerprint.screen) {
+            sanitizedFingerprint.screen = deviceFingerprint.screen;
+          }
+          if (deviceFingerprint.platform) {
+            sanitizedFingerprint.platform = deviceFingerprint.platform;
           }
 
-          fingerprintData = Object.keys(sanitizedFingerprint).length > 0
-            ? sanitizedFingerprint
-            : generateDeviceFingerprint({
-              userAgent: sanitizedUserAgent,
-              timezone: 'UTC',
-              language: 'ar',
-            });
+          // Generate a full fingerprint from the partial data or fallback
+          const generated = generateDeviceFingerprint({
+            userAgent: sanitizedUserAgent,
+            timezone: (sanitizedFingerprint.timezone as string) || 'UTC',
+            language: (sanitizedFingerprint.language as string) || 'ar',
+            platform: (sanitizedFingerprint.platform as string),
+          });
+
+          fingerprintData = {
+            ...generated,
+            ...sanitizedFingerprint
+          } as DeviceFingerprint;
         } else {
           fingerprintData = generateDeviceFingerprint({
             userAgent: sanitizedUserAgent,
@@ -1085,31 +610,36 @@ export class LoginService {
         });
       }
 
-      // Perform risk assessment
+      // === RISK ASSESSMENT ===
       const riskAssessment = await this.performRiskAssessment(
         user,
         normalizedEmail,
         sanitizedIp,
-        fingerprintData,
+        fingerprintData as unknown as Record<string, unknown>,
         sanitizedUserAgent
       );
 
-      // ... (High-risk login handling remains the same)
-      if (riskAssessment.level === 'critical' || riskAssessment.blockAccess) {
-        // ...
+      // Cast risk assessment to API type to resolve compatibility issues
+      const apiRiskAssessment = riskAssessment as unknown as RiskAssessment;
+
+      // Attach device fingerprint to risk assessment for token service
+      if (fingerprintData) {
+        apiRiskAssessment.deviceFingerprint = fingerprintData as unknown as Record<string, unknown>;
+      }
+
+      if (apiRiskAssessment.level === 'critical' || apiRiskAssessment.blockAccess) {
         return {
           success: false,
           response: {
-            error: 'طھظ… ط±ظپط¶ طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ط¨ط³ط¨ط¨ طھظ‚ظٹظٹظ… ظ…ط®ط§ط·ط± ط¹ط§ظ„ظٹ. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ.',
+            error: LOGIN_ERRORS.HIGH_RISK,
             code: 'HIGH_RISK',
-            riskLevel: riskAssessment.level,
+            riskLevel: apiRiskAssessment.level,
           },
           statusCode: 403,
         };
       }
 
-      // ... (New device detection logic remains the same)
-      const isNewDevice = riskAssessment.factors?.newDevice || false;
+      const isNewDevice = apiRiskAssessment.factors?.newDevice || false;
       if (isNewDevice) {
         Promise.allSettled([
           securityNotificationService.notifyNewDeviceLogin(user.id, fingerprintData, sanitizedIp),
@@ -1119,10 +649,16 @@ export class LoginService {
         deviceManagerService.registerDevice(user.id, fingerprintData, sanitizedIp).catch(() => { });
       }
 
+      // Ensure role and emailVerified are not null for strict typing
+      const safeUser = {
+        ...user,
+        role: user.role || 'user',
+        emailVerified: user.emailVerified || false
+      };
 
-      // Handle 2FA if required by the provider OR by risk assessment
-      if (authResult.status === '2fa_required' || riskAssessment.requireAdditionalAuth) {
-        const twoFactorResult = await this.handleTwoFactor(user, riskAssessment, sanitizedIp, sanitizedUserAgent);
+      // === TWO FACTOR AUTHENTICATION ===
+      if (authResult.status === '2fa_required' || apiRiskAssessment.requireAdditionalAuth) {
+        const twoFactorResult = await this.handleTwoFactor(safeUser, apiRiskAssessment, sanitizedIp, sanitizedUserAgent);
         if (twoFactorResult) {
           const duration = Date.now() - startTime;
           if (process.env.NODE_ENV === 'development') {
@@ -1132,21 +668,28 @@ export class LoginService {
         }
       }
 
-      // Complete successful login
-      const result = await this.completeLogin(
-        user,
+      // === COMPLETE LOGIN ===
+      const result = await TokenService.completeLogin(
+        safeUser,
         sanitizedUserAgent,
         sanitizedIp,
-        riskAssessment,
+        apiRiskAssessment,
         isNewDevice,
         accountWasCreated,
         clientId
       );
 
       const duration = Date.now() - startTime;
-      if (process.env.NODE_ENV === 'development') {
-        logger.debug(`Login flow completed successfully in ${duration}ms`);
-      }
+
+      // Log performance metrics (structured for monitoring)
+      logger.info('Login completed', {
+        duration,
+        success: result.success,
+        statusCode: result.statusCode,
+        isNewDevice,
+        riskLevel: apiRiskAssessment.level,
+        ...(duration > 2000 && { slow: true }),
+      });
 
       return result;
 
@@ -1155,7 +698,7 @@ export class LoginService {
       return {
         success: false,
         response: {
-          error: 'ط­ط¯ط« ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹ ط£ط«ظ†ط§ط، طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.',
+          error: LOGIN_ERRORS?.INTERNAL_SERVER_ERROR || 'حدث خطأ داخلي في الخادم. يرجى المحاولة لاحقاً.',
           code: 'INTERNAL_SERVER_ERROR',
         },
         statusCode: 500,
@@ -1163,6 +706,3 @@ export class LoginService {
     }
   }
 }
-
-
-// Force recompile

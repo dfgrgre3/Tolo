@@ -1,14 +1,14 @@
 import { useCallback, useState } from 'react';
-import errorLogger, { ErrorLogEntry } from '../services/ErrorLogger';
+import errorLogger from '../services/ErrorLogger';
 
 export interface ErrorHandlerOptions {
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   severity?: 'low' | 'medium' | 'high' | 'critical';
   onError?: (error: Error, errorId: string) => void;
 }
 
 export interface ErrorHandlerReturn {
-  handleError: (error: Error | string, additionalContext?: Record<string, any>) => string;
+  handleError: (error: Error | string, additionalContext?: Record<string, unknown>) => string;
   error: Error | null;
   errorId: string | null;
   clearError: () => void;
@@ -25,7 +25,7 @@ export const useErrorHandler = (options: ErrorHandlerOptions = {}): ErrorHandler
   const [errorId, setErrorId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleError = useCallback((error: Error | string, additionalContext?: Record<string, any>) => {
+  const handleError = useCallback((error: Error | string, additionalContext?: Record<string, unknown>) => {
     // Convert string to Error if needed
     const errorObj = typeof error === 'string' ? new Error(error) : error;
 
@@ -33,7 +33,7 @@ export const useErrorHandler = (options: ErrorHandlerOptions = {}): ErrorHandler
     const context = {
       ...options.context,
       ...additionalContext,
-      severity: additionalContext?.severity || options.severity || 'medium',
+      severity: (additionalContext?.severity as string) || options.severity || 'medium',
     };
 
     // Log the error
@@ -87,7 +87,7 @@ export const useAsyncError = () => {
 /**
  * Hook for handling errors in async functions
  */
-export const useAsyncOperation = <T, P extends any[]>(
+export const useAsyncOperation = <T, P extends unknown[]>(
   asyncFn: (...args: P) => Promise<T>,
   options: ErrorHandlerOptions = {}
 ) => {
@@ -107,7 +107,7 @@ export const useAsyncOperation = <T, P extends any[]>(
       setError(errorObj);
 
       // Log error with context
-      errorLogger.logError(errorObj, {
+      const errorId = errorLogger.logError(errorObj, {
         ...options.context,
         source: 'useAsyncOperation',
         severity: options.severity || 'medium',
@@ -117,7 +117,7 @@ export const useAsyncOperation = <T, P extends any[]>(
 
       // Call custom error handler if provided
       if (options.onError) {
-        options.onError(errorObj, '');
+        options.onError(errorObj, errorId);
       }
 
       return null;
