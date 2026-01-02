@@ -11,7 +11,7 @@
 
 import { ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { AnimatedBackground } from '@/components/auth';
+import { AnimatedBackground } from '@/components/auth/AnimatedBackground';
 
 interface AuthLayoutProps {
   children: ReactNode;

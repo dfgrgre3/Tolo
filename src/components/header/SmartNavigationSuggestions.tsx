@@ -136,8 +136,6 @@ export function SmartNavigationSuggestions() {
 		}
 	};
 
-	if (!mounted || suggestions.length === 0) return null;
-
 	const groupedSuggestions = useMemo(() => {
 		const groups: Record<string, NavigationSuggestion[]> = {
 			recent: [],
@@ -151,6 +149,8 @@ export function SmartNavigationSuggestions() {
 
 		return groups;
 	}, [suggestions]);
+
+	if (!mounted || suggestions.length === 0) return null;
 
 	return (
 		<DropdownMenu open={isOpen} onOpenChange={setIsOpen}>

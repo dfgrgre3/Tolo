@@ -43,7 +43,7 @@ const API_BASE_URL = '/api/auth';
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000; // 1 second
 const RETRYABLE_STATUS_CODES = [408, 429, 500, 502, 503, 504];
-const CONNECTION_TIMEOUT = 15000; // 15 seconds for connection timeout
+const CONNECTION_TIMEOUT = 30000; // 30 seconds for connection timeout
 
 /**
  * Check if device is online
@@ -337,8 +337,24 @@ async function apiFetch<T>(
       return apiFetch<T>(endpoint, options, retryCount + 1);
     }
 
-    // Check if error is empty object first
-    if (!error || (typeof error === 'object' && Object.keys(error).length === 0)) {
+    // Handle timeout errors
+    if (isTimeoutError(error)) {
+      throw {
+        error: 'انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
+        code: 'REQUEST_TIMEOUT',
+      };
+    }
+
+    // Handle network errors
+    if (isNetworkError(error)) {
+      throw {
+        error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
+        code: 'FETCH_ERROR',
+      };
+    }
+
+    // Check if error is empty object first (but excluding standard Error objects)
+    if (!error || (typeof error === 'object' && !(error instanceof Error) && Object.keys(error).length === 0)) {
       // Log this weird case
       if (process.env.NODE_ENV === 'development') {
         console.error('apiFetch caught empty error:', error);
@@ -362,22 +378,6 @@ async function apiFetch<T>(
         ...((error as { requiresCaptcha?: boolean }).requiresCaptcha !== undefined && { requiresCaptcha: (error as { requiresCaptcha?: boolean }).requiresCaptcha }),
       };
       throw normalizedError;
-    }
-
-    // Handle timeout errors
-    if (isTimeoutError(error)) {
-      throw {
-        error: 'انتهت مهلة الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
-        code: 'REQUEST_TIMEOUT',
-      };
-    }
-
-    // Handle network errors
-    if (isNetworkError(error)) {
-      throw {
-        error: 'خطأ في الاتصال: حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.',
-        code: 'FETCH_ERROR',
-      };
     }
 
     // Generic error - ensure we always have a proper error structure

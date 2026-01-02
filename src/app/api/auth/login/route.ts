@@ -51,6 +51,7 @@ export async function POST(req: NextRequest) {
     // 5. Create Response
     const response = NextResponse.json({
       success: true,
+      message: 'تم تسجيل الدخول بنجاح.',
       user: {
         id: user.id,
         name: user.name,
@@ -58,8 +59,8 @@ export async function POST(req: NextRequest) {
         role: userRole,
         image: user.avatar // Map avatar to image for frontend consistency if needed, or just use avatar
       },
-      token: accessToken,
-      accessToken: accessToken
+      token: accessToken,       // للتوافق مع الكود الحالي
+      accessToken: accessToken  // <-- أضف هذا السطر لحل مشكلة MISSING_TOKEN
     });
 
     // 6. Set Cookies

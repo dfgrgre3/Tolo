@@ -53,7 +53,7 @@ export function useLogin() {
                 router.refresh();
             }
         } catch (error: any) {
-            console.error("Login error:", error);
+            console.error("Login error:", error instanceof Error ? error.message : error);
             const message = error?.error || error?.message || "حدث خطأ أثناء تسجيل الدخول";
             toast.error(message);
             form.setError("root", { message });
