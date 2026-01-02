@@ -4,9 +4,19 @@ import { authService } from '@/lib/services/auth-service';
 import { webAuthnService, WebAuthnCredential } from '@/lib/security/webauthn';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { setAuthCookies } from '@/app/api/auth/_helpers';
+import {
+  setAuthCookies,
+  createErrorResponse,
+  createSuccessResponse,
+} from '@/app/api/auth/_helpers';
+import { withDatabaseRetry } from '@/lib/auth-utils';
+import { authChallengeService } from '@/lib/services/auth-challenges-service';
 import crypto from 'crypto';
 
+/**
+ * POST /api/auth/biometric
+ * المصادقة البيومترية - التسجيل والتحقق
+ */
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
@@ -23,21 +33,22 @@ export async function POST(request: NextRequest) {
           return handleAuthenticationOptions(req, data);
         default:
           logger.warn(`Invalid biometric action: ${action}`);
-          return NextResponse.json(
-            { error: 'Invalid action' },
-            { status: 400 }
+          return createErrorResponse(
+            { error: 'Invalid action', code: 'INVALID_ACTION' },
+            'إجراء غير صحيح',
+            400
           );
       }
     } catch (error: unknown) {
       logger.error('Biometric authentication error:', error);
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return createErrorResponse(error, 'حدث خطأ في المصادقة البيومترية', 500);
     }
   });
 }
 
+/**
+ * Handle Biometric Registration
+ */
 async function handleBiometricRegistration(
   request: NextRequest,
   data: { userId: string; response: any }
@@ -45,38 +56,46 @@ async function handleBiometricRegistration(
   const { userId, response } = data;
 
   if (!userId || !response) {
-    return NextResponse.json(
-      { error: 'User ID and response are required' },
-      { status: 400 }
+    return createErrorResponse(
+      { error: 'Missing data', code: 'MISSING_DATA' },
+      'معرف المستخدم والاستجابة مطلوبان',
+      400
     );
   }
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId }
-  });
+  // Find user with retry
+  const user = await withDatabaseRetry(
+    async () => prisma.user.findUnique({ where: { id: userId } }),
+    { maxAttempts: 3, operationName: 'find user for biometric registration' }
+  );
 
   if (!user) {
-    return NextResponse.json(
-      { error: 'User not found' },
-      { status: 404 }
+    return createErrorResponse(
+      { error: 'User not found', code: 'USER_NOT_FOUND' },
+      'المستخدم غير موجود',
+      404
     );
   }
 
-  // Get the registration challenge from database
-  const challenge = await prisma.biometricChallenge.findFirst({
-    where: {
-      userId,
-      type: 'register',
-      used: false,
-      expiresAt: { gt: new Date() }
-    },
-    orderBy: { createdAt: 'desc' }
-  });
+  // Get the registration challenge from database with retry
+  const challenge = await withDatabaseRetry(
+    async () => prisma.biometricChallenge.findFirst({
+      where: {
+        userId,
+        type: 'register',
+        used: false,
+        expiresAt: { gt: new Date() }
+      },
+      orderBy: { createdAt: 'desc' }
+    }),
+    { maxAttempts: 3, operationName: 'find biometric registration challenge' }
+  );
 
   if (!challenge) {
-    return NextResponse.json(
-      { error: 'No active registration challenge found' },
-      { status: 400 }
+    return createErrorResponse(
+      { error: 'No challenge found', code: 'NO_CHALLENGE' },
+      'لم يتم العثور على تحدي تسجيل نشط',
+      400
     );
   }
 
@@ -88,38 +107,49 @@ async function handleBiometricRegistration(
 
   if (!verificationResult.verified || !verificationResult.credential) {
     logger.error('Registration verification failed:', verificationResult.error);
-    return NextResponse.json(
-      { error: 'Registration verification failed' },
-      { status: 400 }
+    return createErrorResponse(
+      { error: 'Verification failed', code: 'VERIFICATION_FAILED' },
+      'فشل التحقق من التسجيل',
+      400
     );
   }
 
   // Mark challenge as used
-  await prisma.biometricChallenge.update({
-    where: { id: challenge.id },
-    data: { used: true }
-  });
+  await withDatabaseRetry(
+    async () => prisma.biometricChallenge.update({
+      where: { id: challenge.id },
+      data: { used: true }
+    }),
+    { maxAttempts: 3, operationName: 'mark challenge as used' }
+  );
 
   // Save credential
-  await prisma.biometricCredential.create({
-    data: {
-      userId: user.id,
-      credentialId: verificationResult.credential.credentialId,
-      publicKey: verificationResult.credential.publicKey,
-      counter: verificationResult.credential.counter,
-      transports: JSON.stringify([]), // Default empty
-      deviceType: 'singleDevice', // Default
-    }
-  });
+  await withDatabaseRetry(
+    async () => prisma.biometricCredential.create({
+      data: {
+        userId: user.id,
+        credentialId: verificationResult.credential!.credentialId,
+        publicKey: verificationResult.credential!.publicKey,
+        counter: verificationResult.credential!.counter,
+        transports: JSON.stringify([]),
+        deviceType: 'singleDevice',
+      }
+    }),
+    { maxAttempts: 3, operationName: 'save biometric credential' }
+  );
 
-  await prisma.user.update({
-    where: { id: userId },
-    data: { biometricEnabled: true }
-  });
+  await withDatabaseRetry(
+    async () => prisma.user.update({
+      where: { id: userId },
+      data: { biometricEnabled: true }
+    }),
+    { maxAttempts: 3, operationName: 'enable biometric for user' }
+  );
 
-  return NextResponse.json({
-    success: true,
-    message: 'Biometric registration successful'
+  logger.info('Biometric registration completed', { userId });
+
+  return createSuccessResponse({
+    message: 'تم تسجيل المصادقة البيومترية بنجاح'
   });
 }
 
@@ -130,15 +160,28 @@ async function handleBiometricAuthentication(
   const { response } = data;
 
   if (!response) {
-    return NextResponse.json(
-      { error: 'Authentication response is required' },
-      { status: 400 }
+    return createErrorResponse(
+      { error: 'Response required', code: 'MISSING_RESPONSE' },
+      'استجابة المصادقة مطلوبة',
+      400
     );
   }
 
   const ip = authService.getClientIP(request);
   const userAgent = authService.getUserAgent(request);
   const clientId = `${ip}-${userAgent}`;
+
+  // 1. Check Rate Limit
+  try {
+    await authService.checkRateLimit(clientId);
+  } catch (error) {
+    await authService.logSecurityEvent(null, 'biometric_rate_limit_exceeded', ip, { userAgent });
+    return createErrorResponse(
+      { error: 'Rate limited', code: 'RATE_LIMITED' },
+      'محاولات كثيرة جداً. يرجى المحاولة لاحقاً.',
+      429
+    );
+  }
 
   // Find credential
   const credential = await prisma.biometricCredential.findUnique({
@@ -147,40 +190,82 @@ async function handleBiometricAuthentication(
   });
 
   if (!credential || !credential.user) {
-    return NextResponse.json(
-      { error: 'Credential not found' },
-      { status: 404 }
+    await authService.recordFailedAttempt(clientId);
+    return createErrorResponse(
+      { error: 'Credential not found', code: 'CREDENTIAL_NOT_FOUND' },
+      'بيانات الاعتماد غير موجودة',
+      404
     );
   }
 
   const user = credential.user;
 
   if (!user.biometricEnabled) {
-    return NextResponse.json(
-      { error: 'Biometric authentication is not enabled for this account' },
-      { status: 401 }
+    return createErrorResponse(
+      { error: 'Biometric not enabled', code: 'BIOMETRIC_NOT_ENABLED' },
+      'المصادقة البيومترية غير مفعلة لهذا الحساب',
+      401
     );
   }
 
-  // Get the authentication challenge
+  // 2. Extract challenge from client response to find the CORRECT challenge record
+  // This prevents race conditions where we might verify against the wrong challenge
+  let clientChallenge = '';
+  try {
+    const clientData = JSON.parse(Buffer.from(response.clientDataJSON, 'base64').toString('utf8'));
+    clientChallenge = clientData.challenge;
+  } catch (e) {
+    await authService.recordFailedAttempt(clientId);
+    return createErrorResponse(
+      { error: 'Invalid client data', code: 'INVALID_CLIENT_DATA' },
+      'بيانات العميل غير صحيحة',
+      400
+    );
+  }
+
+  // Debug log
+  logger.debug(`Biometric Auth: Looking for challenge ${clientChallenge} for user ${user.id}`);
+
+  // 3. Find specific challenge by VALUE (secure lookup)
   const challenge = await prisma.biometricChallenge.findFirst({
     where: {
+      challenge: clientChallenge,
       userId: user.id,
       type: 'authenticate',
       used: false,
       expiresAt: { gt: new Date() }
-    },
-    orderBy: { createdAt: 'desc' }
+    }
   });
 
   if (!challenge) {
-    return NextResponse.json(
-      { error: 'No active authentication challenge found' },
-      { status: 400 }
+    await authService.recordFailedAttempt(clientId);
+    await authService.logSecurityEvent(user.id, 'biometric_challenge_not_found', ip, { userAgent });
+    return createErrorResponse(
+      { error: 'Challenge expired', code: 'CHALLENGE_EXPIRED' },
+      'جلسة تسجيل الدخول غير صالحة أو منتهية الصلاحية',
+      400
     );
   }
 
-  // Map to WebAuthnCredential
+  // 4. Verify using Centralized Service
+  // Note: We use the service to handle the complex verification logic logic consistently
+  const verification = await authChallengeService.verifyBiometricChallenge(
+    challenge.id,
+    clientChallenge,
+    user.id
+  );
+
+  if (!verification.valid) {
+    await authService.recordFailedAttempt(clientId);
+    await authService.logSecurityEvent(user.id, 'biometric_verification_failed', ip, { userAgent });
+    return createErrorResponse(
+      { error: 'Verification failed', code: 'VERIFICATION_FAILED' },
+      'فشل التحقق من المصادقة',
+      400
+    );
+  }
+
+  // Map to WebAuthnCredential for strict signature verification
   const webAuthnCred: WebAuthnCredential = {
     id: credential.id,
     userId: credential.userId,
@@ -192,33 +277,29 @@ async function handleBiometricAuthentication(
     createdAt: credential.createdAt,
   };
 
-  // Verify authentication response
-  const verificationResult = await webAuthnService.verifyAuthentication(
+  // 5. Verify Cryptographic Signature (WebAuthn)
+  const signatureVerification = await webAuthnService.verifyAuthentication(
     response,
     challenge.challenge,
     webAuthnCred
   );
 
-  if (!verificationResult.verified) {
-    logger.error('Authentication verification failed:', verificationResult.error);
-    return NextResponse.json(
-      { error: 'Authentication verification failed' },
-      { status: 400 }
+  if (!signatureVerification.verified) {
+    await authService.recordFailedAttempt(clientId);
+    logger.error('Authentication signature verification failed:', signatureVerification.error);
+    return createErrorResponse(
+      { error: 'Signature failed', code: 'SIGNATURE_FAILED' },
+      'فشل التحقق من التوقيع',
+      400
     );
   }
 
-  // Mark challenge as used
-  await prisma.biometricChallenge.update({
-    where: { id: challenge.id },
-    data: { used: true }
-  });
-
   // Update credential counter
-  if (verificationResult.newCounter !== undefined) {
+  if (signatureVerification.newCounter !== undefined) {
     await prisma.biometricCredential.update({
       where: { id: credential.id },
       data: {
-        counter: verificationResult.newCounter
+        counter: signatureVerification.newCounter
       }
     });
   }
@@ -231,7 +312,7 @@ async function handleBiometricAuthentication(
   });
 
   // Create session
-  const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
+  const session = await authService.createSession(user.id, tempTokens.refreshToken, userAgent, ip);
 
   // Reset rate limiting
   await authService.resetRateLimit(clientId);
@@ -287,9 +368,10 @@ async function handleAuthenticationOptions(
   const { userId, action } = data;
 
   if (!action || !['register', 'login'].includes(action)) {
-    return NextResponse.json(
-      { error: 'Invalid action. Must be "register" or "login"' },
-      { status: 400 }
+    return createErrorResponse(
+      { error: 'Invalid action', code: 'INVALID_ACTION' },
+      'إجراء غير صحيح. يجب أن يكون "register" أو "login"',
+      400
     );
   }
 
@@ -298,9 +380,10 @@ async function handleAuthenticationOptions(
 
   if (action === 'register') {
     if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required for registration' },
-        { status: 400 }
+      return createErrorResponse(
+        { error: 'Missing user ID', code: 'MISSING_USER_ID' },
+        'معرف المستخدم مطلوب للتسجيل',
+        400
       );
     }
 
@@ -309,9 +392,10 @@ async function handleAuthenticationOptions(
     });
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
+      return createErrorResponse(
+        { error: 'User not found', code: 'USER_NOT_FOUND' },
+        'المستخدم غير موجود',
+        404
       );
     }
 
@@ -336,9 +420,8 @@ async function handleAuthenticationOptions(
     }
   });
 
-  return NextResponse.json({
-    success: true,
+  return createSuccessResponse({
     options,
-    challenge: challenge.id // Return challenge ID if client needs it
+    challengeId: challenge.id
   });
 }

@@ -1,4 +1,4 @@
-jest.mock('@/lib/rate-limiting-service', () => ({
+jest.mock('@/lib/services/rate-limiting-service', () => ({
   rateLimitingService: {
     checkRateLimit: jest.fn(),
   },
@@ -19,7 +19,7 @@ describe('Rate Limiting Service', () => {
 
   describe('checkRateLimit', () => {
     it('should allow request under rate limit', async () => {
-      const { rateLimitingService } = require('@/lib/rate-limiting-service');
+      const { rateLimitingService } = require('@/lib/services/rate-limiting-service');
       (rateLimitingService.checkRateLimit as jest.Mock).mockResolvedValue({
         allowed: true,
         attempts: 5,
@@ -32,7 +32,7 @@ describe('Rate Limiting Service', () => {
     });
 
     it('should block request over rate limit', async () => {
-      const { rateLimitingService } = require('@/lib/rate-limiting-service');
+      const { rateLimitingService } = require('@/lib/services/rate-limiting-service');
       (rateLimitingService.checkRateLimit as jest.Mock).mockResolvedValue({
         allowed: false,
         attempts: 11,
@@ -44,7 +44,7 @@ describe('Rate Limiting Service', () => {
     });
 
     it('should handle Redis errors gracefully', async () => {
-      const { rateLimitingService } = require('@/lib/rate-limiting-service');
+      const { rateLimitingService } = require('@/lib/services/rate-limiting-service');
       (rateLimitingService.checkRateLimit as jest.Mock).mockResolvedValue({
         allowed: true,
         attempts: 0,

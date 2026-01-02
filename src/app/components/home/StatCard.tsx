@@ -15,7 +15,7 @@ interface StatCardProps {
 
 export const StatCard = ({ icon, title, value, unit, trend, color }: StatCardProps) => (
   <motion.div 
-    className="relative flex flex-col items-center rounded-3xl border border-slate-100/80 bg-white/80 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:shadow-2xl"
+    className="group relative flex flex-col items-center rounded-3xl border border-slate-100/80 bg-white/80 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:shadow-2xl"
     whileHover={{ y: -8, scale: 1.03 }}
     transition={{ type: "spring", stiffness: 300, damping: 20 }}
   >

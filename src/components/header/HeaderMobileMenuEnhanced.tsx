@@ -128,17 +128,7 @@ export function HeaderMobileMenuEnhanced({
   }, [theme, setTheme]);
 
   // Animation variants with reduced motion support
-  const menuVariants = useMemo(
-    () =>
-      shouldReduceMotion
-        ? {
-            initial: { opacity: 0 },
-            animate: { opacity: 1 },
-            exit: { opacity: 0 },
-          }
-        : headerAnimations.mobileMenu,
-    [shouldReduceMotion]
-  );
+
 
   const overlayVariants = useMemo(
     () => ({
@@ -150,30 +140,63 @@ export function HeaderMobileMenuEnhanced({
     []
   );
 
-  const staggerContainer = useMemo(
-    () => ({
-      hidden: { opacity: 0 },
-      show: {
-        opacity: 1,
-        transition: {
-          staggerChildren: 0.05,
-          delayChildren: 0.1,
-        },
-      },
-    }),
-    []
+
+
+  // Enhanced Animation variants
+  const menuVariants = useMemo(
+    () =>
+      shouldReduceMotion
+        ? {
+            initial: { x: "100%", opacity: 0 },
+            animate: { x: 0, opacity: 1 },
+            exit: { x: "100%", opacity: 0 },
+          }
+        : {
+            initial: { x: "100%" },
+            animate: { 
+              x: 0,
+              transition: {
+                type: "spring" as const,
+                damping: 30,
+                stiffness: 300
+              }
+            },
+            exit: { 
+              x: "100%",
+              transition: {
+                type: "spring" as const,
+                damping: 30,
+                stiffness: 300
+              }
+            },
+          },
+    [shouldReduceMotion]
   );
+  
+  const staggerContainer = useMemo(
+      () => ({
+        hidden: { opacity: 0 },
+        show: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.08,
+            delayChildren: 0.2,
+          },
+        },
+      }),
+      []
+    );
 
   const staggerItem = useMemo(
     () => ({
-      hidden: { opacity: 0, x: 30 },
+      hidden: { opacity: 0, x: 20 },
       show: {
         opacity: 1,
         x: 0,
         transition: {
-          type: 'spring' as const,
-          stiffness: 300,
-          damping: 24,
+          type: "spring" as const,
+          stiffness: 260,
+          damping: 20,
         },
       },
     }),
@@ -201,65 +224,86 @@ export function HeaderMobileMenuEnhanced({
           <motion.div
             ref={mobileMenuRef}
             {...menuVariants}
-            className="fixed right-0 top-0 bottom-0 w-[90%] max-w-md bg-background z-50 overflow-hidden lg:hidden flex flex-col shadow-2xl"
+            className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-background/95 backdrop-blur-2xl z-50 overflow-hidden lg:hidden flex flex-col shadow-2xl border-l border-border/40"
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border/50 bg-gradient-to-l from-primary/5 to-transparent">
+            <div className="flex items-center justify-between p-5 pb-2">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-lg shadow-primary/20">
-                  <Sparkles className="h-5 w-5 text-primary-foreground" />
+                <div className="relative">
+                  <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
+                  <div className="relative w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20 ring-1 ring-white/20">
+                    <Sparkles className="h-5 w-5 text-white" />
+                  </div>
                 </div>
-                <div>
-                  <h2 className="font-bold text-lg">ثانوية بذكاء</h2>
-                  <p className="text-xs text-muted-foreground">القائمة الرئيسية</p>
+                <div className="flex flex-col">
+                  <h2 className="font-bold text-lg bg-clip-text text-transparent bg-gradient-to-l from-foreground to-foreground/70">
+                    ثانوية بذكاء
+                  </h2>
                 </div>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="rounded-full hover:bg-destructive/10 hover:text-destructive"
+                className="rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors duration-300"
               >
                 <X className="h-5 w-5" />
               </Button>
             </div>
 
-            {/* Search */}
-            <div className="p-4 border-b border-border/30">
-              <form onSubmit={handleSearch} className="relative">
-                <Input
-                  type="text"
-                  placeholder="البحث..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onFocus={() => setIsSearchFocused(true)}
-                  onBlur={() => setIsSearchFocused(false)}
-                  className={cn(
-                    "w-full pr-10 pl-4 h-11 rounded-xl bg-muted/50 border-0 transition-all duration-300",
-                    isSearchFocused && "ring-2 ring-primary/30 bg-background"
-                  )}
-                />
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              </form>
-            </div>
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-primary/10 hover:scrollbar-thumb-primary/20 scrollbar-track-transparent">
+              
+              {/* Search */}
+              <div className="px-5 py-4">
+                <form onSubmit={handleSearch} className="relative group">
+                  <div className="absolute inset-0 bg-primary/5 rounded-2xl -m-1 scale-95 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 pointer-events-none" />
+                  <Input
+                    type="text"
+                    placeholder="ابحث عن دروس، مسابقات..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    className={cn(
+                      "w-full ps-11 pe-4 h-12 rounded-2xl bg-muted/50 border-transparent focus:bg-background transition-all duration-300 shadow-sm text-start",
+                      isSearchFocused && "ring-2 ring-primary/20 border-primary/20 shadow-lg shadow-primary/5"
+                    )}
+                  />
+                  <Search className={cn(
+                    "absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground transition-colors duration-300",
+                    isSearchFocused && "text-primary"
+                  )} />
+                </form>
+              </div>
 
-            {/* User Profile Section (if authenticated) */}
-            {user && (
-              <div className="p-4 border-b border-border/30">
-                <div className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-l from-accent/50 to-transparent">
-                  <Avatar className="h-12 w-12 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
-                    <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/70 text-primary-foreground font-semibold">
-                      {user.name?.split(" ").map((n) => n[0]).join("").toUpperCase() ||
-                        (user.email ? user.email[0].toUpperCase() : "U")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">{user.name || "مستخدم"}</p>
-                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+              {/* User Profile Section (if authenticated) */}
+              {user && (
+                <div className="px-5 pb-6">
+                  <div className="relative overflow-hidden p-4 rounded-2xl bg-gradient-to-br from-muted/80 to-muted/30 border border-white/5 shadow-inner">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-14 w-14 ring-4 ring-background shadow-md">
+                        <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
+                        <AvatarFallback className="bg-gradient-to-tr from-primary to-primary/60 text-white text-lg font-bold">
+
+                        {user.name?.split(" ").map((n) => n[0]).join("").toUpperCase() ||
+                          (user.email ? user.email[0].toUpperCase() : "U")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-base truncate leading-tight">{user.name || "مستخدم"}</p>
+                      <p className="text-xs text-muted-foreground truncate font-medium opacity-80">{user.email}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
+                  
+                  <div className="flex items-center gap-2 mt-4">
+                     <Button variant="outline" size="sm" className="flex-1 h-9 bg-background/50 hover:bg-background border-border/50 text-xs font-medium" asChild>
+                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
+                        <User className="h-3.5 w-3.5 ml-2" />
+                        الملف الشخصي
+                      </Link>
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-9 w-9 bg-background/50 hover:bg-background border-border/50" asChild>
                       <Link href="/notifications">
                         <Bell className="h-4 w-4" />
                       </Link>
@@ -274,7 +318,7 @@ export function HeaderMobileMenuEnhanced({
               variants={staggerContainer}
               initial="hidden"
               animate="show"
-              className="flex-1 overflow-y-auto p-4 space-y-2"
+              className="px-4 pb-8 space-y-2"
             >
               {/* Quick Navigation */}
               <motion.div variants={staggerItem}>
@@ -289,7 +333,7 @@ export function HeaderMobileMenuEnhanced({
                   )}
                 >
                   <Home className="h-5 w-5" />
-                  <span>الرئيسية</span>
+                  <span className="font-medium">الرئيسية</span>
                 </Link>
               </motion.div>
 
@@ -306,17 +350,22 @@ export function HeaderMobileMenuEnhanced({
                         <button
                           onClick={() => toggleMegaMenu(menuKey)}
                           className={cn(
-                            "w-full flex items-center justify-between gap-3 p-3 rounded-xl transition-all duration-200",
+                            "w-full flex items-center justify-between gap-3 p-3.5 rounded-xl transition-all duration-300 border border-transparent",
                             isActive
-                              ? "bg-primary/10 text-primary font-semibold"
-                              : "hover:bg-accent active:scale-[0.98]"
+                              ? "bg-primary/10 text-primary font-bold shadow-sm border-primary/10"
+                              : "hover:bg-muted font-medium text-foreground/80 hover:text-foreground"
                           )}
                         >
                           <div className="flex items-center gap-3">
-                            <item.icon className="h-5 w-5" />
-                            <span>{item.label}</span>
+                            <div className={cn(
+                              "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+                              isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover:bg-background"
+                            )}>
+                              <item.icon className="h-4 w-4" />
+                            </div>
+                            <span className="text-[15px]">{item.label}</span>
                             {item.badge && (
-                              <span className="px-2 py-0.5 text-[10px] font-bold bg-primary text-primary-foreground rounded-full">
+                              <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-primary to-primary/80 text-white rounded-full shadow-sm shadow-primary/20">
                                 {item.badge}
                               </span>
                             )}
@@ -324,8 +373,9 @@ export function HeaderMobileMenuEnhanced({
                           <motion.div
                             animate={{ rotate: isExpanded ? 180 : 0 }}
                             transition={{ duration: 0.2 }}
+                            className={cn(isExpanded ? "text-primary" : "text-muted-foreground")}
                           >
-                            <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            <ChevronDown className="h-4 w-4" />
                           </motion.div>
                         </button>
 
@@ -335,14 +385,14 @@ export function HeaderMobileMenuEnhanced({
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.2, ease: "easeInOut" }}
+                              transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
                               className="overflow-hidden"
                             >
-                              <div className="pr-4 py-2 space-y-1">
+                              <div className="ms-4 ps-4 border-s-2 border-primary/10 space-y-1 py-1 my-1">
                                 {item.megaMenu?.map((category, catIndex) => (
                                   <div key={catIndex} className="space-y-1">
                                     {catIndex > 0 && (
-                                      <div className="h-px bg-border/40 my-2" />
+                                      <div className="h-px bg-border/40 my-3 w-3/4 mx-auto" />
                                     )}
                                     {category.items.map((subItem) => {
                                       const subIsActive = mounted && isActiveRoute(subItem.href);
@@ -352,16 +402,16 @@ export function HeaderMobileMenuEnhanced({
                                           href={subItem.href}
                                           onClick={() => setIsMobileMenuOpen(false)}
                                           className={cn(
-                                            "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200",
+                                            "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
                                             subIsActive
-                                              ? "bg-primary/10 text-primary font-medium"
-                                              : "hover:bg-accent/60 text-muted-foreground hover:text-foreground"
+                                              ? "bg-primary/10 text-primary font-bold"
+                                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                                           )}
                                         >
-                                          <subItem.icon className="h-4 w-4" />
+                                          <subItem.icon className="h-4 w-4 opacity-70" />
                                           <span className="flex-1">{subItem.label}</span>
                                           {subItem.badge && (
-                                            <span className="px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-full font-medium">
+                                            <span className="px-1.5 py-0.5 text-[10px] bg-primary/10 text-primary rounded-full font-bold">
                                               {subItem.badge}
                                             </span>
                                           )}
@@ -380,16 +430,21 @@ export function HeaderMobileMenuEnhanced({
                         href={item.href}
                         onClick={() => setIsMobileMenuOpen(false)}
                         className={cn(
-                          "flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
+                          "flex items-center gap-3 p-3.5 rounded-xl transition-all duration-300 border border-transparent",
                           isActive
-                            ? "bg-primary/10 text-primary font-semibold"
-                            : "hover:bg-accent active:scale-[0.98]"
+                            ? "bg-primary/10 text-primary font-bold shadow-sm border-primary/10"
+                            : "hover:bg-muted font-medium text-foreground/80 hover:text-foreground"
                         )}
                       >
-                        <item.icon className="h-5 w-5" />
-                        <span className="flex-1">{item.label}</span>
+                         <div className={cn(
+                            "flex items-center justify-center w-8 h-8 rounded-lg transition-colors",
+                            isActive ? "bg-primary/20 text-primary" : "bg-muted text-muted-foreground group-hover:bg-background"
+                          )}>
+                          <item.icon className="h-4 w-4" />
+                        </div>
+                        <span className="flex-1 text-[15px]">{item.label}</span>
                         {item.badge && (
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-primary text-primary-foreground rounded-full">
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-gradient-to-r from-primary to-primary/80 text-white rounded-full shadow-sm shadow-primary/20">
                             {item.badge}
                           </span>
                         )}
@@ -405,18 +460,22 @@ export function HeaderMobileMenuEnhanced({
                   <button
                     onClick={() => toggleMegaMenu("more")}
                     className={cn(
-                      "w-full flex items-center justify-between gap-3 p-3 rounded-xl transition-all duration-200",
+                      "w-full flex items-center justify-between gap-3 p-3.5 rounded-xl transition-all duration-300",
                       expandedMenus.has("more")
-                        ? "bg-accent"
-                        : "hover:bg-accent active:scale-[0.98]"
+                        ? "bg-muted/80 text-foreground font-semibold"
+                        : "hover:bg-muted font-medium text-foreground/80"
                     )}
                   >
-                    <span>المزيد</span>
+                     <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground">
+                        <Sparkles className="h-4 w-4" />
+                     </div>
+                    <span className="text-[15px]">المزيد</span>
                     <motion.div
                       animate={{ rotate: expandedMenus.has("more") ? 180 : 0 }}
                       transition={{ duration: 0.2 }}
+                      className={expandedMenus.has("more") ? "text-foreground" : "text-muted-foreground"}
                     >
-                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      <ChevronDown className="h-4 w-4" />
                     </motion.div>
                   </button>
 
@@ -426,13 +485,13 @@ export function HeaderMobileMenuEnhanced({
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }}
                         className="overflow-hidden"
                       >
-                        <div className="pr-4 py-2 space-y-1">
+                        <div className="ms-4 ps-4 border-s-2 border-border/50 space-y-1 py-1 my-1">
                           {moreMegaMenu.map((category, catIndex) => (
                             <div key={catIndex} className="space-y-1">
-                              {catIndex > 0 && <div className="h-px bg-border/40 my-2" />}
+                              {catIndex > 0 && <div className="h-px bg-border/40 my-3 w-3/4 mx-auto" />}
                               {category.items.map((subItem) => {
                                 const subIsActive = mounted && isActiveRoute(subItem.href);
                                 return (
@@ -441,13 +500,13 @@ export function HeaderMobileMenuEnhanced({
                                     href={subItem.href}
                                     onClick={() => setIsMobileMenuOpen(false)}
                                     className={cn(
-                                      "flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm transition-all duration-200",
+                                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
                                       subIsActive
-                                        ? "bg-primary/10 text-primary font-medium"
-                                        : "hover:bg-accent/60 text-muted-foreground hover:text-foreground"
+                                        ? "bg-primary/10 text-primary font-bold"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                                     )}
                                   >
-                                    <subItem.icon className="h-4 w-4" />
+                                    <subItem.icon className="h-4 w-4 opacity-70" />
                                     <span className="flex-1">{subItem.label}</span>
                                   </Link>
                                 );
@@ -461,61 +520,53 @@ export function HeaderMobileMenuEnhanced({
                 </div>
               </motion.div>
             </motion.div>
+            </div>
 
             {/* Footer Actions */}
-            <div className="p-4 border-t border-border/30 space-y-3 bg-muted/30">
-              {/* Theme Toggle */}
-              <div className="flex items-center justify-between p-3 rounded-xl bg-background">
-                <span className="text-sm text-muted-foreground">المظهر</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
+            <div className="p-5 border-t border-border/40 space-y-4 bg-muted/20 backdrop-blur-sm mt-auto">
+              {/* Theme Toggle & Settings */}
+              <div className="flex gap-2">
+                 <Button
+                  variant="outline"
                   onClick={toggleTheme}
-                  className="gap-2 rounded-full"
+                  className="flex-1 justify-between bg-background/50 border-border/50 h-10 rounded-xl"
                 >
+                  <span className="text-sm font-medium">المظهر</span>
                   {theme === "dark" ? (
-                    <>
+                    <div className="flex items-center gap-2 text-primary">
                       <Moon className="h-4 w-4" />
-                      <span>داكن</span>
-                    </>
+                      <span className="text-xs">داكن</span>
+                    </div>
                   ) : (
-                    <>
+                    <div className="flex items-center gap-2 text-orange-500">
                       <Sun className="h-4 w-4" />
-                      <span>فاتح</span>
-                    </>
+                      <span className="text-xs">فاتح</span>
+                    </div>
                   )}
                 </Button>
+                
+                {user && (
+                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-background/50 border-border/50" asChild>
+                      <Link href="/settings" onClick={() => setIsMobileMenuOpen(false)}>
+                        <Settings className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                )}
               </div>
 
               {/* Auth Actions */}
               {user ? (
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1" asChild>
-                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
-                        <User className="h-4 w-4 ml-2" />
-                        الملف الشخصي
-                      </Link>
-                    </Button>
-                    <Button variant="outline" className="flex-1" asChild>
-                      <Link href="/settings" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Settings className="h-4 w-4 ml-2" />
-                        الإعدادات
-                      </Link>
-                    </Button>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    className="w-full"
-                    onClick={handleLogout}
-                  >
-                    <LogOut className="h-4 w-4 ml-2" />
-                    تسجيل الخروج
-                  </Button>
-                </div>
+                <Button
+                  variant="destructive"
+                  className="w-full h-11 rounded-xl shadow-lg shadow-destructive/10 font-bold"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="h-4 w-4 ml-2" />
+                  تسجيل الخروج
+                </Button>
               ) : (
                 <Button
-                  className="w-full bg-gradient-to-l from-primary to-primary/80"
+                  className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white rounded-xl shadow-lg shadow-primary/20 font-bold"
                   asChild
                 >
                   <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>

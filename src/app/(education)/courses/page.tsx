@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
 import {

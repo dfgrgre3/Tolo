@@ -1,53 +1,28 @@
-/**
- * ⭐ UNIFIED DATABASE CONNECTION - اتصال قاعدة البيانات الموحد
- * 
- * This file creates a SINGLE Prisma Client instance using the singleton pattern.
- * هذا الملف ينشئ نسخة واحدة من Prisma Client باستخدام نمط Singleton.
- */
+import { PrismaClient } from "@prisma/client";
 
-import { PrismaClient } from '@prisma/client';
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
 
-// Global singleton instance
-type GlobalPrismaContext = typeof globalThis & {
-    prismaGlobal?: PrismaClient;
-};
+const connectionString = `${process.env.DATABASE_URL}`;
 
-const globalForPrisma = globalThis as GlobalPrismaContext;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 
-// Create Prisma Client with proper configuration
-const createPrismaClient = () => {
-    const connectionString = process.env.DATABASE_URL;
-
-    const pool = new Pool({
-        connectionString,
-        connectionTimeoutMillis: 5000,  // 5 second connection timeout
-        idleTimeoutMillis: 30000,       // 30 second idle timeout
-        max: 20,                        // Maximum pool size
-    });
-    const adapter = new PrismaPg(pool);
-
+const prismaClientSingleton = () => {
     return new PrismaClient({
         adapter,
-        log: process.env.NODE_ENV === 'development'
-            ? ['query', 'error', 'warn']
-            : ['error'],
-    } as any);
+        log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
+    });
 };
 
-// Get or create the singleton instance
-export const prisma = globalForPrisma.prismaGlobal ?? createPrismaClient();
+type PrismaClientSingleton = ReturnType<typeof prismaClientSingleton>;
 
-// Store in global for development hot-reloading
-if (process.env.NODE_ENV !== 'production') {
-    globalForPrisma.prismaGlobal = prisma;
-}
+const globalForPrisma = globalThis as unknown as {
+    prisma: PrismaClientSingleton | undefined;
+};
 
-// Re-export Prisma namespace for JsonNull and other utilities
-export { Prisma } from '@prisma/client';
+export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();
 
-// Default export
+if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
+
 export default prisma;
-
-

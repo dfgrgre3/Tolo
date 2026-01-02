@@ -162,7 +162,7 @@ const ExamsModal = memo(({ subject, onClose }: { subject: SubjectWithExams | nul
                             </div>
                             <Link 
                                 href={`/exams/${exam.id}`}
-                                className="bg-primary text-white px-5 py-2 rounded-lg font-medium whitespace-nowrap shadow-md hover:bg-primary/90 transition-all duration-200 w-full sm:w-auto inline-block text-center"
+                                className="bg-indigo-600 text-white px-5 py-2 rounded-lg font-medium whitespace-nowrap shadow-md hover:bg-indigo-700 transition-all duration-200 w-full sm:w-auto inline-block text-center"
                             >
                                 ابدأ الامتحان
                             </Link>
@@ -216,9 +216,13 @@ function ExamsSectionComponent() {
                         return;
                     }
                     
-                    // فقط في وضع التطوير نعرض الخطأ الكامل في console
+                    // only log unexpected errors in development to avoid console noise
                     if (process.env.NODE_ENV === 'development') {
-                        logger.error("Error fetching exams:", examsError);
+                        // safeFetch already logs API errors, so we don't need to duplicate
+                        // unless it's an unexpected client-side error
+                        if (!examsError.message.includes('HTTP')) {
+                            logger.warn("Exams fetch issue:", examsError.message);
+                        }
                     }
                     
                     // عرض رسالة خطأ واضحة للمستخدم
@@ -365,7 +369,7 @@ function ExamsSectionComponent() {
                 </p>
                 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
-                    {loading ? Array(3).fill(0).map((_, i) => <StatCardSkeleton key={i} />)
+                    {loading ? Array.from({ length: 3 }).map((_, i) => <StatCardSkeleton key={i} />)
                              : stats.map((stat) => <StatCard key={stat.label} {...stat} />)
                     }
                 </div>

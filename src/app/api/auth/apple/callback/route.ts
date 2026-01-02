@@ -3,10 +3,23 @@ import { oauthConfig, verifyState, generateToken } from '@/lib/oauth';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { getSecureCookieOptions } from '@/app/api/auth/_helpers';
-import { SignJWT } from 'jose';
+import {
+    getSecureCookieOptions,
+    createOAuthErrorResponse,
+    createOAuthErrorRedirect,
+    OAUTH_ERROR_MESSAGES,
+    withDatabaseRetry,
+    getDatabaseErrorMessage
+} from '@/lib/auth-utils';
+import { jwtVerify, createRemoteJWKSet } from 'jose';
+import crypto from 'crypto';
 
-// Apple uses form_post, so we need to handle POST requests
+const APPLE_JWKS = createRemoteJWKSet(new URL('https://appleid.apple.com/auth/keys'));
+
+/**
+ * POST /api/auth/apple/callback
+ * Apple uses form_post for OAuth callback
+ */
 export async function POST(request: NextRequest) {
     return opsWrapper(request, async (req) => {
         try {
@@ -28,69 +41,93 @@ export async function POST(request: NextRequest) {
                 }
             }
 
-            // Handle errors from Apple
+            // Handle errors from Apple - use centralized error messages
             if (error) {
                 logger.error('Apple OAuth error:', error);
-                return NextResponse.redirect(
-                    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=${error}`
+                return createOAuthErrorResponse(
+                    error,
+                    OAUTH_ERROR_MESSAGES[error] || 'حدث خطأ أثناء تسجيل الدخول بـ Apple'
                 );
             }
 
             // Verify state parameter to prevent CSRF attacks
             const savedState = req.cookies.get('oauth_state')?.value;
             if (!state || !savedState || !verifyState(state, savedState)) {
-                return NextResponse.redirect(
-                    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_state`
-                );
+                logger.error('Apple OAuth: Invalid state parameter', { state, savedState });
+                return createOAuthErrorResponse('invalid_state');
             }
 
             if (!code || !idToken) {
-                return NextResponse.redirect(
-                    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=no_code`
-                );
+                logger.error('Apple OAuth: Missing code or id_token');
+                return createOAuthErrorResponse('no_code', 'لم يتم استلام رمز التفويض من Apple');
             }
 
-            // Decode the ID token to get user info
-            // Note: In production, you should verify the token signature
-            const tokenParts = idToken.split('.');
-            if (tokenParts.length !== 3) {
-                return NextResponse.redirect(
-                    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_token`
-                );
+            // Verify the token signature using Apple's public keys
+            let payload;
+            try {
+                const verified = await jwtVerify(idToken, APPLE_JWKS, {
+                    issuer: 'https://appleid.apple.com',
+                    audience: process.env.APPLE_CLIENT_ID
+                });
+                payload = verified.payload;
+
+                // Additional validation: check token expiry and subject
+                if (!payload.sub) {
+                    throw new Error('Missing subject in token');
+                }
+            } catch (err) {
+                logger.error('Apple JWT verification failed', err);
+                return createOAuthErrorResponse('invalid_token', 'فشل التحقق من رمز المصادقة');
             }
 
-            const payload = JSON.parse(Buffer.from(tokenParts[1], 'base64').toString('utf-8'));
             const appleUserId = payload.sub;
-            const email = payload.email || appleUser?.email;
+            const email = (payload.email as string) || appleUser?.email;
 
             if (!email) {
                 logger.error('No email in Apple OAuth response');
-                return NextResponse.redirect(
-                    `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=no_email`
+                return createOAuthErrorResponse(
+                    'no_email',
+                    'لم يتم استلام البريد الإلكتروني من Apple. يرجى السماح بمشاركة البريد.'
                 );
             }
 
-            // Check if user exists in our database
-            let user = await prisma.user.findUnique({
-                where: { email },
-            });
+            const normalizedEmail = email.toLowerCase().trim();
+
+            // Check if user exists with retry
+            let user;
+            try {
+                user = await withDatabaseRetry(
+                    async () => prisma.user.findUnique({ where: { email: normalizedEmail } }),
+                    { maxAttempts: 3, operationName: 'find user for Apple OAuth' }
+                );
+            } catch (dbError) {
+                logger.error('Database error finding user:', dbError);
+                return createOAuthErrorResponse('database_error', getDatabaseErrorMessage(dbError));
+            }
 
             // If user doesn't exist, create a new one
             if (!user) {
                 const name = appleUser?.name
                     ? `${appleUser.name.firstName || ''} ${appleUser.name.lastName || ''}`.trim()
-                    : undefined;
+                    : 'Apple User';
 
-                user = await prisma.user.create({
-                    data: {
-                        email,
-                        name: name || 'Apple User',
-                        passwordHash: 'oauth_apple_user', // OAuth users don't have a password
-                        emailVerified: true, // Apple verified the email
-                    },
-                });
-
-                logger.info('Created new user via Apple OAuth:', { userId: user.id, email });
+                try {
+                    user = await withDatabaseRetry(
+                        async () => prisma.user.create({
+                            data: {
+                                email: normalizedEmail,
+                                name,
+                                passwordHash: crypto.randomUUID(), // Secure random "password" for OAuth users
+                                emailVerified: true, // Apple verified the email
+                            },
+                        }),
+                        { maxAttempts: 3, operationName: 'create user for Apple OAuth' }
+                    );
+                    logger.info('Created new user via Apple OAuth:', { userId: user.id, email: normalizedEmail });
+                } catch (createError) {
+                    logger.error('Error creating user:', createError);
+                    return createOAuthErrorResponse('database_error', getDatabaseErrorMessage(createError));
+                }
             }
 
             // Generate JWT token
@@ -102,7 +139,6 @@ export async function POST(request: NextRequest) {
             );
 
             // Security: Use centralized secure cookie settings
-            // Set token in cookie - use access_token for consistency with login route
             response.cookies.set('access_token', token, {
                 ...getSecureCookieOptions({ maxAge: 7 * 24 * 60 * 60 }), // 7 days
             });
@@ -115,16 +151,15 @@ export async function POST(request: NextRequest) {
             return response;
         } catch (error) {
             logger.error('Error in Apple OAuth callback:', error);
-            return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=server_error`
-            );
+            return createOAuthErrorResponse('server_error', 'حدث خطأ في الخادم. يرجى المحاولة مرة أخرى.');
         }
     });
 }
 
-// Apple can also send GET requests in some scenarios
+/**
+ * GET /api/auth/apple/callback
+ * Apple may send GET requests in some scenarios
+ */
 export async function GET(request: NextRequest) {
-    return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_method`
-    );
+    return createOAuthErrorResponse('invalid_request', 'Apple OAuth يتطلب استخدام POST');
 }

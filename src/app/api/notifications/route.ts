@@ -4,11 +4,11 @@ import { verifyToken } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { 
-  parseRequestBody, 
-  createStandardErrorResponse, 
+import {
+  parseRequestBody,
+  createStandardErrorResponse,
   createSuccessResponse,
-  addSecurityHeaders 
+  addSecurityHeaders
 } from '@/app/api/auth/_helpers';
 
 export async function GET(request: NextRequest) {
@@ -54,7 +54,8 @@ export async function GET(request: NextRequest) {
       }
 
       // Build where clause with proper typing
-      const where: { userId: string; isRead?: boolean } = { userId: decodedToken.userId };
+      const payload = decodedToken as any
+      const where: { userId: string; isRead?: boolean } = { userId: payload.userId };
       if (unreadOnly) {
         where.isRead = false;
       }
@@ -83,10 +84,10 @@ export async function GET(request: NextRequest) {
         dbTimeoutPromise,
       ]);
 
-      const response = NextResponse.json({ 
-        notifications, 
+      const response = NextResponse.json({
+        notifications,
         unreadCount,
-        hasMore: notifications.length === limit 
+        hasMore: notifications.length === limit
       });
       return addSecurityHeaders(response);
     } catch (error) {
@@ -201,7 +202,7 @@ export async function POST(request: NextRequest) {
 
       const notification = await Promise.race([createPromise, createTimeoutPromise]);
 
-      return createSuccessResponse({ notification }, undefined, 201);
+      return createSuccessResponse({ notification }, 201);
     } catch (error) {
       logger.error('Error creating notification:', error);
       return createStandardErrorResponse(

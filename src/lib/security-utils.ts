@@ -1,4 +1,4 @@
-
+import crypto from 'crypto';
 import { UAParser } from 'ua-parser-js';
 import bcrypt from 'bcryptjs';
 
@@ -59,89 +59,138 @@ export async function getLocationFromIP(ip: string) {
   }
 }
 
-// Generate a secure random token
-export function generateSecureToken(length = 32) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let token = '';
+/**
+ * Generate a cryptographically secure random token
+ * Uses crypto.randomBytes for security-critical token generation
+ */
+export function generateSecureToken(length = 32): string {
+  // Use URL-safe base64 encoding (no + / = characters)
+  const bytesNeeded = Math.ceil((length * 3) / 4);
+  return crypto.randomBytes(bytesNeeded).toString('base64url').substring(0, length);
+}
+
+/**
+ * Generate a cryptographically secure numeric code (e.g., for OTP)
+ * Security: Uses crypto.randomInt for uniform distribution
+ */
+export function generateSecureNumericCode(length = 6): string {
+  let code = '';
+  const max = 10; // digits 0-9
 
   for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * chars.length);
-    token += chars.charAt(randomIndex);
+    // Use crypto.randomInt for uniform distribution
+    code += crypto.randomInt(max).toString();
   }
 
-  return token;
+  return code;
 }
 
-// Generate a device fingerprint
-export function generateDeviceFingerprint(userAgent: string, ip: string, screenInfo?: string) {
-  // This is a simplified implementation
-  // In a real implementation, you would collect more browser attributes
-  // and use a proper fingerprinting library like fingerprintjs
-
+/**
+ * Generate a device fingerprint using SHA-256
+ * Note: For production, consider using a proper fingerprinting library like fingerprintjs
+ */
+export function generateDeviceFingerprint(userAgent: string, ip: string, screenInfo?: string): string {
   const data = `${userAgent}-${ip}-${screenInfo || ''}-${new Date().getTimezoneOffset()}`;
 
-  // Simple hash function (not cryptographically secure)
-  let hash = 0;
-  for (let i = 0; i < data.length; i++) {
-    const char = data.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32-bit integer
-  }
-
-  return Math.abs(hash).toString(16);
+  // Use SHA-256 for consistent and secure hashing
+  return crypto.createHash('sha256').update(data).digest('hex').substring(0, 16);
 }
 
-// Check if a password is strong
-export function isPasswordStrong(password: string): { isStrong: boolean; feedback: string[] } {
-  const feedback = [];
+// Common weak passwords to check against
+const COMMON_PASSWORDS = new Set([
+  'password', '123456', '12345678', '123456789', '12345',
+  'qwerty', 'abc123', 'password1', 'admin', 'welcome',
+  'letmein', 'monkey', 'dragon', 'master', 'iloveyou',
+  'trustno1', 'sunshine', 'princess', 'football', 'shadow'
+]);
 
+/**
+ * Check if a password is strong
+ * Enhanced with more comprehensive security requirements
+ */
+export function isPasswordStrong(password: string): { isStrong: boolean; feedback: string[]; score: number } {
+  const feedback: string[] = [];
+  let score = 0;
+
+  // Length check (minimum 8, bonus for longer)
   if (password.length < 8) {
-    feedback.push('Password should be at least 8 characters long');
+    feedback.push('كلمة المرور يجب أن تكون 8 أحرف على الأقل');
+  } else {
+    score += 1;
+    if (password.length >= 12) score += 1;
+    if (password.length >= 16) score += 1;
   }
 
+  // Uppercase check
   if (!/[A-Z]/.test(password)) {
-    feedback.push('Password should contain at least one uppercase letter');
+    feedback.push('يجب أن تحتوي على حرف كبير واحد على الأقل');
+  } else {
+    score += 1;
   }
 
+  // Lowercase check
   if (!/[a-z]/.test(password)) {
-    feedback.push('Password should contain at least one lowercase letter');
+    feedback.push('يجب أن تحتوي على حرف صغير واحد على الأقل');
+  } else {
+    score += 1;
   }
 
+  // Number check
   if (!/[0-9]/.test(password)) {
-    feedback.push('Password should contain at least one number');
+    feedback.push('يجب أن تحتوي على رقم واحد على الأقل');
+  } else {
+    score += 1;
   }
 
+  // Special character check
   if (!/[^A-Za-z0-9]/.test(password)) {
-    feedback.push('Password should contain at least one special character');
+    feedback.push('يجب أن تحتوي على رمز خاص واحد على الأقل');
+  } else {
+    score += 1;
   }
 
   // Check for common passwords
-  const commonPasswords = [
-    'password', '123456', '12345678', '123456789', '12345',
-    'qwerty', 'abc123', 'password1', 'admin', 'welcome'
-  ];
+  if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+    feedback.push('كلمة المرور شائعة جداً');
+    score = Math.max(0, score - 3);
+  }
 
-  if (commonPasswords.includes(password.toLowerCase())) {
-    feedback.push('Password is too common');
+  // Check for sequential characters
+  if (/(.)\1{2,}/.test(password)) {
+    feedback.push('تجنب تكرار نفس الحرف أكثر من مرتين');
+    score = Math.max(0, score - 1);
+  }
+
+  // Check for sequential numbers
+  if (/012|123|234|345|456|567|678|789|890/.test(password)) {
+    feedback.push('تجنب استخدام أرقام متسلسلة');
+    score = Math.max(0, score - 1);
   }
 
   return {
-    isStrong: feedback.length === 0,
-    feedback
+    isStrong: feedback.length === 0 && score >= 5,
+    feedback,
+    score: Math.min(10, score)
   };
 }
 
-// Generate backup codes for 2FA
+/**
+ * Generate cryptographically secure backup codes for 2FA
+ * Uses crypto.randomBytes for security
+ */
 export function generateBackupCodes(count = 10): string[] {
-  const codes = [];
+  const codes: string[] = [];
+  const charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
   for (let i = 0; i < count; i++) {
-    // Generate 8-character alphanumeric codes
+    // Generate 8 random bytes and convert to alphanumeric
+    const randomBytes = crypto.randomBytes(8);
     let code = '';
+
     for (let j = 0; j < 8; j++) {
       if (j === 4) code += '-';
-      const charSet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-      code += charSet.charAt(Math.floor(Math.random() * charSet.length));
+      // Use modulo to map byte to character set
+      code += charSet.charAt(randomBytes[j] % charSet.length);
     }
     codes.push(code);
   }

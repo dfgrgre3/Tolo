@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 // Firebase imports (Mandatory for real-world apps)
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
 import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
 
@@ -97,7 +97,7 @@ export function AchievementsSection() {
     let unsubscribeAuth: (() => void) | null = null;
 
     try {
-      const app = initializeApp(firebaseConfig);
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
       const auth = getAuth(app);
       
       // Auth State Listener and Sign-in Logic
@@ -118,7 +118,7 @@ export function AchievementsSection() {
               } catch (error) {
                   logger.error("Firebase Auth Error: Failed to sign in.", error);
                   // Fallback to anonymous or random ID if sign-in fails
-                  currentUserId = auth.currentUser?.uid || crypto.randomUUID();
+                  currentUserId = auth.currentUser?.uid || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
               }
           }
           
@@ -152,7 +152,7 @@ export function AchievementsSection() {
     }
 
     try {
-      const app = initializeApp(firebaseConfig);
+      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
       const db = getFirestore(app);
       
       const achievementRef = collection(db, 'artifacts', appId, 'users', userId, 'userAchievements');

@@ -13,7 +13,7 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     verifyTokenFromRequest: jest.fn().mockResolvedValue({
       isValid: true,
@@ -82,7 +82,7 @@ describe('Tasks API Routes', () => {
         },
       ];
 
-      const { authService } = require('@/lib/auth-service');
+      const { authService } = require('@/lib/services/auth-service');
       (authService.verifyTokenFromRequest as jest.Mock).mockResolvedValue({
         isValid: true,
         user: {
@@ -112,7 +112,7 @@ describe('Tasks API Routes', () => {
     });
 
     it('should require authentication', async () => {
-      const { authService } = require('@/lib/auth-service');
+      const { authService } = require('@/lib/services/auth-service');
       (authService.verifyTokenFromRequest as jest.Mock).mockResolvedValue({
         isValid: false,
         error: 'Unauthorized',
@@ -139,7 +139,7 @@ describe('Tasks API Routes', () => {
         createdAt: new Date(),
       };
 
-      const { authService } = require('@/lib/auth-service');
+      const { authService } = require('@/lib/services/auth-service');
       (authService.verifyTokenFromRequest as jest.Mock).mockResolvedValue({
         isValid: true,
         user: {
@@ -170,7 +170,7 @@ describe('Tasks API Routes', () => {
     });
 
     it('should validate task data', async () => {
-      const { authService } = require('@/lib/auth-service');
+      const { authService } = require('@/lib/services/auth-service');
       (authService.verifyTokenFromRequest as jest.Mock).mockResolvedValue({
         isValid: true,
         user: {

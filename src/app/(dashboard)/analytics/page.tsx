@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { 
 	BarChart3, 
 	TrendingUp, 

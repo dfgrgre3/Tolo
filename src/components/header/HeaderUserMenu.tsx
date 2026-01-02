@@ -2,7 +2,7 @@
 
 import React, { useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
 	User,
 	Settings,
@@ -33,6 +33,7 @@ import { logger } from '@/lib/logger';
 
 export function HeaderUserMenu() {
 	const router = useRouter();
+	const pathname = usePathname();
 	const { user, logout } = useUnifiedAuth();
 
 	const handleLogout = useCallback(async () => {
@@ -170,6 +171,10 @@ export function HeaderUserMenu() {
 				</DropdownMenu>
 			</motion.div>
 		);
+	}
+
+	if (pathname?.startsWith("/login") || pathname?.startsWith("/register")) {
+		return null;
 	}
 
 	return (

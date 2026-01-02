@@ -1,0 +1,602 @@
+[
+  {
+    "id": "TC001",
+    "title": "Biometric Login Success",
+    "description": "Verify that a user can successfully log in using the biometric WebAuthn authentication method.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Select biometric login using WebAuthn."
+      },
+      {
+        "type": "action",
+        "description": "Provide valid biometric credentials."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login is successful and user is directed to the dashboard."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Biometric Login Failure with Invalid Data",
+    "description": "Check that biometric login fails gracefully with invalid biometric data and appropriate error message is shown.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Select biometric login using WebAuthn."
+      },
+      {
+        "type": "action",
+        "description": "Provide invalid biometric credentials."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify login is denied with relevant error message displayed to the user."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Two-Factor Authentication with TOTP Success",
+    "description": "Verify that two-factor authentication using Time-based One-Time Password (TOTP) works correctly after entering valid username and password.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Input valid username and password."
+      },
+      {
+        "type": "action",
+        "description": "Submit credentials."
+      },
+      {
+        "type": "action",
+        "description": "Enter valid TOTP code from authenticator app."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user successfully logs in and is directed to the dashboard."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Two-Factor Authentication with TOTP Failure",
+    "description": "Check system response to an invalid TOTP code to ensure login does not proceed without valid second-factor authentication.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Input valid username and password."
+      },
+      {
+        "type": "action",
+        "description": "Submit credentials."
+      },
+      {
+        "type": "action",
+        "description": "Enter invalid TOTP code."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is denied access with appropriate error notification."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Magic Link Login Success",
+    "description": "Verify that a user can log in successfully via a magic link sent to their registered email address.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the login page."
+      },
+      {
+        "type": "action",
+        "description": "Request magic link by entering registered email."
+      },
+      {
+        "type": "action",
+        "description": "Open the magic link from email."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user is authenticated and redirected to dashboard without additional login steps."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Session Tracking and Expiry",
+    "description": "Verify that user sessions are tracked properly and sessions expire after inactivity timeout according to policy.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in with valid credentials."
+      },
+      {
+        "type": "action",
+        "description": "Remain inactive for the configured session timeout period."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify session expires and user is logged out automatically."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to perform an authenticated action post-timeout."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify action is denied and user is prompted to log in again."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Security Logging on Failed Login Attempts",
+    "description": "Verify that failed login attempts are properly logged with relevant security event details.",
+    "category": "security",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt login with invalid credentials multiple times."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify security logs capture each failed login attempt with timestamp, IP address, and login identifier."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "AI Exam Generator Produces Valid Exam",
+    "description": "Verify that the AI-powered exam generator outputs exams containing appropriate questions based on selected topics and difficulty levels.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a teacher and navigate to exam generation page."
+      },
+      {
+        "type": "action",
+        "description": "Select subject, topics, number of questions, and difficulty level."
+      },
+      {
+        "type": "action",
+        "description": "Generate exam using AI module."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify exam consists of the requested number of questions relevant to specified topics and difficulty."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "AI Study Assistant Provides Relevant Answers",
+    "description": "Validate that the AI study assistant chatbot responds with relevant and helpful answers to typical student queries about course material.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a student and open study assistant chatbot."
+      },
+      {
+        "type": "action",
+        "description": "Ask a question related to enrolled course material."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the chatbot responds with accurate, relevant, and context-aware answers."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Smart Teacher Search Yields Accurate Results",
+    "description": "Ensure the AI-powered teacher and content search returns correct and ranked results based on user criteria and input.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to teacher search page."
+      },
+      {
+        "type": "action",
+        "description": "Input search criteria including subject, expertise, and location."
+      },
+      {
+        "type": "action",
+        "description": "Submit search request."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify search results are relevant, ranked properly, and match criteria."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "LMS Course Content Display",
+    "description": "Verify that students can access and view course content and lesson materials without errors across different browsers and devices.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a student."
+      },
+      {
+        "type": "action",
+        "description": "Select an enrolled course."
+      },
+      {
+        "type": "action",
+        "description": "Open various lessons and multimedia content."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all course content is loaded and displayed correctly without broken elements."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Exam Taking with Automatic Grading",
+    "description": "Verify that students can take AI-generated exams and receive automatic grading and detailed feedback immediately after submission.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a student and navigate to available exam."
+      },
+      {
+        "type": "action",
+        "description": "Complete the exam and submit answers."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify automatic grading is performed accurately and detailed feedback is displayed."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "Educational Resource Library Management",
+    "description": "Verify that teachers can upload, edit, and delete resources in the educational resource library and that students can access available resources.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a teacher."
+      },
+      {
+        "type": "action",
+        "description": "Upload a new educational resource."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the resource appears in the library."
+      },
+      {
+        "type": "action",
+        "description": "Edit the resource metadata."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updates are reflected correctly."
+      },
+      {
+        "type": "action",
+        "description": "Delete the resource."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the resource is removed from the library."
+      },
+      {
+        "type": "action",
+        "description": "Login as a student and access the resource library."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify resources are accessible and downloadable based on permissions."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Gamification Achievement Awarding",
+    "description": "Verify that users receive achievements and points correctly after completing predefined milestones and actions.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform actions that trigger achievement awarding (e.g., complete a course, pass an exam)."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify achievements and points are awarded and reflected in user profile."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Leaderboard Real-Time Update",
+    "description": "Ensure that the leaderboard updates in real-time as users gain points or achievements, with minimal latency.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger points/achievements updates for one user."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify leaderboard instantly reflects updated rankings across all logged-in users."
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Real-Time Chat Message Delivery",
+    "description": "Verify that WebSocket-based chat messages are delivered reliably and with minimal latency between users in real-time chat or forums.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login with two separate user accounts in different browsers."
+      },
+      {
+        "type": "action",
+        "description": "Send chat message from one user to the other."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the message is received instantly and accurately by the recipient."
+      }
+    ]
+  },
+  {
+    "id": "TC017",
+    "title": "Notifications Received in Real-Time",
+    "description": "Verify that notifications for forum replies, messages, and system alerts are delivered to users in real-time.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger a notification event (e.g., reply on forum post) targeted to a user."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user receives the notification immediately through UI and/or WebSocket push."
+      }
+    ]
+  },
+  {
+    "id": "TC018",
+    "title": "Study Schedule Creation and Reminder Alerts",
+    "description": "Verify that users can create study schedules with reminders and receive alerts as scheduled.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a student."
+      },
+      {
+        "type": "action",
+        "description": "Create a weekly study schedule with specific time slots and reminders."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the schedule is saved and displayed correctly."
+      },
+      {
+        "type": "action",
+        "description": "Wait until reminder time."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify user receives reminder notification per the schedule."
+      }
+    ]
+  },
+  {
+    "id": "TC019",
+    "title": "Study Timer Functionality",
+    "description": "Verify that the study timer can be started, paused, resumed, and stopped correctly, with accurate time tracking.",
+    "category": "functional",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login as a user."
+      },
+      {
+        "type": "action",
+        "description": "Start the study timer."
+      },
+      {
+        "type": "action",
+        "description": "Pause the timer after a few minutes."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the timer pauses and timing stops incrementing."
+      },
+      {
+        "type": "action",
+        "description": "Resume the timer."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify timer resumes tracking elapsed time."
+      },
+      {
+        "type": "action",
+        "description": "Stop the timer."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify total tracked time is correctly recorded and displayed."
+      }
+    ]
+  },
+  {
+    "id": "TC020",
+    "title": "Cache Effectiveness and Performance Benchmark",
+    "description": "Verify that caching mechanisms improve performance and reduce backend load under typical and peak user load scenarios.",
+    "category": "performance",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Perform repeated requests to API endpoints with and without caching enabled."
+      },
+      {
+        "type": "assertion",
+        "description": "Measure and compare response times to ensure caching improves latency."
+      },
+      {
+        "type": "action",
+        "description": "Simulate high concurrent user load."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify system meets established performance benchmarks and no errors or timeouts occur."
+      }
+    ]
+  },
+  {
+    "id": "TC021",
+    "title": "Infrastructure Deployment with Zero Downtime",
+    "description": "Verify that deploying infrastructure updates via Kubernetes and Terraform completes successfully without service interruptions.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Trigger deployment of updated infrastructure using Terraform and Kubernetes manifests."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify deployment completes with no downtime by monitoring service availability during rollout."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all components transition to healthy state post deployment."
+      }
+    ]
+  },
+  {
+    "id": "TC022",
+    "title": "Monitoring Alerts Triggering",
+    "description": "Verify that Prometheus, Grafana, and ELK stack monitoring triggers alerts for set thresholds and errors in real-time.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Simulate conditions breaching threshold metrics (e.g., high CPU, failed API calls)."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify monitoring dashboards update accordingly and alerts are generated and sent."
+      }
+    ]
+  },
+  {
+    "id": "TC023",
+    "title": "UI Accessibility and RTL Language Support",
+    "description": "Verify that the UI supports accessibility guidelines and renders correctly with right-to-left (RTL) language settings.",
+    "category": "ui",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Set application interface language to an RTL language."
+      },
+      {
+        "type": "action",
+        "description": "Navigate through key UI components such as login, dashboard, course pages, and chat."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify all UI elements correctly align and text flows properly according to RTL standards."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify accessibility features such as keyboard navigation and screen reader compatibility."
+      }
+    ]
+  },
+  {
+    "id": "TC024",
+    "title": "Dark Mode and Light Mode Theme Toggling",
+    "description": "Verify that users can switch between dark mode and light mode themes and the UI updates consistent with user preference.",
+    "category": "ui",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Login and locate theme toggle control."
+      },
+      {
+        "type": "action",
+        "description": "Switch from light mode to dark mode."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI theme changes reflect dark mode styles across all visible components."
+      },
+      {
+        "type": "action",
+        "description": "Switch back to light mode."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify UI theme reverts to light mode styles correctly."
+      }
+    ]
+  }
+]

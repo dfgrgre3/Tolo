@@ -1,0 +1,68 @@
+{
+    "tech_stack": [
+        "TypeScript",
+        "Next.js",
+        "React",
+        "Prisma",
+        "PostgreSQL",
+        "TailwindCSS",
+        "Node.js"
+    ],
+    "features": [
+        {
+            "name": "Authentication",
+            "description": "User login, registration, and session management using JWT/NextAuth/custom implementation.",
+            "files": [
+                "src/components/auth",
+                "src/app/(auth)",
+                "src/lib/auth",
+                "src/hooks/use-auth.ts",
+                "src/services/auth-service.ts"
+            ]
+        },
+        {
+            "name": "API Routes",
+            "description": "Backend API endpoints for various application functions.",
+            "files": [
+                "src/app/api"
+            ]
+        },
+        {
+            "name": "Dashboard",
+            "description": "User dashboard for navigating the application.",
+            "files": [
+                "src/app/(dashboard)"
+            ]
+        },
+        {
+            "name": "Education Module",
+            "description": "Educational content management and display.",
+            "files": [
+                "src/app/(education)"
+            ]
+        },
+        {
+            "name": "Community",
+            "description": "Community features and forums.",
+            "files": [
+                "src/app/(community)"
+            ]
+        },
+        {
+            "name": "Database Schema",
+            "description": "Prisma schema and database configuration.",
+            "files": [
+                "prisma/schema.prisma",
+                "prisma/migrations"
+            ]
+        },
+        {
+            "name": "Shared Components",
+            "description": "Reusable UI components.",
+            "files": [
+                "src/components/ui",
+                "src/components/shared"
+            ]
+        }
+    ]
+}

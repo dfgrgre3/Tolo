@@ -9,12 +9,14 @@ import {
     extractRequestMetadata,
     logSecurityEventSafely,
     addSecurityHeaders
-} from '@/app/api/auth/_helpers';
+} from '@/lib/auth-utils';
 import { z } from 'zod';
+
+import { passwordSchema } from '@/lib/validations/auth';
 
 const resetPasswordSchema = z.object({
     token: z.string().min(1, 'رمز إعادة التعيين مطلوب'),
-    password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'),
+    password: passwordSchema,
 });
 
 export async function POST(request: NextRequest) {

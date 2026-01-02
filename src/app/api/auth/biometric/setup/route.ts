@@ -1,121 +1,152 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { verifyToken } from '@/lib/services/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { generateSecureToken } from '@/lib/security-utils';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { logger } from '@/lib/logger';
+import {
+  createErrorResponse,
+  createSuccessResponse,
+  withDatabaseRetry
+} from '@/lib/auth-utils';
 
+/**
+ * POST /api/auth/biometric/setup
+ * تفعيل المصادقة البيومترية للمستخدم
+ * 
+ * NOTE: This is a mock WebAuthn implementation.
+ * In production, use proper WebAuthn/FIDO2 libraries like @simplewebauthn/server
+ */
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // التحقق من وجود هيدر التوثيق وصحته
-      const authHeader = req.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return NextResponse.json(
-          { error: 'Authorization header missing or invalid' },
-          { status: 401 }
+      // التحقق من التوكن باستخدام authService
+      const token = authService.extractToken(req);
+      if (!token) {
+        return createErrorResponse(
+          { error: 'Authorization required', code: 'NO_TOKEN' },
+          'يجب تسجيل الدخول أولاً',
+          401
         );
       }
 
-      const token = authHeader.slice(7);
-      const decoded = verifyToken(token);
-      if (!decoded || !decoded.userId) {
-        return NextResponse.json(
-          { error: 'Invalid or expired token' },
-          { status: 401 }
+      const decoded = await authService.verifyTokenFromInput(token);
+      if (!decoded.isValid || !decoded.userId) {
+        return createErrorResponse(
+          { error: 'Invalid or expired token', code: 'INVALID_TOKEN' },
+          'رمز المصادقة غير صالح أو منتهي الصلاحية',
+          401
         );
       }
 
-      // جلب المستخدم
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.userId }
-      });
+      // جلب المستخدم مع إعادة المحاولة
+      const user = await withDatabaseRetry(
+        async () => prisma.user.findUnique({ where: { id: decoded.userId } }),
+        { maxAttempts: 3, operationName: 'find user for biometric setup' }
+      );
+
       if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
+        return createErrorResponse(
+          { error: 'User not found', code: 'USER_NOT_FOUND' },
+          'المستخدم غير موجود',
+          404
         );
       }
 
-      // توليد بيانات بيومترية وهمية (في التطبيق الحقيقي يتم توليد بيانات WebAuthn)
+      // توليد بيانات بيومترية وهمية 
+      // TODO: في التطبيق الحقيقي استخدم @simplewebauthn/server لتوليد WebAuthn credentials
       const credentialId = generateSecureToken(32);
       const publicKey = generateSecureToken(64);
       const deviceName = req.headers.get('user-agent') || 'Unknown device';
 
       // حفظ بيانات الاعتماد البيومترية
-      await prisma.biometricCredential.create({
-        data: {
-          userId: user.id,
-          credentialId,
-          publicKey,
-          deviceType: deviceName,
-          transports: JSON.stringify([]),
-        }
-      });
+      await withDatabaseRetry(
+        async () => prisma.biometricCredential.create({
+          data: {
+            userId: user.id,
+            credentialId,
+            publicKey,
+            deviceType: deviceName,
+            transports: JSON.stringify([]),
+          }
+        }),
+        { maxAttempts: 3, operationName: 'create biometric credential' }
+      );
 
       // تفعيل المصادقة البيومترية للمستخدم
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { biometricEnabled: true }
-      });
+      await withDatabaseRetry(
+        async () => prisma.user.update({
+          where: { id: user.id },
+          data: { biometricEnabled: true }
+        }),
+        { maxAttempts: 3, operationName: 'enable biometric for user' }
+      );
 
-      return NextResponse.json({
+      logger.info('Biometric setup completed', { userId: user.id });
+
+      return createSuccessResponse({
         message: 'تم إعداد المصادقة البيومترية بنجاح',
         credentialId,
         challenge: generateSecureToken(32)
       });
     } catch (error) {
       logger.error('Biometric setup error:', error);
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return createErrorResponse(error, 'فشل إعداد المصادقة البيومترية', 500);
     }
   });
 }
 
+/**
+ * DELETE /api/auth/biometric/setup
+ * إزالة المصادقة البيومترية للمستخدم
+ */
 export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // التحقق من وجود هيدر التوثيق وصحته
-      const authHeader = req.headers.get('authorization');
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return NextResponse.json(
-          { error: 'Authorization header missing or invalid' },
-          { status: 401 }
+      // التحقق من التوكن باستخدام authService
+      const token = authService.extractToken(req);
+      if (!token) {
+        return createErrorResponse(
+          { error: 'Authorization required', code: 'NO_TOKEN' },
+          'يجب تسجيل الدخول أولاً',
+          401
         );
       }
 
-      const token = authHeader.split(' ')[1];
-      const decoded = verifyToken(token);
-
-      if (!decoded?.userId) {
-        return NextResponse.json(
-          { error: 'Invalid token payload' },
-          { status: 401 }
+      const decoded = await authService.verifyTokenFromInput(token);
+      if (!decoded.isValid || !decoded.userId) {
+        return createErrorResponse(
+          { error: 'Invalid or expired token', code: 'INVALID_TOKEN' },
+          'رمز المصادقة غير صالح',
+          401
         );
       }
 
       // حذف بيانات الاعتماد البيومترية للمستخدم
-      await prisma.biometricCredential.deleteMany({
-        where: { userId: decoded.userId }
-      });
+      await withDatabaseRetry(
+        async () => prisma.biometricCredential.deleteMany({
+          where: { userId: decoded.userId }
+        }),
+        { maxAttempts: 3, operationName: 'delete biometric credentials' }
+      );
 
       // تعطيل المصادقة البيومترية للمستخدم
-      await prisma.user.update({
-        where: { id: decoded.userId },
-        data: { biometricEnabled: false }
-      });
+      await withDatabaseRetry(
+        async () => prisma.user.update({
+          where: { id: decoded.userId },
+          data: { biometricEnabled: false }
+        }),
+        { maxAttempts: 3, operationName: 'disable biometric for user' }
+      );
 
-      return NextResponse.json({
+      logger.info('Biometric removed', { userId: decoded.userId });
+
+      return createSuccessResponse({
         message: 'تم إزالة المصادقة البيومترية بنجاح'
       });
     } catch (error) {
       logger.error('Biometric removal error:', error);
-      return NextResponse.json(
-        { error: 'Internal server error' },
-        { status: 500 }
-      );
+      return createErrorResponse(error, 'فشل إزالة المصادقة البيومترية', 500);
     }
   });
 }

@@ -20,11 +20,16 @@ jest.mock('@/lib/db', () => ({
     },
     recommendation: {
       findMany: jest.fn(),
+      delete: jest.fn(),
+    },
+    mlRecommendation: {
+      findMany: jest.fn(),
+      create: jest.fn(),
     },
   },
 }));
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     verifyTokenFromRequest: jest.fn(),
   },
@@ -55,7 +60,7 @@ describe('Progress API Routes', () => {
         totalXP: 5000,
       };
 
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -78,7 +83,7 @@ describe('Progress API Routes', () => {
     });
 
     it('should require authentication', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue(null);
 
       const request = new NextRequest('http://localhost/api/progress', {

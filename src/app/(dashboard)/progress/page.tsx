@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useLocalStorageState } from "@/hooks/use-local-storage-state";
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 

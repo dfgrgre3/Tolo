@@ -19,13 +19,17 @@ export interface ProgressSummary {
 async function getServerUserId(): Promise<string | null> {
   try {
     // Try to get authenticated user first
-    const authResult = await authService.getCurrentUser();
-    if (authResult.isValid && authResult.user) {
-      return authResult.user.id;
+    const cookieStore = await cookies();
+    const token = cookieStore.get('token')?.value || cookieStore.get('access_token')?.value;
+
+    if (token) {
+      const payload = await authService.verifyToken(token);
+      if (payload && payload.userId) {
+        return payload.userId;
+      }
     }
 
     // Fallback: check for guest user ID in cookies
-    const cookieStore = await cookies();
     const guestUserId = cookieStore.get('tw_user_id')?.value;
 
     if (guestUserId && guestUserId !== 'undefined') {

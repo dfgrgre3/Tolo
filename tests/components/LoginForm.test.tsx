@@ -6,7 +6,7 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
-import EnhancedLoginForm from '@/app/(auth)/components/EnhancedLoginForm';
+import EnhancedLoginForm from '@/components/auth/forms/EnhancedLoginForm';
 import { useUnifiedAuth } from '@/hooks/useUnifiedAuth';
 
 // Mock dependencies
@@ -42,20 +42,21 @@ jest.mock('framer-motion', () => ({
     start: jest.fn(),
     set: jest.fn(),
   })),
+  AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
 // Mock useLoginForm hook
-jest.mock('@/components/auth/hooks/useLoginForm', () => ({
+jest.mock('@/hooks/auth/useLoginForm', () => ({
   useLoginForm: jest.fn(),
 }));
 
 // Mock useLoginEffects hook
-jest.mock('@/components/auth/hooks/useLoginEffects', () => ({
+jest.mock('@/hooks/auth/useLoginEffects', () => ({
   useLoginEffects: jest.fn(),
 }));
 
 // Mock useAlternativeLogin hook
-jest.mock('@/components/auth/hooks/useAlternativeLogin', () => ({
+jest.mock('@/hooks/auth/useAlternativeLogin', () => ({
   useAlternativeLogin: jest.fn(),
 }));
 
@@ -69,9 +70,9 @@ describe('EnhancedLoginForm Component', () => {
   const mockLogin = jest.fn();
   const mockRefreshUser = jest.fn();
 
-  const { useLoginForm } = require('@/components/auth/hooks/useLoginForm');
-  const { useLoginEffects } = require('@/components/auth/hooks/useLoginEffects');
-  const { useAlternativeLogin } = require('@/components/auth/hooks/useAlternativeLogin');
+  const { useLoginForm } = require('@/hooks/auth/useLoginForm');
+  const { useLoginEffects } = require('@/hooks/auth/useLoginEffects');
+  const { useAlternativeLogin } = require('@/hooks/auth/useAlternativeLogin');
 
   const defaultLoginFormReturn = {
     formData: { email: '', password: '', rememberMe: false },

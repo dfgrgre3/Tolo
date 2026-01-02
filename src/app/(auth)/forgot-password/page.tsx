@@ -5,7 +5,8 @@
  */
 
 import { Suspense } from 'react';
-import { ForgotPasswordForm, AuthLayout } from '@/app/(auth)/components';
+import { AuthLayout } from '@/app/(auth)/_components/modern-ui/AuthLayout';
+import { ForgotPasswordForm } from '@/app/(auth)/_components/forgot-password/ForgotPasswordForm';
 
 function ForgotPasswordContent() {
   return <ForgotPasswordForm />;

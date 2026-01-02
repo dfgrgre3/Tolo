@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useUnifiedAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import {

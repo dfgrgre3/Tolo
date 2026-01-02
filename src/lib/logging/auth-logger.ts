@@ -76,8 +76,8 @@ export class AuthLogger {
     if (typeof window === 'undefined') {
       try {
         // Use string concatenation to prevent webpack from statically analyzing the import
-        const authServiceModule = await import('../services/' + 'auth-service');
-        await authServiceModule.authService.logSecurityEvent(userId, event, ip, {
+        const securityAuditServiceModule = await import('../services/' + 'security-audit-service');
+        await securityAuditServiceModule.securityAuditService.logSecurityEvent(userId, event, ip, {
           ...metadata,
           level,
           error,

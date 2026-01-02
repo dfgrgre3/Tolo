@@ -36,24 +36,33 @@ async function handler(req: NextRequest) {
     return NextResponse.json({ error: 'Biometric authentication is not enabled for this account' }, { status: 401 });
   }
 
-  // Find the challenge. The `authenticate-options` endpoint stored it without a specific ID.
-  // We'll find it by the challenge string itself.
-  const challenges = await prisma.biometricChallenge.findMany({
+  // FIX: Extract challenge directly from clientDataJSON to verify we have a matching record
+  // instead of blindly picking the first available one.
+  let clientChallenge = '';
+  try {
+    const clientData = JSON.parse(Buffer.from(responseBody.response.clientDataJSON, 'base64').toString('utf8'));
+    clientChallenge = clientData.challenge;
+  } catch (e) {
+    return NextResponse.json({ error: 'Invalid client data' }, { status: 400 });
+  }
+
+  // Find the SPECIFIC challenge in DB
+  const challengeRecord = await prisma.biometricChallenge.findFirst({
     where: {
+      challenge: clientChallenge,
       type: 'authenticate',
       used: false,
+      userId: user.id, // Security hardening: Ensure challenge belongs to user
       expiresAt: { gt: new Date() }
     }
   });
 
-  // This is not a robust way to find the challenge. A better implementation would
-  // involve a unique identifier for the challenge that is passed between the options and verification steps.
-  // For now, we find a challenge that matches.
-  const expectedChallenge = challenges.length > 0 ? challenges[0].challenge : undefined;
-
-  if (!expectedChallenge) {
-    return NextResponse.json({ error: 'No valid authentication challenge found.' }, { status: 400 });
+  if (!challengeRecord) {
+    return NextResponse.json({ error: 'Invalid or expired challenge' }, { status: 400 });
   }
+
+  const expectedChallenge = challengeRecord.challenge;
+
 
   let verification;
   try {
@@ -84,7 +93,7 @@ async function handler(req: NextRequest) {
   }
 
   // Mark the challenge as used
-  await BiometricChallengeService.deleteChallenge(challenges[0].id);
+  await BiometricChallengeService.deleteChallenge(challengeRecord.id);
 
   // Update the credential counter
   await prisma.biometricCredential.update({
@@ -103,7 +112,7 @@ async function handler(req: NextRequest) {
   // Create session
   const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
   const userAgent = req.headers.get('user-agent') || 'unknown';
-  const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
+  const session = await authService.createSession(user.id, tempTokens.refreshToken, userAgent, ip);
 
   // Create tokens
   const tokensResult = await authService.createTokens(

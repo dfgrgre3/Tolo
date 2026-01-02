@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ensureUser } from "@/lib/user-utils";
 
 type Teacher = { id: string; name: string; subject: string; onlineUrl?: string | null };

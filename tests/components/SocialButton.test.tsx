@@ -1,6 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { SocialButton, SocialButtonProps } from '@/app/(auth)/components/shared/AuthButton';
+import { SocialButton, SocialButtonProps } from '@/components/auth/AuthButton';
 import { LucideIcon } from 'lucide-react';
 
 // Mock the cn utility

@@ -21,6 +21,8 @@ import { LOGIN_ERRORS } from '@/lib/auth/login-errors';
 import { SecurityCheckService } from '@/lib/services/security-check-service';
 import { TokenService } from '@/lib/services/token-service';
 import { AuthCacheService, type CachedUser } from '@/lib/services/auth-cache-service';
+import { securityLogger, SecurityEventType } from '@/lib/security-logger';
+import { extractRequestMetadata } from '@/lib/auth-utils';
 
 // ==================== CONSTANTS ====================
 
@@ -140,8 +142,8 @@ const createTwoFactorResponse = (
  */
 export class LoginService {
   /**
-   * Validate JWT secret configuration
-   */
+    * Validate JWT secret configuration
+    */
   static validateJWTSecret(): void {
     try {
       getJWTSecret();
@@ -203,7 +205,7 @@ export class LoginService {
       prisma.securityLog.findMany({
         where: {
           userId: user.id,
-          eventType: { in: ['login_success', 'login_failed'] },
+          eventType: { in: ['LOGIN_SUCCESS' as any, 'LOGIN_FAILED' as any] },
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
@@ -233,7 +235,7 @@ export class LoginService {
           email,
           ip: log.ip,
           timestamp: log.createdAt,
-          success: log.eventType === 'login_success',
+          success: log.eventType === 'LOGIN_SUCCESS',
           userAgent: log.userAgent,
         }))
       );
@@ -247,7 +249,7 @@ export class LoginService {
             blockAccess: false,
             requireAdditionalAuth: false,
           });
-        }, 1000); // Reduced from 1.5s to 1s for faster response
+        }, 1000);
       });
 
       riskAssessment = await Promise.race([riskAssessmentPromise, timeoutPromise]) as unknown as RiskAssessment;
@@ -262,11 +264,16 @@ export class LoginService {
       };
     }
 
-    authService.logSecurityEvent(user.id, 'risk_assessment', ip, {
+    securityLogger.logEvent({
+      userId: user.id,
+      eventType: 'SUSPICIOUS_ACTIVITY_DETECTED' as SecurityEventType,
+      ip,
       userAgent,
-      riskLevel: riskAssessment.level,
-      riskScore: riskAssessment.score,
-      factors: riskAssessment.factors,
+      metadata: {
+        riskLevel: riskAssessment.level,
+        riskScore: riskAssessment.score,
+        factors: riskAssessment.factors,
+      }
     }).catch((logError) => {
       if (process.env.NODE_ENV === 'development') {
         logger.debug('Failed to log risk assessment:', logError);
@@ -300,18 +307,18 @@ export class LoginService {
         logger.info(`[Auth] 2FA code for ${user.email}: ${code}`);
       }
 
-      await authService.logSecurityEvent(
-        user.id,
-        'two_factor_challenge_created_risk',
+      await securityLogger.logEvent({
+        userId: user.id,
+        eventType: 'TWO_FACTOR_REQUESTED' as SecurityEventType,
         ip,
-        {
-          userAgent,
+        userAgent,
+        metadata: {
           delivery: 'email',
           expiresInMinutes: TWO_FACTOR_TTL_MINUTES,
           reason: 'high_risk_login',
           riskLevel: riskAssessment.level,
         }
-      );
+      });
 
       return {
         success: true,
@@ -334,15 +341,15 @@ export class LoginService {
         role: user.role || undefined,
       });
 
-      await authService.logSecurityEvent(
-        user.id,
-        'two_factor_challenge_created_totp',
+      await securityLogger.logEvent({
+        userId: user.id,
+        eventType: 'TWO_FACTOR_REQUESTED' as SecurityEventType,
         ip,
-        {
-          userAgent,
-          delivery: 'totp',
+        userAgent,
+        metadata: {
+          delivery: 'totp'
         }
-      );
+      });
 
       return {
         success: true,
@@ -375,16 +382,16 @@ export class LoginService {
         logger.info(`[Auth] 2FA code for ${user.email}: ${code}`);
       }
 
-      await authService.logSecurityEvent(
-        user.id,
-        'two_factor_challenge_created',
+      await securityLogger.logEvent({
+        userId: user.id,
+        eventType: 'TWO_FACTOR_REQUESTED' as SecurityEventType,
         ip,
-        {
-          userAgent,
+        userAgent,
+        metadata: {
           delivery: 'email',
           expiresInMinutes: TWO_FACTOR_TTL_MINUTES,
-        },
-      );
+        }
+      });
 
       return {
         success: true,
@@ -419,8 +426,7 @@ export class LoginService {
       };
     }
 
-    const ip = authService.getClientIP(request) || 'unknown';
-    const userAgent = authService.getUserAgent(request) || 'unknown';
+    const { ip, userAgent } = extractRequestMetadata(request);
     const sanitizedIp = ip.substring(0, 45);
     const sanitizedUserAgent = userAgent.substring(0, 500);
     const clientId = buildClientId(sanitizedIp, sanitizedUserAgent);
@@ -489,7 +495,7 @@ export class LoginService {
       let accountWasCreated = false;
 
       if (authResult.status === 'error') {
-        const userId = (await authService.findUserByEmail(normalizedEmail))?.id ?? null;
+        const userId = (await authService.getUserByEmail(normalizedEmail))?.id ?? null;
         return await SecurityCheckService.handleFailedLogin(
           clientId,
           userId,

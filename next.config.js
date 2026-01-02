@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const nextConfig = { // Force restart 2
   // i18n configuration removed for App Router compatibility
   // Use next-intl or similar for internationalization with App Router
   // Enable React strict mode for better performance
@@ -28,15 +28,7 @@ const nextConfig = {
     minimumCacheTTL: 86400, // Cache images for 24 hours
   },
 
-  // Add Turbopack config with HMR improvements
-  turbopack: {
-    // Improve HMR for icon libraries
-    resolveExtensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
-    // Improve chunk loading reliability
-    resolveAlias: {
-      // Ensure consistent module resolution
-    },
-  },
+
 
   // Improve HMR reliability
   onDemandEntries: {
@@ -57,7 +49,9 @@ const nextConfig = {
   // Enable standalone build for smaller docker images
   output: 'standalone',
 
-  // Server-only packages (not bundled for client)
+
+
+  // Server-side packages that should not be bundled
   serverExternalPackages: [
     'winston',
     'winston-elasticsearch',
@@ -71,7 +65,7 @@ const nextConfig = {
     '@prisma/instrumentation',
   ],
 
-  // Optimize static assets
+  // Optimize package imports
   experimental: {
     optimizePackageImports: [
       'framer-motion',
@@ -83,13 +77,9 @@ const nextConfig = {
       'chart.js',
       'react-chartjs-2'
     ],
-    // Enable webpack 5 for better performance
-    webpackBuildWorker: true,
-    // Improve chunk loading reliability
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
   },
+
+
 
   // Configure webpack to handle path aliases
   webpack: (config, { dev, isServer }) => {
@@ -185,7 +175,7 @@ const nextConfig = {
         buildDependencies: {
           config: [__filename],
         },
-        cacheDirectory: '.next/cache/webpack',
+        cacheDirectory: require('path').resolve(__dirname, '.next/cache/webpack'),
       };
 
       // Add HMR plugin configuration

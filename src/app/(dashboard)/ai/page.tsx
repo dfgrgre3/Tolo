@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Brain, Bot, MessageSquare, FileText, Search, Lightbulb, BookOpen, Zap } from 'lucide-react';
 import AIAssistant from './components/AIAssistant';
 import ExamGenerator from './components/ExamGenerator';

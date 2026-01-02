@@ -5,7 +5,7 @@
  */
 
 import { renderHook, act, waitFor } from '@testing-library/react';
-import { useLoginForm } from '@/app/(auth)/components/hooks/useLoginForm';
+import { useLoginForm } from '@/hooks/auth/useLoginForm';
 import { toast } from 'sonner';
 
 // Mock dependencies
@@ -33,10 +33,24 @@ const mockRefreshUser = jest.fn();
 
 jest.mock('@/contexts/auth-context', () => ({
     useUnifiedAuth: () => ({
-        login: mockUnifiedLogin,
+        login: mockUnifiedLogin.mockResolvedValue(true),
         refreshUser: mockRefreshUser,
     }),
 }));
+
+jest.mock('framer-motion', () => {
+    const React = require('react');
+    return {
+        useAnimation: () => ({
+            start: jest.fn().mockReturnValue(new Promise(() => { })), // Never resolves
+            stop: jest.fn(),
+        }),
+        AnimatePresence: ({ children }: any) => children,
+        motion: {
+            div: React.forwardRef(({ children, ...props }: any, ref: any) => React.createElement('div', { ref, ...props }, children)),
+        },
+    };
+});
 
 jest.mock('sonner', () => ({
     toast: {
@@ -46,6 +60,12 @@ jest.mock('sonner', () => ({
         dismiss: jest.fn(),
         info: jest.fn(),
     },
+}));
+
+jest.mock('@/lib/safe-client-utils', () => ({
+    isBrowser: jest.fn(() => true),
+    safeWindow: jest.fn((cb) => cb(window)),
+    getClientDeviceFingerprint: jest.fn().mockResolvedValue({}),
 }));
 
 describe('useLoginForm', () => {
@@ -127,7 +147,9 @@ describe('useLoginForm', () => {
             }));
             expect(mockUnifiedLogin).toHaveBeenCalled();
             expect(toast.success).toHaveBeenCalled();
-            expect(mockReplace).toHaveBeenCalled();
+            await waitFor(() => {
+                expect(mockReplace).toHaveBeenCalled();
+            });
         });
 
         it('should handle validation errors', async () => {
@@ -139,7 +161,9 @@ describe('useLoginForm', () => {
             });
 
             expect(mockLogin).not.toHaveBeenCalled();
-            expect(result.current.isShaking).toBe(true);
+            await waitFor(() => {
+                expect(result.current.isShaking).toBe(true);
+            });
             expect(toast.error).toHaveBeenCalled();
         });
 
@@ -169,7 +193,9 @@ describe('useLoginForm', () => {
 
             expect(result.current.formErrorCode).toBe('INVALID_CREDENTIALS');
             expect(toast.error).toHaveBeenCalled();
-            expect(result.current.isShaking).toBe(true);
+            await waitFor(() => {
+                expect(result.current.isShaking).toBe(true);
+            });
         });
 
         it('should handle 2FA requirement', async () => {

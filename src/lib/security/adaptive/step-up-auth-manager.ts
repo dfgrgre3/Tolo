@@ -16,6 +16,9 @@ import {
 } from './types';
 import { logger } from '@/lib/logger';
 import { emailService } from '@/lib/services/email-service';
+import { smsService } from '@/lib/services/sms-service';
+import { prisma } from '@/lib/db';
+import { authenticator } from 'otplib';
 
 interface OTPStore {
     code: string;
@@ -264,21 +267,36 @@ export class StepUpAuthManager {
             verified: false,
         });
 
-        logger.info(`[Mock] SMS OTP for ${this.maskPhone(phone)}: ${code}`);
-        logger.warn('SMS service not implemented yet');
+        try {
+            const result = await smsService.sendVerificationCode(phone, code);
 
-        // TODO: Integrate with Twilio or SMS service
-        // await sendSMS({
-        //   to: phone,
-        //   body: `رمز التحقق الخاص بك هو: ${code}`,
-        // });
+            if (result.success) {
+                logger.info(`SMS OTP sent to ${this.maskPhone(phone)}`);
+                return {
+                    success: true,
+                    status: 'sent',
+                    method: 'sms_otp',
+                    message: `تم إرسال رمز التحقق إلى ${this.maskPhone(phone)}`,
+                };
+            }
 
-        return {
-            success: true,
-            status: 'sent',
-            method: 'sms_otp',
-            message: `تم إرسال رمز التحقق إلى ${this.maskPhone(phone)}`,
-        };
+            logger.error('SMS service failed:', result.error);
+            // Fallback to console in dev if configured, but here we report failure
+            return {
+                success: false,
+                status: 'failed',
+                method: 'sms_otp',
+                message: 'فشل إرسال رسالة التحقق',
+            };
+        } catch (error) {
+            logger.error('Failed to send SMS OTP', error);
+            return {
+                success: false,
+                status: 'failed',
+                method: 'sms_otp',
+                message: 'حدث خطأ أثناء إرسال رسالة التحقق',
+            };
+        }
     }
 
     /**
@@ -339,16 +357,22 @@ export class StepUpAuthManager {
      * Verify TOTP code
      */
     private async verifyTOTP(userId: string, code: string): Promise<boolean> {
-        // TODO: Integrate with TOTP verification service
-        // This should verify against user's saved TOTP secret
-        logger.info(`[Mock] TOTP verification for user ${userId}`);
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { twoFactorEnabled: true, twoFactorSecret: true }
+            });
 
-        // For now, return false (not implemented)
-        // In production:
-        // const user = await db.user.findUnique({ where: { id: userId } });
-        // return verifyTOTPToken(user.totpSecret, code);
+            if (!user || !user.twoFactorEnabled || !user.twoFactorSecret) {
+                logger.warn(`TOTP verification failed: User ${userId} has no 2FA setup`);
+                return false;
+            }
 
-        return false;
+            return authenticator.check(code, user.twoFactorSecret);
+        } catch (error) {
+            logger.error(`TOTP verification error for user ${userId}`, error);
+            return false;
+        }
     }
 
     // ============================================

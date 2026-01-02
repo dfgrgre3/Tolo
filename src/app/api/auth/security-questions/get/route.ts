@@ -50,11 +50,11 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
       logger.error('Error getting security questions:', error);
-      
+
       await authService.logSecurityEvent(null, 'security_questions_get_error', ip, {
         userAgent,
         error: error instanceof Error ? error.message : 'Unknown error',
-      }).catch(() => {});
+      }).catch(() => { });
 
       return NextResponse.json(
         {

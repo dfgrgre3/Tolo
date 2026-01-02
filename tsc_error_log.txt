@@ -1,0 +1,210 @@
+﻿.next/dev/types/validator.ts(656,39): error TS2307: Cannot find module '../../../src/app/api/auth/2fa/disable/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(665,39): error TS2307: Cannot find module '../../../src/app/api/auth/2fa/enable/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(674,39): error TS2307: Cannot find module '../../../src/app/api/auth/2fa/setup/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(683,39): error TS2307: Cannot find module '../../../src/app/api/auth/2fa/status/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(692,39): error TS2307: Cannot find module '../../../src/app/api/auth/2fa/verify/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(1169,39): error TS2307: Cannot find module '../../../src/app/api/auth/two-factor/setup/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(1178,39): error TS2307: Cannot find module '../../../src/app/api/auth/two-factor/totp/setup/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(1187,39): error TS2307: Cannot find module '../../../src/app/api/auth/two-factor/totp/verify-login/route.js' or its corresponding type declarations.
+.next/dev/types/validator.ts(1196,39): error TS2307: Cannot find module '../../../src/app/api/auth/two-factor/totp/verify/route.js' or its corresponding type declarations.
+.next/types/validator.ts(656,39): error TS2307: Cannot find module '../../src/app/api/auth/2fa/disable/route.js' or its corresponding type declarations.
+.next/types/validator.ts(665,39): error TS2307: Cannot find module '../../src/app/api/auth/2fa/enable/route.js' or its corresponding type declarations.
+.next/types/validator.ts(674,39): error TS2307: Cannot find module '../../src/app/api/auth/2fa/setup/route.js' or its corresponding type declarations.
+.next/types/validator.ts(683,39): error TS2307: Cannot find module '../../src/app/api/auth/2fa/status/route.js' or its corresponding type declarations.
+.next/types/validator.ts(692,39): error TS2307: Cannot find module '../../src/app/api/auth/2fa/verify/route.js' or its corresponding type declarations.
+.next/types/validator.ts(1169,39): error TS2307: Cannot find module '../../src/app/api/auth/two-factor/setup/route.js' or its corresponding type declarations.
+.next/types/validator.ts(1178,39): error TS2307: Cannot find module '../../src/app/api/auth/two-factor/totp/setup/route.js' or its corresponding type declarations.
+.next/types/validator.ts(1187,39): error TS2307: Cannot find module '../../src/app/api/auth/two-factor/totp/verify-login/route.js' or its corresponding type declarations.
+.next/types/validator.ts(1196,39): error TS2307: Cannot find module '../../src/app/api/auth/two-factor/totp/verify/route.js' or its corresponding type declarations.
+scripts/test-backend.ts(37,49): error TS18046: 'getJson' is of type 'unknown'.
+scripts/test-backend.ts(37,81): error TS18046: 'getJson' is of type 'unknown'.
+scripts/test-full-auth-flow.ts(50,30): error TS18046: 'registerData' is of type 'unknown'.
+scripts/test-full-auth-flow.ts(68,38): error TS18046: 'verifyData' is of type 'unknown'.
+scripts/test-full-auth-flow.ts(106,49): error TS18046: 'meData' is of type 'unknown'.
+src/app/(auth)/_components/advanced/index.ts(86,46): error TS2307: Cannot find module '../EnhancedLoginForm' or its corresponding type declarations.
+src/app/(auth)/_components/advanced/index.ts(87,49): error TS2307: Cannot find module '../EnhancedRegisterForm' or its corresponding type declarations.
+src/app/(auth)/_components/ChangePassword.tsx(7,44): error TS2307: Cannot find module '../_utils/password-strength' or its corresponding type declarations.
+src/app/(auth)/_components/device-management/DeviceManagement.tsx(29,28): error TS2307: Cannot find module '../shared' or its corresponding type declarations.
+src/app/(auth)/_components/email-verification/EmailVerification.tsx(21,38): error TS2307: Cannot find module '../shared' or its corresponding type declarations.
+src/app/(auth)/_components/forgot-password/ForgotPasswordForm.tsx(13,49): error TS2307: Cannot find module '../shared' or its corresponding type declarations.
+src/app/(auth)/_components/forgot-password/ForgotPasswordForm.tsx(126,20): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/(auth)/_components/forgot-password/ForgotPasswordForm.tsx(291,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/(auth)/_components/forgot-password/ForgotPasswordForm.tsx(303,22): error TS7006: Parameter 'e' implicitly has an 'any' type.
+src/app/(auth)/_components/modern-ui/AuthLayout.tsx(14,36): error TS2307: Cannot find module '../shared' or its corresponding type declarations.
+src/app/(auth)/_components/modern-ui/ModernLoginCard.tsx(30,30): error TS2307: Cannot find module '../shared' or its corresponding type declarations.
+src/app/(auth)/_components/passkeys/PasskeyLoginButton.tsx(21,42): error TS2307: Cannot find module '../hooks/usePasskeyAuthentication' or its corresponding type declarations.
+src/app/(auth)/_components/security-center/SecurityCenter.tsx(36,28): error TS2307: Cannot find module '../shared' or its corresponding type declarations.
+src/app/(auth)/_types/index.ts(12,8): error TS2307: Cannot find module './login-form.types' or its corresponding type declarations.
+src/app/(auth)/_utils/index.ts(59,8): error TS2307: Cannot find module './password-strength' or its corresponding type declarations.
+src/app/(auth)/_utils/index.ts(63,8): error TS2307: Cannot find module './password-strength' or its corresponding type declarations.
+src/app/(auth)/_utils/login-form.utils.ts(5,44): error TS2307: Cannot find module '../types/login-form.types' or its corresponding type declarations.
+src/app/(auth)/_utils/type-guards.ts(13,8): error TS2307: Cannot find module '../types/core.types' or its corresponding type declarations.
+src/app/(dashboard)/profile/components/AdvancedProtection.tsx(13,31): error TS2307: Cannot find module '@/app/(auth)/components/CaptchaWidget' or its corresponding type declarations.
+src/app/(dashboard)/profile/components/AdvancedProtection.tsx(214,41): error TS7006: Parameter 'token' implicitly has an 'any' type.
+src/app/(dashboard)/profile/components/PasswordManagement.tsx(13,44): error TS2307: Cannot find module '@/app/(auth)/components/utils/password-strength' or its corresponding type declarations.
+src/app/api/ai/chat/route.ts(6,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/ai/content/route.ts(9,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/ai/recommendations/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/ai/recommendations/track/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/ai/sentiment/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/auth/analytics/route.ts(24,44): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/biometric/authenticate/route.ts(224,21): error TS2339: Property 'updateLastLogin' does not exist on type 'AuthService'.
+src/app/api/auth/biometric/authenticate/route.ts(269,6): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/app/api/auth/biometric/register/route.ts(48,42): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/biometric/register/route.ts(111,42): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/biometric/route.ts(281,21): error TS2339: Property 'updateLastLogin' does not exist on type 'AuthService'.
+src/app/api/auth/biometric/setup/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/auth/facebook/callback/route.ts(103,13): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/api/auth/facebook/callback/route.ts(134,9): error TS2322: Type 'string | null' is not assignable to type 'string | undefined'.
+  Type 'null' is not assignable to type 'string | undefined'.
+src/app/api/auth/forgot-password/route.ts(50,35): error TS2339: Property 'requestPasswordReset' does not exist on type 'AuthService'.
+src/app/api/auth/logout/route.ts(22,33): error TS2339: Property 'extractToken' does not exist on type 'AuthService'.
+src/app/api/auth/logout/route.ts(31,47): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/logout/route.ts(66,46): error TS2339: Property 'getSession' does not exist on type 'AuthService'.
+src/app/api/auth/logout/route.ts(83,33): error TS2551: Property 'deleteAllUserSessions' does not exist on type 'AuthService'. Did you mean 'getUserSessions'?
+src/app/api/auth/magic-link/route.ts(41,10): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/app/api/auth/passkey/delete/route.ts(15,44): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/passkey/register-options/route.ts(18,42): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/passkey/rename/route.ts(16,44): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/phone/resend/route.ts(64,46): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/phone/send-otp/route.ts(69,46): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/phone/verify/route.ts(69,46): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/qr-login/scan/route.ts(29,48): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/resend-two-factor/route.ts(31,52): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/resend-two-factor/route.ts(46,19): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/app/api/auth/resend-two-factor/route.ts(78,13): error TS2345: Argument of type 'string' is not assignable to parameter of type 'number'.
+src/app/api/auth/security-logs/route.ts(24,44): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/security-questions/get/route.ts(23,46): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/security-questions/set/route.ts(33,46): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/app/api/auth/sessions/[id]/route.ts(41,41): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/status/route.ts(47,45): error TS2339: Property 'getSession' does not exist on type 'AuthService'.
+src/app/api/auth/two-factor/recovery-codes/route.ts(14,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/two-factor/recovery-codes/route.ts(23,39): error TS2339: Property 'getRemainingRecoveryCodesCount' does not exist on type 'AuthService'.
+src/app/api/auth/two-factor/recovery-codes/route.ts(45,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/auth/two-factor/recovery-codes/route.ts(58,39): error TS2339: Property 'regenerateRecoveryCodes' does not exist on type 'AuthService'.
+src/app/api/courses/route.ts(247,59): error TS2554: Expected 1-2 arguments, but got 3.
+src/app/api/db-monitor/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/evaluate-test/route.ts(2,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/evaluate-test/route.ts(70,17): error TS2339: Property 'type' does not exist on type '{ id: string; createdAt: Date; examId: string; question: string; order: number; options: string; points: number; correctAnswer: string; explanation: string | null; }'.
+src/app/api/evaluate-test/route.ts(74,23): error TS2339: Property 'difficulty' does not exist on type '{ id: string; createdAt: Date; examId: string; question: string; order: number; options: string; points: number; correctAnswer: string; explanation: string | null; }'.
+src/app/api/events/upcoming/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/exams/route.ts(232,18): error TS2554: Expected 1-2 arguments, but got 3.
+src/app/api/generate-test/route.ts(2,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/generate-test/route.ts(2,23): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'DecodedToken'.
+src/app/api/generate-test/route.ts(3,18): error TS2724: '"@/lib/db"' has no exported member named 'Prisma'. Did you mean 'prisma'?
+src/app/api/lessons/route.ts(8,42): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/lessons/route.ts(39,42): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/notifications/bulk/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/notifications/mark-read/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/notifications/route.ts(73,11): error TS2322: Type 'unknown' is not assignable to type 'string | StringFilter<"Notification"> | undefined'.
+src/app/api/notifications/route.ts(189,11): error TS2322: Type 'unknown' is not assignable to type 'string | undefined'.
+src/app/api/notifications/route.ts(205,65): error TS2554: Expected 1-2 arguments, but got 3.
+src/app/api/notifications/send/route.ts(3,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/progress/route.ts(2,10): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'verifyToken'.
+src/app/api/recommendations/route.ts(24,48): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/reminders/[id]/route.ts(10,42): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/reminders/[id]/route.ts(62,42): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/schedule/route.ts(11,11): error TS2554: Expected 2-3 arguments, but got 1.
+src/app/api/schedule/route.ts(19,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/schedule/route.ts(72,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/security/events/route.ts(12,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/security/settings/route.ts(11,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/security/settings/route.ts(65,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/settings/route.ts(19,43): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/settings/route.ts(75,43): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/study-sessions/route.ts(16,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/study-sessions/route.ts(67,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/[id]/route.ts(14,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/[id]/route.ts(41,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/[id]/route.ts(120,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/route.ts(59,39): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/route.ts(162,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/route.ts(183,47): error TS2339: Property 'errors' does not exist on type 'ZodError<{ title: string; description?: string | undefined; dueDate?: string | null | undefined; priority?: string | undefined; subjectId?: string | null | undefined; status?: string | undefined; }>'.
+src/app/api/tasks/route.ts(184,17): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/app/api/tasks/route.ts(257,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/route.ts(278,47): error TS2339: Property 'errors' does not exist on type 'ZodError<{ id: string; title?: string | undefined; description?: string | undefined; dueDate?: string | null | undefined; priority?: string | undefined; subjectId?: string | null | undefined; status?: string | undefined; }>'.
+src/app/api/tasks/route.ts(279,17): error TS7006: Parameter 'err' implicitly has an 'any' type.
+src/app/api/tasks/route.ts(378,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tasks/upcoming/route.ts(13,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/tests/upcoming/route.ts(12,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/upload/route.ts(14,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/user/notification-settings/route.ts(13,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/user/notification-settings/route.ts(59,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/users/[id]/route.ts(16,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/users/[id]/route.ts(73,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/users/[id]/route.ts(127,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/users/[id]/stats/route.ts(25,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/api/users/route.ts(17,46): error TS2339: Property 'verifyTokenFromRequest' does not exist on type 'AuthService'.
+src/app/components/home/sections/AdvancedSearchSection.tsx(70,28): error TS2554: Expected 1 arguments, but got 0.
+src/components/auth/DeviceInfo.tsx(5,40): error TS2307: Cannot find module '../types/login-form.types' or its corresponding type declarations.
+src/components/auth/login/constants.ts(6,32): error TS2307: Cannot find module './types' or its corresponding type declarations.
+src/components/auth/RiskAlert.tsx(5,32): error TS2307: Cannot find module '../types/login-form.types' or its corresponding type declarations.
+src/components/Header.tsx(215,17): error TS2322: Type 'User | null' is not assignable to type 'User | null | undefined'.
+  Type 'import("D:/thanawy/src/types/api/auth").User' is not assignable to type 'User'.
+    Types of property 'name' are incompatible.
+      Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+src/components/Header.tsx(273,40): error TS2322: Type 'import("D:/thanawy/src/types/api/auth").User | null' is not assignable to type 'User | null'.
+  Type 'import("D:/thanawy/src/types/api/auth").User' is not assignable to type 'User'.
+    Types of property 'name' are incompatible.
+      Type 'string | null | undefined' is not assignable to type 'string | undefined'.
+        Type 'null' is not assignable to type 'string | undefined'.
+src/components/header/HeaderMobileMenu.tsx(324,36): error TS2339: Property 'avatar' does not exist on type 'User'.
+src/components/header/HeaderMobileMenuEnhanced.tsx(251,44): error TS2339: Property 'avatar' does not exist on type 'User'.
+src/components/header/HeaderNavigation.tsx(57,9): error TS2322: Type 'User | null | undefined' is not assignable to type 'import("D:/thanawy/src/types/api/auth").User | null | undefined'.
+  Type 'User' is missing the following properties from type 'User': emailVerified, twoFactorEnabled
+src/components/header/HeaderNavigation.tsx(151,6): error TS2322: Type 'User | null | undefined' is not assignable to type 'import("D:/thanawy/src/types/api/auth").User | null | undefined'.
+  Type 'User' is missing the following properties from type 'User': emailVerified, twoFactorEnabled
+src/components/header/HeaderUserMenu.tsx(62,20): error TS2339: Property 'avatar' does not exist on type 'User'.
+src/components/header/HeaderUserMenu.tsx(86,21): error TS2339: Property 'avatar' does not exist on type 'User'.
+src/components/mega-menu/MegaMenuContent.tsx(135,38): error TS2339: Property 'userId' does not exist on type 'User'.
+src/components/ui/ThemeToggle.tsx(7,23): error TS7016: Could not find a declaration file for module 'prop-types'. 'D:/thanawy/node_modules/prop-types/index.js' implicitly has an 'any' type.
+  Try `npm i --save-dev @types/prop-types` if it exists or add a new declaration (.d.ts) file containing `declare module 'prop-types';`
+src/contexts/auth-context.tsx(48,15): error TS2614: Module '"@/components/auth/providers/UnifiedAuthProvider"' has no exported member 'User'. Did you mean to use 'import User from "@/components/auth/providers/UnifiedAuthProvider"' instead?
+src/contexts/auth-context.tsx(67,15): error TS2614: Module '"@/components/auth/providers/UnifiedAuthProvider"' has no exported member 'User'. Did you mean to use 'import User from "@/components/auth/providers/UnifiedAuthProvider"' instead?
+src/hooks/auth/useLoginForm.ts(39,9): error TS2322: Type 'RefObject<HTMLInputElement | null>' is not assignable to type 'RefObject<HTMLInputElement>'.
+  Type 'HTMLInputElement | null' is not assignable to type 'HTMLInputElement'.
+    Type 'null' is not assignable to type 'HTMLInputElement'.
+src/hooks/auth/useLoginForm.ts(40,9): error TS2322: Type 'RefObject<HTMLInputElement | null>' is not assignable to type 'RefObject<HTMLInputElement>'.
+  Type 'HTMLInputElement | null' is not assignable to type 'HTMLInputElement'.
+    Type 'null' is not assignable to type 'HTMLInputElement'.
+src/hooks/auth/useLoginSubmission.ts(90,21): error TS2322: Type 'DeviceFingerprint | undefined' is not assignable to type 'string | undefined'.
+  Type 'DeviceFingerprint' is not assignable to type 'string'.
+src/hooks/auth/useLoginSubmission.ts(98,41): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'SetStateAction<string>'.
+  Type 'undefined' is not assignable to type 'SetStateAction<string>'.
+src/hooks/auth/usePasskeyAuthentication.ts(10,35): error TS2307: Cannot find module '../_components/passkeys/PasskeyManager' or its corresponding type declarations.
+src/hooks/auth/usePasskeyAuthentication.ts(11,41): error TS2307: Cannot find module '../_components/passkeys/SyncedPasskeyService' or its corresponding type declarations.
+src/hooks/use-adaptive-debounce.ts(32,21): error TS2554: Expected 1 arguments, but got 0.
+src/hooks/use-auth.ts(18,15): error TS2614: Module '"@/components/auth/providers/UnifiedAuthProvider"' has no exported member 'User'. Did you mean to use 'import User from "@/components/auth/providers/UnifiedAuthProvider"' instead?
+src/hooks/use-client-effect.ts(50,22): error TS2554: Expected 1 arguments, but got 0.
+src/hooks/use-progressive-loading.ts(57,22): error TS2554: Expected 1 arguments, but got 0.
+src/hooks/use-progressive-loading.ts(58,27): error TS2554: Expected 1 arguments, but got 0.
+src/hooks/use-progressive-loading.ts(59,30): error TS2554: Expected 1 arguments, but got 0.
+src/hooks/use-progressive-loading.ts(117,9): error TS2322: Type 'undefined' is not assignable to type 'Timeout'.
+src/hooks/use-progressive-loading.ts(138,9): error TS2322: Type 'undefined' is not assignable to type 'Timeout'.
+src/hooks/use-realtime-notifications.ts(33,30): error TS2554: Expected 1 arguments, but got 0.
+src/lib/auth/enhanced-middleware.ts(16,15): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'TokenVerificationResult'.
+src/lib/auth/enhanced-middleware.ts(84,33): error TS2339: Property 'extractToken' does not exist on type 'AuthService'.
+src/lib/auth/enhanced-middleware.ts(114,41): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/lib/auth/unified-auth-manager.ts(229,22): error TS2339: Property 'state' does not exist on type '{}'.
+src/lib/auth/unified-auth-manager.ts(230,52): error TS2339: Property 'state' does not exist on type '{}'.
+src/lib/auth/validation-interface.ts(48,14): error TS2420: Class 'AuthValidator' incorrectly implements interface 'IAuthValidator'.
+  Property 'validateLoginPassword' is missing in type 'AuthValidator' but required in type 'IAuthValidator'.
+src/lib/auth/validation.ts(83,48): error TS2339: Property 'errors' does not exist on type 'ZodError<string>'.
+src/lib/auth/validation.ts(94,48): error TS2339: Property 'errors' does not exist on type 'ZodError<string>'.
+src/lib/auth/validation.ts(105,48): error TS2339: Property 'errors' does not exist on type 'ZodError<string>'.
+src/lib/auth/validation.ts(116,48): error TS2339: Property 'errors' does not exist on type 'ZodError<string>'.
+src/lib/client-server-utils.tsx(256,22): error TS2554: Expected 1 arguments, but got 0.
+src/lib/middleware/auth-middleware.ts(3,15): error TS2305: Module '"@/lib/services/auth-service"' has no exported member 'TokenVerificationResult'.
+src/lib/middleware/auth-middleware.ts(73,29): error TS2339: Property 'extractToken' does not exist on type 'AuthService'.
+src/lib/middleware/auth-middleware.ts(125,39): error TS2339: Property 'verifyTokenFromInput' does not exist on type 'AuthService'.
+src/lib/safe-client-utils.ts(391,24): error TS2554: Expected 1 arguments, but got 0.
+src/lib/services/login-service.ts(330,43): error TS2339: Property 'generate2FATempToken' does not exist on type 'AuthService'.
+src/lib/services/password-history-service.ts(30,43): error TS2339: Property 'comparePasswords' does not exist on type 'typeof AuthService'.
+src/lib/services/register-service.ts(64,50): error TS2339: Property 'hashPassword' does not exist on type 'typeof AuthService'.
+src/lib/services/security-check-service.ts(4,10): error TS2305: Module '"@/app/api/auth/_helpers"' has no exported member 'createCaptchaRequiredResponse'.
+src/lib/services/token-service.ts(98,104): error TS2554: Expected 2-4 arguments, but got 5.
+src/lib/services/token-service.ts(157,25): error TS2339: Property 'updateLastLogin' does not exist on type 'AuthService'.
+src/types/index.ts(7,1): error TS2308: Module './api/auth' has already exported a member named 'DeviceFingerprint'. Consider explicitly re-exporting to resolve the ambiguity.
+tests/components/LoginForm.test.tsx(10,32): error TS2307: Cannot find module '@/hooks/useUnifiedAuth' or its corresponding type declarations.

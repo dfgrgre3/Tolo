@@ -62,7 +62,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
   const updateIndicators = () => {
     const now = new Date();
     const hour = now.getHours();
-    const isDarkMode = window.matchMedia("(prefers-color-scheme: dark)").matches || hour >= 18 || hour <= 6;
+    const isDarkMode = typeof window !== 'undefined' && window.matchMedia ? (window.matchMedia("(prefers-color-scheme: dark)").matches || hour >= 18 || hour <= 6) : (hour >= 18 || hour <= 6);
 
     setIndicators([
       {

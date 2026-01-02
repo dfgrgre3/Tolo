@@ -17,7 +17,7 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     verifyTokenFromRequest: jest.fn(),
   },
@@ -55,7 +55,7 @@ describe('Notifications API Routes', () => {
         },
       ];
 
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -82,7 +82,7 @@ describe('Notifications API Routes', () => {
     });
 
     it('should filter unread notifications', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -116,7 +116,7 @@ describe('Notifications API Routes', () => {
         createdAt: new Date(),
       };
 
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',

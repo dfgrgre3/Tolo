@@ -1,13 +1,4 @@
-const optionalPlugin = (name) => {
-  try {
-    return require(name);
-  } catch (error) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.warn(`Optional Tailwind plugin "${name}" skipped: ${error.message}`);
-    }
-    return null;
-  }
-};
+
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -104,9 +95,7 @@ module.exports = {
     },
   },
   plugins: [
-    optionalPlugin('tailwindcss-animate'),
-    optionalPlugin('tailwindcss-rtl'),
-    optionalPlugin('@tailwindcss/forms'),
+    require('tailwindcss-animate'),
   ].filter(Boolean),
   darkMode: ['class'],
 }

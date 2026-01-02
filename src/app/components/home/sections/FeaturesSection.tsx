@@ -178,13 +178,13 @@ export const FeaturesSection = memo(function FeaturesSection() {
                 {user ? (
                   <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/5 transition-colors">
                     <Avatar className="h-10 w-10 border-2 border-primary/20">
-                      <AvatarImage src={user.avatar} alt={user.name || "User"} />
+                      <AvatarImage src={(user as any).avatar} alt={user.name || "User"} />
                       <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
                         {user.name
                           ?.split(" ")
                           .map((n) => n[0])
                           .join("")
-                          .toUpperCase() || user.email[0].toUpperCase()}
+                          .toUpperCase() || (user.email && user.email[0] ? user.email[0].toUpperCase() : "U")}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-sm font-medium text-primary">{user.name || user.email}</span>

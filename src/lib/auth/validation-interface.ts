@@ -18,6 +18,7 @@ export interface IValidator {
 export interface IAuthValidator {
   validateEmail(email: unknown): ValidationResult;
   validatePassword(password: unknown): ValidationResult;
+  validateLoginPassword(password: unknown): ValidationResult;
   validateTwoFactorCode(code: unknown): ValidationResult;
   validateLoginAttemptId(loginAttemptId: unknown): ValidationResult;
   validateLoginCredentials(credentials: {

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { logger } from '@/lib/logger';
+import { withRetry } from '@/lib/auth-utils';
 
 interface EmailOptions {
   to: string;
@@ -61,18 +62,26 @@ class EmailService {
     }
 
     try {
-      const info = await this.transporter.sendMail({
-        from: process.env.SMTP_FROM || '"Thanawy App" <noreply@thanawy.com>',
-        to,
-        subject,
-        text,
-        html,
+      const info = await withRetry(async () => {
+        return this.transporter!.sendMail({
+          from: process.env.SMTP_FROM || '"Thanawy App" <noreply@thanawy.com>',
+          to,
+          subject,
+          text,
+          html,
+        });
+      }, {
+        maxAttempts: 3,
+        delayMs: 1000,
+        onError: (error, attempt) => {
+          logger.warn(`Email sending attempt ${attempt} failed:`, error);
+        }
       });
 
       logger.info(`Email sent: ${info.messageId}`);
       return true;
     } catch (error) {
-      logger.error('Error sending email:', error);
+      logger.error('Error sending email after retries:', error);
       return false;
     }
   }

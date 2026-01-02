@@ -15,6 +15,47 @@ jest.mock('@/app/api/auth/_helpers', () => {
   };
 });
 
+jest.mock('@/lib/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/auth/providers/email-password.provider', () => ({
+  emailPasswordProvider: {
+    authenticate: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/services/token-service', () => ({
+  TokenService: {
+    completeLogin: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/services/auth-cache-service', () => ({
+  AuthCacheService: {
+    getOrSetUser: jest.fn(),
+  },
+}));
+
+jest.mock('@/lib/auth/login-errors', () => ({
+  LOGIN_ERRORS: {
+    INVALID_REQUEST_BODY: 'Invalid request body',
+    VALIDATION_ERROR: 'Validation error',
+    PASSWORD_TOO_SHORT: 'Password too short',
+    PASSWORD_TOO_LONG: 'Password too long',
+    INVALID_CREDENTIALS: 'Invalid credentials',
+    EMAIL_NOT_VERIFIED: 'Email not verified',
+    HIGH_RISK: 'High risk detected',
+    INTERNAL_SERVER_ERROR: 'Internal server error',
+    CONFIGURATION_ERROR: 'Configuration error',
+  },
+}));
+
 import { LoginService } from '@/lib/services/login-service';
 import { SecurityCheckService } from '@/lib/services/security-check-service';
 
@@ -37,7 +78,7 @@ jest.mock('jose', () => ({
   }),
 }));
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     getClientIP: jest.fn(),
     getUserAgent: jest.fn(),
@@ -75,7 +116,7 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/rate-limiting-service', () => ({
+jest.mock('@/lib/services/rate-limiting-service', () => ({
   RateLimitingService: jest.fn(),
 }));
 
@@ -116,15 +157,15 @@ jest.mock('@/lib/security/security-notifications', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-challenges-service', () => ({
+jest.mock('@/lib/services/auth-challenges-service', () => ({
   TwoFactorChallengeService: {
     createChallenge: jest.fn(),
   },
 }));
 
 describe('LoginService Comprehensive Tests', () => {
-  const { authService } = require('@/lib/auth-service');
-  const { prisma } = require('@/lib/prisma');
+  const { authService } = require('@/lib/services/auth-service');
+  const { prisma } = require('@/lib/db');
   const { captchaService } = require('@/lib/security/captcha-service');
   const { ipBlockingService } = require('@/lib/security/ip-blocking');
 

@@ -3,7 +3,7 @@ import { POST as aiContentHandler } from '@/app/api/ai/content/route';
 import { NextRequest } from 'next/server';
 import { generateChatResponse, generateSummary } from '@/lib/ai/content-generation';
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     verifyTokenFromRequest: jest.fn(),
   },
@@ -61,7 +61,7 @@ describe('AI API Routes', () => {
 
   describe('POST /api/ai/chat', () => {
     it('should handle chat requests', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -72,8 +72,8 @@ describe('AI API Routes', () => {
       });
 
       const { analyzeSentiment } = require('@/lib/ai/sentiment-analysis');
-      const { prisma } = require('@/lib/prisma');
-      
+      const { prisma } = require('@/lib/db');
+
       (analyzeSentiment as jest.Mock).mockResolvedValue({
         sentiment: 'neutral',
         score: 0.5,
@@ -108,7 +108,7 @@ describe('AI API Routes', () => {
     });
 
     it('should require authentication', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue(null);
 
       const request = new NextRequest('http://localhost/api/ai/chat', {
@@ -125,7 +125,7 @@ describe('AI API Routes', () => {
 
   describe('POST /api/ai/content', () => {
     it('should generate content summaries', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -153,7 +153,7 @@ describe('AI API Routes', () => {
     });
 
     it('should validate content type', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',

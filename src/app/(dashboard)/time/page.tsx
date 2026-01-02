@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WeeklySchedule from "@/app/(dashboard)/time/components/WeeklySchedule";
 import TaskManagement from "@/app/(dashboard)/time/components/TaskManagement";

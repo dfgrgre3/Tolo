@@ -11,7 +11,7 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     verifyTokenFromRequest: jest.fn(),
   },
@@ -39,7 +39,7 @@ describe('Settings API Routes', () => {
         focusStrategy: 'POMODORO',
       };
 
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -68,7 +68,7 @@ describe('Settings API Routes', () => {
     });
 
     it('should require authentication', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue(null);
 
       const request = new NextRequest('http://localhost/api/settings', {
@@ -88,7 +88,7 @@ describe('Settings API Routes', () => {
         emailNotifications: false,
       };
 
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -120,7 +120,7 @@ describe('Settings API Routes', () => {
     });
 
     it('should validate settings data', async () => {
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',

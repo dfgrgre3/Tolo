@@ -5,7 +5,8 @@
  */
 
 import { Suspense } from 'react';
-import { EmailVerification, AuthLayout } from '@/app/(auth)/components';
+import { AuthLayout } from '@/app/(auth)/_components/modern-ui/AuthLayout';
+import { EmailVerification } from '@/app/(auth)/_components/email-verification/EmailVerification';
 
 function VerifyEmailContent() {
   return <EmailVerification />;

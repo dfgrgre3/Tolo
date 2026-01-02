@@ -1,6 +1,13 @@
 ﻿import { gamificationService } from '@/lib/services/gamification-service';
 import { prisma } from '@/lib/db';
 
+// Mock crypto.randomUUID
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: () => 'test-uuid-1234'
+  }
+});
+
 jest.mock('@/lib/db', () => ({
   prisma: {
     user: {

@@ -69,8 +69,12 @@ export const PerformanceDashboardSection = memo(function PerformanceDashboardSec
             target = 80;
           } else if (key.includes("CPU")) {
             status = value.avg <= 50 ? "excellent" : value.avg <= 70 ? "good" : "warning";
+            status = value.avg <= 50 ? "excellent" : value.avg <= 70 ? "good" : "warning";
             target = 70;
           }
+          
+          // Ensure target is never zero to avoid division by zero
+          target = target || 1;
 
           return {
             name: key,

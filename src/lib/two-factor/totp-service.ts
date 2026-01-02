@@ -1,11 +1,11 @@
 ﻿/**
  * TOTP (Time-based One-Time Password) Service
- * ط®ط¯ظ…ط© ط§ظ„ظ…طµط§ط¯ظ‚ط© ط§ظ„ط«ظ†ط§ط¦ظٹط© ط¨ط§ط³طھط®ط¯ط§ظ… طھط·ط¨ظٹظ‚ط§طھ ط§ظ„ظ…طµط§ط¯ظ‚ط© ظ…ط«ظ„ Google Authenticator
+ * خدمة المصادقة الثنائية باستخدام تطبيقات المصادقة مثل Google Authenticator
  */
 
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 // Base32 encoding functions (needed for TOTP)
 const BASE32_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
@@ -66,20 +66,20 @@ export function generateSecret(): string {
 export function generateTOTP(secret: string, timeStep: number = 30): string {
   try {
     const key = base32Decode(secret);
-    
+
     // Calculate time step (current time / timeStep)
     const time = Math.floor(Date.now() / 1000 / timeStep);
-    
+
     // Convert time to 8-byte buffer (big-endian)
     const timeBuffer = Buffer.allocUnsafe(8);
     timeBuffer.writeUInt32BE(0, 0);
     timeBuffer.writeUInt32BE(time, 4);
-    
+
     // HMAC-SHA1
     const hmac = crypto.createHmac('sha1', key);
     hmac.update(timeBuffer);
     const hash = hmac.digest();
-    
+
     // Dynamic truncation
     const offset = hash[hash.length - 1] & 0x0f;
     const code =
@@ -87,10 +87,10 @@ export function generateTOTP(secret: string, timeStep: number = 30): string {
       ((hash[offset + 1] & 0xff) << 16) |
       ((hash[offset + 2] & 0xff) << 8) |
       (hash[offset + 3] & 0xff);
-    
+
     // Convert to 6-digit code
     const totp = (code % 1000000).toString().padStart(6, '0');
-    
+
     return totp;
   } catch (error) {
     logger.error('TOTP generation error:', error);
@@ -100,47 +100,71 @@ export function generateTOTP(secret: string, timeStep: number = 30): string {
 
 /**
  * Verify TOTP code
- * Allows time window (default آ±1 time step = 30 seconds before/after)
+ * Allows time window (default ±1 time step = 30 seconds before/after)
+ * Security: Logs verification attempts for security monitoring
  */
 export function verifyTOTP(
   secret: string,
   code: string,
   window: number = 1
-): boolean {
+): { valid: boolean; timeStep?: number } {
+  // Input validation
+  if (!secret || typeof secret !== 'string' || secret.trim().length === 0) {
+    logger.debug('TOTP verification failed: invalid secret');
+    return { valid: false };
+  }
+
+  if (!code || typeof code !== 'string') {
+    logger.debug('TOTP verification failed: invalid code');
+    return { valid: false };
+  }
+
+  // Normalize code (trim whitespace)
+  const normalizedCode = code.trim();
+
+  // Validate code format (should be 6 digits)
+  if (!/^\d{6}$/.test(normalizedCode)) {
+    logger.debug('TOTP verification failed: invalid code format');
+    return { valid: false };
+  }
+
   const currentTime = Math.floor(Date.now() / 1000 / 30);
-  
+
   // Check current time step and adjacent steps (to handle clock skew)
   for (let i = -window; i <= window; i++) {
     const time = currentTime + i;
     const timeBuffer = Buffer.allocUnsafe(8);
     timeBuffer.writeUInt32BE(0, 0);
     timeBuffer.writeUInt32BE(time, 4);
-    
+
     try {
       const key = base32Decode(secret);
       const hmac = crypto.createHmac('sha1', key);
       hmac.update(timeBuffer);
       const hash = hmac.digest();
-      
+
       const offset = hash[hash.length - 1] & 0x0f;
       const calculatedCode =
         ((hash[offset] & 0x7f) << 24) |
         ((hash[offset + 1] & 0xff) << 16) |
         ((hash[offset + 2] & 0xff) << 8) |
         (hash[offset + 3] & 0xff);
-      
+
       const totp = (calculatedCode % 1000000).toString().padStart(6, '0');
-      
-      if (totp === code) {
-        return true;
+
+      if (totp === normalizedCode) {
+        logger.debug('TOTP verification successful', { timeStep: i });
+        return { valid: true, timeStep: i };
       }
     } catch (error) {
       // Continue to next time step if decoding fails
+      logger.debug('TOTP verification error at time step', { timeStep: i, error });
       continue;
     }
   }
-  
-  return false;
+
+  logger.debug('TOTP verification failed: no matching code found');
+  return { valid: false };
 }
 
 /**
@@ -149,18 +173,13 @@ export function verifyTOTP(
 export function generateQRCodeURL(
   secret: string,
   email: string,
-  issuer: string = 'ط«ظ†ط§ظˆظٹ'
+  issuer: string = 'ثناوي'
 ): string {
   // URL format: otpauth://totp/{issuer}:{email}?secret={secret}&issuer={issuer}
   const encodedIssuer = encodeURIComponent(issuer);
   const encodedEmail = encodeURIComponent(email);
   const otpAuthURL = `otpauth://totp/${encodedIssuer}:${encodedEmail}?secret=${secret}&issuer=${encodedIssuer}&algorithm=SHA1&digits=6&period=30`;
-  
-  // Use a QR code service (or generate locally)
-  // Option 1: Use external service like qrcode.tec-it.com
-  // return `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(otpAuthURL)}`;
-  
-  // Option 2: Use local QR code generation (requires qrcode library)
+
   // For now, return the otpauth URL - frontend can generate QR code
   return otpAuthURL;
 }
@@ -223,9 +242,9 @@ export async function verifyAndEnableTOTP(
   }
 
   // Verify the code
-  const isValid = verifyTOTP(user.twoFactorSecret, code);
+  const result = verifyTOTP(user.twoFactorSecret, code);
 
-  if (!isValid) {
+  if (!result.valid) {
     return false;
   }
 
@@ -237,6 +256,7 @@ export async function verifyAndEnableTOTP(
     },
   });
 
+  logger.info('TOTP enabled for user', { userId });
   return true;
 }
 
@@ -256,7 +276,13 @@ export async function verifyTOTPLogin(
     return false;
   }
 
-  return verifyTOTP(user.twoFactorSecret, code);
+  const result = verifyTOTP(user.twoFactorSecret, code);
+
+  if (result.valid) {
+    logger.debug('TOTP login verification successful', { userId });
+  }
+
+  return result.valid;
 }
 
 /**
@@ -275,10 +301,10 @@ export async function disableTOTP(userId: string): Promise<boolean> {
       },
     });
 
+    logger.info('TOTP disabled for user', { userId });
     return true;
   } catch (error) {
     logger.error('Failed to disable TOTP:', error);
     return false;
   }
 }
-

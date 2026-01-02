@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 
 type Resource = { id: string; subject: string; title: string; url: string; free: boolean; type: string; source?: string | null };
 

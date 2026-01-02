@@ -11,6 +11,7 @@ export interface User {
   email: string;
   name?: string | null;
   role: string;
+  avatar?: string | null;
   emailVerified: boolean;
   twoFactorEnabled: boolean;
   lastLogin?: DateString | Date | null;
@@ -18,8 +19,23 @@ export interface User {
   createdAt?: DateString | Date;
 }
 
+export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';
+
+export interface DeviceFingerprint {
+  browser: string;
+  os: string;
+  screen: string;
+  language?: string;
+  platform?: string;
+  timezone?: string;
+  canvas?: string;
+  webgl?: string;
+  fingerprint?: string;
+  [key: string]: unknown;
+}
+
 export interface RiskAssessment {
-  level: 'low' | 'medium' | 'high' | 'critical';
+  level: RiskLevel;
   score: number;
   factors?: {
     newDevice?: boolean;
@@ -30,7 +46,7 @@ export interface RiskAssessment {
   recommendations?: string[];
   requireAdditionalAuth?: boolean;
   blockAccess?: boolean;
-  deviceFingerprint?: Record<string, unknown>;
+  deviceFingerprint?: DeviceFingerprint | Record<string, unknown>;
 }
 
 // ==================== Login Types ====================
@@ -81,6 +97,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name?: string;
+  acceptTerms?: boolean;
 }
 
 export interface RegisterResponse {

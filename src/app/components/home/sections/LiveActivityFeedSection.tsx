@@ -19,6 +19,7 @@ import {
   Bell
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { ar } from "date-fns/locale";
 import { logger } from '@/lib/logger';
 
 // Note: Arabic locale may not be available in all date-fns versions
@@ -124,15 +125,9 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
 
   const formatTime = (date: Date) => {
     try {
-      // Try to use Arabic locale, fallback to English
-      try {
-        const { ar } = require("date-fns/locale");
-        return formatDistanceToNow(date, { addSuffix: true, locale: ar });
-      } catch {
-        return formatDistanceToNow(date, { addSuffix: true });
-      }
+      return formatDistanceToNow(date, { addSuffix: true, locale: ar });
     } catch {
-      // Fallback to relative time in Arabic
+      // Fallback to relative time in Arabic manually if date-fns fails
       const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
       if (seconds < 60) return "منذ لحظات";
       if (seconds < 3600) return `منذ ${Math.floor(seconds / 60)} دقيقة`;

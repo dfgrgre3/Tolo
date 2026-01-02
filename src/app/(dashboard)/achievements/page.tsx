@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useAchievements } from './hooks/useAchievements';
 import { AchievementStats } from './components/AchievementStats';
 import { AchievementFilters } from './components/AchievementFilters';

@@ -10,11 +10,13 @@ import { verifyAndConsumeRecoveryCode, generateRecoveryCodes } from '@/lib/two-f
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import type { TwoFactorVerifyRequest, TwoFactorVerifyResponse, TwoFactorErrorResponse } from '@/types/api/auth';
-import { setAuthCookies, createErrorResponse } from '@/app/api/auth/_helpers';
+import { setAuthCookies, createErrorResponse, parseRequestBody, createStandardErrorResponse } from '@/lib/auth-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { getJWTSecret } from '@/lib/env-validation';
 import type { Prisma } from '@prisma/client';
+import QRCode from 'qrcode';
+import { authenticator } from 'otplib';
 
 // Type for user with 2FA fields
 type UserWith2FA = Prisma.UserGetPayload<{
@@ -68,10 +70,22 @@ export async function GET(request: NextRequest) {
 }
 
 // Combined POST handler for both 2FA login verification and management
+interface TwoFactorBody {
+  loginAttemptId?: string;
+  code?: string;
+  action?: string;
+  userId?: string;
+  backupCode?: string;
+  trustDevice?: boolean;
+}
+
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const body = await req.json();
+      const bodyResult = await parseRequestBody<TwoFactorBody>(req, { maxSize: 2048 });
+      if (!bodyResult.success) return bodyResult.error;
+
+      const body = bodyResult.data;
       const { loginAttemptId, code, action, userId, backupCode } = body;
 
       // If loginAttemptId is provided, this is a login verification request
@@ -197,7 +211,7 @@ export async function POST(request: NextRequest) {
           role: user.role || undefined,
         });
 
-        const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
+        const session = await authService.createSession(user.id, tempTokens.refreshToken, userAgent, ip);
         const { accessToken, refreshToken } = await authService.createTokens(
           {
             id: user.id,
@@ -297,16 +311,31 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Rate Limit for Management Actions
+      const ip = authService.getClientIP(req);
+      const userAgent = authService.getUserAgent(req);
+      const clientId = `${ip}-${userAgent}`;
+
+      try {
+        await authService.checkRateLimit(clientId);
+      } catch (error) {
+        await authService.logSecurityEvent(targetUserId, 'two_factor_rate_limit', ip, { userAgent });
+        return NextResponse.json(
+          { error: 'Too many attempts. Please try again later.' },
+          { status: 429 }
+        );
+      }
+
       // Handle different actions
       switch (action) {
         case 'setup':
           return await handleSetup2FA(user);
         case 'verify':
-          return await handleVerify2FA(user, code, req);
+          return await handleVerify2FA(user, code || '', req);
         case 'disable':
-          return await handleDisable2FA(user, code, req);
+          return await handleDisable2FA(user, code || '', req);
         case 'backup-code':
-          return await handleBackupCode(user, backupCode, req);
+          return await handleBackupCode(user, backupCode || '', req);
         default:
           return NextResponse.json(
             { error: 'Invalid action' },
@@ -341,10 +370,15 @@ async function handleSetup2FA(user: UserWith2FA) {
       }
     });
 
+    // Generate QR Code
+    const otpauth = authenticator.keyuri(user.email, 'Thanawy', secret);
+    const qrCode = await QRCode.toDataURL(otpauth);
+
     // Return the secret and backup codes
     // Note: The frontend should generate a QR code from the secret for easy setup
     return NextResponse.json({
       secret,
+      qrCode,
       backupCodes,
       message: '2FA setup initiated. Please verify with your authenticator app.'
     });
@@ -409,6 +443,9 @@ async function handleVerify2FA(user: UserWith2FA, code: string, request: NextReq
       where: { id: user.id },
       data: { twoFactorEnabled: true }
     });
+
+    const clientId = `${ip}-${userAgent}`;
+    await authService.resetRateLimit(clientId);
 
     // Log security events
     await Promise.all([
@@ -497,6 +534,9 @@ async function handleDisable2FA(user: UserWith2FA, code: string, request: NextRe
 
     // Disable 2FA using proper service (code already verified)
     await disableTOTP(user.id);
+
+    const clientId = `${ip}-${userAgent}`;
+    await authService.resetRateLimit(clientId);
 
     // Log security events
     await Promise.all([
@@ -599,6 +639,9 @@ async function handleBackupCode(user: UserWith2FA, backupCode: string, request: 
     });
 
     // Generate a new token for the user
+    const clientId = `${ip}-${userAgent}`;
+    await authService.resetRateLimit(clientId);
+
     const token = await new SignJWT({
       userId: user.id,
       email: user.email,

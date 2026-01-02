@@ -3,10 +3,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { oauthConfig, verifyState, generateToken, validateRedirectUri } from '@/lib/oauth';
 import { prisma } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
-import { isConnectionError, getSecureCookieOptions, logSecurityEventSafely } from '@/app/api/auth/_helpers';
+import {
+  isConnectionError,
+  getSecureCookieOptions,
+  logSecurityEventSafely,
+  createOAuthErrorResponse,
+  createOAuthErrorRedirect,
+  OAUTH_ERROR_MESSAGES,
+  withDatabaseRetry,
+  getDatabaseErrorMessage
+} from '@/app/api/auth/_helpers';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { http } from 'winston';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -19,95 +27,37 @@ export async function GET(request: NextRequest) {
       // Handle errors from Google
       if (error) {
         logger.error('Google OAuth error:', error);
-        logger.error('Request URL:', request.url);
-        logger.error('OAuth Config:', {
-          clientId: oauthConfig.google.clientId?.substring(0, 20) + '...',
-          redirectUri: oauthConfig.google.redirectUri,
-          isConfigured: oauthConfig.google.isConfigured(),
-        });
 
-        // Map Google error codes to user-friendly Arabic messages
-        const errorMessages: Record<string, string> = {
-          'access_denied': 'تم إلغاء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
-          'invalid_request': 'طلب غير صحيح. يرجى التحقق من إعدادات Redirect URI في Google Console.',
-          'unauthorized_client': 'تطبيق غير مصرح به. يرجى التحقق من client_id في Google Console.',
-          'unsupported_response_type': 'نوع استجابة غير مدعوم. يرجى التواصل مع الدعم الفني.',
-          'invalid_scope': 'نطاق غير صحيح. يرجى التواصل مع الدعم الفني.',
-          'server_error': 'خطأ في خادم Google. يرجى المحاولة مرة أخرى لاحقًا.',
-          'temporarily_unavailable': 'الخدمة غير متاحة مؤقتًا. يرجى المحاولة مرة أخرى لاحقًا.',
-          'interaction_required': 'مطلوب تدخل المستخدم. يرجى المحاولة مرة أخرى.',
-          'login_required': 'يرجى تسجيل الدخول إلى حساب Google الخاص بك.',
-          'account_selection_required': 'يرجى اختيار حساب Google للمتابعة.',
-          'consent_required': 'يرجى الموافقة على الأذونات المطلوبة للمتابعة.',
-        };
+        // Use centralized error messages with special handling for invalid_request
+        let errorMessage = OAUTH_ERROR_MESSAGES[error] || 'حدث خطأ أثناء تسجيل الدخول بجوجل';
 
-        let errorMessage = errorMessages[error as string] || 'حدث خطأ أثناء تسجيل الدخول بجوجل';
-
-        // Special handling for invalid_request which often means redirect_uri mismatch
         if (error === 'invalid_request') {
           const redirectUri = oauthConfig.google.redirectUri;
-          const redirectUriValidation = validateRedirectUri(redirectUri);
-
           errorMessage = `طلب غير صحيح. يرجى التحقق من:
-1. Redirect URI في Google Cloud Console يجب أن يكون بالضبط: ${redirectUri}
-   ${redirectUriValidation.valid ? '✅' : '❌'} ${redirectUriValidation.error || 'صيغة صحيحة'}
-2. OAuth Consent Screen يجب أن يكون مكتملًا
-3. إذا كان التطبيق في وضع الاختبار، تأكد من إضافة بريدك الإلكتروني في "Test users"
-4. تأكد من تطابق البروتوكول (http/https) والنطاق والمنفذ والمسار بالضبط`;
-          logger.error('Google OAuth redirect_uri mismatch detected', {
-            expectedRedirectUri: redirectUri,
-            validation: redirectUriValidation,
-            baseUrl: process.env.NEXT_PUBLIC_BASE_URL,
-          });
+1. Redirect URI يجب أن يكون بالضبط: ${redirectUri}
+2. OAuth Consent Screen مكتمل
+3. تثبت من إضافة بريدك في "Test users"`;
         }
 
-        errorMessage = errorMessages[error] || errorMessage;
-
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=${error}&message=${encodeURIComponent(errorMessage)}`
-        );
+        return createOAuthErrorResponse(error, errorMessage);
       }
 
       // Verify state parameter to prevent CSRF attacks
       const savedState = req.cookies.get('oauth_state')?.value;
       if (!state || !savedState || !verifyState(state, savedState)) {
         logger.error('Google OAuth: Invalid state parameter', { state, savedState });
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=invalid_state&message=${encodeURIComponent('فشل التحقق من الأمان. يرجى المحاولة مرة أخرى.')}`
-        );
+        return createOAuthErrorResponse('invalid_state');
       }
 
       if (!code) {
         logger.error('Google OAuth: No authorization code received');
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=no_code&message=${encodeURIComponent('لم يتم استلام رمز التفويض من Google. يرجى المحاولة مرة أخرى.')}`
-        );
+        return createOAuthErrorResponse('no_code');
       }
 
       // Validate OAuth configuration before making token request
       if (!oauthConfig.google.isConfigured()) {
         logger.error('Google OAuth: Missing credentials in callback');
-        const missingFields: string[] = [];
-        if (!oauthConfig.google.clientId || oauthConfig.google.clientId.trim() === '') {
-          missingFields.push('GOOGLE_CLIENT_ID');
-        }
-        if (!oauthConfig.google.clientSecret || oauthConfig.google.clientSecret.trim() === '') {
-          missingFields.push('GOOGLE_CLIENT_SECRET');
-        }
-
-        const errorMessage = missingFields.length > 0
-          ? `طلب غير صحيح. يرجى التحقق من:
-1. إعدادات Google OAuth في ملف .env.local
-2. تأكد من إضافة بريدك الإلكتروني في "Test users"
-3. تأكد من تطابق البروتوكول (http/https) والنطاق والمنفذ والمسار بالضبط`
-          : `طلب غير صحيح. يرجى التحقق من:
-1. إعدادات Google OAuth في ملف .env.local
-2. تأكد من إضافة بريدك الإلكتروني في "Test users"
-3. تأكد من تطابق البروتوكول (http/https) والنطاق والمنفذ والمسار بالضبط`;
-
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=oauth_not_configured&message=${encodeURIComponent(errorMessage)}`
-        );
+        return createOAuthErrorResponse('oauth_not_configured', 'إعدادات OAuth غير مكتملة. يرجى التحقق من GOOGLE_CLIENT_ID و GOOGLE_CLIENT_SECRET.');
       }
 
       // Exchange authorization code for access token
@@ -254,168 +204,16 @@ ${redirectUriForTokenExchange}
       // Normalize email
       const normalizedEmail = userData.email.toLowerCase().trim();
 
-      // Helper function to ensure database connection with retry
-      const ensureDatabaseConnection = async (maxRetries: number = 3): Promise<boolean> => {
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            // Try to connect if not connected
-            try {
-              await prisma.$connect();
-            } catch (connectError: unknown) {
-              // If already connected, ignore the error
-              const msg = connectError instanceof Error ? connectError.message : String(connectError);
-              if (!msg?.includes('already connected')) {
-                throw connectError;
-              }
-            }
-
-            // Test the connection with a simple query
-            await Promise.race([
-              prisma.$queryRaw`SELECT 1`,
-              new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Connection timeout')), 5000)
-              )
-            ]);
-
-            return true;
-          } catch (error: unknown) {
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
-            logger.warn(`Database connection check failed (attempt ${attempt}/${maxRetries}):`, {
-              error: errorMsg,
-              code: errorCode,
-            });
-
-            if (attempt < maxRetries) {
-              // Try to disconnect and reconnect
-              try {
-                await prisma.$disconnect();
-              } catch (disconnectError) {
-                // Ignore disconnect errors
-              }
-
-              // Wait before retrying (exponential backoff)
-              await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
-            } else {
-              logger.error('Failed to establish database connection after all retries');
-              return false;
-            }
-          }
-        }
-        return false;
-      };
-
-      // Verify database connection before proceeding
-      const isConnected = await ensureDatabaseConnection(3);
-      if (!isConnected) {
-        logger.error('Database is not connected, cannot proceed with OAuth');
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل الاتصال بقاعدة البيانات. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.')}`
-        );
-      }
-
-      // Helper function to retry database operations with better error handling
-      const retryDatabaseOperation = async <T>(
-        operation: () => Promise<T>,
-        maxRetries: number = 5,
-        retryDelay: number = 1000,
-        operationName: string = 'database operation'
-      ): Promise<T> => {
-        let lastError: unknown;
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            // Ensure connection before each retry
-            if (attempt > 1) {
-              const connected = await ensureDatabaseConnection(1);
-              if (!connected) {
-                throw new Error('Database connection lost');
-              }
-            }
-
-            // Execute operation with timeout
-            return await Promise.race([
-              operation(),
-              new Promise<T>((_, reject) =>
-                setTimeout(() => reject(new Error('Operation timeout')), 10000)
-              )
-            ]);
-          } catch (error: unknown) {
-            lastError = error;
-
-            // Check if error is retryable
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            const errorCode = error instanceof Error && 'code' in error ? (error as { code: string }).code : undefined;
-
-            const isRetryable = isConnectionError(error) ||
-              errorCode === 'P1001' || // Prisma connection error
-              errorCode === 'P1017' || // Prisma server closed connection
-              errorCode === 'P2002' || // Prisma unique constraint (might be race condition)
-              errorMsg?.includes('timeout') ||
-              errorMsg?.includes('ECONNREFUSED') ||
-              errorMsg?.includes('ETIMEDOUT') ||
-              errorMsg?.includes('Connection lost') ||
-              errorMsg?.includes('Connection closed');
-
-            if (!isRetryable) {
-              // Non-retryable error, throw immediately
-              throw error;
-            }
-
-            if (attempt === maxRetries) {
-              // Last attempt failed, throw error
-              throw error;
-            }
-
-            logger.warn(`${operationName} failed (attempt ${attempt}/${maxRetries}), retrying...`, {
-              error: errorMsg,
-              code: errorCode,
-            });
-
-            // Wait before retrying (exponential backoff with jitter)
-            const delay = retryDelay * Math.pow(2, attempt - 1) + Math.random() * 1000;
-            await new Promise(resolve => setTimeout(resolve, Math.min(delay, 10000)));
-          }
-        }
-        throw lastError;
-      };
-
       // Check if user exists in our database with retry
       let user;
       try {
-        user = await retryDatabaseOperation(async () => {
-          return await prisma.user.findUnique({
-            where: { email: normalizedEmail },
-          });
-        }, 5, 1000, 'find user by email');
-      } catch (dbError: unknown) {
-        const errorMsg = dbError instanceof Error ? dbError.message : String(dbError);
-        const errorCode = dbError instanceof Error && 'code' in dbError ? (dbError as { code: string }).code : undefined;
-        const errorMeta = dbError instanceof Error && 'meta' in dbError ? (dbError as { meta: unknown }).meta : undefined;
-        const errorStack = dbError instanceof Error ? dbError.stack : undefined;
-
-        logger.error('Database error while finding user:', {
-          error: errorMsg,
-          code: errorCode,
-          meta: errorMeta,
-          stack: errorStack,
-        });
-
-        // Provide user-friendly error message
-        let errorMessage = 'حدث خطأ في قاعدة البيانات. يرجى المحاولة مرة أخرى.';
-
-        if (isConnectionError(dbError)) {
-          errorMessage = 'فشل الاتصال بقاعدة البيانات. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.';
-        } else if (errorCode === 'P1001') {
-          errorMessage = 'لا يمكن الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى لاحقاً.';
-        } else if (errorCode === 'P1017') {
-          errorMessage = 'تم إغلاق الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
-        } else if (errorMsg?.includes('timeout')) {
-          errorMessage = 'انتهت مهلة الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
-        }
-
-        return NextResponse.redirect(
-          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent(errorMessage)}`
+        user = await withDatabaseRetry(
+          async () => prisma.user.findUnique({ where: { email: normalizedEmail } }),
+          { maxAttempts: 5, operationName: 'find user by email' }
         );
+      } catch (dbError: unknown) {
+        logger.error('Database error while finding user:', dbError);
+        return createOAuthErrorResponse('database_error', getDatabaseErrorMessage(dbError));
       }
 
       // If user doesn't exist, create a new one with retry
@@ -427,13 +225,13 @@ ${redirectUriForTokenExchange}
           // Normalize name (handle null/undefined)
           const normalizedName = userData.name?.trim() || null;
 
-          user = await retryDatabaseOperation(async () => {
+          user = await withDatabaseRetry(async () => {
             return await prisma.user.create({
               data: {
                 id: userId,
                 email: normalizedEmail,
                 name: normalizedName,
-                passwordHash: 'oauth_user', // OAuth users don't have a password
+                passwordHash: uuidv4(), // Secure random "password" for OAuth users
                 // Set required defaults
                 emailVerified: true, // OAuth users are considered verified
                 emailNotifications: true,
@@ -454,7 +252,7 @@ ${redirectUriForTokenExchange}
                 focusStrategy: 'POMODORO',
               },
             });
-          }, 5, 1000, 'create new user');
+          }, { maxAttempts: 5, operationName: 'create new user' });
 
           logger.info('Google OAuth: Created new user', {
             id: user.id,
@@ -486,17 +284,14 @@ ${redirectUriForTokenExchange}
           if (errorCode === 'P2002') {
             logger.info('User already exists (race condition), finding user...');
             try {
-              user = await retryDatabaseOperation(async () => {
-                return await prisma.user.findUnique({
-                  where: { email: normalizedEmail },
-                });
-              }, 5, 1000, 'find user after duplicate error');
+              user = await withDatabaseRetry(
+                async () => prisma.user.findUnique({ where: { email: normalizedEmail } }),
+                { maxAttempts: 5, operationName: 'find user after duplicate error' }
+              );
 
               if (!user) {
                 logger.error('User not found after duplicate error');
-                return NextResponse.redirect(
-                  `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent('فشل العثور على المستخدم. يرجى المحاولة مرة أخرى.')}`
-                );
+                return createOAuthErrorResponse('database_error', 'فشل العثور على المستخدم. يرجى المحاولة مرة أخرى.');
               }
 
               logger.info('Google OAuth: Found existing user after race condition', {
@@ -504,24 +299,8 @@ ${redirectUriForTokenExchange}
                 email: user.email,
               });
             } catch (findError: unknown) {
-              const errorMsg = findError instanceof Error ? findError.message : String(findError);
-              const errorCode = findError instanceof Error && 'code' in findError ? (findError as { code: string }).code : undefined;
-              const errorMeta = findError instanceof Error && 'meta' in findError ? (findError as { meta: unknown }).meta : undefined;
-
-              logger.error('Error finding user after duplicate:', {
-                error: errorMsg,
-                code: errorCode,
-                meta: errorMeta,
-              });
-
-              let errorMessage = 'فشل العثور على المستخدم. يرجى المحاولة مرة أخرى.';
-              if (isConnectionError(findError)) {
-                errorMessage = 'فشل الاتصال بقاعدة البيانات. يرجى المحاولة مرة أخرى.';
-              }
-
-              return NextResponse.redirect(
-                `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/login?error=database_error&message=${encodeURIComponent(errorMessage)}`
-              );
+              logger.error('Error finding user after duplicate:', findError);
+              return createOAuthErrorResponse('database_error', getDatabaseErrorMessage(findError));
             }
           } else {
             // Return detailed error for debugging

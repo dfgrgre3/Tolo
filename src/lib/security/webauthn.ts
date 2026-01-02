@@ -153,6 +153,10 @@ export class WebAuthnService {
     return options;
   }
 
+  /**
+   * Verify registration response
+   * Note: For full security, use @simplewebauthn/server library for signature verification
+   */
   async verifyRegistration(
     response: WebAuthnRegistrationResponse,
     expectedChallenge: string
@@ -166,23 +170,75 @@ export class WebAuthnService {
     error?: string;
   }> {
     try {
-      // In a real implementation, we would:
-      // 1. Decode the clientDataJSON
-      // 2. Verify the challenge matches
-      // 3. Verify the origin matches
-      // 4. Verify the attestation
-      // 5. Extract and store the public key
-
-      // For now, we'll do basic validation
+      // Basic validation
       if (!response || !response.id || !response.rawId) {
+        logger.warn('WebAuthn: Invalid registration response - missing id or rawId');
         return {
           verified: false,
-          error: 'Invalid registration response',
+          error: 'بيانات التسجيل غير صالحة',
         };
       }
 
-      // This is a simplified version
-      // In production, use a library like @simplewebauthn/server
+      if (!response.response?.clientDataJSON) {
+        logger.warn('WebAuthn: Missing clientDataJSON in registration response');
+        return {
+          verified: false,
+          error: 'بيانات العميل مفقودة',
+        };
+      }
+
+      // Decode and verify clientDataJSON
+      let clientData: { type?: string; challenge?: string; origin?: string };
+      try {
+        const clientDataStr = typeof response.response.clientDataJSON === 'string'
+          ? response.response.clientDataJSON
+          : this.arrayBufferToBase64(response.response.clientDataJSON);
+
+        // Decode from base64
+        const decodedData = typeof atob !== 'undefined'
+          ? atob(clientDataStr)
+          : Buffer.from(clientDataStr, 'base64').toString('utf-8');
+
+        clientData = JSON.parse(decodedData);
+      } catch (parseError) {
+        logger.warn('WebAuthn: Failed to parse clientDataJSON', parseError);
+        return {
+          verified: false,
+          error: 'فشل في تحليل بيانات العميل',
+        };
+      }
+
+      // Verify type
+      if (clientData.type !== 'webauthn.create') {
+        logger.warn('WebAuthn: Invalid type in clientData', { type: clientData.type });
+        return {
+          verified: false,
+          error: 'نوع العملية غير صحيح',
+        };
+      }
+
+      // Verify challenge matches
+      if (clientData.challenge !== expectedChallenge) {
+        logger.warn('WebAuthn: Challenge mismatch in registration');
+        return {
+          verified: false,
+          error: 'التحدي غير متطابق',
+        };
+      }
+
+      // Verify origin matches our expected origin
+      if (clientData.origin !== this.origin) {
+        logger.warn('WebAuthn: Origin mismatch', {
+          expected: this.origin,
+          received: clientData.origin
+        });
+        return {
+          verified: false,
+          error: 'مصدر الطلب غير صحيح',
+        };
+      }
+
+      // Extract credential data
       const credentialId = response.id;
       let publicKey = '';
       const attestationObject = response.response?.attestationObject;
@@ -193,21 +249,22 @@ export class WebAuthnService {
           publicKey = this.arrayBufferToBase64(attestationObject);
         }
       }
-      const counter = 0;
+
+      logger.info('WebAuthn: Registration verified successfully', { credentialId });
 
       return {
         verified: true,
         credential: {
           credentialId,
           publicKey,
-          counter,
+          counter: 0,
         },
       };
     } catch (error) {
       logger.error('WebAuthn registration verification error', error, { operation: 'registration_verification' });
       return {
         verified: false,
-        error: 'Verification failed',
+        error: 'فشل التحقق من التسجيل',
       };
     }
   }
@@ -222,32 +279,98 @@ export class WebAuthnService {
     error?: string;
   }> {
     try {
-      // In a real implementation, we would:
-      // 1. Decode the clientDataJSON
-      // 2. Verify the challenge matches
-      // 3. Verify the origin matches
-      // 4. Verify the signature using the stored public key
-      // 5. Verify the counter is greater than the stored counter
-
-      // For now, we'll do basic validation
+      // 1. Basic validation
       if (!response || !response.id) {
+        logger.warn('WebAuthn: Invalid authentication response - missing id');
         return {
           verified: false,
-          error: 'Invalid authentication response',
+          error: 'بيانات المصادقة غير صالحة',
         };
       }
 
-      // Check if credential ID matches
+      // 2. Check if credential ID matches
       if (response.id !== credential.credentialId) {
+        logger.warn('WebAuthn: Credential ID mismatch', {
+          expected: credential.credentialId.substring(0, 8) + '...',
+          received: response.id.substring(0, 8) + '...'
+        });
         return {
           verified: false,
-          error: 'Credential ID mismatch',
+          error: 'معرف بيانات الاعتماد غير متطابق',
         };
       }
 
-      // This is a simplified version
-      // In production, use a library like @simplewebauthn/server
+      // 3. Validate response has required fields
+      if (!response.response?.clientDataJSON || !response.response?.authenticatorData || !response.response?.signature) {
+        logger.warn('WebAuthn: Missing required response fields');
+        return {
+          verified: false,
+          error: 'بيانات المصادقة ناقصة',
+        };
+      }
+
+      // 4. Decode and verify clientDataJSON
+      let clientData: { type?: string; challenge?: string; origin?: string };
+      try {
+        const clientDataStr = typeof response.response.clientDataJSON === 'string'
+          ? response.response.clientDataJSON
+          : this.arrayBufferToBase64(response.response.clientDataJSON);
+
+        const decodedData = typeof atob !== 'undefined'
+          ? atob(clientDataStr)
+          : Buffer.from(clientDataStr, 'base64').toString('utf-8');
+
+        clientData = JSON.parse(decodedData);
+      } catch (parseError) {
+        logger.warn('WebAuthn: Failed to parse clientDataJSON for authentication', parseError);
+        return {
+          verified: false,
+          error: 'فشل في تحليل بيانات العميل',
+        };
+      }
+
+      // 5. Verify type
+      if (clientData.type !== 'webauthn.get') {
+        logger.warn('WebAuthn: Invalid type in clientData for authentication', { type: clientData.type });
+        return {
+          verified: false,
+          error: 'نوع العملية غير صحيح',
+        };
+      }
+
+      // 6. Verify challenge matches
+      if (clientData.challenge !== expectedChallenge) {
+        logger.warn('WebAuthn: Challenge mismatch in authentication');
+        return {
+          verified: false,
+          error: 'التحدي غير متطابق',
+        };
+      }
+
+      // 7. Verify origin matches
+      if (clientData.origin !== this.origin) {
+        logger.warn('WebAuthn: Origin mismatch in authentication', {
+          expected: this.origin,
+          received: clientData.origin
+        });
+        return {
+          verified: false,
+          error: 'مصدر الطلب غير صحيح',
+        };
+      }
+
+      // 8. Counter verification (Prevent replay attacks)
+      // Note: In a full implementation, you would parse authenticatorData to extract counter
+      // For now, we increment the counter to track usage
       const newCounter = credential.counter + 1;
+
+      // TODO: Full signature verification using credential.publicKey
+      // This requires implementing COSE key parsing and signature verification
+      // For production, use @simplewebauthn/server library
+      logger.info('WebAuthn: Authentication verified (basic validation)', {
+        credentialId: credential.credentialId.substring(0, 8) + '...',
+        newCounter
+      });
 
       return {
         verified: true,
@@ -257,29 +380,20 @@ export class WebAuthnService {
       logger.error('WebAuthn authentication verification error', error, { operation: 'authentication_verification' });
       return {
         verified: false,
-        error: 'Verification failed',
+        error: 'فشل التحقق من المصادقة',
       };
     }
   }
 
   /**
-   * Generate a random challenge
+   * Generate a cryptographically secure random challenge
+   * Security: Uses crypto.randomBytes for server-side generation (more secure than Math.random fallback)
    */
   private generateChallenge(): string {
-    const buffer = new Uint8Array(32);
-    
-    if (typeof window !== 'undefined' && window.crypto) {
-      window.crypto.getRandomValues(buffer);
-    } else if (typeof global !== 'undefined' && global.crypto) {
-      global.crypto.getRandomValues(buffer);
-    } else {
-      // Fallback for environments without crypto
-      for (let i = 0; i < buffer.length; i++) {
-        buffer[i] = Math.floor(Math.random() * 256);
-      }
-    }
-
-    return this.arrayBufferToBase64(buffer);
+    // Use Node.js crypto for server-side secure random generation
+    const crypto = require('crypto');
+    const buffer = crypto.randomBytes(32);
+    return buffer.toString('base64url');
   }
 
   /**
@@ -291,13 +405,13 @@ export class WebAuthnService {
     for (let i = 0; i < bytes.byteLength; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
-    
+
     if (typeof btoa !== 'undefined') {
       return btoa(binary);
     } else if (typeof Buffer !== 'undefined') {
       return Buffer.from(binary, 'binary').toString('base64');
     }
-    
+
     return binary;
   }
 
@@ -306,7 +420,7 @@ export class WebAuthnService {
    */
   base64ToArrayBuffer(base64: string): ArrayBuffer {
     let binary;
-    
+
     if (typeof atob !== 'undefined') {
       binary = atob(base64);
     } else if (typeof Buffer !== 'undefined') {
@@ -424,7 +538,7 @@ export const WebAuthnClient = {
     crossPlatform: boolean;
   }> {
     const platform = await this.isPlatformAuthenticatorAvailable();
-    
+
     return {
       platform,
       crossPlatform: this.isAvailable(), // Assume cross-platform is available if WebAuthn is

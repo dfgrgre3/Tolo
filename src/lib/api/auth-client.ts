@@ -8,7 +8,7 @@
  * للاستخدام:
  * - في Client Components: استورد دوال مثل loginUser, verifyTwoFactor, registerUser من هذا الملف
  * - لا تستورد من src/lib/auth-client.ts (ملف قديم للتخزين المحلي فقط)
- * - لا تستورد من src/lib/auth-hook-enhanced.ts (استخدم للـ hooks فقط)
+
  * 
  * الملفات المتعلقة:
  * - src/lib/auth-service.ts: الخدمة الأساسية على الخادم (server-side)
@@ -174,36 +174,7 @@ async function apiFetch<T>(
       responseText = await response.text();
       if (responseText && responseText.trim().length > 0) {
         // Check if it's HTML (error page) - this takes priority
-        const isHtml = responseText.trim().startsWith('<!DOCTYPE html>') ||
-          responseText.trim().startsWith('<html') ||
-          responseText.trim().startsWith('<HTML');
-
-        if (isHtml) {
-          // This is HTML, not JSON - likely an error page from Next.js
-          const status = response.status;
-          let errorMessage = `خطأ في الخادم (${status})`;
-
-          if (status === 404) {
-            errorMessage = 'مسار API غير موجود. يرجى التحقق من إعدادات الخادم.';
-          } else if (status === 500) {
-            errorMessage = 'خطأ داخلي في الخادم. يرجى المحاولة مرة أخرى لاحقاً.';
-          } else if (status === 503) {
-            errorMessage = 'الخادم غير متاح حالياً. يرجى المحاولة مرة أخرى لاحقاً.';
-          } else if (status >= 400 && status < 500) {
-            errorMessage = `خطأ في الطلب (${status}). يرجى التحقق من البيانات المرسلة.`;
-          } else if (status >= 500) {
-            errorMessage = `خطأ في الخادم (${status}). يرجى المحاولة مرة أخرى لاحقاً.`;
-          }
-
-          throw {
-            error: errorMessage,
-            code: status === 404 ? 'NOT_FOUND' :
-              status === 429 ? 'RATE_LIMITED' :
-                status >= 500 ? 'SERVER_ERROR' :
-                  'SERVER_RESPONSE_ERROR',
-            status,
-          };
-        }
+        /* HTML check removed to enforce JSON handling */
 
         // Try to parse as JSON
         try {
@@ -582,9 +553,21 @@ export async function loginUser(
     // Re-throw if it's already a properly formatted error with error or code property
     if (error && typeof error === 'object' && ((error as { error?: string }).error || (error as { code?: string }).code)) {
       // Ensure error message is present
+      const errorCode = (error as { code?: string }).code;
+
+      // Handle session expiration errors
+      if (errorCode === 'SESSION_EXPIRED' || errorCode === 'INVALID_SESSION') {
+        const normalizedError = {
+          error: 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.',
+          code: 'SESSION_EXPIRED',
+          ...((error as { status?: number }).status !== undefined && { status: (error as { status?: number }).status }),
+        };
+        throw normalizedError;
+      }
+
       const normalizedError = {
         error: (error as { error?: string; message?: string }).error || (error as { error?: string; message?: string }).message || 'حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.',
-        code: (error as { code?: string }).code || 'LOGIN_ERROR',
+        code: errorCode || 'LOGIN_ERROR',
         ...((error as { status?: number }).status !== undefined && { status: (error as { status?: number }).status }),
         ...((error as { retryAfterSeconds?: number }).retryAfterSeconds !== undefined && { retryAfterSeconds: (error as { retryAfterSeconds?: number }).retryAfterSeconds }),
         ...((error as { requiresCaptcha?: boolean }).requiresCaptcha !== undefined && { requiresCaptcha: (error as { requiresCaptcha?: boolean }).requiresCaptcha }),

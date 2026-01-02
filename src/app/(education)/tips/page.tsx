@@ -1,6 +1,6 @@
 'use client';
 
-import { AuthGuard } from '@/app/(auth)/components/AuthGuard';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 export default function TipsPage() {
   return (

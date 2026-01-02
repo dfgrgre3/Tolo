@@ -10,8 +10,7 @@ async function handler(req: NextRequest) {
     if (!credentialId || !deviceName) {
         return NextResponse.json({ error: 'Credential ID and new name are required' }, { status: 400 });
     }
-    
-    // It's important to ensure that the user renaming the credential is the owner of the credential.
+
     // It's important to ensure that the user renaming the credential is the owner of the credential.
     const verification = await authService.verifyTokenFromRequest(req);
 

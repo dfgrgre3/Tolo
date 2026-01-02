@@ -278,7 +278,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                         <p className="text-sm text-muted-foreground mb-2">
                           {achievement.description}
                         </p>
-                        {achievement.progress !== undefined && achievement.total && (
+                        {achievement.progress !== undefined && achievement.total && achievement.total > 0 && (
                           <div className="mt-2">
                             <div className="flex justify-between text-xs mb-1">
                               <span className="text-muted-foreground">التقدم</span>

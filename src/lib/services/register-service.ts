@@ -1,12 +1,12 @@
 import { z } from 'zod';
-import { authService, AuthService } from '@/lib/services/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { User, Prisma } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 import { logger } from '@/lib/logger';
 import { emailService } from '@/lib/services/email-service';
-import { registerSchema } from '@/lib/auth/schemas';
+import { registerSchema } from '@/lib/validations/auth';
 import type { RegisterResponse } from '@/types/api/auth';
 import {
     logSecurityEventSafely
@@ -45,7 +45,7 @@ export class RegisterService {
             }
 
             // Check if user already exists
-            const existingUser = await authService.findUserByEmail(normalizedEmail);
+            const existingUser = await authService.getUserByEmail(normalizedEmail);
 
             if (existingUser) {
                 return {
@@ -61,7 +61,7 @@ export class RegisterService {
             // Hash password
             let passwordHash: string;
             try {
-                passwordHash = await AuthService.hashPassword(password);
+                passwordHash = await authService.hashPassword(password);
             } catch (hashError) {
                 logger.error('Password hashing error:', hashError);
                 return {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useUnifiedAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { AuthGuard } from '@/app/(auth)/components/AuthGuard';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import {
   Shield,
   Smartphone,

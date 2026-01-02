@@ -54,9 +54,9 @@ export function useProgressiveLoading<T>(
     attemptCount: 0
   });
 
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const retryTimeoutRef = useRef<NodeJS.Timeout>();
-  const abortControllerRef = useRef<AbortController>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const abortControllerRef = useRef<AbortController | undefined>(undefined);
 
   // Mark as hydrated on client with better error handling
   useEffect(() => {

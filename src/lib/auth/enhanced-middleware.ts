@@ -22,27 +22,27 @@ export interface EnhancedAuthOptions {
    * يتطلب المصادقة
    */
   requireAuth?: boolean;
-  
+
   /**
    * التحقق من الجلسة في قاعدة البيانات
    */
   checkSession?: boolean;
-  
+
   /**
    * الأدوار المطلوبة
    */
   requiredRoles?: string[];
-  
+
   /**
    * السماح بالبريد غير المؤكد
    */
   allowUnverified?: boolean;
-  
+
   /**
    * إعادة المحاولة التلقائية عند الفشل
    */
   autoRetry?: boolean;
-  
+
   /**
    * معالج الأخطاء المخصص
    */
@@ -82,7 +82,7 @@ export async function withEnhancedAuth(
   const extractToken = async (): Promise<string | null> => {
     try {
       const token = authService.extractToken(request);
-      
+
       // Validate token format if present
       if (token && typeof token === 'string') {
         // Basic JWT format validation (should have 3 parts separated by dots)
@@ -92,7 +92,7 @@ export async function withEnhancedAuth(
           return null;
         }
       }
-      
+
       return token;
     } catch (error) {
       logger.error('Token extraction error:', error);
@@ -133,7 +133,7 @@ export async function withEnhancedAuth(
         }
       );
     }
-    
+
     return await verifyFunction();
   };
 

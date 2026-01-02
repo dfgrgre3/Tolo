@@ -1,10 +1,12 @@
 ﻿/**
  * Recovery Codes Service
- * ط®ط¯ظ…ط© ط±ظ…ظˆط² ط§ظ„ط§ط³طھط±ط¯ط§ط¯ ظ„ظ„ظ€ 2FA
+ * خدمة رموز الاسترداد للـ 2FA
  */
 
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * Generate recovery codes
@@ -12,7 +14,7 @@ import { prisma } from '@/lib/db';
  */
 export function generateRecoveryCodes(count: number = 10): string[] {
   const codes: string[] = [];
-  
+
   for (let i = 0; i < count; i++) {
     // Generate 8-character alphanumeric code
     const randomBytes = crypto.randomBytes(4);
@@ -21,71 +23,72 @@ export function generateRecoveryCodes(count: number = 10): string[] {
       .replace(/[+/=]/g, '')
       .substring(0, 8)
       .toUpperCase();
-    
+
     // Format: XXXX-XXXX
     const formatted = code.substring(0, 4) + '-' + code.substring(4, 8);
     codes.push(formatted);
   }
-  
+
   return codes;
 }
 
 /**
  * Hash recovery code for storage
+ * Security: Uses bcrypt instead of sha256 for better protection against rainbow tables
  */
-export function hashRecoveryCode(code: string): string {
-  // Remove dashes for hashing
-  const cleanCode = code.replace(/-/g, '');
-  return crypto.createHash('sha256').update(cleanCode).digest('hex');
+export async function hashRecoveryCode(code: string): Promise<string> {
+  // Normalize: remove dashes and convert to uppercase
+  const cleanCode = code.replace(/-/g, '').toUpperCase();
+  return bcrypt.hash(cleanCode, 10);
 }
 
 /**
- * Verify recovery code
+ * Verify recovery code using timing-safe comparison
+ * Security: Uses bcrypt.compare which is timing-safe
  */
-export function verifyRecoveryCode(
+export async function verifyRecoveryCode(
   code: string,
   hashedCodes: string[]
-): boolean {
-  const hashedCode = hashRecoveryCode(code);
-  return hashedCodes.includes(hashedCode);
+): Promise<{ valid: boolean; matchedIndex: number }> {
+  const cleanCode = code.replace(/-/g, '').toUpperCase();
+
+  for (let i = 0; i < hashedCodes.length; i++) {
+    try {
+      const isMatch = await bcrypt.compare(cleanCode, hashedCodes[i]);
+      if (isMatch) {
+        return { valid: true, matchedIndex: i };
+      }
+    } catch (error) {
+      // Continue checking other codes if one fails
+      logger.debug('Error comparing recovery code', { index: i });
+    }
+  }
+
+  return { valid: false, matchedIndex: -1 };
 }
 
 /**
  * Generate and store recovery codes for user
+ * Security: Codes are hashed with bcrypt before storage
  */
 export async function generateAndStoreRecoveryCodes(
   userId: string,
   count: number = 10
 ): Promise<string[]> {
   const codes = generateRecoveryCodes(count);
-  const hashedCodes = codes.map(hashRecoveryCode);
 
-  // Get existing recovery codes (if any)
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { recoveryCodes: true },
-  });
+  // Hash all codes with bcrypt (async)
+  const hashedCodes = await Promise.all(codes.map(code => hashRecoveryCode(code)));
 
-  // Parse existing codes or use empty array
-  let existingHashedCodes: string[] = [];
-  if (user?.recoveryCodes) {
-    try {
-      existingHashedCodes = JSON.parse(user.recoveryCodes as string);
-    } catch {
-      existingHashedCodes = [];
-    }
-  }
-
-  // Merge with new codes
-  const allHashedCodes = [...existingHashedCodes, ...hashedCodes];
-
-  // Store hashed codes
+  // Replace existing codes (don't merge - regeneration means new set)
   await prisma.user.update({
     where: { id: userId },
     data: {
-      recoveryCodes: JSON.stringify(allHashedCodes),
+      recoveryCodes: JSON.stringify(hashedCodes),
     },
   });
+
+  logger.info('Recovery codes generated', { userId, count });
 
   // Return plain codes (only shown once!)
   return codes;
@@ -93,6 +96,7 @@ export async function generateAndStoreRecoveryCodes(
 
 /**
  * Verify and consume recovery code
+ * Security: Uses bcrypt for timing-safe comparison
  */
 export async function verifyAndConsumeRecoveryCode(
   userId: string,
@@ -109,27 +113,30 @@ export async function verifyAndConsumeRecoveryCode(
 
   try {
     const hashedCodes: string[] = JSON.parse(user.recoveryCodes as string);
-    
-    if (!verifyRecoveryCode(code, hashedCodes)) {
+
+    const { valid, matchedIndex } = await verifyRecoveryCode(code, hashedCodes);
+
+    if (!valid) {
       return false;
     }
 
-    // Remove used code
-    const hashedCode = hashRecoveryCode(code);
-    const remainingCodes = hashedCodes.filter((h) => h !== hashedCode);
+    // Remove used code by index
+    const remainingCodes = hashedCodes.filter((_, index) => index !== matchedIndex);
 
     // Update user
     await prisma.user.update({
       where: { id: userId },
       data: {
-        recoveryCodes: remainingCodes.length > 0 
-          ? JSON.stringify(remainingCodes) 
+        recoveryCodes: remainingCodes.length > 0
+          ? JSON.stringify(remainingCodes)
           : null,
       },
     });
 
+    logger.info('Recovery code consumed', { userId, remainingCount: remainingCodes.length });
     return true;
-  } catch {
+  } catch (error) {
+    logger.error('Error verifying recovery code', { userId, error });
     return false;
   }
 }

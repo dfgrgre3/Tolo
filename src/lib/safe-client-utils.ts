@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-import { logger } from '@/lib/logger';
+import { clientLogger as logger } from '@/lib/client-logger';
 
 // ==================== Type Definitions ====================
 
@@ -64,7 +64,7 @@ export function isSessionStorageAvailable(): boolean {
  */
 function getStorage(type: StorageType = 'local'): Storage | null {
   if (typeof window === 'undefined') return null;
-  
+
   try {
     return type === 'local' ? window.localStorage : window.sessionStorage;
   } catch (e) {
@@ -84,18 +84,18 @@ export function safeGetItem<T = unknown>(
   options: SafeStorageOptions<T> = {}
 ): T | null {
   const { fallback = null, storageType = 'local', parser } = options;
-  
+
   const storage = getStorage(storageType);
   if (!storage) return fallback;
-  
+
   try {
     const item = storage.getItem(key);
     if (item === null) return fallback;
-    
+
     if (parser) {
       return parser(item);
     }
-    
+
     // Try to parse as JSON by default
     try {
       return JSON.parse(item);
@@ -118,17 +118,17 @@ export function safeSetItem<T = unknown>(
   options: SafeStorageOptions<T> = {}
 ): boolean {
   const { storageType = 'local', serializer } = options;
-  
+
   const storage = getStorage(storageType);
   if (!storage) return false;
-  
+
   try {
-    const stringValue = serializer 
+    const stringValue = serializer
       ? serializer(value)
       : typeof value === 'string'
         ? value
         : JSON.stringify(value);
-    
+
     storage.setItem(key, stringValue);
     return true;
   } catch (e) {
@@ -146,10 +146,10 @@ export function safeRemoveItem(
   options: SafeStorageOptions = {}
 ): boolean {
   const { storageType = 'local' } = options;
-  
+
   const storage = getStorage(storageType);
   if (!storage) return false;
-  
+
   try {
     storage.removeItem(key);
     return true;
@@ -166,7 +166,7 @@ export function safeRemoveItem(
 export function safeClearStorage(storageType: StorageType = 'local'): boolean {
   const storage = getStorage(storageType);
   if (!storage) return false;
-  
+
   try {
     storage.clear();
     return true;
@@ -188,30 +188,30 @@ export function useSafeLocalStorage<T = any>(
 ): [T, (value: T | ((prev: T) => T)) => void, boolean] {
   // حالة للتحقق من تحميل المكون
   const [mounted, setMounted] = useState(false);
-  
+
   // الحالة مع القيمة الأولية
   const [storedValue, setStoredValue] = useState<T>(initialValue);
-  
+
   // تحميل القيمة من localStorage بعد التحميل
   useEffect(() => {
     setMounted(true);
     const value = safeGetItem(key, { fallback: initialValue });
     setStoredValue(value as T);
   }, [key, initialValue]);
-  
+
   // دالة لتحديث القيمة
   const setValue = useCallback((value: T | ((prev: T) => T)) => {
     try {
       // Allow value to be a function so we have same API as useState
       const valueToStore = value instanceof Function ? value(storedValue) : value;
-      
+
       setStoredValue(valueToStore);
       safeSetItem(key, valueToStore);
     } catch (error) {
       logger.warn(`Error setting localStorage key "${key}":`, error);
     }
   }, [key, storedValue]);
-  
+
   return [storedValue, setValue, mounted];
 }
 
@@ -225,27 +225,27 @@ export function useSafeSessionStorage<T = any>(
 ): [T, (value: T | ((prev: T) => T)) => void, boolean] {
   const [mounted, setMounted] = useState(false);
   const [storedValue, setStoredValue] = useState<T>(initialValue);
-  
+
   useEffect(() => {
     setMounted(true);
-    const value = safeGetItem(key, { 
+    const value = safeGetItem(key, {
       fallback: initialValue,
       storageType: 'session'
     });
     setStoredValue(value as T);
   }, [key, initialValue]);
-  
+
   const setValue = useCallback((value: T | ((prev: T) => T)) => {
     try {
       const valueToStore = value instanceof Function ? value(storedValue) : value;
-      
+
       setStoredValue(valueToStore);
       safeSetItem(key, valueToStore, { storageType: 'session' });
     } catch (error) {
       logger.warn(`Error setting sessionStorage key "${key}":`, error);
     }
   }, [key, storedValue]);
-  
+
   return [storedValue, setValue, mounted];
 }
 
@@ -268,7 +268,7 @@ export function safeWindow<T>(
   fallback: T
 ): T {
   if (!isBrowser()) return fallback;
-  
+
   try {
     return accessor(window);
   } catch (e) {
@@ -286,7 +286,7 @@ export function safeDocument<T>(
   fallback: T
 ): T {
   if (!isBrowser() || typeof document === 'undefined') return fallback;
-  
+
   try {
     return accessor(document);
   } catch (e) {
@@ -301,11 +301,11 @@ export function safeDocument<T>(
  */
 export function useIsMounted(): boolean {
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
   }, []);
-  
+
   return mounted;
 }
 
@@ -318,7 +318,7 @@ export function useWindowSize() {
     width: 0,
     height: 0,
   });
-  
+
   useEffect(() => {
     function handleResize() {
       setWindowSize({
@@ -326,14 +326,14 @@ export function useWindowSize() {
         height: window.innerHeight,
       });
     }
-    
+
     // تعيين الحجم الأولي
     handleResize();
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-  
+
   return windowSize;
 }
 
@@ -344,21 +344,21 @@ export function useWindowSize() {
 export function useSafeMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
-    
+
     if (!isBrowser()) return;
-    
+
     try {
       const media = window.matchMedia(query);
-      
+
       // تعيين القيمة الأولية
       setMatches(media.matches);
-      
+
       // الاستماع للتغييرات
       const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
-      
+
       // استخدام الطريقة المناسبة حسب دعم المتصفح
       if (media.addEventListener) {
         media.addEventListener('change', listener);
@@ -372,7 +372,7 @@ export function useSafeMediaQuery(query: string): boolean {
       logger.warn('Failed to setup media query:', e);
     }
   }, [query]);
-  
+
   // إرجاع false قبل التحميل لتجنب مشاكل الهايدريشن
   return mounted ? matches : false;
 }
@@ -389,23 +389,23 @@ export function useSafeEventListener<K extends keyof WindowEventMap>(
   element?: HTMLElement | Window | null
 ) {
   const savedHandler = useRef<(event: WindowEventMap[K]) => void>();
-  
+
   useEffect(() => {
     savedHandler.current = handler;
   }, [handler]);
-  
+
   useEffect(() => {
     if (!isBrowser()) return;
-    
+
     const targetElement = element || window;
     if (!targetElement || !targetElement.addEventListener) return;
-    
+
     const eventListener = (event: Event) => {
       savedHandler.current?.(event as WindowEventMap[K]);
     };
-    
+
     targetElement.addEventListener(eventName, eventListener);
-    
+
     return () => {
       targetElement.removeEventListener(eventName, eventListener);
     };
@@ -441,7 +441,7 @@ export function useSafeUserId(): [string | null, (id: string) => void, boolean] 
     LOCAL_USER_KEY,
     null
   );
-  
+
   return [userId, setUserId, mounted];
 }
 
@@ -502,8 +502,8 @@ export function useSafeAuthToken(): [string | null, (token: string) => void, () 
     // Clean up any legacy tokens from localStorage
     removeSafeAuthToken();
   }, []);
-  
-  return [null, () => {}, removeToken, true];
+
+  return [null, () => { }, removeToken, true];
 }
 
 // ==================== Safe Fetch & JSON Parsing ====================
@@ -549,12 +549,12 @@ export async function safeJsonParse<T = any>(
       }
       return fallback;
     }
-    
+
     // التحقق من أن النص غير فارغ
     if (!text || text.trim().length === 0) {
       return fallback;
     }
-    
+
     // إذا كان HTML، يعني أن هناك خطأ في الخادم (مثل صفحة خطأ Next.js)
     if (isHtmlContent(text)) {
       // فقط في وضع التطوير نُظهر الخطأ التفصيلي
@@ -572,7 +572,7 @@ export async function safeJsonParse<T = any>(
       }
       return fallback;
     }
-    
+
     // التحقق من أن الاستجابة ناجحة وأن المحتوى هو JSON
     if (!response.ok) {
       // محاولة تحليل JSON حتى لو كانت الاستجابة غير ناجحة
@@ -595,7 +595,7 @@ export async function safeJsonParse<T = any>(
         return fallback;
       }
     }
-    
+
     // محاولة تحليل JSON من النص
     try {
       return JSON.parse(text) as T;
@@ -633,16 +633,16 @@ export async function safeFetch<T = any>(
 ): Promise<{ data: T | null; error: Error | null; response: Response | null }> {
   try {
     const response = await fetch(url, options);
-    
+
     // استخدام safeJsonParse الذي يتعامل مع HTML و JSON بشكل آمن
     const data = await safeJsonParse<T>(response, fallback);
-    
+
     // إذا كانت الاستجابة غير ناجحة
     if (!response.ok) {
       // إذا كان data هو fallback (يعني أن الـ response لم تكن JSON صالحة)
       // يجب التحقق من ذلك أولاً قبل محاولة استخراج رسالة الخطأ
       const isFallback = data === fallback;
-      
+
       if (isFallback) {
         const errorMessage = `HTTP ${response.status}: ${response.statusText} - Server returned non-JSON response`;
         return {
@@ -651,10 +651,10 @@ export async function safeFetch<T = any>(
           response
         };
       }
-      
+
       // محاولة استخراج رسالة خطأ من البيانات إذا كانت موجودة
       let errorMessage: string = `HTTP ${response.status}: ${response.statusText}`;
-      
+
       try {
         if (data && typeof data === 'object' && data !== null) {
           // محاولة استخراج رسالة الخطأ من الـ response
@@ -672,12 +672,12 @@ export async function safeFetch<T = any>(
           logger.warn('[Development] Failed to extract error message:', extractError);
         }
       }
-      
+
       // التأكد من أن errorMessage ليس فارغاً أو undefined
       if (!errorMessage || typeof errorMessage !== 'string' || errorMessage.trim().length === 0) {
         errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       }
-      
+
       // إذا كان data ليس fallback، يعني أننا حصلنا على JSON (حتى لو كانت error response)
       const error = new Error(errorMessage);
       // فقط في وضع التطوير نعرض الخطأ في console
@@ -689,14 +689,14 @@ export async function safeFetch<T = any>(
           data: data
         });
       }
-      
+
       return {
         data,
         error,
         response
       };
     }
-    
+
     return { data, error: null, response };
   } catch (error) {
     // فقط في وضع التطوير نُظهر تفاصيل الخطأ
@@ -717,13 +717,13 @@ const safeClientUtils = {
   // Storage checks
   isLocalStorageAvailable,
   isSessionStorageAvailable,
-  
+
   // Storage operations
   safeGetItem,
   safeSetItem,
   safeRemoveItem,
   safeClearStorage,
-  
+
   // React hooks
   useSafeLocalStorage,
   useSafeSessionStorage,
@@ -731,23 +731,23 @@ const safeClientUtils = {
   useWindowSize,
   useSafeMediaQuery,
   useSafeEventListener,
-  
+
   // Browser checks
   isBrowser,
   safeWindow,
   safeDocument,
-  
+
   // User ID management
   getSafeUserId,
   setSafeUserId,
   useSafeUserId,
-  
+
   // Auth token management
   getSafeAuthToken,
   setSafeAuthToken,
   removeSafeAuthToken,
   useSafeAuthToken,
-  
+
   // Safe fetch & JSON
   safeJsonParse,
   safeFetch,

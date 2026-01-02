@@ -38,6 +38,6 @@ module.exports = {
   // Fix for ES modules (jose, uuid, @simplewebauthn libraries)
   // Transform these packages from ES modules to CommonJS
   transformIgnorePatterns: [
-    'node_modules/(?!(jose|uuid|@simplewebauthn)/)'
+    'node_modules/(?!(jose|uuid|@simplewebauthn|lucide-react)/)'
   ],
 }

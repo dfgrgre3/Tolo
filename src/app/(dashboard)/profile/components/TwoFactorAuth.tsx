@@ -10,8 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Shield, Smartphone, Key, Copy, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import TOTPSetup from '@/app/(auth)/components/TOTPSetup';
-import RecoveryCodesDisplay from '@/app/(auth)/components/RecoveryCodesDisplay';
+import TOTPSetup from '@/app/(auth)/_components/TOTPSetup';
+import RecoveryCodesDisplay from '@/app/(auth)/_components/RecoveryCodesDisplay';
 
 import { logger } from '@/lib/logger';
 
@@ -39,7 +39,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
       setIsLoading(true);
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/2fa/status', {
+      const response = await fetch('/api/auth/two-factor/status', {
         credentials: 'include',
       });
 
@@ -58,12 +58,13 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/2fa/setup', {
+      const response = await fetch('/api/auth/two-factor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
+        body: JSON.stringify({ action: 'setup' }),
       });
 
       if (response.ok) {
@@ -84,15 +85,15 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/2fa/enable', {
+      const response = await fetch('/api/auth/two-factor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
         body: JSON.stringify({ 
-          token: code,
-          secret: totpSecret 
+          action: 'verify', 
+          code 
         }),
       });
 
@@ -120,15 +121,31 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
       return;
     }
 
+    // Prompt for code if needed, but for now assuming user is logged in
+    // However, disable usually requires a code for security in the monolith logic:
+    // handleDisable2FA(user, code, req) -> requires code!
+    // The previous implementation used /2fa/disable which might not have required code or prompted for it?
+    // Let's check handleDisable2FA in two-factor/route.ts -> it REQUIRES code.
+    // So the frontend needs to prompt for code to disable?
+    // User might need to enter code from authenticator to disable.
+    // The previous frontend implementation for disable didn't seem to pass a code:
+    // fetch('/api/auth/2fa/disable'...)
+    
+    // I should probably prompt for a code here.
+    const code = prompt('الرجاء إدخال رمز التحقق لتأكيد التعطيل:');
+    if (!code) return; // User cancelled
+
     try {
-      // Token is in httpOnly cookie - no need to send Authorization header
-      
-      const response = await fetch('/api/auth/2fa/disable', {
+      const response = await fetch('/api/auth/two-factor', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
+        body: JSON.stringify({ 
+          action: 'disable',
+          code 
+        }),
       });
 
       if (response.ok) {

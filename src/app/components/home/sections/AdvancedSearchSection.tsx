@@ -66,6 +66,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
   const [isSearching, setIsSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const searchTimeoutRef = useRef<NodeJS.Timeout>();
 
   useEffect(() => {
@@ -88,6 +89,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
       
       // Only show suggestions if we have matching recent searches
       setSuggestions(matchingRecent.slice(0, 5));
+      setSelectedIndex(-1);
     } else {
       setSuggestions([]);
     }
@@ -194,6 +196,30 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
     }, 300);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (suggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev < suggestions.length - 1 ? prev + 1 : prev));
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex(prev => (prev > -1 ? prev - 1 : prev));
+        return;
+      }
+    }
+    
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (selectedIndex >= 0 && suggestions[selectedIndex]) {
+        handleSuggestionClick(suggestions[selectedIndex]);
+      } else {
+        performSearch(query);
+      }
+    }
+  };
+
   const handleSuggestionClick = (suggestion: string) => {
     setQuery(suggestion);
     performSearch(suggestion);
@@ -270,6 +296,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
                 setQuery(e.target.value);
                 handleSearch(e.target.value);
               }}
+              onKeyDown={handleKeyDown}
               className="pr-12 pl-4 py-6 text-lg border-2 focus:border-emerald-500 rounded-full"
             />
             {query && (
@@ -293,9 +320,9 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
               >
                 {suggestions.map((suggestion, index) => (
                   <button
-                    key={index}
+                    key={suggestion}
                     onClick={() => handleSuggestionClick(suggestion)}
-                    className="w-full text-right px-4 py-3 hover:bg-slate-50 transition-colors flex items-center gap-3"
+                    className={`w-full text-right px-4 py-3 hover:bg-slate-50 transition-colors flex items-center gap-3 ${index === selectedIndex ? 'bg-slate-50' : ''}`}
                   >
                     <Zap className="h-4 w-4 text-emerald-600" />
                     <span className="flex-1">{suggestion}</span>

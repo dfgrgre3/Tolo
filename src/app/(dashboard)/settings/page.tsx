@@ -30,7 +30,7 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useUnifiedAuth } from '@/contexts/auth-context';
-import { AuthGuard } from '@/app/(auth)/components/AuthGuard';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { SettingsHeader, SettingsInput, SettingsCard } from './components';
 
 interface ProfileData {

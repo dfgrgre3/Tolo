@@ -41,9 +41,18 @@ import { authService } from '@/lib/services/auth-service';
  */
 export const auth = async () => {
   try {
-    // Use auth-service to get current user from cookies
-    const result = await authService.getCurrentUser();
-    
+    // Get cookies dynamically
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const token = cookieStore.get("access_token")?.value;
+
+    if (!token) {
+      return null;
+    }
+
+    // Use auth-service to verify token
+    const result = await authService.verifyTokenFromInput(token);
+
     if (!result.isValid || !result.user) {
       return null;
     }
@@ -51,7 +60,7 @@ export const auth = async () => {
     // Return in format compatible with next-auth for backward compatibility
     return {
       user: {
-        id: result.user.id,
+        id: result.user.userId,
         email: result.user.email,
         name: result.user.name || null,
         role: result.user.role || null,

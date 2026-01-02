@@ -3,6 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify } from 'jose';
 import { getJWTSecret } from './env-validation';
 import { logger } from '@/lib/logger';
+import crypto from 'crypto';
+import { v4 as uuidv4 } from 'uuid';
 
 // Security: JWT_SECRET is required - no fallback values allowed
 let JWT_SECRET: Uint8Array | null = null;
@@ -15,25 +17,38 @@ function getJWTSecretSafe(): Uint8Array {
   return JWT_SECRET;
 }
 
-// Generate a JWT token for the user
+/**
+ * Generate a JWT token for the user
+ * Security: Includes jti for replay protection, issuer and audience for proper scoping
+ */
 export async function generateToken(userId: string, email: string, name?: string) {
-  return new SignJWT({ userId, email, name })
+  const jti = uuidv4();
+  return new SignJWT({ userId, email, name, jti })
     .setProtectedHeader({ alg: 'HS256' })
     .setIssuedAt()
     .setExpirationTime('7d')
+    .setIssuer('thanawy-oauth')
+    .setAudience('thanawy-app')
     .sign(getJWTSecretSafe());
 }
 
-// Verify a JWT token
+/**
+ * Verify a JWT token
+ * Security: Validates issuer and audience to prevent token misuse
+ */
 export async function verifyToken(token: string) {
   try {
-    const { payload } = await jwtVerify(token, getJWTSecretSafe());
+    const { payload } = await jwtVerify(token, getJWTSecretSafe(), {
+      issuer: 'thanawy-oauth',
+      audience: 'thanawy-app'
+    });
     return {
       userId: payload.userId as string,
       email: payload.email as string,
       name: payload.name as string,
     };
   } catch (error) {
+    logger.debug('OAuth token verification failed', { error });
     return null;
   }
 }
@@ -173,11 +188,11 @@ function getOAuthConfig() {
   // - Validates URL structure
   let googleRedirectUri: string;
   try {
-    googleRedirectUri = normalizeRedirectUri(`${cleanBaseUrl}/api/auth/google/callback`);
+    googleRedirectUri = normalizeRedirectUri(`${cleanBaseUrl}/api/auth/oauth/google/callback`);
   } catch (error) {
     // If normalization fails, log error and use basic normalization as fallback
     logger.error('⚠️ Failed to normalize Google OAuth redirect URI:', error);
-    googleRedirectUri = `${cleanBaseUrl}/api/auth/google/callback`.replace(/\/+$/, '');
+    googleRedirectUri = `${cleanBaseUrl}/api/auth/oauth/google/callback`.replace(/\/+$/, '');
     logger.warn('⚠️ Using fallback redirect URI. This may cause OAuth failures if not configured correctly in Google Cloud Console.');
   }
 
@@ -207,22 +222,22 @@ function getOAuthConfig() {
       clientId: process.env.GOOGLE_CLIENT_ID || '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
       // Complete redirect URI stored internally - this is used as redirect_uri when calling Google OAuth
-      redirectUri: googleRedirectUri,
+      redirectUri: normalizeRedirectUri(`${cleanBaseUrl}/api/auth/oauth/google/callback`),
       isConfigured: () => {
         const clientId = process.env.GOOGLE_CLIENT_ID || '';
         const clientSecret = process.env.GOOGLE_CLIENT_SECRET || '';
         return clientId.trim() !== '' && clientSecret.trim() !== '';
       },
-      // Helper to get redirect URI for debugging
+      // Helper to get redirect URI for console
       getRedirectUriForConsole: () => {
-        return googleRedirectUri;
+        return normalizeRedirectUri(`${cleanBaseUrl}/api/auth/oauth/google/callback`);
       },
     },
     facebook: {
       clientId: process.env.FACEBOOK_CLIENT_ID || '',
       clientSecret: process.env.FACEBOOK_CLIENT_SECRET || '',
       // Complete redirect URI stored internally
-      redirectUri: normalizeRedirectUri(`${cleanBaseUrl}/api/auth/facebook/callback`),
+      redirectUri: normalizeRedirectUri(`${cleanBaseUrl}/api/auth/oauth/facebook/callback`),
       isConfigured: () => {
         const clientId = process.env.FACEBOOK_CLIENT_ID || '';
         const clientSecret = process.env.FACEBOOK_CLIENT_SECRET || '';
@@ -235,7 +250,7 @@ function getOAuthConfig() {
       keyId: process.env.APPLE_KEY_ID || '',
       privateKey: process.env.APPLE_PRIVATE_KEY || '',
       // Complete redirect URI stored internally
-      redirectUri: normalizeRedirectUri(`${cleanBaseUrl}/api/auth/apple/callback`),
+      redirectUri: normalizeRedirectUri(`${cleanBaseUrl}/api/auth/oauth/apple/callback`),
       isConfigured: () => {
         const clientId = process.env.APPLE_CLIENT_ID || '';
         const teamId = process.env.APPLE_TEAM_ID || '';
@@ -247,12 +262,35 @@ function getOAuthConfig() {
 
 export const oauthConfig = getOAuthConfig();
 
-// Generate a random state string for OAuth
-export function generateState() {
-  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+/**
+ * Generate a random state string for OAuth
+ * Security: Uses crypto.randomBytes instead of Math.random for CSRF protection
+ */
+export function generateState(): string {
+  return crypto.randomBytes(32).toString('base64url');
 }
 
-// Verify state string for OAuth
-export function verifyState(state: string, savedState: string) {
-  return state === savedState;
+/**
+ * Verify state string for OAuth
+ * Security: Uses timing-safe comparison to prevent timing attacks
+ */
+export function verifyState(state: string, savedState: string): boolean {
+  if (!state || !savedState) {
+    return false;
+  }
+
+  // Use timing-safe comparison to prevent timing attacks
+  try {
+    const stateBuffer = Buffer.from(state);
+    const savedStateBuffer = Buffer.from(savedState);
+
+    if (stateBuffer.length !== savedStateBuffer.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(stateBuffer, savedStateBuffer);
+  } catch (error) {
+    logger.debug('State verification error', { error });
+    return false;
+  }
 }

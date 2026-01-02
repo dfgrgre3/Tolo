@@ -18,7 +18,7 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     verifyTokenFromRequest: jest.fn(),
   },
@@ -29,7 +29,7 @@ jest.mock('@/lib/middleware/ops-middleware', () => ({
   opsWrapper: jest.fn((req, handler) => handler(req)),
 }));
 
-jest.mock('@/lib/advanced-gamification-service', () => ({
+jest.mock('@/lib/services/advanced-gamification-service', () => ({
   advancedGamificationService: {
     getActiveQuestChains: jest.fn().mockResolvedValue([]),
     getQuestProgress: jest.fn().mockResolvedValue([]),
@@ -54,7 +54,7 @@ describe('Gamification API Routes', () => {
         },
       ];
 
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
@@ -91,7 +91,7 @@ describe('Gamification API Routes', () => {
         },
       ];
 
-      const { verifyToken } = require('@/lib/auth-service');
+      const { verifyToken } = require('@/lib/services/auth-service');
       (verifyToken as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',

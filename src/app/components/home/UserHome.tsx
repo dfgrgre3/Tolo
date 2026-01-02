@@ -42,7 +42,7 @@ export function UserHome({ user, summary }: UserHomeProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground bg-secondary bg-opacity-50 px-3 py-1 rounded-full" suppressHydrationWarning>
+          <span className="text-sm text-muted-foreground bg-secondary/50 px-3 py-1 rounded-full" suppressHydrationWarning>
             {new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
           </span>
         </div>

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/services/auth-service';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
-import { 
-  clearAuthCookies, 
+import {
+  clearAuthCookies,
   createStandardErrorResponse,
   createSuccessResponse,
   parseRequestBody,
@@ -12,111 +12,85 @@ import {
 
 import { logger } from '@/lib/logger';
 
+/**
+ * Helper to extract and validate session from token
+ */
+async function extractSessionFromToken(token: string | null): Promise<{
+  sessionId: string | null;
+  userId: string | null;
+}> {
+  if (!token) return { sessionId: null, userId: null };
+
+  try {
+    const decoded = await authService.verifyTokenFromInput(token);
+    if (decoded.isValid && decoded.sessionId) {
+      const session = await authService.getSession(decoded.sessionId);
+      return {
+        sessionId: decoded.sessionId,
+        userId: session?.userId || decoded.userId || null
+      };
+    }
+  } catch {
+    // Silent fail - logout should proceed regardless
+  }
+
+  return { sessionId: null, userId: null };
+}
+
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     const { ip, userAgent } = extractRequestMetadata(req);
 
     try {
-      // Extract token using unified method (checks cookies first, then Authorization header)
-      // This ensures consistency with other routes
+      // Extract token
       const token = authService.extractToken(req);
-      let sessionId: string | null = null;
 
-      // Enhanced token verification with timeout and validation
-      if (token) {
-        // Validate token format before verification
-        if (typeof token === 'string' && token.trim().length > 0) {
-          const tokenParts = token.split('.');
-          if (tokenParts.length === 3 && !tokenParts.some(part => part.length === 0)) {
-            const verifyPromise = authService.verifyTokenFromInput(token);
-            const timeoutPromise = new Promise<{ isValid: false }>((resolve) => {
-              setTimeout(() => resolve({ isValid: false }), 2000); // 2 second timeout
-            });
-
-            const decoded = await Promise.race([verifyPromise, timeoutPromise]);
-            if (decoded.isValid && decoded.sessionId) {
-              // Validate session ID format
-              if (typeof decoded.sessionId === 'string' && decoded.sessionId.trim().length > 0) {
-                sessionId = decoded.sessionId.trim();
-              }
-            }
-          }
-        }
-      }
-
-      // Parse body to check if user wants to logout from all devices
-      let logoutAllDevices = false;
+      // Parse body for logout options
       const bodyResult = await parseRequestBody<{
         logoutAllDevices?: boolean;
-      }>(req, {
-        maxSize: 128,
-        required: false,
-      });
+      }>(req, { maxSize: 128, required: false });
 
-      if (bodyResult.success && bodyResult.data.logoutAllDevices !== undefined) {
-        logoutAllDevices = Boolean(bodyResult.data.logoutAllDevices);
-      }
+      const logoutAllDevices = bodyResult.success && bodyResult.data.logoutAllDevices === true;
 
-      // Process logout (with timeout protection and enhanced validation)
-      if (sessionId && typeof sessionId === 'string' && sessionId.trim().length > 0) {
-        // Validate session ID format (should be UUID-like)
-        const trimmedSessionId = sessionId.trim();
-        if (trimmedSessionId.length >= 10 && trimmedSessionId.length <= 100) {
-          // Get session to retrieve userId (with timeout)
-          const sessionPromise = authService.getSession(trimmedSessionId);
-          const sessionTimeoutPromise = new Promise<null>((resolve) => {
-            setTimeout(() => resolve(null), 2000); // 2 second timeout
-          });
+      // Get session info from token
+      const { sessionId, userId } = await extractSessionFromToken(token);
 
-          const session = await Promise.race([sessionPromise, sessionTimeoutPromise]);
-          
-          if (session && (session as { userId?: string }).userId) {
-            // Validate user ID format
-            const userId = typeof (session as { userId: string }).userId === 'string' && (session as { userId: string }).userId.trim().length > 0
-              ? (session as { userId: string }).userId.trim()
-              : null;
-
-            if (userId) {
-              // Execute logout operations in parallel (non-blocking)
-              const logoutOperations = Promise.allSettled([
-                logoutAllDevices
-                  ? authService.deleteAllUserSessions(userId)
-                  : authService.deleteSession(trimmedSessionId),
-                logSecurityEventSafely(
-                  userId,
-                  logoutAllDevices ? 'logout_all_devices' : 'logout',
-                  {
-                    ip,
-                    userAgent,
-                    sessionId: trimmedSessionId,
-                  }
-                ),
-              ]);
-
-              // Don't wait for operations to complete - logout should be fast
-              logoutOperations.catch(() => {
-                // Silent fail - logout can proceed
-              });
-            }
+      // Execute logout operations if we have valid session info
+      if (userId) {
+        try {
+          if (logoutAllDevices) {
+            await authService.deleteAllUserSessions(userId);
+          } else if (sessionId) {
+            await authService.deleteSession(sessionId);
           }
+
+          // Log security event (non-blocking)
+          logSecurityEventSafely(
+            userId,
+            logoutAllDevices ? 'logout_all_devices' : 'logout',
+            { ip, userAgent, sessionId }
+          ).catch(() => { /* Silent fail for logging */ });
+        } catch (error) {
+          logger.warn('Error during logout cleanup:', error);
+          // Continue - don't fail the logout
         }
       }
 
-    // Create response with security headers
-    const response = createSuccessResponse({
-      message: 'تم تسجيل الخروج بنجاح.'
-    });
+      // Create response
+      const response = createSuccessResponse({
+        message: 'تم تسجيل الخروج بنجاح.'
+      });
 
-    // Clear all auth cookies
-    clearAuthCookies(response);
+      // Clear all auth cookies
+      clearAuthCookies(response);
 
-    return response;
-  } catch (error) {
-    logger.error('Logout error:', error);
-    return createStandardErrorResponse(
-      error,
-      'حدث خطأ غير متوقع أثناء معالجة طلب تسجيل الخروج. حاول مرة أخرى لاحقاً.'
-    );
-  }
+      return response;
+    } catch (error) {
+      logger.error('Logout error:', error);
+      return createStandardErrorResponse(
+        error,
+        'حدث خطأ غير متوقع أثناء معالجة طلب تسجيل الخروج. حاول مرة أخرى لاحقاً.'
+      );
+    }
   });
 }

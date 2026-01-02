@@ -59,23 +59,44 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-service', () => ({
-  authService: {
-    findUserByEmail: jest.fn(),
+jest.mock('@/lib/services/register-service', () => ({
+  RegisterService: {
     register: jest.fn(),
-    createTokens: jest.fn().mockResolvedValue({
-      accessToken: 'mock-access-token',
-      refreshToken: 'mock-refresh-token',
-    }),
-    createSession: jest.fn().mockResolvedValue({ id: 'session-123' }),
-  },
-  AuthService: {
-    hashPassword: jest.fn().mockResolvedValue('hashed-password'),
-    comparePasswords: jest.fn().mockResolvedValue(true),
   },
 }));
 
-jest.mock('bcrypt', () => ({
+jest.mock('@/lib/services/auth-service', () => {
+  class MockAuthError extends Error {
+    public code: string;
+    constructor(message: string, code: string = 'AUTH_ERROR') {
+      super(message);
+      this.name = 'AuthError';
+      this.code = code;
+    }
+  }
+
+  return {
+    authService: {
+      findUserByEmail: jest.fn(),
+      createTokens: jest.fn().mockResolvedValue({
+        accessToken: 'mock-access-token',
+        refreshToken: 'mock-refresh-token',
+      }),
+      createSession: jest.fn().mockResolvedValue({ id: 'session-123' }),
+      checkRateLimit: jest.fn().mockResolvedValue(undefined),
+      recordFailedAttempt: jest.fn().mockResolvedValue(undefined),
+      logSecurityEvent: jest.fn().mockResolvedValue(undefined),
+      verifyTwoFactor: jest.fn().mockResolvedValue(undefined),
+    },
+    AuthService: {
+      hashPassword: jest.fn().mockResolvedValue('hashed-password'),
+      comparePasswords: jest.fn().mockResolvedValue(true),
+    },
+    AuthError: MockAuthError,
+  };
+});
+
+jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
   compare: jest.fn(),
 }));
@@ -107,15 +128,17 @@ describe('Auth API Routes', () => {
         updatedAt: new Date(),
       };
 
-      const { authService, AuthService } = require('@/lib/auth-service');
-      (authService.findUserByEmail as jest.Mock).mockResolvedValue(null);
-      (AuthService.hashPassword as jest.Mock).mockResolvedValue('hashed-password');
-      (authService.register as jest.Mock).mockResolvedValue({
-        isValid: true,
-        user: {
-          id: mockUser.id,
-          email: mockUser.email,
-          name: mockUser.name,
+      const { RegisterService } = require('@/lib/services/register-service');
+      (RegisterService.register as jest.Mock).mockResolvedValue({
+        success: true,
+        statusCode: 200,
+        response: {
+          success: true,
+          user: {
+            id: mockUser.id,
+            email: mockUser.email,
+            name: mockUser.name,
+          },
         },
       });
 
@@ -123,7 +146,7 @@ describe('Auth API Routes', () => {
         method: 'POST',
         body: JSON.stringify({
           email: 'newuser@example.com',
-          password: 'password123',
+          password: 'Password123!',
           name: 'New User',
         }),
       });
@@ -136,23 +159,22 @@ describe('Auth API Routes', () => {
     });
 
     it('should reject duplicate email', async () => {
-      const existingUser = {
-        id: 'user-1',
-        email: 'existing@example.com',
-      };
-
-      const { authService } = require('@/lib/auth-service');
-      (authService.findUserByEmail as jest.Mock).mockResolvedValue(existingUser);
-      (authService.register as jest.Mock).mockResolvedValue({
-        isValid: false,
-        error: 'Email already registered',
+      const { RegisterService } = require('@/lib/services/register-service');
+      (RegisterService.register as jest.Mock).mockResolvedValue({
+        success: false,
+        statusCode: 409,
+        response: {
+          success: false,
+          error: 'Email already registered',
+          code: 'EMAIL_EXISTS',
+        },
       });
 
       const request = new NextRequest('http://localhost/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           email: 'existing@example.com',
-          password: 'password123',
+          password: 'Password123!',
           name: 'Existing User',
         }),
       });
@@ -191,7 +213,7 @@ describe('Auth API Routes', () => {
         name: 'Test User',
       };
 
-      const { authService, AuthService } = require('@/lib/auth-service');
+      const { authService, AuthService } = require('@/lib/services/auth-service');
       (authService.findUserByEmail as jest.Mock).mockResolvedValue(mockUser);
       (AuthService.comparePasswords as jest.Mock).mockResolvedValue(true);
       (authService.createTokens as jest.Mock).mockResolvedValue({
@@ -226,7 +248,7 @@ describe('Auth API Routes', () => {
         passwordHash: 'hashed-password',
       };
 
-      const { authService, AuthService } = require('@/lib/auth-service');
+      const { authService, AuthService } = require('@/lib/services/auth-service');
       (authService.findUserByEmail as jest.Mock).mockResolvedValue(mockUser);
       (AuthService.comparePasswords as jest.Mock).mockResolvedValue(false);
 

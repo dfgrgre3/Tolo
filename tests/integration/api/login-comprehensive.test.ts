@@ -116,7 +116,7 @@ jest.mock('@/lib/redis', () => ({
   getRedisClient: jest.fn(),
 }));
 
-jest.mock('@/lib/rate-limiting-service', () => ({
+jest.mock('@/lib/services/rate-limiting-service', () => ({
   RateLimitingService: jest.fn().mockImplementation(() => ({
     checkRateLimit: jest.fn().mockResolvedValue({ allowed: true, attempts: 0 }),
     recordAttempt: jest.fn().mockResolvedValue(undefined),
@@ -164,7 +164,7 @@ jest.mock('@/lib/security/security-notifications', () => ({
 }));
 
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     getClientIP: jest.fn((req) => req?.headers?.get('x-forwarded-for') || 'unknown'),
     getUserAgent: jest.fn((req) => req?.headers?.get('user-agent') || 'unknown'),
@@ -185,14 +185,14 @@ jest.mock('@/lib/auth-service', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-challenges-service', () => ({
+jest.mock('@/lib/services/auth-challenges-service', () => ({
   TwoFactorChallengeService: {
     createChallenge: jest.fn().mockResolvedValue('challenge-123'),
     verifyChallenge: jest.fn(),
   },
 }));
 
-jest.mock('bcrypt', () => ({
+jest.mock('bcryptjs', () => ({
   hash: jest.fn(),
   compare: jest.fn(),
 }));
@@ -200,7 +200,7 @@ jest.mock('bcrypt', () => ({
 jest.mock('@/lib/auth/providers/email-password.provider', () => {
   // We need to require the mocked authService here
   // Since authService is mocked above, this require should return the mock
-  const { authService } = require('@/lib/auth-service');
+  const { authService } = require('@/lib/services/auth-service');
 
   return {
     emailPasswordProvider: {
@@ -243,7 +243,7 @@ jest.mock('@/lib/logger', () => ({
 describe('Comprehensive Login System Tests', () => {
   const { captchaService } = require('@/lib/security/captcha-service');
   const { ipBlockingService } = require('@/lib/security/ip-blocking');
-  const { authService, AuthService } = require('@/lib/auth-service');
+  const { authService, AuthService } = require('@/lib/services/auth-service');
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -493,6 +493,9 @@ describe('Comprehensive Login System Tests', () => {
         accessToken: 'mock-access-token',
         refreshToken: 'mock-refresh-token',
       });
+      const { prisma } = require('@/lib/db');
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+
       (ipBlockingService.isBlocked as jest.Mock).mockReturnValue({ blocked: false });
       (captchaService.shouldRequireCaptcha as jest.Mock).mockReturnValue(false);
 
@@ -612,6 +615,10 @@ describe('Comprehensive Login System Tests', () => {
 
       (authService.findUserByEmail as jest.Mock).mockResolvedValue(mockUser);
       (AuthService.comparePasswords as jest.Mock).mockResolvedValue(true);
+
+      const { prisma } = require('@/lib/db');
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+
       (ipBlockingService.isBlocked as jest.Mock).mockReturnValue({ blocked: false });
       (captchaService.shouldRequireCaptcha as jest.Mock).mockReturnValue(false);
 
@@ -664,6 +671,8 @@ describe('Comprehensive Login System Tests', () => {
         accessToken: 'mock-access-token',
         refreshToken: 'mock-refresh-token',
       });
+      const { prisma } = require('@/lib/db');
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (ipBlockingService.isBlocked as jest.Mock).mockReturnValue({ blocked: false });
       (captchaService.shouldRequireCaptcha as jest.Mock).mockReturnValue(false);
 

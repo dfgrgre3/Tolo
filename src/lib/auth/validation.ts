@@ -11,7 +11,7 @@ import { z } from 'zod';
  * ⚠️ IMPORTANT - الاستخدام الموحد:
  * 
  * 📁 CLIENT-SIDE:
- *   ✅ src/lib/auth-hook-enhanced.ts → يستخدم هذا الملف
+
  *   ✅ src/lib/api/auth-client.ts → يستخدم هذا الملف
  * 
  * 📁 SERVER-SIDE:
@@ -36,6 +36,13 @@ export const emailSchema = z
   .max(255, 'البريد الإلكتروني طويل جداً')
   .transform((email) => email.trim().toLowerCase());
 
+// Login password schema - only checks length, not strength
+export const loginPasswordSchema = z
+  .string()
+  .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
+  .max(128, 'كلمة المرور طويلة جداً');
+
+// Registration password schema - checks strength requirements
 export const passwordSchema = z
   .string()
   .min(8, 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل')
@@ -69,44 +76,44 @@ export const loginAttemptIdSchema = z
  * @deprecated Use `emailSchema.safeParse` instead.
  */
 export function validateEmail(email: unknown): ValidationResult {
-    const result = emailSchema.safeParse(email);
-    if (result.success) {
-        return { isValid: true, normalized: result.data };
-    }
-    return { isValid: false, error: result.error.errors[0]?.message };
+  const result = emailSchema.safeParse(email);
+  if (result.success) {
+    return { isValid: true, normalized: result.data };
+  }
+  return { isValid: false, error: result.error.errors[0]?.message };
 }
 
 /**
  * @deprecated Use `passwordSchema.safeParse` instead.
  */
 export function validatePassword(password: unknown): ValidationResult {
-    const result = passwordSchema.safeParse(password);
-    if (result.success) {
-        return { isValid: true };
-    }
-    return { isValid: false, error: result.error.errors[0]?.message };
+  const result = passwordSchema.safeParse(password);
+  if (result.success) {
+    return { isValid: true };
+  }
+  return { isValid: false, error: result.error.errors[0]?.message };
 }
 
 /**
  * @deprecated Use `twoFactorCodeSchema.safeParse` instead.
  */
 export function validateTwoFactorCode(code: unknown): ValidationResult {
-    const result = twoFactorCodeSchema.safeParse(code);
-    if (result.success) {
-        return { isValid: true, normalized: result.data };
-    }
-    return { isValid: false, error: result.error.errors[0]?.message };
+  const result = twoFactorCodeSchema.safeParse(code);
+  if (result.success) {
+    return { isValid: true, normalized: result.data };
+  }
+  return { isValid: false, error: result.error.errors[0]?.message };
 }
 
 /**
  * @deprecated Use `loginAttemptIdSchema.safeParse` instead.
  */
 export function validateLoginAttemptId(loginAttemptId: unknown): ValidationResult {
-    const result = loginAttemptIdSchema.safeParse(loginAttemptId);
-    if (result.success) {
-        return { isValid: true, normalized: result.data };
-    }
-    return { isValid: false, error: result.error.errors[0]?.message };
+  const result = loginAttemptIdSchema.safeParse(loginAttemptId);
+  if (result.success) {
+    return { isValid: true, normalized: result.data };
+  }
+  return { isValid: false, error: result.error.errors[0]?.message };
 }
 
 /**

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AuthGuard } from '@/app/(auth)/components/AuthGuard';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { Bell, Check, CheckCheck, ExternalLink, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

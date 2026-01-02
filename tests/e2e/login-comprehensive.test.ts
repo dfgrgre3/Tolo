@@ -162,7 +162,10 @@ describe('Comprehensive Login E2E Tests', () => {
       // This test would require mocking slow responses
       // For now, we test that the API responds within reasonable time
       const startTime = Date.now();
-      
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
       const response = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,11 +173,12 @@ describe('Comprehensive Login E2E Tests', () => {
           email: 'test@example.com',
           password: 'password123',
         }),
-        signal: AbortSignal.timeout(30000), // 30 second timeout
+        signal: controller.signal, // 30 second timeout
       });
+      clearTimeout(timeoutId);
 
       const duration = Date.now() - startTime;
-      
+
       // Should respond within 30 seconds
       expect(duration).toBeLessThan(30000);
       expect([200, 400, 401, 408, 500]).toContain(response.status);
@@ -184,7 +188,7 @@ describe('Comprehensive Login E2E Tests', () => {
   describe('Security Features', () => {
     it('should sanitize user agent and IP', async () => {
       const longUserAgent = 'a'.repeat(600);
-      
+
       const response = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         headers: {

@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Create session
-      const session = await authService.createSession(user.id, userAgent, ip, tempTokens.refreshToken);
+      const session = await authService.createSession(user.id, tempTokens.refreshToken, userAgent, ip);
 
       // Create final tokens with session ID
       const { accessToken, refreshToken } = await authService.createTokens(

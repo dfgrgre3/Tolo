@@ -188,11 +188,22 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                               </Badge>
                             </div>
                             <span className="text-xs text-muted-foreground">
-                              {new Date(milestone.date).toLocaleDateString("ar-EG", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric"
-                              })}
+                            <span className="text-xs text-muted-foreground">
+                              {(() => {
+                                try {
+                                  const date = new Date(milestone.date);
+                                  return isNaN(date.getTime()) 
+                                    ? milestone.date 
+                                    : date.toLocaleDateString("ar-EG", {
+                                        year: "numeric",
+                                        month: "long",
+                                        day: "numeric"
+                                      });
+                                } catch (e) {
+                                  return milestone.date;
+                                }
+                              })()}
+                            </span>
                             </span>
                           </div>
                         </motion.div>

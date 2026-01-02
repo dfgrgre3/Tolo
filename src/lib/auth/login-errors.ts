@@ -22,6 +22,12 @@ export const LOGIN_ERRORS = {
     HIGH_RISK: 'تم رفض تسجيل الدخول لأسباب أمنية. يرجى التواصل مع الدعم الفني.',
     EMAIL_NOT_VERIFIED: 'البريد الإلكتروني غير مفعل. يرجى تفعيل حسابك.',
     INTERNAL_SERVER_ERROR: 'حدث خطأ داخلي في الخادم. يرجى المحاولة لاحقاً.',
+    SESSION_EXPIRED: 'انتهت صلاحية الجلسة. يرجى تسجيل الدخول مرة أخرى.',
+    INVALID_SESSION: 'الجلسة غير صالحة. يرجى تسجيل الدخول مرة أخرى.',
+    TOKEN_REFRESH_FAILED: 'فشل في تحديث رمز المصادقة. يرجى تسجيل الدخول مرة أخرى.',
+    INVALID_TOKEN: 'رمز المصادقة غير صالح. يرجى تسجيل الدخول مرة أخرى.',
+    INVALID_PAYLOAD: 'بيانات الطلب غير صالحة.',
+    REFRESH_FAILED: 'فشل في تحديث الجلسة. يرجى تسجيل الدخول مرة أخرى.',
 } as const;
 
 export type LoginErrorCode = keyof typeof LOGIN_ERRORS;

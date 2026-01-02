@@ -50,28 +50,32 @@ interface Recommendation {
 export const IntelligentRecommendationsSection = memo(function IntelligentRecommendationsSection() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       try {
         setLoading(true);
-        const { data, error } = await safeFetch<{ recommendations: Recommendation[] }>(
+        const { data, error: fetchError } = await safeFetch<{ recommendations: Recommendation[] }>(
           "/api/recommendations",
           undefined,
           null
         );
 
-        if (error || !data) {
-          logger.warn("Failed to fetch recommendations:", error);
+        if (fetchError || !data) {
+          logger.warn("Failed to fetch recommendations:", fetchError);
           setRecommendations([]);
+          setError("فشل تحميل التوصيات");
           return;
         }
 
         setRecommendations(data.recommendations || []);
-      } catch (error) {
-        logger.error("Error fetching recommendations:", error);
+        setError(null);
+      } catch (err) {
+        logger.error("Error fetching recommendations:", err);
         setRecommendations([]);
+        setError("حدث خطأ غير متوقع");
       } finally {
         setLoading(false);
       }
@@ -171,7 +175,7 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {filteredRecommendations.map((recommendation, index) => (
                 <motion.div
                   key={recommendation.id}
@@ -245,7 +249,16 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
           </div>
         )}
 
-        {!loading && filteredRecommendations.length === 0 && (
+        {error && !loading && (
+          <div className="text-center py-12">
+            <p className="text-red-500 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()} variant="outline">
+              إعادة المحاولة
+            </Button>
+          </div>
+        )}
+
+        {!loading && !error && filteredRecommendations.length === 0 && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

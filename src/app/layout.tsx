@@ -5,7 +5,7 @@ import Header from "../components/Header";
 import { GlobalProviders } from "../providers/index";
 import NotificationsClient from "../components/NotificationsClient";
 import { ClientLayoutWrapper } from "../components/layout/ClientLayoutWrapper";
-import { AuthSessionWrapper } from '@/app/(auth)/components/AuthSessionWrapper';
+import { AuthSessionWrapper } from '@/components/auth/AuthSessionWrapper';
 import { HydrationFix } from "@/components/utils/HydrationFix";
 
 export default async function RootLayout({

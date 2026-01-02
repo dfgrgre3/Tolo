@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, memo } from "react";
 import { useRouter } from "next/navigation";
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Modal } from "@/components/ui/modal";
 // @ts-ignore - react-dnd type issue
 import { DndProvider, useDrag, useDrop } from "react-dnd";

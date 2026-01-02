@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AuthGuard } from "@/app/(auth)/components/AuthGuard";
+import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useGamification, CustomGoal } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { ensureUser } from "@/lib/user-utils";

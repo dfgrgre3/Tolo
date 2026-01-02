@@ -26,7 +26,7 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/auth-service', () => ({
+jest.mock('@/lib/services/auth-service', () => ({
   authService: {
     verifyTokenFromRequest: jest.fn(),
   },
@@ -117,8 +117,8 @@ describe('Courses API Routes', () => {
         createdAt: new Date(),
       };
 
-      const { verifyToken } = require('@/lib/auth-service');
-      (verifyToken as jest.Mock).mockReturnValue({
+      const { authService } = require('@/lib/services/auth-service');
+      (authService.verifyTokenFromRequest as jest.Mock).mockReturnValue({
         userId: 'user-1',
         email: 'test@example.com',
         role: 'admin',

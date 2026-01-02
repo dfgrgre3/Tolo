@@ -1,195 +1,41 @@
-'use client';
+"use client";
 
-import dynamic from 'next/dynamic';
-import type { ReactNode } from 'react';
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Clock, ShieldCheck, Sparkles, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useUnifiedAuth } from '@/contexts/auth-context';
-import { LoginFormSkeleton } from '@/app/(auth)/components/components/LoginFormSkeleton';
-
-const EnhancedLoginForm = dynamic(
-  () => import('@/app/(auth)/components/EnhancedLoginForm'),
-  {
-    ssr: false,
-    loading: () => <LoginFormSkeleton />,
-  },
-);
-
-const EnhancedRegisterForm = dynamic(
-  () => import('@/app/(auth)/components/EnhancedRegisterForm'),
-  {
-    ssr: false,
-    loading: () => <LoginFormSkeleton />,
-  },
-);
-
-type AuthView = 'login' | 'register';
+import LoginForm from "@/components/auth/LoginForm";
+import { useAuth } from "@/contexts/auth-context";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const { user, isLoading } = useUnifiedAuth();
-  const [activeView, setActiveView] = useState<AuthView>('login');
 
-  // Redirect authenticated users to home page immediately
   useEffect(() => {
-    if (!isLoading && user) {
-      const redirectTo = searchParams.get('redirect') || '/';
-      // Use replace to prevent back navigation to login page
-      router.replace(redirectTo);
-      // Clear any login-related data from localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          localStorage.removeItem('loginAttempts');
-          localStorage.removeItem('loginFormData');
-          localStorage.removeItem('pendingLogin');
-        } catch (e) {
-          // Ignore errors
-        }
-      }
+    if (!isLoading && isAuthenticated) {
+      router.replace("/dashboard");
     }
-  }, [user, isLoading, router, searchParams]);
+  }, [isAuthenticated, isLoading, router]);
 
-  useEffect(() => {
-    const viewParam = (searchParams.get('view') ?? '').toLowerCase();
-    const derivedView: AuthView = viewParam === 'register' ? 'register' : 'login';
-    setActiveView((current) => (current === derivedView ? current : derivedView));
-  }, [searchParams]);
-
-
-
-  // Don't render login form if user is already authenticated
-  // (Redirect will happen in useEffect above)
-  if (user) {
-    return null;
+  if (isLoading) {
+      return (
+          <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+              <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+      );
   }
 
-  const handleViewChange = (view: AuthView) => {
-    if (view === activeView) {
-      return;
-    }
-
-    setActiveView(view);
-    router.replace(`/login${view === 'register' ? '?view=register' : ''}`, {
-      scroll: false,
-    });
-  };
-
-  const highlights: FeatureHighlightProps[] = [
-    {
-      icon: <ShieldCheck className="h-5 w-5 text-emerald-300" />,
-      title: 'حماية متعددة الطبقات',
-      description: 'تحقق بخطوتين، إدارة للجلسات، وتنبيهات فورية تبقي حسابك آمناً.',
-    },
-    {
-      icon: <Clock className="h-5 w-5 text-cyan-300" />,
-      title: 'تجربة تسجيل مرنة',
-      description: 'استكمل بياناتك الأساسية وخيارات الأمان دون مغادرة الصفحة.',
-    },
-    {
-      icon: <Sparkles className="h-5 w-5 text-purple-300" />,
-      title: 'تنبيهات ذكية',
-      description: 'تابع تقدمك الدراسي وتذكيراتك فور تسجيل الدخول أو إنشاء الحساب.',
-    },
-    {
-      icon: <ShieldCheck className="h-5 w-5 text-indigo-300" />,
-      title: 'إدارة موحدة',
-      description: 'نموذج واحد يربط تسجيل الدخول، إنشاء الحساب، وإعدادات الأمان.',
-    },
-  ];
-
   return (
-    <div className="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 text-slate-50">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-24 -right-16 h-72 w-72 animate-pulse rounded-full bg-indigo-500/40 blur-3xl" />
-        <div className="absolute bottom-0 left-[-10%] h-[26rem] w-[26rem] animate-pulse rounded-full bg-purple-500/30 blur-[160px]" />
-        <div className="absolute top-1/2 left-1/2 h-96 w-96 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-blue-500/20 blur-[180px]" />
-      </div>
-
-      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 sm:gap-10 md:gap-12 px-4 sm:px-6 md:px-8 py-8 sm:py-12 md:py-16 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex-1 space-y-8 text-right">
-          <span className="inline-flex items-center gap-2 rounded-full bg-indigo-500/15 px-4 py-1 text-xs font-semibold uppercase tracking-wider text-indigo-200">
-            بوابة thanawy الذكية
-          </span>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold leading-snug">
-            صفحة موحدة لتسجيل الدخول وإنشاء الحساب
-          </h1>
-          <p className="max-w-xl text-sm leading-7 text-slate-200/80 md:text-base md:leading-8">
-            وفّر وقتك مع تجربة موحدة تجمع بين تسجيل الدخول، إنشاء الحساب، وكل خطوات الأمان في واجهة واحدة سهلة وسريعة التبديل.
-          </p>
-
-          <div className="grid gap-4 text-sm text-slate-200/90 sm:grid-cols-2">
-            {highlights.map((feature) => (
-              <FeatureHighlight
-                key={feature.title}
-                icon={feature.icon}
-                title={feature.title}
-                description={feature.description}
-              />
-            ))}
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-6 md:p-8 shadow-2xl">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-2">تسجيل الدخول</h1>
+          <p className="text-slate-400">مرحباً بعودتك! الرجاء إدخال بياناتك</p>
         </div>
-
-        <div className="flex flex-1 items-center justify-center lg:max-w-lg">
-          <div className="w-full max-w-md space-y-5">
-            <div className="rounded-full bg-white/10 p-1 text-sm font-semibold text-indigo-100 shadow-inner backdrop-blur">
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  type="button"
-                  className={cn(
-                    'rounded-full px-5 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950',
-                    activeView === 'login'
-                      ? 'bg-white text-slate-900 shadow-lg'
-                      : 'text-indigo-100 hover:bg-white/10 hover:text-white',
-                  )}
-                  onClick={() => handleViewChange('login')}
-                >
-                  تسجيل الدخول
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    'rounded-full px-5 py-2 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950',
-                    activeView === 'register'
-                      ? 'bg-white text-slate-900 shadow-lg'
-                      : 'text-indigo-100 hover:bg-white/10 hover:text-white',
-                  )}
-                  onClick={() => handleViewChange('register')}
-                >
-                  إنشاء حساب جديد
-                </button>
-              </div>
-            </div>
-
-            {activeView === 'login' ? (
-              <EnhancedLoginForm />
-            ) : (
-              <EnhancedRegisterForm />
-            )}
-          </div>
+        
+        <LoginForm />
+        
+        <div className="mt-8 text-center text-xs text-slate-500">
+           &copy; {new Date().getFullYear()} Thanawy. جميع الحقوق محفوظة.
         </div>
-      </div>
-    </div>
-  );
-}
-
-interface FeatureHighlightProps {
-  icon: ReactNode;
-  title: string;
-  description: string;
-}
-
-function FeatureHighlight({ icon, title, description }: FeatureHighlightProps) {
-  return (
-    <div className="flex items-start gap-3 rounded-2xl bg-white/5 p-4 backdrop-blur">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10">
-        {icon}
-      </div>
-      <div className="space-y-1 text-right">
-        <p className="font-semibold text-slate-50">{title}</p>
-        <p className="text-xs text-slate-300/80">{description}</p>
       </div>
     </div>
   );
