@@ -3,7 +3,10 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Icons } from '@/components/ui/icons';
+import { Loader2 } from 'lucide-react';
+
+// Optimization: Using direct import from 'lucide-react' for Loader2 instead of importing
+// the entire Icons object from '@/components/ui/icons' to improve tree-shaking and reduce bundle size.
 
 import { logger } from '@/lib/logger';
 
@@ -79,7 +82,7 @@ export default function SecurityLog() {
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Icons.spinner className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
