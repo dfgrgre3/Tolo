@@ -15,9 +15,9 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Icons } from '@/components/ui/icons';
 // import { useEnhancedAuth } from '@/lib/auth-hook-enhanced';
-import { LogOut, Monitor, Smartphone, Tablet, Globe, Shield, RefreshCw } from 'lucide-react';
+// Direct import to enable tree-shaking and avoid importing the large Icons object
+import { LogOut, Monitor, Smartphone, Tablet, Globe, Shield, RefreshCw, Loader2 } from 'lucide-react';
 
 interface DeviceInfo {
   browser?: string;
@@ -151,7 +151,7 @@ export default function SessionManager() {
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Icons.spinner className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
@@ -195,7 +195,7 @@ export default function SessionManager() {
                   className="gap-2"
                 >
                   {revokingAll ? (
-                    <Icons.spinner className="h-4 w-4 animate-spin" />
+                    <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <LogOut className="h-4 w-4" />
                   )}
@@ -286,7 +286,7 @@ export default function SessionManager() {
                     className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                   >
                     {revokingId === session.id ? (
-                      <Icons.spinner className="h-4 w-4 animate-spin" />
+                      <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <>
                         <LogOut className="h-4 w-4 mr-1" />
