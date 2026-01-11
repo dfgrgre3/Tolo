@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Icons } from '@/components/ui/icons';
+// Direct import to enable tree-shaking and avoid importing the large Icons object
+import { Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 
 export default function TwoFactorSettings() {
@@ -109,7 +110,7 @@ export default function TwoFactorSettings() {
         {isEnabling && (
           <div className="p-4 rounded-lg bg-gray-50 dark:bg-gray-900">
             <div className="flex items-center gap-2 mb-4">
-              <Icons.spinner className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" />
               <span>جارٍ تفعيل المصادقة الثنائية...</span>
             </div>
             
