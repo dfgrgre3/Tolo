@@ -3,18 +3,15 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { AuthGuard } from '@/components/auth/AuthGuard';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Edit, Filter, Search, Calendar, Clock, Tag, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { Plus, Filter, Search } from 'lucide-react';
 import { Task, TaskStatus, SubjectType } from '@/types/tasks';
 import { TaskForm, TaskAnalytics, TaskList } from '@/app/(dashboard)/tasks/components';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 
@@ -48,12 +45,7 @@ export default function TasksPage() {
     resolver: zodResolver(taskSchema),
   });
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
-
   const fetchTasks = () => {
-    setLoading(true);
     fetch('/api/tasks')
       .then((res) => {
         if (!res.ok) throw new Error('فشل في جلب المهام');
@@ -68,6 +60,10 @@ export default function TasksPage() {
         setLoading(false);
       });
   };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
   const filteredAndSortedTasks = useMemo(() => {
     return tasks
@@ -101,7 +97,7 @@ export default function TasksPage() {
         return res.json();
       })
       .then((newTask) => {
-        setTasks([...tasks, newTask]);
+        setTasks(prev => [...prev, newTask]);
         reset();
         setIsAddDialogOpen(false);
         toast.success('تمت إضافة المهمة بنجاح');
@@ -125,7 +121,7 @@ export default function TasksPage() {
         return res.json();
       })
       .then((updatedTask) => {
-        setTasks(tasks.map((task) => (task.id === editingTask.id ? updatedTask : task)));
+        setTasks(prev => prev.map((task) => (task.id === editingTask.id ? updatedTask : task)));
         setEditingTask(null);
         reset();
         setIsEditDialogOpen(false);
@@ -136,7 +132,7 @@ export default function TasksPage() {
       });
   };
 
-  const handleStatusChange = (id: string, status: TaskStatus) => {
+  const handleStatusChange = useCallback((id: string, status: TaskStatus) => {
     const newStatus = status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
     fetch(`/api/tasks/${id}`,
       {
@@ -149,27 +145,27 @@ export default function TasksPage() {
         return res.json();
       })
       .then((updatedTask) => {
-        setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)));
+        setTasks(prev => prev.map((task) => (task.id === id ? updatedTask : task)));
         toast.success(`تم ${newStatus === 'COMPLETED' ? 'إكمال' : 'إعادة فتح'} المهمة بنجاح`);
       })
       .catch((error) => {
         toast.error(error.message);
       });
-  };
+  }, []);
 
-  const handleDeleteTask = (id: string) => {
+  const handleDeleteTask = useCallback((id: string) => {
     fetch(`/api/tasks/${id}`, { method: 'DELETE' })
       .then((res) => {
         if (!res.ok) throw new Error('فشل في حذف المهمة');
-        setTasks(tasks.filter((task) => task.id !== id));
+        setTasks(prev => prev.filter((task) => task.id !== id));
         toast.success('تم حذف المهمة بنجاح');
       })
       .catch((error) => {
         toast.error(error.message);
       });
-  };
+  }, []);
 
-  const openEditDialog = (task: Task) => {
+  const openEditDialog = useCallback((task: Task) => {
     setEditingTask(task);
     setValue('title', task.title);
     setValue('description', task.description || '');
@@ -177,36 +173,7 @@ export default function TasksPage() {
     setValue('dueAt', task.dueAt ? new Date(task.dueAt).toISOString().substring(0, 16) : '');
     setValue('priority', task.priority);
     setIsEditDialogOpen(true);
-  };
-
-  const getPriorityBadge = (priority: number) => {
-    switch (priority) {
-      case 2:
-        return <Badge className="bg-red-500 hover:bg-red-600">عالية</Badge>;
-      case 1:
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">متوسطة</Badge>;
-      default:
-        return <Badge className="bg-green-500 hover:bg-green-600">منخفضة</Badge>;
-    }
-  };
-
-  const getStatusIcon = (status: TaskStatus) => {
-    switch (status) {
-      case 'COMPLETED':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case 'IN_PROGRESS':
-        return <Clock className="h-5 w-5 text-blue-500" />;
-      case 'PENDING':
-        return <Circle className="h-5 w-5 text-gray-400" />;
-      default:
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-    }
-  };
-
-  const isOverdue = (dueAt: string | undefined) => {
-    if (!dueAt) return false;
-    return new Date(dueAt) < new Date();
-  };
+  }, [setValue]);
 
 	if (loading) {
 		return <div className="flex justify-center items-center h-screen">جاري التحميل...</div>;
@@ -258,9 +225,6 @@ export default function TasksPage() {
             onStatusChange={handleStatusChange}
             onEdit={openEditDialog}
             onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
           />
         </TabsContent>
         <TabsContent value="pending" className="mt-4">
@@ -269,9 +233,6 @@ export default function TasksPage() {
             onStatusChange={handleStatusChange}
             onEdit={openEditDialog}
             onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
           />
         </TabsContent>
         <TabsContent value="inProgress" className="mt-4">
@@ -280,9 +241,6 @@ export default function TasksPage() {
             onStatusChange={handleStatusChange}
             onEdit={openEditDialog}
             onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
           />
         </TabsContent>
         <TabsContent value="completed" className="mt-4">
@@ -291,9 +249,6 @@ export default function TasksPage() {
             onStatusChange={handleStatusChange}
             onEdit={openEditDialog}
             onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
           />
         </TabsContent>
       </Tabs>
@@ -343,8 +298,6 @@ export default function TasksPage() {
             </form>
           </DialogContent>
         </Dialog>
-
-      {/* هذا القسم تم استبداله بمكون Tabs و TaskList في الأعلى */}
 			</div>
 		</AuthGuard>
   );
