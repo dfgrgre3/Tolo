@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Icons } from '@/components/ui/icons';
+import { Loader2 } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
 
@@ -79,7 +79,7 @@ export default function SecurityLog() {
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
-        <Icons.spinner className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin" />
       </div>
     );
   }
