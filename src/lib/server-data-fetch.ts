@@ -64,79 +64,86 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
     const summary = await CacheService.getOrSet(cacheKey, async () => {
-      // Get all study sessions for the user
-      const sessions = await prisma.studySession.findMany({
-        where: { userId },
-        select: {
-          durationMin: true,
-          focusScore: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
+      // Execute queries in parallel for better performance
+      const [aggregations, tasksCompleted, sessionDates] = await Promise.all([
+        // Get sums and averages directly from the database (much faster than fetching all records)
+        prisma.studySession.aggregate({
+          where: { userId },
+          _sum: { durationMin: true },
+          _avg: { focusScore: true },
+        }),
 
-      // Calculate total minutes
-      const totalMinutes = sessions.reduce(
-        (sum: number, session) => sum + (session.durationMin || 0),
-        0
-      );
+        // Count completed tasks
+        prisma.task.count({
+          where: {
+            userId,
+            status: 'COMPLETED',
+          },
+        }),
 
-      // Calculate average focus
-      const focusSessions = sessions.filter(
-        (session) => session.focusScore !== null
-      );
-      const averageFocus =
-        focusSessions.length > 0
-          ? focusSessions.reduce(
-            (sum: number, session) => sum + (session.focusScore || 0),
-            0
-          ) / focusSessions.length
-          : 0;
+        // Fetch ONLY dates for streak calculation (saves bandwidth and memory)
+        prisma.studySession.findMany({
+          where: { userId },
+          select: { createdAt: true },
+          orderBy: { createdAt: 'asc' },
+        })
+      ]);
 
-      // Count completed tasks
-      const tasksCompleted = await prisma.task.count({
-        where: {
-          userId,
-          status: 'COMPLETED',
-        },
-      });
+      const totalMinutes = aggregations._sum.durationMin || 0;
+      // Handle average focus (prisma returns null if no sessions)
+      const averageFocus = aggregations._avg.focusScore || 0;
 
       // Calculate current streak
+      // Optimized logic: O(N) using a Set instead of O(N^2) or O(N*Streak)
       let streakDays = 0;
-      if (sessions.length > 0) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+      if (sessionDates.length > 0) {
+        // Use a Set for O(1) lookups
+        const uniqueDates = new Set<string>();
 
-        const currentDate = new Date(sessions[sessions.length - 1].createdAt);
-        currentDate.setHours(0, 0, 0, 0);
-
-        // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
-          const sessionDate = new Date(session.createdAt);
-          sessionDate.setHours(0, 0, 0, 0);
-          return sessionDate.getTime() === currentDate.getTime();
+        sessionDates.forEach(session => {
+          const d = new Date(session.createdAt);
+          d.setHours(0, 0, 0, 0);
+          uniqueDates.add(d.toDateString());
         });
 
-        if (studiedToday) {
-          streakDays = 1;
+        // The logic assumes ascending order, so the last element is the most recent
+        const lastSessionDate = new Date(sessionDates[sessionDates.length - 1].createdAt);
+        lastSessionDate.setHours(0, 0, 0, 0);
 
-          // Count consecutive days
-          const checkDate = new Date(currentDate);
-          let found = true;
+        const currentDate = new Date(); // Today
+        currentDate.setHours(0, 0, 0, 0);
 
-          while (found) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
-              const sessionDate = new Date(session.createdAt);
-              sessionDate.setHours(0, 0, 0, 0);
-              return sessionDate.getTime() === checkDate.getTime();
-            });
+        // Check if the user studied today or yesterday relative to REAL time
+        // The original logic compared the last session date against ITSELF which is weird,
+        // effectively checking if the last session date is equal to the last session date.
+        // HOWEVER, it created 'currentDate' from the LAST SESSION.
+        // So it checked if the last session exists. Yes.
+        // Then it checked backwards.
 
-            if (found) {
-              streakDays++;
-            }
+        // Let's stick to the behavior: Start counting from the LAST SESSION DATE backwards.
+        // This calculates the streak ENDING at the last session.
+        // If the last session was 5 days ago, the streak is still calculated as if it ended then?
+        // Wait, the original code:
+        /*
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const currentDate = new Date(sessions[sessions.length - 1].createdAt);
+          ...
+          // It calculates streak relative to 'currentDate' (last session).
+          // It does NOT check if 'currentDate' is today or yesterday relative to real time to VALIDATE the streak.
+          // It simply calculates the length of the streak ending at the last session.
+        */
+
+        // We will replicate exactly that behavior to be safe.
+        streakDays = 1;
+        const checkDate = new Date(lastSessionDate);
+
+        while (true) {
+          checkDate.setDate(checkDate.getDate() - 1);
+          if (uniqueDates.has(checkDate.toDateString())) {
+            streakDays++;
+          } else {
+            break;
           }
         }
       }
@@ -161,4 +168,3 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     };
   }
 }
-
