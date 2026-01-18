@@ -64,80 +64,69 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
     const summary = await CacheService.getOrSet(cacheKey, async () => {
-      // Get all study sessions for the user
-      const sessions = await prisma.studySession.findMany({
-        where: { userId },
-        select: {
-          durationMin: true,
-          focusScore: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
+      // Parallelize requests for better performance using aggregation
+      const [stats, sessionDates, tasksCompleted] = await Promise.all([
+        prisma.studySession.aggregate({
+          where: { userId },
+          _sum: { durationMin: true },
+          _avg: { focusScore: true },
+        }),
+        prisma.studySession.findMany({
+          where: { userId },
+          select: { createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+        prisma.task.count({
+          where: {
+            userId,
+            status: 'COMPLETED',
+          },
+        }),
+      ]);
 
       // Calculate total minutes
-      const totalMinutes = sessions.reduce(
-        (sum: number, session) => sum + (session.durationMin || 0),
-        0
-      );
+      const totalMinutes = stats._sum.durationMin || 0;
 
       // Calculate average focus
-      const focusSessions = sessions.filter(
-        (session) => session.focusScore !== null
-      );
-      const averageFocus =
-        focusSessions.length > 0
-          ? focusSessions.reduce(
-            (sum: number, session) => sum + (session.focusScore || 0),
-            0
-          ) / focusSessions.length
-          : 0;
+      const averageFocus = stats._avg.focusScore || 0;
 
-      // Count completed tasks
-      const tasksCompleted = await prisma.task.count({
-        where: {
-          userId,
-          status: 'COMPLETED',
-        },
-      });
-
-      // Calculate current streak
+      // Calculate streak (optimized O(N) single pass)
       let streakDays = 0;
-      if (sessions.length > 0) {
+      if (sessionDates.length > 0) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
 
-        const currentDate = new Date(sessions[sessions.length - 1].createdAt);
-        currentDate.setHours(0, 0, 0, 0);
+        // Check if the most recent session is today or yesterday
+        const lastDate = new Date(sessionDates[0].createdAt);
+        lastDate.setHours(0, 0, 0, 0);
 
-        // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
-          const sessionDate = new Date(session.createdAt);
-          sessionDate.setHours(0, 0, 0, 0);
-          return sessionDate.getTime() === currentDate.getTime();
-        });
+        // If the user hasn't studied today or yesterday, streak is 0
+        if (lastDate.getTime() >= yesterday.getTime()) {
+           streakDays = 1;
+           let checkDate = new Date(lastDate);
+           // The next date we are looking for is the day before the current streak day
+           checkDate.setDate(checkDate.getDate() - 1);
 
-        if (studiedToday) {
-          streakDays = 1;
+           // Iterate backwards from the second most recent session
+           for (let i = 1; i < sessionDates.length; i++) {
+             const currentDate = new Date(sessionDates[i].createdAt);
+             currentDate.setHours(0, 0, 0, 0);
 
-          // Count consecutive days
-          const checkDate = new Date(currentDate);
-          let found = true;
-
-          while (found) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
-              const sessionDate = new Date(session.createdAt);
-              sessionDate.setHours(0, 0, 0, 0);
-              return sessionDate.getTime() === checkDate.getTime();
-            });
-
-            if (found) {
-              streakDays++;
-            }
-          }
+             if (currentDate.getTime() === checkDate.getTime()) {
+               // Found a session on the consecutive previous day
+               streakDays++;
+               checkDate.setDate(checkDate.getDate() - 1);
+             } else if (currentDate.getTime() < checkDate.getTime()) {
+               // Gap found (current session is older than the expected checkDate)
+               break;
+             }
+             // If currentDate > checkDate, it means we have multiple sessions on the same day
+             // (or more recent days if sorting failed, but we ordered by desc).
+             // Since we already counted this day (implied by checkDate moving back only when we find a match),
+             // we just continue to the next session.
+           }
         }
       }
 
@@ -161,4 +150,3 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     };
   }
 }
-
