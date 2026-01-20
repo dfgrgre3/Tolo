@@ -64,79 +64,55 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
     const summary = await CacheService.getOrSet(cacheKey, async () => {
-      // Get all study sessions for the user
-      const sessions = await prisma.studySession.findMany({
-        where: { userId },
-        select: {
-          durationMin: true,
-          focusScore: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
+      // Run queries in parallel for better performance
+      const [stats, tasksCompleted, sessions] = await Promise.all([
+        // Aggregate stats directly in DB (faster than fetching all records)
+        prisma.studySession.aggregate({
+          where: { userId },
+          _sum: { durationMin: true },
+          _avg: { focusScore: true },
+        }),
+        // Count completed tasks
+        prisma.task.count({
+          where: {
+            userId,
+            status: 'COMPLETED',
+          },
+        }),
+        // Fetch only dates for streak calculation (sorted desc for linear scan)
+        prisma.studySession.findMany({
+          where: { userId },
+          select: { createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
 
-      // Calculate total minutes
-      const totalMinutes = sessions.reduce(
-        (sum: number, session) => sum + (session.durationMin || 0),
-        0
-      );
+      const totalMinutes = stats._sum.durationMin || 0;
+      const averageFocus = stats._avg.focusScore || 0;
 
-      // Calculate average focus
-      const focusSessions = sessions.filter(
-        (session) => session.focusScore !== null
-      );
-      const averageFocus =
-        focusSessions.length > 0
-          ? focusSessions.reduce(
-            (sum: number, session) => sum + (session.focusScore || 0),
-            0
-          ) / focusSessions.length
-          : 0;
-
-      // Count completed tasks
-      const tasksCompleted = await prisma.task.count({
-        where: {
-          userId,
-          status: 'COMPLETED',
-        },
-      });
-
-      // Calculate current streak
+      // Calculate streak - optimized O(N) linear scan on sorted dates
       let streakDays = 0;
       if (sessions.length > 0) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        streakDays = 1;
+        const lastSessionDate = new Date(sessions[0].createdAt);
+        lastSessionDate.setHours(0, 0, 0, 0);
 
-        const currentDate = new Date(sessions[sessions.length - 1].createdAt);
-        currentDate.setHours(0, 0, 0, 0);
+        let currentDate = lastSessionDate;
 
-        // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
-          const sessionDate = new Date(session.createdAt);
+        for (let i = 1; i < sessions.length; i++) {
+          const sessionDate = new Date(sessions[i].createdAt);
           sessionDate.setHours(0, 0, 0, 0);
-          return sessionDate.getTime() === currentDate.getTime();
-        });
 
-        if (studiedToday) {
-          streakDays = 1;
+          const diffTime = currentDate.getTime() - sessionDate.getTime();
+          const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-          // Count consecutive days
-          const checkDate = new Date(currentDate);
-          let found = true;
-
-          while (found) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
-              const sessionDate = new Date(session.createdAt);
-              sessionDate.setHours(0, 0, 0, 0);
-              return sessionDate.getTime() === checkDate.getTime();
-            });
-
-            if (found) {
-              streakDays++;
-            }
+          if (diffDays === 0) {
+            continue; // Same day
+          } else if (diffDays === 1) {
+            streakDays++;
+            currentDate = sessionDate;
+          } else {
+            break; // Gap > 1 day, streak broken
           }
         }
       }
@@ -161,4 +137,3 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     };
   }
 }
-
