@@ -1,4 +1,4 @@
-﻿import { GET } from '@/app/api/progress/route';
+import { GET } from '@/app/api/progress/route';
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 
@@ -95,4 +95,3 @@ describe('Progress API Routes', () => {
     });
   });
 });
-
