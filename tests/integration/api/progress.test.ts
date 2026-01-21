@@ -26,6 +26,9 @@ jest.mock('@/lib/db', () => ({
       findMany: jest.fn(),
       create: jest.fn(),
     },
+    customGoal: {
+      findMany: jest.fn(),
+    },
   },
 }));
 
@@ -70,6 +73,9 @@ describe('Progress API Routes', () => {
         { startTime: new Date(Date.now() - 86400000) },
       ]);
       (prisma.mlRecommendation.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.customGoal.findMany as jest.Mock).mockResolvedValue([
+        { id: 'goal-1', title: 'Test Goal', createdAt: new Date(), isCompleted: false }
+      ]);
 
       const request = new NextRequest('http://localhost/api/progress', {
         method: 'GET',
@@ -80,6 +86,9 @@ describe('Progress API Routes', () => {
 
       const response = await GET(request);
       expect(response.status).toBe(200);
+
+      const body = await response.json();
+      expect(body.streakDays).toBe(2);
     });
 
     it('should require authentication', async () => {

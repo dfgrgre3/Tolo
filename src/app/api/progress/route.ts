@@ -36,6 +36,7 @@ async function handleGetRequest(request: NextRequest) {
     }
 
     // Get user's study streak with timeout protection
+    // Optimization: Select only startTime to reduce data transfer
     const studySessionsPromise = prisma.studySession.findMany({
       where: {
         userId: decodedToken.userId,
@@ -43,15 +44,23 @@ async function handleGetRequest(request: NextRequest) {
       orderBy: {
         startTime: 'desc',
       },
+      select: {
+        startTime: true,
+      },
     });
 
     const studySessionsTimeoutPromise = new Promise<never>((resolve, reject) => {
       setTimeout(() => reject(new Error('Database query timeout')), 10000);
     });
 
-    const studySessions = await Promise.race([studySessionsPromise, studySessionsTimeoutPromise]);
+    // We cast the result because the select above returns a subset of fields
+    const studySessions = (await Promise.race([
+      studySessionsPromise,
+      studySessionsTimeoutPromise,
+    ])) as { startTime: Date }[];
 
     // Calculate streak days
+    // Optimization: O(N) linear scan instead of O(N^2) nested loops
     let streakDays = 0;
     if (studySessions.length > 0) {
       const today = new Date();
@@ -60,40 +69,47 @@ async function handleGetRequest(request: NextRequest) {
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
 
-      // Type for study session with startTime
-      type StudySessionWithStartTime = Pick<Prisma.StudySessionGetPayload<{}>, 'startTime'>;
+      let lastCountedDate: Date | null = null;
 
-      // Check if user studied today or yesterday
-      const studiedToday = studySessions.some((session: StudySessionWithStartTime) => {
+      for (const session of studySessions) {
         const sessionDate = new Date(session.startTime);
         sessionDate.setHours(0, 0, 0, 0);
-        return sessionDate.getTime() === today.getTime();
-      });
 
-      const studiedYesterday = studySessions.some((session: StudySessionWithStartTime) => {
-        const sessionDate = new Date(session.startTime);
-        sessionDate.setHours(0, 0, 0, 0);
-        return sessionDate.getTime() === yesterday.getTime();
-      });
+        // Skip future dates if any (shouldn't happen with desc sort and typical data, but safety check)
+        if (sessionDate.getTime() > today.getTime()) {
+          continue;
+        }
 
-      if (studiedToday || studiedYesterday) {
-        streakDays = 1;
-
-        // Calculate consecutive days
-        let checkDate = studiedToday ? yesterday : new Date(yesterday);
-        checkDate.setDate(checkDate.getDate() - 1);
-
-        while (true) {
-          const studiedOnDate = studySessions.some((session: StudySessionWithStartTime) => {
-            const sessionDate = new Date(session.startTime);
-            sessionDate.setHours(0, 0, 0, 0);
-            return sessionDate.getTime() === checkDate.getTime();
-          });
-
-          if (studiedOnDate) {
-            streakDays++;
-            checkDate.setDate(checkDate.getDate() - 1);
+        if (streakDays === 0) {
+          // Check if streak starts today or yesterday
+          if (
+            sessionDate.getTime() === today.getTime() ||
+            sessionDate.getTime() === yesterday.getTime()
+          ) {
+            streakDays = 1;
+            lastCountedDate = sessionDate;
           } else {
+            // Latest session is older than yesterday, so streak is 0.
+            // Since sessions are ordered desc, we can stop.
+            break;
+          }
+        } else {
+          // Streak already started, check for continuity
+          if (!lastCountedDate) break;
+
+          if (sessionDate.getTime() === lastCountedDate.getTime()) {
+            // Same day, ignore
+            continue;
+          }
+
+          const expectedDate = new Date(lastCountedDate);
+          expectedDate.setDate(expectedDate.getDate() - 1);
+
+          if (sessionDate.getTime() === expectedDate.getTime()) {
+            streakDays++;
+            lastCountedDate = sessionDate;
+          } else {
+            // Gap found
             break;
           }
         }
