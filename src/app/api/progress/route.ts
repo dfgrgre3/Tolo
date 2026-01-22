@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { withAuthCache } from '@/lib/cache-middleware';
-import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
@@ -40,6 +39,9 @@ async function handleGetRequest(request: NextRequest) {
       where: {
         userId: decodedToken.userId,
       },
+      select: {
+        startTime: true, // Optimization: Select only necessary field to reduce payload
+      },
       orderBy: {
         startTime: 'desc',
       },
@@ -49,52 +51,50 @@ async function handleGetRequest(request: NextRequest) {
       setTimeout(() => reject(new Error('Database query timeout')), 10000);
     });
 
-    const studySessions = await Promise.race([studySessionsPromise, studySessionsTimeoutPromise]);
+    const studySessions = await Promise.race([studySessionsPromise, studySessionsTimeoutPromise]) as { startTime: Date }[];
 
     // Calculate streak days
+    // Optimization: O(N) single pass calculation instead of O(N^2)
     let streakDays = 0;
     if (studySessions.length > 0) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
+      const todayTime = today.getTime();
 
       const yesterday = new Date(today);
       yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayTime = yesterday.getTime();
 
-      // Type for study session with startTime
-      type StudySessionWithStartTime = Pick<Prisma.StudySessionGetPayload<{}>, 'startTime'>;
+      const lastSessionDate = new Date(studySessions[0].startTime);
+      lastSessionDate.setHours(0, 0, 0, 0);
+      const lastSessionTime = lastSessionDate.getTime();
 
-      // Check if user studied today or yesterday
-      const studiedToday = studySessions.some((session: StudySessionWithStartTime) => {
-        const sessionDate = new Date(session.startTime);
-        sessionDate.setHours(0, 0, 0, 0);
-        return sessionDate.getTime() === today.getTime();
-      });
-
-      const studiedYesterday = studySessions.some((session: StudySessionWithStartTime) => {
-        const sessionDate = new Date(session.startTime);
-        sessionDate.setHours(0, 0, 0, 0);
-        return sessionDate.getTime() === yesterday.getTime();
-      });
-
-      if (studiedToday || studiedYesterday) {
+      // Streak is active if the last session was today or yesterday
+      if (lastSessionTime === todayTime || lastSessionTime === yesterdayTime) {
         streakDays = 1;
 
-        // Calculate consecutive days
-        let checkDate = studiedToday ? yesterday : new Date(yesterday);
-        checkDate.setDate(checkDate.getDate() - 1);
+        let expectedDate = new Date(lastSessionTime);
+        expectedDate.setDate(expectedDate.getDate() - 1);
+        let expectedTime = expectedDate.getTime();
 
-        while (true) {
-          const studiedOnDate = studySessions.some((session: StudySessionWithStartTime) => {
-            const sessionDate = new Date(session.startTime);
-            sessionDate.setHours(0, 0, 0, 0);
-            return sessionDate.getTime() === checkDate.getTime();
-          });
+        let lastProcessedTime = lastSessionTime;
 
-          if (studiedOnDate) {
+        for (let i = 1; i < studySessions.length; i++) {
+          const sessionDate = new Date(studySessions[i].startTime);
+          sessionDate.setHours(0, 0, 0, 0);
+          const sessionTime = sessionDate.getTime();
+
+          if (sessionTime === lastProcessedTime) {
+            continue; // Skip multiple sessions on the same day
+          }
+          lastProcessedTime = sessionTime;
+
+          if (sessionTime === expectedTime) {
             streakDays++;
-            checkDate.setDate(checkDate.getDate() - 1);
+            expectedDate.setDate(expectedDate.getDate() - 1);
+            expectedTime = expectedDate.getTime();
           } else {
-            break;
+            break; // Gap found, streak ends
           }
         }
       }
