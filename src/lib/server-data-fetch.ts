@@ -64,88 +64,31 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
     const summary = await CacheService.getOrSet(cacheKey, async () => {
-      // Get all study sessions for the user
-      const sessions = await prisma.studySession.findMany({
-        where: { userId },
+      // Fetch pre-calculated stats from User model
+      // Optimization: Fetch stats directly from User model instead of calculating from scratch
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
         select: {
-          durationMin: true,
+          totalStudyTime: true,
+          tasksCompleted: true,
+          currentStreak: true,
+        },
+      });
+
+      // Calculate average focus using aggregation (not stored in User model)
+      // Optimization: Use DB aggregation instead of fetching all records
+      const studyStats = await prisma.studySession.aggregate({
+        where: { userId },
+        _avg: {
           focusScore: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
         },
       });
-
-      // Calculate total minutes
-      const totalMinutes = sessions.reduce(
-        (sum: number, session) => sum + (session.durationMin || 0),
-        0
-      );
-
-      // Calculate average focus
-      const focusSessions = sessions.filter(
-        (session) => session.focusScore !== null
-      );
-      const averageFocus =
-        focusSessions.length > 0
-          ? focusSessions.reduce(
-            (sum: number, session) => sum + (session.focusScore || 0),
-            0
-          ) / focusSessions.length
-          : 0;
-
-      // Count completed tasks
-      const tasksCompleted = await prisma.task.count({
-        where: {
-          userId,
-          status: 'COMPLETED',
-        },
-      });
-
-      // Calculate current streak
-      let streakDays = 0;
-      if (sessions.length > 0) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const currentDate = new Date(sessions[sessions.length - 1].createdAt);
-        currentDate.setHours(0, 0, 0, 0);
-
-        // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
-          const sessionDate = new Date(session.createdAt);
-          sessionDate.setHours(0, 0, 0, 0);
-          return sessionDate.getTime() === currentDate.getTime();
-        });
-
-        if (studiedToday) {
-          streakDays = 1;
-
-          // Count consecutive days
-          const checkDate = new Date(currentDate);
-          let found = true;
-
-          while (found) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
-              const sessionDate = new Date(session.createdAt);
-              sessionDate.setHours(0, 0, 0, 0);
-              return sessionDate.getTime() === checkDate.getTime();
-            });
-
-            if (found) {
-              streakDays++;
-            }
-          }
-        }
-      }
 
       return {
-        totalMinutes,
-        averageFocus: Math.round(averageFocus * 100) / 100,
-        tasksCompleted,
-        streakDays,
+        totalMinutes: user?.totalStudyTime || 0,
+        averageFocus: Math.round((studyStats._avg.focusScore || 0) * 100) / 100,
+        tasksCompleted: user?.tasksCompleted || 0,
+        streakDays: user?.currentStreak || 0,
       };
     }, 600); // Cache for 10 minutes
 
