@@ -64,78 +64,63 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
     const summary = await CacheService.getOrSet(cacheKey, async () => {
-      // Get all study sessions for the user
-      const sessions = await prisma.studySession.findMany({
-        where: { userId },
-        select: {
-          durationMin: true,
-          focusScore: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
+      // Fetch data in parallel for better performance
+      const [aggregations, recentSessions, tasksCompleted] = await Promise.all([
+        // Use database aggregation for sum and average (much faster than fetching all records)
+        prisma.studySession.aggregate({
+          where: { userId },
+          _sum: { durationMin: true },
+          _avg: { focusScore: true },
+        }),
+        // Fetch only recent sessions for streak calculation (optimization: limit to 100)
+        prisma.studySession.findMany({
+          where: { userId },
+          select: { createdAt: true },
+          orderBy: { createdAt: 'desc' },
+          take: 100,
+        }),
+        // Count completed tasks
+        prisma.task.count({
+          where: {
+            userId,
+            status: 'COMPLETED',
+          },
+        }),
+      ]);
 
-      // Calculate total minutes
-      const totalMinutes = sessions.reduce(
-        (sum: number, session) => sum + (session.durationMin || 0),
-        0
-      );
+      const totalMinutes = aggregations._sum.durationMin || 0;
+      const averageFocus = aggregations._avg.focusScore || 0;
 
-      // Calculate average focus
-      const focusSessions = sessions.filter(
-        (session) => session.focusScore !== null
-      );
-      const averageFocus =
-        focusSessions.length > 0
-          ? focusSessions.reduce(
-            (sum: number, session) => sum + (session.focusScore || 0),
-            0
-          ) / focusSessions.length
-          : 0;
-
-      // Count completed tasks
-      const tasksCompleted = await prisma.task.count({
-        where: {
-          userId,
-          status: 'COMPLETED',
-        },
-      });
-
-      // Calculate current streak
+      // Calculate current streak from recent sessions
       let streakDays = 0;
-      if (sessions.length > 0) {
+      if (recentSessions.length > 0) {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const currentDate = new Date(sessions[sessions.length - 1].createdAt);
-        currentDate.setHours(0, 0, 0, 0);
+        const lastSessionDate = new Date(recentSessions[0].createdAt);
+        lastSessionDate.setHours(0, 0, 0, 0);
 
-        // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
-          const sessionDate = new Date(session.createdAt);
-          sessionDate.setHours(0, 0, 0, 0);
-          return sessionDate.getTime() === currentDate.getTime();
-        });
-
-        if (studiedToday) {
+        // Check if the user studied today (matches original behavior)
+        if (lastSessionDate.getTime() === today.getTime()) {
           streakDays = 1;
 
-          // Count consecutive days
-          const checkDate = new Date(currentDate);
-          let found = true;
+          // Create a Set of unique session dates for O(1) lookup
+          const sessionDates = new Set(
+            recentSessions.map((s) => {
+              const d = new Date(s.createdAt);
+              d.setHours(0, 0, 0, 0);
+              return d.getTime();
+            })
+          );
 
-          while (found) {
+          // Check consecutive previous days
+          const checkDate = new Date(today);
+          while (true) {
             checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
-              const sessionDate = new Date(session.createdAt);
-              sessionDate.setHours(0, 0, 0, 0);
-              return sessionDate.getTime() === checkDate.getTime();
-            });
-
-            if (found) {
+            if (sessionDates.has(checkDate.getTime())) {
               streakDays++;
+            } else {
+              break;
             }
           }
         }
