@@ -64,78 +64,69 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
     // Use cached data fetching for better performance
     const cacheKey = `progress_summary_${userId}`;
     const summary = await CacheService.getOrSet(cacheKey, async () => {
-      // Get all study sessions for the user
-      const sessions = await prisma.studySession.findMany({
-        where: { userId },
-        select: {
-          durationMin: true,
-          focusScore: true,
-          createdAt: true,
-        },
-        orderBy: {
-          createdAt: 'asc',
-        },
-      });
+      // Parallelize queries for better performance
+      const [stats, taskCount, sessions] = await Promise.all([
+        prisma.studySession.aggregate({
+          where: { userId },
+          _sum: { durationMin: true },
+          _avg: { focusScore: true },
+        }),
+        prisma.task.count({
+          where: {
+            userId,
+            status: 'COMPLETED',
+          },
+        }),
+        prisma.studySession.findMany({
+          where: { userId },
+          select: { createdAt: true },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
 
-      // Calculate total minutes
-      const totalMinutes = sessions.reduce(
-        (sum: number, session) => sum + (session.durationMin || 0),
-        0
-      );
+      const totalMinutes = stats._sum.durationMin || 0;
+      const averageFocus = stats._avg.focusScore || 0;
+      const tasksCompleted = taskCount;
 
-      // Calculate average focus
-      const focusSessions = sessions.filter(
-        (session) => session.focusScore !== null
-      );
-      const averageFocus =
-        focusSessions.length > 0
-          ? focusSessions.reduce(
-            (sum: number, session) => sum + (session.focusScore || 0),
-            0
-          ) / focusSessions.length
-          : 0;
-
-      // Count completed tasks
-      const tasksCompleted = await prisma.task.count({
-        where: {
-          userId,
-          status: 'COMPLETED',
-        },
-      });
-
-      // Calculate current streak
+      // Calculate current streak using optimized O(N) approach
       let streakDays = 0;
       if (sessions.length > 0) {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const currentDate = new Date(sessions[sessions.length - 1].createdAt);
-        currentDate.setHours(0, 0, 0, 0);
-
-        // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
-          const sessionDate = new Date(session.createdAt);
-          sessionDate.setHours(0, 0, 0, 0);
-          return sessionDate.getTime() === currentDate.getTime();
+        // Use a Set for O(1) lookups of study dates
+        const uniqueDates = new Set<number>();
+        sessions.forEach((s) => {
+          const d = new Date(s.createdAt);
+          d.setHours(0, 0, 0, 0);
+          uniqueDates.add(d.getTime());
         });
 
-        if (studiedToday) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTime = today.getTime();
+
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        const yesterdayTime = yesterday.getTime();
+
+        let checkDate: Date | null = null;
+
+        if (uniqueDates.has(todayTime)) {
           streakDays = 1;
+          checkDate = yesterday;
+        } else if (uniqueDates.has(yesterdayTime)) {
+          streakDays = 1;
+          checkDate = new Date(yesterday);
+          checkDate.setDate(checkDate.getDate() - 1);
+        }
 
-          // Count consecutive days
-          const checkDate = new Date(currentDate);
-          let found = true;
-
-          while (found) {
-            checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
-              const sessionDate = new Date(session.createdAt);
-              sessionDate.setHours(0, 0, 0, 0);
-              return sessionDate.getTime() === checkDate.getTime();
-            });
-
-            if (found) {
+        if (streakDays > 0 && checkDate) {
+          while (true) {
+            checkDate.setHours(0, 0, 0, 0);
+            if (uniqueDates.has(checkDate.getTime())) {
               streakDays++;
+              checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+              break;
             }
           }
         }
