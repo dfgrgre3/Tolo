@@ -219,8 +219,8 @@ export async function POST(request: NextRequest) {
       const createPromise = prisma.subject.create({
         data: {
           name: name.trim(),
-          // nameAr: nameAr?.trim(), // Not in schema
-          // code: trimmedCode, // Not in schema
+          nameAr: nameAr?.trim(),
+          code: trimmedCode,
           description: description?.trim() || null,
           color: (color && typeof color === 'string') ? color.trim() : '#3b82f6',
           icon: (icon && typeof icon === 'string') ? icon.trim() : 'BookOpen',

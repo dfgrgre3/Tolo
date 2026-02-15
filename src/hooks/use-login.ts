@@ -44,17 +44,26 @@ export function useLogin() {
             }
 
             // Success
-            if (response.user) {
-                login(response.user);
+            if (response.user && response.token) {
+                login(response.token, response.user);
                 toast.success("تم تسجيل الدخول بنجاح");
 
                 const redirect = searchParams.get("redirect") || "/dashboard";
                 router.push(redirect);
                 router.refresh();
             }
-        } catch (error: any) {
-            console.error("Login error:", error instanceof Error ? error.message : error);
-            const message = error?.error || error?.message || "حدث خطأ أثناء تسجيل الدخول";
+        } catch (error: unknown) {
+            console.error("Login error:", error);
+
+            let message = "حدث خطأ أثناء تسجيل الدخول";
+
+            if (error instanceof Error) {
+                message = error.message;
+            } else if (typeof error === 'object' && error !== null) {
+                const apiError = error as { error?: string; message?: string };
+                message = apiError.error || apiError.message || message;
+            }
+
             toast.error(message);
             form.setError("root", { message });
         } finally {

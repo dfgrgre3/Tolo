@@ -240,7 +240,6 @@ export function EnhancedNotifications({ user, mounted }: HeaderNotificationsProp
 					onClick={() => setIsNotificationOpen(!isNotificationOpen)}
 					data-notification-trigger
 					className="relative hover:bg-primary/10 hover:text-primary transition-all duration-300 group"
-					suppressHydrationWarning
 				>
 					<Bell className="h-4 w-4 transition-transform group-hover:rotate-12" />
 					{notificationCount > 0 && (
@@ -249,7 +248,6 @@ export function EnhancedNotifications({ user, mounted }: HeaderNotificationsProp
 							animate={{ scale: 1 }}
 							style={{ transform: "none" }}
 							className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-destructive via-destructive to-destructive/80 text-destructive-foreground text-[10px] font-bold shadow-lg ring-2 ring-background"
-							suppressHydrationWarning
 						>
 							{notificationCount > 9 ? "9+" : notificationCount}
 						</motion.span>

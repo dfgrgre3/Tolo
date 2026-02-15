@@ -24,14 +24,14 @@ export default async function RootLayout({
 			<head>
 				<HydrationFix />
 			</head>
-			<body className="antialiased" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }} suppressHydrationWarning>
+			<body className="antialiased" style={{ fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
 				<ClientLayoutWrapper>
 					<AuthSessionWrapper session={session}>
 						<GlobalProviders>
-							<div className="min-h-screen flex flex-col" suppressHydrationWarning>
+							<div className="min-h-screen flex flex-col">
 								<Header />
 								<NotificationsClient />
-								<main className="flex-1" suppressHydrationWarning>{children}</main>
+								<main className="flex-1">{children}</main>
 								<Footer />
 							</div>
 						</GlobalProviders>

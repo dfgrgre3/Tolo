@@ -181,7 +181,6 @@ export function HeaderMobileMenu({
 																							? "bg-primary/10 text-primary font-medium"
 																							: "hover:bg-accent/60 text-muted-foreground"
 																					)}
-																					suppressHydrationWarning
 																				>
 																					<span className={cn(
 																						"transition-transform duration-300",
@@ -220,7 +219,6 @@ export function HeaderMobileMenu({
 												? "bg-gradient-to-r from-primary/10 to-primary/5 text-primary shadow-sm border border-primary/20"
 												: "hover:bg-accent/80 active:scale-95"
 										)}
-										suppressHydrationWarning
 									>
 											<span className={cn(
 												"transition-transform duration-300",
@@ -289,7 +287,6 @@ export function HeaderMobileMenu({
 																				? "bg-primary/10 text-primary font-medium"
 																				: "hover:bg-accent/60 text-muted-foreground"
 																		)}
-																		suppressHydrationWarning
 																	>
 																		<span className={cn(
 																			"transition-transform duration-300",

@@ -105,7 +105,6 @@ export const MegaMenuItem = memo(function MegaMenuItem({
 				isFocused && !isActive && "bg-gradient-to-r from-primary/10 via-primary/6 to-primary/10 border-primary/40 ring-2 ring-primary/40",
 				isCompact ? "p-2" : "p-2.5 md:p-3"
 			)}
-			suppressHydrationWarning
 			aria-current={isActive ? "page" : undefined}
 		>
 				{/* Animated background glow */}

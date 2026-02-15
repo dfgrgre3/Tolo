@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useUnifiedAuth } from "@/contexts/auth-context";
 import { CheckCircle2, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -7,13 +8,18 @@ import { motion } from "framer-motion";
 
 export default function Footer() {
 	const { user } = useUnifiedAuth();
+	const [isMounted, setIsMounted] = React.useState(false);
+
+	React.useEffect(() => {
+		setIsMounted(true);
+	}, []);
 	
 	return (
-		<footer className={`border-t bg-background transition-all duration-300 ${user ? 'bg-gradient-to-br from-primary/5 via-background to-primary/5' : ''}`} suppressHydrationWarning>
-			<div className="mx-auto max-w-7xl px-4 py-6 text-sm text-muted-foreground flex flex-col md:flex-row gap-2 items-center justify-between" suppressHydrationWarning>
-				<div className="flex flex-col md:flex-row gap-2 items-center" suppressHydrationWarning>
-					<p>© {new Date().getFullYear()} ثانوية بذكاء</p>
-					{user && (
+		<footer className={`border-t bg-background transition-all duration-300 ${user ? 'bg-gradient-to-br from-primary/5 via-background to-primary/5' : ''}`}>
+			<div className="mx-auto max-w-7xl px-4 py-6 text-sm text-muted-foreground flex flex-col md:flex-row gap-2 items-center justify-between">
+				<div className="flex flex-col md:flex-row gap-2 items-center">
+					<p>© {isMounted ? new Date().getFullYear() : '...'} ثانوية بذكاء</p>
+					{isMounted && user && (
 						<motion.div
 							initial={{ opacity: 0, scale: 0.8 }}
 							animate={{ opacity: 1, scale: 1 }}
@@ -28,7 +34,7 @@ export default function Footer() {
 					)}
 				</div>
 				<p className="text-center md:text-right">
-					{user 
+					{isMounted && user 
 						? `مرحباً ${user.name || user.email}! منصة تنظيم الوقت والنصائح والإحصائيات لثالثة ثانوي`
 						: "منصة تنظيم الوقت والنصائح والإحصائيات لثالثة ثانوي"
 					}

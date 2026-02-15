@@ -28,7 +28,6 @@ export function HeaderNavigation({
 	return (
 		<nav 
 			className="hidden lg:flex items-center gap-1 flex-1 justify-center" 
-			suppressHydrationWarning
 			aria-label="القائمة الرئيسية"
 		>
 			{mainNavItemsWithMegaMenu.map((item) => {
@@ -39,7 +38,7 @@ export function HeaderNavigation({
 				// العناصر التي تحتوي على Mega Menu
 				if (item.megaMenu && item.megaMenu.length > 0) {
 					return (
-						<div key={item.href} className="relative group" data-mega-menu-wrapper="true" suppressHydrationWarning>
+						<div key={item.href} className="relative group" data-mega-menu-wrapper="true">
 							<MegaMenu
 								categories={item.megaMenu}
 								isOpen={isOpen}
@@ -63,7 +62,6 @@ export function HeaderNavigation({
 									animate={{ scale: 1 }}
 									style={{ transform: 'none' }}
 									className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-sm animate-pulse z-10"
-									suppressHydrationWarning
 								>
 									{item.badge}
 								</motion.span>
@@ -113,7 +111,6 @@ export function HeaderNavigation({
 									animate={{ scale: 1 }}
 									style={{ transform: 'none' }}
 									className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-sm animate-pulse"
-									suppressHydrationWarning
 								>
 									{item.badge}
 								</motion.span>
@@ -133,7 +130,7 @@ export function HeaderNavigation({
 			})}
 
 			{/* قائمة "المزيد" مع Mega Menu */}
-			<div className="relative group" data-mega-menu-wrapper="true" suppressHydrationWarning>
+			<div className="relative group" data-mega-menu-wrapper="true">
 				<MegaMenu
 					categories={moreMegaMenu}
 					isOpen={openMegaMenu === "more"}

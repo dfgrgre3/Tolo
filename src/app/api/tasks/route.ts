@@ -102,7 +102,7 @@ async function handleGetRequest(req: NextRequest) {
       completedAt?: { not: null } | null;
       status?: string;
       priority?: number;
-      subject?: string;
+      subjectId?: string;
     } = {
       userId: decodedToken.userId,
     };
@@ -122,7 +122,7 @@ async function handleGetRequest(req: NextRequest) {
     }
 
     if (subjectId) {
-      where.subject = subjectId;
+      where.subjectId = subjectId;
     }
 
     // Fetch tasks from database with timeout protection
@@ -186,7 +186,7 @@ export async function POST(request: NextRequest) {
         return badRequestResponse(`Invalid request body: ${errorMessage}`, 'VALIDATION_ERROR');
       }
 
-      const { title, description, dueDate, priority, subjectId, status } = parsedBody.data;
+      const { title, description, dueDate, priority, subjectId, subject, status } = parsedBody.data as any;
 
       // Validate dueDate if provided
       if (dueDate) {
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
           priority: priorityNumber,
           status: status || TASK_DEFAULTS.STATUS,
           userId: decodedToken.userId,
-          subject: subjectId || null,
+          subjectId: subjectId || subject || null,
         },
       });
 
@@ -281,7 +281,7 @@ export async function PUT(request: NextRequest) {
         return badRequestResponse(`Invalid request body: ${errorMessage}`, 'VALIDATION_ERROR');
       }
 
-      const { id, title, description, dueDate, priority, subjectId, status } = parsedBody.data;
+      const { id, title, description, dueDate, priority, subjectId, subject, status } = parsedBody.data as any;
 
       // Validate task ID
       if (!id || typeof id !== 'string' || id.trim().length === 0) {
@@ -334,7 +334,7 @@ export async function PUT(request: NextRequest) {
           ...(dueDate !== undefined && { dueAt: dueDate ? new Date(dueDate) : null }),
           ...(priorityNumber !== undefined && { priority: priorityNumber }),
           ...(status !== undefined && { status }),
-          ...(subjectId !== undefined && { subject: subjectId || null }),
+          ...(subjectId !== undefined || subject !== undefined ? { subjectId: subjectId || subject || null } : {}),
         },
       });
 

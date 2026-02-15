@@ -50,7 +50,6 @@ export function MegaMenuContainer({ children, menuWidth, onClose }: MegaMenuCont
 			className={`fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[110vw] md:${menuWidth} lg:${menuWidth} xl:${menuWidth} z-50 overflow-hidden`}
 			onMouseLeave={onClose}
 			data-mega-menu-content
-			suppressHydrationWarning
 			role="dialog"
 			aria-modal="true"
 			aria-label="القائمة الرئيسية"

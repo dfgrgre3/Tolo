@@ -47,7 +47,10 @@ export async function POST(request: NextRequest) {
       try {
         localTeachers = await prisma.teacher.findMany({
           where: {
-            subject: subject as string,
+            subjectId: subject as string,
+          },
+          include: {
+            subject: true
           }
         });
       } catch (dbError) {
@@ -143,7 +146,7 @@ export async function POST(request: NextRequest) {
                       // ط§ط³طھط®ط¯ط§ظ… ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³ ظˆط§ظ„ظ…ط§ط¯ط© ظƒظ…ظپطھط§ط­ ظپط±ظٹط¯
                       name_subject: {
                         name: teacher.name,
-                        subject: teacher.subject
+                        subjectId: teacher.subjectId || teacher.subject
                       }
                     },
                     update: {
@@ -153,7 +156,7 @@ export async function POST(request: NextRequest) {
                     },
                     create: {
                       name: teacher.name,
-                      subject: teacher.subject,
+                      subjectId: teacher.subjectId || teacher.subject,
                       onlineUrl: teacher.url,
                       rating: teacher.rating,
                       notes: teacher.description

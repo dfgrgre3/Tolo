@@ -39,13 +39,9 @@ export async function GET(request: NextRequest) {
           orderBy: {
             startTime: 'desc',
           },
-          // include: {
-          //   task: {
-          //     select: {
-          //       title: true,
-          //     }
-          //   }
-          // }
+          include: {
+            subject: true,
+          }
         });
       }, 300); // Cache for 5 minutes
 
@@ -75,9 +71,12 @@ export async function POST(request: NextRequest) {
 
       const body = await req.json();
 
+      const { subject, subjectId, ...rest } = body;
+
       const session = await prisma.studySession.create({
         data: {
-          ...body,
+          ...rest,
+          subjectId: subjectId || subject, // Compatibility with old frontend sending 'subject'
           userId: authUser.userId,
         },
       });

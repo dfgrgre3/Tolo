@@ -49,7 +49,7 @@ export function MegaMenu({
 	}, [handleClick]);
 
 	return (
-		<div className="relative group" ref={megaMenuRef} suppressHydrationWarning>
+		<div className="relative group" ref={megaMenuRef}>
 			<Button
 				variant="ghost"
 				className={cn(
@@ -62,7 +62,6 @@ export function MegaMenu({
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
 				data-mega-menu-trigger
-				suppressHydrationWarning
 				aria-expanded={isOpen}
 				aria-haspopup="dialog"
 				aria-label={`${label} - ${isOpen ? 'مفتوح' : 'مغلق'}`}

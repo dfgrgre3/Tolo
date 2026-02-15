@@ -28,7 +28,6 @@ const DropdownMenuTrigger = React.forwardRef<
       <div 
         ref={ref as React.LegacyRef<HTMLDivElement>} 
         className={cn("inline-flex items-center justify-center", className)}
-        suppressHydrationWarning 
         {...(restProps as React.HTMLAttributes<HTMLDivElement>)}
       />
     );

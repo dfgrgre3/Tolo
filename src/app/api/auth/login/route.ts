@@ -2,6 +2,8 @@
 import { authService } from '@/lib/services/auth-service';
 import { loginSchema } from '@/lib/validations/auth';
 import { setAuthCookies, createErrorResponse } from '@/lib/auth-utils';
+import { TwoFactorChallengeService } from '@/lib/services/auth-challenges-service';
+import { emailService } from '@/lib/services/email-service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -39,6 +41,28 @@ export async function POST(req: NextRequest) {
         { error: 'البريد الإلكتروني أو كلمة المرور غير صحيحة', code: 'INVALID_CREDENTIALS' },
         { status: 401 }
       );
+    }
+
+    // 3.5 Check Two-Factor Authentication
+    if (user.twoFactorEnabled) {
+      // Create 2FA Challenge (6-digit code)
+      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const loginAttemptId = await TwoFactorChallengeService.createChallenge(user.id, code);
+
+      // Send Code via Email
+      await emailService.sendVerificationCode(user.email, code);
+
+      return NextResponse.json({
+        success: true,
+        requiresTwoFactor: true,
+        loginAttemptId: loginAttemptId,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          twoFactorEnabled: true
+        }
+      });
     }
 
     // 4. Generate Tokens

@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 			// Build where clause
 			const where: Prisma.ExamWhereInput = {};
 			if (subject && typeof subject === 'string' && subject.trim().length > 0) {
-				where.subject = subject.trim();
+				where.subjectId = subject.trim();
 			}
 			if (year) {
 				const yearNum = parseInt(year, 10);
@@ -66,6 +66,7 @@ export async function GET(request: NextRequest) {
 				orderBy: [{ year: "desc" }, { createdAt: "desc" }],
 				...(limit && { take: limit }),
 				...(offset && { skip: offset }),
+				include: { subject: true }
 			});
 
 			const timeoutPromise = new Promise<never>((resolve, reject) => {
@@ -142,10 +143,11 @@ export async function POST(request: NextRequest) {
 
 			const body = bodyResult.data;
 
-			const { subject, title, year, url, type = ExamType.OTHER } = body;
+			const { subject, subjectId, title, year, url, type = ExamType.OTHER } = body as any;
+			const finalSubjectId = subjectId || subject;
 
 			// Validate required fields
-			if (!subject || typeof subject !== 'string' || subject.trim().length === 0) {
+			if (!finalSubjectId) {
 				const response = NextResponse.json(
 					{ error: "ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨ط©", code: 'MISSING_SUBJECT' },
 					{ status: 400 }
@@ -170,7 +172,7 @@ export async function POST(request: NextRequest) {
 			}
 
 			// Validate field lengths
-			if (subject.trim().length > 200) {
+			if (finalSubjectId.trim().length > 200) {
 				const response = NextResponse.json(
 					{ error: "ط§ط³ظ… ط§ظ„ظ…ط§ط¯ط© ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹ (ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ 200 ط­ط±ظپ)", code: 'SUBJECT_TOO_LONG' },
 					{ status: 400 }
@@ -192,7 +194,7 @@ export async function POST(request: NextRequest) {
 					new URL(url.trim());
 				} catch {
 					const response = NextResponse.json(
-						{ error: "طھظ†ط³ظٹظ‚ ط§ظ„ط±ط§ط¨ط· ط؛ظٹط± طµط­ظٹط­", code: 'INVALID_URL' },
+						{ error: "طھظ†ط³ظٹظ‚ ط§ظ„ط±ط§ط¨ط· ط؛ظٹط± طµط­ظٹط¾", code: 'INVALID_URL' },
 						{ status: 400 }
 					);
 					return addSecurityHeaders(response);
@@ -212,7 +214,7 @@ export async function POST(request: NextRequest) {
 			const createPromise = prisma.exam.create({
 				data: {
 					id: randomUUID(),
-					subject: subject.trim(),
+					subjectId: finalSubjectId.trim(),
 					title: title.trim(),
 					year: Number(year),
 					url: (url && typeof url === 'string') ? url.trim() : "",

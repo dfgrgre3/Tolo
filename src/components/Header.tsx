@@ -196,7 +196,6 @@ export default function Header() {
           stiffness: 300,
           damping: 30,
         }}
-        suppressHydrationWarning
         role="banner"
         aria-label="رأس الصفحة الرئيسي"
       >
@@ -263,7 +262,7 @@ export default function Header() {
 
               {/* Theme Toggle */}
               {mounted && (
-                <div className="hidden md:flex" suppressHydrationWarning>
+                <div className="hidden md:flex">
                   <ThemeToggle />
                 </div>
               )}

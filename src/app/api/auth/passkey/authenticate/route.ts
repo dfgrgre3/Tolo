@@ -23,7 +23,17 @@ async function handler(req: NextRequest) {
 
   const credential = await prisma.biometricCredential.findUnique({
     where: { credentialId: credentialId },
-    include: { user: true },
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          biometricEnabled: true
+        }
+      }
+    },
   });
 
   if (!credential) {
@@ -147,7 +157,7 @@ async function handler(req: NextRequest) {
     }
   });
 
-  const { passwordHash, ...userData } = user;
+  const userData = user;
 
   const response = NextResponse.json({
     message: 'Authentication successful',

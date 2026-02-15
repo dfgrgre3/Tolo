@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
 
 		const lessons = await prisma.offlineLesson.findMany({
 			where: { userId: targetUserId },
+			include: { subject: true },
 			orderBy: { startTime: "asc" }
 		});
 		return NextResponse.json(lessons);
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
 		const authUser = verification.user;
 
 		const body = await req.json();
-		const { userId, teacherId, title, location, startTime, endTime, subject } = body;
+		const { userId, teacherId, title, location, startTime, endTime, subject, subjectId } = body;
 
 		// If userId is provided in body, ensure it matches the authenticated user
 		if (userId && userId !== authUser.userId) {
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
 				userId: targetUserId,
 				teacherId,
 				title,
-				subject,
+				subjectId: subjectId || subject,
 				location,
 				startTime: new Date(startTime),
 				endTime: new Date(endTime)

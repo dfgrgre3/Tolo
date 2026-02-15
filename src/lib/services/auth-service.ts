@@ -196,6 +196,14 @@ export async function createUser(data: RegisterInput) {
             passwordHash: hashedPassword,
             role: "USER",
         },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            avatar: true,
+            createdAt: true,
+        },
     });
 }
 
@@ -205,6 +213,22 @@ export async function createUser(data: RegisterInput) {
 export async function getUserByEmail(email: string) {
     return await prisma.user.findUnique({
         where: { email },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+            phone: true,
+            passwordHash: true,
+            role: true,
+            avatar: true,
+            emailVerified: true,
+            twoFactorEnabled: true,
+            lastLogin: true,
+            createdAt: true,
+            level: true,
+            totalXP: true,
+        },
     });
 }
 
@@ -214,6 +238,21 @@ export async function getUserByEmail(email: string) {
 export async function getUserById(id: string) {
     return await prisma.user.findUnique({
         where: { id },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+            phone: true,
+            role: true,
+            avatar: true,
+            emailVerified: true,
+            twoFactorEnabled: true,
+            lastLogin: true,
+            createdAt: true,
+            level: true,
+            totalXP: true,
+        },
     });
 }
 
@@ -491,7 +530,8 @@ export async function verifyEmail(token: string, ip: string, userAgent: string):
         where: {
             emailVerificationToken: token,
             emailVerificationExpires: { gt: new Date() }
-        }
+        },
+        select: { id: true }
     });
 
     if (!user) {
@@ -529,7 +569,16 @@ export async function refreshAccessToken(refreshToken: string) {
 
         const session = await prisma.session.findUnique({
             where: { id: sessionId },
-            include: { user: true }
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        email: true,
+                        name: true,
+                        role: true,
+                    }
+                }
+            }
         });
 
         if (!session || session.refreshToken !== refreshToken) {

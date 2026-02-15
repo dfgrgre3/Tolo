@@ -65,7 +65,10 @@ async function handleBiometricRegistration(
 
   // Find user with retry
   const user = await withDatabaseRetry(
-    async () => prisma.user.findUnique({ where: { id: userId } }),
+    async () => prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true }
+    }),
     { maxAttempts: 3, operationName: 'find user for biometric registration' }
   );
 
@@ -186,7 +189,17 @@ async function handleBiometricAuthentication(
   // Find credential
   const credential = await prisma.biometricCredential.findUnique({
     where: { credentialId: response.id },
-    include: { user: true }
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+          biometricEnabled: true
+        }
+      }
+    }
   });
 
   if (!credential || !credential.user) {
@@ -389,7 +402,8 @@ async function handleAuthenticationOptions(
     }
 
     const user = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      select: { id: true, email: true, name: true }
     });
 
     if (!user) {

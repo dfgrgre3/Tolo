@@ -82,7 +82,8 @@ export interface AdvancedLeaderboardEntry {
   level: number;
   rank: number;
   avatar?: string;
-  subject?: string;
+  subjectId?: string;
+  subject?: any;
   levelRange?: string;
 }
 
@@ -309,7 +310,7 @@ export class AdvancedGamificationService {
       requirements: c.requirements as Record<string, unknown>,
       startDate: c.startDate,
       endDate: c.endDate,
-      subject: c.subject || undefined,
+      subjectId: c.subjectId || undefined,
       levelRange: c.levelRange as [number, number] | undefined
     }));
   }
@@ -502,7 +503,7 @@ export class AdvancedGamificationService {
     if (type !== 'global') {
       const where: Prisma.LeaderboardEntryWhereInput = { type };
       if (period) where.period = period;
-      if (subject) where.subject = subject;
+      if (subject) where.subjectId = subject;
       if (levelRange) where.levelRange = levelRange;
       if (seasonId) where.seasonId = seasonId;
 
@@ -516,32 +517,34 @@ export class AdvancedGamificationService {
               avatar: true,
               level: true
             }
-          }
+          },
+          subject: true
         },
         orderBy: { totalXP: 'desc' },
         take: limit
       });
 
-      return entries.map((entry: { userId: string; user: { username: string | null }; totalXP: number; studyXP: number; taskXP: number; examXP: number; challengeXP: number }, index: number) => {
-        const levelRange = (entry as { levelRange?: [number, number] | string }).levelRange;
+      return (entries as any[]).map((entry, index: number) => {
+        const levelRange = entry.levelRange;
         const levelRangeStr = Array.isArray(levelRange)
           ? `${levelRange[0]}-${levelRange[1]}`
           : (typeof levelRange === 'string' ? levelRange : undefined);
 
         return {
           userId: entry.userId,
-          username: entry.user.username || 'مستخدم مجهول',
+          username: entry.user?.username || 'مستخدم مجهول',
           totalXP: entry.totalXP,
           studyXP: entry.studyXP,
           taskXP: entry.taskXP,
           examXP: entry.examXP,
           challengeXP: entry.challengeXP,
-          questXP: (entry as { questXP?: number }).questXP || 0,
-          seasonXP: (entry as { seasonXP?: number }).seasonXP || 0,
-          level: (entry as { level?: number }).level || 1,
-          rank: (entry as { rank?: number }).rank || index + 1,
-          avatar: (entry.user as { avatar?: string | null }).avatar || undefined,
-          subject: (entry as { subject?: string }).subject || undefined,
+          questXP: entry.questXP || 0,
+          seasonXP: entry.seasonXP || 0,
+          level: entry.level || 1,
+          rank: entry.rank || index + 1,
+          avatar: entry.user?.avatar || undefined,
+          subjectId: entry.subjectId || undefined,
+          subject: entry.subject || undefined,
           levelRange: levelRangeStr
         };
       });
@@ -611,7 +614,7 @@ export class AdvancedGamificationService {
         userId,
         type,
         period: period || null,
-        subject: subject || null,
+        subjectId: subject || null,
         levelRange: levelRange || null,
         seasonId: seasonId || null
       }
@@ -621,7 +624,7 @@ export class AdvancedGamificationService {
       userId,
       type,
       period: period || null,
-      subject: subject || null,
+      subjectId: subject || null,
       levelRange: levelRange || null,
       seasonId: seasonId || null,
       totalXP: xpData.totalXP ?? user.totalXP ?? 0,

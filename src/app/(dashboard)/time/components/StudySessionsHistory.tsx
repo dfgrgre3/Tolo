@@ -44,7 +44,7 @@ interface StudySession {
   userId: string;
   taskId?: string;
   durationMin: number;
-  subject?: string;
+  subject?: string | { name: string };
   notes?: string;
   mood?: 'EXCELLENT' | 'GOOD' | 'AVERAGE' | 'POOR';
   productivity?: number;
@@ -253,8 +253,9 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     
     // Find favorite subject
     const subjectStats = filteredSessions.reduce((acc, session) => {
-      if (session.subject) {
-        acc[session.subject] = (acc[session.subject] || 0) + session.durationMin;
+      const subjectName = typeof session.subject === 'string' ? session.subject : session.subject?.name;
+      if (subjectName) {
+        acc[subjectName] = (acc[subjectName] || 0) + session.durationMin;
       }
       return acc;
     }, {} as Record<string, number>);
@@ -423,11 +424,14 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     
     // Search filter
     if (searchQuery) {
-      filtered = filtered.filter(session =>
-        session.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        session.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        session.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      filtered = filtered.filter(session => {
+        const subjectName = typeof session.subject === 'string' ? session.subject : session.subject?.name;
+        return (
+          session.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          session.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+      });
     }
     
     // Sort sessions
@@ -607,7 +611,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                   {session.subject && (
                     <Badge variant="outline" className="text-xs">
                       <BookOpen className="h-3 w-3 mr-1" />
-                      {session.subject}
+                      {typeof session.subject === 'string' ? session.subject : session.subject.name}
                     </Badge>
                   )}
                   
@@ -705,7 +709,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
                 <div className="flex items-center justify-center">
                   <Badge variant="outline">
                     <BookOpen className="h-3 w-3 mr-1" />
-                    {session.subject}
+                    {typeof session.subject === 'string' ? session.subject : session.subject.name}
                   </Badge>
                 </div>
               )}

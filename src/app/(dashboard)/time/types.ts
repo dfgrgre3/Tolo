@@ -49,7 +49,8 @@ export interface StudySession {
   durationMin: number;
   startTime: string;
   endTime: string;
-  subject?: string;
+  subjectId: string;
+  subject?: any; // The relation object
   createdAt: string;
   updatedAt: string;
 }
