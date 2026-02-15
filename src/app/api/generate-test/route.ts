@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, DecodedToken } from '@/lib/services/auth-service';
+import { verifyToken, UserPayload } from '@/lib/services/auth-service';
 import { prisma, Prisma } from '@/lib/db';
 import { OpenAI } from 'openai';
 import { rateLimit } from '@/lib/api-utils';
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify authentication
-      const decodedToken = verifyToken(req);
+      const decodedToken = await verifyToken(req);
       if (!decodedToken) {
         return NextResponse.json(
           { error: 'Unauthorized' },

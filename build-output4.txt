@@ -1,0 +1,44 @@
+??? Next.js 16.1.1 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ?? optimizePackageImports
+
+  Creating an optimized production build ...
+??? Compiled successfully in 18.8s
+  Running TypeScript ...
+node.exe : Failed to compile.
+At C:\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fai 
+   led to compile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/(auth)/_utils/login-form.utils.ts:5:44
+Type error: Cannot find module 
+'../types/login-form.types' or its corresponding 
+type declarations.
+
+[0m [90m 3 |[39m [90m */[39m
+ [90m 4 |[39m
+[31m[1m>[22m[39m[90m 5 |[39m 
+[36mimport[39m { 
+[33mLoginFormData[39m[33m,[39m 
+[33mFieldErrors[39m } [36mfrom[39m 
+[32m'../types/login-form.types'[39m[33m;[39m
+ [90m   |[39m                                  
+          [31m[1m^[22m[39m
+ [90m 6 |[39m [36mimport[39m { 
+[33mLAST_VISITED_PATH_KEY[39m } [36mfrom[39m 
+[32m'@/providers/ClientLayoutProvider'[39m[33m
+;[39m
+ [90m 7 |[39m [36mimport[39m { 
+safeGetItem[33m,[39m safeRemoveItem[33m,[39m 
+safeWindow } [36mfrom[39m 
+[32m'@/lib/safe-client-utils'[39m[33m;[39m
+ [90m 8 |[39m [36mimport[39m { logger } 
+[36mfrom[39m 
+[32m'@/lib/logger'[39m[33m;[39m[0m
+Next.js build worker exited with code: 1 and 
+signal: null

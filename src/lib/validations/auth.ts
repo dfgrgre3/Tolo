@@ -23,6 +23,10 @@ export const nameSchema = z
 export const resetTokenSchema = z.string().min(1, { message: "رمز إعادة التعيين مطلوب" });
 export const magicLinkSchema = z.string().email({ message: "البريد الإلكتروني غير صالح" });
 
+export const refreshTokenSchema = z.object({
+    refreshToken: z.string().min(1, { message: "رمز التحديث مطلوب" }),
+});
+
 export const loginSchema = z.object({
     email: emailSchema,
     password: z.string().min(1, { message: "كلمة المرور مطلوبة" }),

@@ -79,6 +79,9 @@ const nextConfig = { // Force restart 2
     ],
   },
 
+  // Turbopack config needed for Next.js 16 alongside webpack config
+  turbopack: {},
+
 
 
   // Configure webpack to handle path aliases

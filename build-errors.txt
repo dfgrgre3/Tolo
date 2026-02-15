@@ -1,0 +1,6 @@
+
+Failed to compile.
+Type error: Cannot find module '../src/lib/auth-service' or its corresponding type declarations.
+
+
+

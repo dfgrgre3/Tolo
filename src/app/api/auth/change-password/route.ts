@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { authService, AuthService } from '@/lib/services/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { securityLogger } from '@/lib/security-logger';
 import { securityNotificationService } from '@/lib/security/security-notifications';
 import { passwordHistoryService } from '@/lib/services/password-history-service';
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       }
 
       // التحقق من كلمة المرور الحالية
-      const isCurrentPasswordValid = await AuthService.comparePasswords(
+      const isCurrentPasswordValid = await authService.verifyPassword(
         currentPassword,
         user.passwordHash
       );
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
       }
 
       // التحقق من أن كلمة المرور الجديدة مختلفة
-      const isSamePassword = await AuthService.comparePasswords(
+      const isSamePassword = await authService.verifyPassword(
         newPassword,
         user.passwordHash
       );
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
       // تشفير كلمة المرور الجديدة
       let newPasswordHash: string;
       try {
-        newPasswordHash = await AuthService.hashPassword(newPassword);
+        newPasswordHash = await authService.hashPassword(newPassword);
       } catch (hashError) {
         logger.error('Password hashing error:', hashError);
         return NextResponse.json(

@@ -7,8 +7,8 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { getPasskeyManager } from '../_components/passkeys/PasskeyManager';
-import { getSyncedPasskeyService } from '../_components/passkeys/SyncedPasskeyService';
+import { getPasskeyManager } from '@/app/(auth)/_components/passkeys/PasskeyManager';
+import { getSyncedPasskeyService } from '@/app/(auth)/_components/passkeys/SyncedPasskeyService';
 import { logger } from '@/lib/logger';
 
 interface PasskeyAuthState {

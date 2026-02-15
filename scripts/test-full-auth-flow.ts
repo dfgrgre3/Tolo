@@ -4,7 +4,71 @@ import fetch from 'node-fetch';
 const BASE_URL = 'http://localhost:3000';
 let cookies: string[] = [];
 
-function extractCookies(res: any) {
+// --- Type Definitions for API Responses ---
+interface ApiUser {
+  id: string;
+  name: string | null;
+  email: string;
+  role: string;
+  avatar: string | null;
+  emailVerified: boolean;
+  twoFactorEnabled: boolean;
+  lastLogin: string | null;
+  createdAt: string;
+  provider?: string;
+}
+
+interface RegisterSuccessResponse {
+  success: true;
+  user: ApiUser;
+  token: string;
+  verificationLink?: string;
+  requiresEmailVerification?: boolean;
+  message?: string;
+}
+
+interface RegisterErrorResponse {
+  error: string;
+  code?: string;
+  details?: Record<string, string[]>;
+}
+
+type RegisterResponse = RegisterSuccessResponse | RegisterErrorResponse;
+
+interface VerifyEmailResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
+interface LoginSuccessResponse {
+  success: true;
+  message: string;
+  user: ApiUser;
+  token: string;
+  accessToken: string;
+  requiresTwoFactor?: boolean;
+  loginAttemptId?: string;
+}
+
+interface LoginErrorResponse {
+  error: string;
+  code?: string;
+}
+
+type LoginResponse = LoginSuccessResponse | LoginErrorResponse;
+
+interface MeResponse {
+  user: ApiUser;
+  sessionId?: string;
+}
+
+interface LogoutResponse {
+  success: boolean;
+  message?: string;
+}
+
+function extractCookies(res: { headers: { raw(): Record<string, string[]> } }) {
   const raw = res.headers.raw()['set-cookie'];
   if (raw) {
     const newCookies = raw.map((c: string) => c.split(';')[0]);
@@ -36,7 +100,7 @@ async function runTest() {
       body: JSON.stringify({ email, password, name }),
     });
 
-    const registerData = await registerRes.json();
+    const registerData: RegisterResponse = await registerRes.json() as RegisterResponse;
     console.log(`   Status: ${registerRes.status}`);
 
     if (registerRes.status !== 201) {
@@ -46,8 +110,9 @@ async function runTest() {
 
     console.log('   ✅ Registration Successful');
 
-    // Extract verification token
-    const verificationLink = registerData.verificationLink;
+    // Extract verification token (only in successful responses)
+    const successData = registerData as RegisterSuccessResponse;
+    const verificationLink = successData.verificationLink;
     if (!verificationLink) {
       console.error('   ❌ Verification link not found (Are you in dev mode?)');
       return;
@@ -62,7 +127,7 @@ async function runTest() {
       method: 'GET',
     });
 
-    const verifyData = await verifyRes.json();
+    const verifyData: VerifyEmailResponse = await verifyRes.json() as VerifyEmailResponse;
     console.log(`   Status: ${verifyRes.status}`);
 
     if (verifyRes.status !== 200 || !verifyData.success) {
@@ -79,7 +144,7 @@ async function runTest() {
       body: JSON.stringify({ email, password }),
     });
 
-    const loginData = await loginRes.json();
+    const loginData: LoginResponse = await loginRes.json() as LoginResponse;
     console.log(`   Status: ${loginRes.status}`);
 
     if (loginRes.status !== 200) {
@@ -87,7 +152,7 @@ async function runTest() {
       return;
     }
 
-    extractCookies(loginRes);
+    extractCookies(loginRes as any);
     console.log('   ✅ Login Successful');
     console.log('   🍪 Cookies:', getCookieString());
 
@@ -102,8 +167,11 @@ async function runTest() {
 
     console.log(`   Status: ${meRes.status}`);
     if (meRes.status === 200) {
-      const meData = await meRes.json();
+      const meData: MeResponse = await meRes.json() as MeResponse;
       console.log('   ✅ Access Granted. User:', meData.user.email);
+      console.log('   📧 Email Verified:', meData.user.emailVerified);
+      console.log('   🔐 2FA Enabled:', meData.user.twoFactorEnabled);
+      console.log('   🖼️ Avatar:', meData.user.avatar || 'Not set');
     } else {
       console.error('   ❌ Access Denied (Unexpected)');
     }
@@ -120,19 +188,12 @@ async function runTest() {
     console.log(`   Status: ${logoutRes.status}`);
     if (logoutRes.status === 200) {
       console.log('   ✅ Logout Successful');
-      // Update cookies (logout should clear them)
-      // For simplicity in this script, we just assume they are invalid now, 
-      // but in reality we should parse Set-Cookie to clear them.
-      // The server sends Set-Cookie with Max-Age=0.
     } else {
       console.error('   ❌ Logout Failed');
     }
 
     // 7. Access Protected Route Again
     console.log('\n🚫 6. Testing Access After Logout...');
-    // We reuse the old cookies to see if they are still valid (they shouldn't be on server side)
-    // Or we can simulate the browser clearing them.
-    // Let's try sending the old cookies. The server should reject them if the session was deleted in DB.
     const meRes2 = await fetch(`${BASE_URL}/api/auth/me`, {
       method: 'GET',
       headers: {

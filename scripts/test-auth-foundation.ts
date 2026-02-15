@@ -1,5 +1,5 @@
 
-import { authService } from "../src/lib/auth-service";
+import { authService } from "../src/lib/services/auth-service";
 import { prisma } from "../src/lib/db";
 
 async function main() {

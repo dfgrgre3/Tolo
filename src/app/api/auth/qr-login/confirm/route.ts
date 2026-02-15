@@ -5,14 +5,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/services/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { getQRLoginService } from '@/lib/auth/qr-login-service';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
     try {
-        const authService = AuthService.getInstance();
 
         // Get token from Authorization header
         const authHeader = request.headers.get('authorization');
@@ -98,10 +97,9 @@ export async function POST(request: NextRequest) {
 
         // Create tokens for the web session
         const tokens = await authService.createTokens({
-            id: user.id,
+            userId: user.id,
             email: user.email!,
-            name: user.name || undefined,
-            role: user.role || undefined,
+            role: user.role || 'USER',
         });
 
         // Log the security event

@@ -2,9 +2,10 @@ import React from 'react';
 import Link from 'next/link';
 import { safeFetch } from '@/lib/safe-client-utils';
 import { getSafeUserId } from '@/lib/safe-client-utils';
-
 import { logger } from '@/lib/logger';
 import StatusMessage from '@/app/(dashboard)/analytics/components/StatusMessage';
+import { rpgCommonStyles, rpgGradients } from "../constants";
+import { Sword, Scroll, Clock, Target, RefreshCw } from "lucide-react";
 
 /**
  * @typedef {Object} DailyData
@@ -68,7 +69,7 @@ const fetchAnalyticsData = async (path: string) => {
                 
                 // Generate daily progress from summary data
                 const dailyProgress = Array.from({ length: 7 }, (_, i) => ({
-                    day: `س${i + 1}`,
+                    day: `Lvl ${i + 1}`,
                     progress: Math.min(100, Math.max(0, progressRate + (i % 3 === 0 ? 5 : -2)))
                 }));
 
@@ -87,7 +88,7 @@ const fetchAnalyticsData = async (path: string) => {
                 skillsAcquired: 0,
                 studyHours: 0,
                 dailyProgress: Array.from({ length: 7 }, (_, i) => ({
-                    day: `س${i + 1}`,
+                    day: `Lvl ${i + 1}`,
                     progress: 0
                 })),
                 lastUpdate: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -103,7 +104,7 @@ const fetchAnalyticsData = async (path: string) => {
         };
     } catch (err) {
         logger.error('Error fetching analytics data:', err);
-        throw new Error("فشل جلب التحليلات بسبب خطأ في الخادم.");
+        throw new Error("فشل جلب سجل المعارك بسبب خطأ في الخادم.");
     }
 };
 
@@ -113,7 +114,7 @@ const fetchAnalyticsData = async (path: string) => {
  */
 const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: string; progress: number }> }) => {
     if (!chartData || chartData.length === 0) {
-        return <div className="text-center py-8 text-gray-500 dark:text-gray-400">لا تتوفر بيانات لعرض الرسم البياني.</div>;
+        return <div className="text-center py-8 text-gray-500">لا تتوفر بيانات لعرض الرسم البياني.</div>;
     }
 
     // SVG Configuration and Scaling
@@ -121,7 +122,6 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
     const height = 180;
     const padding = 25;
 
-    const allProgressValues = chartData.map(d => d.progress);
     const fixedMin = 50; 
     const fixedMax = 100;
     const rangeY = fixedMax - fixedMin;
@@ -144,16 +144,18 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
     const lastY = scaleY(lastPoint.progress);
     
     return (
-        <div className="w-full bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-lg mb-6">
-            <h3 className="text-lg font-bold text-gray-700 dark:text-gray-200 mb-4 text-right border-b pb-2 border-gray-100 dark:border-gray-700">أداء التقدم خلال آخر 7 وحدات</h3>
+        <div className="w-full bg-black/20 rounded-xl p-4 border border-white/10 shadow-lg mb-6 backdrop-blur-md">
+            <h3 className="text-lg font-bold text-gray-200 mb-4 text-right border-b pb-2 border-white/10 flex items-center justify-end gap-2">
+                <span>تطور المستوى القتالي (Level History)</span>
+            </h3>
             
             <div className="relative overflow-x-auto">
                 <svg viewBox={`0 0 ${width} ${height}`} className="w-full" preserveAspectRatio="xMidYMid meet" style={{ minWidth: '300px' }}>
                     {/* Gradient Definition for Area */}
                     <defs>
                         <linearGradient id="progressGradient" x1="0" x2="0" y1="0" y2="1">
-                            <stop offset="0%" stopColor="#4f46e5" stopOpacity={0.3} />
-                            <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.05} />
+                            <stop offset="0%" stopColor="#8b5cf6" stopOpacity={0.3} />
+                            <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.05} />
                         </linearGradient>
                     </defs>
                     
@@ -168,9 +170,9 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
                                     y1={y}
                                     x2={width - padding}
                                     y2={y}
-                                    stroke="#e5e7eb"
+                                    stroke="#ffffff"
+                                    strokeOpacity="0.1"
                                     strokeDasharray="4 4"
-                                    className="dark:stroke-gray-700"
                                 />
                                 {/* Y Label */}
                                 <text
@@ -178,8 +180,7 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
                                     y={y + 4}
                                     textAnchor="end"
                                     fontSize="10"
-                                    fill="#6b7280"
-                                    className="dark:fill-gray-400"
+                                    fill="#9ca3af"
                                 >
                                     {value}%
                                 </text>
@@ -198,11 +199,11 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
                     <path 
                         d={`M ${points}`} 
                         fill="none" 
-                        stroke="#4f46e5" 
+                        stroke="#8b5cf6" 
                         strokeWidth="3" 
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        className="transition-all duration-1000 ease-out"
+                        className="transition-all duration-1000 ease-out drop-shadow-[0_0_8px_rgba(139,92,246,0.5)]"
                     />
                     
                     {/* Data Points */}
@@ -212,10 +213,10 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
                             cx={scaleX(i)}
                             cy={scaleY(d.progress)}
                             r={4}
-                            fill="#4f46e5"
+                            fill="#8b5cf6"
                             stroke="#ffffff"
                             strokeWidth="2"
-                            className="dark:stroke-gray-800 transition-all duration-1000 ease-out"
+                            className="transition-all duration-1000 ease-out"
                         />
                     ))}
 
@@ -228,8 +229,7 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
                             textAnchor="middle"
                             fontSize="11"
                             fontWeight="bold"
-                            fill="#4b5563"
-                            className="dark:fill-gray-300"
+                            fill="#d1d5db"
                         >
                             {d.day}
                         </text>
@@ -242,16 +242,16 @@ const DailyProgressChart = React.memo(({ chartData }: { chartData: Array<{ day: 
                         textAnchor="middle"
                         fontWeight="extrabold"
                         fontSize="14"
-                        fill="#4f46e5"
-                        className="dark:fill-indigo-400"
+                        fill="#a78bfa"
+                        filter="drop-shadow(0 0 2px rgba(0,0,0,0.5))"
                     >
                         {`${lastPoint.progress}%`}
                     </text>
                 </svg>
             </div>
             
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-4 text-center">
-                ملاحظة: هذا الرسم البياني يمثل تطورك على مدار آخر سبع وحدات دراسية أو أيام.
+            <p className="text-xs text-gray-400 mt-4 text-center">
+                ملاحظة: هذا الرسم البياني يمثل تطور مهاراتك القتالية في آخر 7 مهام.
             </p>
         </div>
     );
@@ -297,7 +297,20 @@ function AnalyticsSectionComponent() {
     // Determine which content to display
     let cardContent;
     if (isLoading && !data) { 
-        cardContent = <StatusMessage text="جاري تحميل البيانات..." />;
+        cardContent = (
+            <div className="space-y-6 animate-pulse">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
+                    <div className="h-32 rounded-xl bg-white/10 border border-white/5" />
+                    <div className="h-32 rounded-xl bg-white/10 border border-white/5" />
+                    <div className="h-32 rounded-xl bg-white/10 border border-white/5" />
+                </div>
+                <div className="h-48 w-full rounded-xl bg-white/10 border border-white/5" />
+                <div className="flex justify-between items-center mt-6">
+                    <div className="h-4 w-48 bg-white/10 rounded" />
+                    <div className="h-10 w-32 bg-white/10 rounded-xl" />
+                </div>
+            </div>
+        );
     } else if (error) {
         cardContent = <StatusMessage text={error} isError={true} />;
     } else {
@@ -310,29 +323,40 @@ function AnalyticsSectionComponent() {
                                 transition-opacity duration-500 ${isLoading ? 'opacity-50' : 'opacity-100'}`}>
                     
                     {/* 1. Progress Rate */}
-                    <div className="bg-gradient-to-br from-indigo-50/70 dark:from-indigo-900/50 to-white/90 dark:to-gray-900/50 p-5 rounded-xl border border-indigo-200/50 dark:border-indigo-800/50 shadow-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">معدل التقدم</p>
-                        <p className="text-3xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1 transition-colors duration-1000">{data?.progressRate}%</p>
-                        <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-3">
+                    <div className={`${rpgCommonStyles.card} border-indigo-500/20 bg-indigo-500/10`}>
+                        <div className="flex items-center gap-2 mb-2">
+                             <Target className="h-5 w-5 text-indigo-400" />
+                             <p className="text-sm text-gray-400">إتمام المهام (Quest Completion)</p>
+                        </div>
+                        <p className={`text-3xl font-extrabold ${rpgCommonStyles.neonText} mt-1`}>{data?.progressRate}%</p>
+                        <div className="h-2 bg-gray-700 rounded-full mt-3 overflow-hidden">
                             <div 
-                                className="h-2 bg-indigo-600 rounded-full transition-all duration-1000" 
+                                className="h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(139,92,246,0.5)]" 
                                 style={{ width: `${data?.progressRate || 0}%` }}
                             ></div>
                         </div>
                     </div>
                     
                     {/* 2. Skills Acquired */}
-                    <div className="bg-gradient-to-br from-teal-50/70 dark:from-teal-900/50 to-white/90 dark:to-gray-900/50 p-5 rounded-xl border border-teal-200/50 dark:border-teal-800/50 shadow-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">المهارات المكتسبة</p>
-                        <p className="text-3xl font-extrabold text-teal-600 dark:text-teal-400 mt-1 transition-colors duration-1000">{data?.skillsAcquired}</p>
-                        <p className="text-xs text-teal-500 dark:text-teal-600 mt-2">+3 هذا الأسبوع ({pathFilter})</p>
+                    <div className={`${rpgCommonStyles.card} border-emerald-500/20 bg-emerald-500/10`}>
+                        <div className="flex items-center gap-2 mb-2">
+                             <Scroll className="h-5 w-5 text-emerald-400" />
+                             <p className="text-sm text-gray-400">المهارات (XP Gained)</p>
+                        </div>
+                        <p className="text-3xl font-extrabold text-emerald-400 mt-1 transition-colors duration-1000 drop-shadow-md">{data?.skillsAcquired}</p>
+                        <p className="text-xs text-emerald-500 mt-2 flex items-center gap-1">
+                            <span className="text-lg">+</span> 3 مهارات جديدة هذا الأسبوع
+                        </p>
                     </div>
                     
                     {/* 3. Study Hours */}
-                    <div className="bg-gradient-to-br from-purple-50/70 dark:from-purple-900/50 to-white/90 dark:to-gray-900/50 p-5 rounded-xl border border-purple-200/50 dark:border-purple-800/50 shadow-md">
-                        <p className="text-sm text-gray-500 dark:text-gray-400">ساعات الدراسة</p>
-                        <p className="text-3xl font-extrabold text-purple-600 dark:text-purple-400 mt-1 transition-colors duration-1000">{data?.studyHours}</p>
-                        <p className="text-xs text-purple-500 dark:text-purple-600 mt-2">إجمالي حتى الآن</p>
+                    <div className={`${rpgCommonStyles.card} border-amber-500/20 bg-amber-500/10`}>
+                        <div className="flex items-center gap-2 mb-2">
+                             <Clock className="h-5 w-5 text-amber-400" />
+                             <p className="text-sm text-gray-400">ساعات التدريب (Training)</p>
+                        </div>
+                        <p className={`text-3xl font-extrabold ${rpgCommonStyles.goldText} mt-1`}>{data?.studyHours}</p>
+                        <p className="text-xs text-amber-500 mt-2">إجمالي وقت اللعب</p>
                     </div>
                 </div>
 
@@ -340,26 +364,27 @@ function AnalyticsSectionComponent() {
                 {data?.dailyProgress && <DailyProgressChart chartData={data.dailyProgress} />}
                 {/* ------------------------------------ */}
                 
-                <p className="font-semibold mb-4 text-xl text-gray-700 dark:text-gray-200 border-b border-dashed border-gray-200/50 dark:border-gray-700/50 pb-3">
-                    شاهد رسوم بيانية وتحليلات مفصلة حول أدائك الدراسي وتقدمك في المسارات التعليمية.
+                <p className="font-semibold mb-4 text-xl text-gray-300 border-b border-dashed border-white/10 pb-3 flex items-center gap-2">
+                    <Sword className="h-5 w-5 text-red-400" />
+                    تقرير المعركة الأسبوعي (Battle Report)
                 </p>
                 
                 {/* --- Footer & Action Button --- */}
                 <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                        <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse shadow-green-500/50"></div>
-                        <span>محدث آخر مرة: {data?.lastUpdate} - (المسار: {pathFilter})</span>
+                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <div className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                        <span>آخر تحديث للسيرفر: {data?.lastUpdate}</span>
                     </div>
                     
                     <Link 
                         href="/analytics" 
-                        className="rtl:flex-row-reverse rtl:justify-end 
-                                  px-6 py-3 bg-indigo-600 text-white rounded-xl text-base 
-                                  font-medium hover:bg-indigo-700 transition-all duration-300 
-                                  shadow-lg shadow-indigo-500/30 dark:shadow-indigo-500/50 
-                                  inline-flex items-center gap-2 transform hover:scale-[1.02]"
+                        className={`rtl:flex-row-reverse rtl:justify-end 
+                                  px-6 py-3 bg-primary text-primary-foreground rounded-xl text-base 
+                                  font-bold hover:bg-primary/90 transition-all duration-300 
+                                  shadow-[0_0_15px_rgba(124,58,237,0.3)] hover:shadow-[0_0_20px_rgba(124,58,237,0.5)] 
+                                  inline-flex items-center gap-2 transform hover:scale-105`}
                     >
-                        عرض التحليلات
+                        عرض السجلات الكاملة
                         {/* Arrow icon (flipped for RTL visual flow) */}
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="rtl:rotate-180">
                             <path d="M5 12h14M12 5l7 7-7 7"/>
@@ -372,81 +397,68 @@ function AnalyticsSectionComponent() {
 
 
     return (
-        <div className="mt-16 relative overflow-hidden p-4 md:p-8 max-w-4xl mx-auto">
+        <div className={`mt-16 relative overflow-hidden p-4 md:p-8 max-w-5xl mx-auto rounded-3xl border border-white/5 bg-black/40 backdrop-blur-xl shadow-2xl`}>
             {/* --- Background Blurs (Decorative) --- */}
-            <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-200/50 rounded-full blur-3xl opacity-50"></div>
-            <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-teal-200/50 rounded-full blur-2xl opacity-40"></div>
+            <div className="absolute -top-20 -right-20 w-64 h-64 bg-primary/20 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
+            <div className="absolute -bottom-10 -left-10 w-48 h-48 bg-blue-500/20 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
             
             <div className="relative z-10 text-right" dir="rtl">
                 
                 {/* --- Section Header and Controls --- */}
-                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-3 mb-8">
                     
                     {/* Header Title */}
                     <div className="flex items-center gap-3 order-2 sm:order-1">
-                        <h2 className="text-3xl font-extrabold text-gray-800 dark:text-gray-100">التحليلات والإحصائيات</h2>
-                        <div className="p-3 bg-indigo-100 dark:bg-indigo-900 rounded-xl shadow-md">
-                            <span className="text-2xl">📊</span>
+                        <h2 className={`text-3xl md:text-4xl font-black ${rpgCommonStyles.goldText}`}>إحصائيات البطل</h2>
+                        <div className="p-3 bg-white/5 rounded-xl border border-white/10 shadow-inner">
+                            <span className="text-2xl filter drop-shadow-[0_0_5px_rgba(255,255,255,0.5)]">📊</span>
                         </div>
                     </div>
 
                     {/* Controls (Filter and Refresh) */}
                     <div className="flex items-center gap-3 order-1 sm:order-2">
                         {/* 1. Path Filter Dropdown */}
-                        <select
-                            value={pathFilter}
-                            onChange={(e) => setPathFilter(e.target.value)}
-                            disabled={isLoading}
-                            className={`p-2 pr-8 rounded-lg border border-gray-300 dark:border-gray-700 
-                                       bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-100 
-                                       shadow-sm appearance-none transition-colors focus:ring-2 focus:ring-indigo-500/50
-                                       ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-                            style={{ 
-                                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234b5563' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`, 
-                                backgroundRepeat: 'no-repeat', 
-                                backgroundPosition: 'left 0.5rem center', 
-                                backgroundSize: '1.2em'
-                            }}
-                        >
-                            {PATH_OPTIONS.map((path: string) => (
-                                <option key={path} value={path}>{path}</option>
-                            ))}
-                        </select>
+                        <div className="relative">
+                            <select
+                                value={pathFilter}
+                                onChange={(e) => setPathFilter(e.target.value)}
+                                disabled={isLoading}
+                                className={`p-2 pr-8 pl-4 rounded-lg border border-white/10 
+                                           bg-black/40 text-gray-200 
+                                           shadow-sm appearance-none transition-colors focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none 
+                                           ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-white/5'}`}
+                            >
+                                {PATH_OPTIONS.map((path: string) => (
+                                    <option key={path} value={path} className="bg-slate-900 text-gray-200">{path}</option>
+                                ))}
+                            </select>
+                            <div className="absolute top-1/2 right-2 transform -translate-y-1/2 pointer-events-none text-gray-400">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            </div>
+                        </div>
                         
                         {/* 2. Refresh Button */}
                         <button 
                             onClick={() => loadData(pathFilter)} // Refresh data for the current path
                             disabled={isLoading}
-                            className={`p-2 rounded-full transition-all duration-300 flex items-center justify-center 
+                            className={`p-2 rounded-full transition-all duration-300 flex items-center justify-center border border-white/10
                                 ${
                                     isLoading 
-                                        ? 'bg-gray-400 dark:bg-gray-600 cursor-not-allowed text-white' 
-                                        : 'bg-indigo-100 dark:bg-indigo-800 text-indigo-600 dark:text-indigo-200 hover:bg-indigo-200 dark:hover:bg-indigo-700'
+                                        ? 'bg-white/5 cursor-not-allowed text-gray-500' 
+                                        : 'bg-white/5 text-primary hover:bg-white/10 hover:shadow-[0_0_10px_rgba(124,58,237,0.2)]'
                                 }`
                             }
                             title="تحديث البيانات"
                         >
-                            {/* Spinner/Refresh Icon */}
-                            <svg className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                {isLoading ? (
-                                    <path fill="currentColor" d="M12 4.167v1.666a6.167 6.167 0 016.167 6.167h1.666A7.833 7.833 0 0012 4.167z"/>
-                                ) : (
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m-15.357-2a8.001 8.001 0 0115.357-2m0 0H15"/>
-                                )}
-                            </svg>
+                            <RefreshCw className={`h-5 w-5 ${isLoading ? 'animate-spin' : ''}`} />
                         </button>
                     </div>
 
                 </div>
                 
                 {/* --- Main Card Container --- */}
-                <div className="rounded-2xl border border-gray-200 dark:border-gray-700 p-6 
-                              bg-white/90 dark:bg-gray-800/90 shadow-xl 
-                              backdrop-blur-sm transition-all duration-500 
-                              ring-4 ring-transparent hover:ring-indigo-300/50 dark:hover:ring-indigo-700/50">
-                    
+                <div className="relative z-10">
                     {cardContent}
-
                 </div>
             </div>
         </div>

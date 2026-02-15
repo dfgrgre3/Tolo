@@ -27,7 +27,7 @@ async function extractSessionFromToken(token: string | null): Promise<{
       const session = await authService.getSession(decoded.sessionId);
       return {
         sessionId: decoded.sessionId,
-        userId: session?.userId || decoded.userId || null
+        userId: session?.userId || decoded.user?.userId || null
       };
     }
   } catch {
@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
       if (userId) {
         try {
           if (logoutAllDevices) {
-            await authService.deleteAllUserSessions(userId);
+            await authService.revokeAllUserSessions(userId);
           } else if (sessionId) {
-            await authService.deleteSession(sessionId);
+            await authService.revokeSession(sessionId, userId);
           }
 
           // Log security event (non-blocking)

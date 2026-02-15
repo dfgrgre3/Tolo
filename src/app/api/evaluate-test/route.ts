@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify authentication
-      const decodedToken = verifyToken(req);
+      const decodedToken = await verifyToken(req);
       if (!decodedToken) {
         return NextResponse.json(
           { error: 'Unauthorized' },
@@ -67,11 +67,9 @@ export async function POST(request: NextRequest) {
       const questionsForEvaluation = test.questions.map((q) => ({
         id: q.id,
         question: q.question,
-        type: q.type,
         options: q.options ? JSON.parse(q.options) : null,
         correctAnswer: q.correctAnswer,
         explanation: q.explanation,
-        difficulty: q.difficulty,
         points: q.points
       }));
 

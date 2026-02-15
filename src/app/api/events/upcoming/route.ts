@@ -9,55 +9,55 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
-    if (!decodedToken) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+      const decodedToken = await verifyToken(req);
+      if (!decodedToken) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
 
-    // Get current date and tomorrow's date
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+      // Get current date and tomorrow's date
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // Get upcoming events (within 24 hours)
-    const events = await prisma.event.findMany({
-      where: {
-        startDate: {
-          lte: tomorrow,
-          gte: now,
-        },
-        OR: [
-          {
-            isPublic: true,
+      // Get upcoming events (within 24 hours)
+      const events = await prisma.event.findMany({
+        where: {
+          startDate: {
+            lte: tomorrow,
+            gte: now,
           },
-          {
-            attendees: {
-              some: {
-                userId: decodedToken.userId,
+          OR: [
+            {
+              isPublic: true,
+            },
+            {
+              attendees: {
+                some: {
+                  userId: decodedToken.userId,
+                },
               },
             },
-          },
-        ],
-      },
-      include: {
-        attendees: {
-          where: {
-            userId: decodedToken.userId,
+          ],
+        },
+        include: {
+          attendees: {
+            where: {
+              userId: decodedToken.userId,
+            },
           },
         },
-      },
-    });
+      });
 
-    return NextResponse.json({ events });
-  } catch (error) {
-    logger.error('Error fetching upcoming events:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch upcoming events' },
-      { status: 500 }
-    );
+      return NextResponse.json({ events });
+    } catch (error) {
+      logger.error('Error fetching upcoming events:', error);
+      return NextResponse.json(
+        { error: 'Failed to fetch upcoming events' },
+        { status: 500 }
+      );
     }
   });
 }

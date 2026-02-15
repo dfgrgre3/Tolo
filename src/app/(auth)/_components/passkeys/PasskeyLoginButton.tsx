@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { usePasskeyAuthentication } from '../hooks/usePasskeyAuthentication';
+import { usePasskeyAuthentication } from '@/hooks/auth/usePasskeyAuthentication';
 import { getSyncedPasskeyService } from './SyncedPasskeyService';
 
 interface PasskeyLoginButtonProps {

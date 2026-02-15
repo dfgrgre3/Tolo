@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useUnifiedAuth } from '@/contexts/auth-context';
 import { toast } from 'sonner';
 import { Eye, EyeOff, Lock, Loader2, CheckCircle2, XCircle } from 'lucide-react';
-import { getPasswordStrengthDisplay } from '../_utils/password-strength';
+import { getPasswordStrengthDisplay } from '@/lib/auth/password-strength';
 import { parseApiError, handleNetworkError, createFetchWithTimeout } from '../_utils/error-handling';
 // Token is in httpOnly cookie - no need to import getTokenFromStorage
 

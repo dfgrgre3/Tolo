@@ -251,7 +251,14 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      await authManager.login(token, userData as any, sessionId);
+      const userToLogin: User = userData ?? {
+        id: '', // Will be populated by server sync
+        email: '',
+        role: 'user',
+        emailVerified: false,
+        twoFactorEnabled: false,
+      };
+      await authManager.login(token, userToLogin, sessionId);
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       setError(error);
@@ -301,6 +308,14 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
           twoFactorEnabled: response.user.twoFactorEnabled ?? false,
           lastLogin: response.user.lastLogin ? new Date(response.user.lastLogin).toISOString() : undefined,
           role: response.user.role ?? 'user',
+          avatar: response.user.avatar || null,
+          // Gamification
+          level: response.user.level,
+          xp: response.user.xp,
+          xpToNextLevel: response.user.xpToNextLevel,
+          rank: response.user.rank,
+          badges: response.user.badges,
+          bio: response.user.bio,
         };
         await login(response.token, user, response.sessionId);
         
@@ -337,6 +352,14 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
           twoFactorEnabled: response.user.twoFactorEnabled ?? false,
           lastLogin: response.user.lastLogin ? new Date(response.user.lastLogin).toISOString() : undefined,
           role: response.user.role ?? 'user',
+          avatar: response.user.avatar || null,
+          // Gamification
+          level: response.user.level,
+          xp: response.user.xp,
+          xpToNextLevel: response.user.xpToNextLevel,
+          rank: response.user.rank,
+          badges: response.user.badges,
+          bio: response.user.bio,
         };
         await login(response.token, user, response.sessionId);
       }
@@ -385,9 +408,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
 
   // تحديث بيانات المستخدم
   const updateUser = useCallback((userData: Partial<User>) => {
-    // Convert shared User type to internal AuthManager User type if needed
-    // For now, we cast to any to avoid strict type checking issues between the two types
-    authManager.updateUser(userData as any);
+    authManager.updateUser(userData);
   }, [authManager]);
 
   // تحديث بيانات المستخدم من الخادم

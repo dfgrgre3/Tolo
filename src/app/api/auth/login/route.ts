@@ -56,8 +56,18 @@ export async function POST(req: NextRequest) {
         id: user.id,
         name: user.name,
         email: user.email,
+        username: user.username,
+        phone: user.phone,
         role: userRole,
-        image: user.avatar // Map avatar to image for frontend consistency if needed, or just use avatar
+        avatar: user.avatar || null,
+        emailVerified: user.emailVerified ?? false,
+        twoFactorEnabled: user.twoFactorEnabled ?? false,
+        lastLogin: user.lastLogin,
+        createdAt: user.createdAt,
+        level: user.level,
+        xp: user.totalXP,
+        totalXP: user.totalXP,
+        provider: 'local',
       },
       token: accessToken,       // للتوافق مع الكود الحالي
       accessToken: accessToken  // <-- أضف هذا السطر لحل مشكلة MISSING_TOKEN

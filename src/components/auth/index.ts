@@ -13,7 +13,7 @@ export { TwoFactorForm } from './TwoFactorForm';
 export { AlternativeLoginMethods } from './AlternativeLoginMethods';
 export { LoginFormSkeleton } from './LoginFormSkeleton';
 export { AnimatedBackground } from './AnimatedBackground';
-export { AuthButton } from './AuthButton';
+export { AuthButton, SocialButton } from './AuthButton';
 export { AuthCard } from './AuthCard';
 export { AuthInput } from './AuthInput';
 export { LockoutCountdown } from './LockoutCountdown';

@@ -1,12 +1,12 @@
 import { prisma } from '@/lib/db';
-import { AuthService } from '@/lib/services/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { logger } from '@/lib/logger';
 
 export class PasswordHistoryService {
   private static instance: PasswordHistoryService;
   private readonly HISTORY_LIMIT = 5; // Keep last 5 passwords
 
-  private constructor() {}
+  private constructor() { }
 
   public static getInstance(): PasswordHistoryService {
     if (!PasswordHistoryService.instance) {
@@ -27,7 +27,7 @@ export class PasswordHistoryService {
       });
 
       for (const record of history) {
-        const isMatch = await AuthService.comparePasswords(password, record.passwordHash);
+        const isMatch = await authService.verifyPassword(password, record.passwordHash);
         if (isMatch) {
           return {
             exists: true,

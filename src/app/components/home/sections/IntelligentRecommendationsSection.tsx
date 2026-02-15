@@ -185,47 +185,50 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
                   transition={{ delay: index * 0.1 }}
                   whileHover={{ y: -5, scale: 1.02 }}
                 >
-                  <Card className="h-full border-slate-200/80 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden group">
-                    <CardHeader className="pb-3">
+                  <Card className="h-full border-slate-200/80 shadow-lg transition-all duration-300 overflow-hidden group relative hover:shadow-[0_0_25px_rgba(124,58,237,0.25)] hover:border-purple-500/40 dark:bg-slate-900/40 dark:border-slate-700">
+                    {/* Glowing Effect Background */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    
+                    <CardHeader className="pb-3 relative z-10">
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="rounded-lg bg-gradient-to-br from-purple-100 to-indigo-100 p-2">
+                          <div className="rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 p-2 ring-1 ring-purple-500/10">
                             {typeof recommendation.icon === 'string' 
-                              ? (iconMap[recommendation.icon] || <Sparkles className="h-5 w-5" />)
+                              ? (iconMap[recommendation.icon] || <Sparkles className="h-5 w-5 text-purple-600" />)
                               : recommendation.icon}
                           </div>
                           <Badge className={getPriorityColor(recommendation.priority)}>
                             {getPriorityLabel(recommendation.priority)}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-1 text-xs font-semibold text-purple-600">
-                          <TrendingUp className="h-3 w-3" />
+                        <div className="flex items-center gap-1 text-xs font-bold text-purple-600 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-full">
+                          <Zap className="h-3 w-3 fill-current" />
                           {recommendation.impact}%
                         </div>
                       </div>
-                      <CardTitle className="text-lg font-bold text-slate-900">
+                      <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 line-clamp-2">
                         {recommendation.title}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-muted-foreground leading-relaxed">
+                    <CardContent className="space-y-4 relative z-10">
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
                         {recommendation.description}
                       </p>
 
                       {recommendation.estimatedTime && (
-                        <div className="flex items-center gap-2 text-xs text-slate-600">
-                          <Clock className="h-4 w-4" />
+                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800/50 w-fit px-2 py-1 rounded-md">
+                          <Clock className="h-3.5 w-3.5" />
                           <span>{recommendation.estimatedTime}</span>
                         </div>
                       )}
 
                       {/* Impact Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-muted-foreground">تأثير متوقع</span>
-                          <span className="font-semibold text-purple-600">{recommendation.impact}%</span>
+                      <div className="space-y-1.5 pt-2">
+                        <div className="flex justify-between text-xs font-medium">
+                          <span className="text-muted-foreground">التأثير المتوقع على مستواك</span>
+                          <span className="text-purple-600">{recommendation.impact}%</span>
                         </div>
-                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${recommendation.impact}%` }}
@@ -235,10 +238,10 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
                         </div>
                       </div>
 
-                      <Link href={recommendation.actionUrl}>
-                        <Button className="w-full group-hover:bg-gradient-to-r group-hover:from-purple-600 group-hover:to-indigo-600 transition-all">
-                          <span>اعرض التفاصيل</span>
-                          <ArrowRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                      <Link href={recommendation.actionUrl} className="block mt-4">
+                        <Button className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-purple-600 hover:to-indigo-600 dark:bg-slate-800 text-white transition-all duration-300 shadow-md group-hover:shadow-lg">
+                          <span>تنفيذ التوصية</span>
+                          <ArrowRight className="h-4 w-4 mr-2 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1 transition-transform" />
                         </Button>
                       </Link>
                     </CardContent>

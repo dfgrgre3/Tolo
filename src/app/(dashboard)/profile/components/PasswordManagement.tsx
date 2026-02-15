@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Key, AlertTriangle, CheckCircle2, Eye, EyeOff, Shield, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { getPasswordStrengthDisplay } from '@/app/(auth)/components/utils/password-strength';
+import { getPasswordStrengthDisplay } from '@/lib/auth/password-strength';
 
 import { logger } from '@/lib/logger';
 

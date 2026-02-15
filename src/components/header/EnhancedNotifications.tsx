@@ -47,12 +47,7 @@ interface Notification {
 	time?: string;
 }
 
-interface User {
-	id: string;
-	email: string;
-	name?: string;
-	role?: string;
-}
+import { type User } from "@/types/api/auth";
 
 interface HeaderNotificationsProps {
 	user: User | null;

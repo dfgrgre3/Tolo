@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
       // Try to get userId from token if not provided
       let actualUserId = userId;
       if (!actualUserId) {
-        const decodedToken = verifyToken(req);
+        const decodedToken = await verifyToken(req);
         if (decodedToken) {
           actualUserId = decodedToken.userId;
         }

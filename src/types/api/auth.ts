@@ -10,6 +10,8 @@ export interface User {
   id: string;
   email: string;
   name?: string | null;
+  username?: string | null;
+  phone?: string | null;
   role: string;
   avatar?: string | null;
   emailVerified: boolean;
@@ -17,6 +19,14 @@ export interface User {
   lastLogin?: DateString | Date | null;
   provider?: 'local' | 'google' | 'facebook';
   createdAt?: DateString | Date;
+  // Gamification & Profile
+  level?: number;
+  xp?: number;
+  totalXP?: number;
+  xpToNextLevel?: number;
+  rank?: string;
+  badges?: string[];
+  bio?: string;
 }
 
 export type RiskLevel = 'low' | 'medium' | 'high' | 'critical';

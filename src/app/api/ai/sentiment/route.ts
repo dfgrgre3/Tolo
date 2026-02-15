@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const decodedToken = verifyToken(req);
+      const decodedToken = await verifyToken(req);
       if (!decodedToken) {
         return NextResponse.json(
           { error: "غير مصرح" },
@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const decodedToken = verifyToken(req);
+      const decodedToken = await verifyToken(req);
       if (!decodedToken) {
         return NextResponse.json(
           { error: "غير مصرح" },

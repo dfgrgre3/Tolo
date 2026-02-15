@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { authService } from '@/lib/services/auth-service';
+import { withEnhancedAuth } from '@/lib/auth/enhanced-middleware';
 import { addSecurityHeaders, createStandardErrorResponse, parseRequestBody } from '@/app/api/auth/_helpers';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await authService.getCurrentUser();
-    if (!authResult.isValid || !authResult.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
+    const authResult = await withEnhancedAuth(request, {
+      requireAuth: true,
+      checkSession: true,
+    });
+
+    if (!authResult.success) {
+      return authResult.response;
     }
 
-    const sessions = await authService.getUserSessions(authResult.user.id);
-    
+    const { user, sessionId } = authResult;
+
+    const sessions = await authService.getUserSessions(user.id);
+
     // Map to safe response format
     const safeSessions = sessions.map(session => ({
       id: session.id,
@@ -23,7 +27,7 @@ export async function GET(request: NextRequest) {
       deviceInfo: session.deviceInfo ? JSON.parse(session.deviceInfo) : null,
       createdAt: session.createdAt,
       lastAccessed: session.lastAccessed,
-      isCurrent: session.id === authResult.sessionId
+      isCurrent: session.id === sessionId
     }));
 
     const response = NextResponse.json({
@@ -39,13 +43,16 @@ export async function GET(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const authResult = await authService.getCurrentUser();
-    if (!authResult.isValid || !authResult.user) {
-      return NextResponse.json(
-        { error: 'Unauthorized', code: 'UNAUTHORIZED' },
-        { status: 401 }
-      );
+    const authResult = await withEnhancedAuth(request, {
+      requireAuth: true,
+      checkSession: true,
+    });
+
+    if (!authResult.success) {
+      return authResult.response;
     }
+
+    const { user, sessionId: currentSessionId } = authResult;
 
     const bodyResult = await parseRequestBody<{ sessionId: string }>(request);
     if (!bodyResult.success) return bodyResult.error;
@@ -60,14 +67,14 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Prevent revoking current session via this endpoint (use logout instead)
-    if (sessionId === authResult.sessionId) {
+    if (sessionId === currentSessionId) {
       return NextResponse.json(
         { error: 'Cannot revoke current session via this endpoint', code: 'INVALID_OPERATION' },
         { status: 400 }
       );
     }
 
-    const success = await authService.revokeSession(sessionId, authResult.user.id);
+    const success = await authService.revokeSession(sessionId, user.id);
 
     if (!success) {
       return NextResponse.json(

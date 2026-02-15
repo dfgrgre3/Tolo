@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       // Verify authentication
-      const decodedToken = verifyToken(req);
+      const decodedToken = await verifyToken(req);
       if (!decodedToken) {
         return NextResponse.json(
           { error: 'غير مصرح لك بالوصول' },

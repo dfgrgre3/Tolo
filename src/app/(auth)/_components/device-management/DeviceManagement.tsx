@@ -26,7 +26,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AuthButton } from '../shared';
+import { AuthButton } from '@/components/auth';
 import { useDeviceManagement, Device } from './useDeviceManagement';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';

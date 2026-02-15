@@ -10,7 +10,7 @@ import type {
   ApiError,
   Session,
   DeviceFingerprint,
-} from '../types/core.types';
+} from '../_types/core.types';
 
 /**
  * Type guard for User object

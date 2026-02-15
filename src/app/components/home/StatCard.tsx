@@ -1,40 +1,87 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
-import { TrendingUp } from "lucide-react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { motion, useInView } from "framer-motion";
+import { StatCardProps } from "./types";
+import { rpgCommonStyles } from "./constants";
 
-interface StatCardProps {
-  icon: React.ReactNode;
-  title: string;
-  value: number | string;
-  unit: string;
-  trend?: string;
-  color: string;
-}
+export const StatCard = ({ icon, value, label, color, delay = 0 }: StatCardProps) => {
+  const [displayValue, setDisplayValue] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  
+  // Extract number and suffix (e.g., "2000+" -> 2000, "+")
+  const { endValue, suffix } = useMemo(() => {
+    const stringValue = String(value);
+    const match = stringValue.match(/(\d+)(.*)/);
+    if (match) {
+      return { endValue: parseInt(match[1], 10), suffix: match[2] };
+    }
+    return { endValue: 0, suffix: "" };
+  }, [value]);
 
-export const StatCard = ({ icon, title, value, unit, trend, color }: StatCardProps) => (
-  <motion.div 
-    className="group relative flex flex-col items-center rounded-3xl border border-slate-100/80 bg-white/80 p-6 text-center shadow-xl backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:shadow-2xl"
-    whileHover={{ y: -8, scale: 1.03 }}
-    transition={{ type: "spring", stiffness: 300, damping: 20 }}
-  >
-    <div className="absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent" />
-    <div className={`mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br ${color} shadow-md group-hover:shadow-lg transition-shadow duration-300`}>
-      {icon}
-    </div>
-    <p className="mb-2 text-sm font-medium text-muted-foreground">{title}</p>
-    <div className="flex items-baseline gap-2">
-      <span className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-        {value}
-      </span>
-      <span className="text-base font-medium text-muted-foreground">{unit}</span>
-    </div>
-    {trend && (
-      <div className="mt-3 flex items-center justify-center text-sm font-medium text-emerald-600">
-        <TrendingUp className="mr-1 h-4 w-4" />
-        <span>{trend}</span>
+  useEffect(() => {
+    if (isInView && endValue > 0) {
+      let startTimestamp: number | null = null;
+      const duration = 2000; // 2 seconds animation
+
+      const step = (timestamp: number) => {
+        if (!startTimestamp) startTimestamp = timestamp;
+        const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+        
+        // Easing function: easeOutExpo
+        const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+        
+        setDisplayValue(Math.floor(easeProgress * endValue));
+
+        if (progress < 1) {
+          window.requestAnimationFrame(step);
+        }
+      };
+
+      window.requestAnimationFrame(step);
+    }
+  }, [isInView, endValue]);
+
+  // Determine specific color classes based on the 'color' prop
+  // If it's a gradient string (starts with "bg-"), allow it, otherwise map key to gradient
+  const colorClass = color.startsWith("from-") || color.startsWith("bg-") 
+    ? color 
+    : "from-primary to-purple-600"; // Default fallback
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 20 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.5, delay }}
+      className={`relative overflow-hidden group ${rpgCommonStyles.card} flex flex-col items-center justify-center gap-4 text-center p-6`}
+    >
+      {/* Background Glow */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${colorClass} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
+      
+      {/* Icon Container */}
+      <div className={`relative z-10 p-4 rounded-full bg-gradient-to-br ${colorClass} bg-opacity-10 shadow-lg group-hover:scale-110 transition-transform duration-300 ring-1 ring-white/10`}>
+        <div className="text-white drop-shadow-md">
+           {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
+        </div>
       </div>
-    )}
-  </motion.div>
-);
+
+      <div className="relative z-10 space-y-1">
+        <div className="text-4xl font-black text-white tracking-tight drop-shadow-sm flex items-center justify-center gap-1">
+          <span className="tabular-nums">{displayValue}</span>
+          <span className="text-2xl text-primary/80">{suffix}</span>
+        </div>
+        <p className="text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
+          {label}
+        </p>
+      </div>
+
+      {/* Decorative corner accents */}
+      <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-white/5 to-transparent -mr-8 -mt-8 rounded-full blur-xl" />
+      <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-white/5 to-transparent -ml-8 -mb-8 rounded-full blur-xl" />
+    </motion.div>
+  );
+};
+
+export default StatCard;

@@ -1,5 +1,5 @@
 // scripts/verify-auth-foundation.ts
-import { authService, generateToken, verifyToken, hashPassword, verifyPassword } from '@/lib/auth-service';
+import { authService, generateToken, verifyToken, hashPassword, verifyPassword } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 
 async function main() {
@@ -48,7 +48,7 @@ async function main() {
     // 5. Test 2FA Token Generation (Compatibility Check)
     console.log('5. Testing 2FA Token Generation...');
     try {
-        const { generate2FATempToken } = await import('@/lib/auth-service');
+        const { generate2FATempToken } = await import('@/lib/services/auth-service');
         const tempToken = await generate2FATempToken({ userId: '123' });
         if (tempToken) {
             console.log('✅ 2FA Temp Token Generated');
@@ -59,9 +59,8 @@ async function main() {
         console.log('⚠️ generate2FATempToken not found or failed (Optional for Phase 1 base, but good for compat)');
     }
 
-}
 
-console.log('--- Verification Complete: ALL PASS ---');
+    console.log('--- Verification Complete: ALL PASS ---');
 }
 
 main().catch((e) => {

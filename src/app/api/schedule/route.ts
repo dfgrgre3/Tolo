@@ -12,52 +12,54 @@ const SchedulePostSchema = z.object({
   version: z.number().optional(),
 });
 
+
+
 export async function GET(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
       // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      const payload = await authService.verifyToken(request);
+      if (!payload) {
         return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
       }
-      const authUser = verification.user;
+      const authUser = { id: payload.userId, role: payload.role };
 
       const { searchParams } = new URL(request.url);
-    const userId = searchParams.get("userId");
-    
+      const userId = searchParams.get("userId");
+
       // Validate userId parameter
       if (!userId || userId === 'undefined' || userId.trim() === '') {
         return badRequestResponse('userId parameter is required', 'MISSING_USER_ID');
       }
-      
+
       // For security, we should only allow fetching the authenticated user's schedule
       // unless there's a specific admin requirement
       if (userId !== authUser.id) {
         return badRequestResponse('Invalid userId parameter', 'INVALID_PARAMETER');
       }
-      
-      let schedule = await prisma.schedule.findFirst({ 
-        where: { 
-          userId, 
-          active: true 
-        } 
+
+      let schedule = await prisma.schedule.findFirst({
+        where: {
+          userId,
+          active: true
+        }
       });
-      
+
       if (!schedule) {
-        schedule = await prisma.schedule.create({ 
-          data: { 
-            userId, 
-            name: "مخصص", 
+        schedule = await prisma.schedule.create({
+          data: {
+            userId,
+            name: "مخصص",
             title: "Default Schedule",
             startTime: new Date(),
             endTime: new Date(),
             // weeklyHours: 0, // Removed
-            planJson: JSON.stringify({}), 
-            active: true 
-          } 
+            planJson: JSON.stringify({}),
+            active: true
+          }
         });
       }
-      
+
       return successResponse(schedule);
     } catch (error) {
       return handleApiError(error);
@@ -69,11 +71,11 @@ export async function POST(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
       // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      const payload = await authService.verifyToken(request);
+      if (!payload) {
         return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
       }
-      const authUser = verification.user;
+      const authUser = { id: payload.userId, role: payload.role };
 
       let body;
       try {
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
       } catch (error) {
         return badRequestResponse('Invalid JSON body', 'INVALID_JSON');
       }
-      
+
       // Validate request body
       const parsedBody = SchedulePostSchema.safeParse(body);
       if (!parsedBody.success) {
@@ -90,18 +92,18 @@ export async function POST(req: NextRequest) {
           'VALIDATION_ERROR'
         );
       }
-      
+
       const { userId, plan, version } = parsedBody.data;
-      
+
       // For security, we should only allow modifying the authenticated user's schedule
       if (userId !== authUser.id) {
         return badRequestResponse('Invalid userId parameter', 'INVALID_PARAMETER');
       }
-      
+
       const existing = await prisma.schedule.findFirst({
-        where: { 
-          userId, 
-          active: true 
+        where: {
+          userId,
+          active: true
         }
       });
 
@@ -113,29 +115,29 @@ export async function POST(req: NextRequest) {
       }
 
       const schedule = await prisma.schedule.upsert({
-        where: { 
-          userId_active: { 
-            userId, 
-            active: true 
-          } 
+        where: {
+          userId_active: {
+            userId,
+            active: true
+          }
         },
-        update: { 
+        update: {
           planJson: JSON.stringify(plan),
           version: Date.now()
         },
-        create: { 
-          userId, 
-          name: "مخصص", 
+        create: {
+          userId,
+          name: "مخصص",
           title: "Default Schedule",
           startTime: new Date(),
           endTime: new Date(),
           // weeklyHours: 0, // Removed
-          planJson: JSON.stringify(plan), 
+          planJson: JSON.stringify(plan),
           active: true,
           version: Date.now()
         },
       });
-      
+
       return successResponse(schedule);
     } catch (error) {
       return handleApiError(error);

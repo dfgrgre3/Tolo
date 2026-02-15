@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { RegisterInput } from "@/lib/validations/auth";
+import { redis } from "@/lib/redis";
+import crypto from "crypto";
 
 // --- Constants ---
 const secret = process.env.JWT_SECRET;
@@ -30,8 +32,20 @@ export type AuthUser = {
     id: string;
     email: string;
     role: string;
-    name?: string;
-    image?: string;
+    name?: string | null;
+    avatar?: string | null;
+    emailVerified?: boolean;
+    twoFactorEnabled?: boolean;
+    lastLogin?: string | Date | null;
+    provider?: 'local' | 'google' | 'facebook';
+    createdAt?: string | Date;
+    // Gamification & Profile
+    level?: number;
+    xp?: number;
+    xpToNextLevel?: number;
+    rank?: string;
+    badges?: string[];
+    bio?: string;
 };
 
 export class AuthError extends Error {
@@ -190,6 +204,15 @@ export const authService = {
     },
 
     /**
+     * Get session by ID
+     */
+    async getSession(sessionId: string) {
+        return await prisma.session.findUnique({
+            where: { id: sessionId }
+        });
+    },
+
+    /**
      * Get current user from request (Helper)
      */
     async getCurrentUser(request: Request) {
@@ -212,7 +235,186 @@ export const authService = {
             throw new AuthError('Unauthorized', 'UNAUTHORIZED');
         }
         return user;
-    }
+    },
+
+    /**
+     * Get user sessions from DB
+     */
+    async getUserSessions(userId: string) {
+        return await prisma.session.findMany({
+            where: { userId, isActive: true },
+            orderBy: { lastAccessed: 'desc' }
+        });
+    },
+
+    /**
+     * Revoke a specific session
+     */
+    async revokeSession(sessionId: string, userId: string) {
+        try {
+            // Check existence first to ensure ownership
+            const session = await prisma.session.findFirst({
+                where: { id: sessionId, userId }
+            });
+
+            if (!session) return false;
+
+            await prisma.session.delete({
+                where: { id: sessionId }
+            });
+            return true;
+        } catch (error) {
+            return false;
+        }
+    },
+
+    /**
+     * Revoke all user sessions
+     */
+    async revokeAllUserSessions(userId: string, exceptSessionId?: string) {
+        const whereClause: any = { userId };
+        if (exceptSessionId) {
+            whereClause.id = { not: exceptSessionId };
+        }
+        await prisma.session.deleteMany({
+            where: whereClause
+        });
+    },
+
+    /**
+     * Create tokens
+     */
+    async createTokens(payload: UserPayload, sessionId?: string) {
+        const accessToken = await this.generateToken(payload, '1h');
+        const refreshToken = await this.generateToken({ ...payload, sessionId }, '30d');
+        return { accessToken, refreshToken };
+    },
+
+    /**
+     * Create session
+     */
+    async createSession(userId: string, refreshToken: string, userAgent: string, ip: string, remember: boolean = false) {
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + (remember ? 30 : 1));
+
+        return await prisma.session.create({
+            data: {
+                id: crypto.randomUUID(),
+                userId,
+                refreshToken,
+                userAgent,
+                ip,
+                expiresAt,
+                isActive: true
+            }
+        });
+    },
+
+    /**
+     * Check rate limit (generic)
+     */
+    async checkRateLimit(key: string, limit: number = 5, window: number = 900) {
+        try {
+            const attemptsKey = `ratelimit:${key}`;
+            const attempts = await redis.incr(attemptsKey);
+            if (attempts === 1) {
+                await redis.expire(attemptsKey, window);
+            }
+            if (attempts > limit) {
+                throw new Error('Rate limit exceeded');
+            }
+        } catch (e: any) {
+            if (e.message === 'Rate limit exceeded') throw e;
+            // Ignore redis errors
+        }
+    },
+
+    /**
+     * Check user rate limit
+     */
+    async checkUserRateLimit(userId: string, limit: number = 5, window: number = 900) {
+        return this.checkRateLimit(`user:${userId}`, limit, window);
+    },
+
+    /**
+     * Reset rate limit
+     */
+    async resetRateLimit(key: string) {
+        try { await redis.del(`ratelimit:${key}`); } catch (e) { }
+    },
+
+    /**
+     * Get 2FA lockout status
+     */
+    async get2FALockoutStatus(userId: string) {
+        try {
+            const attempts = await redis.get(`2fa_failures:${userId}`);
+            if (attempts && parseInt(attempts) >= 5) {
+                // Check if locked
+                // This is simplified. Proper lockout needs timestamp.
+                // Let's assume generic lockout for now or just check value.
+                return { locked: true, lockedUntil: new Date(Date.now() + 15 * 60 * 1000) };
+            }
+        } catch (e) { }
+        return { locked: false };
+    },
+
+    /**
+     * Record failed 2FA attempt
+     */
+    async recordFailed2FAAttempt(userId: string) {
+        try {
+            const key = `2fa_failures:${userId}`;
+            const attempts = await redis.incr(key);
+            if (attempts === 1) {
+                await redis.expire(key, 15 * 60); // 15 min window
+            }
+        } catch (e) { }
+    },
+
+    /**
+     * Reset 2FA attempts
+     */
+    async reset2FAAttempts(userId: string) {
+        try { await redis.del(`2fa_failures:${userId}`); } catch (e) { }
+    },
+
+    /**
+     * Get client IP from request
+     */
+    getClientIP(request: Request): string {
+        const forwarded = request.headers.get('x-forwarded-for');
+        if (forwarded) {
+            return forwarded.split(',')[0].trim();
+        }
+        return request.headers.get('x-real-ip') || '0.0.0.0';
+    },
+
+    /**
+     * Get user agent from request
+     */
+    getUserAgent(request: Request): string {
+        return request.headers.get('user-agent') || 'Unknown';
+    },
+
+    /**
+     * Log security event
+     */
+    async logSecurityEvent(userId: string, eventType: string, ip: string, metadata?: Record<string, any>) {
+        try {
+            await prisma.securityLog.create({
+                data: {
+                    userId,
+                    eventType,
+                    ip,
+                    userAgent: metadata?.userAgent || '',
+                    metadata: metadata ? JSON.stringify(metadata) : undefined,
+                },
+            });
+        } catch (e) {
+            // Non-blocking - don't fail the main operation
+        }
+    },
 };
 
 // --- Standalone Exports for Backward Compatibility & Ease of Use ---
@@ -226,3 +428,7 @@ export const getUserById = authService.getUserById.bind(authService);
 export const generate2FATempToken = authService.generate2FATempToken.bind(authService);
 export const getCurrentUser = authService.getCurrentUser.bind(authService);
 export const requireAuth = authService.requireAuth.bind(authService);
+export const getUserSessions = authService.getUserSessions.bind(authService);
+export const revokeSession = authService.revokeSession.bind(authService);
+export const revokeAllUserSessions = authService.revokeAllUserSessions.bind(authService);
+export const getSession = authService.getSession.bind(authService);

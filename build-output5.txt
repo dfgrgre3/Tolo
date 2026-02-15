@@ -1,0 +1,36 @@
+??? Next.js 16.1.1 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ?? optimizePackageImports
+
+  Creating an optimized production build ...
+??? Compiled successfully in 17.2s
+  Running TypeScript ...
+node.exe : Failed to compile.
+At C:\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fai 
+   led to compile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/(auth)/_utils/type-guards.ts:13:8
+Type error: Cannot find module 
+'../types/core.types' or its corresponding type 
+declarations.
+
+[0m [90m 11 |[39m   
+[33mSession[39m[33m,[39m
+ [90m 12 |[39m   
+[33mDeviceFingerprint[39m[33m,[39m
+[31m[1m>[22m[39m[90m 13 |[39m } 
+[36mfrom[39m 
+[32m'../types/core.types'[39m[33m;[39m
+ [90m    |[39m        [31m[1m^[22m[39m
+ [90m 14 |[39m
+ [90m 15 |[39m [90m/**[39m
+ [90m 16 |[39m [90m * Type guard for User 
+object[39m[0m
+Next.js build worker exited with code: 1 and 
+signal: null

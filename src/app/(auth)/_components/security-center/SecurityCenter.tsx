@@ -33,7 +33,7 @@ import {
   Fingerprint,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AuthButton } from '../shared';
+import { AuthButton } from '@/components/auth';
 import { logger } from '@/lib/logger';
 
 // Types

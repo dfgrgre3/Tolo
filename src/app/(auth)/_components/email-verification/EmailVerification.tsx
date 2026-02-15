@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { AuthCard, AuthButton } from '../shared';
+import { AuthCard, AuthButton } from '@/components/auth';
 import { useEmailVerification, VerificationStatus } from './useEmailVerification';
 
 interface EmailVerificationProps {

@@ -15,7 +15,8 @@
  */
 
 import { useUnifiedAuth } from '@/contexts/auth-context';
-import type { User, UnifiedAuthContextType } from '@/components/auth/providers/UnifiedAuthProvider';
+import type { User } from '@/types/api/auth';
+import type { UnifiedAuthContextType } from '@/components/auth/providers/UnifiedAuthProvider';
 
 export { useUnifiedAuth as useAuth };
 export type { User, UnifiedAuthContextType as AuthContextType };

@@ -1,366 +1,152 @@
-import React, { memo, useState, useEffect, useCallback } from 'react';
+"use client";
+
+import React, { memo } from 'react';
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { 
-  Trophy, 
-  Star, 
-  Award, 
-  Target, 
-  CheckCircle2, 
-  BookOpen, 
-  Calendar,
-  TrendingUp,
-  ArrowRight,
-  Sparkles,
-  Loader2
-} from "lucide-react";
+import { Trophy, Star, Award, Target, CheckCircle2, BookOpen, Calendar, ArrowRight, Sparkles } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { rpgCommonStyles } from "../constants";
 
-// Firebase imports (Mandatory for real-world apps)
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from 'firebase/auth';
-import { getFirestore, collection, onSnapshot, doc, setDoc } from 'firebase/firestore';
+// --- Types ---
+export interface Achievement {
+  id: string;
+  icon?: React.ReactNode;
+  title: string;
+  description: string;
+  progress: number;
+  color?: string;
+  iconName?: string; // Fallback for serializable data
+}
 
-import { logger } from '@/lib/logger';
+export interface AchievementStat {
+  id: string;
+  icon?: React.ReactNode;
+  value: string | number;
+  label: string;
+  color?: string;
+}
 
-// Default achievement structure used as template when initializing Firebase collections
-// Real data comes from Firebase Firestore
-const ACHIEVEMENTS_STRUCTURE = [
-  { id: 'study_hero', icon: <Trophy className="h-8 w-8 text-yellow-500" />, title: "بطل الدراسة", description: "أكمل 10 أيام متتالية من المذاكرة", progress: 70, color: "bg-gradient-to-r from-yellow-400 to-amber-500" },
-  { id: 'star_student', icon: <Star className="h-8 w-8 text-blue-500" />, title: "نجم المواد", description: "احصل على معدل 90% في 3 مواد مختلفة", progress: 45, color: "bg-gradient-to-r from-blue-400 to-indigo-500" },
-  { id: 'excel_analyst', icon: <Award className="h-8 w-8 text-purple-500" />, title: "محلل ممتاز", description: "استخدم أدوات التحليل 5 أيام متتالية", progress: 80, color: "bg-gradient-to-r from-purple-400 to-pink-500" },
-  { id: 'goal_maker', icon: <Target className="h-8 w-8 text-green-500" />, title: "صانع الأهداف", description: "حقق 80% من أهدافك الأسبوعية", progress: 60, color: "bg-gradient-to-r from-green-400 to-emerald-500" },
-  { id: 'active_reader', icon: <BookOpen className="h-8 w-8 text-red-500" />, title: "قارئ نشط", description: "اقرأ 5 كتب من المكتبة التعليمية", progress: 30, color: "bg-gradient-to-r from-red-400 to-rose-500" },
-  { id: 'time_manager', icon: <Calendar className="h-8 w-8 text-cyan-500" />, title: "منظم الوقت", description: "التزم بجدولك الدراسي لمدة أسبوع", progress: 90, color: "bg-gradient-to-r from-cyan-400 to-blue-500" }
+interface AchievementsSectionProps {
+  achievements?: Achievement[];
+  stats?: AchievementStat[];
+  loading?: boolean;
+}
+
+// --- Constants & Defaults ---
+const DEFAULT_ACHIEVEMENTS: Achievement[] = [
+  { id: '1', title: "بطل الدراسة", description: "أكمل 10 أيام متتالية من المذاكرة", progress: 70, color: "from-yellow-400 to-amber-500", icon: <Trophy className="text-white" /> },
+  { id: '2', title: "نجم المواد", description: "احصل على معدل 90% في 3 مواد", progress: 45, color: "from-blue-400 to-indigo-500", icon: <Star className="text-white" /> },
+  { id: '3', title: "محلل ممتاز", description: "استخدم أدوات التحليل 5 أيام", progress: 80, color: "from-purple-400 to-pink-500", icon: <Award className="text-white" /> },
 ];
 
-const STATS_STRUCTURE = [
-    { id: 'completed', icon: <CheckCircle2 className="h-6 w-6" />, value: "0", label: "إنجاز مكتمل", color: "text-green-600" },
-    { id: 'points', icon: <Star className="h-6 w-6" />, value: "0", label: "نقطة مكافأة", color: "text-yellow-500" },
-    { id: 'rank', icon: <Trophy className="h-6 w-6" />, value: "N/A", label: "مرتبة عالمية", color: "text-purple-600" },
-    { id: 'progress', icon: <TrendingUp className="h-6 w-6" />, value: "0%", label: "معدل التقدم", color: "text-blue-600" }
+const DEFAULT_STATS: AchievementStat[] = [
+  { id: 'completed', icon: <CheckCircle2 className="w-5 h-5 text-green-400" />, value: "12", label: "إنجاز مكتمل", color: "bg-green-500/10 border-green-500/20" },
+  { id: 'points', icon: <Star className="w-5 h-5 text-yellow-400" />, value: "2,450", label: "نقطة مكافأة", color: "bg-yellow-500/10 border-yellow-500/20" },
+  { id: 'rank', icon: <Trophy className="w-5 h-5 text-purple-400" />, value: "#42", label: "الترتيب الحالي", color: "bg-purple-500/10 border-purple-500/20" },
 ];
 
-const AchievementsLoader = () => (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-['Inter']" dir="rtl">
-        <div className="max-w-7xl mx-auto">
-            <div className="text-center mb-16">
-                <div className="h-8 w-40 bg-gray-200 rounded-full mx-auto mb-4 animate-pulse"></div>
-                <div className="h-6 w-64 bg-gray-300 rounded mx-auto mb-4 animate-pulse"></div>
-                <div className="h-4 w-96 bg-gray-200 rounded mx-auto animate-pulse"></div>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-                {[...Array(4)].map((_, i) => (
-                    <div key={i} className="h-32 bg-white/80 rounded-xl shadow-lg animate-pulse"></div>
-                ))}
-            </div>
-            <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-12">
-                {[...Array(6)].map((_, i) => (
-                    <div key={i} className="h-40 bg-white rounded-2xl border shadow-lg animate-pulse"></div>
-                ))}
-            </div>
-        </div>
-    </div>
-);
-
-export function AchievementsSection() {
-  const [isAuthReady, setIsAuthReady] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [userAchievements, setUserAchievements] = useState(ACHIEVEMENTS_STRUCTURE);
-  const [userStats, setUserStats] = useState(STATS_STRUCTURE);
-
-  // Define environment variables once - memoized to prevent recreation
-  const appId = typeof window !== 'undefined' && typeof (window as any).__app_id !== 'undefined' 
-    ? (window as any).__app_id 
-    : 'default-app-id';
-  const firebaseConfig = typeof window !== 'undefined' && typeof (window as any).__firebase_config !== 'undefined' 
-    ? JSON.parse((window as any).__firebase_config) 
-    : null;
-  const initialAuthToken = typeof window !== 'undefined' && typeof (window as any).__initial_auth_token !== 'undefined' 
-    ? (window as any).__initial_auth_token 
-    : null;
-
-  // Initialize Firebase and Auth State
-  useEffect(() => {
-    // Firebase is optional - use static data if not configured
-    if (!firebaseConfig) {
-      // Use static data instead of Firebase
-      setUserId('static-user-id');
-      setIsAuthReady(true);
-      setLoading(false);
-      return;
-    }
-
-    let unsubscribeAuth: (() => void) | null = null;
-
-    try {
-      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-      const auth = getAuth(app);
+// --- Sub-components ---
+const AchievementCard = memo(({ achievement, index }: { achievement: Achievement; index: number }) => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    whileInView={{ opacity: 1, scale: 1 }}
+    viewport={{ once: true }}
+    transition={{ delay: index * 0.1, duration: 0.4 }}
+    whileHover={{ y: -5 }}
+    className="h-full"
+  >
+    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition-all duration-300 group`}>
+      <div className={`absolute inset-0 bg-gradient-to-br ${achievement.color || "from-primary to-primary/50"} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
       
-      // Auth State Listener and Sign-in Logic
-      unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-          let currentUserId;
-          if (user) {
-              currentUserId = user.uid;
-          } else {
-              // Attempt sign in if token is provided, otherwise sign in anonymously
-              try {
-                  if (initialAuthToken) {
-                      const credentials = await signInWithCustomToken(auth, initialAuthToken);
-                      currentUserId = credentials.user.uid;
-                  } else {
-                      const credentials = await signInAnonymously(auth);
-                      currentUserId = credentials.user.uid;
-                  }
-              } catch (error) {
-                  logger.error("Firebase Auth Error: Failed to sign in.", error);
-                  // Fallback to anonymous or random ID if sign-in fails
-                  currentUserId = auth.currentUser?.uid || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2));
-              }
-          }
-          
-          setUserId(currentUserId);
-          setIsAuthReady(true);
-      });
-    } catch (error) {
-      logger.error("Firebase initialization error:", error);
-      setLoading(false);
-    }
-
-    // CRITICAL for memory consumption: Clean up Auth listener on unmount
-    return () => {
-      if (unsubscribeAuth) {
-        unsubscribeAuth();
-      }
-    };
-  }, [firebaseConfig, initialAuthToken]);
-
-  // Fetch Firestore Data Listeners
-  useEffect(() => {
-    // Return early if not ready or Firebase not configured
-    if (!isAuthReady || !userId) return;
-    
-    // If Firebase is not configured, use static data
-    if (!firebaseConfig) {
-      setUserAchievements(ACHIEVEMENTS_STRUCTURE);
-      setUserStats(STATS_STRUCTURE);
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-      const db = getFirestore(app);
-      
-      const achievementRef = collection(db, 'artifacts', appId, 'users', userId, 'userAchievements');
-      const statsDocRef = doc(db, 'artifacts', appId, 'users', userId, 'userStats', 'summary');
-
-      // 1. Achievements Listener
-      const unsubscribeAchievements = onSnapshot(achievementRef, (snapshot) => {
-        let liveAchievements = snapshot.docs.map(d => {
-          const staticData = ACHIEVEMENTS_STRUCTURE.find(a => a.id === d.id);
-          const liveData = d.data();
-          return {
-            id: d.id,
-            icon: staticData?.icon || <Trophy className="h-8 w-8 text-yellow-500" />,
-            title: (liveData.title as string) || staticData?.title || "",
-            description: (liveData.description as string) || staticData?.description || "",
-            progress: (liveData.progress as number) ?? staticData?.progress ?? 0,
-            color: staticData?.color || "bg-gradient-to-r from-yellow-400 to-amber-500",
-          };
-        }).filter(a => a.id); 
-        
-        if (liveAchievements.length === 0) {
-          // Initialize if collection is empty - batch writes for better performance
-          const initPromises = ACHIEVEMENTS_STRUCTURE.map((ach) =>
-            setDoc(doc(achievementRef, ach.id), { 
-              progress: ach.progress, 
-              title: ach.title, 
-              description: ach.description 
-            })
-          );
-          Promise.all(initPromises).catch((error) => {
-            logger.error("Error initializing achievements:", error);
-          });
-        } else {
-          // IMPROVEMENT: Sort data on client-side for stable UI and better UX
-          const sortedAchievements = [...liveAchievements].sort((a, b) => (b.progress || 0) - (a.progress || 0)); 
-          setUserAchievements(sortedAchievements as typeof ACHIEVEMENTS_STRUCTURE);
-        }
-        setLoading(false);
-      }, (error) => {
-        logger.error("Error fetching achievements:", error);
-        setLoading(false);
-      });
-
-      // 2. Stats Listener
-      const unsubscribeStats = onSnapshot(statsDocRef, (docSnap) => {
-          if (docSnap.exists()) {
-              const data = docSnap.data() as Record<string, any>;
-              const updatedStats = STATS_STRUCTURE.map(stat => {
-                  const liveValue = data[stat.id];
-                  if (liveValue !== undefined) {
-                      // Convert to string and append '%' only for progress
-                      return { ...stat, value: liveValue.toString() + (stat.id === 'progress' ? '%' : '') };
-                  }
-                  return stat;
-              });
-              // State update only if data is successfully fetched
-              setUserStats(updatedStats);
-          } else {
-              // Initialize stats document if it doesn't exist
-              const initialData = STATS_STRUCTURE.reduce((acc: Record<string, string | number>, stat) => {
-                  acc[stat.id] = (stat.id === 'rank' || stat.id === 'progress') ? '0' : 0;
-                  return acc;
-              }, {} as Record<string, string | number>);
-              setDoc(statsDocRef, initialData, { merge: true });
-          }
-      }, (error) => {
-        logger.error("Error fetching stats:", error);
-      });
-
-      // CRITICAL for memory consumption: Clean up Firestore listeners on unmount
-      return () => {
-          unsubscribeAchievements();
-          unsubscribeStats();
-      };
-    } catch (error) {
-      logger.error("Firestore error:", error);
-      // Fallback to static data on error
-      setUserAchievements(ACHIEVEMENTS_STRUCTURE);
-      setUserStats(STATS_STRUCTURE);
-      setLoading(false);
-    }
-  }, [isAuthReady, userId, firebaseConfig, appId]); // Runs only after auth is confirmed and userId is set
-
-  if (loading) {
-    return <AchievementsLoader />;
-  }
-  
-  // The use of React.memo on sub-components (Card, Button, etc.) already contributes significantly 
-  // to memory efficiency by preventing unnecessary VDOM diff calculations during re-renders.
-
-  return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-8 font-['Inter']" dir="rtl">
-      <div className="max-w-7xl mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.5 }}
-          className="text-center mb-16"
-        >
-          <Badge className="mb-4 bg-gradient-to-r from-yellow-600 to-amber-600 text-white border-0 px-4 py-2">
-            <Sparkles className="h-4 w-4 mr-2" />
-            إنجازاتك
-          </Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 text-gray-900">
-            تتبع إنجازاتك وتفوقك
-          </h2>
-          <p className="text-gray-600 max-w-3xl mx-auto text-lg">
-            احصل على تقدير على جهودك وتحفيز لمواصلة التقدم من خلال نظام الإنجازات المتكامل
-          </p>
-        </motion.div>
-
-        {/* Stats Overview */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12"
-        >
-          {userStats.map((stat, index) => (
-            <Card key={stat.id} className="border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all rounded-xl">
-              <CardContent className="p-6 text-center pt-6">
-                <div className={`w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4 ${stat.color}`}>
-                  {stat.icon}
-                </div>
-                <p className="text-3xl font-extrabold mb-1 text-gray-900">{stat.value}</p>
-                <p className="text-gray-500 text-sm">{stat.label}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </motion.div>
-
-        {/* Achievements Grid */}
-        <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-12">
-          {userAchievements.map((achievement, index) => (
-            <motion.div
-              key={achievement.id}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
-              whileHover={{ y: -5, scale: 1.01, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
-              className="h-full bg-white rounded-2xl border shadow-lg transition-all duration-300 flex flex-col overflow-hidden"
-            >
-              <div className={`p-1 ${achievement.color}`}>
-                <div className="bg-white p-6 rounded-xl h-full flex flex-col">
-                  <div className="flex items-start gap-4 mb-6">
-                    <div className={`w-14 h-14 rounded-full ${achievement.color} flex items-center justify-center flex-shrink-0`}>
-                      {achievement.icon}
-                    </div>
-                    <div className='flex flex-col flex-grow'>
-                      <h3 className="text-xl font-bold text-gray-900">{achievement.title}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{achievement.description}</p>
-                    </div>
-                  </div>
-
-                  <div className="mt-auto">
-                    <div className="flex justify-between text-sm mb-2">
-                      <span className="text-gray-500">التقدم</span>
-                      <span className="font-bold text-gray-900">{achievement.progress}%</span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2.5">
-                      <div 
-                        className={`h-2.5 rounded-full transition-all duration-700 ease-out ${achievement.color}`} 
-                        style={{ width: `${achievement.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
+      <div className="relative z-10 flex items-start gap-4">
+        <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${achievement.color || "from-gray-700 to-gray-600"} flex items-center justify-center shrink-0 shadow-lg`}>
+          {achievement.icon || <Trophy className="h-6 w-6 text-white" />}
         </div>
+        <div className="flex-1 space-y-1">
+          <h3 className="font-bold text-gray-100 group-hover:text-primary transition-colors">{achievement.title}</h3>
+          <p className="text-xs text-muted-foreground leading-snug">{achievement.description}</p>
+        </div>
+      </div>
 
-        {/* Call to Action */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.6 }}
-          className="text-center"
-        >
-          <Card className="border-0 bg-gradient-to-r from-yellow-500 to-amber-600 shadow-xl overflow-hidden rounded-2xl">
-            <CardContent className="p-0">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 p-8 text-white">
-                <div className="flex items-center gap-4 text-right">
-                  <div className="bg-white/20 p-4 rounded-full backdrop-blur-sm flex-shrink-0">
-                    <Trophy className="h-8 w-8" />
-                  </div>
-                  <div>
-                    <h3 className="font-extrabold text-2xl">هل أنت مستعد لتحقيق المزيد من الإنجازات؟</h3>
-                    <p className="text-yellow-100 text-lg mt-1">تابع تقدمك واحصل على المزيد من المكافآت</p>
-                  </div>
-                </div>
-                <div className="flex gap-4">
-                  <Link href="/achievements">
-                    <Button variant="secondary" className="bg-white text-amber-600 hover:bg-yellow-50 px-6 py-3 text-lg border-0 shadow-xl font-bold rounded-lg">
-                      عرض جميع الإنجازات
-                      <ArrowRight className="h-5 w-5 ml-2" />
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="mt-4 space-y-2 relative z-10">
+        <div className="flex justify-between text-xs font-medium">
+          <span className="text-gray-400">التقدم</span>
+          <span className="text-primary">{achievement.progress}%</span>
+        </div>
+        <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }}
+            whileInView={{ width: `${achievement.progress}%` }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className={`h-full rounded-full bg-gradient-to-r ${achievement.color || "from-primary to-purple-500"}`}
+          />
+        </div>
       </div>
     </div>
+  </motion.div>
+));
+AchievementCard.displayName = "AchievementCard";
+
+export const AchievementsSection = memo(function AchievementsSection({ 
+  achievements = DEFAULT_ACHIEVEMENTS, 
+  stats = DEFAULT_STATS, 
+  loading = false 
+}: AchievementsSectionProps) {
+  
+  if (loading) {
+     return <div className="h-64 animate-pulse bg-white/5 rounded-3xl" />;
+  }
+
+  return (
+    <section className={rpgCommonStyles.glassPanel + " px-6 py-10"}>
+       <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-5 mix-blend-overlay pointer-events-none" />
+       
+       <div className="relative z-10">
+         <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-10">
+            <div className="text-center md:text-right">
+              <Badge variant="outline" className="mb-3 bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/20 backdrop-blur-sm">
+                <Sparkles className="h-3 w-3 mr-2" />
+                <span>لوحة الشرف</span>
+              </Badge>
+              <h2 className={`text-3xl font-black ${rpgCommonStyles.goldText}`}>
+                إنجازاتك الأسطورية
+              </h2>
+              <p className="text-muted-foreground text-sm mt-1">سجلك الحافل بالانتصارات والأوسمة</p>
+            </div>
+
+            {/* Quick Stats Row */}
+            <div className="flex flex-wrap justify-center gap-3">
+              {stats.map((stat) => (
+                <div key={stat.id} className={`flex items-center gap-3 px-4 py-2 rounded-xl border backdrop-blur-md ${stat.color || "bg-white/5 border-white/10"}`}>
+                  <div className="shrink-0">{stat.icon}</div>
+                  <div className="text-center">
+                    <div className="text-lg font-bold text-white leading-none">{stat.value}</div>
+                    <div className="text-[10px] text-gray-400 mt-1">{stat.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+         </div>
+
+         <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 mb-8">
+           {achievements.map((ach, idx) => (
+             <AchievementCard key={ach.id} achievement={ach} index={idx} />
+           ))}
+         </div>
+
+         <div className="text-center">
+            <Link href="/achievements">
+              <Button size="lg" variant="ghost" className="group text-gray-300 hover:text-white hover:bg-white/10">
+                <span>عرض سجل الأوسمة الكامل</span>
+                <ArrowRight className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform rtl:rotate-180 rtl:group-hover:-translate-x-1" />
+              </Button>
+            </Link>
+         </div>
+       </div>
+    </section>
   );
-}
+});
 
 export default AchievementsSection;

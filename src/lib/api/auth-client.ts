@@ -636,7 +636,7 @@ export async function verifyTwoFactor(
       };
     }
 
-    const response = await apiFetch<TwoFactorVerifyResponse>('/two-factor', {
+    const response = await apiFetch<TwoFactorVerifyResponse>('/2fa/verify-login', {
       method: 'POST',
       body: JSON.stringify({
         loginAttemptId: request.loginAttemptId || request.challengeId,
@@ -915,7 +915,7 @@ export async function setupTOTP(): Promise<{
     manualEntryKey: string;
     recoveryCodes: string[];
     message: string;
-  }>('/two-factor/totp/setup', {
+  }>('/2fa/setup', {
     method: 'POST',
   });
 }
@@ -926,7 +926,7 @@ export async function setupTOTP(): Promise<{
 export async function verifyTOTPCode(code: string): Promise<{
   message: string;
 }> {
-  return apiFetch<{ message: string }>('/two-factor/totp/verify', {
+  return apiFetch<{ message: string }>('/2fa/verify', {
     method: 'POST',
     body: JSON.stringify({ code }),
   });
@@ -939,7 +939,7 @@ export async function verifyTOTPForLogin(data: {
   loginAttemptId: string;
   code: string;
 }): Promise<TwoFactorVerifyResponse> {
-  return apiFetch<TwoFactorVerifyResponse>('/two-factor/totp/verify-login', {
+  return apiFetch<TwoFactorVerifyResponse>('/2fa/verify-login', {
     method: 'POST',
     body: JSON.stringify(data),
   });
@@ -952,7 +952,7 @@ export async function getRecoveryCodes(): Promise<{
   codes: string[];
   remaining: number;
 }> {
-  return apiFetch<{ codes: string[]; remaining: number }>('/two-factor/recovery-codes', {
+  return apiFetch<{ codes: string[]; remaining: number }>('/2fa/recovery-codes', {
     method: 'GET',
   });
 }
@@ -964,7 +964,7 @@ export async function generateRecoveryCodes(): Promise<{
   codes: string[];
   message: string;
 }> {
-  return apiFetch<{ codes: string[]; message: string }>('/two-factor/recovery-codes', {
+  return apiFetch<{ codes: string[]; message: string }>('/2fa/recovery-codes', {
     method: 'POST',
   });
 }

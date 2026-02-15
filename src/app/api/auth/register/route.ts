@@ -49,7 +49,12 @@ export async function POST(req: NextRequest) {
         name: newUser.name,
         email: newUser.email,
         role: userRole,
-        image: newUser.avatar
+        avatar: newUser.avatar || null,
+        emailVerified: false,
+        twoFactorEnabled: false,
+        lastLogin: null,
+        createdAt: newUser.createdAt,
+        provider: 'local',
       },
       token: accessToken
     }, { status: 201 });

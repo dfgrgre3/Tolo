@@ -2,7 +2,7 @@
  * Utility functions for the Enhanced Login Form
  */
 
-import { LoginFormData, FieldErrors } from '../types/login-form.types';
+import { LoginFormData, FieldErrors } from '../_types/login-form.types';
 import { LAST_VISITED_PATH_KEY } from '@/providers/ClientLayoutProvider';
 import { safeGetItem, safeRemoveItem, safeWindow } from '@/lib/safe-client-utils';
 import { logger } from '@/lib/logger';

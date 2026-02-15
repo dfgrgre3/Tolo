@@ -5,13 +5,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/services/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
     try {
-        const authService = AuthService.getInstance();
 
         // Get token from Authorization header
         const authHeader = request.headers.get('authorization');

@@ -5,14 +5,13 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/services/auth-service';
+import { authService } from '@/lib/services/auth-service';
 import { getQRLoginService } from '@/lib/auth/qr-login-service';
 import { headers } from 'next/headers';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
     try {
-        const authService = AuthService.getInstance();
 
         // Get token from Authorization header
         const authHeader = request.headers.get('authorization');
@@ -28,14 +27,14 @@ export async function POST(request: NextRequest) {
         // Verify token
         const verification = await authService.verifyTokenFromInput(token);
 
-        if (!verification.isValid || !verification.user?.id) {
+        if (!verification.isValid || !verification.user?.userId) {
             return NextResponse.json(
                 { error: 'جلسة غير صالحة' },
                 { status: 401 }
             );
         }
 
-        const userId = verification.user.id;
+        const userId = verification.user.userId;
         const { sessionId, device } = await request.json();
 
         if (!sessionId) {

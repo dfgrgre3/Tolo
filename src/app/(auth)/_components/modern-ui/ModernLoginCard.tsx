@@ -27,7 +27,7 @@ import {
   CheckCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SocialButton } from '../shared';
+import { SocialButton } from '@/components/auth/AuthButton';
 import { useUnifiedAuth } from '@/contexts/auth-context';
 
 interface ModernLoginCardProps {

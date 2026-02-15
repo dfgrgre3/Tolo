@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Shield, MapPin, AlertTriangle, CheckCircle2, X, Plus, Trash2, Globe, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { CaptchaWidget } from '@/app/(auth)/components/CaptchaWidget';
+import { CaptchaWidget } from '@/app/(auth)/_components/CaptchaWidget';
 
 import { logger } from '@/lib/logger';
 

@@ -56,11 +56,11 @@ export {
   getPasswordStrengthDisplay,
   getPasswordStrengthLabel,
   getPasswordStrengthColor,
-} from './password-strength';
+} from '@/lib/auth/password-strength';
 
 export type {
   PasswordStrengthDisplay,
-} from './password-strength';
+} from '@/lib/auth/password-strength';
 
 // ============================================
 // معالجة الأخطاء القديمة (Legacy - للتوافق)

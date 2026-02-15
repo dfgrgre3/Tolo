@@ -1,296 +1,130 @@
 "use client";
 
-import { useState, useEffect, memo } from "react";
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { safeFetch } from "@/lib/safe-client-utils";
-import { logger } from '@/lib/logger';
-
+import { rpgCommonStyles } from "../constants";
 import { 
-  Activity,
-  Zap,
-  TrendingUp,
-  TrendingDown,
-  AlertTriangle,
-  CheckCircle2,
-  Clock,
-  BarChart3
+  Activity, Zap, TrendingUp, TrendingDown, AlertTriangle, 
+  CheckCircle2, Clock, Swords, Brain, Shield, Gauge 
 } from "lucide-react";
+import { PerformanceMetric, MetricStatus } from "../types";
 
-interface PerformanceMetric {
-  name: string;
-  value: number;
-  target: number;
-  unit: string;
-  trend: "up" | "down" | "stable";
-  status: "excellent" | "good" | "warning" | "critical";
+export interface DashboardProps {
+  metrics?: PerformanceMetric[];
+  loading?: boolean;
 }
 
-export const PerformanceDashboardSection = memo(function PerformanceDashboardSection() {
-  const [metrics, setMetrics] = useState<PerformanceMetric[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchMetrics = async () => {
-      try {
-        const { data, error } = await safeFetch<{ metrics: Record<string, { count: number; avg: number; min: number; max: number; trend: 'up' | 'down' | 'stable' }> }>(
-          "/api/analytics/performance",
-          undefined,
-          null
-        );
-
-        if (error || !data) {
-          setMetrics([]);
-          setLoading(false);
-          return;
-        }
-
-        // Transform API data to PerformanceMetric format
-        const transformedMetrics: PerformanceMetric[] = Object.entries(data.metrics || {}).map(([key, value]) => {
-          let status: "excellent" | "good" | "warning" | "critical" = "good";
-          let unit = "%";
-          let target = 100;
-
-          // Determine status and target based on metric type
-          if (key.includes("سرعة") || key.includes("سرعة التحميل")) {
-            status = value.avg >= 90 ? "excellent" : value.avg >= 70 ? "good" : "warning";
-            target = 85;
-          } else if (key.includes("وقت") || key.includes("استجابة")) {
-            status = value.avg <= 200 ? "excellent" : value.avg <= 500 ? "good" : "warning";
-            target = 200;
-            unit = "ms";
-          } else if (key.includes("خطأ") || key.includes("error")) {
-            status = value.avg <= 1 ? "excellent" : value.avg <= 2 ? "good" : "warning";
-            target = 2;
-          } else if (key.includes("ذاكرة") || key.includes("memory")) {
-            status = value.avg <= 70 ? "excellent" : value.avg <= 85 ? "good" : "warning";
-            target = 80;
-          } else if (key.includes("CPU")) {
-            status = value.avg <= 50 ? "excellent" : value.avg <= 70 ? "good" : "warning";
-            status = value.avg <= 50 ? "excellent" : value.avg <= 70 ? "good" : "warning";
-            target = 70;
-          }
-          
-          // Ensure target is never zero to avoid division by zero
-          target = target || 1;
-
-          return {
-            name: key,
-            value: Math.round(value.avg),
-            target,
-            unit,
-            trend: value.trend,
-            status
-          };
-        });
-
-        setMetrics(transformedMetrics);
-      } catch (error) {
-        logger.error("Error fetching performance metrics:", error);
-        setMetrics([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMetrics();
-    const interval = setInterval(fetchMetrics, 30000); // Update every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
-
-  const getStatusColor = (status: string) => {
+export const PerformanceDashboardSection = ({ metrics = [], loading = false }: DashboardProps) => {
+  
+  const getStatusColor = (status: MetricStatus) => {
     switch (status) {
-      case "excellent":
-        return "bg-green-100 text-green-700 border-green-200";
-      case "good":
-        return "bg-blue-100 text-blue-700 border-blue-200";
-      case "warning":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
-      case "critical":
-        return "bg-red-100 text-red-700 border-red-200";
-      default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+      case "excellent": return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+      case "good": return "bg-blue-500/10 text-blue-400 border-blue-500/20";
+      case "warning": return "bg-yellow-500/10 text-yellow-400 border-yellow-500/20";
+      case "critical": return "bg-red-500/10 text-red-400 border-red-500/20";
+      default: return "bg-gray-500/10 text-gray-400 border-gray-500/20";
     }
   };
 
-  const getStatusIcon = (status: string) => {
+  const getStatusIcon = (status: MetricStatus) => {
     switch (status) {
-      case "excellent":
-        return <CheckCircle2 className="h-4 w-4" />;
-      case "good":
-        return <CheckCircle2 className="h-4 w-4" />;
+      case "excellent": return <CheckCircle2 className="h-3.5 w-3.5" />;
+      case "good": return <Activity className="h-3.5 w-3.5" />;
       case "warning":
-        return <AlertTriangle className="h-4 w-4" />;
-      case "critical":
-        return <AlertTriangle className="h-4 w-4" />;
-      default:
-        return null;
+      case "critical": return <AlertTriangle className="h-3.5 w-3.5" />;
+      default: return null;
     }
-  };
-
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case "up":
-        return <TrendingUp className="h-4 w-4 text-green-600" />;
-      case "down":
-        return <TrendingDown className="h-4 w-4 text-red-600" />;
-      default:
-        return <Activity className="h-4 w-4 text-blue-600" />;
-    }
-  };
-
-  const calculateProgress = (value: number, target: number) => {
-    return Math.min(100, (value / target) * 100);
   };
 
   if (loading) {
     return (
-      <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
-        </div>
+      <section className={`${rpgCommonStyles.glassPanel} px-6 py-12 flex justify-center`}>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </section>
     );
   }
 
+  if (!metrics || metrics.length === 0) return null;
+
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-200/25 via-transparent to-indigo-200/25" />
+    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-10 py-8 !bg-black/20`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-indigo-500/5 pointer-events-none" />
       
       <div className="relative z-10">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 flex items-center justify-between"
-        >
+        <div className="mb-8 flex flex-col md:flex-row items-center justify-between gap-4 text-center md:text-right">
           <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 p-3">
-                <BarChart3 className="h-6 w-6 text-white" />
+            <div className="flex items-center justify-center md:justify-start gap-3 mb-2">
+              <div className="rounded-xl bg-primary/20 p-2 ring-1 ring-primary/40 backdrop-blur-md shadow-lg shadow-primary/10">
+                <Activity className="h-6 w-6 text-primary" />
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-primary">
-                لوحة مراقبة الأداء
+              <h2 className={`text-2xl md:text-3xl font-bold ${rpgCommonStyles.neonText}`}>
+                إحصائيات النظام (System Stats)
               </h2>
             </div>
-            <p className="text-muted-foreground text-lg">
-              رصد مباشر لأداء النظام والمكونات في الوقت الفعلي
+            <p className="text-muted-foreground text-sm md:text-base hidden md:block">
+              مراقبة مؤشراتك الحيوية وقدراتك الذهنية في الوقت الفعلي
             </p>
           </div>
-          <Badge className="bg-green-100 text-green-700 border-green-200">
-            <Clock className="h-3 w-3 mr-1" />
-            مباشر
+          <Badge variant="outline" className="bg-emerald-500/5 text-emerald-400 border-emerald-500/20 px-3 py-1 gap-1.5 backdrop-blur-sm self-center md:self-start">
+            <Clock className="h-3.5 w-3.5 animate-pulse" />
+            <span>Active Scan</span>
           </Badge>
-        </motion.div>
+        </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {metrics.map((metric, index) => (
             <motion.div
               key={metric.name}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 15 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -5 }}
+              transition={{ delay: index * 0.05 }}
+              whileHover={{ y: -4 }}
             >
-              <Card className="border-slate-200/80 shadow-lg hover:shadow-xl transition-all">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <CardTitle className="text-base font-semibold text-slate-900">
-                      {metric.name}
+              <Card className="border-white/5 bg-white/5 backdrop-blur-sm shadow-lg hover:shadow-primary/10 hover:border-primary/20 transition-all duration-300 h-full overflow-hidden">
+                <CardHeader className="p-4 pb-2 relative">
+                  <div className="flex items-start justify-between mb-1">
+                    <CardTitle className="text-sm font-bold text-gray-300 flex items-center gap-2 truncate pr-2 w-full">
+                       <span className="shrink-0 text-primary/80">{metric.icon}</span>
+                       <span className="truncate" title={metric.rpgName}>{metric.rpgName}</span>
                     </CardTitle>
-                    <Badge className={getStatusColor(metric.status)}>
-                      {getStatusIcon(metric.status)}
-                    </Badge>
+                    <div className={`shrink-0 rounded-full p-1 border ${getStatusColor(metric.status)}`}>
+                        {getStatusIcon(metric.status)}
+                    </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-bold text-slate-900">
-                      {metric.value.toFixed(metric.name.includes("معدل") ? 1 : 0)}
+                <CardContent className="p-4 pt-1 space-y-3">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-2xl font-bold text-white drop-shadow-sm tabular-nums tracking-tight">
+                      {metric.value}
                     </span>
-                    <span className="text-sm text-muted-foreground">{metric.unit}</span>
-                    <div className="ml-auto">
-                      {getTrendIcon(metric.trend)}
+                    <span className="text-xs text-gray-500 font-mono self-end mb-1">{metric.unit}</span>
+                    <div className="ml-auto flex items-center gap-1 text-[10px] text-gray-500">
+                      <span>الهدف: {metric.target}</span>
+                      {metric.trend === 'up' ? <TrendingUp className="h-3 w-3 text-emerald-400" /> : 
+                       metric.trend === 'down' ? <TrendingDown className="h-3 w-3 text-rose-400" /> : 
+                       <Activity className="h-3 w-3 text-blue-400" />}
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-muted-foreground">الهدف: {metric.target}{metric.unit}</span>
-                      <span className="text-muted-foreground">
-                        {metric.value < metric.target ? "تحت الهدف" : "فوق الهدف"}
-                      </span>
-                    </div>
+                  <div className="space-y-1.5">
                     <Progress 
-                      value={calculateProgress(metric.value, metric.target)} 
-                      className="h-2"
+                      value={Math.min((metric.value / metric.target) * 100, 100)} 
+                      className="h-1.5 bg-white/5" 
+                      indicatorClassName={metric.status === 'excellent' ? 'bg-emerald-500 shadow-[0_0_8px_currentColor]' : metric.status === 'good' ? 'bg-blue-500' : 'bg-yellow-500'}
                     />
-                  </div>
-
-                  <div className="flex items-center gap-2 text-xs">
-                    <Zap className="h-3 w-3 text-blue-600" />
-                    <span className="text-muted-foreground">
-                      {metric.value >= metric.target 
-                        ? `أفضل من الهدف بـ ${((metric.value / metric.target - 1) * 100).toFixed(0)}%`
-                        : `أقل من الهدف بـ ${((1 - metric.value / metric.target) * 100).toFixed(0)}%`
-                      }
-                    </span>
                   </div>
                 </CardContent>
               </Card>
             </motion.div>
           ))}
         </div>
-
-        {/* Summary Stats */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ delay: 0.6 }}
-          className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4"
-        >
-          <Card className="border-slate-200/80 bg-gradient-to-br from-green-50 to-emerald-50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-700">
-                {metrics.filter(m => m.status === "excellent").length}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">ممتاز</div>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200/80 bg-gradient-to-br from-blue-50 to-cyan-50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-700">
-                {metrics.filter(m => m.status === "good").length}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">جيد</div>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200/80 bg-gradient-to-br from-yellow-50 to-amber-50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-700">
-                {metrics.filter(m => m.status === "warning").length}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">تحذير</div>
-            </CardContent>
-          </Card>
-          <Card className="border-slate-200/80 bg-gradient-to-br from-red-50 to-rose-50">
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-red-700">
-                {metrics.filter(m => m.status === "critical").length}
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">حرج</div>
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
     </section>
   );
-});
+};
 
 export default PerformanceDashboardSection;
-

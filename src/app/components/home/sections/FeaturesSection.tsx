@@ -4,195 +4,114 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useUnifiedAuth } from "@/contexts/auth-context";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Play, ChevronRight, Zap, Bell, Users, Bot, BarChart3, BookOpen, CalendarCheck, Headphones, Award, Globe } from 'lucide-react';
-
-type Feature = {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  delay: number;
-  badge?: string;
-  link?: string;
-};
-
-const FEATURES: ReadonlyArray<Feature> = [
-  {
-    icon: <Zap className="h-6 w-6" />,
-    title: "سرعة وسهولة الاستخدام",
-    description: "واجهة عربية حديثة وسريعة الاستجابة لجميع الأجهزة.",
-    delay: 0.1,
-  },
-  {
-    icon: <Bell className="h-6 w-6" />,
-    title: "تنبيهات ذكية",
-    description: "تذكيرات تلقائية للمهام والدروس والامتحانات.",
-    delay: 0.2,
-    badge: "مميز"
-  },
-  {
-    icon: <Users className="h-6 w-6" />,
-    title: "دعم المدرسين",
-    description: "تواصل مباشر مع المدرسين ومتابعة الدروس أونلاين.",
-    delay: 0.3,
-  },
-  {
-    icon: <Bot className="h-6 w-6" />,
-    title: "الذكاء الاصطناعي",
-    description: "مساعد ذكي لإنشاء الامتحانات والنصائح التعليمية.",
-    delay: 0.4,
-    badge: "جديد"
-  },
-  {
-    icon: <BarChart3 className="h-6 w-6" />,
-    title: "تحليلات متقدمة",
-    description: "تتبع التقدم وتحليل الأداء بتفصيل شامل.",
-    delay: 0.5,
-  },
-  {
-    icon: <BookOpen className="h-6 w-6" />,
-    title: "مكتبة شاملة",
-    description: "موارد تعليمية متنوعة ومنظمة لجميع المواد.",
-    delay: 0.6,
-  },
-  {
-    icon: <CalendarCheck className="h-6 w-6" />,
-    title: "جدولة ذكية",
-    description: "تنظيم جدول الدراسة والمهام تلقائياً حسب أولوياتك.",
-    delay: 0.7,
-    badge: "جديد"
-  },
-  {
-    icon: <Headphones className="h-6 w-6" />,
-    title: "دعم فني متميز",
-    description: "فريق دعم متاح على مدار الساعة لمساعدتك.",
-    delay: 0.8,
-  },
-];
+import { Crown, Globe, Users, BarChart3, Play } from 'lucide-react';
+import { rpgCommonStyles, FEATURES_LIST } from "../constants";
+import FeatureCard from "../FeatureCard";
 
 export const FeaturesSection = memo(function FeaturesSection() {
   const { user } = useUnifiedAuth();
+
   return (
-    <section aria-labelledby="features-heading" className="max-w-6xl mx-auto">
+    <section aria-labelledby="features-heading" className="max-w-7xl mx-auto px-4 !pt-0">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className="text-center mb-10 md:mb-14"
+        className="text-center mb-12"
       >
-        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4">
-          <Badge variant="secondary" className="bg-primary text-primary-foreground">
-            المميزات
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full mb-4 ring-1 ring-primary/20 backdrop-blur-sm">
+          <Badge variant="secondary" className="bg-primary/20 text-primary hover:bg-primary/30">
+            الترسانة
           </Badge>
-          <span className="text-sm font-medium text-primary">لماذا تختار منصة ثانوية؟</span>
+          <span className="text-sm font-medium text-primary shadow-sm">أدواتك للنجاح</span>
         </div>
         <h2
           id="features-heading"
-          className="text-2xl md:text-3xl font-bold mb-4 text-primary flex items-center justify-center gap-2"
+          className={`text-3xl md:text-4xl font-black mb-4 ${rpgCommonStyles.neonText} flex items-center justify-center gap-2`}
         >
-          <span>مميزات المنصة</span>
-          <span className="text-xl" aria-hidden="true">✨</span>
+          <span>قدرات النظام (System Features)</span>
+          <span className="text-2xl animate-pulse" aria-hidden="true">💎</span>
         </h2>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          اكتشف المميزات التي تجعل منصة ثانوية بذكاء الخيار الأمثل لطلاب الثانوية
+        <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
+          اكتشف الأدوات التي ستساعدك في رحلتك الملحمية نحو التفوق
         </p>
       </motion.div>
 
       <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {FEATURES.map((feature) => (
-          <motion.div
-            key={feature.title}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: feature.delay, duration: 0.5 }}
-            whileHover={{ y: -5 }}
-            className="h-full"
-          >
-            <Card className="h-full border-border group hover:border-primary/50 transition-colors duration-300 shadow-sm hover:shadow-lg relative overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <CardHeader className="pb-3 relative">
-                <div className="flex justify-between items-start">
-                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors duration-300">
-                    {feature.icon}
-                  </div>
-                  {feature.badge && (
-                    <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20">
-                      {feature.badge}
-                    </Badge>
-                  )}
-                </div>
-                <CardTitle className="text-lg">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="relative">
-                <p className="text-muted-foreground mb-4 text-sm">{feature.description}</p>
-                <Button variant="link" className="p-0 h-auto font-normal text-primary group/btn">
-                  تعرف على المزيد
-                  <ChevronRight className="mr-1 h-4 w-4 group-hover/btn:translate-x-1 transition-transform" />
-                </Button>
-              </CardContent>
-            </Card>
-          </motion.div>
+        {FEATURES_LIST.map((feature, index) => (
+          <FeatureCard 
+            key={index} 
+            delay={feature.delay} 
+            icon={feature.icon} 
+            title={feature.title} 
+            description={feature.description} 
+            badge={feature.badge} 
+            color={feature.color} 
+            link={feature.link} 
+          />
         ))}
       </div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
-        transition={{ delay: 0.9, duration: 0.5 }}
-        className="mt-16"
+        transition={{ delay: 0.8, duration: 0.5 }}
+        className="mt-20"
       >
-        <Card className="border-border bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow-md overflow-hidden">
-          <CardContent className="py-8 md:py-10">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+        <Card className="relative overflow-hidden border-0 bg-gradient-to-r from-indigo-900/80 to-purple-900/80 rounded-3xl shadow-2xl backdrop-blur-xl">
+           <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10 mix-blend-overlay"></div>
+           <div className="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-primary/30 rounded-full blur-3xl"></div>
+           
+          <CardContent className="py-10 md:py-12 px-6 md:px-12 relative z-10">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
               <div className="text-center lg:text-right max-w-2xl">
-                <h3 className="text-2xl md:text-3xl font-bold text-primary mb-3 flex items-center justify-center lg:justify-start gap-2">
-                  <Award className="h-8 w-8 text-yellow-500" />
-                  <span>انضم إلى مجتمع الطلاب المتميزين</span>
+                <h3 className="text-3xl md:text-4xl font-black text-white mb-4 flex items-center justify-center lg:justify-start gap-3">
+                  <Crown className="h-10 w-10 text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]" />
+                  <span>انضم للنخبة (Elite Squad)</span>
                 </h3>
-                <p className="text-muted-foreground mb-5">
-                  أكثر من 10,000 طالب يستخدمون منصتنا لتحسين أدائهم الأكاديمي وتحقيق نتائج متميزة في الثانوية العامة
+                <p className="text-indigo-100/80 mb-6 text-lg">
+                  أكثر من 10,000 طالب يستخدمون منصتنا لتحسين قدراتهم القتالية (الأكاديمية) وتحقيق الانتصارات.
                 </p>
-                <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-6">
-                  <div className="flex items-center bg-white/80 px-3 py-1 rounded-full text-sm">
-                    <Globe className="h-4 w-4 ml-1 text-primary" />
-                    <span>جميع المحافظات</span>
+                <div className="flex flex-wrap justify-center lg:justify-start gap-3 mb-8">
+                  <div className="flex items-center bg-black/30 border border-white/10 px-4 py-2 rounded-full text-sm text-gray-200 backdrop-blur-sm">
+                    <Globe className="h-4 w-4 ml-2 text-blue-400" />
+                    <span>سيرفرات محمية</span>
                   </div>
-                  <div className="flex items-center bg-white/80 px-3 py-1 rounded-full text-sm">
-                    <Users className="h-4 w-4 ml-1 text-primary" />
-                    <span>مدرسين خبراء</span>
+                  <div className="flex items-center bg-black/30 border border-white/10 px-4 py-2 rounded-full text-sm text-gray-200 backdrop-blur-sm">
+                    <Users className="h-4 w-4 ml-2 text-green-400" />
+                    <span>مجتمع نشط</span>
                   </div>
-                  <div className="flex items-center bg-white/80 px-3 py-1 rounded-full text-sm">
-                    <BarChart3 className="h-4 w-4 ml-1 text-primary" />
-                    <span>تقارير تقدم يومية</span>
+                  <div className="flex items-center bg-black/30 border border-white/10 px-4 py-2 rounded-full text-sm text-gray-200 backdrop-blur-sm">
+                    <BarChart3 className="h-4 w-4 ml-2 text-purple-400" />
+                    <span>تحديثات يومية</span>
                   </div>
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
-                {/* Show user avatar if authenticated, hide register button if authenticated */}
                 {user ? (
-                  <Link href="/profile" className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-primary/5 transition-colors">
-                    <Avatar className="h-10 w-10 border-2 border-primary/20">
-                      <AvatarImage src={(user as any).avatar} alt={user.name || "User"} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
-                        {user.name
-                          ?.split(" ")
-                          .map((n) => n[0])
-                          .join("")
-                          .toUpperCase() || (user.email && user.email[0] ? user.email[0].toUpperCase() : "U")}
+                  <Link href="/profile" className="flex items-center gap-4 px-6 py-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-md w-full sm:w-auto">
+                    <Avatar className="h-12 w-12 border-2 border-primary ring-2 ring-primary/20">
+                      <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
+                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                        {user.name && user.name.length > 0 ? user.name[0].toUpperCase() : "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <span className="text-sm font-medium text-primary">{user.name || user.email}</span>
+                    <div className="text-right">
+                        <span className="block text-sm text-gray-400">القائد الحالي</span>
+                        <span className="text-base font-bold text-white">{user.name || user.email}</span>
+                    </div>
                   </Link>
                 ) : null}
-                <Link href="/demo">
-                  <Button size="lg" variant="outline" className="px-8 py-6 text-lg border-2 hover:bg-primary/5 w-full sm:w-auto">
-                    مشاهدة العرض التوضيحي
+                <Link href="/demo" className="w-full sm:w-auto">
+                  <Button size="lg" className="w-full px-10 py-7 text-lg bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.4)] border-0">
+                    <Play className="ml-2 h-5 w-5 fill-black" />
+                    بدء المغامرة
                   </Button>
                 </Link>
               </div>
@@ -203,6 +122,6 @@ export const FeaturesSection = memo(function FeaturesSection() {
     </section>
   );
 });
-FeaturesSection.displayName = "FeaturesSection";
 
+FeaturesSection.displayName = "FeaturesSection";
 export default FeaturesSection;

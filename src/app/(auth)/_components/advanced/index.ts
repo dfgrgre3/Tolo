@@ -83,8 +83,8 @@ export {
 } from '../backup/BackupCodesManager';
 
 // Re-export existing components for convenience
-export { default as EnhancedLoginForm } from '../EnhancedLoginForm';
-export { default as EnhancedRegisterForm } from '../EnhancedRegisterForm';
+export { default as EnhancedLoginForm } from '@/components/auth/forms/EnhancedLoginForm';
+export { default as EnhancedRegisterForm } from '@/components/auth/forms/EnhancedRegisterForm';
 
 // Utility functions
 export const initializeAdvancedAuth = async (userId: string, token: string) => {

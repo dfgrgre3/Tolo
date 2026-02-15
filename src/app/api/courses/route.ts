@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
         // Ignore import errors
       });
 
-      return createSuccessResponse(newSubject, undefined, 201);
+      return createSuccessResponse(newSubject, 201);
     } catch (error) {
       logger.error("Error creating subject:", error);
       return createStandardErrorResponse(

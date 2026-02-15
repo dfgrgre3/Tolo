@@ -8,12 +8,7 @@ import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/n
 import { createIcon } from "@/components/mega-menu/iconFactory";
 import { cn } from "@/lib/utils";
 
-interface User {
-	id: string;
-	email: string;
-	name?: string;
-	role?: string;
-}
+import { User } from "@/types/api/auth";
 
 interface HeaderNavigationProps {
 	openMegaMenu: string | null;

@@ -1,0 +1,2 @@
+.apps.googleusercontent.com==><GOOGLE_CLIENT_ID>
+GOCSPX-==><GOOGLE_CLIENT_SECRET>

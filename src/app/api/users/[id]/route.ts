@@ -13,14 +13,14 @@ export async function GET(
     try {
       const { id } = await params;
       // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      const payload = await authService.verifyToken(request);
+      if (!payload) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
+      const authUser = { id: payload.userId, role: payload.role };
 
       // Users can only view their own profile
       if (authUser.id !== id) {
@@ -36,10 +36,15 @@ export async function GET(
           id: true,
           name: true,
           email: true,
+          username: true,
+          phone: true,
+          role: true,
           avatar: true,
-          createdAt: true,
           emailVerified: true,
-          phone: true
+          twoFactorEnabled: true,
+          createdAt: true,
+          level: true,
+          totalXP: true
         }
       });
 
@@ -50,7 +55,16 @@ export async function GET(
         );
       }
 
-      return NextResponse.json(user);
+      // Transform to match User interface
+      const userResponse = {
+        ...user,
+        emailVerified: user.emailVerified ?? false,
+        twoFactorEnabled: user.twoFactorEnabled ?? false,
+        xp: user.totalXP,
+        role: user.role || "USER"
+      };
+
+      return NextResponse.json(userResponse);
     } catch (error) {
       logger.error("Error fetching user:", error);
       return NextResponse.json(
@@ -70,14 +84,14 @@ export async function PATCH(
     try {
       const { id } = await params;
       // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      const payload = await authService.verifyToken(request);
+      if (!payload) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
+      const authUser = { id: payload.userId, role: payload.role };
 
       // Users can only update their own profile
       if (authUser.id !== id) {
@@ -124,14 +138,14 @@ export async function DELETE(
     try {
       const { id } = await params;
       // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      const payload = await authService.verifyToken(request);
+      if (!payload) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
+      const authUser = { id: payload.userId, role: payload.role };
 
       // Users can only delete their own account
       if (authUser.id !== id) {

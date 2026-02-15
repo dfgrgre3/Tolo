@@ -2,37 +2,63 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronRight } from "lucide-react";
+import { FeatureItem } from "./types";
+import { rpgCommonStyles } from "./constants";
 
-interface FeatureCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  link: string;
-  delay: number;
-}
+export const FeatureCard = ({ icon, title, description, badge, link, color, delay = 0 }: FeatureItem) => {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay, duration: 0.5 }}
+      whileHover={{ y: -8 }}
+      className="h-full"
+    >
+      <Card className={`${rpgCommonStyles.card} h-full group hover:border-primary/40`}>
+        {/* Hover Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+        
+        <CardHeader className="pb-3 relative z-10 space-y-4">
+          <div className="flex justify-between items-start">
+            <div className={`w-14 h-14 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-inner ${color ? color : 'text-gray-200'}`}>
+              {/* Clone icon to enforce size if needed, though usually handled by parent size */}
+              {React.cloneElement(icon as React.ReactElement, { className: "w-7 h-7" })}
+            </div>
+            {badge && (
+              <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/20 backdrop-blur-sm">
+                {badge}
+              </Badge>
+            )}
+          </div>
+          <CardTitle className="text-xl font-bold text-gray-100 group-hover:text-primary transition-colors line-clamp-1">
+            {title}
+          </CardTitle>
+        </CardHeader>
+        
+        <CardContent className="relative z-10">
+          <p className="text-muted-foreground mb-6 text-sm leading-relaxed min-h-[60px]">
+            {description}
+          </p>
+          
+          <div className="h-px w-full bg-gradient-to-r from-transparent via-gray-700/50 to-transparent mb-4"></div>
+          
+          {link ? (
+            <Button variant="link" className="p-0 h-auto font-medium text-primary group/btn hover:text-primary/80">
+              تفاصيل أكثر
+              <ChevronRight className={`mr-1 h-4 w-4 group-hover/btn:translate-x-1 transition-transform rtl:rotate-180 rtl:group-hover/btn:-translate-x-1`} />
+            </Button>
+          ) : (
+            <div className="h-4" /> // Spacer to keep card height consistent
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
+  );
+};
 
-export const FeatureCard = ({ icon, title, description, link, delay }: FeatureCardProps) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ delay, duration: 0.5 }}
-    whileHover={{ y: -10, scale: 1.02 }}
-    className="group relative flex h-full flex-col rounded-3xl border border-slate-100/80 bg-white/80 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:border-blue-200/60 hover:shadow-2xl"
-  >
-    <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-400/10 via-transparent to-purple-400/10 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-    <div className="relative z-10 flex h-full flex-col">
-      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-100 to-purple-100 shadow-sm group-hover:shadow-md transition-shadow duration-300">
-        {icon}
-      </div>
-      <h3 className="mb-3 text-xl font-semibold text-slate-900 group-hover:text-blue-700 transition-colors duration-300">{title}</h3>
-      <p className="mb-6 flex-grow text-muted-foreground leading-relaxed">{description}</p>
-      <Link href={link} className="group/link inline-flex items-center text-blue-600 font-medium transition-all duration-300 hover:text-blue-700 hover:gap-2">
-        <span>تعرف على المزيد</span>
-        <ArrowRight className="mr-2 h-4 w-4 transition-transform duration-300 group-hover/link:translate-x-1" />
-      </Link>
-    </div>
-  </motion.div>
-);
+export default FeatureCard;

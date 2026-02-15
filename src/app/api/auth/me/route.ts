@@ -73,12 +73,19 @@ export async function GET(request: NextRequest) {
               id: true,
               email: true,
               name: true,
+              username: true,
+              phone: true,
               role: true,
+              avatar: true,
               twoFactorEnabled: true,
               emailVerified: true,
               lastLogin: true,
               createdAt: true,
               updatedAt: true,
+              // Gamification fields
+              totalXP: true,
+              level: true,
+              currentStreak: true,
             },
           });
 
@@ -111,9 +118,18 @@ export async function GET(request: NextRequest) {
         );
       }
 
+      const userResponse = {
+        ...dbUser,
+        emailVerified: dbUser.emailVerified ?? false,
+        twoFactorEnabled: dbUser.twoFactorEnabled ?? false,
+        xp: dbUser.totalXP,
+        totalXP: dbUser.totalXP,
+        role: dbUser.role || "USER"
+      };
+
       // Return success response with user data
       return createSuccessResponse({
-        user: dbUser,
+        user: userResponse,
         sessionId,
       });
     } catch (error) {
