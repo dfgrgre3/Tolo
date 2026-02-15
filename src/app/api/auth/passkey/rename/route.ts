@@ -26,7 +26,7 @@ async function handler(req: NextRequest) {
         return NextResponse.json({ error: 'Credential not found' }, { status: 404 });
     }
 
-    if (credential.userId !== verification.user.id) {
+    if (credential.userId !== verification.user.userId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

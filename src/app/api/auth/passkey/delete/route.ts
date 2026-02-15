@@ -17,7 +17,7 @@ async function handler(req: NextRequest) {
     if (!verification.isValid || !verification.user) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-    
+
     const credential = await prisma.biometricCredential.findUnique({
         where: { credentialId: credentialId },
     });
@@ -26,7 +26,7 @@ async function handler(req: NextRequest) {
         return NextResponse.json({ error: 'Credential not found' }, { status: 404 });
     }
 
-    if (credential.userId !== verification.user.id) {
+    if (credential.userId !== verification.user.userId) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -36,12 +36,12 @@ async function handler(req: NextRequest) {
 
     // If the user has no more biometric credentials, disable biometric login for them
     const remainingCredentials = await prisma.biometricCredential.count({
-        where: { userId: verification.user.id },
+        where: { userId: verification.user.userId },
     });
 
     if (remainingCredentials === 0) {
         await prisma.user.update({
-            where: { id: verification.user.id },
+            where: { id: verification.user.userId },
             data: { biometricEnabled: false },
         });
     }

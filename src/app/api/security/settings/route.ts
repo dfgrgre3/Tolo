@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const userId = verification.user.id;
+      const userId = verification.user.userId;
 
       // Get user settings
       const user = await prisma.user.findUnique({
@@ -71,7 +71,7 @@ export async function PATCH(request: NextRequest) {
         );
       }
 
-      const userId = verification.user.id;
+      const userId = verification.user.userId;
       const body = await req.json();
 
       // Validate allowed fields

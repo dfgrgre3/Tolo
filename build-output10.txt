@@ -1,0 +1,38 @@
+??? Next.js 16.1.1 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ?? optimizePackageImports
+
+  Creating an optimized production build ...
+??? Compiled successfully in 18.4s
+  Running TypeScript ...
+node.exe : Failed to compile.
+At C:\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fai 
+   led to compile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/api/auth/2fa/route.ts:18:3
+Type error: Module '"@/lib/auth-utils"' has no 
+exported member 'getJWTSecretSafe'.
+
+[0m [90m 16 |[39m   
+extractRequestMetadata[33m,[39m
+ [90m 17 |[39m   
+logSecurityEventSafely[33m,[39m
+[31m[1m>[22m[39m[90m 18 |[39m   
+getJWTSecretSafe
+ [90m    |[39m   [31m[1m^[22m[39m
+ [90m 19 |[39m } [36mfrom[39m 
+[32m'@/lib/auth-utils'[39m[33m;[39m
+ [90m 20 |[39m [36mimport[39m { opsWrapper } 
+[36mfrom[39m [32m"@/lib/middleware/ops-middlew
+are"[39m[33m;[39m
+ [90m 21 |[39m [36mimport[39m { logger } 
+[36mfrom[39m 
+[32m'@/lib/logger'[39m[33m;[39m[0m
+Next.js build worker exited with code: 1 and 
+signal: null

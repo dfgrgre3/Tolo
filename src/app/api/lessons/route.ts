@@ -15,12 +15,12 @@ export async function GET(req: NextRequest) {
 		const userId = searchParams.get("userId");
 
 		// If userId is provided in query, ensure it matches the authenticated user
-		if (userId && userId !== authUser.id) {
+		if (userId && userId !== authUser.userId) {
 			return NextResponse.json({ error: "Forbidden: Can only access your own lessons" }, { status: 403 });
 		}
 
 		// Use authenticated user's ID if no userId provided in query
-		const targetUserId = userId || authUser.id;
+		const targetUserId = userId || authUser.userId;
 
 		const lessons = await prisma.offlineLesson.findMany({
 			where: { userId: targetUserId },
@@ -46,12 +46,12 @@ export async function POST(req: NextRequest) {
 		const { userId, teacherId, title, location, startTime, endTime, subject } = body;
 
 		// If userId is provided in body, ensure it matches the authenticated user
-		if (userId && userId !== authUser.id) {
+		if (userId && userId !== authUser.userId) {
 			return NextResponse.json({ error: "Forbidden: Can only create lessons for yourself" }, { status: 403 });
 		}
 
 		// Use authenticated user's ID if no userId provided in body
-		const targetUserId = userId || authUser.id;
+		const targetUserId = userId || authUser.userId;
 
 		if (!teacherId || !title || !location || !startTime || !endTime || !subject) {
 			return NextResponse.json({ error: "missing fields" }, { status: 400 });

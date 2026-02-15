@@ -456,6 +456,19 @@ export function createSuccessResponse<T>(
 }
 
 /**
+ * Helper to create CAPTCHA required response
+ */
+export function createCaptchaRequiredResponse(attempts: number = 0, status: number = 403): NextResponse {
+    const response = NextResponse.json({
+        error: 'يرجى إكمال التحقق من CAPTCHA للمتابعة. تم اكتشاف محاولات تسجيل دخول متكررة.',
+        requiresCaptcha: true,
+        failedAttempts: attempts,
+        code: 'CAPTCHA_REQUIRED',
+    }, { status });
+    return addSecurityHeaders(response);
+}
+
+/**
  * Helper to log security events safely without blocking
  */
 export async function logSecurityEventSafely(

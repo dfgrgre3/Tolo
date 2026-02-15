@@ -1,4 +1,4 @@
-import { authService, AuthService } from '@/lib/services/auth-service';
+import { authService, AuthUser } from '@/lib/services/auth-service';
 import { validateEmail } from '@/lib/auth/validation';
 import {
   AuthenticationProvider,
@@ -19,7 +19,7 @@ export interface EmailPasswordCredentials {
  */
 export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswordCredentials> {
 
-  constructor(private authService: AuthService) { }
+  constructor(private service = authService) { }
 
   /**
    * Authenticates a user with their email and password.
@@ -50,7 +50,7 @@ export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswo
     }
 
     // 2. Find the user
-    const user = await this.authService.findUserByEmail(normalizedEmail);
+    const user = await this.service.getUserByEmail(normalizedEmail);
     if (!user || !user.passwordHash || user.passwordHash === 'oauth_user') {
       return { status: 'error', code: 'USER_NOT_FOUND', message: 'بيانات تسجيل الدخول غير صحيحة' };
     }
@@ -61,7 +61,7 @@ export class EmailPasswordProvider implements AuthenticationProvider<EmailPasswo
     }
 
     // 4. Compare passwords
-    const isValidPassword = await AuthService.comparePasswords(password, user.passwordHash);
+    const isValidPassword = await this.service.comparePasswords(password, user.passwordHash);
     if (!isValidPassword) {
       // Note: We don't handle rate limiting here. The calling service (LoginService) is responsible for it.
       return { status: 'error', code: 'INVALID_CREDENTIALS', message: 'بيانات تسجيل الدخول غير صحيحة' };

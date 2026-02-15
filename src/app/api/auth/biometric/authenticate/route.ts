@@ -139,6 +139,7 @@ async function handleVerification(req: NextRequest, body: BiometricAuthBody) {
       name: true,
       biometricEnabled: true,
       biometricCredentials: true,
+      role: true,
     },
   });
 
@@ -225,9 +226,10 @@ async function handleVerification(req: NextRequest, body: BiometricAuthBody) {
 
   // Create tokens first to get a refresh token
   const tempTokens = await authService.createTokens({
-    id: user.id,
+    userId: user.id,
     email: user.email,
     name: user.name || undefined,
+    role: user.role || 'user',
   });
 
   // Create session with the refresh token
@@ -236,9 +238,10 @@ async function handleVerification(req: NextRequest, body: BiometricAuthBody) {
   // Create final tokens with session ID
   const { accessToken, refreshToken } = await authService.createTokens(
     {
-      id: user.id,
+      userId: user.id,
       email: user.email,
       name: user.name || undefined,
+      role: user.role || 'user',
     },
     session.id
   );
@@ -266,7 +269,8 @@ async function handleVerification(req: NextRequest, body: BiometricAuthBody) {
       email: user.email,
       name: user.name,
     },
-  }, 'تم تسجيل الدخول بنجاح');
+    message: 'تم تسجيل الدخول بنجاح'
+  });
 
   // Set cookies
   setAuthCookies(response, accessToken, refreshToken, true);

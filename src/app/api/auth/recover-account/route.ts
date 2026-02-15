@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       try {
         const { RateLimitingService } = await import('@/lib/services/rate-limiting-service');
         const { getRedisClient } = await import('@/lib/redis');
-        
+
         const redis = await getRedisClient();
         const rateLimitService = new RateLimitingService(redis);
         const rateLimitStatus = await rateLimitService.checkRateLimit(
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             Math.ceil((rateLimitStatus.remainingTime || 900) / 60)
           );
 
-          await authService.logSecurityEvent(null, 'account_recovery_rate_limited', ip, {
+          await authService.logSecurityEvent('unknown', 'account_recovery_rate_limited', ip, {
             userAgent,
             attempts: rateLimitStatus.attempts,
             retryAfterSeconds,
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (!result.success) {
-          await authService.logSecurityEvent(null, 'account_recovery_initiate_failed', ip, {
+          await authService.logSecurityEvent('unknown', 'account_recovery_initiate_failed', ip, {
             userAgent,
             email: parsed.data.email,
             method: parsed.data.method,
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        await authService.logSecurityEvent(null, 'account_recovery_initiated', ip, {
+        await authService.logSecurityEvent('unknown', 'account_recovery_initiated', ip, {
           userAgent,
           email: parsed.data.email,
           method: parsed.data.method,
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (!result.success) {
-          await authService.logSecurityEvent(null, 'account_recovery_complete_failed', ip, {
+          await authService.logSecurityEvent('unknown', 'account_recovery_complete_failed', ip, {
             userAgent,
           });
 
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        await authService.logSecurityEvent(null, 'account_recovery_completed', ip, {
+        await authService.logSecurityEvent('unknown', 'account_recovery_completed', ip, {
           userAgent,
         });
 
@@ -180,11 +180,11 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
       logger.error('Error in account recovery:', error);
-      
-      await authService.logSecurityEvent(null, 'account_recovery_error', ip, {
+
+      await authService.logSecurityEvent('unknown', 'account_recovery_error', ip, {
         userAgent,
         error: error instanceof Error ? error.message : 'Unknown error',
-      }).catch(() => {});
+      }).catch(() => { });
 
       return NextResponse.json(
         {

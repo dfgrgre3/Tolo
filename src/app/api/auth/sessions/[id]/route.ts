@@ -61,7 +61,7 @@ export async function DELETE(
       }
 
       // Enhanced user ID validation
-      if (!verification.user.id || typeof verification.user.id !== 'string' || verification.user.id.trim().length === 0) {
+      if (!verification.user.userId || typeof verification.user.userId !== 'string' || verification.user.userId.trim().length === 0) {
         return NextResponse.json(
           {
             error: 'بيانات المستخدم غير صحيحة',
@@ -71,7 +71,7 @@ export async function DELETE(
         );
       }
 
-      const userId = verification.user.id.trim();
+      const userId = verification.user.userId.trim();
 
       // Validate user ID format
       if (userId.length < 10 || userId.length > 100) {

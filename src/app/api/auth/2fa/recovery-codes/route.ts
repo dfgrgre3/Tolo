@@ -5,7 +5,7 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 /**
- * GET /api/auth/two-factor/recovery-codes
+ * GET /api/auth/2fa/recovery-codes
  * الحصول على عدد رموز الاسترداد المتبقية
  */
 export async function GET(request: NextRequest) {
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const count = await authService.getRemainingRecoveryCodesCount(verification.user.id);
+      const count = await authService.getRemainingRecoveryCodesCount(verification.user.userId);
 
       return NextResponse.json({
         count,
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/auth/two-factor/recovery-codes
+ * POST /api/auth/2fa/recovery-codes
  * إعادة توليد رموز الاسترداد
  */
 export async function POST(request: NextRequest) {
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
       // Regenerate recovery codes
       const codes = await authService.regenerateRecoveryCodes(
-        verification.user.id,
+        verification.user.userId,
         count
       );
 
@@ -64,12 +64,12 @@ export async function POST(request: NextRequest) {
       const ip = authService.getClientIP(req);
       const userAgent = authService.getUserAgent(req);
       await Promise.all([
-        authService.logSecurityEvent(verification.user.id, 'recovery_codes_regenerated', ip, {
+        authService.logSecurityEvent(verification.user.userId, 'recovery_codes_regenerated', ip, {
           userAgent,
           count,
         }),
         securityLogger.logEvent({
-          userId: verification.user.id,
+          userId: verification.user.userId,
           eventType: 'RECOVERY_CODES_REGENERATED',
           ip,
           userAgent,
@@ -93,3 +93,4 @@ export async function POST(request: NextRequest) {
     }
   });
 }
+

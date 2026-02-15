@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { jwtVerify } from 'jose';
+import { jwtVerify, SignJWT } from 'jose';
 import { TextEncoder } from 'util';
 import { TwoFactorChallengeService } from '@/lib/services/auth-challenges-service';
 import { authService } from '@/lib/services/auth-service';
@@ -15,7 +15,6 @@ import {
   parseRequestBody,
   extractRequestMetadata,
   logSecurityEventSafely,
-  getJWTSecretSafe
 } from '@/lib/auth-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -177,13 +176,13 @@ export async function POST(request: NextRequest) {
 
         // Create Session & Tokens
         const tempTokens = await authService.createTokens({
-          id: user.id, email: user.email, name: user.name || undefined, role: user.role || undefined
+          userId: user.id, email: user.email, role: user.role || 'user'
         });
 
         const session = await authService.createSession(user.id, tempTokens.refreshToken, userAgent, ip, rememberDevice);
 
         const { accessToken, refreshToken } = await authService.createTokens({
-          id: user.id, email: user.email, name: user.name || undefined, role: user.role || undefined
+          userId: user.id, email: user.email, role: user.role || 'user'
         }, session.id);
 
         await prisma.session.update({ where: { id: session.id }, data: { refreshToken } });

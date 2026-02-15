@@ -175,7 +175,7 @@ async function handleBiometricAuthentication(
   try {
     await authService.checkRateLimit(clientId);
   } catch (error) {
-    await authService.logSecurityEvent(null, 'biometric_rate_limit_exceeded', ip, { userAgent });
+    await authService.logSecurityEvent('unknown', 'biometric_rate_limit_exceeded', ip, { userAgent });
     return createErrorResponse(
       { error: 'Rate limited', code: 'RATE_LIMITED' },
       'محاولات كثيرة جداً. يرجى المحاولة لاحقاً.',
@@ -306,9 +306,10 @@ async function handleBiometricAuthentication(
 
   // Create tokens first to get a refresh token
   const tempTokens = await authService.createTokens({
-    id: user.id,
+    userId: user.id,
     email: user.email,
     name: user.name || undefined,
+    role: user.role || 'user',
   });
 
   // Create session
@@ -323,10 +324,10 @@ async function handleBiometricAuthentication(
   // Create tokens
   const tokensResult = await authService.createTokens(
     {
-      id: user.id,
+      userId: user.id,
       email: user.email,
       name: user.name || undefined,
-      role: user.role || undefined,
+      role: user.role || 'user',
     },
     session.id
   );

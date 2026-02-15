@@ -7,7 +7,7 @@ import { opsWrapper } from '@/lib/middleware/ops-middleware';
 export async function GET(request: NextRequest) {
     return opsWrapper(request, async (req) => {
         try {
-            const authResult = await authService.getCurrentUser();
+            const authResult = await authService.verifyTokenFromRequest(req);
             if (!authResult.isValid || !authResult.user) {
                 return NextResponse.json(
                     { error: 'Unauthorized', code: 'UNAUTHORIZED' },
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
                 );
             }
 
-            const user = await authService.findUserByEmail(authResult.user.email);
+            const user = await authService.getUserByEmail(authResult.user.email);
 
             const response = NextResponse.json({
                 enabled: user?.twoFactorEnabled || false

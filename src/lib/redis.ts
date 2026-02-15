@@ -1,355 +1,104 @@
-// This file must only run on the server - prevent browser bundling
-if (typeof window !== 'undefined') {
-  throw new Error('redis.ts can only be used on the server');
-}
-
-import { createClient, Cluster } from 'redis';
-import { perfConfig, PerfMonitor } from './perf-config';
-import { recordCacheMetric } from './db-monitor';
-
+// This file is now a unified wrapper around ioredis to prevent dependency redundancy
+import { redisClient as ioredis, CacheService as UnifiedCache } from './cache-service-unified';
 import { logger } from '@/lib/logger';
 
-export type RedisClient = ReturnType<typeof createClient> | InstanceType<typeof Cluster>;
+// Re-export the raw client for advanced usage (e.g. rate limiting)
+export const redis = ioredis;
 
-class RedisService {
-  private client: RedisClient;
-  private clusterMode: boolean;
+// Legacy RedisClient type for backward compatibility
+export type RedisClient = typeof ioredis;
+
+class RedisServiceWrapper {
+  private client = ioredis;
 
   constructor() {
-    this.clusterMode = process.env.REDIS_CLUSTER === 'true';
-
-    if (this.clusterMode) {
-      this.client = new Cluster([
-        { host: process.env.REDIS_HOST || 'localhost', port: 6379 }
-      ], {
-        scaleReads: 'slave',
-        redisOptions: {
-          password: process.env.REDIS_PASSWORD
-        }
-      });
-    } else {
-      this.client = createClient({
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
-        socket: {
-          reconnectStrategy: (retries: number): number => Math.min(retries * 100, 5000)
-        }
-      });
-    }
-
-    this.client.on('error', (err: Error) => {
-      logger.error('Redis error:', err);
-    });
+    // Connection handling is managed in cache-service-unified.ts
   }
 
-  // Connect to Redis
   async connectRedis() {
+    // ioredis handles connection automatically, but we keep this for compat
+    if (this.client.status === 'ready') return;
     try {
-      if (this.client.isOpen || this.client.isReady) {
-        return;
+      await this.client.connect();
+    } catch (e) {
+      if ((e as any).message !== 'Redis is already connecting/connected') {
+        logger.error('Failed to connect to Redis:', e);
       }
-
-      // Add connection timeout to prevent hanging when Redis is unavailable
-      // Reduced from 5s to 2s for faster fallback
-      const connectWithTimeout = Promise.race([
-        this.client.connect(),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Redis connection timeout')), 1500)
-        )
-      ]);
-
-      await connectWithTimeout;
-      logger.info('Connected to Redis');
-    } catch (error) {
-      // Ignore "already connected" errors which can happen in race conditions
-      if ((error as any)?.message?.includes('already connecting') || (error as any)?.message?.includes('already connected')) {
-        return;
-      }
-      logger.error('Failed to connect to Redis:', error);
     }
   }
 
-  // Initialize Redis connection
   async init() {
     if (process.env.NODE_ENV !== 'test') {
       await this.connectRedis();
     }
   }
 
-  // Simple compression for large objects
-  compressData(data: string): string {
-    // In a real implementation, you might use a proper compression library
-    // For now, we'll just return the data as-is
-    return data;
-  }
-
-  decompressData(data: string): string {
-    // In a real implementation, you would decompress the data
-    // For now, we'll just return the data as-is
-    return data;
-  }
-
-  // Cache service with generic type support
+  // Delegate all methods to UnifiedCache where possible or implement shim
   async get<T>(key: string): Promise<T | null> {
-    const start = Date.now();
-    try {
-      const data = await this.client.get(key);
-      const duration = Date.now() - start;
-      const hit = data !== null;
-
-      // Record cache metric
-      recordCacheMetric('get', duration, hit);
-
-      if (data) {
-        const decompressedData = this.decompressData(data);
-        return JSON.parse(decompressedData) as T;
-      }
-      return null;
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('get', duration, false);
-      logger.error('Error getting data from cache:', error);
-      return null;
-    }
+    return UnifiedCache.get<T>(key);
   }
 
   async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
-    const start = Date.now();
-    try {
-      const serializedValue = JSON.stringify(value);
-      const compressedValue = this.compressData(serializedValue);
-
-      if (ttl) {
-        await this.client.setEx(key, ttl, compressedValue);
-      } else {
-        await this.client.set(key, compressedValue);
-      }
-      const duration = Date.now() - start;
-      recordCacheMetric('set', duration, true);
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('set', duration, false);
-      logger.error('Error setting data in cache:', error);
-    }
+    return UnifiedCache.set<T>(key, value, ttl);
   }
 
   async del(key: string): Promise<void> {
-    const start = Date.now();
-    try {
-      await this.client.del(key);
-      const duration = Date.now() - start;
-      recordCacheMetric('del', duration, true);
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('del', duration, false);
-      logger.error('Error deleting data from cache:', error);
-    }
+    return UnifiedCache.del(key);
   }
 
   async exists(key: string): Promise<boolean> {
-    try {
-      const result = await this.client.exists(key);
-      return result > 0;
-    } catch (error) {
-      logger.error('Error checking if key exists in cache:', error);
-      return false;
-    }
+    const res = await this.client.exists(key);
+    return res > 0;
   }
 
   async mget<T>(keys: string[]): Promise<(T | null)[]> {
-    const start = Date.now();
-    try {
-      const results = await this.client.mGet(keys);
-      const duration = Date.now() - start;
-      // Count hits (non-null values)
-      const hitCount = results.filter((r: string | null) => r !== null).length;
-      recordCacheMetric('mget', duration, hitCount > 0);
-
-      return results.map((result: string | null) => {
-        if (result) {
-          const decompressedData = this.decompressData(result);
-          return JSON.parse(decompressedData) as T;
-        }
-        return null;
-      });
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('mget', duration, false);
-      logger.error('Error getting multiple keys from cache:', error);
-      return keys.map(() => null);
-    }
+    return UnifiedCache.mget<T>(keys);
   }
 
   async mset<T>(keyValuePairs: Record<string, T>, ttl?: number): Promise<void> {
-    const start = Date.now();
-    try {
-      const pipeline = this.client.multi();
-      for (const [key, value] of Object.entries(keyValuePairs)) {
-        const serializedValue = JSON.stringify(value);
-        const compressedValue = this.compressData(serializedValue);
-        if (ttl) {
-          pipeline.setEx(key, ttl, compressedValue);
-        } else {
-          pipeline.set(key, compressedValue);
-        }
-      }
-      await pipeline.exec();
-      const duration = Date.now() - start;
-      recordCacheMetric('mset', duration, true);
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('mset', duration, false);
-      logger.error('Error setting multiple keys in cache:', error);
-    }
+    const pairs = Object.entries(keyValuePairs) as [string, T][];
+    return UnifiedCache.mset(pairs, ttl);
   }
 
   async mdel(keys: string[]): Promise<void> {
-    const start = Date.now();
-    try {
-      if (keys.length === 0) return;
-
-      await this.client.del(keys);
-      const duration = Date.now() - start;
-      recordCacheMetric('mdel', duration, true);
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('mdel', duration, false);
-      logger.error('Error deleting multiple keys from cache:', error);
-    }
+    return UnifiedCache.mdel(keys);
   }
 
   async flushAll(): Promise<void> {
-    const start = Date.now();
-    try {
-      await this.client.flushAll();
-      const duration = Date.now() - start;
-      recordCacheMetric('flushAll', duration, true);
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('flushAll', duration, false);
-      logger.error('Error flushing cache:', error);
-    }
+    await this.client.flushall();
   }
 
-  async getOrSet<T>(
-    key: string,
-    fetchFn: () => Promise<T>,
-    ttl: number = 3600
-  ): Promise<T> {
-    try {
-      // Try to get from cache first
-      const cachedData = await this.get<T>(key);
-      if (cachedData !== null) {
-        return cachedData;
-      }
-
-      // Fetch data if not in cache
-      const freshData = await fetchFn();
-
-      // Store in cache with TTL
-      await this.set(key, freshData, ttl);
-
-      return freshData;
-    } catch (error) {
-      logger.warn(`Cache error for key ${key}:`, error);
-      // If cache fails, just fetch the data without caching
-      return fetchFn();
-    }
+  async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttl: number = 3600): Promise<T> {
+    return UnifiedCache.getOrSet(key, fetchFn, ttl);
   }
 
   async invalidatePattern(pattern: string): Promise<void> {
-    const start = Date.now();
-    try {
-      // Use SCAN to find keys matching the pattern - safer for production than KEYS command
-      const stream = this.client.scanIterator({
-        MATCH: pattern,
-        COUNT: 100
-      });
-
-      const keysToDelete: string[] = [];
-      for await (const key of stream) {
-        keysToDelete.push(key);
-      }
-
-      // Delete all matching keys in a single operation
-      if (keysToDelete.length > 0) {
-        await this.mdel(keysToDelete);
-      }
-
-      const duration = Date.now() - start;
-      recordCacheMetric('invalidatePattern', duration, true);
-    } catch (error) {
-      const duration = Date.now() - start;
-      recordCacheMetric('invalidatePattern', duration, false);
-      logger.error('Error invalidating cache pattern:', error);
-    }
+    return UnifiedCache.invalidatePattern(pattern);
   }
 
-  // Get the raw Redis client for advanced usage
   getClient() {
     return this.client;
   }
 
-  // Check if client is connected
   isConnected(): boolean {
-    try {
-      return this.client?.isOpen || this.client?.isReady || false;
-    } catch {
-      return false;
-    }
+    return this.client.status === 'ready';
   }
 
-  // Ensure client is connected (with error handling)
   async ensureConnected(): Promise<boolean> {
-    try {
-      if (this.isConnected()) {
-        return true;
-      }
-
-      // Try to connect if not already connected
-      if (!this.client.isOpen && !this.client.isReady) {
-        await this.connectRedis();
-      }
-
-      // Wait a bit for connection to be established
-      let attempts = 0;
-      while (!this.isConnected() && attempts < 5) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-
-      return this.isConnected();
-    } catch (error) {
-      logger.error('Failed to ensure Redis connection:', error);
-      // Return false but don't throw - allow the app to continue without Redis
-      return false;
-    }
+    if (this.isConnected()) return true;
+    await this.connectRedis();
+    return this.isConnected();
   }
 }
 
-// Single instance shared across the app
-const globalForRedis = global as unknown as { redisService: RedisService };
+const redisService = new RedisServiceWrapper();
 
-const redisService = globalForRedis.redisService || new RedisService();
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForRedis.redisService = redisService;
-}
-
-// Backward-compatible named export expected by legacy imports
+// Backward-compatible named export
 export const CacheService = redisService;
 
-// Export the raw Redis client for advanced usage (like rate limiting)
-// We need to access the private client property
-export const redis = (redisService as unknown as { client: RedisClient }).client;
-
-// Export getRedisClient function for rate limiting service
+// Export getRedisClient function
 export async function getRedisClient() {
-  // Try to ensure Redis is connected, but return client even if not connected
-  // The rate limiting service will handle connection errors gracefully
-  const connected = await redisService.ensureConnected();
-  if (!connected) {
-    logger.warn('Redis is not connected, but returning client anyway. Rate limiting may not work.');
-  }
+  await redisService.ensureConnected();
   return redisService.getClient();
 }
 

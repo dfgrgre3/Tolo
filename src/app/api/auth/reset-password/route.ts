@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { logger } from '@/lib/logger';
 import { authService } from '@/lib/services/auth-service';
+import { AccountRecoveryService } from '@/lib/services/account-recovery-service';
 import {
     createStandardErrorResponse,
     createSuccessResponse,
@@ -48,7 +49,10 @@ export async function POST(request: NextRequest) {
 
             const { token, password } = parsed.data;
 
-            await authService.resetPassword(token, password, ip, userAgent);
+            const result = await AccountRecoveryService.completeRecovery(token, password);
+            if (!result.success) {
+                throw new Error(result.message || 'فشل إعادة تعيين كلمة المرور');
+            }
 
             await logSecurityEventSafely(null, 'password_reset_success', {
                 ip,

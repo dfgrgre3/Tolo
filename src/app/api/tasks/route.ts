@@ -62,7 +62,7 @@ async function handleGetRequest(req: NextRequest) {
     });
 
     const verification = await Promise.race([verifyPromise, verifyTimeoutPromise]);
-    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
+    const decodedToken = verification.isValid && verification.user ? { userId: verification.user.userId } : null;
     if (!decodedToken) {
       return unauthorizedResponse();
     }
@@ -151,7 +151,7 @@ async function handleGetRequest(req: NextRequest) {
 // Handle POST requests - create task
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-      try {
+    try {
       // Apply rate limiting
       const rateLimitResult = await rateLimit(req, MUTATION_RATE_LIMIT, 'create_task');
       if (rateLimitResult) {
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 
       // Verify authentication using the unified AuthService
       const verification = await authService.verifyTokenFromRequest(req);
-      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
+      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.userId } : null;
       if (!decodedToken) {
         return unauthorizedResponse();
       }
@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Convert priority string to number using constants
-      const priorityNumber = priority 
+      const priorityNumber = priority
         ? TASK_PRIORITY_MAP[priority as TaskPriority] || TASK_DEFAULTS.PRIORITY_NUMBER
         : TASK_DEFAULTS.PRIORITY_NUMBER;
 
@@ -255,7 +255,7 @@ export async function PUT(request: NextRequest) {
 
       // Verify authentication using the unified AuthService
       const verification = await authService.verifyTokenFromRequest(req);
-      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
+      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.userId } : null;
       if (!decodedToken) {
         return unauthorizedResponse();
       }
@@ -376,7 +376,7 @@ export async function DELETE(request: NextRequest) {
 
       // Verify authentication using the unified AuthService
       const verification = await authService.verifyTokenFromRequest(req);
-      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.id } : null;
+      const decodedToken = verification.isValid && verification.user ? { userId: verification.user.userId } : null;
       if (!decodedToken) {
         return unauthorizedResponse();
       }

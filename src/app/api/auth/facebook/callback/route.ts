@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
 
           await logSecurityEventSafely(existingUser.id, 'user_registered_oauth', {
             provider: 'facebook',
-            ip: req.headers.get('x-forwarded-for')
+            ip: req.headers.get('x-forwarded-for') || undefined
           });
         }
 
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
 
       await logSecurityEventSafely(user.id, 'login_success_oauth', {
         provider: 'facebook',
-        ip: req.headers.get('x-forwarded-for')
+        ip: req.headers.get('x-forwarded-for') || undefined
       });
 
       return response;

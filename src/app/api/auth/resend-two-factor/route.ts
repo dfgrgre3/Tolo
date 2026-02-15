@@ -42,8 +42,9 @@ export async function POST(request: NextRequest) {
                     logger.info(`Sending 2FA code to ${verification.user.email}`);
 
                     return createSuccessResponse({
-                        loginAttemptId: challengeId
-                    }, 'Code sent to email');
+                        loginAttemptId: challengeId,
+                        message: 'Code sent to email'
+                    });
                 }
 
                 return createErrorResponse(
@@ -74,8 +75,9 @@ export async function POST(request: NextRequest) {
             }
 
             return createSuccessResponse({
-                loginAttemptId: newChallengeId
-            }, 'Code resent successfully');
+                loginAttemptId: newChallengeId,
+                message: 'Code resent successfully'
+            });
 
         } catch (error) {
             logger.error('Resend error:', error);

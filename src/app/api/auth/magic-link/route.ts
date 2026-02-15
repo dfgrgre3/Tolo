@@ -19,13 +19,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Use Zod schema for validation
-      const parsed = magicLinkSchema.safeParse(bodyResult.data);
+      const parsed = magicLinkSchema.safeParse(bodyResult.data.email);
       if (!parsed.success) {
         const firstError = parsed.error.issues[0]?.message || 'البريد الإلكتروني غير صحيح';
         return createErrorResponse(firstError, firstError, 400);
       }
 
-      const { email } = parsed.data;
+      const email = parsed.data;
       const ip = authService.getClientIP(req);
       const userAgent = authService.getUserAgent(req);
 

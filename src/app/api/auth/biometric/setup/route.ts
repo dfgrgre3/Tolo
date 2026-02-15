@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
       }
 
       const decoded = await authService.verifyTokenFromInput(token);
-      if (!decoded.isValid || !decoded.userId) {
+      if (!decoded.isValid || !decoded.user?.userId) {
         return createErrorResponse(
           { error: 'Invalid or expired token', code: 'INVALID_TOKEN' },
           'رمز المصادقة غير صالح أو منتهي الصلاحية',
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
       // جلب المستخدم مع إعادة المحاولة
       const user = await withDatabaseRetry(
-        async () => prisma.user.findUnique({ where: { id: decoded.userId } }),
+        async () => prisma.user.findUnique({ where: { id: decoded.user!.userId } }),
         { maxAttempts: 3, operationName: 'find user for biometric setup' }
       );
 
@@ -114,7 +114,7 @@ export async function DELETE(request: NextRequest) {
       }
 
       const decoded = await authService.verifyTokenFromInput(token);
-      if (!decoded.isValid || !decoded.userId) {
+      if (!decoded.isValid || !decoded.user?.userId) {
         return createErrorResponse(
           { error: 'Invalid or expired token', code: 'INVALID_TOKEN' },
           'رمز المصادقة غير صالح',
@@ -125,7 +125,7 @@ export async function DELETE(request: NextRequest) {
       // حذف بيانات الاعتماد البيومترية للمستخدم
       await withDatabaseRetry(
         async () => prisma.biometricCredential.deleteMany({
-          where: { userId: decoded.userId }
+          where: { userId: decoded.user!.userId }
         }),
         { maxAttempts: 3, operationName: 'delete biometric credentials' }
       );
@@ -133,13 +133,13 @@ export async function DELETE(request: NextRequest) {
       // تعطيل المصادقة البيومترية للمستخدم
       await withDatabaseRetry(
         async () => prisma.user.update({
-          where: { id: decoded.userId },
+          where: { id: decoded.user!.userId },
           data: { biometricEnabled: false }
         }),
         { maxAttempts: 3, operationName: 'disable biometric for user' }
       );
 
-      logger.info('Biometric removed', { userId: decoded.userId });
+      logger.info('Biometric removed', { userId: decoded.user!.userId });
 
       return createSuccessResponse({
         message: 'تم إزالة المصادقة البيومترية بنجاح'

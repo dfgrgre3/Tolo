@@ -28,7 +28,7 @@ export async function GET(
       }
       const authUser = verification.user;
 
-      if (authUser.id !== id) {
+      if (authUser.userId !== id) {
         return NextResponse.json({ error: "Forbidden: Can only access your own stats" }, { status: 403 });
       }
 

@@ -220,7 +220,7 @@ export function useRegistrationFlow(options: UseRegistrationFlowOptions = {}) {
         // Use cookies for authentication (credentials: 'include')
         if (security.enableTwoFactor) {
           try {
-            const response = await fetch('/api/auth/two-factor', {
+            const response = await fetch('/api/auth/2fa', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -359,3 +359,4 @@ export function useRegistrationFlow(options: UseRegistrationFlowOptions = {}) {
     handleContinue,
   };
 }
+

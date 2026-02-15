@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userId = verification.user.id;
+      const userId = verification.user!.userId;
 
       // Parse and validate request body
       const body = await req.json();
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.error('Error setting security questions:', error);
 
-      await authService.logSecurityEvent(null, 'security_questions_set_error', ip, {
+      await authService.logSecurityEvent('unknown', 'security_questions_set_error', ip, {
         userAgent,
         error: error instanceof Error ? error.message : 'Unknown error',
       }).catch(() => { });

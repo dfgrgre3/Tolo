@@ -10,7 +10,7 @@ import { recordCacheMetric } from './db-monitor';
 import { logger } from '@/lib/logger';
 
 // Create Redis client with enhanced configuration for better performance and reliability
-const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+export const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: 3,
   connectTimeout: 10000,
   reconnectOnError: (err) => {
@@ -80,10 +80,10 @@ export class CacheService {
       const data = await Promise.race([getPromise, timeoutPromise]);
       const duration = Date.now() - start;
       const hit = data !== null;
-      
+
       // Record cache metric
       recordCacheMetric('get', duration, hit);
-      
+
       if (data) {
         try {
           const decompressedData = decompressData(data);
@@ -136,7 +136,7 @@ export class CacheService {
       }
 
       const compressedValue = compressData(serializedValue);
-      
+
       const setPromise = ttl > 0
         ? redisClient.setex(trimmedKey, ttl, compressedValue)
         : redisClient.set(trimmedKey, compressedValue);
@@ -219,7 +219,7 @@ export class CacheService {
       const data = await Promise.race([mgetPromise, timeoutPromise]);
       const duration = Date.now() - start;
       recordCacheMetric('mget', duration, true);
-      
+
       return data.map(item => {
         if (item) {
           try {
@@ -263,7 +263,7 @@ export class CacheService {
     }
 
     // Filter and validate pairs
-    const validPairs = keyValuePairs.filter(([key]) => 
+    const validPairs = keyValuePairs.filter(([key]) =>
       key && typeof key === 'string' && key.trim().length > 0
     );
 
@@ -275,7 +275,7 @@ export class CacheService {
     const start = Date.now();
     try {
       const serializedPairs: [string, string][] = [];
-      
+
       for (const [key, value] of validPairs) {
         try {
           const serializedValue = JSON.stringify(value);
@@ -291,15 +291,15 @@ export class CacheService {
         logger.warn('No valid serialized pairs to set');
         return;
       }
-      
+
       const msetPromise = ttl > 0
         ? (async () => {
-            const pipeline = redisClient.pipeline();
-            serializedPairs.forEach(([key, value]) => {
-              pipeline.setex(key, ttl, value);
-            });
-            await pipeline.exec();
-          })()
+          const pipeline = redisClient.pipeline();
+          serializedPairs.forEach(([key, value]) => {
+            pipeline.setex(key, ttl, value);
+          });
+          await pipeline.exec();
+        })()
         : redisClient.mset(serializedPairs);
 
       const timeoutPromise = new Promise<never>((resolve, reject) => {
@@ -373,7 +373,7 @@ export class CacheService {
     if (cached) {
       return cached;
     }
-    
+
     const computed = await compute();
     await this.set(key, computed, ttl);
     return computed;

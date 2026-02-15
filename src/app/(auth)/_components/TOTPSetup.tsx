@@ -36,7 +36,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
     setIsLoading(true);
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
-      const response = await fetch('/api/auth/two-factor/totp/setup', {
+      const response = await fetch('/api/auth/2fa/totp/setup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
     setIsLoading(true);
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
-      const response = await fetch('/api/auth/two-factor/totp/verify', {
+      const response = await fetch('/api/auth/2fa/totp/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -356,3 +356,4 @@ export default function TOTPSetup({ onComplete, onCancel }: TOTPSetupProps) {
 
   return null;
 }
+

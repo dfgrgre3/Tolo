@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
       try {
         const { RateLimitingService } = await import('@/lib/services/rate-limiting-service');
         const { getRedisClient } = await import('@/lib/redis');
-        
+
         const redis = await getRedisClient();
         const rateLimitService = new RateLimitingService(redis);
         const rateLimitStatus = await rateLimitService.checkRateLimit(
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
             Math.ceil((rateLimitStatus.remainingTime || 900) / 60)
           );
 
-          await authService.logSecurityEvent(null, 'phone_otp_verify_rate_limited', ip, {
+          await authService.logSecurityEvent('unknown', 'phone_otp_verify_rate_limited', ip, {
             userAgent,
             attempts: rateLimitStatus.attempts,
             retryAfterSeconds,
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const userId = verification.user.id;
+      const userId = verification.user!.userId;
 
       // Parse and validate request body
       const body = await req.json();
@@ -124,11 +124,11 @@ export async function POST(request: NextRequest) {
 
     } catch (error) {
       logger.error('Error verifying phone OTP:', error);
-      
-      await authService.logSecurityEvent(null, 'phone_otp_verify_error', ip, {
+
+      await authService.logSecurityEvent('unknown', 'phone_otp_verify_error', ip, {
         userAgent,
         error: error instanceof Error ? error.message : 'Unknown error',
-      }).catch(() => {});
+      }).catch(() => { });
 
       return NextResponse.json(
         {

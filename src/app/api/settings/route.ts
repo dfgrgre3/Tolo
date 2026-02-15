@@ -26,12 +26,12 @@ export async function GET(req: NextRequest) {
 			const userId = searchParams.get("userId");
 
 			// If userId is provided in query, ensure it matches the authenticated user
-			if (userId && userId !== authUser.id) {
+			if (userId && userId !== authUser.userId) {
 				return createStandardErrorResponse('Forbidden: Can only access your own settings', 'Forbidden', 403);
 			}
 
 			// Use authenticated user's ID if no userId provided in query
-			const targetUserId = userId || authUser.id;
+			const targetUserId = userId || authUser.userId;
 
 			// Fetch user with timeout protection
 			const userPromise = prisma.user.findUnique({
@@ -93,12 +93,12 @@ export async function POST(req: NextRequest) {
 			const { userId, wakeUpTime, sleepTime, focusStrategy, subjects } = body;
 
 			// If userId is provided in body, ensure it matches the authenticated user
-			if (userId && userId !== authUser.id) {
+			if (userId && userId !== authUser.userId) {
 				return createStandardErrorResponse('Forbidden: Can only update your own settings', 'Forbidden', 403);
 			}
 
 			// Use authenticated user's ID if no userId provided in body
-			const targetUserId = userId || authUser.id;
+			const targetUserId = userId || authUser.userId;
 
 			// Verify user exists with timeout protection
 			const userExistsPromise = prisma.user.findUnique({

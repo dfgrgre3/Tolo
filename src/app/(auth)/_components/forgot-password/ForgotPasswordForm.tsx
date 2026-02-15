@@ -6,7 +6,7 @@
  * الخطوة الأولى: إدخال البريد الإلكتروني
  */
 
-import { FormEvent } from 'react';
+import React, { FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, ArrowRight, ArrowLeft, Loader2, Shield } from 'lucide-react';
 import Link from 'next/link';
@@ -123,7 +123,7 @@ export function ForgotPasswordForm({ onSuccess, onCancel }: ForgotPasswordFormPr
         label="البريد الإلكتروني"
         icon={Mail}
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
         placeholder="example@email.com"
         error={error || undefined}
         disabled={isLoading}
@@ -184,7 +184,7 @@ export function ForgotPasswordForm({ onSuccess, onCancel }: ForgotPasswordFormPr
             inputMode="numeric"
             maxLength={1}
             value={code[index] || ''}
-            onChange={(e) => {
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
               const value = e.target.value;
               if (/^\d*$/.test(value)) {
                 const newCode = code.split('');
@@ -288,7 +288,7 @@ export function ForgotPasswordForm({ onSuccess, onCancel }: ForgotPasswordFormPr
           type="password"
           label="كلمة المرور الجديدة"
           value={newPassword}
-          onChange={(e) => setNewPassword(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
           placeholder="••••••••"
           showPasswordToggle
           error={newPassword ? (errors.password || undefined) : undefined}
@@ -300,7 +300,7 @@ export function ForgotPasswordForm({ onSuccess, onCancel }: ForgotPasswordFormPr
           type="password"
           label="تأكيد كلمة المرور"
           value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
           placeholder="••••••••"
           showPasswordToggle
           error={confirmPassword ? (errors.confirm || undefined) : undefined}

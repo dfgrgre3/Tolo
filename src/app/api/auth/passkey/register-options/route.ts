@@ -17,11 +17,11 @@ async function handler(req: NextRequest) {
   // Verify authentication
   const verification = await authService.verifyTokenFromRequest(req);
   if (!verification.isValid || !verification.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  
-  if (verification.user.id !== userId) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  if (verification.user.userId !== userId) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const user = await prisma.user.findUnique({
@@ -34,10 +34,10 @@ async function handler(req: NextRequest) {
   if (!user) {
     return NextResponse.json({ error: 'User not found' }, { status: 404 });
   }
-  
+
   const rpName = 'Thanawy Educational Platform';
   const rpID = new URL(process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000').hostname;
-  
+
   const options = await generateRegistrationOptions({
     rpName,
     rpID,
@@ -51,11 +51,11 @@ async function handler(req: NextRequest) {
     },
     // Don't allow re-registration of the same authenticator
     excludeCredentials: user.biometricCredentials.map((cred) => ({
-        id: cred.credentialId,
-        type: 'public-key',
-        // Optional: Specify transports if you have them stored
-        // transports: cred.transports,
-      })),
+      id: cred.credentialId,
+      type: 'public-key',
+      // Optional: Specify transports if you have them stored
+      // transports: cred.transports,
+    })),
   });
 
   // Store the challenge in the database
@@ -65,7 +65,7 @@ async function handler(req: NextRequest) {
     userId,
     5 // 5 minutes validity
   );
-  
+
   // The client-side PasskeyManager expects the user ID in the options
   const optionsWithUserId = {
     ...options,

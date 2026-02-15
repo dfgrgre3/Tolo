@@ -39,7 +39,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
       setIsLoading(true);
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor/status', {
+      const response = await fetch('/api/auth/2fa/status', {
         credentials: 'include',
       });
 
@@ -58,7 +58,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor', {
+      const response = await fetch('/api/auth/2fa', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -85,7 +85,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor', {
+      const response = await fetch('/api/auth/2fa', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -136,7 +136,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     if (!code) return; // User cancelled
 
     try {
-      const response = await fetch('/api/auth/two-factor', {
+      const response = await fetch('/api/auth/2fa', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       
-      const response = await fetch('/api/auth/two-factor/recovery-codes', {
+      const response = await fetch('/api/auth/2fa/recovery-codes', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -368,4 +368,5 @@ export default function TwoFactorAuth({ userId }: TwoFactorAuthProps) {
     </div>
   );
 }
+
 

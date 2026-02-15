@@ -68,7 +68,7 @@ export class SecurityCheckService {
             const ipBlockStatus = ipBlockingService.isBlocked(ip);
 
             if (ipBlockStatus.blocked) {
-                await authService.logSecurityEvent(null, 'login_blocked_ip', ip, {
+                await authService.logSecurityEvent('unknown', 'login_blocked_ip', ip, {
                     reason: ipBlockStatus.reason,
                     blockedUntil: ipBlockStatus.blockedUntil?.toISOString(),
                 });
@@ -122,7 +122,7 @@ export class SecurityCheckService {
                 // Ignore IP blocking errors
             }
 
-            await authService.logSecurityEvent(null, 'login_rate_limited', ip, {
+            await authService.logSecurityEvent('unknown', 'login_rate_limited', ip, {
                 userAgent,
                 attempts: rateLimitStatus.attempts,
                 retryAfterSeconds,
@@ -171,7 +171,7 @@ export class SecurityCheckService {
             // Verify CAPTCHA token
             const isValidCaptcha = await captchaService.verifyCaptcha(captchaToken, ip);
             if (!isValidCaptcha) {
-                await authService.logSecurityEvent(null, 'captcha_verification_failed', ip, {
+                await authService.logSecurityEvent('unknown', 'captcha_verification_failed', ip, {
                     email,
                 });
 
@@ -252,7 +252,7 @@ export class SecurityCheckService {
                 }),
 
             // Log security event (non-blocking)
-            authService.logSecurityEvent(userId, 'login_failed', ip, {
+            authService.logSecurityEvent(userId || 'unknown', 'login_failed', ip, {
                 userAgent,
                 reason,
                 email: userId ? undefined : email,

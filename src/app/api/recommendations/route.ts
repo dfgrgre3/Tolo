@@ -17,89 +17,89 @@ export async function GET(request: NextRequest) {
     try {
       // Try to get userId from query params first (for backward compatibility)
       const { searchParams } = new URL(req.url);
-    let userId = searchParams.get('userId');
-    
+      let userId = searchParams.get('userId');
+
       // If not in query params, try to get from authenticated user
       if (!userId) {
         const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (verification.isValid && verification.user) {
-        userId = verification.user.id;
+        if (verification.isValid && verification.user) {
+          userId = verification.user.userId;
+        }
       }
-    }
-    
-    if (!userId) {
+
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'User ID is required', recommendations: [] },
+          { status: 400 }
+        );
+      }
+
+      // Fetch user's actual data
+      const [
+        user,
+        studySessions,
+        tasks,
+        examResults,
+        userGrades,
+        progress
+      ] = await Promise.all([
+        prisma.user.findUnique({ where: { id: userId } }),
+        prisma.studySession.findMany({
+          where: { userId },
+          orderBy: { startTime: 'desc' },
+          take: 50
+        }),
+        prisma.task.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: 50
+        }),
+        prisma.examResult.findMany({
+          where: { userId },
+          include: { exam: true },
+          orderBy: { takenAt: 'desc' },
+          take: 20
+        }),
+        prisma.examResult.findMany({
+          where: { userId },
+          include: { exam: true },
+          orderBy: { takenAt: 'desc' },
+          take: 20
+        }),
+        gamificationService.getUserProgress(userId).catch(() => null)
+      ]);
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'User not found', recommendations: [] },
+          { status: 404 }
+        );
+      }
+
+      const recommendations = generateRecommendations({
+        user,
+        studySessions,
+        tasks,
+        examResults,
+        userGrades,
+        progress: progress ? {
+          totalStudyMinutes: 0,
+          averageFocusScore: 0,
+          currentStreak: progress.currentStreak
+        } : null
+      });
+
+      return NextResponse.json({
+        success: true,
+        recommendations,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error fetching recommendations:', error);
       return NextResponse.json(
-        { error: 'User ID is required', recommendations: [] },
-        { status: 400 }
+        { error: 'Failed to fetch recommendations', recommendations: [] },
+        { status: 500 }
       );
-    }
-
-    // Fetch user's actual data
-    const [
-      user,
-      studySessions,
-      tasks,
-      examResults,
-      userGrades,
-      progress
-    ] = await Promise.all([
-      prisma.user.findUnique({ where: { id: userId } }),
-      prisma.studySession.findMany({
-        where: { userId },
-        orderBy: { startTime: 'desc' },
-        take: 50
-      }),
-      prisma.task.findMany({
-        where: { userId },
-        orderBy: { createdAt: 'desc' },
-        take: 50
-      }),
-      prisma.examResult.findMany({
-        where: { userId },
-        include: { exam: true },
-        orderBy: { takenAt: 'desc' },
-        take: 20
-      }),
-      prisma.examResult.findMany({
-        where: { userId },
-        include: { exam: true },
-        orderBy: { takenAt: 'desc' },
-        take: 20
-      }),
-      gamificationService.getUserProgress(userId).catch(() => null)
-    ]);
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found', recommendations: [] },
-        { status: 404 }
-      );
-    }
-
-    const recommendations = generateRecommendations({
-      user,
-      studySessions,
-      tasks,
-      examResults,
-      userGrades,
-      progress: progress ? {
-        totalStudyMinutes: 0,
-        averageFocusScore: 0,
-        currentStreak: progress.currentStreak
-      } : null
-    });
-
-    return NextResponse.json({
-      success: true,
-      recommendations,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    logger.error('Error fetching recommendations:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch recommendations', recommendations: [] },
-      { status: 500 }
-    );
     }
   });
 }
@@ -145,8 +145,8 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
     const sessionDate = new Date(s.startTime);
     return sessionDate >= subDays(new Date(), 7);
   });
-  const avgDailyMinutes = last7Days.length > 0 
-    ? last7Days.reduce((sum, s) => sum + (s.durationMin || 0), 0) / 7 
+  const avgDailyMinutes = last7Days.length > 0
+    ? last7Days.reduce((sum, s) => sum + (s.durationMin || 0), 0) / 7
     : 0;
 
   // Study plan recommendations
@@ -243,7 +243,7 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
   if (examResults.length > 0) {
     const avgScore = examResults.reduce((sum, r) => sum + r.score, 0) / examResults.length;
     const lowScores = examResults.filter(r => r.score < 60);
-    
+
     if (avgScore < 70) {
       recommendations.push({
         id: `exam_prep_average_${Date.now()}`,
@@ -291,7 +291,7 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
   // 5. Study Streak Analysis
   if (progress && progress.currentStreak !== undefined) {
     const currentStreak = progress.currentStreak;
-    
+
     if (currentStreak === 0 && studySessions.length > 0) {
       recommendations.push({
         id: `streak_rebuild_${Date.now()}`,
@@ -342,7 +342,7 @@ function generateRecommendations(data: RecommendationData): Recommendation[] {
   if (recentSessions.length > 0) {
     const oldestRecentSession = recentSessions[recentSessions.length - 1];
     const daysSinceOldest = differenceInDays(new Date(), new Date(oldestRecentSession.startTime));
-    
+
     if (daysSinceOldest > 3) {
       const subject = oldestRecentSession.subject || 'المواد';
       recommendations.push({

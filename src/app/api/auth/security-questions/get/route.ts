@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const userId = verification.user.id;
+      const userId = verification.user!.userId;
 
       // Get security questions
       const result = await AccountRecoveryService.getSecurityQuestions(userId);
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error('Error getting security questions:', error);
 
-      await authService.logSecurityEvent(null, 'security_questions_get_error', ip, {
+      await authService.logSecurityEvent('unknown', 'security_questions_get_error', ip, {
         userAgent,
         error: error instanceof Error ? error.message : 'Unknown error',
       }).catch(() => { });

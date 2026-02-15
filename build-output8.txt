@@ -4,3 +4,46 @@
   ?? optimizePackageImports
 
   Creating an optimized production build ...
+??? Compiled successfully in 18.5s
+  Running TypeScript ...
+node.exe : Failed to compile.
+At C:\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fai 
+   led to compile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/api/auth/2fa/recovery-codes/route.ts:14
+:46
+Type error: Property 'verifyTokenFromRequest' 
+does not exist on type '{ hashPassword(password: 
+string): Promise<string>; verifyPassword(plain: 
+string, hashed: string): Promise<boolean>; 
+generateToken(payload: UserPayload, expiresIn?: 
+string): Promise<...>; ... 23 more ...; 
+logSecurityEvent(userId: string, eventType: 
+string, ip: string, metadata?: Record<...> | 
+undefined): Promise<...>...'. Did you mean 
+'verifyTokenFromInput'?
+
+[0m [90m 12 |[39m   [36mreturn[39m 
+opsWrapper(request[33m,[39m [36masync[39m 
+(req) [33m=>[39m {
+ [90m 13 |[39m     [36mtry[39m {
+[31m[1m>[22m[39m[90m 14 |[39m       
+[36mconst[39m verification [33m=[39m 
+[36mawait[39m authService[33m.[39mverifyToken
+FromRequest(req)[33m;[39m
+ [90m    |[39m                                 
+             [31m[1m^[22m[39m
+ [90m 15 |[39m
+ [90m 16 |[39m       [36mif[39m 
+([33m![39mverification[33m.[39misValid 
+[33m||[39m 
+[33m![39mverification[33m.[39muser) {
+ [90m 17 |[39m         [36mreturn[39m 
+[33mNextResponse[39m[33m.[39mjson([0m
+Next.js build worker exited with code: 1 and 
+signal: null

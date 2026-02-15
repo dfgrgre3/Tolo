@@ -29,10 +29,7 @@ export async function POST(request: NextRequest) {
 
       if (!result.valid || !result.user) {
         // Log failed verification attempt
-        await authService.logSecurityEvent(null, 'magic_link_verification_failed', ip, {
-          userAgent,
-          email,
-        }).catch(() => {
+        await authService.logSecurityEvent('unknown', 'magic_link_invalid', ip, { userAgent, reason: result.error || 'unknown_reason', email }).catch(() => {
           // Non-blocking log failure
         });
 
@@ -71,10 +68,10 @@ export async function POST(request: NextRequest) {
 
       // Create tokens first to get a refresh token
       const tempTokens = await authService.createTokens({
-        id: user.id,
+        userId: user.id,
         email: user.email,
         name: user.name || undefined,
-        role: (user as any).role || 'user',
+        role: user.role || 'user',
       });
 
       // Create session
@@ -83,10 +80,10 @@ export async function POST(request: NextRequest) {
       // Create final tokens with session ID
       const { accessToken, refreshToken } = await authService.createTokens(
         {
-          id: user.id,
+          userId: user.id,
           email: user.email,
           name: user.name || undefined,
-          role: (user as any).role || 'user',
+          role: user.role || 'user',
         },
         session.id
       );

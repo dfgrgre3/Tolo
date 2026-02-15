@@ -1,0 +1,47 @@
+??? Next.js 16.1.1 (Turbopack)
+- Environments: .env.local, .env
+- Experiments (use with caution):
+  ?? optimizePackageImports
+
+  Creating an optimized production build ...
+??? Compiled successfully in 47s
+  Running TypeScript ...
+node.exe : Failed to compile.
+At C:\npx.ps1:29 char:3
++   & $NODE_EXE $NPX_CLI_JS $args
++   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Fai 
+   led to compile.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./src/app/api/auth/2fa/route.ts:179:73
+Type error: Type 'string | undefined' is not 
+assignable to type 'string'.
+  Type 'undefined' is not assignable to type 
+'string'.
+
+[0m [90m 177 |[39m         [90m// Create 
+Session & Tokens[39m
+ [90m 178 |[39m         [36mconst[39m 
+tempTokens [33m=[39m [36mawait[39m 
+authService[33m.[39mcreateTokens({
+[31m[1m>[22m[39m[90m 179 |[39m           
+id[33m:[39m user[33m.[39mid[33m,[39m 
+email[33m:[39m user[33m.[39memail[33m,[39m 
+name[33m:[39m user[33m.[39mname [33m||[39m 
+undefined[33m,[39m role[33m:[39m 
+user[33m.[39mrole [33m||[39m undefined
+ [90m     |[39m                                
+                                         
+[31m[1m^[22m[39m
+ [90m 180 |[39m         })[33m;[39m
+ [90m 181 |[39m
+ [90m 182 |[39m         [36mconst[39m 
+session [33m=[39m [36mawait[39m authService[
+33m.[39mcreateSession(user[33m.[39mid[33m,[3
+9m tempTokens[33m.[39mrefreshToken[33m,[39m 
+userAgent[33m,[39m ip[33m,[39m 
+rememberDevice)[33m;[39m[0m
+Next.js build worker exited with code: 1 and 
+signal: null

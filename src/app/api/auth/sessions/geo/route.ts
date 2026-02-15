@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/services/auth-service';
+
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { getGeoLocationService } from '@/lib/security/geo/geo-location-service';

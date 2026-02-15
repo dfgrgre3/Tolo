@@ -103,10 +103,10 @@ async function handler(req: NextRequest) {
 
   // Create tokens first to get a refresh token
   const tempTokens = await authService.createTokens({
-    id: user.id,
+    userId: user.id,
     email: user.email,
     name: user.name || undefined,
-    role: user.role || undefined,
+    role: user.role || 'user',
   });
 
   // Create session
@@ -117,10 +117,10 @@ async function handler(req: NextRequest) {
   // Create tokens
   const tokensResult = await authService.createTokens(
     {
-      id: user.id,
+      userId: user.id,
       email: user.email,
       name: user.name || undefined,
-      role: user.role || undefined,
+      role: user.role || 'user',
     },
     session.id
   );

@@ -13,54 +13,54 @@ export async function GET(request: NextRequest) {
     try {
       // التحقق من التوكن
       const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'غير مصرح' },
-        { status: 401 }
-      );
-    }
+      if (!authHeader?.startsWith('Bearer ')) {
+        return NextResponse.json(
+          { error: 'غير مصرح' },
+          { status: 401 }
+        );
+      }
 
-    const token = authHeader.substring(7);
-    const verification = await authService.verifyTokenFromInput(token);
+      const token = authHeader.substring(7);
+      const verification = await authService.verifyTokenFromInput(token);
 
-    if (!verification.isValid || !verification.user) {
-      return NextResponse.json(
-        { error: 'رمز غير صالح' },
-        { status: 401 }
-      );
-    }
+      if (!verification.isValid || !verification.user) {
+        return NextResponse.json(
+          { error: 'رمز غير صالح' },
+          { status: 401 }
+        );
+      }
 
       // الحصول على معاملات البحث
       const searchParams = req.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const offset = parseInt(searchParams.get('offset') || '0');
-    const eventType = searchParams.get('eventType');
+      const limit = parseInt(searchParams.get('limit') || '50');
+      const offset = parseInt(searchParams.get('offset') || '0');
+      const eventType = searchParams.get('eventType');
 
-    let logs;
-    if (eventType) {
-      logs = await securityLogger.getLogsByEventType(
-        verification.user.id,
-        eventType as any,
-        limit
-      );
-    } else {
-      logs = await securityLogger.getUserSecurityLogs(
-        verification.user.id,
-        limit,
-        offset
-      );
-    }
+      let logs;
+      if (eventType) {
+        logs = await securityLogger.getLogsByEventType(
+          verification.user.userId,
+          eventType as any,
+          limit
+        );
+      } else {
+        logs = await securityLogger.getUserSecurityLogs(
+          verification.user.userId,
+          limit,
+          offset
+        );
+      }
 
-    return NextResponse.json({
-      logs,
-      total: logs.length,
-    });
-  } catch (error) {
-    logger.error('Security logs error:', error);
-    return NextResponse.json(
-      { error: 'حدث خطأ أثناء جلب السجلات' },
-      { status: 500 }
-    );
+      return NextResponse.json({
+        logs,
+        total: logs.length,
+      });
+    } catch (error) {
+      logger.error('Security logs error:', error);
+      return NextResponse.json(
+        { error: 'حدث خطأ أثناء جلب السجلات' },
+        { status: 500 }
+      );
     }
   });
 }

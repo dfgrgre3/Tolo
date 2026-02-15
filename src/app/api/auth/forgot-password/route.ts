@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { logger } from '@/lib/logger';
 import { authService } from '@/lib/services/auth-service';
+import { AccountRecoveryService } from '@/lib/services/account-recovery-service';
 import {
     createStandardErrorResponse,
     createSuccessResponse,
@@ -47,7 +48,10 @@ export async function POST(request: NextRequest) {
 
             // Delegate to authService
             try {
-                await authService.requestPasswordReset(email, ip, userAgent);
+                const result = await AccountRecoveryService.initiateRecovery(email, 'email');
+                if (!result.success && process.env.NODE_ENV === 'development') {
+                    logger.warn(`Password reset initiated result: ${result.message}`);
+                }
             } catch (serviceError) {
                 logger.error('Password reset request failed:', serviceError);
             }

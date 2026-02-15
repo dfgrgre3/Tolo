@@ -19,7 +19,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 		const existingReminder = await prisma.reminder.findFirst({
 			where: {
 				id,
-				userId: authUser.id
+				userId: authUser.userId
 			}
 		});
 
@@ -69,7 +69,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 		const existingReminder = await prisma.reminder.findFirst({
 			where: {
 				id,
-				userId: authUser.id
+				userId: authUser.userId
 			}
 		});
 

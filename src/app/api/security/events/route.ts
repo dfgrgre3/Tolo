@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      const userId = verification.user.id;
+      const userId = verification.user.userId;
 
       // Get query parameters
       const searchParams = req.nextUrl.searchParams;

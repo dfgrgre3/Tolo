@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       const task = await prisma.task.findFirst({
         where: {
           id,
-          userId: authUser.id // Ensure user can only access their own tasks
+          userId: authUser.userId // Ensure user can only access their own tasks
         }
       });
 
@@ -50,7 +50,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const existingTask = await prisma.task.findFirst({
         where: {
           id,
-          userId: authUser.id
+          userId: authUser.userId
         }
       });
 
@@ -97,7 +97,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // Trigger gamification if task is being completed
       if (isCompleting) {
         try {
-          await gamificationService.updateUserProgress(authUser.id, 'task_completed');
+          await gamificationService.updateUserProgress(authUser.userId, 'task_completed');
         } catch (gamificationError) {
           logger.error('Error updating gamification for task:', gamificationError);
           // Don't fail the request if gamification fails
@@ -127,7 +127,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       const existingTask = await prisma.task.findFirst({
         where: {
           id,
-          userId: authUser.id
+          userId: authUser.userId
         }
       });
 
