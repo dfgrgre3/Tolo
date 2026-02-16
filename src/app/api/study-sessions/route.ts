@@ -12,15 +12,15 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       const { searchParams } = new URL(req.url);
       const limit = searchParams.get('limit') || '10';
@@ -39,8 +39,25 @@ export async function GET(request: NextRequest) {
           orderBy: {
             startTime: 'desc',
           },
-          include: {
-            subject: true,
+          select: {
+            id: true,
+            userId: true,
+            subjectId: true,
+            startTime: true,
+            endTime: true,
+            durationMin: true,
+            focusScore: true,
+            notes: true,
+            strategy: true,
+            createdAt: true,
+            subject: {
+              select: {
+                id: true,
+                name: true,
+                icon: true,
+                color: true
+              }
+            }
           }
         });
       }, 300); // Cache for 5 minutes
@@ -59,25 +76,33 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       const body = await req.json();
 
-      const { subject, subjectId, ...rest } = body;
+      const now = new Date();
+      const startTime = body.startTime ? new Date(body.startTime) : new Date(now.getTime() - (body.durationMin ?? 0) * 60000);
+      const endTime = body.endTime ? new Date(body.endTime) : now;
+
+      if (!body.subjectId) return NextResponse.json({ error: 'subjectId required' }, { status: 400 });
 
       const session = await prisma.studySession.create({
         data: {
-          ...rest,
-          subjectId: subjectId || subject, // Compatibility with old frontend sending 'subject'
           userId: authUser.userId,
+          subjectId: body.subjectId,
+          startTime,
+          endTime,
+          durationMin: Math.max(1, body.durationMin ?? 1),
+          notes: body.notes ?? null,
+          strategy: body.strategy ?? null,
         },
       });
 

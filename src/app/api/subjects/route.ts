@@ -5,6 +5,7 @@ import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
+
 export async function GET(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     return withCache(request, handleGetRequest, 'subjects', 600); // Cache for 10 minutes
@@ -41,19 +42,28 @@ async function handleGetRequest(req: NextRequest) {
 }
 
 // POST - Enroll in a new subject
+// POST - Enroll in a new subject
 export async function POST(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
-      const { userId, subject } = await request.json();
+      const userId = request.headers.get('x-user-id');
 
-      if (!userId || !subject) {
-        return NextResponse.json({ error: "userId and subject required" }, { status: 400 });
+      if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
+
+      const authUser = { userId };
+
+      const { subject } = await request.json();
+
+      if (!subject) {
+        return NextResponse.json({ error: "Subject ID required" }, { status: 400 });
       }
 
       // Check if already enrolled
       const existingEnrollment = await prisma.subjectEnrollment.findFirst({
         where: {
-          userId,
+          userId: authUser.userId,
           subjectId: subject
         }
       });
@@ -65,57 +75,16 @@ export async function POST(req: NextRequest) {
       // Create enrollment
       const enrollment = await prisma.subjectEnrollment.create({
         data: {
-          id: `${userId}_${subject}_${Date.now()}`,
-          userId,
+          id: `${authUser.userId}_${subject}_${Date.now()}`,
+          userId: authUser.userId,
           subjectId: subject
         }
       });
 
       // Invalidate user's subject cache
-      await invalidateUserCache(userId);
+      await invalidateUserCache(authUser.userId);
 
       return NextResponse.json(enrollment, { status: 201 });
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : "Server error";
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
-  });
-}
-
-// DELETE - Unenroll from a subject
-export async function DELETE(req: NextRequest) {
-  return opsWrapper(req, async (request) => {
-    try {
-      const { searchParams } = new URL(request.url);
-      const userId = searchParams.get("userId");
-      const subject = searchParams.get("subject");
-
-      if (!userId || !subject) {
-        return NextResponse.json({ error: "userId and subject required" }, { status: 400 });
-      }
-
-      // Find and delete enrollment
-      const enrollment = await prisma.subjectEnrollment.findFirst({
-        where: {
-          userId,
-          subjectId: subject
-        }
-      });
-
-      if (!enrollment) {
-        return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
-      }
-
-      await prisma.subjectEnrollment.delete({
-        where: {
-          id: enrollment.id
-        }
-      });
-
-      // Invalidate user's subject cache
-      await invalidateUserCache(userId);
-
-      return NextResponse.json({ message: "Unenrolled successfully" });
     } catch (e: unknown) {
       const errorMessage = e instanceof Error ? e.message : "Server error";
       return NextResponse.json({ error: errorMessage }, { status: 500 });

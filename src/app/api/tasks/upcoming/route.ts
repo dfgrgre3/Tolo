@@ -9,15 +9,15 @@ import { TASK_STATUS } from '@/lib/constants';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       // Get current date and tomorrow's date
       const now = new Date();

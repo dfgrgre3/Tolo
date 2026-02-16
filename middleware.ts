@@ -56,7 +56,23 @@ const PUBLIC_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/verify-email',
-  '/api/auth',
+  // المصادقة - المسارات العامة فقط
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/refresh',
+  '/api/auth/verify-email',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/send-verification',
+  '/api/auth/verify-reset-code',
+  '/api/auth/google',
+  '/api/auth/facebook',
+  '/api/auth/apple',
+  '/api/auth/magic-link',
+  '/api/auth/recover-account',
+  '/api/auth/phone/send-otp',
+  '/api/auth/phone/verify',
+  // مسارات عامة أخرى
   '/api/public',
   '/_next',
   '/favicon.ico',
@@ -79,9 +95,10 @@ export async function middleware(request: NextRequest) {
   // التحقق من المسارات المحمية
   const isProtected = PROTECTED_PATHS.some(path => pathname.startsWith(path));
   const isAdmin = ADMIN_PATHS.some(path => pathname.startsWith(path));
+  const isApiRoute = pathname.startsWith('/api');
 
-  // إذا لم يكن محمياً وليس مشرف، السماح بالوصول
-  if (!isProtected && !isAdmin) {
+  // إذا لم يكن محمياً وليس مشرف وليس API، السماح بالوصول
+  if (!isProtected && !isAdmin && !isApiRoute) {
     return NextResponse.next();
   }
 

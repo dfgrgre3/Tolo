@@ -21,12 +21,12 @@ export async function GET(
     try {
       const { id } = await params;
 
-      // Authenticate user and ensure they can only access their own stats
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Authenticate user check via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       if (authUser.userId !== id) {
         return NextResponse.json({ error: "Forbidden: Can only access your own stats" }, { status: 403 });

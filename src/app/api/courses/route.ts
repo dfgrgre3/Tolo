@@ -1,5 +1,6 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
+
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 import { logger } from '@/lib/logger';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -103,6 +104,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
+      // Verify authentication
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
+        return NextResponse.json(
+          { error: "Unauthorized", code: "UNAUTHORIZED" },
+          { status: 401 }
+        );
+      }
+      // Note: verification.user is not available from headers only. If role check is needed, fetch user from DB.
+
+      // Optional: Check for admin role if needed
+      // if (verification.user?.role !== 'ADMIN') { ... }
+
       // Parse request body with timeout protection using standardized helper
       const bodyResult = await parseRequestBody<{
         name?: string;

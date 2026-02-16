@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle } from 'lucide-react';
-import type { RiskLevel } from '../types/login-form.types';
+import type { RiskLevel } from '@/types/api/auth';
 
 interface RiskAlertProps {
   riskLevel: RiskLevel;

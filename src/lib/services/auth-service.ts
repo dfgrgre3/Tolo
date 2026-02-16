@@ -18,7 +18,7 @@ export interface UserPayload {
     userId: string;
     email: string;
     role: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export type AuthUser = {
@@ -40,6 +40,8 @@ export type AuthUser = {
     badges?: string[];
     bio?: string;
 };
+
+export type DecodedToken = UserPayload;
 
 export class AuthError extends Error {
     constructor(message: string, public code: string = 'AUTH_ERROR') {
@@ -624,46 +626,50 @@ export async function refreshAccessToken(refreshToken: string) {
 }
 
 // --- Auth Service Object (For backward compatibility and grouping) ---
-export const authService = {
-    hashPassword,
-    verifyPassword,
-    comparePasswords,
-    generateToken,
-    generate2FATempToken,
-    extractToken,
-    verifyToken,
-    verifyTokenFromInput,
-    verifyTokenFromRequest,
-    createUser,
-    getUserByEmail,
-    getUserById,
-    getSession,
-    getCurrentUser,
-    requireAuth,
-    getUserSessions,
-    revokeSession,
-    revokeAllUserSessions,
-    createTokens,
-    createSession,
-    checkRateLimit,
-    checkUserRateLimit,
-    resetRateLimit,
-    get2FALockoutStatus,
-    recordFailed2FAAttempt,
-    reset2FAAttempts,
-    getClientIP,
-    getUserAgent,
-    logSecurityEvent,
-    getRemainingRecoveryCodesCount,
-    regenerateRecoveryCodes,
-    updateLastLogin,
-    recordFailedAttempt,
-    verifyEmail,
-    refreshAccessToken
-};
+// Export singleton instance matching the AuthService type
+// Moved to end of file
+
 
 // --- AuthService Class (For static access requirements) ---
 export class AuthService {
+    // Instance methods (delegates)
+    hashPassword = hashPassword;
+    verifyPassword = verifyPassword;
+    comparePasswords = comparePasswords;
+    generateToken = generateToken;
+    generate2FATempToken = generate2FATempToken;
+    extractToken = extractToken;
+    verifyToken = verifyToken;
+    verifyTokenFromInput = verifyTokenFromInput;
+    verifyTokenFromRequest = verifyTokenFromRequest;
+    createUser = createUser;
+    getUserByEmail = getUserByEmail;
+    getUserById = getUserById;
+    getSession = getSession;
+    getCurrentUser = getCurrentUser;
+    requireAuth = requireAuth;
+    getUserSessions = getUserSessions;
+    revokeSession = revokeSession;
+    revokeAllUserSessions = revokeAllUserSessions;
+    createTokens = createTokens;
+    createSession = createSession;
+    checkRateLimit = checkRateLimit;
+    checkUserRateLimit = checkUserRateLimit;
+    resetRateLimit = resetRateLimit;
+    get2FALockoutStatus = get2FALockoutStatus;
+    recordFailed2FAAttempt = recordFailed2FAAttempt;
+    reset2FAAttempts = reset2FAAttempts;
+    getClientIP = getClientIP;
+    getUserAgent = getUserAgent;
+    logSecurityEvent = logSecurityEvent;
+    getRemainingRecoveryCodesCount = getRemainingRecoveryCodesCount;
+    regenerateRecoveryCodes = regenerateRecoveryCodes;
+    updateLastLogin = updateLastLogin;
+    recordFailedAttempt = recordFailedAttempt;
+    verifyEmail = verifyEmail;
+    refreshAccessToken = refreshAccessToken;
+
+    // Static methods (delegates)
     static hashPassword = hashPassword;
     static verifyPassword = verifyPassword;
     static comparePasswords = comparePasswords;
@@ -699,4 +705,16 @@ export class AuthService {
     static recordFailedAttempt = recordFailedAttempt;
     static verifyEmail = verifyEmail;
     static refreshAccessToken = refreshAccessToken;
+
+    // Singleton instance helper if needed
+    private static instance: AuthService;
+    public static getInstance(): AuthService {
+        if (!AuthService.instance) {
+            AuthService.instance = new AuthService();
+        }
+        return AuthService.instance;
+    }
 }
+
+// Export singleton instance matching the AuthService type
+export const authService = AuthService.getInstance();

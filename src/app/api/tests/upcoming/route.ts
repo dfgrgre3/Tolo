@@ -8,15 +8,15 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       // Get all exams that the user hasn't taken yet
       // Note: Exam model doesn't have a date field, so we return all untaken exams

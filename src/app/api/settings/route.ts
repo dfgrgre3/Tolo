@@ -15,12 +15,13 @@ import {
 export async function GET(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
 		try {
-			// Authenticate user
-			const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
-			if (!verification.isValid || !verification.user) {
+			// Authenticate user via middleware
+			// Authenticate user via middleware
+			const authUserId = request.headers.get("x-user-id");
+			if (!authUserId) {
 				return createStandardErrorResponse('Unauthorized', 'Unauthorized', 401);
 			}
-			const authUser = verification.user;
+			const authUser = { userId: authUserId };
 
 			const { searchParams } = new URL(request.url);
 			const userId = searchParams.get("userId");
@@ -71,12 +72,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
 		try {
-			// Authenticate user with timeout protection
-			const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
-			if (!verification.isValid || !verification.user) {
+			// Authenticate user via middleware
+			// Authenticate user via middleware
+			const authUserId = request.headers.get("x-user-id");
+			if (!authUserId) {
 				return createStandardErrorResponse('Unauthorized', 'Unauthorized', 401);
 			}
-			const authUser = verification.user;
+			const authUser = { userId: authUserId };
 
 
 			// Parse request body with timeout protection using standardized helper

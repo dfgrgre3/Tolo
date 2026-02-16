@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/services/auth-service';
+
 import { prisma } from '@/lib/db';
 import { OpenAI } from 'openai';
 import { rateLimit } from '@/lib/api-utils';
@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify authentication
-      const decodedToken = await verifyToken(req);
-      if (!decodedToken) {
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
       // Get user from database
       const user = await prisma.user.findUnique({
-        where: { id: decodedToken.userId }
+        where: { id: userId }
       });
 
       if (!user) {
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
       // Create prompt for AI to evaluate answers
       const prompt = `
-        قم بتقييم إجابات الطالب على الاختبار التالي في مادة ${getSubjectName(test.subject)}.
+        قم بتقييم إجابات الطالب على الاختبار التالي في مادة ${getSubjectName(test.subjectId)}.
 
         الأسئلة والإجابات الصحيحة:
         ${JSON.stringify(questionsForEvaluation, null, 2)}

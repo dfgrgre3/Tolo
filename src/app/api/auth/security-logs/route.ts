@@ -11,21 +11,12 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // التحقق من التوكن
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader?.startsWith('Bearer ')) {
+      // Verify authentication via middleware headers
+      const userId = req.headers.get("x-user-id");
+
+      if (!userId) {
         return NextResponse.json(
           { error: 'غير مصرح' },
-          { status: 401 }
-        );
-      }
-
-      const token = authHeader.substring(7);
-      const verification = await authService.verifyTokenFromInput(token);
-
-      if (!verification.isValid || !verification.user) {
-        return NextResponse.json(
-          { error: 'رمز غير صالح' },
           { status: 401 }
         );
       }
@@ -39,13 +30,13 @@ export async function GET(request: NextRequest) {
       let logs;
       if (eventType) {
         logs = await securityLogger.getLogsByEventType(
-          verification.user.userId,
+          userId,
           eventType as any,
           limit
         );
       } else {
         logs = await securityLogger.getUserSecurityLogs(
-          verification.user.userId,
+          userId,
           limit,
           offset
         );

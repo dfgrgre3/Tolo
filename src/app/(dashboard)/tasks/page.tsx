@@ -59,8 +59,9 @@ export default function TasksPage() {
         if (!res.ok) throw new Error('فشل في جلب المهام');
         return res.json();
       })
-      .then((data) => {
-        setTasks(data);
+      .then((payload) => {
+        const tasks = Array.isArray(payload) ? payload : payload.data ?? [];
+        setTasks(tasks);
         setLoading(false);
       })
       .catch((error) => {
@@ -100,7 +101,8 @@ export default function TasksPage() {
         if (!res.ok) throw new Error('فشل في إضافة المهمة');
         return res.json();
       })
-      .then((newTask) => {
+      .then((payload) => {
+        const newTask = payload.data || payload;
         setTasks([...tasks, newTask]);
         reset();
         setIsAddDialogOpen(false);
@@ -124,7 +126,8 @@ export default function TasksPage() {
         if (!res.ok) throw new Error('فشل في تحديث المهمة');
         return res.json();
       })
-      .then((updatedTask) => {
+      .then((payload) => {
+        const updatedTask = payload.data || payload;
         setTasks(tasks.map((task) => (task.id === editingTask.id ? updatedTask : task)));
         setEditingTask(null);
         reset();
@@ -148,7 +151,8 @@ export default function TasksPage() {
         if (!res.ok) throw new Error('فشل في تحديث حالة المهمة');
         return res.json();
       })
-      .then((updatedTask) => {
+      .then((payload) => {
+        const updatedTask = payload.data || payload;
         setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)));
         toast.success(`تم ${newStatus === 'COMPLETED' ? 'إكمال' : 'إعادة فتح'} المهمة بنجاح`);
       })

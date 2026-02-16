@@ -7,17 +7,15 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req);
+      // Verify authentication via middleware headers
+      const userId = req.headers.get("x-user-id");
 
-      if (!verification.isValid || !verification.user) {
+      if (!userId) {
         return NextResponse.json(
           { error: 'غير مصرح' },
           { status: 401 }
         );
       }
-
-      const userId = verification.user.userId;
 
       // Get user settings
       const user = await prisma.user.findUnique({
@@ -61,17 +59,15 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req);
+      // Verify authentication via middleware headers
+      const userId = req.headers.get("x-user-id");
 
-      if (!verification.isValid || !verification.user) {
+      if (!userId) {
         return NextResponse.json(
           { error: 'غير مصرح' },
           { status: 401 }
         );
       }
-
-      const userId = verification.user.userId;
       const body = await req.json();
 
       // Validate allowed fields

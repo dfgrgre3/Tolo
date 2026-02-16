@@ -10,9 +10,9 @@ import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // تحقق من التوثيق
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
@@ -20,47 +20,47 @@ export async function POST(request: NextRequest) {
       }
 
       const data = await req.formData();
-    const fileEntry = data.get('file');
+      const fileEntry = data.get('file');
 
-    if (!(fileEntry instanceof Blob)) {
+      if (!(fileEntry instanceof Blob)) {
+        return NextResponse.json(
+          { error: 'No file uploaded' },
+          { status: 400 }
+        );
+      }
+
+      const buffer = Buffer.from(await fileEntry.arrayBuffer());
+
+      // إنشاء اسم ملف فريد
+      const originalName = (fileEntry as any).name || 'upload';
+      const fileName = `${uuidv4()}-${originalName}`;
+      const uploadsDir = join(process.cwd(), 'public', 'uploads');
+      const filePath = join(uploadsDir, fileName);
+
+      // التأكد من وجود مجلد الرفع
+      if (!existsSync(uploadsDir)) {
+        mkdirSync(uploadsDir, { recursive: true });
+      }
+
+      // حفظ الملف على القرص
+      await writeFile(filePath, buffer);
+
+      // رابط الملف
+      const fileUrl = `/uploads/${fileName}`;
+
+      return NextResponse.json({
+        message: 'تم رفع الملف بنجاح',
+        fileUrl,
+        fileName: originalName,
+        fileSize: buffer.length,
+        fileType: fileEntry.type
+      });
+    } catch (error) {
+      logger.error('Error uploading file:', error);
       return NextResponse.json(
-        { error: 'No file uploaded' },
-        { status: 400 }
+        { error: 'فشل رفع الملف' },
+        { status: 500 }
       );
-    }
-
-    const buffer = Buffer.from(await fileEntry.arrayBuffer());
-
-    // إنشاء اسم ملف فريد
-    const originalName = (fileEntry as any).name || 'upload';
-    const fileName = `${uuidv4()}-${originalName}`;
-    const uploadsDir = join(process.cwd(), 'public', 'uploads');
-    const filePath = join(uploadsDir, fileName);
-
-    // التأكد من وجود مجلد الرفع
-    if (!existsSync(uploadsDir)) {
-      mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    // حفظ الملف على القرص
-    await writeFile(filePath, buffer);
-
-    // رابط الملف
-    const fileUrl = `/uploads/${fileName}`;
-
-    return NextResponse.json({
-      message: 'تم رفع الملف بنجاح',
-      fileUrl,
-      fileName: originalName,
-      fileSize: buffer.length,
-      fileType: fileEntry.type
-    });
-  } catch (error) {
-    logger.error('Error uploading file:', error);
-    return NextResponse.json(
-      { error: 'فشل رفع الملف' },
-      { status: 500 }
-    );
     }
   });
 }

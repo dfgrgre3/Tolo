@@ -136,7 +136,7 @@ export interface TwoFactorVerifyRequest {
 
 export interface TwoFactorVerifyResponse {
   message: string;
-  token: string;
+  token?: string;
   refreshToken?: string;
   sessionId?: string;
   user: User;
@@ -172,7 +172,7 @@ export interface BiometricVerifyRequest {
 }
 
 export interface BiometricVerifyResponse {
-  token: string;
+  token?: string;
   refreshToken?: string;
   user: User;
 }

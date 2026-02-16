@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
     const response = NextResponse.json({
       success: true,
       message: 'تم تسجيل الدخول بنجاح.',
+      token: accessToken, // Return access token for frontend use
       user: {
         id: user.id,
         name: user.name,
@@ -92,9 +93,7 @@ export async function POST(req: NextRequest) {
         xp: user.totalXP,
         totalXP: user.totalXP,
         provider: 'local',
-      },
-      token: accessToken,       // للتوافق مع الكود الحالي
-      accessToken: accessToken  // <-- أضف هذا السطر لحل مشكلة MISSING_TOKEN
+      }
     });
 
     // 6. Set Cookies

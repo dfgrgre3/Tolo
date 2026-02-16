@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, UserPayload } from '@/lib/services/auth-service';
 import { prisma, Prisma } from '@/lib/db';
 import { OpenAI } from 'openai';
 import { rateLimit } from '@/lib/api-utils';
@@ -20,9 +19,10 @@ export async function POST(request: NextRequest) {
         return rateLimitResult;
       }
 
-      // Verify authentication
-      const decodedToken = await verifyToken(req);
-      if (!decodedToken) {
+      // Verify authentication via middleware headers
+      const userId = req.headers.get("x-user-id");
+
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
 
       // Get user from database
       const user = await prisma.user.findUnique({
-        where: { id: decodedToken.userId }
+        where: { id: userId }
       });
 
       if (!user) {

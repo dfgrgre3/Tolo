@@ -497,10 +497,12 @@ export async function loginUser(
     }
 
     // Validate successful login response structure
-    if (!response.token || typeof response.token !== 'string' || response.token.trim().length === 0) {
+    // Note: Token might be missing if using HttpOnly cookies
+    if ((!response.token || typeof response.token !== 'string' || response.token.trim().length === 0) && !response.user) {
+      // Only throw if BOTH token and user are missing. If user is present, we assume cookie auth.
       throw {
-        error: 'رمز المصادقة غير موجود في الاستجابة',
-        code: 'MISSING_TOKEN',
+        error: 'بيانات المصادقة غير موجودة في الاستجابة',
+        code: 'MISSING_AUTH_DATA',
       };
     }
 
@@ -646,7 +648,7 @@ export async function verifyTwoFactor(
     });
 
     // Validate response
-    if (!response || !response.token || !response.user) {
+    if (!response || !response.user) {
       throw {
         error: 'استجابة التحقق غير صحيحة',
         code: 'INVALID_VERIFICATION_RESPONSE',

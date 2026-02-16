@@ -25,9 +25,9 @@ export async function POST(request: NextRequest) {
     const userAgent = authService.getUserAgent(req);
 
     try {
-      // التحقق من التوكن
-      const authHeader = req.headers.get('Authorization');
-      if (!authHeader?.startsWith('Bearer ')) {
+      // Verify authentication via middleware headers
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           {
             error: 'غير مصرح. يرجى تسجيل الدخول أولاً.',
@@ -36,21 +36,6 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       }
-
-      const token = authHeader.substring(7);
-      const payload = await authService.verifyToken(token);
-
-      if (!payload || !payload.userId) {
-        return NextResponse.json(
-          {
-            error: 'رمز غير صالح أو منتهي الصلاحية.',
-            code: 'INVALID_TOKEN',
-          },
-          { status: 401 }
-        );
-      }
-
-      const userId = payload.userId as string;
 
       // التحقق من صحة البيانات المدخلة
       const bodyResult = await parseRequestBody(req, { maxSize: 1024, required: true });

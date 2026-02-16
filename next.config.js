@@ -104,6 +104,18 @@ const nextConfig = { // Force restart 2
         path: false,
         'child_process': false,
       };
+
+      // Add aliases for node: scheme imports and server-side packages to prevent client bundling errors
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        'node:assert': false,
+        'node:path': false,
+        'node:util': false,
+        'node:fs': false,
+        '@elastic/elasticsearch': false,
+        'winston': false,
+        'winston-elasticsearch': false,
+      };
     } else {
       // Server-side fallbacks
       config.resolve.fallback = {

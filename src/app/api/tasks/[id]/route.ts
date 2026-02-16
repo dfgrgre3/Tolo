@@ -10,12 +10,12 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   return opsWrapper(req, async (request) => {
     try {
       const { id } = await params;
-      // Authenticate user
-      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Authenticate user via middleware
+      const userId = request.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       const task = await prisma.task.findFirst({
         where: {
@@ -37,12 +37,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   return opsWrapper(req, async (request) => {
     try {
       const { id } = await params;
-      // Authenticate user
-      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Authenticate user via middleware
+      const userId = request.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       const data = await request.json();
 
@@ -59,7 +59,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
 
       // Whitelist allowed fields to prevent mass assignment vulnerability
-      const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subject'];
+      const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subjectId'];
       const updates: Record<string, unknown> = {};
 
       for (const field of allowedFields) {
@@ -70,8 +70,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             updates[field] = new Date();
           } else if (field === 'completedAt' && data[field] === false) {
             updates[field] = null;
-          } else if (field === 'subject' && data[field] === '') {
-            updates[field] = null;
           } else if (field === 'description' && data[field] === '') {
             updates[field] = null;
           } else {
@@ -79,6 +77,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           }
         }
       }
+
+      if ('subject' in data) updates.subjectId = data.subject || null;
 
       // Prevent changing userId through mass assignment
       if ('userId' in data) {
@@ -116,12 +116,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   return opsWrapper(req, async (request) => {
     try {
       const { id } = await params;
-      // Authenticate user
-      const verification = await authService.verifyTokenFromRequest(request, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Authenticate user via middleware
+      const userId = request.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const authUser = verification.user;
+      const authUser = { userId };
 
       // Validate that the task belongs to the authenticated user before deletion
       const existingTask = await prisma.task.findFirst({
@@ -143,3 +143,5 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     }
   });
 }
+
+export const PUT = PATCH;

@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
-import { authService } from "@/lib/services/auth-service";
+
 
 export async function GET(req: NextRequest) {
 	try {
-		// Authenticate user
-		const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-		if (!verification.isValid || !verification.user) {
+		// Authenticate user check via middleware
+		const authUserId = req.headers.get("x-user-id");
+		if (!authUserId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
-		const authUser = verification.user;
+		const authUser = { userId: authUserId };
 
 		const { searchParams } = new URL(req.url);
 		const userId = searchParams.get("userId");
@@ -36,12 +36,12 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
 	try {
-		// Authenticate user
-		const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-		if (!verification.isValid || !verification.user) {
+		// Authenticate user check via middleware
+		const authUserId = req.headers.get("x-user-id");
+		if (!authUserId) {
 			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 		}
-		const authUser = verification.user;
+		const authUser = { userId: authUserId };
 
 		const body = await req.json();
 		const { userId, teacherId, title, location, startTime, endTime, subject, subjectId } = body;

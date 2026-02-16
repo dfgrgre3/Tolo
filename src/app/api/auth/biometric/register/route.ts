@@ -44,17 +44,17 @@ export async function PUT(request: NextRequest) {
 }
 
 async function handleOptions(req: NextRequest) {
-  // Verify authentication
-  const verification = await authService.verifyTokenFromRequest(req);
+  // Verify authentication via middleware headers
+  const userId = req.headers.get("x-user-id");
 
-  if (!verification.isValid || !verification.user) {
+  if (!userId) {
     return NextResponse.json(
       { error: 'غير مصرح' },
       { status: 401 }
     );
   }
 
-  const user = verification.user;
+  const user = { id: userId };
 
   // Get user details
   const userDetails = await prisma.user.findUnique({
@@ -107,17 +107,17 @@ async function handleOptions(req: NextRequest) {
 }
 
 async function handleRegistration(req: NextRequest, body: { credential: any; challenge: string }) {
-  // Verify authentication
-  const verification = await authService.verifyTokenFromRequest(req);
+  // Verify authentication via middleware headers
+  const userId = req.headers.get("x-user-id");
 
-  if (!verification.isValid || !verification.user) {
+  if (!userId) {
     return NextResponse.json(
       { error: 'غير مصرح' },
       { status: 401 }
     );
   }
 
-  const user = verification.user;
+  const user = { id: userId };
   const { credential, challenge } = body;
 
   if (!credential || !challenge) {

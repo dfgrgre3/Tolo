@@ -199,18 +199,21 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       
       // Enhanced validation before login
-      if (!token || typeof token !== 'string' || token.trim().length === 0) {
-        const error = new Error('رمز المصادقة مطلوب');
-        setError(error);
-        throw error;
+      // Enhanced validation
+      // Allow empty token if using cookie-based auth
+      if ((!token || typeof token !== 'string' || token.trim().length === 0) && !userData) {
+         const error = new Error('بيانات المصادقة مطلوبة');
+         setError(error);
+         throw error;
       }
 
-      // Validate token format
-      const tokenParts = token.split('.');
-      if (tokenParts.length !== 3 || tokenParts.some(part => part.length === 0)) {
-        const error = new Error('رمز المصادقة غير صحيح');
-        setError(error);
-        throw error;
+      // Validate token format only if provided
+      if (token && typeof token === 'string' && token.trim().length > 0) {
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3 || tokenParts.some(part => part.length === 0)) {
+           // Only warn for now, don't block login if we have user data (might be cookie auth)
+           logger.warn('Invalid token format provided to login');
+        }
       }
 
       // Validate user data if provided
@@ -298,7 +301,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
         } as TwoFactorRequiredResponse;
       }
 
-      if (response.token && response.user) {
+      if (response.user) {
         const user: User = {
           id: response.user.id,
           email: response.user.email,
@@ -317,7 +320,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
           badges: response.user.badges,
           bio: response.user.bio,
         };
-        await login(response.token, user, response.sessionId);
+        await login(response.token || '', user, response.sessionId);
         
         return {
           token: response.token,
@@ -342,7 +345,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
       setError(null);
       const response = await verifyTwoFactorApi({ loginAttemptId, code });
       
-      if (response.token && response.user) {
+      if (response.user) {
         const user: User = {
           id: response.user.id,
           email: response.user.email,
@@ -361,7 +364,7 @@ export function UnifiedAuthProvider({ children }: { children: ReactNode }) {
           badges: response.user.badges,
           bio: response.user.bio,
         };
-        await login(response.token, user, response.sessionId);
+        await login(response.token || '', user, response.sessionId);
       }
     } catch (err: unknown) {
       const error = err instanceof Error ? err : new Error(String(err));

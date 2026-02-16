@@ -93,9 +93,8 @@ export async function POST(request: NextRequest) {
 
       // 4. Log successful token refresh
       try {
-        const payload = await authService.verifyToken(refreshResult.tokens.accessToken);
-        if (payload) {
-          await logSecurityEventSafely(payload.userId as string, 'token_refreshed', {
+        if (refreshResult.user) {
+          await logSecurityEventSafely(refreshResult.user.userId as string, 'token_refreshed', {
             ip,
             userAgent,
           });

@@ -12,15 +12,17 @@ export async function GET(
   return opsWrapper(request, async (req) => {
     try {
       const { id } = await params;
-      // Verify authentication
-      const payload = await authService.verifyToken(request);
-      if (!payload) {
+      // Verify authentication via middleware
+      const userId = request.headers.get("x-user-id");
+      const userRole = request.headers.get("x-user-role");
+
+      if (!userId) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
-      const authUser = { id: payload.userId, role: payload.role };
+      const authUser = { id: userId, role: userRole };
 
       // Users can only view their own profile
       if (authUser.id !== id) {
@@ -83,15 +85,17 @@ export async function PATCH(
   return opsWrapper(request, async (req) => {
     try {
       const { id } = await params;
-      // Verify authentication
-      const payload = await authService.verifyToken(request);
-      if (!payload) {
+      // Verify authentication via middleware
+      const userId = request.headers.get("x-user-id");
+      const userRole = request.headers.get("x-user-role");
+
+      if (!userId) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
-      const authUser = { id: payload.userId, role: payload.role };
+      const authUser = { id: userId, role: userRole };
 
       // Users can only update their own profile
       if (authUser.id !== id) {
@@ -137,15 +141,17 @@ export async function DELETE(
   return opsWrapper(request, async (req) => {
     try {
       const { id } = await params;
-      // Verify authentication
-      const payload = await authService.verifyToken(request);
-      if (!payload) {
+      // Verify authentication via middleware
+      const userId = request.headers.get("x-user-id");
+      const userRole = request.headers.get("x-user-role");
+
+      if (!userId) {
         return NextResponse.json(
           { error: "Unauthorized" },
           { status: 401 }
         );
       }
-      const authUser = { id: payload.userId, role: payload.role };
+      const authUser = { id: userId, role: userRole };
 
       // Users can only delete their own account
       if (authUser.id !== id) {

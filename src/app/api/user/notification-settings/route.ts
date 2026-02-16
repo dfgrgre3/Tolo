@@ -9,19 +9,18 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Verify authentication via middleware headers
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
 
       // Get user notification settings
       const user = await prisma.user.findUnique({
-        where: { id: authUser.userId },
+        where: { id: userId },
         select: {
           emailNotifications: true,
           smsNotifications: true,
@@ -55,21 +54,20 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid || !verification.user) {
+      // Verify authentication via middleware headers
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: 'Unauthorized' },
           { status: 401 }
         );
       }
-      const authUser = verification.user;
 
       const { emailNotifications, smsNotifications, phone } = await req.json();
 
       // Update user notification settings
       const updatedUser = await prisma.user.update({
-        where: { id: authUser.userId },
+        where: { id: userId },
         data: {
           emailNotifications,
           smsNotifications,

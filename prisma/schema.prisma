@@ -124,9 +124,10 @@ model SubjectEnrollment {
 }
 
 model StudySession {
-  id          String   @id
+  id          String   @id @default(cuid())
   userId      String
-  subjectId   String
+  subjectId   String?
+  taskId      String?
   startTime   DateTime
   endTime     DateTime
   durationMin Int
@@ -135,17 +136,19 @@ model StudySession {
   strategy    String?
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([userId, subjectId])
   @@index([userId, startTime])
   @@index([userId, createdAt])
   @@index([subjectId])
+  @@index([taskId])
   @@index([startTime, endTime])
 }
 
 model Task {
-  id          String    @id
+  id          String    @id @default(cuid())
   userId      String
   title       String
   description String?
@@ -159,6 +162,7 @@ model Task {
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  studySessions StudySession[]
 
   @@index([userId, status])
   @@index([userId, priority])

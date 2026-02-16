@@ -44,8 +44,9 @@ export function useLogin() {
             }
 
             // Success
-            if (response.user && response.token) {
-                login(response.token, response.user);
+            // Success
+            if (response.user) {
+                login(response.token || "", response.user);
                 toast.success("تم تسجيل الدخول بنجاح");
 
                 const redirect = searchParams.get("redirect") || "/dashboard";

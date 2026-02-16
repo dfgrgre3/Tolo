@@ -1,6 +1,6 @@
 
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/services/auth-service';
+
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -14,20 +14,16 @@ import {
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication with timeout protection
-      const verifyPromise = Promise.resolve(verifyToken(req));
-      const verifyTimeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 5000); // 5 second timeout
-      });
-
-      const decodedToken = await Promise.race([verifyPromise, verifyTimeoutPromise]);
-      if (!decodedToken) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         const response = NextResponse.json(
           { error: 'Unauthorized', code: 'UNAUTHORIZED' },
           { status: 401 }
         );
         return addSecurityHeaders(response);
       }
+      const decodedToken = { userId };
 
       // Get and validate query parameters
       const { searchParams } = new URL(req.url);
@@ -103,20 +99,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication with timeout protection
-      const verifyPromise = Promise.resolve(verifyToken(req));
-      const verifyTimeoutPromise2 = new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), 5000); // 5 second timeout
-      });
-
-      const decodedToken = await Promise.race([verifyPromise, verifyTimeoutPromise2]);
-      if (!decodedToken) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         const response = NextResponse.json(
           { error: 'Unauthorized', code: 'UNAUTHORIZED' },
           { status: 401 }
         );
         return addSecurityHeaders(response);
       }
+      const decodedToken = { userId };
 
       // Parse request body with timeout protection using standardized helper
       const bodyResult = await parseRequestBody<{

@@ -17,12 +17,15 @@ const SchedulePostSchema = z.object({
 export async function GET(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
-      // Verify authentication
-      const payload = await authService.verifyToken(request);
-      if (!payload) {
+      // Verify authentication via middleware
+      // Verify authentication via middleware
+      const authUserId = request.headers.get("x-user-id");
+      const userRole = request.headers.get("x-user-role");
+
+      if (!authUserId) {
         return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
       }
-      const authUser = { id: payload.userId, role: payload.role };
+      const authUser = { id: authUserId, role: userRole };
 
       const { searchParams } = new URL(request.url);
       const userId = searchParams.get("userId");
@@ -70,12 +73,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     try {
-      // Verify authentication
-      const payload = await authService.verifyToken(request);
-      if (!payload) {
+      // Verify authentication via middleware
+      // Verify authentication via middleware
+      const authUserId = request.headers.get("x-user-id");
+      const userRole = request.headers.get("x-user-role");
+
+      if (!authUserId) {
         return badRequestResponse('Unauthorized', 'UNAUTHORIZED');
       }
-      const authUser = { id: payload.userId, role: payload.role };
+      const authUser = { id: authUserId, role: userRole };
 
       let body;
       try {

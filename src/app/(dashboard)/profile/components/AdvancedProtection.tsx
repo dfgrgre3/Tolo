@@ -211,7 +211,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
 
           {recaptchaEnabled && (
             <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
-              <CaptchaWidget onVerify={(token) => {
+              <CaptchaWidget onVerify={(token: string) => {
                 logger.info('reCAPTCHA verified:', token);
                 toast.success('تم التحقق من reCAPTCHA');
               }} />

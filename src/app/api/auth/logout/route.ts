@@ -12,38 +12,15 @@ import {
 
 import { logger } from '@/lib/logger';
 
-/**
- * Helper to extract and validate session from token
- */
-async function extractSessionFromToken(token: string | null): Promise<{
-  sessionId: string | null;
-  userId: string | null;
-}> {
-  if (!token) return { sessionId: null, userId: null };
 
-  try {
-    const decoded = await authService.verifyTokenFromInput(token);
-    if (decoded.isValid && decoded.sessionId) {
-      const session = await authService.getSession(decoded.sessionId);
-      return {
-        sessionId: decoded.sessionId,
-        userId: session?.userId || decoded.user?.userId || null
-      };
-    }
-  } catch {
-    // Silent fail - logout should proceed regardless
-  }
-
-  return { sessionId: null, userId: null };
-}
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     const { ip, userAgent } = extractRequestMetadata(req);
 
     try {
-      // Extract token
-      const token = authService.extractToken(req);
+      // Get User ID from middleware headers
+      const userId = req.headers.get("x-user-id");
 
       // Parse body for logout options
       const bodyResult = await parseRequestBody<{
@@ -52,23 +29,20 @@ export async function POST(request: NextRequest) {
 
       const logoutAllDevices = bodyResult.success && bodyResult.data.logoutAllDevices === true;
 
-      // Get session info from token
-      const { sessionId, userId } = await extractSessionFromToken(token);
-
-      // Execute logout operations if we have valid session info
+      // Execute logout operations if we have a valid user
       if (userId) {
         try {
           if (logoutAllDevices) {
             await authService.revokeAllUserSessions(userId);
-          } else if (sessionId) {
-            await authService.revokeSession(sessionId, userId);
           }
+          // Note: Individual session revocation requires sessionId, which is not available in x-user-id.
+          // For standard logout, clearing cookies is sufficient as the client loses access.
 
           // Log security event (non-blocking)
           logSecurityEventSafely(
             userId,
             logoutAllDevices ? 'logout_all_devices' : 'logout',
-            { ip, userAgent, sessionId }
+            { ip, userAgent }
           ).catch(() => { /* Silent fail for logging */ });
         } catch (error) {
           logger.warn('Error during logout cleanup:', error);

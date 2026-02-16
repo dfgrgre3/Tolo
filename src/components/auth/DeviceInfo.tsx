@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { Smartphone } from 'lucide-react';
-import type { DeviceFingerprint } from '../types/login-form.types';
+import type { DeviceFingerprint } from '@/types/api/auth';
 
 interface DeviceInfoProps {
   deviceFingerprint: DeviceFingerprint | null;

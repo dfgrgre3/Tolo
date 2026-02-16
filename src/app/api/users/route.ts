@@ -3,23 +3,23 @@ import { authService } from "@/lib/services/auth-service";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { 
-  createStandardErrorResponse, 
+import {
+  createStandardErrorResponse,
   createSuccessResponse,
-  addSecurityHeaders 
+  addSecurityHeaders
 } from '@/app/api/auth/_helpers';
 
 // GET all users
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      // Verify authentication with timeout protection
-      const verification = await authService.verifyTokenFromRequest(req, { checkSession: true });
-      if (!verification.isValid) {
+      // Verify authentication via middleware
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return createStandardErrorResponse(
-            'Unauthorized',
-            'Unauthorized',
-            401
+          'Unauthorized',
+          'Unauthorized',
+          401
         );
       }
 

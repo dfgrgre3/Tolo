@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken } from '@/lib/services/auth-service';
+
 import { prisma } from '@/lib/db';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
-import { 
-  createStandardErrorResponse, 
+import {
+  createStandardErrorResponse,
   createSuccessResponse,
-  addSecurityHeaders 
+  addSecurityHeaders
 } from '@/app/api/auth/_helpers';
 
 export async function GET(request: NextRequest) {
@@ -20,20 +20,16 @@ export async function GET(request: NextRequest) {
 
 async function handleGetRequest(request: NextRequest) {
   try {
-    // Verify authentication with timeout protection
-    const verifyPromise = Promise.resolve(verifyToken(request));
-    const verifyTimeoutPromise = new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), 5000); // 5 second timeout
-    });
-
-    const decodedToken = await Promise.race([verifyPromise, verifyTimeoutPromise]);
-    if (!decodedToken) {
+    // Verify authentication via headers
+    const userId = request.headers.get("x-user-id");
+    if (!userId) {
       const response = NextResponse.json(
         { error: 'Unauthorized', code: 'UNAUTHORIZED' },
         { status: 401 }
       );
       return addSecurityHeaders(response);
     }
+    const decodedToken = { userId };
 
     // Get user's study streak with timeout protection
     const studySessionsPromise = prisma.studySession.findMany({
@@ -133,9 +129,9 @@ async function handleGetRequest(request: NextRequest) {
       notified: false, // This would be stored in the database in a real app
     }));
 
-    const result = { 
+    const result = {
       streakDays,
-      recentGoals: goalsWithStatus 
+      recentGoals: goalsWithStatus
     };
 
     return createSuccessResponse(result);
