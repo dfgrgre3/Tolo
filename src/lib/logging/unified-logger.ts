@@ -51,13 +51,13 @@ let winstonLoggerInstance: any = null;
 
 async function getWinstonLogger() {
   if (!isServer) return null;
-  
+
   if (!winstonLoggerInstance) {
     try {
       const winstonModule = await import('winston');
       // Winston can be imported as default or namespace
       const winston = (winstonModule as any).default || winstonModule;
-      
+
       winstonLoggerInstance = winston.createLogger({
         level: process.env.LOG_LEVEL || (process.env.NODE_ENV === 'production' ? 'info' : 'debug'),
         format: winston.format.combine(
@@ -80,7 +80,7 @@ async function getWinstonLogger() {
       return null;
     }
   }
-  
+
   return winstonLoggerInstance;
 }
 
@@ -115,9 +115,9 @@ class UnifiedLogger {
    */
   private async ensureInitialized(): Promise<void> {
     if (this.initialized || this.initializing) return;
-    
+
     this.initializing = true;
-    
+
     try {
       // Initialize ELK logger (server-side only)
       if (this.config.enableELK && isServer) {
@@ -133,10 +133,10 @@ class UnifiedLogger {
       // Initialize Error Logger (client-side)
       if (this.config.enableErrorLogger && !isServer) {
         try {
-          const errorLoggerModule = await import('@/services/ErrorLogger');
-          this.errorLogger = errorLoggerModule.default;
+          const errorManagerModule = await import('@/services/ErrorManager');
+          this.errorLogger = errorManagerModule.default;
         } catch (error) {
-          // Error logger initialization failed, continue without it
+          // Error manager initialization failed, continue without it
           this.config.enableErrorLogger = false;
         }
       }
@@ -313,9 +313,9 @@ class UnifiedLogger {
    */
   private async logToELK(level: LogLevel, message: string, context?: LogContext, error?: Error | unknown): Promise<void> {
     if (!this.config.enableELK) return;
-    
+
     await this.ensureInitialized();
-    
+
     if (!this.elkLogger) return;
 
     try {
@@ -339,9 +339,9 @@ class UnifiedLogger {
    */
   private async logToErrorLogger(level: LogLevel, message: string, error?: Error | unknown, context?: LogContext): Promise<void> {
     if (!this.config.enableErrorLogger || isServer) return;
-    
+
     await this.ensureInitialized();
-    
+
     if (!this.errorLogger) return;
 
     try {
@@ -369,9 +369,9 @@ class UnifiedLogger {
     error?: Error | unknown
   ): Promise<void> {
     if (!this.config.enableAuthLogger || !isServer) return;
-    
+
     await this.ensureInitialized();
-    
+
     if (!this.authLogger) return;
 
     try {
@@ -404,9 +404,9 @@ class UnifiedLogger {
   ): Promise<void> {
     if (!this.config.enableSecurityLogger || !isServer) return;
     if (level !== 'warn' && level !== 'error') return; // Security logger only for warnings and errors
-    
+
     await this.ensureInitialized();
-    
+
     if (!this.securityLogger) return;
 
     try {

@@ -1,4 +1,5 @@
-import { CacheService } from "./redis";
+import { CacheService } from "./cache-service-unified";
+
 
 import { logger } from '@/lib/logger';
 
@@ -44,13 +45,13 @@ export async function invalidateUserDataCache(userId: string, dataType: string):
  */
 export async function invalidateEducationalContentCache(subjectId?: string, courseId?: string): Promise<void> {
   let pattern = `${CachePrefixes.EDUCATIONAL_CONTENT}:*`;
-  
+
   if (subjectId && courseId) {
     pattern = `${CachePrefixes.EDUCATIONAL_CONTENT}:*:${subjectId}:${courseId}:*`;
   } else if (subjectId) {
     pattern = `${CachePrefixes.EDUCATIONAL_CONTENT}:*:${subjectId}:*`;
   }
-  
+
   await CacheService.invalidatePattern(pattern);
 }
 

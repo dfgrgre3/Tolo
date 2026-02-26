@@ -120,7 +120,6 @@ model SubjectEnrollment {
   @@unique([userId, subjectId])
   @@index([userId])
   @@index([subjectId])
-  @@index([userId, createdAt])
 }
 
 model StudySession {
@@ -140,11 +139,8 @@ model StudySession {
   task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
 
   @@index([userId, subjectId])
-  @@index([userId, startTime])
-  @@index([userId, createdAt])
   @@index([subjectId])
   @@index([taskId])
-  @@index([startTime, endTime])
 }
 
 model Task {
@@ -164,13 +160,7 @@ model Task {
   subject     Subject?  @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   studySessions StudySession[]
 
-  @@index([userId, status])
-  @@index([userId, priority])
-  @@index([userId, dueAt])
   @@index([userId, subjectId])
-  @@index([status])
-  @@index([status, dueAt])
-  @@index([userId, createdAt])
 }
 
 model Reminder {
@@ -183,9 +173,6 @@ model Reminder {
   createdAt DateTime @default(now())
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([userId, remindAt])
-  @@index([userId, createdAt])
-  @@index([remindAt])
 }
 
 model ProgressSnapshot {
@@ -201,8 +188,6 @@ model ProgressSnapshot {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([date])
-  @@index([userId, date])
 }
 
 model Resource {
@@ -218,9 +203,6 @@ model Resource {
   subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@index([subjectId])
-  @@index([subjectId, type])
-  @@index([type])
-  @@index([createdAt])
 }
 
 // نموذج الكتب للمكتبة الرقمية
@@ -241,11 +223,6 @@ model Book {
   subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@index([subjectId])
-  @@index([subjectId, rating])
-  @@index([author])
-  @@index([createdAt])
-  @@index([downloads])
-  @@index([rating])
 }
 
 model Exam {
@@ -261,9 +238,6 @@ model Exam {
   results ExamResult[]
 
   @@index([subjectId])
-  @@index([subjectId, year])
-  @@index([year])
-  @@index([createdAt])
 }
 
 model ExamResult {
@@ -278,9 +252,7 @@ model ExamResult {
 
   @@index([userId])
   @@index([userId, examId])
-  @@index([userId, takenAt])
   @@index([examId])
-  @@index([takenAt])
 }
 
 model Session {
@@ -297,12 +269,6 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, isActive])
-  @@index([userId, expiresAt])
-  @@index([expiresAt])
-  @@index([isActive, expiresAt])
-  @@index([userId, lastAccessed])
-  @@index([refreshToken])
 }
 
 
@@ -319,12 +285,6 @@ model SecurityLog {
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, eventType])
-  @@index([userId, createdAt])
-  @@index([eventType])
-  @@index([eventType, createdAt])
-  @@index([createdAt])
-  @@index([ip, createdAt])
 }
 
 // Gamification Models
@@ -345,9 +305,6 @@ model Achievement {
 
   users UserAchievement[]
 
-  @@index([category])
-  @@index([difficulty])
-  @@index([rarity])
 }
 
 model UserAchievement {
@@ -360,7 +317,6 @@ model UserAchievement {
 
   @@unique([userId, achievementKey])
   @@index([userId])
-  @@index([achievementKey])
 }
 
 model CustomGoal {
@@ -378,10 +334,6 @@ model CustomGoal {
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, isCompleted])
-  @@index([userId, category])
-  @@index([category])
-  @@index([isCompleted])
 }
 
 // Temporary authentication states for serverless compatibility
@@ -393,10 +345,7 @@ model TwoFactorChallenge {
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  @@index([expiresAt])
   @@index([userId])
-  @@index([userId, expiresAt])
-  @@index([expiresAt, used])
 }
 
 model BiometricChallenge {
@@ -408,11 +357,7 @@ model BiometricChallenge {
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  @@index([expiresAt])
-  @@index([type])
   @@index([userId])
-  @@index([userId, type])
-  @@index([expiresAt, used])
 }
 
 // نموذج الإشعارات
@@ -430,12 +375,6 @@ model Notification {
 
   // فهرس لتحسين أداء الاستعلامات
   @@index([userId])
-  @@index([userId, createdAt])
-  @@index([userId, type])
-  @@index([userId, isRead])
-  @@index([userId, isRead, createdAt])
-  @@index([isRead])
-  @@index([isRead, createdAt])
 }
 
 // Advanced Gamification Models
@@ -455,8 +394,6 @@ model Season {
   participations SeasonParticipation[]
   leaderboards   LeaderboardEntry[]
 
-  @@index([isActive])
-  @@index([startDate, endDate])
 }
 
 model SeasonParticipation {
@@ -473,8 +410,6 @@ model SeasonParticipation {
   @@unique([userId, seasonId])
   @@index([seasonId])
   @@index([userId])
-  @@index([seasonId, seasonXP])
-  @@index([seasonId, rank])
   @@index([userId, seasonId])
 }
 
@@ -499,10 +434,6 @@ model Challenge {
 
   completions ChallengeCompletion[]
 
-  @@index([type])
-  @@index([isActive])
-  @@index([startDate, endDate])
-  @@index([category])
   @@index([subjectId])
 }
 
@@ -519,7 +450,6 @@ model ChallengeCompletion {
   @@unique([userId, challengeId])
   @@index([userId])
   @@index([challengeId])
-  @@index([isCompleted])
 }
 
 // Quest System Models
@@ -537,8 +467,6 @@ model QuestChain {
   quests     Quest[]
   progresses QuestProgress[]
 
-  @@index([isActive])
-  @@index([category])
 }
 
 model Quest {
@@ -557,7 +485,6 @@ model Quest {
   progresses QuestProgress[]
 
   @@index([chainId])
-  @@index([order])
 }
 
 model QuestProgress {
@@ -577,7 +504,6 @@ model QuestProgress {
   @@index([userId])
   @@index([questId])
   @@index([chainId])
-  @@index([isCompleted])
 }
 
 // Reward System (Virtual Rewards & NFTs)
@@ -596,9 +522,6 @@ model Reward {
 
   userRewards UserReward[]
 
-  @@index([type])
-  @@index([rarity])
-  @@index([isActive])
 }
 
 model UserReward {
@@ -614,7 +537,6 @@ model UserReward {
   @@unique([userId, rewardId])
   @@index([userId])
   @@index([rewardId])
-  @@index([earnedAt])
 }
 
 // Advanced Leaderboard System
@@ -640,11 +562,6 @@ model LeaderboardEntry {
   lastUpdated DateTime @updatedAt
 
   @@unique([userId, type, period, subjectId, levelRange, seasonId])
-  @@index([type])
-  @@index([type, period])
-  @@index([type, subjectId])
-  @@index([type, seasonId])
-  @@index([type, totalXP])
   @@index([userId])
 }
 
@@ -664,11 +581,6 @@ model SentimentAnalysis {
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, sentiment])
-  @@index([sentiment])
-  @@index([sentiment, score])
-  @@index([createdAt])
-  @@index([userId, createdAt])
 }
 
 // AI Chat Messages with Context
@@ -683,10 +595,6 @@ model AiChatMessage {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, role])
-  @@index([userId, sentiment])
-  @@index([createdAt])
-  @@index([userId, createdAt])
 }
 
 // AI Generated Content
@@ -705,12 +613,7 @@ model AiGeneratedContent {
   subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
 
   @@index([userId])
-  @@index([userId, type])
-  @@index([userId, type, isUsed])
-  @@index([type])
   @@index([subjectId])
-  @@index([subjectId, type])
-  @@index([isUsed])
 }
 
 // User Interactions for ML Recommendations
@@ -725,15 +628,6 @@ model UserInteraction {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, type])
-  @@index([userId, type, itemType])
-  @@index([userId, itemType])
-  @@index([userId, itemType, timestamp])
-  @@index([type])
-  @@index([itemType])
-  @@index([itemType, itemId])
-  @@index([timestamp])
-  @@index([userId, timestamp])
 }
 
 // Content Preferences for ML
@@ -750,9 +644,6 @@ model ContentPreference {
 
   @@unique([userId, itemType, itemValue])
   @@index([userId])
-  @@index([userId, itemType])
-  @@index([userId, itemType, weight])
-  @@index([itemType])
 }
 
 // ML Recommendations
@@ -772,16 +663,6 @@ model MlRecommendation {
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, itemType])
-  @@index([userId, itemType, score])
-  @@index([userId, algorithm])
-  @@index([userId, shownAt])
-  @@index([itemType])
-  @@index([itemType, itemId])
-  @@index([itemType, itemId, score])
-  @@index([score])
-  @@index([createdAt])
-  @@index([userId, createdAt])
 }
 
 // Teachers Model
@@ -798,7 +679,6 @@ model Teacher {
 
   @@unique([name, subjectId], name: "name_subject")
   @@index([subjectId])
-  @@index([rating])
 }
 
 
@@ -832,8 +712,6 @@ model Subject {
   offlineLessons OfflineLesson[]
   aiExams       AiGeneratedExam[]
 
-  @@index([name])
-  @@index([isActive])
 }
 
 model Topic {
@@ -849,7 +727,6 @@ model Topic {
   subTopics SubTopic[]
 
   @@index([subjectId])
-  @@index([order])
 }
 
 model SubTopic {
@@ -866,7 +743,6 @@ model SubTopic {
   progresses TopicProgress[]
 
   @@index([topicId])
-  @@index([order])
 }
 
 model TopicProgress {
@@ -883,7 +759,6 @@ model TopicProgress {
   @@unique([userId, subTopicId])
   @@index([userId])
   @@index([subTopicId])
-  @@index([completed])
 }
 
 // Messages Model (Chat)
@@ -899,8 +774,6 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@index([senderId, receiverId])
-  @@index([isRead])
-  @@index([createdAt])
 }
 
 // Announcements Model
@@ -913,9 +786,6 @@ model Announcement {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([isActive])
-  @@index([priority])
-  @@index([createdAt])
 }
 
 // Blog Models
@@ -930,7 +800,6 @@ model BlogCategory {
 
   posts BlogPost[]
 
-  @@index([slug])
 }
 
 model BlogPost {
@@ -949,11 +818,8 @@ model BlogPost {
   author   User         @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
   category BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
-  @@index([slug])
   @@index([categoryId])
   @@index([authorId])
-  @@index([isPublished])
-  @@index([publishedAt])
 }
 
 // Forum Models
@@ -968,7 +834,6 @@ model ForumCategory {
 
   posts ForumPost[]
 
-  @@index([slug])
 }
 
 model ForumPost {
@@ -989,8 +854,6 @@ model ForumPost {
 
   @@index([categoryId])
   @@index([authorId])
-  @@index([isPinned])
-  @@index([createdAt])
 }
 
 model ForumReply {
@@ -1006,7 +869,6 @@ model ForumReply {
 
   @@index([postId])
   @@index([authorId])
-  @@index([createdAt])
 }
 
 // Events Model
@@ -1029,11 +891,7 @@ model Event {
   organizer User            @relation("EventOrganizer", fields: [organizerId], references: [id], onDelete: Cascade)
   attendees EventAttendee[]
 
-  @@index([startDate])
-  @@index([endDate])
   @@index([organizerId])
-  @@index([category])
-  @@index([isPublic])
 }
 
 model EventAttendee {
@@ -1049,7 +907,6 @@ model EventAttendee {
   @@unique([eventId, userId])
   @@index([eventId])
   @@index([userId])
-  @@index([status])
 }
 
 // Contest Model
@@ -1065,8 +922,6 @@ model Contest {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  @@index([isActive])
-  @@index([startDate, endDate])
 }
 
 // Schedule Model
@@ -1091,10 +946,7 @@ model Schedule {
 
   @@unique([userId, active], name: "userId_active")
   @@index([userId])
-  @@index([userId, startTime])
-  @@index([type])
   @@index([subjectId])
-  @@index([active])
 }
 
 // User Grades Model
@@ -1115,8 +967,6 @@ model UserGrade {
   @@index([userId])
   @@index([userId, subjectId])
   @@index([subjectId])
-  @@index([date])
-  @@index([examDate])
 }
 
 // Offline Lessons Model
@@ -1140,7 +990,6 @@ model OfflineLesson {
   @@index([userId])
   @@index([subjectId])
   @@index([teacherId])
-  @@index([startTime])
 }
 
 // AI Generated Exams Models
@@ -1162,8 +1011,6 @@ model AiGeneratedExam {
 
   @@index([userId])
   @@index([subjectId])
-  @@index([difficulty])
-  @@index([year])
 }
 
 model AiQuestion {
@@ -1180,7 +1027,6 @@ model AiQuestion {
   exam AiGeneratedExam @relation(fields: [examId], references: [id], onDelete: Cascade)
 
   @@index([examId])
-  @@index([order])
 }
 
 model TestResult {
@@ -1198,7 +1044,6 @@ model TestResult {
   @@index([userId])
   @@index([examId])
   @@index([userId, examId])
-  @@index([completedAt])
 }
 
 // Biometric Credentials Model
@@ -1231,8 +1076,6 @@ model PasswordHistory {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, createdAt])
-  @@index([createdAt])
 }
 
 // Password Policy - Configurable password policies per role
@@ -1253,8 +1096,6 @@ model PasswordPolicy {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  @@index([role])
-  @@index([isActive])
 }
 
 // Security Questions for Account Recovery
@@ -1270,5 +1111,4 @@ model SecurityQuestion {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([userId])
-  @@index([userId, order])
 }

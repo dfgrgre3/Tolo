@@ -12,7 +12,7 @@ export async function POST(_req: NextRequest) {
       data: {
         email,
         passwordHash: rand, // random placeholder for required field
-        name: "ط¶ظٹظپ",
+        name: "Guest",
       },
       select: { id: true },
     });

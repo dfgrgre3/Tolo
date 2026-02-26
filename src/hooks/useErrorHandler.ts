@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import errorLogger from '../services/ErrorLogger';
+import errorManager from '../services/ErrorManager';
 
 export interface ErrorHandlerOptions {
   context?: Record<string, unknown>;
@@ -18,52 +18,40 @@ export interface ErrorHandlerReturn {
 
 /**
  * Custom hook for handling errors in React components
- * Provides error logging and state management
  */
 export const useErrorHandler = (options: ErrorHandlerOptions = {}): ErrorHandlerReturn => {
   const [error, setError] = useState<Error | null>(null);
   const [errorId, setErrorId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleError = useCallback((error: Error | string, additionalContext?: Record<string, unknown>) => {
-    // Convert string to Error if needed
-    const errorObj = typeof error === 'string' ? new Error(error) : error;
+  const handleError = useCallback(
+    (error: Error | string, additionalContext?: Record<string, unknown>) => {
+      const errorObj = typeof error === 'string' ? new Error(error) : error;
+      const context = {
+        ...options.context,
+        ...additionalContext,
+        severity: (additionalContext?.severity as string) || options.severity || 'medium',
+      };
 
-    // Merge context
-    const context = {
-      ...options.context,
-      ...additionalContext,
-      severity: (additionalContext?.severity as string) || options.severity || 'medium',
-    };
+      const id = errorManager.logError(errorObj, context);
+      setError(errorObj);
+      setErrorId(id);
 
-    // Log the error
-    const id = errorLogger.logError(errorObj, context);
+      if (options.onError) {
+        options.onError(errorObj, id);
+      }
 
-    // Update state
-    setError(errorObj);
-    setErrorId(id);
-
-    // Call custom error handler if provided
-    if (options.onError) {
-      options.onError(errorObj, id);
-    }
-
-    return id;
-  }, [options.context, options.severity, options.onError]);
+      return id;
+    },
+    [options.context, options.severity, options.onError]
+  );
 
   const clearError = useCallback(() => {
     setError(null);
     setErrorId(null);
   }, []);
 
-  return {
-    handleError,
-    error,
-    errorId,
-    clearError,
-    isLoading,
-    setIsLoading,
-  };
+  return { handleError, error, errorId, clearError, isLoading, setIsLoading };
 };
 
 /**
@@ -78,7 +66,7 @@ export const useAsyncError = () => {
 
   const catchError = useCallback((error: Error) => {
     setError(error);
-    errorLogger.logError(error, { source: 'useAsyncError' });
+    errorManager.logError(error, { source: 'useAsyncError' });
   }, []);
 
   return { error, resetError, catchError };
@@ -95,36 +83,36 @@ export const useAsyncOperation = <T, P extends unknown[]>(
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const execute = useCallback(async (...args: P): Promise<T | null> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const result = await asyncFn(...args);
-      setData(result);
-      return result;
-    } catch (err) {
-      const errorObj = err instanceof Error ? err : new Error(String(err));
-      setError(errorObj);
+  const execute = useCallback(
+    async (...args: P): Promise<T | null> => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const result = await asyncFn(...args);
+        setData(result);
+        return result;
+      } catch (err) {
+        const errorObj = err instanceof Error ? err : new Error(String(err));
+        setError(errorObj);
 
-      // Log error with context
-      const errorId = errorLogger.logError(errorObj, {
-        ...options.context,
-        source: 'useAsyncOperation',
-        severity: options.severity || 'medium',
-        functionName: asyncFn.name || 'anonymous',
-        args: args,
-      });
+        const errorId = errorManager.logError(errorObj, {
+          ...options.context,
+          source: 'useAsyncOperation',
+          severity: options.severity || 'medium',
+          functionName: asyncFn.name || 'anonymous',
+        });
 
-      // Call custom error handler if provided
-      if (options.onError) {
-        options.onError(errorObj, errorId);
+        if (options.onError) {
+          options.onError(errorObj, errorId);
+        }
+
+        return null;
+      } finally {
+        setIsLoading(false);
       }
-
-      return null;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [asyncFn, options.context, options.severity, options.onError]);
+    },
+    [asyncFn, options.context, options.severity, options.onError]
+  );
 
   const reset = useCallback(() => {
     setData(null);

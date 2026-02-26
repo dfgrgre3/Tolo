@@ -1,6 +1,5 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertTriangle, RefreshCw, Home, MessageCircle } from 'lucide-react';
-import errorLogger from '../services/ErrorLogger';
 import errorManager from '../services/ErrorManager';
 import ErrorPage, { ErrorType } from './ErrorPages';
 
@@ -100,24 +99,17 @@ class ErrorBoundary extends Component<Props, State> {
 
   logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
     try {
-      // Use the centralized ErrorLogger service
-      const errorId = errorLogger.logError(error, {
+      const errorId = errorManager.logError(error, {
         source: 'ErrorBoundary',
         severity: 'high',
         componentStack: errorInfo.componentStack,
         errorBoundaryId: this.state.errorId,
-        userAgent: navigator.userAgent,
-        url: window.location.href,
       });
 
-      // Update state with the logger's error ID for consistency
       this.setState({ errorId });
-
-      logger.info('Error logged to ErrorLogger service with ID:', errorId);
+      logger.info('Error logged to ErrorManager with ID:', errorId);
     } catch (e) {
-      logger.error('Failed to log error to ErrorLogger service:', e);
-      // Fallback to basic logging if ErrorLogger fails
-      logger.error('ErrorBoundary error:', error, errorInfo);
+      logger.error('Failed to log error to ErrorManager:', e);
     }
   };
 

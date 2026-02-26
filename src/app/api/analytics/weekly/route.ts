@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
 			// Process subject data
 			const bySubject: Record<string, number> = {};
 			sessions.forEach((s) => {
-				const subject = s.subject || 'Unknown';
+				const subject = s.subjectId || 'Unknown';
 				const duration = s.durationMin || 0;
 				bySubject[subject] = (bySubject[subject] || 0) + duration;
 			});

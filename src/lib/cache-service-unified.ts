@@ -4,10 +4,20 @@ if (typeof window !== 'undefined') {
 }
 
 import Redis from 'ioredis';
-import { perfConfig, PerfMonitor } from './perf-config';
-import { recordCacheMetric } from './db-monitor';
+
 
 import { logger } from '@/lib/logger';
+
+/**
+ * Cache metrics recorder
+ * No-op stub that logs metrics via the unified logger.
+ * Can be replaced with a real metrics sink (Prometheus, Datadog, etc.) as needed.
+ */
+function recordCacheMetric(operation: string, duration: number, success: boolean): void {
+  if (process.env.NODE_ENV === 'development') {
+    logger.debug(`Cache metric: ${operation}`, { duration, success });
+  }
+}
 
 // Create Redis client with enhanced configuration for better performance and reliability
 export const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
@@ -405,6 +415,18 @@ export class CacheService {
    */
   static isConnected(): boolean {
     return redisClient.status === 'ready';
+  }
+
+  /**
+   * Flush all cache keys (use with caution - clears entire Redis database)
+   */
+  static async flushAll(): Promise<void> {
+    try {
+      await redisClient.flushall();
+      logger.warn('Redis flush all executed - all cache cleared');
+    } catch (error) {
+      logger.error('Error flushing all cache:', error);
+    }
   }
 
   /**

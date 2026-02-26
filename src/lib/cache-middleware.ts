@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CacheService } from './redis';
+import { CacheService } from './cache-service-unified';
+
 
 import { logger } from '@/lib/logger';
 
@@ -24,26 +25,26 @@ export function generateCacheKey(req: NextRequest, prefix: string): string {
   try {
     const url = new URL(req.url);
     const userId = req.headers.get('x-user-id') || 'anonymous';
-    
+
     // Sanitize and limit length
     const sanitizedPrefix = prefix.trim().slice(0, 50);
     const sanitizedUserId = typeof userId === 'string' ? userId.trim().slice(0, 100) : 'anonymous';
     const sanitizedPathname = url.pathname.slice(0, 200);
-    
+
     // Create base key with prefix, user, and pathname
     let key = `${sanitizedPrefix}:${sanitizedUserId}:${sanitizedPathname}`;
-    
+
     // Add query parameters to key (limit to prevent DoS)
     const queryEntries = Array.from(url.searchParams.entries()).slice(0, 50);
     const queryParams = queryEntries
       .sort(([a], [b]) => a.localeCompare(b)) // Sort for consistency
       .map(([key, value]) => `${key.slice(0, 50)}=${value.slice(0, 200)}`)
       .join('&');
-    
+
     if (queryParams) {
       key += `?${queryParams.slice(0, 1000)}`; // Limit total query string length
     }
-    
+
     // Replace special characters to make valid Redis key and limit total length
     const sanitizedKey = key.replace(/[^a-zA-Z0-9:_\-?&=.]/g, '_').slice(0, 500);
     return sanitizedKey;
@@ -77,26 +78,26 @@ export function generateAuthCacheKey(req: NextRequest, prefix: string): string {
     const authHeader = req.headers.get('authorization') || '';
     const token = authHeader.split(' ')[1];
     const userId = token ? token.substring(0, 16) : 'anonymous'; // Use first 16 chars of token for privacy
-    
+
     // Sanitize and limit length
     const sanitizedPrefix = prefix.trim().slice(0, 50);
     const sanitizedUserId = typeof userId === 'string' ? userId.trim().slice(0, 100) : 'anonymous';
     const sanitizedPathname = url.pathname.slice(0, 200);
-    
+
     // Create base key with prefix, user, and pathname
     let key = `${sanitizedPrefix}:${sanitizedUserId}:${sanitizedPathname}`;
-    
+
     // Add query parameters to key (limit to prevent DoS)
     const queryEntries = Array.from(url.searchParams.entries()).slice(0, 50);
     const queryParams = queryEntries
       .sort(([a], [b]) => a.localeCompare(b)) // Sort for consistency
       .map(([key, value]) => `${key.slice(0, 50)}=${value.slice(0, 200)}`)
       .join('&');
-    
+
     if (queryParams) {
       key += `?${queryParams.slice(0, 1000)}`; // Limit total query string length
     }
-    
+
     // Replace special characters to make valid Redis key and limit total length
     const sanitizedKey = key.replace(/[^a-zA-Z0-9:_\-?&=.]/g, '_').slice(0, 500);
     return sanitizedKey;
@@ -145,7 +146,7 @@ export async function withCache(
   }
 
   const cacheKey = generateCacheKey(req, prefix);
-  
+
   try {
     // Try to get from cache first with timeout
     const getCachePromise = CacheService.get<any>(cacheKey);
@@ -156,10 +157,10 @@ export async function withCache(
     const cachedData = await Promise.race([getCachePromise, cacheTimeoutPromise]);
     if (cachedData && cachedData.data) {
       // Validate cached data structure
-      const timestamp = cachedData.timestamp && typeof cachedData.timestamp === 'number' 
-        ? cachedData.timestamp 
+      const timestamp = cachedData.timestamp && typeof cachedData.timestamp === 'number'
+        ? cachedData.timestamp
         : Date.now();
-      
+
       // Return cached response with cache header
       const response = NextResponse.json(cachedData.data, {
         status: 200,
@@ -176,7 +177,7 @@ export async function withCache(
 
     // Process request if not in cache
     const response = await handler(req);
-    
+
     // Cache successful responses (status 200) - non-blocking
     if (response.status === 200) {
       // Don't await - cache in background
@@ -192,7 +193,7 @@ export async function withCache(
           });
 
           const data = await Promise.race([jsonPromise, jsonTimeoutPromise]);
-          
+
           // Cache the response data with timeout
           const setCachePromise = CacheService.set(cacheKey, { data, timestamp: Date.now() }, validTTL);
           const setCacheTimeoutPromise = new Promise<void>((resolve) => {
@@ -208,12 +209,12 @@ export async function withCache(
           // Don't fail the request if caching fails
         }
       })();
-      
+
       // Add cache headers
       response.headers.set('X-Cache', 'MISS');
       response.headers.set('X-Cache-Key', cacheKey.slice(0, 200));
     }
-    
+
     return response;
   } catch (error) {
     logger.error('Cache middleware error:', error);
@@ -261,7 +262,7 @@ export async function withAuthCache(
   }
 
   const cacheKey = generateAuthCacheKey(req, prefix);
-  
+
   try {
     // Try to get from cache first with timeout
     const getCachePromise = CacheService.get<any>(cacheKey);
@@ -272,10 +273,10 @@ export async function withAuthCache(
     const cachedData = await Promise.race([getCachePromise, cacheTimeoutPromise]);
     if (cachedData && cachedData.data) {
       // Validate cached data structure
-      const timestamp = cachedData.timestamp && typeof cachedData.timestamp === 'number' 
-        ? cachedData.timestamp 
+      const timestamp = cachedData.timestamp && typeof cachedData.timestamp === 'number'
+        ? cachedData.timestamp
         : Date.now();
-      
+
       // Return cached response with cache header
       const response = NextResponse.json(cachedData.data, {
         status: 200,
@@ -292,7 +293,7 @@ export async function withAuthCache(
 
     // Process request if not in cache
     const response = await handler(req);
-    
+
     // Cache successful responses (status 200) - non-blocking
     if (response.status === 200) {
       // Don't await - cache in background
@@ -308,7 +309,7 @@ export async function withAuthCache(
           });
 
           const data = await Promise.race([jsonPromise, jsonTimeoutPromise]);
-          
+
           // Cache the response data with timeout
           const setCachePromise = CacheService.set(cacheKey, { data, timestamp: Date.now() }, validTTL);
           const setCacheTimeoutPromise = new Promise<void>((resolve) => {
@@ -324,12 +325,12 @@ export async function withAuthCache(
           // Don't fail the request if caching fails
         }
       })();
-      
+
       // Add cache headers
       response.headers.set('X-Cache', 'MISS');
       response.headers.set('X-Cache-Key', cacheKey.slice(0, 200));
     }
-    
+
     return response;
   } catch (error) {
     logger.error('Auth cache middleware error:', error);

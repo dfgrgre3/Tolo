@@ -1,9 +1,24 @@
 /**
  * Centralized Error Management System
- * Connects ErrorBoundary, ErrorToast, and ErrorLogger for unified error handling
+ * Unified single source of truth for error handling, logging, formatting and toasts.
  */
 
-import errorLogger, { ErrorLogEntry } from './ErrorLogger';
+import { logger } from '@/lib/logger';
+import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
+
+export interface ErrorLogEntry {
+  id: string;
+  timestamp: string;
+  message: string;
+  stack?: string;
+  source: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  sessionId: string;
+  userAgent: string;
+  url: string;
+  additionalData?: Record<string, any>;
+  resolved: boolean;
+}
 
 export interface ErrorConfig {
   showToast: boolean;
@@ -26,53 +41,83 @@ export interface ErrorDisplayOptions {
 class ErrorManager {
   private toastCallback: ((options: ErrorDisplayOptions & { variant: 'destructive' | 'warning' | 'info' }) => void) | null = null;
   private boundaryCallback: ((error: Error, errorId: string) => void) | null = null;
+  private logs: ErrorLogEntry[] = [];
+  private sessionId: string;
+  private readonly maxLogs = 100;
 
-  /**
-   * Register toast display callback
-   */
-  registerToastCallback(callback: (options: ErrorDisplayOptions & { variant: 'destructive' | 'warning' | 'info' }) => void) {
+  constructor() {
+    this.sessionId = this.getOrCreateSessionId();
+    this.setupGlobalErrorHandlers();
+  }
+
+  private getOrCreateSessionId(): string {
+    if (typeof window === 'undefined') return 'server-session';
+    const stored = safeGetItem('errorLoggerSessionId', { storageType: 'session', fallback: '' }) as string;
+    if (stored) return stored;
+    const newId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    safeSetItem('errorLoggerSessionId', newId, { storageType: 'session' });
+    return newId;
+  }
+
+  private setupGlobalErrorHandlers(): void {
+    if (typeof window === 'undefined') return;
+    try {
+      window.addEventListener('error', (event) => {
+        if (event.filename && event.filename.includes('next-devtools')) return;
+        this.logError(event.error || new Error(event.message || 'Unknown error'), { source: 'Global Error Handler' });
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        if (!event.reason) return;
+        this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), { source: 'Unhandled Promise Rejection' });
+      });
+    } catch (e) {
+      logger.warn('Failed to setup global error handlers', e);
+    }
+  }
+
+  public registerToastCallback(callback: (options: ErrorDisplayOptions & { variant: 'destructive' | 'warning' | 'info' }) => void) {
     this.toastCallback = callback;
   }
 
-  /**
-   * Register error boundary callback
-   */
-  registerBoundaryCallback(callback: (error: Error, errorId: string) => void) {
+  public registerBoundaryCallback(callback: (error: Error, errorId: string) => void) {
     this.boundaryCallback = callback;
   }
 
-  /**
-   * Handle error with centralized logic
-   */
-  handleError(
+  public logError(error: Error | string, context: Record<string, any> = {}): string {
+    const errorObj = typeof error === 'string' ? new Error(error || 'Unknown error') : error;
+
+    const logEntry: ErrorLogEntry = {
+      id: `error-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      message: errorObj.message || 'Unknown error',
+      stack: errorObj.stack,
+      source: context.source || 'Unknown',
+      severity: context.severity || 'medium',
+      sessionId: this.sessionId,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Unknown',
+      url: typeof window !== 'undefined' ? window.location.href : 'Server-side',
+      additionalData: context,
+      resolved: false,
+    };
+
+    this.logs.push(logEntry);
+    if (this.logs.length > this.maxLogs) this.logs.shift();
+
+    if (process.env.NODE_ENV === 'development') {
+      logger.error(`[${logEntry.severity.toUpperCase()}] ${logEntry.message}`, logEntry);
+    }
+
+    return logEntry.id;
+  }
+
+  public handleError(
     error: Error | string,
     config: Partial<ErrorConfig> = {},
     displayOptions: ErrorDisplayOptions = {}
   ): string {
-    // Ensure error is not empty
-    let errorObj: Error;
-    if (typeof error === 'string') {
-      const trimmedError = error.trim();
-      if (!trimmedError) {
-        // Skip logging if error is empty
-        if (!config.logError) {
-          return '';
-        }
-        errorObj = new Error('Unknown error');
-      } else {
-        errorObj = new Error(trimmedError);
-      }
-    } else if (error instanceof Error) {
-      // Ensure error message is not empty
-      if (!error.message || !error.message.trim()) {
-        error.message = 'Unknown error';
-      }
-      errorObj = error;
-    } else {
-      errorObj = new Error('Unknown error');
-    }
+    const errorObj = typeof error === 'string' ? new Error(error || 'Unknown error') : error;
 
-    // Default configuration
     const finalConfig: ErrorConfig = {
       showToast: true,
       showBoundary: false,
@@ -83,20 +128,20 @@ class ErrorManager {
 
     let errorId = '';
 
-    // Log error if enabled
     if (finalConfig.logError) {
-      errorId = errorLogger.logError(errorObj, {
+      errorId = this.logError(errorObj, {
         source: finalConfig.context?.source || 'ErrorManager',
         severity: finalConfig.severity,
         ...finalConfig.context,
       });
     }
 
-    // Show toast if enabled
-    if (finalConfig.showToast && this.toastCallback && typeof this.toastCallback === 'function') {
-      const variant = this.getToastVariant(finalConfig.severity);
+    if (finalConfig.showToast && this.toastCallback) {
+      const variant = finalConfig.severity === 'critical' || finalConfig.severity === 'high' ? 'destructive' :
+        finalConfig.severity === 'medium' ? 'warning' : 'info';
+
       this.toastCallback({
-        title: displayOptions.title || this.getDefaultTitle(finalConfig.severity),
+        title: displayOptions.title,
         description: displayOptions.description || errorObj.message,
         action: displayOptions.action,
         duration: displayOptions.duration,
@@ -104,241 +149,45 @@ class ErrorManager {
       });
     }
 
-    // Trigger error boundary if enabled
-    if (finalConfig.showBoundary && this.boundaryCallback && typeof this.boundaryCallback === 'function') {
+    if (finalConfig.showBoundary && this.boundaryCallback) {
       this.boundaryCallback(errorObj, errorId);
     }
 
     return errorId;
   }
 
-  /**
-   * Handle async operation errors
-   */
-  handleAsyncError(
-    error: Error | string,
-    operation: string,
-    config: Partial<ErrorConfig> = {},
-    displayOptions: ErrorDisplayOptions = {}
-  ): string {
-    const errorObj = typeof error === 'string' ? new Error(error) : error;
-
-    return this.handleError(errorObj, {
-      context: {
-        operation,
-        type: 'async',
-        ...config.context,
-      },
-      ...config,
-    }, displayOptions);
-  }
-
-  /**
-   * Handle network errors
-   */
-  handleNetworkError(
-    error: Error | string,
-    endpoint: string,
-    config: Partial<ErrorConfig> = {},
-    displayOptions: ErrorDisplayOptions = {}
-  ): string {
-    const errorObj = typeof error === 'string' ? new Error(error) : error;
-
-    // Check if error is empty or just "Unauthorized" - handle gracefully to prevent devtools interception
-    const errorMessage = errorObj.message || '';
-    const isUnauthorizedOnly = errorMessage.trim() === 'Unauthorized' || 
-                               errorMessage.trim() === '{}' ||
-                               (errorMessage.includes('Unauthorized') && errorMessage.length < 50) ||
-                               errorMessage.includes('401');
-
-    // Check if it's a connection error
-    const isConnectionError = 
-      errorObj.message.includes('fetch') ||
-      errorObj.message.includes('network') ||
-      errorObj.message.includes('Failed to fetch') ||
-      errorObj.message.includes('NetworkError') ||
-      errorObj.message.includes('Connection') ||
-      errorObj.name === 'TypeError';
-
-    // For "Unauthorized" errors, use lower severity to reduce console noise
-    const severity = isUnauthorizedOnly ? 'medium' : 'high';
-
-    // Skip logging "Unauthorized" errors in development to prevent devtools interception
-    const shouldLogError = !(isUnauthorizedOnly && process.env.NODE_ENV === 'development');
-    const finalLogError = shouldLogError ? (config.logError !== undefined ? config.logError : true) : false;
-
-    return this.handleError(errorObj, {
-      severity,
-      logError: finalLogError,
-      context: {
-        endpoint,
-        type: 'network',
-        ...config.context,
-      },
+  public handleNetworkError(error: any, endpoint: string, config: Partial<ErrorConfig> = {}, displayOptions: ErrorDisplayOptions = {}): string {
+    return this.handleError(error, {
+      severity: 'high',
+      context: { type: 'network', endpoint, ...config.context },
       ...config,
     }, {
       title: displayOptions.title || 'خطأ في الاتصال',
-      description: displayOptions.description || (isConnectionError 
-        ? 'حدث خطأ أثناء الاتصال بالخادم. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.'
-        : 'فشل في الاتصال بالخادم. يرجى المحاولة مرة أخرى.'),
-      ...displayOptions,
+      description: displayOptions.description || error.message || 'فشل في الاتصال بالخادم. يرجى المحاولة مرة أخرى.',
+      ...displayOptions
     });
   }
 
-  /**
-   * Handle validation errors
-   */
-  handleValidationError(
-    errors: Record<string, string> | string,
-    config: Partial<ErrorConfig> = {},
-    displayOptions: ErrorDisplayOptions = {}
-  ): string {
-    const errorMessage = typeof errors === 'string' ? errors : Object.values(errors).join(', ');
-    const errorObj = new Error(errorMessage);
-
-    return this.handleError(errorObj, {
-      severity: 'low',
-      context: {
-        type: 'validation',
-        validationErrors: errors,
-        ...config.context,
-      },
-      ...config,
-    }, {
-      title: displayOptions.title || 'خطأ في التحقق',
-      description: displayOptions.description || errorMessage,
-      ...displayOptions,
-    });
-  }
-
-  /**
-   * Handle authentication errors
-   */
-  handleAuthError(
-    error: Error | string,
-    config: Partial<ErrorConfig> = {},
-    displayOptions: ErrorDisplayOptions = {}
-  ): string {
-    const errorObj = typeof error === 'string' ? new Error(error) : error;
-
-    return this.handleError(errorObj, {
+  public handleAuthError(error: any, config: Partial<ErrorConfig> = {}, displayOptions: ErrorDisplayOptions = {}): string {
+    return this.handleError(error, {
       severity: 'high',
-      context: {
-        type: 'authentication',
-        ...config.context,
-      },
+      context: { type: 'authentication', ...config.context },
       ...config,
     }, {
       title: displayOptions.title || 'خطأ في المصادقة',
       description: displayOptions.description || 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى.',
-      action: displayOptions.action || {
-        label: 'تسجيل الدخول',
-        onClick: () => window.location.href = '/login',
-      },
-      ...displayOptions,
+      ...displayOptions
     });
   }
 
-  /**
-   * Handle permission errors
-   */
-  handlePermissionError(
-    resource: string,
-    config: Partial<ErrorConfig> = {},
-    displayOptions: ErrorDisplayOptions = {}
-  ): string {
-    const errorObj = new Error(`غير مصرح للوصول إلى ${resource}`);
-
-    return this.handleError(errorObj, {
-      severity: 'medium',
-      context: {
-        type: 'permission',
-        resource,
-        ...config.context,
-      },
-      ...config,
-    }, {
-      title: displayOptions.title || 'خطأ في الصلاحيات',
-      description: displayOptions.description || `ليس لديك صلاحية للوصول إلى ${resource}`,
-      ...displayOptions,
-    });
+  public getLogs(): ErrorLogEntry[] {
+    return [...this.logs];
   }
 
-  /**
-   * Get toast variant based on severity
-   */
-  private getToastVariant(severity: ErrorConfig['severity']): 'destructive' | 'warning' | 'info' {
-    switch (severity) {
-      case 'critical':
-      case 'high':
-        return 'destructive';
-      case 'medium':
-        return 'warning';
-      case 'low':
-      default:
-        return 'info';
-    }
-  }
-
-  /**
-   * Get default title based on severity
-   */
-  private getDefaultTitle(severity: ErrorConfig['severity']): string {
-    switch (severity) {
-      case 'critical':
-        return 'خطأ حرج';
-      case 'high':
-        return 'خطأ خطير';
-      case 'medium':
-        return 'تحذير';
-      case 'low':
-      default:
-        return 'تنبيه';
-    }
-  }
-
-  /**
-   * Get error statistics
-   */
-  getErrorStats(): {
-    total: number;
-    unresolved: number;
-    bySeverity: Record<ErrorLogEntry['severity'], number>;
-    recent: ErrorLogEntry[];
-  } {
-    const logs = errorLogger.getLogs();
-    const unresolved = errorLogger.getUnresolvedLogs();
-    const recent = logs.slice(-10);
-
-    const bySeverity = logs.reduce((acc, log) => {
-      acc[log.severity] = (acc[log.severity] || 0) + 1;
-      return acc;
-    }, {} as Record<ErrorLogEntry['severity'], number>);
-
-    return {
-      total: logs.length,
-      unresolved: unresolved.length,
-      bySeverity,
-      recent,
-    };
-  }
-
-  /**
-   * Clear error logs
-   */
-  clearLogs(): void {
-    errorLogger.clearLogs();
-  }
-
-  /**
-   * Export error logs
-   */
-  exportLogs(): string {
-    return errorLogger.exportLogs();
+  public clearLogs(): void {
+    this.logs = [];
   }
 }
 
-// Create singleton instance
 const errorManager = new ErrorManager();
-
 export default errorManager;
