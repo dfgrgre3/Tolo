@@ -3,7 +3,11 @@
  * This replaces all custom apiFetch instances across the app to reduce over-engineering.
  */
 
-import errorManager from '@/services/ErrorManager';
+// NOTE: ErrorManager is intentionally NOT imported at the top level.
+// Doing so creates a circular dependency:
+//   api-client → ErrorManager → safe-client-utils → client-logger → unified-logger → ErrorManager
+// This cycle causes api-client to resolve as `undefined` in modules that import it (e.g. auth-client).
+// Instead, ErrorManager is loaded lazily inside the catch block below.
 
 interface FetchOptions extends RequestInit {
     timeout?: number;
@@ -77,17 +81,22 @@ class ApiClient {
             }
 
             return await response.json() as T;
-        } catch (error: any) {
+        } catch (error: unknown) {
             clearTimeout(id);
 
+            const errName = (error as { name?: string })?.name;
+            const errMsg = (error as { message?: string })?.message;
+
             // Timeout or Network Retry
-            if ((error.name === 'AbortError' || error.message?.includes('fetch')) && retryCount < retries) {
+            if ((errName === 'AbortError' || errMsg?.includes('fetch')) && retryCount < retries) {
                 await sleep(RETRY_DELAY * Math.pow(2, retryCount));
                 return this.request<T>(endpoint, options, retryCount + 1);
             }
 
-            // Handle to centralized ErrorManager
-            errorManager.handleNetworkError(error, endpoint);
+            // Handle to centralized ErrorManager (lazy import to avoid circular deps)
+            import('@/services/ErrorManager').then(({ default: errorManager }) => {
+                errorManager.handleNetworkError(error, endpoint);
+            }).catch(() => { /* silently ignore if ErrorManager fails to load */ });
 
             throw error;
         }
@@ -97,7 +106,7 @@ class ApiClient {
         return this.request<T>(endpoint, { ...options, method: 'GET' });
     }
 
-    public post<T>(endpoint: string, body: any, options?: FetchOptions): Promise<T> {
+    public post<T>(endpoint: string, body: unknown, options?: FetchOptions): Promise<T> {
         return this.request<T>(endpoint, {
             ...options,
             method: 'POST',
@@ -105,7 +114,7 @@ class ApiClient {
         });
     }
 
-    public put<T>(endpoint: string, body: any, options?: FetchOptions): Promise<T> {
+    public put<T>(endpoint: string, body: unknown, options?: FetchOptions): Promise<T> {
         return this.request<T>(endpoint, {
             ...options,
             method: 'PUT',
@@ -113,7 +122,7 @@ class ApiClient {
         });
     }
 
-    public patch<T>(endpoint: string, body: any, options?: FetchOptions): Promise<T> {
+    public patch<T>(endpoint: string, body: unknown, options?: FetchOptions): Promise<T> {
         return this.request<T>(endpoint, {
             ...options,
             method: 'PATCH',

@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 			return createSuccessResponse({
 				success: true,
 				exam: newExam
-			}, undefined, 201);
+			}, 201);
 		} catch (error) {
 			logger.error("Error creating exam:", error);
 			return createStandardErrorResponse(

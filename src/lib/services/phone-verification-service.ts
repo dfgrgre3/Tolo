@@ -1,5 +1,5 @@
 ﻿import { prisma } from '@/lib/db';
-import { sendSMSNotification } from '@/lib/notification-sender-new';
+import { sendSMSNotification } from '@/lib/notification-sender';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 

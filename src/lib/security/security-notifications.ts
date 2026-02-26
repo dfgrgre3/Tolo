@@ -381,7 +381,7 @@ export class SecurityNotificationService {
       }
 
       // Import email notification service
-      const { sendEmailNotification } = await import('@/lib/notification-sender-new');
+      const { sendEmailNotification } = await import('@/lib/notification-sender');
 
       // Determine email severity color
       const severityColors = {

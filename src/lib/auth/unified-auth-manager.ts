@@ -25,10 +25,10 @@ import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
 import { getSessionSyncManager } from './session-sync';
 import { createAuthFetchInterceptor } from '@/lib/token-refresh-interceptor';
-import type { AuthUser } from '@/lib/services/auth-service';
+import type { User } from '@/types/api/auth';
 
 export interface AuthState {
-  user: AuthUser | null;
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   sessionId: string | null;
@@ -226,8 +226,9 @@ class UnifiedAuthManager extends EventEmitter {
       this.syncWithServer();
     } else if (data.type === 'state_change') {
       // تحديث الحالة من تبويب آخر
-      if (data.data?.state) {
-        this.state = { ...this.state, ...data.data.state };
+      const eventData = data.data as any;
+      if (eventData?.state) {
+        this.state = { ...this.state, ...eventData.state };
         this.emit('state_change', { state: this.state, source: 'sync' });
       }
     }
@@ -353,7 +354,7 @@ class UnifiedAuthManager extends EventEmitter {
    * التوكن يتم حفظه في httpOnly cookie من الخادم
    * محسّن مع تحقق شامل من البيانات والأمان
    */
-  async login(token: string, userData: AuthUser, sessionId?: string): Promise<void> {
+  async login(token: string, userData: User, sessionId?: string): Promise<void> {
     try {
       // Enhanced validation with comprehensive checks
       if (!userData || typeof userData !== 'object' || Array.isArray(userData)) {
@@ -507,7 +508,7 @@ class UnifiedAuthManager extends EventEmitter {
   /**
    * تحديث بيانات المستخدم
    */
-  updateUser(userData: Partial<AuthUser>) {
+  updateUser(userData: Partial<User>) {
     if (this.state.user) {
       this.setState({
         user: { ...this.state.user, ...userData },

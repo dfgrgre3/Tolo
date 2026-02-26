@@ -139,8 +139,6 @@ const nextConfig = { // Force restart 2
     if (dev) {
       config.resolve.alias = {
         ...config.resolve.alias,
-        // Ensure consistent module resolution for lucide-react during HMR
-        'lucide-react': require.resolve('lucide-react'),
       };
 
       // Improve HMR handling for ES modules and Next.js internals

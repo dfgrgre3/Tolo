@@ -1,74 +1,18 @@
-// Import prisma singleton to prevent multiple connection pools
-// This uses the unified singleton instance from db.ts
+/**
+ * Security Logger - Consolidated Wrapper
+ * Provides structured logging for security events via the Unified Logger.
+ * Maintains compatibility with existing code while centralizing logging.
+ */
+
+import { logger } from './logger';
 import { prisma } from './db';
 import { DeviceInfo, SecurityMetadata } from '@/types/services';
+import { SecurityEventType, SecurityLogData, saveSecurityEventToDB } from './logging/db-security-log';
 
-// Lazy load elkLogger to prevent client bundling of server-only code
-let elkLoggerInstance: any = null;
-
-async function getElkLogger() {
-  if (!elkLoggerInstance) {
-    if (typeof window !== 'undefined') {
-      // Return a no-op logger on client side
-      return {
-        error: () => { },
-        warn: () => { },
-        info: () => { },
-        debug: () => { },
-      };
-    }
-    const elkLoggerModule = await import('@/lib/logging/elk-logger');
-    elkLoggerInstance = elkLoggerModule.elkLoggerHelper;
-  }
-  return elkLoggerInstance;
-}
-
-export type SecurityEventType =
-  | 'LOGIN_SUCCESS'
-  | 'LOGIN_FAILED'
-  | 'LOGIN_ATTEMPT_BLOCKED'
-  | 'LOGOUT'
-  | 'LOGOUT_ALL'
-  | 'PASSWORD_CHANGED'
-  | 'PASSWORD_RESET_REQUESTED'
-  | 'PASSWORD_RESET_COMPLETED'
-  | 'EMAIL_VERIFIED'
-  | 'EMAIL_VERIFICATION_SENT'
-  | 'TWO_FACTOR_ENABLED'
-  | 'TWO_FACTOR_DISABLED'
-  | 'TWO_FACTOR_SETUP'
-  | 'TWO_FACTOR_REQUESTED'
-  | 'TWO_FACTOR_SUCCESS'
-  | 'TWO_FACTOR_FAILED'
-  | 'RECOVERY_CODES_REGENERATED'
-  | 'BIOMETRIC_ENABLED'
-  | 'BIOMETRIC_DISABLED'
-  | 'BIOMETRIC_LOGIN_SUCCESS'
-  | 'BIOMETRIC_LOGIN_FAILED'
-  | 'SESSION_CREATED'
-  | 'SESSION_REVOKED'
-  | 'SESSION_EXPIRED'
-  | 'SUSPICIOUS_ACTIVITY_DETECTED'
-  | 'ACCOUNT_LOCKED'
-  | 'ACCOUNT_UNLOCKED'
-  | 'IP_WHITELIST_ADDED'
-  | 'IP_WHITELIST_REMOVED'
-  | 'SECURITY_SETTINGS_CHANGED'
-  | 'MAGIC_LINK_SENT'
-  | 'MAGIC_LINK_USED';
-
-export interface SecurityLogData {
-  userId: string | null;
-  eventType: SecurityEventType;
-  ip: string;
-  userAgent: string;
-  deviceInfo?: DeviceInfo;
-  location?: string | null;
-  metadata?: SecurityMetadata;
-}
+export { type SecurityEventType, type SecurityLogData };
 
 /**
- * خدمة تسجيل الأحداث الأمنية
+ * خدمة تسجيل الأحداث الأمنية الموحدة
  */
 export class SecurityLogger {
   private static instance: SecurityLogger;
@@ -83,285 +27,107 @@ export class SecurityLogger {
   }
 
   /**
-   * تسجيل حدث أمني
+   * تسجيل حدث أمني عبر النظام الموحد
    */
   async logEvent(data: SecurityLogData): Promise<void> {
-    try {
-      const dbClient = prisma;
-      await dbClient.securityLog.create({
-        data: {
-          id: crypto.randomUUID(),
-          userId: data.userId,
-          eventType: data.eventType,
-          ip: data.ip,
-          userAgent: data.userAgent,
-          deviceInfo: data.deviceInfo ? JSON.stringify(data.deviceInfo) : null,
-          location: data.location || null,
-          metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-        },
-      });
-    } catch (error) {
-      // لا نرمي خطأ حتى لا نؤثر على التدفق الرئيسي
-      // لكن نسجله في ELK logger
-      try {
-        const elkLogger = await getElkLogger();
-        elkLogger.error(
-          'Failed to log security event',
-          error instanceof Error ? error : new Error(String(error)),
-          {
-            context: 'security-logger',
-            eventType: data.eventType,
-            userId: data.userId,
-          }
-        );
-      } catch (loggerError) {
-        // Silently fail if logger can't be loaded
+    // We call logger.security which will automatically handle:
+    // 1. Console logging
+    // 2. ELK transport
+    // 3. Database save (via the internal logToSecurityLogger transport)
+    logger.security({
+      eventType: data.eventType,
+      userId: data.userId || 'unknown',
+      ip: data.ip,
+      userAgent: data.userAgent,
+      metadata: {
+        deviceInfo: data.deviceInfo,
+        location: data.location,
+        ...data.metadata
       }
-    }
-  }
-
-  /**
-   * تسجيل محاولة تسجيل دخول ناجحة
-   */
-  async logLoginSuccess(
-    userId: string,
-    ip: string,
-    userAgent: string,
-    deviceInfo?: DeviceInfo,
-    location?: string
-  ): Promise<void> {
-    await this.logEvent({
-      userId,
-      eventType: 'LOGIN_SUCCESS',
-      ip,
-      userAgent,
-      deviceInfo,
-      location,
     });
   }
 
-  /**
-   * تسجيل محاولة تسجيل دخول فاشلة
-   */
-  async logLoginFailed(
-    userId: string | null,
-    ip: string,
-    userAgent: string,
-    reason?: string,
-    deviceInfo?: DeviceInfo
-  ): Promise<void> {
-    await this.logEvent({
-      userId: userId || 'unknown',
-      eventType: 'LOGIN_FAILED',
-      ip,
-      userAgent,
-      deviceInfo,
-      metadata: { reason },
-    });
+  // --- Convenience Methods ---
+
+  async logLoginSuccess(userId: string, ip: string, userAgent: string, deviceInfo?: DeviceInfo, location?: string): Promise<void> {
+    await this.logEvent({ userId, eventType: 'LOGIN_SUCCESS', ip, userAgent, deviceInfo, location });
   }
 
-  /**
-   * تسجيل تسجيل خروج
-   */
-  async logLogout(
-    userId: string,
-    ip: string,
-    userAgent: string,
-    metadata?: SecurityMetadata
-  ): Promise<void> {
-    await this.logEvent({
-      userId,
-      eventType: 'LOGOUT',
-      ip,
-      userAgent,
-      metadata,
-    });
+  async logLoginFailed(userId: string | null, ip: string, userAgent: string, reason?: string, deviceInfo?: DeviceInfo): Promise<void> {
+    await this.logEvent({ userId: userId || 'unknown', eventType: 'LOGIN_FAILED', ip, userAgent, deviceInfo, metadata: { reason } });
   }
 
-  /**
-   * تسجيل تغيير كلمة المرور
-   */
-  async logPasswordChanged(
-    userId: string,
-    ip: string,
-    userAgent: string
-  ): Promise<void> {
-    await this.logEvent({
-      userId,
-      eventType: 'PASSWORD_CHANGED',
-      ip,
-      userAgent,
-    });
+  async logLogout(userId: string, ip: string, userAgent: string, metadata?: SecurityMetadata): Promise<void> {
+    await this.logEvent({ userId, eventType: 'LOGOUT', ip, userAgent, metadata });
   }
 
-  /**
-   * تسجيل طلب إعادة تعيين كلمة المرور
-   */
-  async logPasswordResetRequested(
-    userId: string,
-    ip: string,
-    userAgent: string
-  ): Promise<void> {
-    await this.logEvent({
-      userId,
-      eventType: 'PASSWORD_RESET_REQUESTED',
-      ip,
-      userAgent,
-    });
+  async logPasswordChanged(userId: string, ip: string, userAgent: string): Promise<void> {
+    await this.logEvent({ userId, eventType: 'PASSWORD_CHANGED', ip, userAgent });
   }
 
-  /**
-   * تسجيل تفعيل/إلغاء المصادقة الثنائية
-   */
-  async logTwoFactorToggle(
-    userId: string,
-    enabled: boolean,
-    ip: string,
-    userAgent: string
-  ): Promise<void> {
-    await this.logEvent({
-      userId,
-      eventType: enabled ? 'TWO_FACTOR_ENABLED' : 'TWO_FACTOR_DISABLED',
-      ip,
-      userAgent,
-    });
+  async logPasswordResetRequested(userId: string, ip: string, userAgent: string): Promise<void> {
+    await this.logEvent({ userId, eventType: 'PASSWORD_RESET_REQUESTED', ip, userAgent });
   }
 
-  /**
-   * تسجيل نشاط مشبوه
-   */
-  async logSuspiciousActivity(
-    userId: string,
-    ip: string,
-    userAgent: string,
-    reason: string,
-    deviceInfo?: DeviceInfo,
-    location?: string
-  ): Promise<void> {
-    await this.logEvent({
-      userId,
-      eventType: 'SUSPICIOUS_ACTIVITY_DETECTED',
-      ip,
-      userAgent,
-      deviceInfo,
-      location,
-      metadata: { reason },
-    });
+  async logTwoFactorToggle(userId: string, enabled: boolean, ip: string, userAgent: string): Promise<void> {
+    await this.logEvent({ userId, eventType: enabled ? 'TWO_FACTOR_ENABLED' : 'TWO_FACTOR_DISABLED', ip, userAgent });
   }
 
-  /**
-   * تسجيل إنشاء/إنهاء جلسة
-   */
-  async logSessionEvent(
-    userId: string,
-    eventType: 'SESSION_CREATED' | 'SESSION_REVOKED' | 'SESSION_EXPIRED',
-    ip: string,
-    userAgent: string,
-    sessionId?: string
-  ): Promise<void> {
-    await this.logEvent({
-      userId,
-      eventType,
-      ip,
-      userAgent,
-      metadata: { sessionId },
-    });
+  async logSuspiciousActivity(userId: string, ip: string, userAgent: string, reason: string, deviceInfo?: DeviceInfo, location?: string): Promise<void> {
+    await this.logEvent({ userId, eventType: 'SUSPICIOUS_ACTIVITY_DETECTED', ip, userAgent, deviceInfo, location, metadata: { reason } });
   }
 
-  /**
-   * الحصول على سجلات الأمان للمستخدم
-   */
-  async getUserSecurityLogs(
-    userId: string,
-    limit: number = 50,
-    offset: number = 0
-  ): Promise<SecurityLogData[]> {
+  async logSessionEvent(userId: string, eventType: 'SESSION_CREATED' | 'SESSION_REVOKED' | 'SESSION_EXPIRED', ip: string, userAgent: string, sessionId?: string): Promise<void> {
+    await this.logEvent({ userId, eventType, ip, userAgent, metadata: { sessionId } });
+  }
+
+  // --- Database Retrieval Methods ---
+
+  async getUserSecurityLogs(userId: string, limit: number = 50, offset: number = 0): Promise<SecurityLogData[]> {
     try {
-      const dbClient = prisma;
-      const logs = await dbClient.securityLog.findMany({
+      const logs = await prisma.securityLog.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,
       });
 
-      return logs.map((log) => ({
+      return logs.map((log: any) => ({
         ...log,
         eventType: log.eventType as SecurityEventType,
         deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : undefined,
         metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
-        location: log.location || null,
       }));
     } catch (error) {
-      try {
-        const elkLogger = await getElkLogger();
-        elkLogger.error(
-          'Failed to get security logs',
-          error instanceof Error ? error : new Error(String(error)),
-          { context: 'security-logger', userId }
-        );
-      } catch (loggerError) {
-        // Silently fail if logger can't be loaded
-      }
+      logger.error('Failed to get security logs from DB', error, { userId });
       return [];
     }
   }
 
-  /**
-   * الحصول على سجلات نوع معين من الأحداث
-   */
-  async getLogsByEventType(
-    userId: string,
-    eventType: SecurityEventType,
-    limit: number = 50
-  ): Promise<SecurityLogData[]> {
+  async getLogsByEventType(userId: string, eventType: SecurityEventType, limit: number = 50): Promise<SecurityLogData[]> {
     try {
-      const dbClient = prisma;
-      const logs = await dbClient.securityLog.findMany({
-        where: {
-          userId,
-          eventType,
-        },
+      const logs = await prisma.securityLog.findMany({
+        where: { userId, eventType },
         orderBy: { createdAt: 'desc' },
         take: limit,
       });
 
-      return logs.map((log) => ({
+      return logs.map((log: any) => ({
         ...log,
         eventType: log.eventType as SecurityEventType,
         deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : undefined,
         metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
-        location: log.location || null,
       }));
     } catch (error) {
-      try {
-        const elkLogger = await getElkLogger();
-        elkLogger.error(
-          'Failed to get logs by event type',
-          error instanceof Error ? error : new Error(String(error)),
-          { context: 'security-logger', userId, eventType }
-        );
-      } catch (loggerError) {
-        // Silently fail if logger can't be loaded
-      }
+      logger.error('Failed to get security logs by type from DB', error, { userId, eventType });
       return [];
     }
   }
 
-  /**
-   * الحصول على آخر حدث من نوع معين
-   */
-  async getLastEventOfType(
-    userId: string,
-    eventType: SecurityEventType
-  ): Promise<SecurityLogData | null> {
+  async getLastEventOfType(userId: string, eventType: SecurityEventType): Promise<SecurityLogData | null> {
     try {
-      const dbClient = prisma;
-      const log = await dbClient.securityLog.findFirst({
-        where: {
-          userId,
-          eventType,
-        },
+      const log = await prisma.securityLog.findFirst({
+        where: { userId, eventType },
         orderBy: { createdAt: 'desc' },
       });
 
@@ -372,19 +138,9 @@ export class SecurityLogger {
         eventType: log.eventType as SecurityEventType,
         deviceInfo: log.deviceInfo ? JSON.parse(log.deviceInfo) : undefined,
         metadata: log.metadata ? JSON.parse(log.metadata) : undefined,
-        location: log.location || null,
       };
     } catch (error) {
-      try {
-        const elkLogger = await getElkLogger();
-        elkLogger.error(
-          'Failed to get last event',
-          error instanceof Error ? error : new Error(String(error)),
-          { context: 'security-logger', userId, eventType }
-        );
-      } catch (loggerError) {
-        // Silently fail if logger can't be loaded
-      }
+      logger.error('Failed to get last security event from DB', error, { userId, eventType });
       return null;
     }
   }

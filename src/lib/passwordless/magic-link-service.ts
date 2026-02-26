@@ -5,7 +5,7 @@
 
 import crypto from 'crypto';
 import { prisma } from '@/lib/db';
-import { sendEmailNotification } from '@/lib/notification-sender-new';
+import { sendEmailNotification } from '@/lib/notification-sender';
 import { securityLogger } from '@/lib/security-logger';
 import { logger } from '@/lib/logger';
 

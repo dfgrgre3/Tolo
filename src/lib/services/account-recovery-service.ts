@@ -1,5 +1,5 @@
 ﻿import { prisma } from '@/lib/db';
-import { sendEmailNotification, sendSMSNotification, sendMultiChannelNotification } from '@/lib/notification-sender-new';
+import { sendEmailNotification, sendSMSNotification, sendMultiChannelNotification } from '@/lib/notification-sender';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
 import { PhoneVerificationService } from './phone-verification-service';

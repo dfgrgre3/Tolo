@@ -13,9 +13,9 @@ import type {
   BiometricVerifyRequest,
   BiometricVerifyResponse,
   ApiErrorResponse,
+  User,
 } from '@/types/api/auth';
 import apiClient from './api-client';
-import type { AuthUser } from '@/lib/services/auth-service';
 
 export async function loginUser(request: LoginRequest): Promise<LoginResponse> {
   return apiClient.post<LoginResponse>('/auth/login', request);
@@ -66,8 +66,8 @@ export async function logoutUser(): Promise<void> {
   return apiClient.post('/auth/logout', {});
 }
 
-export async function getCurrentUser(): Promise<{ user: AuthUser }> {
-  return apiClient.get<{ user: AuthUser }>('/auth/me');
+export async function getCurrentUser(): Promise<{ user: User }> {
+  return apiClient.get<{ user: User }>('/auth/me');
 }
 
 export async function refreshToken(): Promise<{ token: string; refreshToken: string }> {

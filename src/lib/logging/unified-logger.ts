@@ -155,20 +155,6 @@ class UnifiedLogger {
         }
       }
 
-      // Initialize Security Logger (server-side only)
-      // Use a server-only loader to prevent client bundling
-      if (this.config.enableSecurityLogger && isServer && typeof window === 'undefined') {
-        try {
-          // Dynamically construct the loader path to prevent static analysis
-          const loaderPath = './' + 'security-logger-loader';
-          const { loadSecurityLogger } = await import(loaderPath);
-          this.securityLogger = await loadSecurityLogger();
-        } catch (error) {
-          // Security logger initialization failed, continue without it
-          // This can happen if the module doesn't exist or has server-only dependencies
-          this.config.enableSecurityLogger = false;
-        }
-      }
     } finally {
       this.initialized = true;
       this.initializing = false;
@@ -403,19 +389,17 @@ class UnifiedLogger {
     context?: LogContext
   ): Promise<void> {
     if (!this.config.enableSecurityLogger || !isServer) return;
-    if (level !== 'warn' && level !== 'error') return; // Security logger only for warnings and errors
-
-    await this.ensureInitialized();
-
-    if (!this.securityLogger) return;
+    if (level !== 'warn' && level !== 'error') return;
 
     try {
-      const userId = context?.userId || 'unknown';
+      const { saveSecurityEventToDB } = await import('./db-security-log');
+
+      const userId = context?.userId || null;
       const ip = context?.ip || 'unknown';
       const userAgent = context?.userAgent || 'unknown';
 
       if (context?.eventType) {
-        await this.securityLogger.logEvent({
+        await saveSecurityEventToDB({
           userId,
           eventType: context.eventType as any,
           ip,
@@ -424,8 +408,7 @@ class UnifiedLogger {
         });
       }
     } catch (err) {
-      // If security logger fails, don't throw
-      this.logToConsole('warn', 'Failed to log to SecurityLogger', { error: String(err) });
+      this.logToConsole('warn', 'Failed to log to SecurityLogger (DB)', { error: String(err) });
     }
   }
 

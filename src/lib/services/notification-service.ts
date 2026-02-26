@@ -61,7 +61,7 @@ export async function sendNotification(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      logger.error('Failed to send notification', undefined, { 
+      logger.error('Failed to send notification', undefined, {
         status: response.status,
         error: errorData.error || 'Unknown error'
       });
@@ -106,9 +106,9 @@ export async function sendBulkNotifications(
 
   // Validate each notification
   const invalidNotifications = notifications.filter(
-    (notif, index) => 
-      !notif.title || 
-      typeof notif.title !== 'string' || 
+    (notif, index) =>
+      !notif.title ||
+      typeof notif.title !== 'string' ||
       notif.title.trim().length === 0 ||
       !notif.message ||
       typeof notif.message !== 'string' ||
@@ -128,7 +128,7 @@ export async function sendBulkNotifications(
         'Content-Type': 'application/json',
       },
       credentials: 'include',
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         notifications: notifications.map(notif => ({
           title: notif.title.trim(),
           message: notif.message.trim(),
@@ -147,7 +147,7 @@ export async function sendBulkNotifications(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      logger.error('Failed to send bulk notifications', undefined, { 
+      logger.error('Failed to send bulk notifications', undefined, {
         status: response.status,
         error: errorData.error || 'Unknown error'
       });
@@ -155,8 +155,8 @@ export async function sendBulkNotifications(
     }
 
     const result = await response.json().catch(() => ({}));
-    return { 
-      success: true, 
+    return {
+      success: true,
       sent: result.sent || notifications.length,
       failed: result.failed || 0
     };
@@ -352,7 +352,7 @@ export function sendTemplatedNotification(
 
   // Type-safe dynamic function call
   const notification = (template as (...args: unknown[]) => ReturnType<typeof template>)(...args);
-  
+
   // Safely extract optional properties
   const options: { actionUrl?: string; icon?: string } = {};
   if ('actionUrl' in notification && notification.actionUrl) {
@@ -361,6 +361,13 @@ export function sendTemplatedNotification(
   if ('icon' in notification && notification.icon) {
     options.icon = notification.icon;
   }
-  
+
   return sendNotification(notification.title, notification.message, notification.type, options);
 }
+
+export const notificationService = {
+  sendNotification,
+  sendBulkNotifications,
+  sendTemplatedNotification,
+  notificationTemplates,
+};

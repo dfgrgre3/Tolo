@@ -10,7 +10,7 @@
 
 import { EventEmitter } from 'events';
 import { logger } from '@/lib/logger';
-import type { AuthUser } from '@/lib/services/auth-service';
+import type { User } from '@/types/api/auth';
 import type { AuthState } from './unified-auth-manager';
 
 export interface SyncMessage {
@@ -161,7 +161,7 @@ class SessionSyncManager extends EventEmitter {
   /**
    * إشعار بتسجيل الدخول
    */
-  notifyLogin(userData: AuthUser) {
+  notifyLogin(userData: User) {
     this.broadcast({
       type: 'login',
       data: { user: userData },

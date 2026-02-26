@@ -20,37 +20,28 @@ function recordCacheMetric(operation: string, duration: number, success: boolean
 }
 
 // Create Redis client with enhanced configuration for better performance and reliability
+// ioredis connects automatically on creation - no need to call .connect()
 export const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
   maxRetriesPerRequest: 3,
   connectTimeout: 10000,
-  reconnectOnError: (err) => {
-    // Exponential backoff strategy
-    return true;
-  },
-  // Performance optimizations
+  reconnectOnError: () => true, // Always retry on error
   enableOfflineQueue: true,
   keepAlive: 1,
+  lazyConnect: false, // Connect immediately (default)
 });
 
-// Handle Redis errors
-redisClient.on('error', (err) => {
+// Handle Redis connection events
+redisClient.on('connect', () => {
+  logger.info('Connected to Redis');
+});
+
+redisClient.on('error', (err: unknown) => {
   logger.error('Redis error:', err);
 });
 
-// Connect to Redis
-const connectRedis = async () => {
-  try {
-    await redisClient.connect();
-    logger.info('Connected to Redis');
-  } catch (error) {
-    logger.error('Failed to connect to Redis:', error);
-  }
-};
-
-// Initialize Redis connection
-if (process.env.NODE_ENV !== 'test') {
-  connectRedis();
-}
+redisClient.on('reconnecting', () => {
+  logger.warn('Redis reconnecting...');
+});
 
 // Simple compression for large objects
 function compressData(data: string): string {
@@ -230,7 +221,7 @@ export class CacheService {
       const duration = Date.now() - start;
       recordCacheMetric('mget', duration, true);
 
-      return data.map(item => {
+      return data.map((item: string | null) => {
         if (item) {
           try {
             const decompressedData = decompressData(item);
