@@ -6,14 +6,14 @@ import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Crown, Globe, Users, BarChart3, Play } from 'lucide-react';
 import { rpgCommonStyles, FEATURES_LIST } from "../constants";
 import FeatureCard from "../FeatureCard";
 
 export const FeaturesSection = memo(function FeaturesSection() {
-  const { user } = useUnifiedAuth();
+  const user: any = null;
 
   return (
     <section aria-labelledby="features-heading" className="max-w-7xl mx-auto px-4 !pt-0">

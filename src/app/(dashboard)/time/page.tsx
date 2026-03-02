@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WeeklySchedule from "@/app/(dashboard)/time/components/WeeklySchedule";
 import TaskManagement from "@/app/(dashboard)/time/components/TaskManagement";
@@ -192,8 +191,7 @@ export default function TimeManagementPage() {
 
   if (isLoading) {
     return (
-      <AuthGuard>
-        <div className="container mx-auto p-4 text-center min-h-screen flex items-center justify-center">
+              <div className="container mx-auto p-4 text-center min-h-screen flex items-center justify-center">
           <div className="flex flex-col items-center justify-center space-y-4">
             <div className="relative">
               <RefreshCw className="h-8 w-8 animate-spin text-primary" />
@@ -205,13 +203,11 @@ export default function TimeManagementPage() {
             </div>
           </div>
         </div>
-      </AuthGuard>
-    );
+          );
   }
 
   return (
-    <AuthGuard>
-      <div className="container mx-auto p-4 rtl" dir="rtl">
+          <div className="container mx-auto p-4 rtl" dir="rtl">
       <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
         <TimeManagementHeader
           isTimerRunning={isTimerRunning}
@@ -487,6 +483,5 @@ export default function TimeManagementPage() {
 
       </Tabs>
       </div>
-    </AuthGuard>
-  );
+      );
 }

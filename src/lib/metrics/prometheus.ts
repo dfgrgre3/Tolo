@@ -1,156 +1,189 @@
 /**
- * Prometheus Metrics Service
+ * Prometheus Metrics Service (Server-side only)
  * 
  * هذا الملف يوفر تصدير المقاييس (Metrics) لـ Prometheus
  * يدعم Next.js ويصدر المقاييس في صيغة Prometheus exposition format
  */
 
-import { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } from 'prom-client';
+// This module is server-side only - never import on client
+const isServer = typeof window === 'undefined';
 
-// إنشاء registry عام للمقاييس
-const register = new Registry();
+// Lazy-loaded prom-client types
+type Registry = any;
+type Counter = any;
+type Histogram = any;
+type Gauge = any;
 
-// جمع المقاييس الافتراضية (CPU, Memory, etc.)
-collectDefaultMetrics({ register });
-
-// ==================== HTTP Metrics ====================
-
-// عداد الطلبات الإجمالية
-export const httpRequestsTotal = new Counter({
-  name: 'http_requests_total',
-  help: 'Total number of HTTP requests',
-  labelNames: ['method', 'route', 'status_code'],
-  registers: [register],
+// Stub implementations for client-side (tree-shaken in production)
+const createStub = () => ({
+  inc: () => { },
+  observe: () => { },
+  set: () => { },
+  metrics: async () => '',
+  getMetricsAsJSON: async () => [],
+  resetMetrics: () => { },
 });
 
-// زمن استجابة HTTP
-export const httpRequestDuration = new Histogram({
-  name: 'http_request_duration_seconds',
-  help: 'Duration of HTTP requests in seconds',
-  labelNames: ['method', 'route', 'status_code'],
-  buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
-  registers: [register],
-});
+let _register: Registry = createStub();
+let _httpRequestsTotal: Counter = createStub();
+let _httpRequestDuration: Histogram = createStub();
+let _httpRequestSize: Histogram = createStub();
+let _httpResponseSize: Histogram = createStub();
+let _dbQueriesTotal: Counter = createStub();
+let _dbQueryDuration: Histogram = createStub();
+let _dbConnectionsActive: Gauge = createStub();
+let _redisOperationsTotal: Counter = createStub();
+let _redisOperationDuration: Histogram = createStub();
+let _authLoginsTotal: Counter = createStub();
+let _authOperationsTotal: Counter = createStub();
+let _activeUsers: Gauge = createStub();
+let _errorsTotal: Counter = createStub();
 
-// حجم الطلبات
-export const httpRequestSize = new Histogram({
-  name: 'http_request_size_bytes',
-  help: 'Size of HTTP requests in bytes',
-  labelNames: ['method', 'route'],
-  buckets: [100, 1000, 5000, 10000, 50000, 100000],
-  registers: [register],
-});
+// Initialize only on server
+if (isServer) {
+  try {
+    // Dynamic require to prevent client bundling
+    const promClient = require('prom-client');
+    const { Registry, Counter, Histogram, Gauge, collectDefaultMetrics } = promClient;
 
-// حجم الاستجابات
-export const httpResponseSize = new Histogram({
-  name: 'http_response_size_bytes',
-  help: 'Size of HTTP responses in bytes',
-  labelNames: ['method', 'route', 'status_code'],
-  buckets: [100, 1000, 5000, 10000, 50000, 100000, 1000000],
-  registers: [register],
-});
+    _register = new Registry();
+    collectDefaultMetrics({ register: _register });
 
-// ==================== Database Metrics ====================
+    _httpRequestsTotal = new Counter({
+      name: 'http_requests_total',
+      help: 'Total number of HTTP requests',
+      labelNames: ['method', 'route', 'status_code'],
+      registers: [_register],
+    });
 
-// عدد استعلامات قاعدة البيانات
-export const dbQueriesTotal = new Counter({
-  name: 'db_queries_total',
-  help: 'Total number of database queries',
-  labelNames: ['operation', 'table', 'status'],
-  registers: [register],
-});
+    _httpRequestDuration = new Histogram({
+      name: 'http_request_duration_seconds',
+      help: 'Duration of HTTP requests in seconds',
+      labelNames: ['method', 'route', 'status_code'],
+      buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
+      registers: [_register],
+    });
 
-// زمن استعلامات قاعدة البيانات
-export const dbQueryDuration = new Histogram({
-  name: 'db_query_duration_seconds',
-  help: 'Duration of database queries in seconds',
-  labelNames: ['operation', 'table'],
-  buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
-  registers: [register],
-});
+    _httpRequestSize = new Histogram({
+      name: 'http_request_size_bytes',
+      help: 'Size of HTTP requests in bytes',
+      labelNames: ['method', 'route'],
+      buckets: [100, 1000, 5000, 10000, 50000, 100000],
+      registers: [_register],
+    });
 
-// اتصالات قاعدة البيانات النشطة
-export const dbConnectionsActive = new Gauge({
-  name: 'db_connections_active',
-  help: 'Number of active database connections',
-  registers: [register],
-});
+    _httpResponseSize = new Histogram({
+      name: 'http_response_size_bytes',
+      help: 'Size of HTTP responses in bytes',
+      labelNames: ['method', 'route', 'status_code'],
+      buckets: [100, 1000, 5000, 10000, 50000, 100000, 1000000],
+      registers: [_register],
+    });
 
-// ==================== Redis Metrics ====================
+    _dbQueriesTotal = new Counter({
+      name: 'db_queries_total',
+      help: 'Total number of database queries',
+      labelNames: ['operation', 'table', 'status'],
+      registers: [_register],
+    });
 
-// عمليات Redis
-export const redisOperationsTotal = new Counter({
-  name: 'redis_operations_total',
-  help: 'Total number of Redis operations',
-  labelNames: ['operation', 'status'],
-  registers: [register],
-});
+    _dbQueryDuration = new Histogram({
+      name: 'db_query_duration_seconds',
+      help: 'Duration of database queries in seconds',
+      labelNames: ['operation', 'table'],
+      buckets: [0.01, 0.05, 0.1, 0.5, 1, 2, 5],
+      registers: [_register],
+    });
 
-// زمن عمليات Redis
-export const redisOperationDuration = new Histogram({
-  name: 'redis_operation_duration_seconds',
-  help: 'Duration of Redis operations in seconds',
-  labelNames: ['operation'],
-  buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5],
-  registers: [register],
-});
+    _dbConnectionsActive = new Gauge({
+      name: 'db_connections_active',
+      help: 'Number of active database connections',
+      registers: [_register],
+    });
 
-// ==================== Business Metrics ====================
+    _redisOperationsTotal = new Counter({
+      name: 'redis_operations_total',
+      help: 'Total number of Redis operations',
+      labelNames: ['operation', 'status'],
+      registers: [_register],
+    });
 
-// عدد تسجيلات الدخول
-export const authLoginsTotal = new Counter({
-  name: 'auth_logins_total',
-  help: 'Total number of login attempts',
-  labelNames: ['status', 'method'],
-  registers: [register],
-});
+    _redisOperationDuration = new Histogram({
+      name: 'redis_operation_duration_seconds',
+      help: 'Duration of Redis operations in seconds',
+      labelNames: ['operation'],
+      buckets: [0.001, 0.005, 0.01, 0.05, 0.1, 0.5],
+      registers: [_register],
+    });
 
-// عدد عمليات المصادقة
-export const authOperationsTotal = new Counter({
-  name: 'auth_operations_total',
-  help: 'Total number of authentication operations',
-  labelNames: ['operation', 'status'],
-  registers: [register],
-});
+    _authLoginsTotal = new Counter({
+      name: 'auth_logins_total',
+      help: 'Total number of login attempts',
+      labelNames: ['status', 'method'],
+      registers: [_register],
+    });
 
-// عدد المستخدمين النشطين
-export const activeUsers = new Gauge({
-  name: 'active_users',
-  help: 'Number of active users',
-  registers: [register],
-});
+    _authOperationsTotal = new Counter({
+      name: 'auth_operations_total',
+      help: 'Total number of authentication operations',
+      labelNames: ['operation', 'status'],
+      registers: [_register],
+    });
 
-// ==================== Error Metrics ====================
+    _activeUsers = new Gauge({
+      name: 'active_users',
+      help: 'Number of active users',
+      registers: [_register],
+    });
 
-// عدد الأخطاء
-export const errorsTotal = new Counter({
-  name: 'errors_total',
-  help: 'Total number of errors',
-  labelNames: ['type', 'route'],
-  registers: [register],
-});
+    _errorsTotal = new Counter({
+      name: 'errors_total',
+      help: 'Total number of errors',
+      labelNames: ['type', 'route'],
+      registers: [_register],
+    });
+  } catch {
+    // prom-client not available, use stubs
+  }
+}
 
-// ==================== Export Functions ====================
+export const register = _register;
+export const httpRequestsTotal = _httpRequestsTotal;
+export const httpRequestDuration = _httpRequestDuration;
+export const httpRequestSize = _httpRequestSize;
+export const httpResponseSize = _httpResponseSize;
+export const dbQueriesTotal = _dbQueriesTotal;
+export const dbQueryDuration = _dbQueryDuration;
+export const dbConnectionsActive = _dbConnectionsActive;
+export const redisOperationsTotal = _redisOperationsTotal;
+export const redisOperationDuration = _redisOperationDuration;
+export const authLoginsTotal = _authLoginsTotal;
+export const authOperationsTotal = _authOperationsTotal;
+export const activeUsers = _activeUsers;
+export const errorsTotal = _errorsTotal;
 
 /**
  * تصدير المقاييس بصيغة Prometheus
  */
 export async function getMetrics(): Promise<string> {
-  return register.metrics();
+  if (!isServer) return '';
+  return _register.metrics();
 }
 
 /**
- * الحصول على جميع المقاييس بصيغة JSON (للتطوير)
+ * الحصول على جميع المقاييس بصيغة JSON
  */
 export async function getMetricsAsJSON() {
-  return register.getMetricsAsJSON();
+  if (!isServer) return [];
+  return _register.getMetricsAsJSON();
 }
 
 /**
- * إعادة تعيين المقاييس (للتطوير فقط)
+ * إعادة تعيين المقاييس
  */
 export function resetMetrics(): void {
-  register.resetMetrics();
+  if (!isServer) return;
+  _register.resetMetrics();
 }
 
 /**
@@ -164,23 +197,23 @@ export function trackHttpRequest(
   requestSize?: number,
   responseSize?: number
 ): void {
+  if (!isServer) return;
   const routeLabel = normalizeRoute(route);
-  
-  httpRequestsTotal.inc({ method, route: routeLabel, status_code: statusCode });
-  httpRequestDuration.observe({ method, route: routeLabel, status_code: statusCode }, duration / 1000);
-  
+
+  _httpRequestsTotal.inc({ method, route: routeLabel, status_code: statusCode });
+  _httpRequestDuration.observe({ method, route: routeLabel, status_code: statusCode }, duration / 1000);
+
   if (requestSize !== undefined) {
-    httpRequestSize.observe({ method, route: routeLabel }, requestSize);
+    _httpRequestSize.observe({ method, route: routeLabel }, requestSize);
   }
-  
+
   if (responseSize !== undefined) {
-    httpResponseSize.observe({ method, route: routeLabel, status_code: statusCode }, responseSize);
+    _httpResponseSize.observe({ method, route: routeLabel, status_code: statusCode }, responseSize);
   }
-  
-  // تتبع الأخطاء
+
   if (statusCode >= 400) {
     const errorType = statusCode >= 500 ? 'server_error' : 'client_error';
-    errorsTotal.inc({ type: errorType, route: routeLabel });
+    _errorsTotal.inc({ type: errorType, route: routeLabel });
   }
 }
 
@@ -193,11 +226,12 @@ export function trackDbQuery(
   duration: number,
   status: 'success' | 'error'
 ): void {
-  dbQueriesTotal.inc({ operation, table, status });
-  dbQueryDuration.observe({ operation, table }, duration / 1000);
-  
+  if (!isServer) return;
+  _dbQueriesTotal.inc({ operation, table, status });
+  _dbQueryDuration.observe({ operation, table }, duration / 1000);
+
   if (status === 'error') {
-    errorsTotal.inc({ type: 'database_error', route: 'db' });
+    _errorsTotal.inc({ type: 'database_error', route: 'db' });
   }
 }
 
@@ -209,11 +243,12 @@ export function trackRedisOperation(
   duration: number,
   status: 'success' | 'error'
 ): void {
-  redisOperationsTotal.inc({ operation, status });
-  redisOperationDuration.observe({ operation }, duration / 1000);
-  
+  if (!isServer) return;
+  _redisOperationsTotal.inc({ operation, status });
+  _redisOperationDuration.observe({ operation }, duration / 1000);
+
   if (status === 'error') {
-    errorsTotal.inc({ type: 'redis_error', route: 'redis' });
+    _errorsTotal.inc({ type: 'redis_error', route: 'redis' });
   }
 }
 
@@ -221,33 +256,25 @@ export function trackRedisOperation(
  * تحديث عدد اتصالات قاعدة البيانات النشطة
  */
 export function setDbConnections(count: number): void {
-  dbConnectionsActive.set(count);
+  if (!isServer) return;
+  _dbConnectionsActive.set(count);
 }
 
 /**
  * تحديث عدد المستخدمين النشطين
  */
 export function setActiveUsers(count: number): void {
-  activeUsers.set(count);
+  if (!isServer) return;
+  _activeUsers.set(count);
 }
 
 /**
  * تطبيع مسار الطلب لإزالة المعاملات الديناميكية
- * مثال: /api/users/123 -> /api/users/:id
  */
 function normalizeRoute(route: string): string {
-  // إزالة query parameters
   const path = route.split('?')[0];
-  
-  // استبدال UUIDs
   const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
   let normalized = path.replace(uuidPattern, ':id');
-  
-  // استبدال الأرقام بمعاملات عامة
   normalized = normalized.replace(/\/\d+/g, '/:id');
-  
   return normalized;
 }
-
-export { register };
-

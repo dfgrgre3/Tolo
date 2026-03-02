@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -74,8 +73,7 @@ export default function NewPostPage() {
   };
 
   return (
-    <AuthGuard>
-      <div className="px-4">
+          <div className="px-4">
         <section className="mx-auto max-w-3xl py-8 space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/forum" className="hover:text-primary">المنتدى التعليمي</Link>
@@ -158,6 +156,5 @@ export default function NewPostPage() {
         </form>
         </section>
       </div>
-    </AuthGuard>
-  );
+      );
 }

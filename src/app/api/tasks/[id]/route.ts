@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from "@/lib/db";
-import { authService } from "@/lib/services/auth-service";
 import { gamificationService } from "@/lib/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -97,7 +96,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       // Trigger gamification if task is being completed
       if (isCompleting) {
         try {
-          await gamificationService.updateUserProgress(authUser.userId, 'task_completed');
+          await gamificationService.updateUserProgress(authUser.userId, 'task_completed', {});
         } catch (gamificationError) {
           logger.error('Error updating gamification for task:', gamificationError);
           // Don't fail the request if gamification fails

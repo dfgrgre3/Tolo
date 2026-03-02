@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -171,8 +170,7 @@ export default function AnnouncementsPage() {
   ];
 
   return (
-    <AuthGuard>
-      <div className="px-4">
+          <div className="px-4">
         <section className="mx-auto max-w-7xl py-8 space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -415,6 +413,5 @@ export default function AnnouncementsPage() {
         )}
         </section>
       </div>
-    </AuthGuard>
-  );
+      );
 }

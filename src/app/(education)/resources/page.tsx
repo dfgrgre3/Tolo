@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 
 type Resource = { id: string; subject: string; title: string; url: string; free: boolean; type: string; source?: string | null };
 
@@ -18,8 +17,7 @@ export default function ResourcesPage() {
 	}, {});
 
 	return (
-		<AuthGuard>
-			<div className="px-4">
+					<div className="px-4">
 				<section className="mx-auto max-w-7xl py-8 space-y-6">
 				<h1 className="text-2xl md:text-3xl font-bold">الموارد الدراسية الحقيقية</h1>
 				<div className="grid gap-4 md:grid-cols-2">
@@ -39,6 +37,5 @@ export default function ResourcesPage() {
 				</div>
 			</section>
 			</div>
-		</AuthGuard>
-	);
+			);
 } 

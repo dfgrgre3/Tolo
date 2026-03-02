@@ -27,7 +27,7 @@ export const FeatureCard = ({ icon, title, description, badge, link, color, dela
           <div className="flex justify-between items-start">
             <div className={`w-14 h-14 rounded-2xl bg-black/40 border border-white/5 flex items-center justify-center group-hover:scale-110 transition-transform duration-300 shadow-inner ${color ? color : 'text-gray-200'}`}>
               {/* Clone icon to enforce size if needed, though usually handled by parent size */}
-              {React.cloneElement(icon as React.ReactElement, { className: "w-7 h-7" })}
+              {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "w-7 h-7" })}
             </div>
             {badge && (
               <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/20 backdrop-blur-sm">

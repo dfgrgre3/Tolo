@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, Prisma } from '@/lib/db';
+import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
+
 import { OpenAI } from 'openai';
 import { rateLimit } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -100,17 +102,36 @@ export async function POST(request: NextRequest) {
 
       const generatedTest = JSON.parse(responseContent);
 
+      // Look up subject in database
+      const dbSubject = await prisma.subject.findFirst({
+        where: {
+          OR: [
+            { name: { equals: subject, mode: 'insensitive' } },
+            { nameAr: { equals: subject, mode: 'insensitive' } }
+          ]
+        }
+      });
+
+      if (!dbSubject) {
+        return NextResponse.json(
+          { error: `Subject ${subject} not found` },
+          { status: 404 }
+        );
+      }
+
       // Create exam in database
       const newExam = await prisma.aiGeneratedExam.create({
         data: {
           userId: user.id,
-          title: generatedTest.title,
-          subject: subject.toUpperCase(),
+          subjectId: dbSubject.id,
+          title: String(generatedTest.title || `اختبار ${subject}`),
           year: new Date().getFullYear(),
-          difficulty: difficulty || 'medium',
-          duration: timeLimit || 30,
+          difficulty: String(difficulty || 'medium'),
+          duration: Number(timeLimit || 30),
         }
       });
+
+
 
       // Create questions in database
       for (const q of generatedTest.questions) {

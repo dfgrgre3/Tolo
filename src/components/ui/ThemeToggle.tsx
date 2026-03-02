@@ -4,8 +4,6 @@
 import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
-import PropTypes from "prop-types"
-
 import { Button } from "@/components/ui/button"
 
 export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; onToggle?: () => void } = {}) {
@@ -34,7 +32,3 @@ export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; on
   )
 }
 
-ThemeToggle.propTypes = {
-  isDarkMode: PropTypes.bool,
-  onToggle: PropTypes.func,
-}

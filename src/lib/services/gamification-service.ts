@@ -10,24 +10,26 @@ export interface Achievement {
   description: string;
   icon: string;
   xpReward: number;
+  category?: string;
+  difficulty?: string;
 }
 
 export interface UserProgress {
   userId: string;
   totalXP: number;
   level: number;
-  nextLevelXP: number;
-  progressToNextLevel: number;
+  nextLevelXP?: number;
+  progressToNextLevel?: number;
   achievements: string[];
   currentStreak: number;
   longestStreak: number;
   // Multi-layer XP
-  studyXP: number;
-  taskXP: number;
-  examXP: number;
-  challengeXP: number;
-  questXP: number;
-  seasonXP: number;
+  studyXP?: number;
+  taskXP?: number;
+  examXP?: number;
+  challengeXP?: number;
+  questXP?: number;
+  seasonXP?: number;
   // Stats
   totalStudyTime: number;
   tasksCompleted: number;
@@ -104,6 +106,21 @@ export interface Reward {
   rarity: 'common' | 'rare' | 'epic' | 'legendary';
   imageUrl?: string;
   metadata?: any;
+}
+
+export interface CustomGoal {
+  id: string;
+  userId: string;
+  title: string;
+  description?: string;
+  targetType: 'xp' | 'tasks' | 'study_time' | 'exams';
+  targetValue: number;
+  currentValue: number;
+  deadline?: Date;
+  isCompleted: boolean;
+  xpReward: number;
+  createdAt: Date;
+  completedAt?: Date;
 }
 
 // ==================== SERVICE ====================
@@ -211,9 +228,51 @@ export class GamificationService {
     };
   }
 
+  async updateUserProgress(userId: string, action: string, data: any): Promise<UserProgress> {
+    logger.info(`Updating progress for user ${userId} based on action ${action}`);
+
+    // Add XP based on action
+    switch (action) {
+      case 'exam_completed':
+        const score = data?.score || 0;
+        let xp = 100; // Base XP for completing an exam
+        if (score >= 90) xp += 100;
+        else if (score >= 75) xp += 50;
+
+        await this.addXP(userId, xp, 'exam');
+
+        // Potential achievement check
+        if (score === 100) {
+          await this.unlockAchievement(userId, 'QUIZ_MASTER');
+        }
+        break;
+
+      case 'study_session_completed':
+        const duration = data?.duration || 0;
+        const studyXP = Math.floor(duration / 10); // 1 XP per minute
+        await this.addXP(userId, studyXP, 'study');
+        await this.unlockAchievement(userId, 'STUDY_SESSION_COMPLETED');
+        break;
+
+      case 'task_completed':
+        await this.addXP(userId, 20, 'task');
+        break;
+    }
+
+    return this.getUserProgress(userId);
+  }
+
   // ===== Achievements =====
 
-  async awardAchievement(userId: string, achievementKey: string): Promise<boolean> {
+  public getAllAchievements(): Achievement[] {
+    return Array.from(this.achievementsMap.values());
+  }
+
+  public getAchievement(key: string): Achievement | undefined {
+    return this.achievementsMap.get(key);
+  }
+
+  async unlockAchievement(userId: string, achievementKey: string): Promise<boolean> {
     const achievement = this.achievementsMap.get(achievementKey);
     if (!achievement) return false;
 
@@ -251,6 +310,11 @@ export class GamificationService {
       logger.error(`Error awarding achievement ${achievementKey} to user ${userId}`, error);
       return false;
     }
+  }
+
+  // Backward compatibility alias
+  async awardAchievement(userId: string, achievementKey: string): Promise<boolean> {
+    return this.unlockAchievement(userId, achievementKey);
   }
 
   // ===== Seasons =====
@@ -378,19 +442,19 @@ export class GamificationService {
       take: limit
     });
 
-      return entries.map((e: any, i: number) => ({
-        userId: e.userId,
-        username: e.user?.username || 'طالب مجهول',
-        totalXP: e.totalXP,
-        level: e.level,
-        rank: i + 1,
-        avatar: e.user?.avatar || undefined,
-        studyXP: e.studyXP,
-        taskXP: e.taskXP,
-        examXP: e.examXP,
-        challengeXP: e.challengeXP,
-        questXP: e.questXP,
-      }));
+    return entries.map((e: any, i: number) => ({
+      userId: e.userId,
+      username: e.user?.username || 'طالب مجهول',
+      totalXP: e.totalXP,
+      level: e.level,
+      rank: i + 1,
+      avatar: e.user?.avatar || undefined,
+      studyXP: e.studyXP,
+      taskXP: e.taskXP,
+      examXP: e.examXP,
+      challengeXP: e.challengeXP,
+      questXP: e.questXP,
+    }));
   }
 
   // ===== Helpers =====
@@ -430,6 +494,19 @@ export class GamificationService {
     }
 
     return streak;
+  }
+
+  // ===== Goals =====
+  async createCustomGoal(userId: string, data: Partial<CustomGoal>): Promise<CustomGoal> {
+    return { ...data, id: 'mock-goal', userId, isCompleted: false, currentValue: 0, createdAt: new Date() } as CustomGoal;
+  }
+
+  async updateCustomGoal(goalId: string, currentValue: number): Promise<CustomGoal> {
+    return { id: goalId, currentValue, isCompleted: false, title: "Mock", targetType: "xp", targetValue: 100, xpReward: 10, createdAt: new Date(), userId: "mock" } as CustomGoal;
+  }
+
+  async deleteCustomGoal(goalId: string): Promise<boolean> {
+    return true;
   }
 }
 

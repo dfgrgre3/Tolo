@@ -3,7 +3,8 @@
  * Unified single source of truth for error handling, logging, formatting and toasts.
  */
 
-import { logger } from '@/lib/logger';
+// Use console internally to avoid circular dependencies with the unified logger
+const logger = console;
 import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
 
 export interface ErrorLogEntry {

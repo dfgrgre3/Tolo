@@ -190,7 +190,7 @@ async function findSimilarItems(itemType: string, itemId: string): Promise<Array
     if (resource) {
       const similarResources = await prisma.resource.findMany({
         where: {
-          subject: resource.subject,
+          subjectId: resource.subjectId,
           id: { not: itemId }
         },
         take: 5
@@ -306,7 +306,7 @@ export async function trackInteraction(
       });
 
       if (resource) {
-        await updatePreference(userId, 'subject', resource.subject, 1.2);
+        await updatePreference(userId, 'subject', resource.subjectId, 1.2);
       }
     }
   }

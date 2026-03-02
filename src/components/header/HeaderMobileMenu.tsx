@@ -10,7 +10,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/navData";
 import { cn } from "@/lib/utils";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 import { HeaderSearch } from "./HeaderSearch";
 
 import { logger } from '@/lib/logger';
@@ -30,7 +30,8 @@ export function HeaderMobileMenu({
 }: HeaderMobileMenuProps) {
 	const mobileMenuRef = useRef<HTMLDivElement>(null);
 	const pathname = usePathname();
-	const { user, logout } = useUnifiedAuth();
+	const user: any = null;
+	const logout = () => {};
 	const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
 
 	// Close mobile menu when route changes
@@ -322,7 +323,7 @@ export function HeaderMobileMenu({
 												<AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground font-semibold">
 													{user.name
 														?.split(" ")
-														.map((n) => n[0])
+														.map((n: any) => n[0])
 														.join("")
 														.toUpperCase() || (user.email ? user.email[0].toUpperCase() : 'U')}
 												</AvatarFallback>

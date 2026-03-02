@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useAchievements } from './hooks/useAchievements';
 import { AchievementStats } from './components/AchievementStats';
 import { AchievementFilters } from './components/AchievementFilters';
@@ -42,8 +41,7 @@ export default function AchievementsPage() {
 	}, [achievements]);
 
 	return (
-		<AuthGuard>
-			<div className="min-h-screen bg-background">
+					<div className="min-h-screen bg-background">
 				<div className="container mx-auto px-4 py-8 max-w-7xl">
 				{/* Header */}
 				<motion.div
@@ -272,6 +270,5 @@ export default function AchievementsPage() {
 				)}
 				</div>
 			</div>
-		</AuthGuard>
-	);
+			);
 }

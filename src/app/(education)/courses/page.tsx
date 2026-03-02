@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
 import {
@@ -222,8 +221,7 @@ export default function CoursesPage() {
   };
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
+          <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
         <div className="px-4 md:px-6 lg:px-8">
           <section className="mx-auto max-w-7xl py-8 space-y-8">
             {/* Hero Section */}
@@ -317,6 +315,5 @@ export default function CoursesPage() {
           </section>
         </div>
       </div>
-    </AuthGuard>
-  );
+      );
 }

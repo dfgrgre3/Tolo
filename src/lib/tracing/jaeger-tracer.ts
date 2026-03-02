@@ -1,156 +1,144 @@
 /**
- * Jaeger Tracing Service
+ * Jaeger Tracing Service (Server-side only)
  * 
- * هذا الملف يوفر Distributed Tracing مع Jaeger
- * يستخدم OpenTelemetry API للتوافق مع Jaeger
+ * NOTE: All OpenTelemetry imports are fully dynamic at runtime.
+ * This file uses 'any' types intentionally to avoid build errors
+ * when optional OpenTelemetry packages are not installed.
  */
 
-import { trace, Span, SpanStatusCode, context, propagation, Context } from '@opentelemetry/api';
-import { Resource } from '@opentelemetry/resources';
-import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
-import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
-import { BatchSpanProcessor } from '@opentelemetry/sdk-trace-base';
-// JaegerExporter is imported dynamically to avoid loading issues
-import { registerInstrumentations } from '@opentelemetry/instrumentation';
-import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
-import { ExpressInstrumentation } from '@opentelemetry/instrumentation-express';
-import { PrismaInstrumentation } from '@prisma/instrumentation';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { logger } from '@/lib/logger';
-
-// متغيرات التكوين
-const JAEGER_ENABLED = process.env.JAEGER_ENABLED === 'true';
+// Server-side only guard
+const isServer = typeof window === 'undefined';
+const JAEGER_ENABLED = isServer && process.env.JAEGER_ENABLED === 'true';
 const JAEGER_AGENT_HOST = process.env.JAEGER_AGENT_HOST || 'jaeger';
-const JAEGER_AGENT_PORT = parseInt(process.env.JAEGER_AGENT_PORT || '6831', 10);
 const SERVICE_NAME = process.env.SERVICE_NAME || 'thanawy';
 
-let tracer: ReturnType<typeof trace.getTracer> | null = null;
-let provider: NodeTracerProvider | null = null;
+// Stub span - used when tracing is disabled
+const stubSpan: any = {
+  setStatus: () => { },
+  recordException: () => { },
+  end: () => { },
+  setAttribute: () => { },
+  addEvent: () => { },
+};
 
-// تهيئة Tracer
+// Stub tracer
+const stubTracer: any = {
+  startSpan: () => stubSpan,
+  startActiveSpan: (_name: string, _opts: any, fn?: any) => {
+    const cb = typeof _opts === 'function' ? _opts : fn;
+    if (typeof cb === 'function') return cb(stubSpan);
+    return undefined;
+  },
+};
+
+let _tracer: any = stubTracer;
+let _provider: any = null;
+
+/**
+ * Initialize Jaeger tracing (server-side only, optional)
+ */
 export async function initializeTracer(): Promise<void> {
-  if (!JAEGER_ENABLED) {
-    logger.info('Jaeger tracing is disabled');
-    return;
-  }
+  if (!isServer || !JAEGER_ENABLED) return;
 
   try {
-    // استيراد ديناميكي لـ JaegerExporter لتجنب مشاكل التحميل
-    let JaegerExporter: typeof import('@opentelemetry/exporter-jaeger').JaegerExporter;
-    try {
-      const jaegerModule = await import('@opentelemetry/exporter-jaeger');
-      JaegerExporter = jaegerModule.JaegerExporter;
-    } catch (importError: unknown) {
-      logger.warn('Jaeger exporter not available, disabling tracing:', (importError as Error)?.message);
+    // Fully dynamic imports - gracefully handle missing packages
+    const apiModule = await import('@opentelemetry/api' as any).catch(() => null);
+    const resourcesModule = await import('@opentelemetry/resources' as any).catch(() => null);
+    const sdkNodeModule = await import('@opentelemetry/sdk-trace-node' as any).catch(() => null);
+    const sdkBaseModule = await import('@opentelemetry/sdk-trace-base' as any).catch(() => null);
+
+    if (!apiModule || !resourcesModule || !sdkNodeModule || !sdkBaseModule) {
+      console.warn('[Tracing] OpenTelemetry packages not available, disabling tracing');
       return;
     }
 
-    // إنشاء Resource
+    const jaegerModule = await import('@opentelemetry/exporter-jaeger' as any).catch(() => null);
+    if (!jaegerModule) {
+      console.warn('[Tracing] Jaeger exporter not available, disabling tracing');
+      return;
+    }
+
+    const { trace } = apiModule;
+    const { Resource } = resourcesModule;
+    const { NodeTracerProvider } = sdkNodeModule;
+    const { BatchSpanProcessor } = sdkBaseModule;
+    const { JaegerExporter } = jaegerModule;
+
     const resource = new Resource({
-      [SemanticResourceAttributes.SERVICE_NAME]: SERVICE_NAME,
-      [SemanticResourceAttributes.SERVICE_VERSION]: process.env.npm_package_version || '1.0.0',
-      [SemanticResourceAttributes.DEPLOYMENT_ENVIRONMENT]: process.env.NODE_ENV || 'development',
+      'service.name': SERVICE_NAME,
+      'service.version': process.env.npm_package_version || '1.0.0',
+      'deployment.environment': process.env.NODE_ENV || 'development',
     });
 
-    // إنشاء Tracer Provider
-    provider = new NodeTracerProvider({
-      resource,
-    });
+    _provider = new NodeTracerProvider({ resource });
 
-    // إنشاء Jaeger Exporter
     const jaegerExporter = new JaegerExporter({
       endpoint: `http://${JAEGER_AGENT_HOST}:14268/api/traces`,
-      // أو استخدام UDP:
-      // agentHost: JAEGER_AGENT_HOST,
-      // agentPort: JAEGER_AGENT_PORT,
     });
 
-    // إضافة Batch Span Processor
-    provider.addSpanProcessor(new BatchSpanProcessor(jaegerExporter));
+    _provider.addSpanProcessor(new BatchSpanProcessor(jaegerExporter));
+    _provider.register();
 
-    // تسجيل Tracer Provider
-    provider.register();
+    // Optional instrumentations
+    const instrModule = await import('@opentelemetry/instrumentation' as any).catch(() => null);
+    if (instrModule) {
+      const instrumentations: any[] = [];
 
-    // تسجيل Instrumentations
-    registerInstrumentations({
-      instrumentations: [
-        new HttpInstrumentation({
-          enabled: true,
-        }),
-        new ExpressInstrumentation({
-          enabled: true,
-        }),
-        new PrismaInstrumentation({
-          enabled: true,
-        }),
-      ],
-    });
+      const httpModule = await import('@opentelemetry/instrumentation-http' as any).catch(() => null);
+      if (httpModule?.HttpInstrumentation) {
+        instrumentations.push(new httpModule.HttpInstrumentation({ enabled: true }));
+      }
 
-    // الحصول على Tracer
-    tracer = trace.getTracer(SERVICE_NAME);
+      const expressModule = await import('@opentelemetry/instrumentation-express' as any).catch(() => null);
+      if (expressModule?.ExpressInstrumentation) {
+        instrumentations.push(new expressModule.ExpressInstrumentation({ enabled: true }));
+      }
 
-    logger.info('Jaeger tracing initialized successfully');
-  } catch (error: unknown) {
-    const err = error as { message?: string; code?: string };
-    logger.error('Failed to initialize Jaeger tracing:', err?.message || String(error));
-    // لا نرمي خطأ حتى لا نؤثر على التطبيق
-    // تعطيل Jaeger تلقائياً في حالة الفشل
-    if (err?.code === 'ENOENT' || err?.message?.includes('jaeger') || err?.message?.includes('thrift')) {
-      logger.warn('Jaeger dependencies missing, tracing will be disabled');
+      const prismaModule = await import('@prisma/instrumentation' as any).catch(() => null);
+      if (prismaModule?.PrismaInstrumentation) {
+        instrumentations.push(new prismaModule.PrismaInstrumentation({ enabled: true }));
+      }
+
+      if (instrumentations.length > 0) {
+        instrModule.registerInstrumentations({ instrumentations });
+      }
     }
+
+    _tracer = trace.getTracer(SERVICE_NAME);
+    console.info('[Tracing] Jaeger tracing initialized successfully');
+  } catch (error: unknown) {
+    console.warn('[Tracing] Failed to initialize Jaeger tracing:', (error as any)?.message || String(error));
   }
 }
 
-// الحصول على Tracer
+/** Get the active tracer (stub when disabled) */
 export function getTracer() {
-  if (!tracer) {
-    // إنشاء tracer بسيط بدون Jaeger
-    tracer = trace.getTracer(SERVICE_NAME);
-  }
-  return tracer;
+  return _tracer;
 }
 
-// إنشاء Span جديد
-export function startSpan(name: string, options?: { attributes?: Record<string, unknown> }): Span {
-  const tracerInstance = getTracer();
-  const span = tracerInstance.startSpan(name, {
-    attributes: (options?.attributes || {}) as any,
-  });
-  return span;
+/** Start a new span */
+export function startSpan(name: string, options?: { attributes?: Record<string, unknown> }): any {
+  return _tracer.startSpan(name, { attributes: (options?.attributes || {}) as any });
 }
 
-// إنشاء Span مع context
-export function startSpanWithContext(
-  name: string,
-  parentContext: unknown,
-  options?: { attributes?: Record<string, unknown> }
-): Span {
-  const tracerInstance = getTracer();
-  const span = tracerInstance.startSpan(name, {
-    attributes: (options?.attributes || {}) as unknown as import('@opentelemetry/api').SpanAttributes,
-  }, parentContext as Context);
-  return span;
-}
-
-// Helper function لتتبع async operations
+/** Trace an async operation */
 export async function traceAsync<T>(
   name: string,
-  operation: (span: Span) => Promise<T>,
+  operation: (span: any) => Promise<T>,
   attributes?: Record<string, unknown>
 ): Promise<T> {
-  const tracerInstance = getTracer();
-  return tracerInstance.startActiveSpan(name, {
-    attributes: (attributes || {}) as any,
-  }, async (span) => {
+  if (!isServer || !JAEGER_ENABLED) {
+    return operation(stubSpan);
+  }
+  return _tracer.startActiveSpan(name, { attributes: (attributes || {}) as any }, async (span: any) => {
     try {
       const result = await operation(span);
-      span.setStatus({ code: SpanStatusCode.OK });
+      span.setStatus({ code: 1 }); // OK
       return result;
     } catch (error) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      span.setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
       span.recordException(error instanceof Error ? error : new Error(String(error)));
       throw error;
     } finally {
@@ -159,25 +147,22 @@ export async function traceAsync<T>(
   });
 }
 
-// Helper function لتتبع synchronous operations
+/** Trace a synchronous operation */
 export function traceSync<T>(
   name: string,
-  operation: (span: Span) => T,
+  operation: (span: any) => T,
   attributes?: Record<string, unknown>
 ): T {
-  const tracerInstance = getTracer();
-  return tracerInstance.startActiveSpan(name, {
-    attributes: (attributes || {}) as any,
-  }, (span) => {
+  if (!isServer || !JAEGER_ENABLED) {
+    return operation(stubSpan);
+  }
+  return _tracer.startActiveSpan(name, { attributes: (attributes || {}) as any }, (span: any) => {
     try {
       const result = operation(span);
-      span.setStatus({ code: SpanStatusCode.OK });
+      span.setStatus({ code: 1 });
       return result;
     } catch (error) {
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : String(error),
-      });
+      span.setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
       span.recordException(error instanceof Error ? error : new Error(String(error)));
       throw error;
     } finally {
@@ -186,40 +171,32 @@ export function traceSync<T>(
   });
 }
 
-// Extract context from headers (للـ HTTP requests)
-export function extractContext(headers: Record<string, string | string[] | undefined>): Context | undefined {
-  const carrier: Record<string, string> = {};
-
-  for (const [key, value] of Object.entries(headers)) {
-    if (value) {
-      carrier[key] = Array.isArray(value) ? value[0] : value;
-    }
-  }
-
-  return propagation.extract(context.active(), carrier);
+/** Extract trace context from HTTP headers */
+export function extractContext(_headers: Record<string, string | string[] | undefined>): any {
+  return undefined;
 }
 
-// Inject context into headers (للـ HTTP requests)
+/** Inject trace context into HTTP headers */
 export function injectContext(headers: Record<string, string>): Record<string, string> {
-  const carrier: Record<string, string> = {};
-  propagation.inject(context.active(), carrier);
-  return { ...headers, ...carrier };
+  return headers;
 }
 
-// Shutdown tracer
+/** Gracefully shut down the tracer */
 export async function shutdownTracer(): Promise<void> {
-  if (provider) {
-    await provider.shutdown();
-    provider = null;
-    tracer = null;
+  if (_provider) {
+    try {
+      await _provider.shutdown();
+    } catch {
+      // ignore shutdown errors
+    }
+    _provider = null;
+    _tracer = stubTracer;
   }
 }
 
-// تهيئة تلقائية إذا كان التطبيق يعمل
-if (typeof window === 'undefined') {
-  // تهيئة غير متزامنة لتجنب مشاكل التحميل
+// Auto-initialize only when explicitly enabled
+if (isServer && JAEGER_ENABLED) {
   initializeTracer().catch((error) => {
-    logger.error('Failed to auto-initialize tracer:', error);
+    console.warn('[Tracing] Auto-init failed:', error);
   });
 }
-

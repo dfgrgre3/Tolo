@@ -141,20 +141,6 @@ class UnifiedLogger {
         }
       }
 
-      // Initialize Auth Logger (server-side only)
-      // Use loader to prevent client bundling of server-only code
-      if (this.config.enableAuthLogger && isServer) {
-        try {
-          // Use dynamic import with string literal to prevent static analysis
-          const loaderPath = './' + 'auth-logger-loader';
-          const { loadAuthLogger } = await import(loaderPath);
-          this.authLogger = await loadAuthLogger();
-        } catch (error) {
-          // Auth logger initialization failed, continue without it
-          this.config.enableAuthLogger = false;
-        }
-      }
-
     } finally {
       this.initialized = true;
       this.initializing = false;

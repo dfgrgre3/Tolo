@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get all available achievements first (this always works)
-      const allAchievements = gamificationService.getAllAchievements();
+      const allAchievements = await gamificationService.getAllAchievements();
 
       // Try to get user progress, but handle errors gracefully
       let progress;
@@ -56,15 +56,15 @@ export async function GET(request: NextRequest) {
       let filteredAchievements = allAchievements;
 
       if (category) {
-        filteredAchievements = filteredAchievements.filter((a) => a.category === category);
+        filteredAchievements = filteredAchievements.filter((a: any) => a.category === category);
       }
 
       if (difficulty) {
-        filteredAchievements = filteredAchievements.filter((a) => a.difficulty === difficulty);
+        filteredAchievements = filteredAchievements.filter((a: any) => a.difficulty === difficulty);
       }
 
       // Mark which achievements are earned by the user
-      const achievementsWithStatus = filteredAchievements.map((achievement) => ({
+      const achievementsWithStatus = filteredAchievements.map((achievement: any) => ({
         ...achievement,
         isEarned: userAchievements.includes(achievement.key),
         earnedAt: userAchievements.includes(achievement.key) ?
@@ -82,10 +82,10 @@ export async function GET(request: NextRequest) {
       const errorMessage = error instanceof Error ? error.message : String(error);
 
       // Return a safe fallback response
-      const allAchievements = gamificationService.getAllAchievements();
+      const allAchievements = await gamificationService.getAllAchievements();
       return NextResponse.json({
         error: errorMessage || 'Failed to fetch achievements',
-        achievements: allAchievements.map((ach) => ({
+        achievements: allAchievements.map((ach: any) => ({
           ...ach,
           isEarned: false,
           earnedAt: null
@@ -119,12 +119,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: 'Achievement key is required' }, { status: 400 });
           }
 
-          const achievement = gamificationService.getAchievement(data.achievementKey);
+          const achievement = await gamificationService.getAchievement(data.achievementKey);
           if (!achievement) {
             return NextResponse.json({ error: 'Achievement not found' }, { status: 404 });
           }
 
-          await gamificationService.unlockAchievement(userId, achievement);
+          await gamificationService.unlockAchievement(userId, achievement.key);
           result = { message: 'Achievement unlocked successfully' };
           break;
 

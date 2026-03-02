@@ -7,7 +7,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-import { clientLogger as logger } from '@/lib/client-logger';
+// Use console internally to avoid circular dependencies with the unified logger
+const logger = console;
 
 // ==================== Type Definitions ====================
 
@@ -388,7 +389,7 @@ export function useSafeEventListener<K extends keyof WindowEventMap>(
   handler: (event: WindowEventMap[K]) => void,
   element?: HTMLElement | Window | null
 ) {
-  const savedHandler = useRef<(event: WindowEventMap[K]) => void>();
+  const savedHandler = useRef<(event: WindowEventMap[K]) => void>(undefined);
 
   useEffect(() => {
     savedHandler.current = handler;

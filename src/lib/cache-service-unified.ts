@@ -31,17 +31,29 @@ export const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost
 });
 
 // Handle Redis connection events
+let redisErrorCount = 0;
 redisClient.on('connect', () => {
+  redisErrorCount = 0;
   logger.info('Connected to Redis');
 });
 
 redisClient.on('error', (err: unknown) => {
-  logger.error('Redis error:', err);
+  redisErrorCount++;
+  // Only log the first few errors to avoid spamming
+  if (redisErrorCount <= 3) {
+    logger.error('Redis error:', err);
+    if (redisErrorCount === 3) {
+      logger.warn('Suppressing further Redis connection errors...');
+    }
+  }
 });
 
 redisClient.on('reconnecting', () => {
-  logger.warn('Redis reconnecting...');
+  if (redisErrorCount < 3) {
+    logger.warn('Redis reconnecting...');
+  }
 });
+
 
 // Simple compression for large objects
 function compressData(data: string): string {

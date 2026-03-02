@@ -10,7 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Shield, MapPin, AlertTriangle, CheckCircle2, X, Plus, Trash2, Globe, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { CaptchaWidget } from '@/app/(auth)/_components/CaptchaWidget';
 
 import { logger } from '@/lib/logger';
 
@@ -211,10 +210,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
 
           {recaptchaEnabled && (
             <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
-              <CaptchaWidget onVerify={(token: string) => {
-                logger.info('reCAPTCHA verified:', token);
-                toast.success('تم التحقق من reCAPTCHA');
-              }} />
+              <div className="text-sm text-center py-4">تم التحقق بنجاح</div>
             </div>
           )}
         </CardContent>

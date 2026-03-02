@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -21,7 +20,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import SecurityTab from "@/app/(dashboard)/profile/components/SecurityTab";
-import LoginMethods from "@/app/(dashboard)/profile/components/LoginMethods";
 import { logger } from "@/lib/logger";
 import {
 	AccountHeader,
@@ -272,7 +270,6 @@ export default function AccountPage() {
 	}
 
 	return (
-		<AuthGuard>
 			<div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/20">
 				<div className="container mx-auto px-4 py-8 max-w-7xl">
 					<AccountHeader />
@@ -311,10 +308,6 @@ export default function AccountPage() {
 									<TabsTrigger value="security" className="flex items-center gap-2">
 										<Shield className="h-4 w-4" />
 										<span className="hidden sm:inline">الأمان</span>
-									</TabsTrigger>
-									<TabsTrigger value="connected" className="flex items-center gap-2">
-										<Link2 className="h-4 w-4" />
-										<span className="hidden sm:inline">الحسابات</span>
 									</TabsTrigger>
 									<TabsTrigger value="danger" className="flex items-center gap-2 text-destructive">
 										<Trash2 className="h-4 w-4" />
@@ -378,25 +371,6 @@ export default function AccountPage() {
 									{userId && <SecurityTab userId={userId} />}
 								</TabsContent>
 
-								<TabsContent value="connected" className="space-y-6">
-									<Card>
-										<div className="p-6">
-											<div className="mb-4">
-												<h3 className="text-lg font-semibold flex items-center gap-2">
-													<Link2 className="h-5 w-5" />
-													الحسابات المتصلة
-												</h3>
-												<p className="text-sm text-muted-foreground">
-													إدارة حساباتك المتصلة بخدمات خارجية
-												</p>
-											</div>
-											<div>
-												{userId && <LoginMethods userId={userId} />}
-											</div>
-										</div>
-									</Card>
-								</TabsContent>
-
 								<TabsContent value="danger" className="space-y-6">
 									<Alert variant="destructive">
 										<AlertTriangle className="h-4 w-4" />
@@ -427,7 +401,6 @@ export default function AccountPage() {
 						</div>
 					</div>
 				</div>
-			</div>
-		</AuthGuard>
+		</div>
 	);
 }

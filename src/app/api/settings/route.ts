@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
 import { SubjectType, FocusStrategy } from "@/types/settings";
 import { SettingsUpdateRequest } from "@/types/settings";
-import { authService } from "@/lib/services/auth-service";
 import { randomUUID } from "crypto";
 import { logger } from '@/lib/logger';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -10,7 +9,7 @@ import {
 	parseRequestBody,
 	createStandardErrorResponse,
 	createSuccessResponse,
-} from '@/app/api/auth/_helpers';
+} from '@/lib/api-helpers';
 
 export async function GET(req: NextRequest) {
 	return opsWrapper(req, async (request) => {

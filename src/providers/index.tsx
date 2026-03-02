@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
-import { UnifiedAuthProvider } from '@/contexts/auth-context';
+// import removed
 import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
@@ -27,7 +27,7 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
   // ✅ النظام الموحد: UnifiedAuthProvider هو المصدر الوحيد للمصادقة
   // ✅ تم إزالة AuthProvider لتجنب التضارب - نظام واحد فقط يدير الحالة
   return (
-    <UnifiedAuthProvider>
+    <>
       <Suspense fallback={null}>
         <ClientLayoutProvider>
           <ThemeProvider
@@ -48,7 +48,7 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
           </ThemeProvider>
         </ClientLayoutProvider>
       </Suspense>
-    </UnifiedAuthProvider>
+    </>
   );
 }
 

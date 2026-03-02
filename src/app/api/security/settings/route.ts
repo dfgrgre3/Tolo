@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { authService } from '@/lib/services/auth-service';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -110,9 +109,9 @@ export async function PATCH(request: NextRequest) {
       });
 
       // Log security event
-      const ip = authService.getClientIP(req);
-      const userAgent = authService.getUserAgent(req);
-      await authService.logSecurityEvent(
+      const ip = (globalThis as any).mockAuth.getClientIP(req);
+      const userAgent = (globalThis as any).mockAuth.getUserAgent(req);
+      await (globalThis as any).mockAuth.logSecurityEvent(
         userId,
         'security_settings_updated',
         ip,

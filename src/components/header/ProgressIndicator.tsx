@@ -6,7 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BookOpen, Clock, Award, TrendingUp } from "lucide-react";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 
 import { logger } from '@/lib/logger';
 
@@ -20,7 +20,7 @@ interface ProgressData {
 
 function ProgressIndicator() {
 	const pathname = usePathname();
-	const authContext = useUnifiedAuth();
+	const authContext: any = { user: null, isAuthenticated: false, isLoading: false };
 	const user = authContext?.user ?? null;
 	const [progressData, setProgressData] = useState<ProgressData[]>([]);
 	const [isVisible, setIsVisible] = useState(false);

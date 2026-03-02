@@ -47,7 +47,7 @@ export function useClientEffect(
 ) {
   const hasRunRef = useRef(false);
   const isHydratedRef = useRef(false);
-  const cleanupRef = useRef<(() => void) | void>();
+  const cleanupRef = useRef<(() => void) | void | undefined>(undefined);
 
   // Mark as hydrated on first client-side render
   useEffect(() => {

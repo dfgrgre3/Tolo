@@ -29,7 +29,7 @@ export function useAdaptiveDebounce<T extends (...args: unknown[]) => void>(
 	} = options;
 
 	const delayRef = useRef(initialDelay);
-	const timeoutRef = useRef<NodeJS.Timeout>();
+	const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 	const lastCallTimeRef = useRef<number>(0);
 	const callCountRef = useRef(0);
 

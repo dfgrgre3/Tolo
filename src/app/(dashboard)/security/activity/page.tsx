@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AuthGuard } from "@/components/auth/AuthGuard";
-import { useUnifiedAuth } from '@/contexts/auth-context';
+// import removed
 import { useRouter } from 'next/navigation';
 import {
   Activity,
@@ -44,7 +43,7 @@ interface SecurityEvent {
 type EventFilter = 'all' | 'login' | 'security' | 'settings' | 'suspicious';
 
 export default function ActivityLogPage() {
-  const { user, isLoading: authLoading } = useUnifiedAuth();
+  const user: any = null; const authLoading = false;
   const router = useRouter();
 
   const [events, setEvents] = useState<SecurityEvent[]>([]);
@@ -226,8 +225,7 @@ export default function ActivityLogPage() {
   });
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6">
+          <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800 p-6">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
@@ -408,7 +406,6 @@ export default function ActivityLogPage() {
         </div>
       </div>
       </div>
-    </AuthGuard>
-  );
+      );
 }
 

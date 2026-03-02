@@ -29,8 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useUnifiedAuth } from '@/contexts/auth-context';
-import { AuthGuard } from '@/components/auth/AuthGuard';
+// import removed
 import { SettingsHeader, SettingsInput, SettingsCard } from './components';
 
 interface ProfileData {
@@ -62,7 +61,7 @@ const initialProfile: ProfileData = {
 };
 
 export default function ProfileSettingsPage() {
-  const { user } = useUnifiedAuth();
+  const user: any = null;
   const [profile, setProfile] = useState<ProfileData>({
     ...initialProfile,
     firstName: user?.name?.split(' ')[0] || '',
@@ -133,8 +132,7 @@ export default function ProfileSettingsPage() {
   ];
 
   return (
-    <AuthGuard>
-      <div className="max-w-4xl mx-auto space-y-8">
+          <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
       <SettingsHeader
         icon={User}
@@ -444,6 +442,5 @@ export default function ProfileSettingsPage() {
         </div>
       </motion.div>
       </div>
-    </AuthGuard>
-  );
+      );
 }

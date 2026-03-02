@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useGamification } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 
@@ -40,21 +39,18 @@ export default function LeaderboardPage() {
 
   if (isLoading) {
     return (
-      <AuthGuard>
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+              <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex justify-center items-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
             </div>
           </div>
         </div>
-      </AuthGuard>
-    );
+          );
   }
 
   return (
-    <AuthGuard>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+          <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
         <motion.div
@@ -255,6 +251,5 @@ export default function LeaderboardPage() {
           onClose={clearAchievementNotification}
         />
       </div>
-    </AuthGuard>
-  );
+      );
 }

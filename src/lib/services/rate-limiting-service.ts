@@ -154,7 +154,7 @@ export class RateLimitingService implements RateLimitService {
       const pipeline = this.redisClient.multi();
 
       // Add current attempt
-      pipeline.zadd(key, { [now]: now.toString() });
+      pipeline.zadd(key, now, now.toString());
 
       // Set expiration for the sorted set
       pipeline.expire(key, Math.ceil(validWindowMs / 1000));
@@ -175,7 +175,7 @@ export class RateLimitingService implements RateLimitService {
           if (result.attempts >= validMaxAttempts && validLockoutMs) {
             // Lock the account with timeout
             const lockoutUntil = now + validLockoutMs;
-            const setExPromise = this.redisClient.setEx(lockoutKey, Math.ceil(validLockoutMs / 1000), lockoutUntil.toString());
+            const setExPromise = this.redisClient.setex(lockoutKey, Math.ceil(validLockoutMs / 1000), lockoutUntil.toString());
             // Fire and forget with error catching
             setExPromise.catch(() => { });
           }

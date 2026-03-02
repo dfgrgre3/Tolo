@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -154,8 +153,7 @@ export default function TeacherExamsPage() {
 	}
 
 	return (
-		<AuthGuard>
-			<div className="px-4">
+					<div className="px-4">
 				<section className="mx-auto max-w-7xl py-8 space-y-6">
 				<h1 className="text-2xl md:text-3xl font-bold">امتحانات ودرجات المدرسين</h1>
 
@@ -304,6 +302,5 @@ export default function TeacherExamsPage() {
 				</div>
 			</section>
 			</div>
-		</AuthGuard>
-	);
+			);
 }

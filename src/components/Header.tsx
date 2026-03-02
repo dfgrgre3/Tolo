@@ -14,7 +14,7 @@ import { HeaderNavigation } from "./header/HeaderNavigation";
 import { EnhancedNotifications } from "./header/EnhancedNotifications";
 import { HeaderUserMenu } from "./header/HeaderUserMenu";
 import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 import { useMegaMenuState } from "./header/useMegaMenuState";
 import ProgressIndicator from "./header/ProgressIndicator";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
@@ -96,7 +96,7 @@ export default function Header() {
   };
 
   // Auth context
-  const authContext = useUnifiedAuth();
+  const authContext: any = { user: null, isAuthenticated: false, isLoading: false };
   const user = authContext?.user ?? null;
 
   // Mega menu state

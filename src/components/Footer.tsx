@@ -1,13 +1,13 @@
 "use client";
 
 import React from "react";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 import { CheckCircle2, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 
 export default function Footer() {
-	const { user } = useUnifiedAuth();
+	const user: any = null;
 	const [isMounted, setIsMounted] = React.useState(false);
 
 	React.useEffect(() => {

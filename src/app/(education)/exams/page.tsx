@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { ensureUser } from "@/lib/user-utils";
 import { safeDocument, safeFetch } from "@/lib/safe-client-utils";
 import { logger } from "@/lib/logger";
@@ -193,8 +192,7 @@ export default function ExamsPage() {
 	};
 
 	return (
-		<AuthGuard>
-			<div className="px-4">
+					<div className="px-4">
 				<section className="mx-auto max-w-7xl py-8 space-y-6">
 					<h1 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-200">الامتحانات التجريبية</h1>
 					
@@ -361,6 +359,5 @@ export default function ExamsPage() {
 					</Card>
 				</section>
 			</div>
-		</AuthGuard>
-	);
+			);
 } 

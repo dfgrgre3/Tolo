@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -185,8 +184,8 @@ export default function ProfilePage() {
 	};
 
 	return (
-		<AuthGuard>
-			{loading ? (
+		<>
+					{loading ? (
 				<div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
 					<div className="text-center space-y-4">
 						<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -686,6 +685,6 @@ export default function ProfilePage() {
 					</div>
 				</div>
 			)}
-		</AuthGuard>
+		</>
 	);
 }

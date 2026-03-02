@@ -10,8 +10,19 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Key, AlertTriangle, CheckCircle2, Eye, EyeOff, Shield, RefreshCw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { getPasswordStrengthDisplay } from '@/lib/auth/password-strength';
 
+const getPasswordStrengthDisplay = (password: string) => ({
+  score: password.length > 8 ? 100 : 0,
+  label: password.length > 8 ? 'قوية' : 'ضعيفة',
+  color: password.length > 8 ? 'bg-green-500' : 'bg-red-500',
+  checks: {
+    minLength: password.length >= 8,
+    hasUpper: /[A-Z]/.test(password),
+    hasLower: /[a-z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecial: /[^A-Za-z0-9]/.test(password)
+  }
+});
 import { logger } from '@/lib/logger';
 
 interface PasswordManagementProps {

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from '@/lib/db';
-import { authService } from "@/lib/services/auth-service";
 import { handleApiError, badRequestResponse, successResponse } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 

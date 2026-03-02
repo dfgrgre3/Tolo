@@ -12,21 +12,22 @@ import winston from 'winston';
 import { ElasticsearchTransport } from 'winston-elasticsearch';
 import { Client } from '@elastic/elasticsearch';
 
-import { logger as fallbackLogger } from '@/lib/logger';
+// Fallback to console if needed to avoid circular dependencies with unified-logger
+const fallbackLogger = console;
 
 // تكوين Elasticsearch
 const esClient = new Client({
   node: process.env.ELASTICSEARCH_URL || 'http://elasticsearch:9200',
   auth: process.env.ELASTICSEARCH_AUTH
     ? {
-        username: process.env.ELASTICSEARCH_USERNAME || 'elastic',
-        password: process.env.ELASTICSEARCH_PASSWORD || '',
-      }
+      username: process.env.ELASTICSEARCH_USERNAME || 'elastic',
+      password: process.env.ELASTICSEARCH_PASSWORD || '',
+    }
     : undefined,
   tls: process.env.ELASTICSEARCH_SSL === 'true'
     ? {
-        rejectUnauthorized: false,
-      }
+      rejectUnauthorized: false,
+    }
     : undefined,
 });
 
@@ -136,15 +137,15 @@ export const elkLoggerHelper = {
         ...meta,
         ...(error instanceof Error
           ? {
-              error: {
-                message: error.message,
-                stack: error.stack,
-                name: error.name,
-              },
-            }
+            error: {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            },
+          }
           : error
-          ? { error: String(error) }
-          : {}),
+            ? { error: String(error) }
+            : {}),
       };
       elkLogger.error(message, errorMeta);
     } catch (err) {

@@ -12,13 +12,6 @@
  */
 
 // Core Services
-export {
-    authService,
-    AuthService,
-    type AuthUser,
-    type UserPayload,
-    type TokenVerificationResult,
-} from './auth-service';
 
 export {
     gamificationService,
@@ -40,14 +33,5 @@ export {
 } from '../cache-service-unified';
 
 // Specialized Logic (Keeping these for compatibility if they have unique logic)
-export { TwoFactorChallengeService } from './auth-challenges-service';
-export { RateLimitingService, rateLimitingService } from './rate-limiting-service';
 export { emailService } from './email-service';
 export { notificationService } from './notification-service';
-
-// Deprecated / Legacy exports (Pointed to new unified services)
-export { authService as LoginService } from './auth-service';
-export { authService as RegisterService } from './auth-service';
-export { authService as TokenService } from './auth-service';
-export { authService as SecurityCheckService } from './auth-service';
-export { authService as AuthCacheService } from './auth-service';

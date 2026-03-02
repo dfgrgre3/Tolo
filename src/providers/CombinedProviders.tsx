@@ -1,5 +1,5 @@
 import React from 'react';
-import { UnifiedAuthProvider } from '@/contexts/auth-context';
+// import removed
 import { ToastProvider } from '../contexts/toast-context';
 import { WebSocketProvider } from '../contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
@@ -15,7 +15,7 @@ import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
  */
 export function CombinedProviders({ children }: { readonly children: React.ReactNode }) {
   return (
-    <UnifiedAuthProvider>
+    <>
       <ClientLayoutProvider>
         <ToastProvider>
           <WebSocketProvider>
@@ -23,6 +23,6 @@ export function CombinedProviders({ children }: { readonly children: React.React
           </WebSocketProvider>
         </ToastProvider>
       </ClientLayoutProvider>
-    </UnifiedAuthProvider>
+    </>
   );
 }

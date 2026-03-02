@@ -54,7 +54,7 @@ ${text}
       type: 'summary',
       title: summary.title || 'ظ…ظ„ط®طµ طھظ„ظ‚ط§ط¦ظٹ',
       content: JSON.stringify(summary),
-      subject: subject || null,
+      // subject: subject || null,
       metadata: JSON.stringify({
         originalLength: text.length,
         summaryLength: summary.summary?.length || 0,
@@ -117,7 +117,7 @@ ${text}
       type: 'flashcard',
       title: flashcards.title || 'ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©',
       content: JSON.stringify(flashcards),
-      subject: subject || null,
+      // subject: subject || null,
       metadata: JSON.stringify({
         count: flashcards.flashcards?.length || 0
       })
@@ -152,8 +152,8 @@ export async function generateStudyPlan(
     orderBy: { startTime: 'desc' }
   });
 
-  const studyHistory = userStudySessions.map((s: { subject: string | null; durationMin: number; startTime: Date }) => ({
-    subject: s.subject,
+  const studyHistory = userStudySessions.map((s: { subjectId: string | null; durationMin: number; startTime: Date }) => ({
+    subjectId: s.subjectId,
     duration: s.durationMin,
     date: s.startTime
   }));
@@ -272,7 +272,7 @@ export async function generatePracticeQuestions(
       type: 'practice_question',
       title: questions.title || 'ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©',
       content: JSON.stringify(questions),
-      subject: subject || null,
+      // subject: subject || null,
       metadata: JSON.stringify({
         count: questions.questions?.length || 0,
         difficulty,

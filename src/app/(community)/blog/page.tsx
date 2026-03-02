@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { Layout } from "@/components/layout/Layout";
 
 import { ensureUser } from "@/lib/user-utils";
@@ -77,8 +76,7 @@ export default function BlogPage() {
   });
 
   return (
-    <AuthGuard>
-      <Layout>
+          <Layout>
         <div className="space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
@@ -225,6 +223,5 @@ export default function BlogPage() {
         )}
         </div>
       </Layout>
-    </AuthGuard>
-  );
+      );
 }

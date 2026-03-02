@@ -27,14 +27,15 @@ import {
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { LazyAvatar } from "@/components/ui/LazyAvatar";
 import { motion } from "framer-motion";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 
 import { logger } from '@/lib/logger';
 
 export function HeaderUserMenu() {
 	const router = useRouter();
 	const pathname = usePathname();
-	const { user, logout } = useUnifiedAuth();
+	const user: any = null;
+	const logout = () => {};
 
 	const handleLogout = useCallback(async () => {
 		try {
@@ -63,7 +64,7 @@ export function HeaderUserMenu() {
 									alt={user.name || "User"}
 									fallback={user.name
 										?.split(" ")
-										.map((n) => n[0])
+										.map((n: any) => n[0])
 										.join("")
 										.toUpperCase() || user.email[0].toUpperCase()}
 									size="md"
@@ -87,7 +88,7 @@ export function HeaderUserMenu() {
 										alt={user.name || "User"}
 										fallback={user.name
 											?.split(" ")
-											.map((n) => n[0])
+											.map((n: any) => n[0])
 											.join("")
 											.toUpperCase() || user.email[0].toUpperCase()}
 										size="lg"

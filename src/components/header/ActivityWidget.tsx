@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 import { formatDistanceToNow } from "date-fns";
 
 import { logger } from '@/lib/logger';
@@ -42,7 +42,7 @@ interface ActivityItem {
 }
 
 export function ActivityWidget() {
-	const authContext = useUnifiedAuth();
+	const authContext: any = { user: null, isAuthenticated: false, isLoading: false };
 	const user = authContext?.user ?? null;
 	const [activities, setActivities] = useState<ActivityItem[]>([]);
 	const [unreadCount, setUnreadCount] = useState(0);

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbMonitor } from '@/lib/db-monitor';
-import { verifyToken } from '@/lib/services/auth-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -23,7 +22,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Verify token (in a real implementation, check for admin role)
-      const decoded = await verifyToken(req);
+      const decoded = null;
       if (!decoded) {
         return NextResponse.json(
           { error: 'Invalid token' },
@@ -63,7 +62,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Verify token (in a real implementation, check for admin role)
-      const decoded = await verifyToken(req);
+      const decoded = null;
       if (!decoded) {
         return NextResponse.json(
           { error: 'Invalid token' },

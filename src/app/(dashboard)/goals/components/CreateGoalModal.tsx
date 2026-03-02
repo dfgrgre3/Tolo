@@ -14,7 +14,7 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
     description: '',
     targetValue: '',
     unit: 'count',
-    category: 'study'
+    // category: ''
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,8 +27,8 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
       description: formData.description || undefined,
       targetValue: parseFloat(formData.targetValue),
       currentValue: 0,
-      unit: formData.unit,
-      category: formData.category
+      targetType: 'daily',
+      xpReward: 10
     });
 
     setFormData({
@@ -36,7 +36,7 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
       description: '',
       targetValue: '',
       unit: 'count',
-      category: 'study'
+      // category: ''
     });
 
     onClose();
@@ -124,21 +124,6 @@ export function CreateGoalModal({ isOpen, onClose, onCreateGoal }: CreateGoalMod
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                الفئة
-              </label>
-              <select
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              >
-                <option value="study">📚 دراسة</option>
-                <option value="tasks">✅ مهام</option>
-                <option value="exams">🎯 امتحانات</option>
-                <option value="custom">🎨 مخصص</option>
-              </select>
-            </div>
 
             <div className="flex space-x-3 pt-4">
               <button

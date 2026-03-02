@@ -63,7 +63,7 @@ export const StatCard = ({ icon, value, label, color, delay = 0 }: StatCardProps
       {/* Icon Container */}
       <div className={`relative z-10 p-4 rounded-full bg-gradient-to-br ${colorClass} bg-opacity-10 shadow-lg group-hover:scale-110 transition-transform duration-300 ring-1 ring-white/10`}>
         <div className="text-white drop-shadow-md">
-           {React.cloneElement(icon as React.ReactElement, { className: "w-8 h-8" })}
+           {React.cloneElement(icon as React.ReactElement<{ className?: string }>, { className: "w-8 h-8" })}
         </div>
       </div>
 

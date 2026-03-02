@@ -9,7 +9,7 @@ import {
   createStandardErrorResponse,
   createSuccessResponse,
   addSecurityHeaders
-} from '@/app/api/auth/_helpers';
+} from '@/lib/api-helpers';
 
 // GET all courses (now subjects)
 export async function GET(request: NextRequest) {
@@ -258,7 +258,7 @@ export async function POST(request: NextRequest) {
         // Ignore import errors
       });
 
-      return createSuccessResponse(newSubject, 201);
+      return createSuccessResponse(newSubject, undefined, 201);
     } catch (error) {
       logger.error("Error creating subject:", error);
       return createStandardErrorResponse(

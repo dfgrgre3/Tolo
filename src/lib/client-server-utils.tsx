@@ -253,7 +253,7 @@ export function useClientOnlyEffect(
     onError?: (error: Error) => void;
   }
 ) {
-  const cleanupRef = useRef<(() => void) | void>();
+  const cleanupRef = useRef<(() => void) | void | undefined>(undefined);
 
   useClientEffect(() => {
     (async () => {

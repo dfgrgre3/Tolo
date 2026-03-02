@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -83,8 +82,7 @@ export default function NewContestPage() {
   ];
 
   return (
-    <AuthGuard>
-      <div className="px-4">
+          <div className="px-4">
         <section className="mx-auto max-w-3xl py-8 space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/announcements" className="hover:text-primary">الإعلانات والمسابقات</Link>
@@ -265,6 +263,5 @@ export default function NewContestPage() {
         </form>
         </section>
       </div>
-    </AuthGuard>
-  );
+      );
 }

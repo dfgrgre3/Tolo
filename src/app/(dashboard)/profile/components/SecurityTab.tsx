@@ -3,10 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SessionManagement from './SessionManagement';
 import SecurityLogs from './SecurityLogs';
-import TwoFactorAuth from './TwoFactorAuth';
-import LoginMethods from './LoginMethods';
 import AdvancedProtection from './AdvancedProtection';
 import PasswordManagement from './PasswordManagement';
 import { Shield, Lock, Key, AlertTriangle, Smartphone, Globe } from "lucide-react";
@@ -37,22 +34,10 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
       </div>
 
       <Tabs defaultValue="sessions" className="w-full">
-        <TabsList className="grid w-full grid-cols-6">
-          <TabsTrigger value="sessions" className="flex items-center gap-2">
-            <Smartphone className="h-4 w-4" />
-            الجلسات
-          </TabsTrigger>
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="logs" className="flex items-center gap-2">
             <AlertTriangle className="h-4 w-4" />
             السجلات
-          </TabsTrigger>
-          <TabsTrigger value="2fa" className="flex items-center gap-2">
-            <Lock className="h-4 w-4" />
-            المصادقة الثنائية
-          </TabsTrigger>
-          <TabsTrigger value="login" className="flex items-center gap-2">
-            <Key className="h-4 w-4" />
-            تسجيل الدخول
           </TabsTrigger>
           <TabsTrigger value="protection" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
@@ -64,20 +49,8 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="sessions" className="space-y-6 mt-6">
-          <SessionManagement userId={userId} />
-        </TabsContent>
-
         <TabsContent value="logs" className="space-y-6 mt-6">
           <SecurityLogs userId={userId} />
-        </TabsContent>
-
-        <TabsContent value="2fa" className="space-y-6 mt-6">
-          <TwoFactorAuth userId={userId} />
-        </TabsContent>
-
-        <TabsContent value="login" className="space-y-6 mt-6">
-          <LoginMethods userId={userId} />
         </TabsContent>
 
         <TabsContent value="protection" className="space-y-6 mt-6">

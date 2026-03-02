@@ -1,7 +1,15 @@
 import nodemailer from 'nodemailer';
 import { logger } from '@/lib/logger';
-import { withRetry } from '@/lib/auth-utils';
+// import { withRetry } from '@/lib/auth-utils';
 
+const withRetry = async <T,>(fn: () => Promise<T>, options: any): Promise<T> => {
+  try {
+    return await fn();
+  } catch (error) {
+    if (options.onError) options.onError(error, 1);
+    throw error;
+  }
+};
 interface EmailOptions {
   to: string;
   subject: string;
@@ -73,7 +81,7 @@ class EmailService {
       }, {
         maxAttempts: 3,
         delayMs: 1000,
-        onError: (error, attempt) => {
+        onError: (error: any, attempt: number) => {
           logger.warn(`Email sending attempt ${attempt} failed:`, error);
         }
       });

@@ -24,7 +24,7 @@ import {
   HelpCircle,
   LogOut
 } from 'lucide-react';
-import { useUnifiedAuth } from '@/contexts/auth-context';
+// import removed
 
 interface NavItem {
   title: string;
@@ -43,7 +43,7 @@ const SidebarNavigation = () => {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user } = useUnifiedAuth();
+  const user: any = null;
 
   // Close mobile menu when pathname changes
   useEffect(() => {

@@ -125,10 +125,11 @@ export interface MultiChannelNotificationOptions {
 }
 
 export interface MultiChannelNotificationResult {
-    app: object | null;
-    email: object | null;
-    sms: object | null;
+    app: any | null;
+    email: { success: boolean; messageId?: string; simulated?: boolean } | null;
+    sms: { success: boolean; messageId?: string; simulated?: boolean } | null;
 }
+
 
 export async function sendMultiChannelNotification(
     options: MultiChannelNotificationOptions

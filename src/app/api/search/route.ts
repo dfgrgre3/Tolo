@@ -7,7 +7,7 @@ import {
 	createStandardErrorResponse,
 	createSuccessResponse,
 	addSecurityHeaders
-} from '@/app/api/auth/_helpers';
+} from '@/lib/api-helpers';
 
 type SearchScope = "all" | "courses" | "teachers" | "forum" | "exams";
 

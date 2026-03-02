@@ -31,10 +31,10 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
           )}
           <div className="flex items-center space-x-2 text-sm text-gray-500">
             <span className="bg-gray-100 px-2 py-1 rounded-full">
-              {goal.category}
+              {'Goal'}
             </span>
             <span>•</span>
-            <span>{goal.unit}</span>
+            <span>{''}</span>
           </div>
         </div>
         <div className={`text-2xl ${goal.isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
@@ -47,7 +47,7 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
         <div className="flex justify-between text-sm text-gray-600 mb-2">
           <span>التقدم الحالي</span>
           <span>
-            {goal.currentValue} / {goal.targetValue} {goal.unit}
+            {goal.currentValue} / {goal.targetValue} {''}
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// Auth removed
 import { ProgressSummary } from "@/lib/server-data-fetch";
 import { UserHome } from "@/app/components/home/UserHome";
 import { User as ApiUser } from "@/types/api/auth";
@@ -14,7 +14,8 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ summary }: HomeClientProps) {
-  const { user, isLoading: authLoading } = useUnifiedAuth();
+  const user = null;
+  const authLoading = false;
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
@@ -68,22 +69,16 @@ export function HomeClient({ summary }: HomeClientProps) {
 
 
   // --- User Transformation ---
-  const apiUser: ApiUser = user
-    ? {
-        ...user,
-        // Ensure all required fields for GamifiedUser are present if they differ
-        // For now, casting or spreading is safe as GamifiedUser extends User
-      } as ApiUser
-    : {
-        id: 'guest',
-        email: '',
-        name: 'زائر',
-        role: 'STUDENT',
-        emailVerified: false,
-        twoFactorEnabled: false,
-        lastLogin: null,
-        provider: 'local',
-      };
+  const apiUser: ApiUser = {
+    id: 'guest',
+    email: '',
+    name: 'زائر',
+    role: 'STUDENT',
+    emailVerified: false,
+    twoFactorEnabled: false,
+    lastLogin: null,
+    provider: 'local',
+  };
 
   return (
     <UserHome 

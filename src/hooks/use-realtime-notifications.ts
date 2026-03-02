@@ -30,7 +30,7 @@ export function useRealtimeNotifications({
 	url = "/api/notifications/stream",
 }: UseRealtimeNotificationsOptions = {}) {
 	const eventSourceRef = useRef<EventSource | null>(null);
-	const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
+	const reconnectTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
 	const connect = useCallback(() => {
 		if (!enabled || typeof window === "undefined") return;
@@ -48,7 +48,7 @@ export function useRealtimeNotifications({
 			eventSource.onmessage = (event) => {
 				try {
 					const notification: RealtimeNotification = JSON.parse(event.data);
-					
+
 					// Play sound based on notification type
 					if (notification.type) {
 						soundNotificationManager.play(notification.type as NotificationSound);

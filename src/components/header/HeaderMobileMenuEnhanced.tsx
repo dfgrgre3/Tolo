@@ -23,7 +23,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/navData";
 import { cn } from "@/lib/utils";
-import { useUnifiedAuth } from "@/contexts/auth-context";
+// import removed
 import { useTheme } from "next-themes";
 import { headerAnimations } from "./hooks/useHeaderAnimations";
 
@@ -43,7 +43,8 @@ export function HeaderMobileMenuEnhanced({
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useUnifiedAuth();
+  const user: any = null;
+  const logout = () => {};
   const { theme, setTheme } = useTheme();
   const shouldReduceMotion = useReducedMotion();
 
@@ -286,7 +287,7 @@ export function HeaderMobileMenuEnhanced({
                         <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
                         <AvatarFallback className="bg-gradient-to-tr from-primary to-primary/60 text-white text-lg font-bold">
 
-                        {user.name?.split(" ").map((n) => n[0]).join("").toUpperCase() ||
+                        {user.name?.split(" ").map((n: any) => n[0]).join("").toUpperCase() ||
                           (user.email ? user.email[0].toUpperCase() : "U")}
                       </AvatarFallback>
                     </Avatar>

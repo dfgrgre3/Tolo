@@ -10,7 +10,7 @@ import {
 	createStandardErrorResponse,
 	createSuccessResponse,
 	addSecurityHeaders
-} from '@/app/api/auth/_helpers';
+} from '@/lib/api-helpers';
 
 export async function GET(request: NextRequest) {
 	return opsWrapper(request, async (req) => {
@@ -231,7 +231,7 @@ export async function POST(request: NextRequest) {
 			return createSuccessResponse({
 				success: true,
 				exam: newExam
-			}, 201);
+			}, undefined, 201);
 		} catch (error) {
 			logger.error("Error creating exam:", error);
 			return createStandardErrorResponse(

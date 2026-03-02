@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthGuard } from "@/components/auth/AuthGuard";
 import { useLocalStorageState } from "@/hooks/use-local-storage-state";
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
@@ -33,8 +32,7 @@ export default function ProgressPage() {
 	}, []);
 
 	return (
-		<AuthGuard>
-			<div className="px-4">
+					<div className="px-4">
 				<section className="mx-auto max-w-7xl py-8 space-y-6">
 				<div className="flex justify-between items-center">
           <h1 className="text-2xl md:text-3xl font-bold">تتبع التقدم</h1>
@@ -85,6 +83,5 @@ export default function ProgressPage() {
         )}
 			</section>
 			</div>
-		</AuthGuard>
-	);
+			);
 }

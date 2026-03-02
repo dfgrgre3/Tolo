@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { authService } from "@/lib/services/auth-service";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -7,7 +6,7 @@ import {
   createStandardErrorResponse,
   createSuccessResponse,
   addSecurityHeaders
-} from '@/app/api/auth/_helpers';
+} from '@/lib/api-helpers';
 
 // GET all users
 export async function GET(request: NextRequest) {

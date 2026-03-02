@@ -3,14 +3,13 @@ import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-confi
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { analyzeSentiment } from "@/lib/ai/sentiment-analysis";
 import { prisma } from '@/lib/db';
-import { verifyToken } from "@/lib/services/auth-service";
 import { logger } from '@/lib/logger';
 import {
   parseRequestBody,
   createStandardErrorResponse,
   createSuccessResponse,
   addSecurityHeaders
-} from '@/app/api/auth/_helpers';
+} from '@/lib/api-helpers';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -34,10 +33,7 @@ export async function POST(request: NextRequest) {
       // Try to get userId from token if not provided
       let actualUserId = userId;
       if (!actualUserId) {
-        const decodedToken = await verifyToken(req);
-        if (decodedToken) {
-          actualUserId = decodedToken.userId;
-        }
+        // Auth removed
       }
 
       // تحديد مقدم الخدمة

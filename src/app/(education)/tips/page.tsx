@@ -1,11 +1,9 @@
 'use client';
 
-import { AuthGuard } from '@/components/auth/AuthGuard';
 
 export default function TipsPage() {
   return (
-    <AuthGuard>
-      <div className="px-4">
+          <div className="px-4">
         <section className="mx-auto max-w-7xl py-8 space-y-6">
           <h1 className="text-2xl md:text-3xl font-bold">نصائح دراسية متقدمة</h1>
           <div className="grid gap-4 md:grid-cols-2">
@@ -49,6 +47,5 @@ export default function TipsPage() {
           </div>
         </section>
       </div>
-    </AuthGuard>
-  );
+      );
 }

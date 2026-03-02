@@ -98,7 +98,7 @@ export class RateLimiter {
       });
 
       const results = await Promise.race([execPromise, execTimeoutPromise]);
-      const currentCount = (results && results[1]) ? (results[1] as number) : 0;
+      const currentCount = (results && results[1] && results[1][1]) ? (results[1][1] as number) : 0;
 
       return {
         allowed: currentCount < config.maxAttempts,
@@ -138,7 +138,7 @@ export class RateLimiter {
       const pipeline = redis.multi();
 
       // Add current attempt
-      pipeline.zadd(key, { [now]: now.toString() });
+      pipeline.zadd(key, now, now.toString());
 
       // Set expiration for the sorted set
       const expirationSeconds = Math.ceil(config.windowMs / 1000);
@@ -158,7 +158,7 @@ export class RateLimiter {
             // Lock the account
             const lockoutUntil = now + config.lockoutMs;
             const lockoutSeconds = Math.ceil(config.lockoutMs / 1000);
-            redis.setEx(lockoutKey, lockoutSeconds, lockoutUntil.toString()).catch((error: unknown) => {
+            redis.setex(lockoutKey, lockoutSeconds, lockoutUntil.toString()).catch((error: unknown) => {
               logger.warn('Failed to set lockout:', error);
             });
           }
@@ -199,9 +199,9 @@ export function extractClientInfo(request: NextRequest): {
 } {
   // Extract IP address
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-             request.headers.get('x-real-ip') ||
-             request.headers.get('cf-connecting-ip') ||
-             'unknown';
+    request.headers.get('x-real-ip') ||
+    request.headers.get('cf-connecting-ip') ||
+    'unknown';
 
   // Extract User Agent
   const userAgent = request.headers.get('user-agent') || 'unknown';
@@ -272,17 +272,17 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     );
   }
 
-  if ((error as {name: string}).name === 'ZodError') {
+  if ((error as { name: string }).name === 'ZodError') {
     const apiError: APIError = {
       error: 'Validation error',
       code: 'VALIDATION_ERROR',
-      details: ((error as {errors: unknown[]}).errors || []) as unknown as Record<string, unknown>,
+      details: ((error as { errors: unknown[] }).errors || []) as unknown as Record<string, unknown>,
       status: 400
     };
     return NextResponse.json(apiError, { status: 400 });
   }
 
-  if ((error as {code: string}).code === 'P2002') {
+  if ((error as { code: string }).code === 'P2002') {
     return NextResponse.json(
       {
         error: 'Resource already exists',
@@ -293,7 +293,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     );
   }
 
-  if ((error as {code: string}).code === 'P2025') {
+  if ((error as { code: string }).code === 'P2025') {
     return NextResponse.json(
       {
         error: 'Resource not found',
@@ -537,7 +537,7 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<unknow
 
     // Verify token and extract user information
     // This is just a placeholder - implement based on your auth system
-    // const user = await verifyToken(token);
+    // const user = null;
 
     // For now, return null
     return null;
