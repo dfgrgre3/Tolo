@@ -2,6 +2,6 @@
  * Central export point for all API types
  */
 
-export * from './auth';
+// auth export removed
 export * from './common';
 

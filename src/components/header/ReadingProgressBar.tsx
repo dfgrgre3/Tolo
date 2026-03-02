@@ -25,8 +25,8 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
   showPercentage = false,
   gradientColors = {
     from: "from-primary",
-    via: "via-primary/80",
-    to: "to-primary/60",
+    via: "via-primary/85",
+    to: "to-primary/70 dark:to-primary/60",
   },
   animate = true,
 }: ReadingProgressBarProps) {
@@ -67,7 +67,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
     >
       {/* Background track */}
       <div
-        className="w-full bg-border/20 dark:bg-border/10"
+        className="w-full bg-border/30 dark:bg-border/20"
         style={{ height: `${height}px` }}
       >
         {/* Progress bar */}
@@ -76,7 +76,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
             className={cn(
               "h-full origin-left",
               gradientClass,
-              "shadow-sm shadow-primary/20"
+              "shadow-md shadow-primary/30 dark:shadow-primary/40"
             )}
             initial={{ scaleX: 0 }}
             animate={{ scaleX: scrollProgress / 100 }}
@@ -92,7 +92,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
             className={cn(
               "h-full origin-left transition-transform duration-150 ease-out",
               gradientClass,
-              "shadow-sm shadow-primary/20"
+              "shadow-md shadow-primary/30 dark:shadow-primary/40"
             )}
             style={{ transform: `scaleX(${scrollProgress / 100})` }}
           />
@@ -105,7 +105,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
           initial={{ opacity: 0, y: -5 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            "absolute left-2 text-xs font-medium text-primary bg-background/90 backdrop-blur-sm px-1.5 py-0.5 rounded shadow-sm",
+            "absolute left-2 text-xs font-medium text-primary bg-background/95 dark:bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded shadow-md dark:shadow-lg",
             position === "top" ? "top-full mt-1" : "bottom-full mb-1"
           )}
         >

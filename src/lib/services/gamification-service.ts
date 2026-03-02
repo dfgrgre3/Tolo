@@ -113,12 +113,12 @@ export interface CustomGoal {
   userId: string;
   title: string;
   description?: string;
-  targetType: 'xp' | 'tasks' | 'study_time' | 'exams';
   targetValue: number;
   currentValue: number;
-  deadline?: Date;
-  isCompleted: boolean;
+  unit: string;
+  category: string;
   xpReward: number;
+  isCompleted: boolean;
   createdAt: Date;
   completedAt?: Date;
 }
@@ -142,8 +142,8 @@ export class GamificationService {
 
   private initializeAchievements(): void {
     const achievements: Achievement[] = [
-      { key: 'FIRST_LOGIN', name: 'البداية', description: 'أول تسجيل دخول لك في المنصة', icon: '🚀', xpReward: 50 },
       { key: 'STUDY_SESSION_COMPLETED', name: 'طالب مجتهد', description: 'أكملت أول جلسة مذاكرة لك', icon: '📖', xpReward: 100 },
+
       { key: 'QUIZ_MASTER', name: 'سيد الاختبارات', description: 'حصلت على درجة كاملة في اختبار', icon: '🏆', xpReward: 200 },
       { key: 'SEVEN_DAY_STREAK', name: 'الاستمرارية سر النجاح', description: 'حافظت على نشاطك لمدة 7 أيام متتالية', icon: '🔥', xpReward: 500 },
     ];
@@ -498,15 +498,64 @@ export class GamificationService {
 
   // ===== Goals =====
   async createCustomGoal(userId: string, data: Partial<CustomGoal>): Promise<CustomGoal> {
-    return { ...data, id: 'mock-goal', userId, isCompleted: false, currentValue: 0, createdAt: new Date() } as CustomGoal;
+    try {
+      const result = await prisma.customGoal.create({
+        data: {
+          userId,
+          title: data.title || 'Untitled Goal',
+          description: data.description,
+          targetValue: data.targetValue || 0,
+          currentValue: data.currentValue || 0,
+          unit: data.unit || 'unit',
+          category: data.category || 'custom',
+          xpReward: data.xpReward || 10,
+          isCompleted: false,
+        }
+      });
+      return result as unknown as CustomGoal;
+    } catch (error) {
+      logger.error('Failed to create custom goal', error);
+      throw error;
+    }
   }
 
   async updateCustomGoal(goalId: string, currentValue: number): Promise<CustomGoal> {
-    return { id: goalId, currentValue, isCompleted: false, title: "Mock", targetType: "xp", targetValue: 100, xpReward: 10, createdAt: new Date(), userId: "mock" } as CustomGoal;
+    try {
+      const goal = await prisma.customGoal.findUnique({ where: { id: goalId } });
+      if (!goal) throw new Error('Goal not found');
+
+      const isCompleted = currentValue >= goal.targetValue;
+      const completedAt = isCompleted && !goal.isCompleted ? new Date() : goal.completedAt;
+
+      const updatedGoal = await prisma.customGoal.update({
+        where: { id: goalId },
+        data: {
+          currentValue,
+          isCompleted,
+          completedAt
+        }
+      });
+
+      // If goal was just completed, award XP
+      if (isCompleted && !goal.isCompleted) {
+        await this.addXP(goal.userId, (updatedGoal as unknown as CustomGoal).xpReward, 'task');
+      }
+
+      return updatedGoal as unknown as CustomGoal;
+    } catch (error) {
+      logger.error('Failed to update custom goal', error);
+      throw error;
+    }
   }
 
   async deleteCustomGoal(goalId: string): Promise<boolean> {
-    return true;
+    try {
+      await prisma.customGoal.delete({ where: { id: goalId } });
+      return true;
+    } catch (error) {
+      logger.error('Failed to delete custom goal', error);
+      return false;
+    }
   }
 }
 

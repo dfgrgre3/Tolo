@@ -174,19 +174,19 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "online":
-        return "bg-green-100 text-green-700 border-green-200";
+        return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
       case "warning":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
+        return "bg-amber-500/20 text-amber-400 border-amber-500/30";
       case "error":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "bg-rose-500/20 text-rose-400 border-rose-500/30";
       default:
-        return "bg-gray-100 text-gray-700 border-gray-200";
+        return "bg-white/10 text-gray-400 border-white/20";
     }
   };
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-200/25 via-transparent to-blue-200/25" />
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 px-6 md:px-12 py-12 shadow-2xl backdrop-blur-xl ring-1 ring-white/5">
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 mix-blend-overlay" />
       
       <div className="relative z-10">
         <motion.div
@@ -196,10 +196,10 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
           transition={{ duration: 0.5 }}
           className="mb-8 text-center"
         >
-          <h2 className="text-3xl md:text-4xl font-bold text-primary mb-4">
+          <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 drop-shadow-md">
             مؤشرات الحالة
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-gray-400 text-lg">
             رصد حالة النظام والاتصال والخدمات في الوقت الفعلي
           </p>
         </motion.div>
@@ -214,23 +214,23 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
               transition={{ delay: index * 0.05 }}
               whileHover={{ scale: 1.02 }}
             >
-              <Card className="border-slate-200/80 shadow-sm hover:shadow-md transition-all">
+              <Card className="bg-black/40 border-white/5 shadow-none hover:bg-white-[0.03] hover:border-white/10 transition-all rounded-2xl backdrop-blur-md">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
-                    <div className={`rounded-lg p-2 ${getStatusColor(indicator.status)}`}>
+                    <div className={`rounded-xl p-2.5 shadow-inner backdrop-blur-md border ${getStatusColor(indicator.status)}`}>
                       {indicator.icon}
                     </div>
-                    <Badge className={getStatusColor(indicator.status)}>
+                    <Badge className={`${getStatusColor(indicator.status)} border bg-transparent bg-opacity-10 shadow-none`}>
                       {indicator.status === "online" && <CheckCircle2 className="h-3 w-3 mr-1" />}
                       {indicator.status !== "online" && <XCircle className="h-3 w-3 mr-1" />}
                       {indicator.value}
                     </Badge>
                   </div>
                   
-                  <h3 className="font-semibold text-slate-900 mb-2">
+                  <h3 className="font-bold text-white mb-2 text-lg">
                     {indicator.label}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-gray-400 line-clamp-2">
                     {indicator.description}
                   </p>
                 </CardContent>
@@ -247,25 +247,25 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
           transition={{ delay: 0.3 }}
           className="mt-8"
         >
-          <Card className="border-0 bg-gradient-to-r from-green-600 to-emerald-600 shadow-xl">
+          <Card className="border border-white/10 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 backdrop-blur-xl shadow-[0_0_30px_rgba(16,185,129,0.15)] rounded-2xl mx-1">
             <CardContent className="p-6">
-              <div className="flex items-center justify-between text-white">
+              <div className="flex flex-col md:flex-row items-center justify-between text-white gap-4">
                 <div className="flex items-center gap-4">
-                  <div className="rounded-full bg-white/20 p-4 backdrop-blur-md">
-                    <CheckCircle2 className="h-8 w-8" />
+                  <div className="rounded-full bg-emerald-500/20 p-4 backdrop-blur-md border border-emerald-500/30 shadow-inner">
+                    <CheckCircle2 className="h-8 w-8 text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold mb-1">حالة النظام ممتازة</h3>
-                    <p className="text-white/80 text-sm">
+                    <h3 className="text-xl font-bold mb-1 drop-shadow-sm">حالة النظام ممتازة</h3>
+                    <p className="text-emerald-200/80 text-sm">
                       جميع الخدمات تعمل بشكل طبيعي
                     </p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-bold">
+                <div className="text-center md:text-right bg-black/20 px-6 py-3 rounded-2xl border border-white/5">
+                  <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-300">
                     {indicators.filter(i => i.status === "online").length}/{indicators.length}
                   </div>
-                  <div className="text-sm text-white/80">خدمات نشطة</div>
+                  <div className="text-sm text-emerald-200/60 font-medium">خدمات نشطة</div>
                 </div>
               </div>
             </CardContent>

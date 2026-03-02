@@ -35,7 +35,8 @@ import {
 	BarChart3,
 } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
-import SecurityTab from "./components/SecurityTab";
+// import removed
+
 
 import { logger } from '@/lib/logger';
 
@@ -401,7 +402,8 @@ export default function ProfilePage() {
 						<TabsTrigger value="stats">الإحصائيات</TabsTrigger>
 						<TabsTrigger value="achievements">الإنجازات</TabsTrigger>
 						<TabsTrigger value="activity">النشاط</TabsTrigger>
-						<TabsTrigger value="security">الأمان</TabsTrigger>
+						{/* Security tab removed */}
+
 					</TabsList>
 
 						<TabsContent value="overview" className="space-y-6">
@@ -676,9 +678,8 @@ export default function ProfilePage() {
 							</Card>
 						</TabsContent>
 
-						<TabsContent value="security" className="space-y-6">
-							<SecurityTab userId={userId} />
-						</TabsContent>
+						{/* Security tab removed */}
+
 					</Tabs>
 				</div>
 			</div>

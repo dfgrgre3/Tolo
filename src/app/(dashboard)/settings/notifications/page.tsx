@@ -55,10 +55,8 @@ interface NotificationSettings {
   weeklyReport: boolean;
   achievementAlerts: boolean;
   
-  // Security
-  loginAlerts: boolean;
-  securityAlerts: boolean;
-  deviceAlerts: boolean;
+  // Security removed
+
   
   // Social
   commentNotifications: boolean;
@@ -90,9 +88,8 @@ const initialSettings: NotificationSettings = {
   progressReports: true,
   weeklyReport: true,
   achievementAlerts: true,
-  loginAlerts: true,
-  securityAlerts: true,
-  deviceAlerts: true,
+  // Security removed
+
   commentNotifications: true,
   mentionNotifications: true,
   pushEnabled: true,
@@ -320,36 +317,8 @@ export default function NotificationsSettingsPage() {
         />
       </SettingsSection>
 
-      {/* Security */}
-      <SettingsSection
-        icon={Shield}
-        title="الأمان"
-        description="إشعارات متعلقة بأمان حسابك"
-      >
-        <SettingsToggle
-          icon={Shield}
-          title="تنبيهات تسجيل الدخول"
-          description="إشعار عند تسجيل الدخول من جهاز جديد"
-          enabled={settings.loginAlerts}
-          onToggle={(v) => updateSetting('loginAlerts', v)}
-        />
-        
-        <SettingsToggle
-          icon={AlertTriangle}
-          title="تنبيهات الأمان"
-          description="إشعارات عن الأنشطة المشبوهة"
-          enabled={settings.securityAlerts}
-          onToggle={(v) => updateSetting('securityAlerts', v)}
-        />
-        
-        <SettingsToggle
-          icon={Smartphone}
-          title="تنبيهات الأجهزة"
-          description="إشعار عند إضافة أو إزالة جهاز"
-          enabled={settings.deviceAlerts}
-          onToggle={(v) => updateSetting('deviceAlerts', v)}
-        />
-      </SettingsSection>
+      {/* Security removed */}
+
 
       {/* Social */}
       <SettingsSection

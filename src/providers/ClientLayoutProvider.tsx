@@ -16,14 +16,8 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
       return;
     }
 
-    // Skip auth routes to avoid redirect loops
-    if (
-      pathname.startsWith('/login') ||
-      pathname.startsWith('/register') ||
-      pathname.startsWith('/auth/')
-    ) {
-      return;
-    }
+    // Skip auth routes check removed
+
 
     const fullPath = search ? `${pathname}?${search}` : pathname;
 

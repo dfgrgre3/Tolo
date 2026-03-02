@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import type { User } from "@/types/api/auth";
+import type { User } from "@/types/user";
 
 interface MegaMenuHeaderProps {
 	searchQuery: string;

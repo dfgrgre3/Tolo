@@ -1,0 +1,20 @@
+{
+  "api": {
+    "duplicates": [],
+    "conflicts": [],
+    "suspiciousFiles": [],
+    "summary": {
+      "totalDuplicates": 0,
+      "totalConflicts": 0,
+      "totalSuspicious": 0
+    }
+  },
+  "page": {
+    "duplicates": [],
+    "suspiciousFiles": [],
+    "summary": {
+      "totalDuplicates": 0,
+      "totalSuspicious": 0
+    }
+  }
+}

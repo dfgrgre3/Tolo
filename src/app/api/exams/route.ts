@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 				limit = parseInt(limitParam, 10);
 				if (isNaN(limit) || limit < 1 || limit > 100) {
 					const response = NextResponse.json(
-						{ error: "ط­ط¯ ط؛ظٹط± طµط­ظٹط­. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط¨ظٹظ† 1 ظˆ 100", code: 'INVALID_LIMIT' },
+						{ error: "حد غير صحيح. يجب أن يكون بين 1 و 100", code: 'INVALID_LIMIT' },
 						{ status: 400 }
 					);
 					return addSecurityHeaders(response);
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
 				offset = parseInt(offsetParam, 10);
 				if (isNaN(offset) || offset < 0) {
 					const response = NextResponse.json(
-						{ error: "ط¥ط²ط§ط­ط© ط؛ظٹط± طµط­ظٹط­ط©. ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط¹ط¯ط¯ طµط­ظٹط­ ظ…ظˆط¬ط¨", code: 'INVALID_OFFSET' },
+						{ error: "إزاحة غير صحيحة. يجب أن تكون عدد صحيح موجب", code: 'INVALID_OFFSET' },
 						{ status: 400 }
 					);
 					return addSecurityHeaders(response);
@@ -81,33 +81,33 @@ export async function GET(request: NextRequest) {
 			});
 			return addSecurityHeaders(response);
 		} catch (error: unknown) {
-			// طھط³ط¬ظٹظ„ ط§ظ„ط®ط·ط£ ط¨ط´ظƒظ„ ط£ظƒط«ط± طھظپطµظٹظ„ط§ظ‹ ظپظٹ ظˆط¶ط¹ ط§ظ„طھط·ظˆظٹط±
+			// تسجيل الخطأ بشكل أكثر تفصيلاً في وضع التطوير
 			if (process.env.NODE_ENV === 'development') {
 				logger.error("Error fetching exams:", error);
 			}
 
-			// طھط­ط¯ظٹط¯ ط±ط³ط§ظ„ط© ط§ظ„ط®ط·ط£ ط§ظ„ظ…ظ†ط§ط³ط¨ط©
-			let errorMessage = "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ";
+			// تحديد رسالة الخطأ المناسبة
+			let errorMessage = "حدث خطأ في جلب الامتحانات";
 			let errorDetails = "Unknown error";
 			let errorCode = 'FETCH_ERROR';
 
 			if (error instanceof Error) {
 				errorDetails = error.message;
 
-				// ط±ط³ط§ط¦ظ„ ط®ط·ط£ ط£ظƒط«ط± ظˆط¶ظˆط­ط§ظ‹ ظ„ظ„ظ…ط´ط§ظƒظ„ ط§ظ„ط´ط§ط¦ط¹ط©
+				// رسائل خطأ أكثر وضوحًا للمشكلات الشائعة
 				if (error.message.includes('did not initialize yet') ||
 					error.message.includes('prisma generate') ||
 					error.message.includes('has not been generated')) {
-					errorMessage = "Prisma Client ظ„ظ… ظٹطھظ… طھظˆظ„ظٹط¯ظ‡. ظٹط±ط¬ظ‰ طھط´ط؛ظٹظ„: npx prisma generate";
+					errorMessage = "Prisma Client لم يتم توليده. يرجى تشغيل: npx prisma generate";
 					errorCode = 'PRISMA_NOT_INITIALIZED';
 				} else if (error.message.includes('P1001') || error.message.includes('connection')) {
-					errorMessage = "ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ";
+					errorMessage = "لا يمكن الاتصال بقاعدة البيانات";
 					errorCode = 'DATABASE_CONNECTION_ERROR';
 				} else if (error.message.includes('table') || error.message.includes('does not exist')) {
-					errorMessage = "ط¬ط¯ظˆظ„ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط؛ظٹط± ظ…ظˆط¬ظˆط¯. ظٹط±ط¬ظ‰ طھط´ط؛ظٹظ„ migrations";
+					errorMessage = "جداول قاعدة البيانات غير موجود. يرجى تشغيل migrations";
 					errorCode = 'TABLE_NOT_FOUND';
 				} else if (error.message.includes('timeout')) {
-					errorMessage = "ط§ظ†طھظ‡طھ ظ…ظ‡ظ„ط© ط§ظ„ط·ظ„ط¨. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰";
+					errorMessage = "انتهت مهلة الطلب. يرجى المحاولة مرة أخرى";
 					errorCode = 'REQUEST_TIMEOUT';
 				}
 			} else {
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 			// Validate required fields
 			if (!finalSubjectId) {
 				const response = NextResponse.json(
-					{ error: "ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨ط©", code: 'MISSING_SUBJECT' },
+					{ error: "الماد	ة مطلوبة", code: 'MISSING_SUBJECT' },
 					{ status: 400 }
 				);
 				return addSecurityHeaders(response);
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
 			if (!title || typeof title !== 'string' || title.trim().length === 0) {
 				const response = NextResponse.json(
-					{ error: "ط§ظ„ط¹ظ†ظˆط§ظ† ظ…ط·ظ„ظˆط¨", code: 'MISSING_TITLE' },
+					{ error: "العنوان مطلوب", code: 'MISSING_TITLE' },
 					{ status: 400 }
 				);
 				return addSecurityHeaders(response);
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
 
 			if (!year || typeof year !== 'number' || year < 1900 || year > 2100) {
 				const response = NextResponse.json(
-					{ error: "ط§ظ„ط³ظ†ط© ظ…ط·ظ„ظˆط¨ط© ظˆظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط¨ظٹظ† 1900 ظˆ 2100", code: 'INVALID_YEAR' },
+					{ error: "السنة مطلوبة ويجب أن تكون بين 1900 و 2100", code: 'INVALID_YEAR' },
 					{ status: 400 }
 				);
 				return addSecurityHeaders(response);
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 			// Validate field lengths
 			if (finalSubjectId.trim().length > 200) {
 				const response = NextResponse.json(
-					{ error: "ط§ط³ظ… ط§ظ„ظ…ط§ط¯ط© ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹ (ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ 200 ط­ط±ظپ)", code: 'SUBJECT_TOO_LONG' },
+					{ error: "اسم المادة طويل جداً (الحد الأقصى 200 حرف)", code: 'SUBJECT_TOO_LONG' },
 					{ status: 400 }
 				);
 				return addSecurityHeaders(response);
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
 			if (title.trim().length > 500) {
 				const response = NextResponse.json(
-					{ error: "ط§ظ„ط¹ظ†ظˆط§ظ† ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹ (ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ 500 ط­ط±ظپ)", code: 'TITLE_TOO_LONG' },
+					{ error: "العنوان طويل جداً (الحد الأقصى 500 حرف)", code: 'TITLE_TOO_LONG' },
 					{ status: 400 }
 				);
 				return addSecurityHeaders(response);
@@ -194,7 +194,7 @@ export async function POST(request: NextRequest) {
 					new URL(url.trim());
 				} catch {
 					const response = NextResponse.json(
-						{ error: "طھظ†ط³ظٹظ‚ ط§ظ„ط±ط§ط¨ط· ط؛ظٹط± طµط­ظٹط¾", code: 'INVALID_URL' },
+						{ error: "تنصيق الرابط غير صحيح", code: 'INVALID_URL' },
 						{ status: 400 }
 					);
 					return addSecurityHeaders(response);
@@ -204,13 +204,13 @@ export async function POST(request: NextRequest) {
 			// Validate type
 			if (!Object.values(ExamType).includes(type)) {
 				const response = NextResponse.json(
-					{ error: "ظ†ظˆط¹ ط§ظ„ط§ظ…طھط­ط§ظ† ط؛ظٹط± طµط­ظٹط­", code: 'INVALID_TYPE' },
+					{ error: "نوع الامتحان غير صحيح", code: 'INVALID_TYPE' },
 					{ status: 400 }
 				);
 				return addSecurityHeaders(response);
 			}
 
-			// ط¥ظ†ط´ط§ط، ط§ظ…طھط­ط§ظ† ط¬ط¯ظٹط¯ ظ…ط¹ timeout protection
+			// إنشاء امتحان جديد مع timeout protection
 			const createPromise = prisma.exam.create({
 				data: {
 					id: randomUUID(),
@@ -236,7 +236,7 @@ export async function POST(request: NextRequest) {
 			logger.error("Error creating exam:", error);
 			return createStandardErrorResponse(
 				error,
-				"ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط§ظ…طھط­ط§ظ†"
+				"حدث خطأ في إنشاء الامتحان"
 			);
 		}
 	});

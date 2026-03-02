@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
 
       if (!userId) {
         return NextResponse.json(
-          { error: "ظ…ط¹ط±ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ط·ظ„ظˆط¨" },
+          { error: "معرف المستخدم مطلوب" },
           { status: 400 }
         );
       }
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error("Error fetching grades:", error);
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط¨ظٹط§ظ†ط§طھ" },
+        { error: "حدث خطأ في جلب البيانات" },
         { status: 500 }
       );
     }
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
       if (!userId || !subject || grade === undefined) {
         return NextResponse.json(
-          { error: "ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ط؛ظٹط± ظ…ظƒطھظ…ظ„ط©" },
+          { error: "البيانات المطلوبة غير مكتملة" },
           { status: 400 }
         );
       }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.error("Error saving grade:", error);
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط­ظپط¸ ط§ظ„ط¨ظٹط§ظ†ط§طھ" },
+        { error: "حدث خطأ في حفظ البيانات" },
         { status: 500 }
       );
     }

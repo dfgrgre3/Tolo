@@ -37,8 +37,6 @@ export interface LoggerConfig {
   enableConsole: boolean;
   enableELK: boolean;
   enableErrorLogger: boolean;
-  enableAuthLogger: boolean;
-  enableSecurityLogger: boolean;
   serviceName?: string;
   environment?: string;
 }
@@ -90,8 +88,6 @@ const defaultConfig: LoggerConfig = {
   enableConsole: true,
   enableELK: process.env.ELASTICSEARCH_ENABLED !== 'false' && isServer,
   enableErrorLogger: true,
-  enableAuthLogger: isServer, // Only enable on server
-  enableSecurityLogger: isServer, // Only enable on server - prevents client bundling
   serviceName: 'thanawy',
   environment: process.env.NODE_ENV || 'development',
 };
@@ -100,8 +96,6 @@ class UnifiedLogger {
   private config: LoggerConfig;
   private elkLogger: any = null;
   private errorLogger: any = null;
-  private authLogger: any = null;
-  private securityLogger: any = null;
   private initialized = false;
   private initializing = false;
 
@@ -331,72 +325,6 @@ class UnifiedLogger {
     }
   }
 
-  /**
-   * Log to Auth Logger (server-side)
-   */
-  private async logToAuthLogger(
-    level: LogLevel,
-    message: string,
-    context?: LogContext,
-    error?: Error | unknown
-  ): Promise<void> {
-    if (!this.config.enableAuthLogger || !isServer) return;
-
-    await this.ensureInitialized();
-
-    if (!this.authLogger) return;
-
-    try {
-      const userId = context?.userId || null;
-      const ip = context?.ip || 'unknown';
-      const metadata = { ...context, message };
-
-      if (level === 'error') {
-        await this.authLogger.error(message, userId, ip, String(error), metadata);
-      } else if (level === 'warn') {
-        await this.authLogger.warn(message, userId, ip, metadata);
-      } else if (level === 'info') {
-        await this.authLogger.info(message, userId, ip, metadata);
-      } else if (level === 'debug') {
-        await this.authLogger.debug(message, userId, ip, metadata);
-      }
-    } catch (err) {
-      // If auth logger fails, don't throw
-      this.logToConsole('warn', 'Failed to log to AuthLogger', { error: String(err) });
-    }
-  }
-
-  /**
-   * Log to Security Logger (server-side)
-   */
-  private async logToSecurityLogger(
-    level: LogLevel,
-    message: string,
-    context?: LogContext
-  ): Promise<void> {
-    if (!this.config.enableSecurityLogger || !isServer) return;
-    if (level !== 'warn' && level !== 'error') return;
-
-    try {
-      const { saveSecurityEventToDB } = await import('./db-security-log');
-
-      const userId = context?.userId || null;
-      const ip = context?.ip || 'unknown';
-      const userAgent = context?.userAgent || 'unknown';
-
-      if (context?.eventType) {
-        await saveSecurityEventToDB({
-          userId,
-          eventType: context.eventType as any,
-          ip,
-          userAgent,
-          metadata: context,
-        });
-      }
-    } catch (err) {
-      this.logToConsole('warn', 'Failed to log to SecurityLogger (DB)', { error: String(err) });
-    }
-  }
 
   /**
    * Main log method
@@ -453,16 +381,6 @@ class UnifiedLogger {
     this.logToErrorLogger(level, message, error, normalizedContext).catch(() => {
       // Silently handle async errors
     });
-
-    // Log to Auth Logger (server-side, async)
-    if (isServer) {
-      await this.logToAuthLogger(level, message, normalizedContext, error);
-    }
-
-    // Log to Security Logger (server-side, async)
-    if (isServer) {
-      await this.logToSecurityLogger(level, message, normalizedContext);
-    }
   }
 
   /**
@@ -547,49 +465,6 @@ class UnifiedLogger {
     });
   }
 
-  /**
-   * Authentication event log
-   */
-  auth(event: {
-    type: string;
-    userId?: string;
-    ip: string;
-    success: boolean;
-    method?: string;
-    error?: string;
-  }): void {
-    const level = event.success ? 'info' : 'warn';
-    this.log(level, 'Authentication Event', event.error ? new Error(event.error) : undefined, {
-      type: 'authentication',
-      eventType: event.type,
-      userId: event.userId,
-      ip: event.ip,
-      success: event.success,
-      method: event.method,
-    }).catch(() => {
-      // Silently handle async errors
-    });
-  }
-
-  /**
-   * Security event log
-   */
-  security(event: {
-    eventType: string;
-    userId?: string;
-    ip: string;
-    userAgent?: string;
-    metadata?: LogContext;
-  }): void {
-    this.warn('Security Event', {
-      type: 'security',
-      eventType: event.eventType,
-      userId: event.userId,
-      ip: event.ip,
-      userAgent: event.userAgent,
-      ...event.metadata,
-    });
-  }
 
   /**
    * Update configuration

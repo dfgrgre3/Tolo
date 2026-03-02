@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       // Validate userId if provided
       if (userId && (typeof userId !== 'string' || userId.trim().length === 0)) {
         const response = NextResponse.json(
-          { error: "ظ…ط¹ط±ظپ ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± طµط­ظٹط­", code: 'INVALID_USER_ID' },
+          { error: "معرف المستخدم غير صحيح", code: 'INVALID_USER_ID' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
       logger.error("Error fetching subjects:", error);
       return createStandardErrorResponse(
         error,
-        "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط·ظ„ط¨"
+        "حدث خطأ أثناء معالجة الطلب"
       );
     }
   });
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       // Validate required fields
       if (!name || typeof name !== 'string' || name.trim().length === 0) {
         const response = NextResponse.json(
-          { error: "ط§ظ„ط§ط³ظ… ظ…ط·ظ„ظˆط¨", code: 'MISSING_NAME' },
+          { error: "الاسم مطلوب", code: 'MISSING_NAME' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
 
       if (!nameAr || typeof nameAr !== 'string' || nameAr.trim().length === 0) {
         const response = NextResponse.json(
-          { error: "ط§ظ„ط§ط³ظ… ط¨ط§ظ„ط¹ط±ط¨ظٹط© ظ…ط·ظ„ظˆط¨", code: 'MISSING_NAME_AR' },
+          { error: "الاسم بالعربية مطلوب", code: 'MISSING_NAME_AR' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
 
       if (!code || typeof code !== 'string' || code.trim().length === 0) {
         const response = NextResponse.json(
-          { error: "ط§ظ„ط±ظ…ط² ظ…ط·ظ„ظˆط¨", code: 'MISSING_CODE' },
+          { error: "الرمز مطلوب", code: 'MISSING_CODE' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
       // Validate field lengths
       if (name.trim().length > 200) {
         const response = NextResponse.json(
-          { error: "ط§ظ„ط§ط³ظ… ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹ (ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ 200 ط­ط±ظپ)", code: 'NAME_TOO_LONG' },
+          { error: "الاسم طويل جداً (الحد الأقصى 200 حرف)", code: 'NAME_TOO_LONG' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
 
       if (nameAr.trim().length > 200) {
         const response = NextResponse.json(
-          { error: "ط§ظ„ط§ط³ظ… ط¨ط§ظ„ط¹ط±ط¨ظٹط© ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹ (ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ 200 ط­ط±ظپ)", code: 'NAME_AR_TOO_LONG' },
+          { error: "الاسم بالعربية طويل جداً (الحد الأقصى 200 حرف)", code: 'NAME_AR_TOO_LONG' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
       if (code.trim().length > 50) {
         const response = NextResponse.json(
-          { error: "ط§ظ„ط±ظ…ط² ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹ (ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ 50 ط­ط±ظپ)", code: 'CODE_TOO_LONG' },
+          { error: "الرمز طويل جداً (الحد الأقصى 50 حرف)", code: 'CODE_TOO_LONG' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
 
       if (description && typeof description === 'string' && description.trim().length > 1000) {
         const response = NextResponse.json(
-          { error: "ط§ظ„ظˆطµظپ ط·ظˆظٹظ„ ط¬ط¯ط§ظ‹ (ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ 1000 ط­ط±ظپ)", code: 'DESCRIPTION_TOO_LONG' },
+          { error: "الوصف طويل جداً (الحد الأقصى 1000 حرف)", code: 'DESCRIPTION_TOO_LONG' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -211,7 +211,7 @@ export async function POST(request: NextRequest) {
 
       if (existingSubject) {
         const response = NextResponse.json(
-          { error: "طھظˆط¬ط¯ ظ…ط§ط¯ط© ط¨ظ†ظپط³ ط§ظ„ط§ط³ظ… ط¨ط§ظ„ظپط¹ظ„", code: 'DUPLICATE_NAME' },
+          { error: "توجد مادة بنفس الاسم بالفعل", code: 'DUPLICATE_NAME' },
           { status: 400 }
         );
         return addSecurityHeaders(response);
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
         if (!colorRegex.test(color.trim())) {
           const response = NextResponse.json(
-            { error: "طھظ†ط³ظٹظ‚ ط§ظ„ظ„ظˆظ† ط؛ظٹط± طµط­ظٹط­ (ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† hex color)", code: 'INVALID_COLOR' },
+            { error: "تنسيق اللون غير صحيح (يجب أن يكون hex color)", code: 'INVALID_COLOR' },
             { status: 400 }
           );
           return addSecurityHeaders(response);
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
       logger.error("Error creating subject:", error);
       return createStandardErrorResponse(
         error,
-        "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط·ظ„ط¨"
+        "حدث خطأ أثناء معالجة الطلب"
       );
     }
   });

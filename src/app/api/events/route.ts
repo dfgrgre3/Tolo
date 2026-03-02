@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     } catch (error: unknown) {
       logger.error("Error fetching events:", error);
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظ†ط§ط³ط¨ط§طھ" },
+        { error: "حدث خطأ في جلب المناسبات" },
         { status: 500 }
       );
     }
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
       if (!userId || !title || !description || !startDate || !endDate || !category) {
         return NextResponse.json(
-          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
+          { error: "جميع الحقول المطلوبة يجب ملؤها" },
           { status: 400 }
         );
       }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
       if (!user) {
         return NextResponse.json(
-          { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
+          { error: "المستخدم غير موجود" },
           { status: 404 }
         );
       }
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     } catch (error: unknown) {
       logger.error("Error creating event:", error);
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظ†ط§ط³ط¨ط©" },
+        { error: "حدث خطأ في إنشاء المناسبة" },
         { status: 500 }
       );
     }

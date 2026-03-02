@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { logger } from '@/lib/logger';
-import type { User } from "@/types/api/auth";
+import type { User } from "@/types/user";
 import type { MegaMenuCategory } from "./types";
 
 interface UseMegaMenuProps {

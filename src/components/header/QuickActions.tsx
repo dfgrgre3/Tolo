@@ -149,7 +149,7 @@ export function QuickActions() {
 						"relative h-9 w-9 rounded-lg",
 						"bg-gradient-to-br from-primary to-primary/80",
 						"hover:from-primary/90 hover:to-primary/70",
-						"shadow-md hover:shadow-lg",
+						"shadow-md hover:shadow-lg dark:shadow-primary/20 dark:hover:shadow-primary/30",
 						"transition-all duration-300",
 						"group"
 					)}

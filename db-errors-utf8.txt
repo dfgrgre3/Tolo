@@ -1,0 +1,1 @@
+﻿src/app/(dashboard)/goals/components/CreateGoalModal.tsx(30,7): error TS2322: Type '"daily"' is not assignable to type '"tasks" | "exams" | "xp" | "study_time"'.

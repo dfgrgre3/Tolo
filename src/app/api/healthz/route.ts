@@ -9,15 +9,15 @@ import 'server-only';
 /**
  * GET /api/healthz
  * 
- * Health check endpoint ظ„ظ„ظ€ Kubernetes liveness probe
- * ظٹطھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ط§ظ„طھط·ط¨ظٹظ‚ ظٹط¹ظ…ظ„ ط¨ط´ظƒظ„ طµط­ظٹط­
+ * Health check endpoint للـ Kubernetes liveness probe
+ * يتحقق من أن التطبيق يعمل بشكل صحيح
  * 
- * ظ‡ط°ط§ endpoint ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط³ط±ظٹط¹ط§ظ‹ ظˆظ„ط§ ظٹط¹طھظ…ط¯ ط¹ظ„ظ‰ ط®ط¯ظ…ط§طھ ط®ط§ط±ط¬ظٹط© ظ…ط¹ظ‚ط¯ط©
+ * هذا endpoint يجب أن يكون سريعاً ولا يعتمد على خدمات خارجية معقدة
  */
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async () => {
   try {
-    // ظپط­طµ ط¨ط³ظٹط· ظ„ظ„طھط£ظƒط¯ ظ…ظ† ط£ظ† ط§ظ„طھط·ط¨ظٹظ‚ ظٹط¹ظ…ظ„
+    // فحص بسيط للتأكد من أن التطبيق يعمل
     const health = {
       status: 'healthy',
       timestamp: new Date().toISOString(),

@@ -105,7 +105,7 @@ export function ContextualHelp() {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="h-9 w-9"
+					className="h-9 w-9 hover:bg-primary/10 dark:hover:bg-primary/15"
 					aria-label="مساعدة سياقية"
 					title="مساعدة"
 				>

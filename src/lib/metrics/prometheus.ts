@@ -36,6 +36,7 @@ let _redisOperationsTotal: Counter = createStub();
 let _redisOperationDuration: Histogram = createStub();
 let _authLoginsTotal: Counter = createStub();
 let _authOperationsTotal: Counter = createStub();
+
 let _activeUsers: Gauge = createStub();
 let _errorsTotal: Counter = createStub();
 
@@ -116,19 +117,8 @@ if (isServer) {
       registers: [_register],
     });
 
-    _authLoginsTotal = new Counter({
-      name: 'auth_logins_total',
-      help: 'Total number of login attempts',
-      labelNames: ['status', 'method'],
-      registers: [_register],
-    });
+    // auth metrics removed
 
-    _authOperationsTotal = new Counter({
-      name: 'auth_operations_total',
-      help: 'Total number of authentication operations',
-      labelNames: ['operation', 'status'],
-      registers: [_register],
-    });
 
     _activeUsers = new Gauge({
       name: 'active_users',

@@ -5,16 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { User, Shield, Key, Smartphone, CheckCircle2, Edit } from "lucide-react";
+import { User, CheckCircle2, Edit } from "lucide-react";
+
 import type { AccountUser } from "./types";
 
 interface AccountOverviewTabProps {
 	user: AccountUser;
 	onEditClick: () => void;
-	onSecurityClick: () => void;
 }
 
-function AccountOverviewTab({ user, onEditClick, onSecurityClick }: AccountOverviewTabProps) {
+function AccountOverviewTab({ user, onEditClick }: AccountOverviewTabProps) {
+
 	const formattedJoinDate = useMemo(
 		() =>
 			new Date(user.createdAt).toLocaleDateString("ar-EG", {
@@ -29,9 +30,7 @@ function AccountOverviewTab({ user, onEditClick, onSecurityClick }: AccountOverv
 		onEditClick();
 	}, [onEditClick]);
 
-	const handleSecurityClick = useCallback(() => {
-		onSecurityClick();
-	}, [onSecurityClick]);
+
 
 	return (
 		<div className="space-y-6">
@@ -105,53 +104,8 @@ function AccountOverviewTab({ user, onEditClick, onSecurityClick }: AccountOverv
 				</CardContent>
 			</Card>
 
-			<Card>
-				<CardHeader>
-					<CardTitle className="flex items-center gap-2">
-						<Shield className="h-5 w-5" aria-hidden="true" />
-						حالة الأمان
-					</CardTitle>
-					<CardDescription>نظرة سريعة على إعدادات الأمان</CardDescription>
-				</CardHeader>
-				<CardContent>
-					<div className="space-y-3">
-						<div className="flex items-center justify-between p-3 rounded-lg border">
-							<div className="flex items-center gap-3">
-								<Key className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-								<div>
-									<p className="font-medium">كلمة المرور</p>
-									<p className="text-sm text-muted-foreground">آخر تحديث: غير متاح</p>
-								</div>
-							</div>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={handleSecurityClick}
-								aria-label="تغيير كلمة المرور"
-							>
-								تغيير
-							</Button>
-						</div>
-						<div className="flex items-center justify-between p-3 rounded-lg border">
-							<div className="flex items-center gap-3">
-								<Smartphone className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-								<div>
-									<p className="font-medium">الجلسات النشطة</p>
-									<p className="text-sm text-muted-foreground">إدارة أجهزتك المسجلة</p>
-								</div>
-							</div>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={handleSecurityClick}
-								aria-label="عرض الجلسات النشطة"
-							>
-								عرض
-							</Button>
-						</div>
-					</div>
-				</CardContent>
-			</Card>
+      {/* Security status card removed */}
+
 		</div>
 	);
 }

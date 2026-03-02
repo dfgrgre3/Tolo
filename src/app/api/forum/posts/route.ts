@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         categoryId: post.categoryId,
         categoryName: post.category.name,
         createdAt: post.createdAt.toISOString(),
-        views: post.viewCount,
+        views: post.views,
         repliesCount: post._count.replies,
         isPinned: post.isPinned
       }));
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     } catch (error: unknown) {
       logger.error("Error fetching forum posts:", error);
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظˆط§ط¶ظٹط¹" },
+        { error: "حدث خطأ في جلب الموضوع" },
         { status: 500 }
       );
     }
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
       if (!userId || !title || !content || !categoryId) {
         return NextResponse.json(
-          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ظ…ط·ظ„ظˆط¨ط©" },
+          { error: "جميع الحقول مطلوبة" },
           { status: 400 }
         );
       }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
 
       if (!user) {
         return NextResponse.json(
-          { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
+          { error: "المستخدم غير موجود" },
           { status: 404 }
         );
       }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
 
       if (!category) {
         return NextResponse.json(
-          { error: "ط§ظ„طھطµظ†ظٹظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
+          { error: "التصنيف غير موجود" },
           { status: 404 }
         );
       }
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     } catch (error: unknown) {
       logger.error("Error creating forum post:", error);
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظˆط¶ظˆط¹" },
+        { error: "حدث خطأ في إنشاء الموضوع" },
         { status: 500 }
       );
     }

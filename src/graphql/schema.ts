@@ -1,14 +1,21 @@
-import { buildSchema } from 'type-graphql';
-// @ts-ignore - auth-resolver may not exist
-import { AuthResolver } from './resolvers/auth-resolver';
+import { buildSchema, Resolver, Query } from 'type-graphql';
+
+@Resolver()
+class HealthResolver {
+  @Query(() => String)
+  health() {
+    return "ok";
+  }
+}
 
 export async function createSchema() {
   return await buildSchema({
-    resolvers: [AuthResolver],
+    resolvers: [HealthResolver],
     emitSchemaFile: true,
     validate: false
   });
 }
+
 
 // Example Resolver:
 // @Resolver()

@@ -139,8 +139,8 @@ export async function GET(request: NextRequest) {
 							id: `teacher-${teacher.id}`,
 							type: "teacher",
 							title,
-							description: `ظ…ط¹ظ„ظ… - ${teacher.email}`,
-							category: "ظ…ط¹ظ„ظ…ظٹظ†",
+							description: `معلم - ${teacher.email}`,
+							category: "معلمين",
 							url: `/teachers/${teacher.id}`,
 							relevance,
 						});
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
 					const posts = await Promise.race([postsPromise, postsTimeoutPromise]);
 
 					posts.forEach((post: { id: string; title: string | null; content: string | null; category: { name: string } | null }) => {
-						const title = post.title || "ظ…ظˆط¶ظˆط¹ ط¨ط¯ظˆظ† ط¹ظ†ظˆط§ظ†";
+						const title = post.title || "موضوع بدون عنوان";
 						const content = post.content || "";
 						const relevance = Math.max(
 							calculateRelevance(title, searchTerm),
@@ -191,7 +191,7 @@ export async function GET(request: NextRequest) {
 							type: "forum",
 							title,
 							description: content.substring(0, 150) + (content.length > 150 ? "..." : ""),
-							category: post.category?.name || "ط¹ط§ظ…",
+							category: post.category?.name || "عام",
 							url: `/forum/${post.id}`,
 							relevance,
 						});
@@ -226,8 +226,8 @@ export async function GET(request: NextRequest) {
 					const exams = await Promise.race([examsPromise, examsTimeoutPromise]);
 
 					exams.forEach((exam: any) => {
-						const title = exam.title || "ط§ظ…طھط­ط§ظ† ط¨ط¯ظˆظ† ط¹ظ†ظˆط§ظ†";
-						const subjectName = exam.subject?.name || exam.subjectId || "ط¹ط§ظ…";
+						const title = exam.title || "امتحان بدون عنوان";
+						const subjectName = exam.subject?.name || exam.subjectId || "عام";
 						const relevance = Math.max(
 							calculateRelevance(title, searchTerm),
 							calculateRelevance(subjectName, searchTerm)
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
 							id: `exam-${exam.id}`,
 							type: "exam",
 							title,
-							description: `ط§ظ…طھط­ط§ظ† ${subjectName} - ${exam.year}`,
+							description: `امتحان ${subjectName} - ${exam.year}`,
 							category: subjectName,
 							url: `/exams/${exam.id}`,
 							relevance,
@@ -263,7 +263,7 @@ export async function GET(request: NextRequest) {
 			logger.error("Error in search API:", error);
 			return createStandardErrorResponse(
 				error,
-				"ط­ط¯ط« ط®ط·ط£ ظپظٹ ط§ظ„ط¨ط­ط«"
+				"حدث خطأ في البحث"
 			);
 		}
 	});

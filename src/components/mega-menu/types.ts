@@ -14,7 +14,7 @@ export interface MegaMenuCategory {
 	items: NavItem[];
 }
 
-import type { User } from "@/types/api/auth";
+import type { User } from "@/types/user";
 
 export interface MegaMenuProps {
 	categories: MegaMenuCategory[];

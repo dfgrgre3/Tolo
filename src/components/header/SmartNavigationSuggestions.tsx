@@ -158,7 +158,7 @@ export function SmartNavigationSuggestions() {
 				<Button
 					variant="ghost"
 					size="sm"
-					className="hidden lg:flex items-center gap-2 h-9"
+					className="hidden lg:flex items-center gap-2 h-9 hover:bg-primary/10 dark:hover:bg-primary/15"
 					aria-label="اقتراحات التنقل الذكية"
 				>
 					<TrendingUp className="h-4 w-4" />

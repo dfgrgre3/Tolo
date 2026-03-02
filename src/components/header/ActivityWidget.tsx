@@ -164,7 +164,7 @@ export function ActivityWidget() {
 				<Button
 					variant="ghost"
 					size="icon"
-					className="relative h-9 w-9"
+					className="relative h-9 w-9 hover:bg-primary/10 dark:hover:bg-primary/15"
 					aria-label="النشاط الأخير"
 				>
 					<Activity className="h-4 w-4" />

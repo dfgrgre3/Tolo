@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { User } from '@/types/api/auth';
+import { User } from '@/types/user';
 import { Trophy, Zap, Crown, Target } from 'lucide-react';
 
 interface LevelProgressProps {
@@ -23,7 +23,7 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative overflow-hidden rounded-3xl border border-violet-500/20 bg-gradient-to-r from-violet-600/90 to-indigo-600/90 p-8 shadow-2xl backdrop-blur-xl dark:from-violet-900/90 dark:to-indigo-900/90 dark:border-violet-400/30"
+      className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 p-8 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all hover:bg-black/50 hover:border-white/20"
     >
       {/* Decorative Background Effects (RPG Style) */}
       <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl mix-blend-overlay animate-pulse-slow"></div>

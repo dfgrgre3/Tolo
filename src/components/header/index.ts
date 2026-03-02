@@ -2,8 +2,9 @@ export { HeaderLogo } from "./HeaderLogo";
 export { HeaderSearch } from "./HeaderSearch";
 export { HeaderNavigation } from "./HeaderNavigation";
 export { HeaderNotifications } from "./HeaderNotifications";
-export { HeaderUserMenu } from "./HeaderUserMenu";
-export { HeaderMobileMenu } from "./HeaderMobileMenu";
+// export removed
+// export removed
+
 export { HeaderMobileMenuEnhanced } from "./HeaderMobileMenuEnhanced";
 export { useMegaMenuState } from "./useMegaMenuState";
 

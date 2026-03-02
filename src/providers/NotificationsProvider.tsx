@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Bell, Check, CheckCheck, Trash2, MoreHorizontal } from 'lucide-react';
 import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { Button } from '@/components/ui/button';
-// Token is in httpOnly cookie - no need to import getSafeAuthToken
+// تم إزالة نظام تسجيل الدخول
 import {
   DropdownMenu,
   DropdownMenuContent,

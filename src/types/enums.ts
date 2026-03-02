@@ -28,3 +28,10 @@ export enum TaskStatus {
     COMPLETED = 'COMPLETED',
     CANCELLED = 'CANCELLED',
 }
+
+export enum UserRole {
+    USER = 'USER',
+    ADMIN = 'ADMIN',
+    TEACHER = 'TEACHER',
+    MODERATOR = 'MODERATOR',
+}

@@ -58,20 +58,12 @@ export interface SMSDeliveryRecord {
     attempts: number;
 }
 
-// ==================== TEMPLATES ====================
-
 const SMS_TEMPLATES = {
     verification: {
         ar: (code: string, expiresIn: number) =>
             `رمز التحقق الخاص بك هو: ${code}\nصالح لمدة ${expiresIn} دقائق.\nلا تشاركه مع أحد.`,
         en: (code: string, expiresIn: number) =>
             `Your verification code is: ${code}\nValid for ${expiresIn} minutes.\nDo not share with anyone.`,
-    },
-    login: {
-        ar: (code: string) =>
-            `رمز تسجيل الدخول الخاص بك هو: ${code}\nإذا لم تطلب هذا الرمز، تجاهل هذه الرسالة.`,
-        en: (code: string) =>
-            `Your login code is: ${code}\nIf you didn't request this code, ignore this message.`,
     },
     security_alert: {
         ar: (action: string) =>
@@ -80,6 +72,7 @@ const SMS_TEMPLATES = {
             `Security alert: ${action} on your account. If this wasn't you, contact us immediately.`,
     },
 } as const;
+
 
 // ==================== PROVIDERS ====================
 
@@ -503,17 +496,8 @@ export class SMSService {
         return this.sendSMS(phone, message);
     }
 
-    /**
-     * Send login code SMS
-     */
-    async sendLoginCode(
-        phone: string,
-        code: string,
-        locale: 'ar' | 'en' = 'ar'
-    ): Promise<SMSResult> {
-        const message = SMS_TEMPLATES.login[locale](code);
-        return this.sendSMS(phone, message);
-    }
+    // sendLoginCode removed
+
 
     /**
      * Send security alert SMS

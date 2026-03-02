@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 // Auth removed
 import { ProgressSummary } from "@/lib/server-data-fetch";
 import { UserHome } from "@/app/components/home/UserHome";
-import { User as ApiUser } from "@/types/api/auth";
+import { User as ApiUser } from "@/types/user";
 import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { logger } from "@/lib/logger";
@@ -14,8 +14,6 @@ interface HomeClientProps {
 }
 
 export function HomeClient({ summary }: HomeClientProps) {
-  const user = null;
-  const authLoading = false;
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
@@ -24,29 +22,26 @@ export function HomeClient({ summary }: HomeClientProps) {
     async function fetchPerformance() {
       try {
         setMetricsLoading(true);
-        // Using existing endpoint, assuming it might need adaptation or mocking if endpoint doesn't return exact shape
-        const { data, error } = await safeFetch<{ metrics: any }>(
+        // Using existing endpoint
+        const { data } = await safeFetch<{ metrics: any }>(
           "/api/analytics/performance",
           undefined,
           null
         );
 
         if (data?.metrics) {
-           // Transform data to match PerformanceMetric interface
-           // Implementation similar to previous logic but centralized here
            const transformed: PerformanceMetric[] = Object.entries(data.metrics).map(([key, val]: [string, any]) => ({
              name: key,
-             rpgName: key === "memory" ? "الذاكرة (Mana)" : key, // Simple mapping example
+             rpgName: key === "memory" ? "الذاكرة (Mana)" : key,
              value: Math.round(val.avg || 0),
              target: 100,
              unit: "%",
              trend: val.trend || "stable",
              status: val.avg > 80 ? "excellent" : "good",
-             // Icons will be handled by the View component if undefined
            }));
            setPerformanceMetrics(transformed);
         } else {
-             // Fallback/Mock Data if API fails or is empty (Common in dev)
+             // Fallback/Mock Data
              setPerformanceMetrics([
                  { name: "speed", rpgName: "السرعة (Agility)", value: 92, target: 85, unit: "%", trend: "up", status: "excellent" },
                  { name: "accuracy", rpgName: "الدقة (Precision)", value: 88, target: 90, unit: "%", trend: "stable", status: "good" },
@@ -62,14 +57,11 @@ export function HomeClient({ summary }: HomeClientProps) {
       }
     }
 
-    if (user) {
-        fetchPerformance();
-    }
-  }, [user]);
+    fetchPerformance();
+  }, []);
 
-
-  // --- User Transformation ---
-  const apiUser: ApiUser = {
+  // --- User Transformation (Guest mode only) ---
+  const guestUser: ApiUser = {
     id: 'guest',
     email: '',
     name: 'زائر',
@@ -80,9 +72,10 @@ export function HomeClient({ summary }: HomeClientProps) {
     provider: 'local',
   };
 
+
   return (
     <UserHome 
-      user={apiUser} 
+      user={guestUser} 
       summary={summary} 
       performanceMetrics={performanceMetrics}
       metricsLoading={metricsLoading}

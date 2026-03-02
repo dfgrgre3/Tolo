@@ -57,7 +57,7 @@ const AchievementCard = memo(({ achievement, index }: { achievement: Achievement
     whileHover={{ y: -5 }}
     className="h-full"
   >
-    <div className={`relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10 transition-all duration-300 group`}>
+    <div className={`${rpgCommonStyles.card} p-5 group`}>
       <div className={`absolute inset-0 bg-gradient-to-br ${achievement.color || "from-primary to-primary/50"} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
       
       <div className="relative z-10 flex items-start gap-4">

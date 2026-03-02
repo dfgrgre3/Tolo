@@ -19,7 +19,8 @@ import {
 	AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
-import SecurityTab from "@/app/(dashboard)/profile/components/SecurityTab";
+// SecurityTab removed
+
 import { logger } from "@/lib/logger";
 import {
 	AccountHeader,
@@ -305,10 +306,8 @@ export default function AccountPage() {
 										<Lock className="h-4 w-4" />
 										<span className="hidden sm:inline">الخصوصية</span>
 									</TabsTrigger>
-									<TabsTrigger value="security" className="flex items-center gap-2">
-										<Shield className="h-4 w-4" />
-										<span className="hidden sm:inline">الأمان</span>
-									</TabsTrigger>
+									{/* SecurityTab removed */}
+
 									<TabsTrigger value="danger" className="flex items-center gap-2 text-destructive">
 										<Trash2 className="h-4 w-4" />
 										<span className="hidden sm:inline">خطر</span>
@@ -319,7 +318,6 @@ export default function AccountPage() {
 									<AccountOverviewTab
 										user={user}
 										onEditClick={() => setActiveTab("information")}
-										onSecurityClick={() => setActiveTab("security")}
 									/>
 								</TabsContent>
 
@@ -367,9 +365,8 @@ export default function AccountPage() {
 									/>
 								</TabsContent>
 
-								<TabsContent value="security" className="space-y-6">
-									{userId && <SecurityTab userId={userId} />}
-								</TabsContent>
+								{/* SecurityTab removed */}
+
 
 								<TabsContent value="danger" className="space-y-6">
 									<Alert variant="destructive">

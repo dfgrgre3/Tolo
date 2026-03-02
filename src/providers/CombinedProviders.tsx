@@ -11,7 +11,7 @@ import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
  * ✅ استخدم GlobalProviders من @/providers/index بدلاً منه
  * 
  * البنية الموحدة:
- * - UnifiedAuthProvider: المصدر الوحيد للمصادقة (تم إزالة AuthProvider لتجنب التضارب)
+ * - تم إزالة نظام تسجيل الدخول بالكامل
  */
 export function CombinedProviders({ children }: { readonly children: React.ReactNode }) {
   return (

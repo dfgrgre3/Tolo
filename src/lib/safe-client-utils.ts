@@ -413,99 +413,7 @@ export function useSafeEventListener<K extends keyof WindowEventMap>(
   }, [eventName, element]);
 }
 
-// ==================== User ID Management ====================
-
-const LOCAL_USER_KEY = 'user_id';
-
-/**
- * الحصول على معرف المستخدم بشكل آمن
- * Safely get user ID
- */
-export function getSafeUserId(): string | null {
-  return safeGetItem(LOCAL_USER_KEY, { fallback: null });
-}
-
-/**
- * تعيين معرف المستخدم بشكل آمن
- * Safely set user ID
- */
-export function setSafeUserId(userId: string): boolean {
-  return safeSetItem(LOCAL_USER_KEY, userId);
-}
-
-/**
- * Hook لإدارة معرف المستخدم
- * Hook to manage user ID
- */
-export function useSafeUserId(): [string | null, (id: string) => void, boolean] {
-  const [userId, setUserId, mounted] = useSafeLocalStorage<string | null>(
-    LOCAL_USER_KEY,
-    null
-  );
-
-  return [userId, setUserId, mounted];
-}
-
-// ==================== Auth Token Management ====================
-
-const AUTH_TOKEN_KEY = 'authToken';
-
-/**
- * الحصول على رمز المصادقة بشكل آمن
- * DEPRECATED: Token is now stored in httpOnly cookie, not accessible from JavaScript
- * This function is kept for backward compatibility but returns null
- * Safely get auth token
- */
-export function getSafeAuthToken(): string | null {
-  // Token is in httpOnly cookie - not accessible from JavaScript
-  // Return null to indicate token should be read from cookie by server
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('getSafeAuthToken is deprecated. Token is now in httpOnly cookie.');
-  }
-  return null;
-}
-
-/**
- * تعيين رمز المصادقة بشكل آمن
- * DEPRECATED: Token is now stored in httpOnly cookie by server, not in localStorage
- * This function is kept for backward compatibility but does nothing
- * Safely set auth token
- */
-export function setSafeAuthToken(token: string): boolean {
-  // Token should not be saved to localStorage for security
-  // Only kept for backward compatibility
-  if (process.env.NODE_ENV === 'development') {
-    console.warn('setSafeAuthToken is deprecated. Token is now in httpOnly cookie.');
-  }
-  // Don't actually save - token is in cookie
-  return false;
-}
-
-/**
- * حذف رمز المصادقة بشكل آمن
- * Safely remove auth token (for cleanup of legacy tokens)
- */
-export function removeSafeAuthToken(): boolean {
-  // Clean up any legacy tokens from localStorage
-  return safeRemoveItem(AUTH_TOKEN_KEY);
-}
-
-/**
- * Hook لإدارة رمز المصادقة
- * DEPRECATED: Token is now in httpOnly cookie, not accessible from JavaScript
- * This hook is kept for backward compatibility but always returns null
- * Hook to manage auth token
- */
-export function useSafeAuthToken(): [string | null, (token: string) => void, () => void, boolean] {
-  // Token is in httpOnly cookie - not accessible from JavaScript
-  // Always return null for token
-  const removeToken = useCallback(() => {
-    // Clean up any legacy tokens from localStorage
-    removeSafeAuthToken();
-  }, []);
-
-  return [null, () => { }, removeToken, true];
-}
+// blocks removed
 
 // ==================== Safe Fetch & JSON Parsing ====================
 
@@ -737,17 +645,6 @@ const safeClientUtils = {
   isBrowser,
   safeWindow,
   safeDocument,
-
-  // User ID management
-  getSafeUserId,
-  setSafeUserId,
-  useSafeUserId,
-
-  // Auth token management
-  getSafeAuthToken,
-  setSafeAuthToken,
-  removeSafeAuthToken,
-  useSafeAuthToken,
 
   // Safe fetch & JSON
   safeJsonParse,

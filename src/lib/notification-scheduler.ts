@@ -1,5 +1,5 @@
 import { sendTemplatedNotification } from '@/lib/services/notification-service';
-// Token is in httpOnly cookie - no need to import getSafeAuthToken
+// تم إزالة نظام تسجيل الدخول
 
 import { logger } from '@/lib/logger';
 

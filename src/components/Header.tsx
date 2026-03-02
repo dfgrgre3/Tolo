@@ -12,7 +12,8 @@ import { HeaderLogo } from "./header/HeaderLogo";
 import { HeaderSearch } from "./header/HeaderSearch";
 import { HeaderNavigation } from "./header/HeaderNavigation";
 import { EnhancedNotifications } from "./header/EnhancedNotifications";
-import { HeaderUserMenu } from "./header/HeaderUserMenu";
+// import removed
+
 import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
 // import removed
 import { useMegaMenuState } from "./header/useMegaMenuState";
@@ -95,9 +96,8 @@ export default function Header() {
     showUserMenu: true,
   };
 
-  // Auth context
-  const authContext: any = { user: null, isAuthenticated: false, isLoading: false };
-  const user = authContext?.user ?? null;
+  const user = null;
+
 
   // Mega menu state
   const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
@@ -146,15 +146,15 @@ export default function Header() {
       "sticky top-0 z-50 w-full border-b transition-all",
       shouldReduceMotion ? "duration-0" : "duration-300 ease-out",
       // Blur and background
-      "backdrop-blur-xl supports-[backdrop-filter]:bg-background/80",
+      "backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 dark:bg-background/90",
       // Hide on scroll
       focusVisibility.headerVisible && !isHidden ? "translate-y-0" : "-translate-y-full",
       // Scrolled state
-      isScrolled && "bg-background/90 shadow-lg shadow-black/5 dark:shadow-black/20 border-border/50",
+      isScrolled && "bg-background/95 shadow-lg shadow-black/10 dark:shadow-black/40 border-border/60 dark:border-border/70",
       // Shrunk state
       isShrunk && headerPreferences.compactMode && "py-0",
       // User logged in premium effect
-      isMounted && user && !isScrolled && "border-primary/10 bg-gradient-to-r from-primary/5 via-background to-primary/5",
+      isMounted && user && !isScrolled && "border-primary/15 dark:border-primary/20 bg-gradient-to-r from-primary/8 dark:from-primary/10 via-background to-primary/8 dark:to-primary/10",
     );
     return base;
   }, [
@@ -216,7 +216,7 @@ export default function Header() {
             )}
 
             {/* Right Side Actions */}
-            <div className="flex items-center gap-1 md:gap-2" role="toolbar" aria-label="أدوات الرأس">
+            <div className="flex items-center gap-0.5 md:gap-1" role="toolbar" aria-label="أدوات الرأس">
               {/* Progress Indicator (compact) */}
               {headerPreferences.showProgress && isShrunk && (
                 <AnimatePresence>
@@ -257,13 +257,13 @@ export default function Header() {
 
               {/* Contextual Help */}
               <div className="hidden md:block">
-                <ContextualHelp />
+                <ContextualHelp className="hover:bg-primary/10 dark:hover:bg-primary/15" />
               </div>
 
               {/* Theme Toggle */}
               {mounted && (
                 <div className="hidden md:flex">
-                  <ThemeToggle />
+                  <ThemeToggle className="hover:bg-primary/10 dark:hover:bg-primary/15" />
                 </div>
               )}
 
@@ -272,16 +272,14 @@ export default function Header() {
                 <EnhancedNotifications user={user} mounted={mounted} />
               )}
 
-              {/* User Menu */}
-              {focusVisibility.showUserMenu && (
-                <HeaderUserMenu />
-              )}
+              {/* User Menu removed */}
+
 
               {/* Mobile Menu Button */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden relative overflow-hidden"
+                className="lg:hidden relative overflow-hidden hover:bg-primary/10 dark:hover:bg-primary/15"
                 onClick={toggleMobileMenu}
                 aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
                 aria-expanded={isMobileMenuOpen}

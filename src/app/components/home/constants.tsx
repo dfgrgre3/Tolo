@@ -58,9 +58,9 @@ export const scrollVariants = {
 
 // --- Styles ---
 export const rpgCommonStyles = {
-  // Enhanced glassmorphism
-  glassPanel: "relative overflow-hidden rounded-3xl border border-white/10 bg-white/5 shadow-2xl backdrop-blur-xl dark:bg-black/40 supports-[backdrop-filter]:bg-white/5",
-  card: "relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-6 shadow-xl backdrop-blur-md transition-all duration-300 hover:border-primary/30 hover:shadow-2xl hover:bg-white/10 dark:bg-slate-900/40 dark:border-slate-800/60 dark:hover:bg-slate-800/40",
+  // Enhanced premium deep dark glassmorphism
+  glassPanel: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "relative overflow-hidden rounded-2xl border border-white/10 bg-black/40 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-md transition-all duration-500 hover:-translate-y-1 hover:border-primary/50 hover:shadow-[0_0_40px_rgba(139,92,246,0.15)] hover:bg-white/[0.02]",
   
   // Text Effects
   neonText: "text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-indigo-500 drop-shadow-[0_0_10px_rgba(139,92,246,0.3)] filter",

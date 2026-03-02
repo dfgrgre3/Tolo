@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProgressSummary } from '@/lib/server-data-fetch';
-import { User } from '@/types/api/auth';
+import { User } from '@/types/user';
 import { PerformanceMetric } from './types';
 import { rpgCommonStyles } from './constants';
 import { Sparkles, Crown } from 'lucide-react';
@@ -68,44 +68,91 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
       variants={containerVariants}
       initial="hidden"
       animate="visible"
-      className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 min-h-screen"
+      className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 min-h-screen font-sans selection:bg-primary/30 selection:text-primary-foreground"
       dir="rtl"
     >
-      {/* --- Ambient Background --- */}
-      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
-        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[100px] mix-blend-screen opacity-50 animate-pulse-slow my-float" />
-        <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[100px] mix-blend-screen opacity-50" />
+      {/* --- Premium Ambient Background --- */}
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-[#0A0A0F] overflow-hidden">
+        {/* Dynamic Gradient Mesh */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(120,0,255,0.15),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(0,255,128,0.08),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_80%,rgba(255,0,128,0.08),transparent_50%)]" />
+        
+        {/* Subtle Grid Mesh */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]" />
+
+        {/* Animated Floating Orbs using framer-motion */}
+        <motion.div 
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3], x: [0, 50, 0], y: [0, 30, 0] }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+          className="absolute -top-40 right-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2], x: [0, -40, 0], y: [0, -50, 0] }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen"
+        />
+        <motion.div 
+          animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3], x: [0, 30, 0], y: [0, -30, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 5 }}
+          className="absolute -bottom-40 right-1/3 w-[550px] h-[550px] bg-emerald-600/10 rounded-full blur-[120px] mix-blend-screen"
+        />
       </div>
 
-      {/* --- Hero Header --- */}
+      {/* --- Premium Hero Header --- */}
       <motion.header variants={itemVariants} className="relative z-10">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-8 border-b border-white/5 pb-6">
-          <div className="space-y-2">
-             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium backdrop-blur-sm">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                نظام الألعاب نشط
-             </div>
-             <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">
-               أهلاً، <span className={rpgCommonStyles.neonText}>{firstName}</span>
-               <span className="inline-block animate-wave origin-bottom-right ml-2 text-4xl">👋</span>
-             </h1>
-             <p className="text-lg text-gray-400 max-w-2xl">
-               جاهز لمغامرة اليوم؟ مهامك الجديدة بانتظارك لرفع مستوى خبرتك!
-             </p>
-          </div>
-          
-          <div className="text-left hidden md:block">
-            <div className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">اليوم</div>
-            <div className="text-2xl font-bold text-gray-200">{todayDate}</div>
-          </div>
-        </div>
+        <div className="relative overflow-hidden rounded-[2.5rem] bg-black/40 border border-white/10 p-8 shadow-2xl backdrop-blur-2xl mb-12 ring-1 ring-white/5">
+           {/* Inner glass reflection */}
+           <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-50 pointer-events-none" />
+           <div className="absolute -top-24 -right-24 w-48 h-48 bg-primary/30 rounded-full blur-[50px] pointer-events-none" />
+           
+           <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+              <div className="space-y-4 max-w-2xl">
+                 <motion.div 
+                   initial={{ opacity: 0, scale: 0.9 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   transition={{ delay: 0.2 }}
+                   className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-semibold backdrop-blur-md shadow-[0_0_15px_rgba(16,185,129,0.15)]"
+                 >
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
+                    </span>
+                    نظام الألعاب النشط متصل
+                 </motion.div>
+                 <h1 className="text-4xl md:text-6xl font-black text-white tracking-tight leading-tight">
+                   مرحباً بعودتك، <br className="hidden md:block"/>
+                   <span className="bg-clip-text text-transparent bg-gradient-to-r from-primary via-purple-400 to-emerald-400 drop-shadow-[0_0_15px_rgba(168,85,247,0.4)]">
+                     {firstName}
+                   </span>
+                   <motion.span 
+                     animate={{ rotate: [0, 14, -8, 14, -4, 10, 0, 0] }}
+                     transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1 }}
+                     className="inline-block origin-bottom-right ml-3 text-5xl"
+                   >
+                     👋
+                   </motion.span>
+                 </h1>
+                 <p className="text-lg md:text-xl text-gray-300 font-medium leading-relaxed drop-shadow-sm">
+                   مغامرة جديدة بانتظارك اليوم! استكشف المهام، ارفع مستواك، وتصدر قائمة الشرف.
+                 </p>
+              </div>
+              
+              <div className="text-right hidden md:flex flex-col items-end">
+                <div className="text-sm text-gray-400 font-bold uppercase tracking-widest mb-1.5 flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  تاريخ اليوم
+                </div>
+                <div className="px-6 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-inner text-2xl font-black text-white/90">
+                  {todayDate}
+                </div>
+              </div>
+           </div>
 
-        {/* Hero Section */}
-        <div className="mb-12">
-            <LevelProgressSection user={user} />
+           {/* Hero Section Component Insert */}
+           <div className="relative">
+               <LevelProgressSection user={user} />
+           </div>
         </div>
       </motion.header>
 

@@ -520,32 +520,8 @@ export function sanitizeInput(input: string): string {
     .trim();
 }
 
-/**
- * Helper function to check if a request is from an authenticated user
- * @param request Next.js request object
- * @returns User object if authenticated, null otherwise
- */
-export async function getAuthenticatedUser(request: NextRequest): Promise<unknown | null> {
-  try {
-    // This would depend on your authentication implementation
-    // For example, you might extract a token from the Authorization header
-    const authHeader = request.headers.get('authorization');
+// getAuthenticatedUser removed
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return null;
-    }
-
-    // Verify token and extract user information
-    // This is just a placeholder - implement based on your auth system
-    // const user = null;
-
-    // For now, return null
-    return null;
-  } catch (error) {
-    logger.error('Authentication error:', error);
-    return null;
-  }
-}
 
 /**
  * Helper function to add security headers to responses

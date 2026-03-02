@@ -9,6 +9,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  USER
+  ADMIN
+  TEACHER
+  MODERATOR
+}
+
+enum FocusStrategy {
+  POMODORO
+  EIGHTY_TWENTY
+  DEEP_WORK
+  TIME_BLOCKING
+  NO_DISTRACTION
+}
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum CategoryType {
+  BLOG
+  FORUM
+}
+
+enum AchievementCategory {
+  STUDY
+  TASKS
+  EXAMS
+  TIME
+  STREAK
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+}
+
 model User {
   id                       String    @id @default(cuid())
   email                    String    @unique
@@ -40,7 +89,7 @@ model User {
   smsNotifications         Boolean?  @default(false)
   biometricEnabled         Boolean   @default(false)
   biometricCredentials     BiometricCredential[]
-  role                     String?   @default("user")
+  role                     UserRole  @default(USER)
 
   // Password management fields
   passwordChangedAt             DateTime?
@@ -109,11 +158,12 @@ model User {
 }
 
 model SubjectEnrollment {
-  id                String   @id
+  id                String   @id @default(cuid())
   userId            String
   subjectId         String
   targetWeeklyHours Int      @default(0)
   createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject           Subject  @relation(fields: [subjectId], references: [id], onDelete: Restrict)
 
@@ -130,10 +180,11 @@ model StudySession {
   startTime   DateTime
   endTime     DateTime
   durationMin Int
-  focusScore  Int      @default(0)
+  focusScore  Int           @default(0)
   notes       String?
-  strategy    String?
-  createdAt   DateTime @default(now())
+  strategy    FocusStrategy?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
   task        Task?    @relation(fields: [taskId], references: [id], onDelete: SetNull)
@@ -149,11 +200,11 @@ model Task {
   title       String
   description String?
   subjectId   String?
-  status      String    @default("PENDING")
+  status      TaskStatus @default(PENDING)
   dueAt       DateTime?
   scheduledAt DateTime?
   completedAt DateTime?
-  priority    Int       @default(0)
+  priority    Int        @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -171,12 +222,13 @@ model Reminder {
   remindAt  DateTime
   repeat    String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
 }
 
 model ProgressSnapshot {
-  id                String   @id
+  id                String   @id @default(cuid())
   userId            String
   date              DateTime
   totalStudyMinutes Int      @default(0)
@@ -185,13 +237,15 @@ model ProgressSnapshot {
   streakDays        Int      @default(0)
   gradeAverage      Float?
   improvementRate   Float?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Resource {
-  id          String   @id
+  id          String   @id @default(cuid())
   subjectId   String
   title       String
   description String?
@@ -200,6 +254,7 @@ model Resource {
   type        String
   source      String?
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@index([subjectId])
@@ -219,20 +274,21 @@ model Book {
   downloads   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  tags        String     @default("[]") // Array of tags as JSON (SQLite compatibility)
+  tags        String[]   @default([]) // Now using PostgreSQL native array
   subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@index([subjectId])
 }
 
 model Exam {
-  id        String   @id
+  id        String   @id @default(cuid())
   subjectId String
   title     String
   year      Int
   url       String
   type      String?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   results ExamResult[]
@@ -248,6 +304,8 @@ model ExamResult {
   examId    String
   score     Float
   takenAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   teacherId String?
 
   @@index([userId])
@@ -256,12 +314,13 @@ model ExamResult {
 }
 
 model Session {
-  id           String   @id
+  id           String   @id @default(cuid())
   userId       String
   userAgent    String
   ip           String
   deviceInfo   String?
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   expiresAt    DateTime
   lastAccessed DateTime @default(now())
   isActive     Boolean  @default(true)
@@ -282,6 +341,7 @@ model SecurityLog {
   location   String?
   metadata   String?
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -294,24 +354,27 @@ model Achievement {
   title         String
   description   String
   icon          String
-  category      String // 'study', 'tasks', 'exams', 'time', 'streak'
-  difficulty    String // 'easy', 'medium', 'hard', 'expert'
-  rarity        String   @default("common") // 'common', 'rare', 'epic', 'legendary'
+  category      AchievementCategory
+  difficulty    Difficulty          @default(MEDIUM)
+  rarity        String              @default("common") // 'common', 'rare', 'epic', 'legendary'
   xpReward      Int
   requirements  String
   isSecret      Boolean  @default(false)
   unlockedCount Int      @default(0) // Track how many users unlocked it
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   users UserAchievement[]
 
 }
 
 model UserAchievement {
-  id             String      @id
+  id             String      @id @default(cuid())
   userId         String
   achievementKey String
   earnedAt       DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
   user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   achievement    Achievement @relation(fields: [achievementKey], references: [key], onDelete: Cascade)
 
@@ -320,7 +383,7 @@ model UserAchievement {
 }
 
 model CustomGoal {
-  id           String    @id
+  id           String    @id @default(cuid())
   userId       String
   title        String
   description  String?
@@ -328,6 +391,7 @@ model CustomGoal {
   currentValue Float     @default(0)
   unit         String // 'minutes', 'count', 'percentage', etc.
   category     String // 'study', 'tasks', 'exams', 'custom'
+  xpReward     Int       @default(10)
   isCompleted  Boolean   @default(false)
   createdAt    DateTime  @default(now())
   completedAt  DateTime?
@@ -338,12 +402,13 @@ model CustomGoal {
 
 // Temporary authentication states for serverless compatibility
 model TwoFactorChallenge {
-  id        String   @id
+  id        String   @id @default(cuid())
   userId    String?
   code      String
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }
@@ -356,6 +421,7 @@ model BiometricChallenge {
   expiresAt DateTime
   used      Boolean  @default(false)
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }
@@ -367,11 +433,12 @@ model Notification {
   userId    String
   title     String
   message   String
-  type      String   @default("info") // info, success, warning, error
-  isRead    Boolean  @default(false)
+  type      NotificationType @default(INFO)
+  isRead    Boolean          @default(false)
   actionUrl String? // رابط للانتقال عند النقر على الإشعار
   icon      String? // أيقونة الإشعار
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   // فهرس لتحسين أداء الاستعلامات
   @@index([userId])
@@ -405,7 +472,8 @@ model SeasonParticipation {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   season      Season   @relation(fields: [seasonId], references: [id], onDelete: Cascade)
   joinedAt    DateTime @default(now())
-  lastUpdated DateTime @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@unique([userId, seasonId])
   @@index([seasonId])
@@ -420,7 +488,7 @@ model Challenge {
   description  String
   type         String // 'daily', 'weekly', 'monthly'
   category     String // 'study', 'tasks', 'exams', 'streak', 'mixed'
-  difficulty   String // 'easy', 'medium', 'hard'
+  difficulty   Difficulty @default(MEDIUM)
   xpReward     Int
   requirements String // Requirements to complete challenge
   startDate    DateTime
@@ -444,6 +512,8 @@ model ChallengeCompletion {
   completedAt DateTime  @default(now())
   progress    Float     @default(0) // 0-100
   isCompleted Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
 
@@ -458,9 +528,9 @@ model QuestChain {
   title       String
   description String
   category    String // 'study', 'tasks', 'exams', 'mixed'
-  difficulty  String // 'easy', 'medium', 'hard', 'expert'
-  totalQuests Int      @default(1)
-  isActive    Boolean  @default(true)
+  difficulty  Difficulty @default(MEDIUM)
+  totalQuests Int        @default(1)
+  isActive    Boolean    @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -496,6 +566,8 @@ model QuestProgress {
   isCompleted Boolean    @default(false)
   completedAt DateTime?
   startedAt   DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
   user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   quest       Quest      @relation(fields: [questId], references: [id], onDelete: Cascade)
   chain       QuestChain @relation(fields: [chainId], references: [id], onDelete: Cascade)
@@ -529,6 +601,8 @@ model UserReward {
   userId     String
   rewardId   String
   earnedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   source     String? // 'achievement', 'quest', 'challenge', 'season', 'marketplace'
   nftTokenId String? // For NFT rewards
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -578,6 +652,7 @@ model SentimentAnalysis {
   emotions   String? // Detected emotions (frustration, fatigue, etc.)
   context    String? // Context where sentiment was detected (chat, task, etc.)
   createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -592,6 +667,7 @@ model AiChatMessage {
   sentiment String? // Sentiment of the message
   metadata  String? // Additional context, voice input data, etc.
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -625,6 +701,8 @@ model UserInteraction {
   itemId    String
   metadata  String? // Additional interaction data
   timestamp DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -660,6 +738,7 @@ model MlRecommendation {
   completedAt DateTime?
   feedback    String? // User feedback (positive, negative)
   createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -789,51 +868,39 @@ model Announcement {
 }
 
 // Blog Models
-model BlogCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
+model Category {
+  id          String       @id @default(cuid())
+  name        String       @unique
   description String?
-  slug        String   @unique
+  slug        String       @unique
   icon        String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  type        CategoryType @default(BLOG)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
-  posts BlogPost[]
-
+  blogPosts  BlogPost[]
+  forumPosts ForumPost[]
 }
 
 model BlogPost {
-  id          String    @id @default(cuid())
+  id          String   @id @default(cuid())
   title       String
   content     String
   excerpt     String?
-  slug        String    @unique
+  slug        String   @unique
   categoryId  String
   authorId    String
-  isPublished Boolean   @default(false)
+  isPublished Boolean  @default(false)
   publishedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  author   User         @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  category BlogCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
-  @@index([categoryId])
-  @@index([authorId])
-}
-
-// Forum Models
-model ForumCategory {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  description String?
-  slug        String   @unique
-  icon        String?
+  views       Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  posts ForumPost[]
+  author   User     @relation("BlogPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
+  @@index([categoryId])
+  @@index([authorId])
 }
 
 model ForumPost {
@@ -844,12 +911,12 @@ model ForumPost {
   authorId   String
   isPinned   Boolean  @default(false)
   isLocked   Boolean  @default(false)
-  viewCount  Int      @default(0)
+  views      Int      @default(0)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  author   User          @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  category ForumCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  author   User         @relation("ForumPostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  category Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
   replies  ForumReply[]
 
   @@index([categoryId])
@@ -884,7 +951,7 @@ model Event {
   organizerId  String
   category     String
   isPublic     Boolean  @default(true)
-  tags         String     @default("[]")
+  tags         String[]   @default([])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -998,7 +1065,7 @@ model AiGeneratedExam {
   userId     String
   subjectId  String
   title      String
-  difficulty String   @default("medium") // easy, medium, hard
+  difficulty Difficulty @default(MEDIUM)
   duration   Int // in minutes
   year       Int?
   createdAt  DateTime @default(now())
@@ -1017,12 +1084,13 @@ model AiQuestion {
   id            String   @id @default(cuid())
   examId        String
   question      String
-  options       String // Array of options
+  options       String[] // Array of options
   correctAnswer String
   explanation   String?
   points        Int      @default(1)
   order         Int      @default(0)
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   exam AiGeneratedExam @relation(fields: [examId], references: [id], onDelete: Cascade)
 
@@ -1038,6 +1106,8 @@ model TestResult {
   answers     String // User's answers
   timeTaken   Int // in seconds
   completedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   exam AiGeneratedExam @relation(fields: [examId], references: [id], onDelete: Cascade)
 
@@ -1072,6 +1142,7 @@ model PasswordHistory {
   userId       String
   passwordHash String // Hashed password using bcrypt
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1083,14 +1154,14 @@ model PasswordPolicy {
   id               String   @id @default(cuid())
   role             String   @unique // 'user', 'admin', 'teacher', etc. or 'default' for all users
   expirationDays   Int? // null means no expiration
-  warningDays      String     @default("[7, 3, 1]") // Array of days to send warnings before expiration
+  warningDays      Int[]    @default([7, 3, 1]) // Array of days to send warnings before expiration
   minLength        Int      @default(8)
   maxLength        Int      @default(128)
   requireUppercase Boolean  @default(true)
   requireLowercase Boolean  @default(true)
   requireNumbers   Boolean  @default(true)
   requireSpecial   Boolean  @default(true)
-  bannedPasswords  String     @default("[]") // Array of banned/common passwords
+  bannedPasswords  String[]   @default([]) // Array of banned/common passwords
   historyCount     Int      @default(10) // Number of previous passwords to keep
   isActive         Boolean  @default(true)
   createdAt        DateTime @default(now())

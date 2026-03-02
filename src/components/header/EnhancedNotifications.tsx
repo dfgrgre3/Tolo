@@ -47,7 +47,7 @@ interface Notification {
 	time?: string;
 }
 
-import { type User } from "@/types/api/auth";
+import { type User } from "@/types/user";
 
 interface HeaderNotificationsProps {
 	user: User | null;
@@ -239,7 +239,7 @@ export function EnhancedNotifications({ user, mounted }: HeaderNotificationsProp
 					size="icon"
 					onClick={() => setIsNotificationOpen(!isNotificationOpen)}
 					data-notification-trigger
-					className="relative hover:bg-primary/10 hover:text-primary transition-all duration-300 group"
+					className="relative hover:bg-primary/10 dark:hover:bg-primary/15 hover:text-primary transition-all duration-300 group"
 				>
 					<Bell className="h-4 w-4 transition-transform group-hover:rotate-12" />
 					{notificationCount > 0 && (

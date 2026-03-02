@@ -46,15 +46,7 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
           iconBg: 'bg-blue-100',
           actions: ['retry', 'home'],
         };
-      case 'auth':
-        return {
-          icon: <Shield className="h-16 w-16 text-red-500" />,
-          defaultTitle: 'انتهت صلاحية الجلسة',
-          defaultMessage: 'انتهت صلاحية جلستك. يرجى تسجيل الدخول مرة أخرى للمتابعة.',
-          bgColor: 'bg-red-50',
-          iconBg: 'bg-red-100',
-          actions: ['login', 'home'],
-        };
+
       case 'permission':
         return {
           icon: <Shield className="h-16 w-16 text-orange-500" />,
@@ -140,9 +132,8 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
     }
   };
 
-  const handleLogin = () => {
-    window.location.href = '/login';
-  };
+  // handleLogin removed
+
 
   const renderActions = () => {
     return (
@@ -165,12 +156,8 @@ const ErrorPage: React.FC<ErrorPageProps> = ({
             الصفحة الرئيسية
           </Button>
         )}
-        {config.actions.includes('login') && (
-          <Button onClick={handleLogin} className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            تسجيل الدخول
-          </Button>
-        )}
+        {/* Login action removed */}
+
       </div>
     );
   };

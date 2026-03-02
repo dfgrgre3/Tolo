@@ -3,5 +3,5 @@ export * from './enums';
 export * from './settings';
 export * from './tasks';
 export * from './notification';
-export * from './api/auth';
+// auth export removed
 export * from './services';

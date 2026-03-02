@@ -1,6 +1,6 @@
 
 import { NotificationType } from '@/types/notification';
-// Token is in httpOnly cookie - no need to import getTokenFromStorage
+// تم إزالة نظام تسجيل الدخول
 import { logger } from '@/lib/logger';
 
 /**

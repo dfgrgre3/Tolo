@@ -28,23 +28,19 @@ export async function tracingMiddleware(
     `HTTP ${method} ${route}`,
     async (span) => {
       // إضافة attributes
-      span.setAttributes({
-        'http.method': method,
-        'http.url': route,
-        'http.route': route,
-        'http.user_agent': request.headers.get('user-agent') || 'unknown',
-        'http.ip': request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown',
-      });
+      span.setAttribute('http.method', method);
+      span.setAttribute('http.url', route);
+      span.setAttribute('http.route', route);
+      span.setAttribute('http.user_agent', request.headers.get('user-agent') || 'unknown');
+      span.setAttribute('http.ip', request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown');
 
       try {
         // تنفيذ الـ handler
         const response = await handler(request);
         
         const statusCode = response.status;
-        span.setAttributes({
-          'http.status_code': statusCode,
-          'http.status_text': response.statusText,
-        });
+        span.setAttribute('http.status_code', statusCode);
+        span.setAttribute('http.status_text', response.statusText);
 
         // إضافة tracing headers إلى الاستجابة
         const tracingHeaders = injectContext({});
@@ -54,10 +50,8 @@ export async function tracingMiddleware(
 
         return response;
       } catch (error) {
-        span.setAttributes({
-          'error': true,
-          'error.message': error instanceof Error ? error.message : String(error),
-        });
+        span.setAttribute('error', true);
+        span.setAttribute('error.message', error instanceof Error ? error.message : String(error));
         throw error;
       }
     },

@@ -5,11 +5,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
-  User,
-  Settings,
-  LogOut,
-  LogIn,
   ChevronDown,
+
   Search,
   X,
   Bell,
@@ -43,8 +40,7 @@ export function HeaderMobileMenuEnhanced({
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
   const router = useRouter();
-  const user: any = null;
-  const logout = () => {};
+  // Theme
   const { theme, setTheme } = useTheme();
   const shouldReduceMotion = useReducedMotion();
 
@@ -91,15 +87,7 @@ export function HeaderMobileMenuEnhanced({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isMobileMenuOpen, mounted, setIsMobileMenuOpen]);
 
-  // Handlers
-  const handleLogout = useCallback(async () => {
-    try {
-      await logout();
-      setIsMobileMenuOpen(false);
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
-  }, [logout, setIsMobileMenuOpen]);
+
 
   const toggleMegaMenu = useCallback((menuKey: string) => {
     setExpandedMenus((prev) => {
@@ -278,41 +266,8 @@ export function HeaderMobileMenuEnhanced({
                 </form>
               </div>
 
-              {/* User Profile Section (if authenticated) */}
-              {user && (
-                <div className="px-5 pb-6">
-                  <div className="relative overflow-hidden p-4 rounded-2xl bg-gradient-to-br from-muted/80 to-muted/30 border border-white/5 shadow-inner">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-14 w-14 ring-4 ring-background shadow-md">
-                        <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
-                        <AvatarFallback className="bg-gradient-to-tr from-primary to-primary/60 text-white text-lg font-bold">
+            {/* User Profile Section removed */}
 
-                        {user.name?.split(" ").map((n: any) => n[0]).join("").toUpperCase() ||
-                          (user.email ? user.email[0].toUpperCase() : "U")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-base truncate leading-tight">{user.name || "مستخدم"}</p>
-                      <p className="text-xs text-muted-foreground truncate font-medium opacity-80">{user.email}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mt-4">
-                     <Button variant="outline" size="sm" className="flex-1 h-9 bg-background/50 hover:bg-background border-border/50 text-xs font-medium" asChild>
-                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
-                        <User className="h-3.5 w-3.5 ml-2" />
-                        الملف الشخصي
-                      </Link>
-                    </Button>
-                    <Button variant="outline" size="icon" className="h-9 w-9 bg-background/50 hover:bg-background border-border/50" asChild>
-                      <Link href="/notifications">
-                        <Bell className="h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Navigation */}
             <motion.div
@@ -523,60 +478,28 @@ export function HeaderMobileMenuEnhanced({
             </motion.div>
             </div>
 
-            {/* Footer Actions */}
+            {/* Footer Actions simplified */}
             <div className="p-5 border-t border-border/40 space-y-4 bg-muted/20 backdrop-blur-sm mt-auto">
-              {/* Theme Toggle & Settings */}
-              <div className="flex gap-2">
-                 <Button
-                  variant="outline"
-                  onClick={toggleTheme}
-                  className="flex-1 justify-between bg-background/50 border-border/50 h-10 rounded-xl"
-                >
-                  <span className="text-sm font-medium">المظهر</span>
-                  {theme === "dark" ? (
-                    <div className="flex items-center gap-2 text-primary">
-                      <Moon className="h-4 w-4" />
-                      <span className="text-xs">داكن</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 text-orange-500">
-                      <Sun className="h-4 w-4" />
-                      <span className="text-xs">فاتح</span>
-                    </div>
-                  )}
-                </Button>
-                
-                {user && (
-                    <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl bg-background/50 border-border/50" asChild>
-                      <Link href="/settings" onClick={() => setIsMobileMenuOpen(false)}>
-                        <Settings className="h-4 w-4" />
-                      </Link>
-                    </Button>
+              <Button
+                variant="outline"
+                onClick={toggleTheme}
+                className="w-full justify-between bg-background/50 border-border/50 h-10 rounded-xl"
+              >
+                <span className="text-sm font-medium">المظهر</span>
+                {theme === "dark" ? (
+                  <div className="flex items-center gap-2 text-primary">
+                    <Moon className="h-4 w-4" />
+                    <span className="text-xs">داكن</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-orange-500">
+                    <Sun className="h-4 w-4" />
+                    <span className="text-xs">فاتح</span>
+                  </div>
                 )}
-              </div>
-
-              {/* Auth Actions */}
-              {user ? (
-                <Button
-                  variant="destructive"
-                  className="w-full h-11 rounded-xl shadow-lg shadow-destructive/10 font-bold"
-                  onClick={handleLogout}
-                >
-                  <LogOut className="h-4 w-4 ml-2" />
-                  تسجيل الخروج
-                </Button>
-              ) : (
-                <Button
-                  className="w-full h-11 bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white rounded-xl shadow-lg shadow-primary/20 font-bold"
-                  asChild
-                >
-                  <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
-                    <LogIn className="h-4 w-4 ml-2" />
-                    تسجيل الدخول
-                  </Link>
-                </Button>
-              )}
+              </Button>
             </div>
+
           </motion.div>
         </>
       )}

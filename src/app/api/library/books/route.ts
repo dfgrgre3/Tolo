@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching books:", error);
     return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظƒطھط¨" },
+      { error: "حدث خطأ في جلب الكتب" },
       { status: 500 }
     );
     }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
     if (!title || !author || !description || !subject || !downloadUrl) {
       return NextResponse.json(
-        { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
+        { error: "جميع الحقول المطلوبة يجب ملؤها" },
         { status: 400 }
       );
     }
@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     logger.error("Error creating book:", error);
     return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ط¶ط§ظپط© ط§ظ„ظƒطھط§ط¨" },
+      { error: "حدث خطأ في إضافة الكتاب" },
       { status: 500 }
     );
     }

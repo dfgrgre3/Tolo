@@ -24,8 +24,7 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
     return () => clearTimeout(timer);
   }, []);
   
-  // ✅ النظام الموحد: UnifiedAuthProvider هو المصدر الوحيد للمصادقة
-  // ✅ تم إزالة AuthProvider لتجنب التضارب - نظام واحد فقط يدير الحالة
+  // ✅ تم إزالة نظام تسجيل الدخول بالكامل من المشروع
   return (
     <>
       <Suspense fallback={null}>

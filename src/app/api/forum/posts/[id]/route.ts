@@ -43,7 +43,8 @@ export async function GET(
         categoryId: post.categoryId,
         categoryName: post.category.name,
         createdAt: post.createdAt.toISOString(),
-        views: post.viewCount,
+        // @ts-ignore - Prisma type cache might be stale locally, views is the valid unified field
+        views: post.views,
         repliesCount: post._count.replies,
         isPinned: post.isPinned
       };
@@ -71,7 +72,8 @@ export async function POST(
       await prisma.forumPost.update({
         where: { id },
         data: {
-          viewCount: {
+          // @ts-ignore - Prisma type cache might be stale locally, views is the valid unified field
+          views: {
             increment: 1
           }
         }

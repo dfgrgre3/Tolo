@@ -18,12 +18,9 @@ import {
   ChevronDown,
   Menu,
   X,
-  User,
-  Bell,
-  Search,
-  HelpCircle,
-  LogOut
+  HelpCircle
 } from 'lucide-react';
+
 // import removed
 
 interface NavItem {
@@ -43,14 +40,11 @@ const SidebarNavigation = () => {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const user: any = null;
 
-  // Close mobile menu when pathname changes
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname]);
 
-  // Memoize toggle functions to prevent unnecessary re-renders
   const toggleExpand = useCallback(() => {
     setIsExpanded((prev) => !prev);
   }, []);
@@ -67,7 +61,9 @@ const SidebarNavigation = () => {
     setIsMobileMenuOpen(true);
   }, []);
 
-  // Memoize navigation items to prevent recreation on every render
+  const isActive = useCallback((href: string) => pathname === href, [pathname]);
+
+
   const navigationItems: NavItem[] = useMemo(() => [
     {
       title: 'الرئيسية',
@@ -124,15 +120,6 @@ const SidebarNavigation = () => {
     },
   ], []);
 
-  // Memoize active check function
-  const isActive = useCallback((href: string) => pathname === href, [pathname]);
-
-  // Memoize user display data
-  const userDisplayData = useMemo(() => ({
-    name: user?.name || 'المستخدم',
-    email: user?.email || 'user@example.com',
-  }), [user?.name, user?.email]);
-
   // Mobile menu component - memoized to prevent unnecessary re-renders
   const MobileMenu = useMemo(() => (
     <AnimatePresence>
@@ -167,17 +154,8 @@ const SidebarNavigation = () => {
               </Button>
             </div>
             <div className="p-4">
-              {user && (
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 mb-6">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                    <User className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{userDisplayData.name}</p>
-                    <p className="text-sm text-muted-foreground truncate">{userDisplayData.email}</p>
-                  </div>
-                </div>
-              )}
+              {/* User profile removed */}
+
               <nav className="space-y-1" role="menu">
                 {navigationItems.map((item) => {
                   const itemIsActive = isActive(item.href);
@@ -235,19 +213,16 @@ const SidebarNavigation = () => {
                     <span>المساعدة والدعم</span>
                   </div>
                 </Link>
-                <Link href="/logout">
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 text-red-600">
-                    <LogOut className="h-5 w-5" />
-                    <span>تسجيل الخروج</span>
-                  </div>
-                </Link>
+                {/* Logout removed */}
+
               </div>
             </div>
           </motion.div>
         </>
       )}
     </AnimatePresence>
-  ), [isMobileMenuOpen, closeMobileMenu, user, userDisplayData, navigationItems, isActive]);
+  ), [isMobileMenuOpen, closeMobileMenu, navigationItems, isActive]);
+
 
   return (
     <>
@@ -301,28 +276,8 @@ const SidebarNavigation = () => {
           </div>
 
           {/* User info */}
-          {isExpanded && user && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="p-4 border-b"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                  <User className="h-5 w-5 text-blue-600" aria-hidden="true" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium truncate" title={userDisplayData.name}>
-                    {userDisplayData.name}
-                  </p>
-                  <p className="text-sm text-muted-foreground truncate" title={userDisplayData.email}>
-                    {userDisplayData.email}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
+          {/* User info removed */}
+
 
           {/* Navigation items */}
           <div className="p-4 overflow-y-auto h-[calc(100vh-200px)]">
@@ -438,12 +393,8 @@ const SidebarNavigation = () => {
                     <span>المساعدة والدعم</span>
                   </div>
                 </Link>
-                <Link href="/logout">
-                  <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-100 text-red-600">
-                    <LogOut className="h-5 w-5" />
-                    <span>تسجيل الخروج</span>
-                  </div>
-                </Link>
+                {/* Logout removed */}
+
               </div>
             </motion.div>
           )}

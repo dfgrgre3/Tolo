@@ -254,8 +254,8 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
   };
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-emerald-200/25 via-transparent to-teal-200/25" />
+    <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 px-6 md:px-12 py-12 shadow-2xl backdrop-blur-xl ring-1 ring-white/5">
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-emerald-500/20 mix-blend-overlay" />
       
       <div className="relative z-10 max-w-4xl mx-auto">
         <motion.div
@@ -266,14 +266,14 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
           className="mb-8 text-center"
         >
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="rounded-full bg-gradient-to-r from-emerald-600 to-teal-600 p-3">
+            <div className="rounded-2xl bg-gradient-to-tr from-primary to-emerald-500 p-4 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
               <Search className="h-6 w-6 text-white" />
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-primary">
-              بحث ذكي متقدم
+            <h2 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight drop-shadow-md">
+              بحث المحتوى المتقدم
             </h2>
           </div>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-gray-400 text-lg max-w-xl mx-auto">
             ابحث في الدورات، الموارد، المعلمين والمزيد باستخدام الذكاء الاصطناعي
           </p>
         </motion.div>
@@ -286,8 +286,8 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
           transition={{ delay: 0.1 }}
           className="relative mb-6"
         >
-          <div className="relative">
-            <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <div className="relative group">
+            <Search className="absolute right-6 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-400 group-focus-within:text-primary transition-colors" />
             <Input
               type="text"
               placeholder="ابحث عن دورات، موارد، معلمين..."
@@ -297,14 +297,15 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
                 handleSearch(e.target.value);
               }}
               onKeyDown={handleKeyDown}
-              className="pr-12 pl-4 py-6 text-lg border-2 focus:border-emerald-500 rounded-full"
+              className="pr-16 pl-4 py-8 text-xl bg-black/50 border-white/10 text-white placeholder:text-gray-500 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 rounded-2xl shadow-inner backdrop-blur-sm transition-all"
             />
             {query && (
               <button
                 onClick={clearSearch}
-                className="absolute left-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-100"
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full hover:bg-white/10 transition-colors"
+                aria-label="مسح البحث"
               >
-                <X className="h-5 w-5 text-muted-foreground" />
+                <X className="h-5 w-5 text-gray-400" />
               </button>
             )}
           </div>
@@ -387,33 +388,33 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
                   whileHover={{ scale: 1.02 }}
                 >
                   <Link href={result.url}>
-                    <Card className="border-slate-200/80 shadow-sm hover:shadow-md transition-all cursor-pointer">
-                      <CardContent className="p-4">
-                        <div className="flex items-start gap-4">
-                          <div className={`rounded-xl p-3 ${getTypeColor(result.type)} flex-shrink-0`}>
+                    <Card className="bg-black/40 border-white/5 shadow-none hover:bg-white-[0.03] hover:border-white/10 transition-all cursor-pointer rounded-2xl overflow-hidden backdrop-blur-md">
+                      <CardContent className="p-5">
+                        <div className="flex items-start gap-5">
+                          <div className={`rounded-2xl p-3.5 shadow-inner backdrop-blur-md ${getTypeColor(result.type).replace('bg-', 'bg-opacity-20 bg-').replace('text-', 'text-opacity-90 text-')} flex-shrink-0`}>
                             {result.icon}
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <h3 className="font-semibold text-slate-900 text-base">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-2">
+                              <h3 className="font-bold text-white text-lg truncate">
                                 {result.title}
                               </h3>
-                              <Badge className={getTypeColor(result.type)}>
+                              <Badge variant="secondary" className="bg-white/10 text-gray-200 hover:bg-white/20 border-0 whitespace-nowrap">
                                 {getTypeLabel(result.type)}
                               </Badge>
                             </div>
                             
-                            <p className="text-sm text-muted-foreground mb-3">
+                            <p className="text-sm text-gray-400 mb-4 line-clamp-2 leading-relaxed">
                               {result.description}
                             </p>
 
-                            <div className="flex items-center gap-3">
-                              <Badge variant="outline" className="text-xs">
+                            <div className="flex items-center gap-4">
+                              <Badge variant="outline" className="text-xs border-white/10 text-gray-300">
                                 {result.category}
                               </Badge>
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                <TrendingUp className="h-3 w-3" />
+                              <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-medium bg-emerald-400/10 px-2 py-1 rounded-md">
+                                <TrendingUp className="h-3.5 w-3.5" />
                                 <span>صلة: {result.relevance}%</span>
                               </div>
                             </div>
