@@ -139,21 +139,26 @@ class EmailService {
 
     return this.sendEmail({ to, subject, text, html });
   }
+
   /**
-   * Send password reset email
+   * Send password reset link
    */
-  async sendPasswordResetEmail(to: string, code: string): Promise<boolean> {
-    const subject = 'إعادة تعيين كلمة المرور';
-    const text = `رمز إعادة تعيين كلمة المرور الخاص بك هو: ${code}\n\nصلاحية الرمز 30 دقيقة.`;
+  async sendPasswordResetLink(to: string, token: string): Promise<boolean> {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const resetLink = `${baseUrl}/reset-password?token=${token}`;
+
+    const subject = 'إعادة تعيين كلمة المرور - منصة ثانوية';
+    const text = `مرحباً،\n\nلقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك. يرجى النقر على الرابط التالي للتعيين:\n${resetLink}\n\nصلاحية الرابط ساعة واحدة.`;
     const html = `
       <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>إعادة تعيين كلمة المرور</h2>
-        <p>لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك.</p>
-        <p>استخدم الرمز التالي لإكمال العملية:</p>
+        <p>لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك. يرجى النقر على الزر أدناه للتعيين:</p>
         <div style="text-align: center; margin: 30px 0;">
-          <span style="background-color: #f3f4f6; padding: 15px 30px; font-size: 24px; letter-spacing: 5px; font-weight: bold; border-radius: 8px; border: 1px solid #e5e7eb;">${code}</span>
+          <a href="${resetLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">تعيين كلمة مرور جديدة</a>
         </div>
-        <p>صلاحية الرمز 30 دقيقة.</p>
+        <p>أو يمكنك نسخ الرابط التالي ولصقه في المتصفح:</p>
+        <p style="background-color: #f3f4f6; padding: 10px; border-radius: 4px; word-break: break-all;">${resetLink}</p>
+        <p>صلاحية الرابط ساعة واحدة.</p>
         <p>إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذه الرسالة.</p>
       </div>
     `;

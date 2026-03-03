@@ -18,6 +18,18 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
+function getSafeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith('/')) {
+    return '/dashboard';
+  }
+
+  if (value.startsWith('//') || value.startsWith('/\\') || value.startsWith('/api/')) {
+    return '/dashboard';
+  }
+
+  return value;
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,7 +39,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
   // Get redirect URL from query params (set by middleware)
-  const redirectUrl = searchParams.get('redirect') || '/dashboard';
+  const redirectUrl = getSafeRedirectPath(searchParams.get('redirect'));
 
   const {
     register,

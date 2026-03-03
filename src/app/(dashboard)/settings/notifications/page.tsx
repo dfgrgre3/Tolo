@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * 🔔 صفحة إعدادات الإشعارات - Notifications Settings
+ * ًں”” طµظپط­ط© ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ - Notifications Settings
  * 
- * تخصيص جميع أنواع الإشعارات مع:
- * - إشعارات المهام والامتحانات
- * - إشعارات الأمان
- * - إشعارات التحديثات
- * - قنوات الإشعارات (Push, Email, SMS)
+ * طھط®طµظٹطµ ط¬ظ…ظٹط¹ ط£ظ†ظˆط§ط¹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ظ…ط¹:
+ * - ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ظ…ظ‡ط§ظ… ظˆط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ
+ * - ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ط£ظ…ط§ظ†
+ * - ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„طھط­ط¯ظٹط«ط§طھ
+ * - ظ‚ظ†ظˆط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ (Push, Email, SMS)
  */
 
 import { useState, useEffect } from 'react';
@@ -20,7 +20,6 @@ import {
   Smartphone,
   Clock,
   Calendar,
-  Shield,
   Zap,
   Volume2,
   VolumeX,
@@ -37,86 +36,51 @@ import {
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { SettingsHeader, SettingsSection, SettingsToggle, ToggleSwitch } from '@/app/(dashboard)/settings/components';
-
-interface NotificationSettings {
-  // Task & Study
-  taskReminders: boolean;
-  taskReminderTime: string;
-  studyReminders: boolean;
-  dailyGoalReminders: boolean;
-  
-  // Exams & Deadlines
-  examReminders: boolean;
-  examReminderDays: number;
-  deadlineReminders: boolean;
-  
-  // Progress & Achievements
-  progressReports: boolean;
-  weeklyReport: boolean;
-  achievementAlerts: boolean;
-  
-  // Security removed
-
-  
-  // Social
-  commentNotifications: boolean;
-  mentionNotifications: boolean;
-  
-  // Channels
-  pushEnabled: boolean;
-  emailEnabled: boolean;
-  smsEnabled: boolean;
-  
-  // Quiet Hours
-  quietHoursEnabled: boolean;
-  quietHoursStart: string;
-  quietHoursEnd: string;
-  
-  // Sound
-  soundEnabled: boolean;
-  vibrationEnabled: boolean;
-}
-
-const initialSettings: NotificationSettings = {
-  taskReminders: true,
-  taskReminderTime: '30',
-  studyReminders: true,
-  dailyGoalReminders: true,
-  examReminders: true,
-  examReminderDays: 3,
-  deadlineReminders: true,
-  progressReports: true,
-  weeklyReport: true,
-  achievementAlerts: true,
-  // Security removed
-
-  commentNotifications: true,
-  mentionNotifications: true,
-  pushEnabled: true,
-  emailEnabled: true,
-  smsEnabled: false,
-  quietHoursEnabled: false,
-  quietHoursStart: '22:00',
-  quietHoursEnd: '07:00',
-  soundEnabled: true,
-  vibrationEnabled: true,
-};
+import {
+  DEFAULT_NOTIFICATION_SETTINGS,
+  type NotificationSettingsPreference,
+} from '@/types/settings-preferences';
+import {
+  fetchSettingsPreferences,
+  saveSettingsPreferences,
+} from '@/app/(dashboard)/settings/preferences-client';
 
 export default function NotificationsSettingsPage() {
-  const [settings, setSettings] = useState<NotificationSettings>(initialSettings);
+  const [settings, setSettings] = useState<NotificationSettingsPreference>({ ...DEFAULT_NOTIFICATION_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
+    let mounted = true;
+
+    const loadSettings = async () => {
+      setIsLoading(true);
+      try {
+        const preferences = await fetchSettingsPreferences();
+        if (!mounted) return;
+        setSettings(preferences.notifications);
+      } catch {
+        if (!mounted) return;
+        setSettings({ ...DEFAULT_NOTIFICATION_SETTINGS });
+        toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ');
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const updateSetting = <K extends keyof NotificationSettings>(
+  const updateSetting = <K extends keyof NotificationSettingsPreference>(
     key: K,
-    value: NotificationSettings[K]
+    value: NotificationSettingsPreference[K]
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
@@ -125,11 +89,15 @@ export default function NotificationsSettingsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updatedPreferences = await saveSettingsPreferences({
+        notifications: settings,
+      });
+      setSettings(updatedPreferences.notifications);
       toast.success('تم حفظ إعدادات الإشعارات');
       setHasChanges(false);
-    } catch {
-      toast.error('حدث خطأ أثناء الحفظ');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ الإعدادات';
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
@@ -148,12 +116,12 @@ export default function NotificationsSettingsPage() {
       {/* Header */}
       <SettingsHeader
         icon={Bell}
-        title="الإشعارات"
-        description="تخصيص التنبيهات والإشعارات التي تصلك"
+        title="ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ"
+        description="طھط®طµظٹطµ ط§ظ„طھظ†ط¨ظٹظ‡ط§طھ ظˆط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„طھظٹ طھطµظ„ظƒ"
         actionButton={
           hasChanges
             ? {
-                label: 'حفظ التغييرات',
+                label: 'ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±ط§طھ',
                 onClick: handleSave,
                 loading: isSaving,
                 variant: 'primary',
@@ -171,30 +139,30 @@ export default function NotificationsSettingsPage() {
       >
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <Settings className="h-5 w-5 text-indigo-400" />
-          قنوات الإشعارات
+          ظ‚ظ†ظˆط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ
         </h3>
         
         <div className="grid sm:grid-cols-3 gap-4">
           <ChannelCard
             icon={BellRing}
-            title="إشعارات التطبيق"
-            description="إشعارات فورية على جهازك"
+            title="ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„طھط·ط¨ظٹظ‚"
+            description="ط¥ط´ط¹ط§ط±ط§طھ ظپظˆط±ظٹط© ط¹ظ„ظ‰ ط¬ظ‡ط§ط²ظƒ"
             enabled={settings.pushEnabled}
             onToggle={(v) => updateSetting('pushEnabled', v)}
             color="indigo"
           />
           <ChannelCard
             icon={Mail}
-            title="البريد الإلكتروني"
-            description="تلقي الإشعارات عبر البريد"
+            title="ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ"
+            description="طھظ„ظ‚ظٹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ط¹ط¨ط± ط§ظ„ط¨ط±ظٹط¯"
             enabled={settings.emailEnabled}
             onToggle={(v) => updateSetting('emailEnabled', v)}
             color="purple"
           />
           <ChannelCard
             icon={MessageSquare}
-            title="الرسائل النصية"
-            description="إشعارات SMS مهمة"
+            title="ط§ظ„ط±ط³ط§ط¦ظ„ ط§ظ„ظ†طµظٹط©"
+            description="ط¥ط´ط¹ط§ط±ط§طھ SMS ظ…ظ‡ظ…ط©"
             enabled={settings.smsEnabled}
             onToggle={(v) => updateSetting('smsEnabled', v)}
             color="pink"
@@ -205,13 +173,13 @@ export default function NotificationsSettingsPage() {
       {/* Study & Tasks */}
       <SettingsSection
         icon={BookOpen}
-        title="الدراسة والمهام"
-        description="إشعارات المهام والتذكيرات الدراسية"
+        title="ط§ظ„ط¯ط±ط§ط³ط© ظˆط§ظ„ظ…ظ‡ط§ظ…"
+        description="ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ظ…ظ‡ط§ظ… ظˆط§ظ„طھط°ظƒظٹط±ط§طھ ط§ظ„ط¯ط±ط§ط³ظٹط©"
       >
         <SettingsToggle
           icon={Clock}
-          title="تذكيرات المهام"
-          description="تلقي إشعار قبل موعد المهمة"
+          title="طھط°ظƒظٹط±ط§طھ ط§ظ„ظ…ظ‡ط§ظ…"
+          description="طھظ„ظ‚ظٹ ط¥ط´ط¹ط§ط± ظ‚ط¨ظ„ ظ…ظˆط¹ط¯ ط§ظ„ظ…ظ‡ظ…ط©"
           enabled={settings.taskReminders}
           onToggle={(v) => updateSetting('taskReminders', v)}
         />
@@ -221,33 +189,33 @@ export default function NotificationsSettingsPage() {
             animate={{ opacity: 1, height: 'auto' }}
             className="mr-12 mb-4"
           >
-            <label className="text-sm text-slate-400">التذكير قبل</label>
+            <label className="text-sm text-slate-400">ط§ظ„طھط°ظƒظٹط± ظ‚ط¨ظ„</label>
             <select
               value={settings.taskReminderTime}
               onChange={(e) => updateSetting('taskReminderTime', e.target.value)}
               className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
             >
-              <option value="15" className="bg-slate-800">15 دقيقة</option>
-              <option value="30" className="bg-slate-800">30 دقيقة</option>
-              <option value="60" className="bg-slate-800">ساعة واحدة</option>
-              <option value="120" className="bg-slate-800">ساعتين</option>
-              <option value="1440" className="bg-slate-800">يوم واحد</option>
+              <option value="15" className="bg-slate-800">15 ط¯ظ‚ظٹظ‚ط©</option>
+              <option value="30" className="bg-slate-800">30 ط¯ظ‚ظٹظ‚ط©</option>
+              <option value="60" className="bg-slate-800">ط³ط§ط¹ط© ظˆط§ط­ط¯ط©</option>
+              <option value="120" className="bg-slate-800">ط³ط§ط¹طھظٹظ†</option>
+              <option value="1440" className="bg-slate-800">ظٹظˆظ… ظˆط§ط­ط¯</option>
             </select>
           </motion.div>
         )}
         
         <SettingsToggle
           icon={Zap}
-          title="تذكيرات الدراسة"
-          description="تذكير بوقت الدراسة المحدد"
+          title="طھط°ظƒظٹط±ط§طھ ط§ظ„ط¯ط±ط§ط³ط©"
+          description="طھط°ظƒظٹط± ط¨ظˆظ‚طھ ط§ظ„ط¯ط±ط§ط³ط© ط§ظ„ظ…ط­ط¯ط¯"
           enabled={settings.studyReminders}
           onToggle={(v) => updateSetting('studyReminders', v)}
         />
         
         <SettingsToggle
           icon={Trophy}
-          title="الأهداف اليومية"
-          description="تذكير بتحقيق الأهداف اليومية"
+          title="ط§ظ„ط£ظ‡ط¯ط§ظپ ط§ظ„ظٹظˆظ…ظٹط©"
+          description="طھط°ظƒظٹط± ط¨طھط­ظ‚ظٹظ‚ ط§ظ„ط£ظ‡ط¯ط§ظپ ط§ظ„ظٹظˆظ…ظٹط©"
           enabled={settings.dailyGoalReminders}
           onToggle={(v) => updateSetting('dailyGoalReminders', v)}
         />
@@ -256,13 +224,13 @@ export default function NotificationsSettingsPage() {
       {/* Exams & Deadlines */}
       <SettingsSection
         icon={Calendar}
-        title="الامتحانات والمواعيد"
-        description="تذكيرات الامتحانات والمواعيد الهامة"
+        title="ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ظˆط§ظ„ظ…ظˆط§ط¹ظٹط¯"
+        description="طھط°ظƒظٹط±ط§طھ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ظˆط§ظ„ظ…ظˆط§ط¹ظٹط¯ ط§ظ„ظ‡ط§ظ…ط©"
       >
         <SettingsToggle
           icon={Calendar}
-          title="تذكيرات الامتحانات"
-          description="إشعار قبل موعد الامتحان"
+          title="طھط°ظƒظٹط±ط§طھ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ"
+          description="ط¥ط´ط¹ط§ط± ظ‚ط¨ظ„ ظ…ظˆط¹ط¯ ط§ظ„ط§ظ…طھط­ط§ظ†"
           enabled={settings.examReminders}
           onToggle={(v) => updateSetting('examReminders', v)}
         />
@@ -272,23 +240,23 @@ export default function NotificationsSettingsPage() {
             animate={{ opacity: 1, height: 'auto' }}
             className="mr-12 mb-4"
           >
-            <label className="text-sm text-slate-400">التذكير قبل</label>
+            <label className="text-sm text-slate-400">ط§ظ„طھط°ظƒظٹط± ظ‚ط¨ظ„</label>
             <select
               value={settings.examReminderDays}
               onChange={(e) => updateSetting('examReminderDays', Number(e.target.value))}
               className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
             >
-              <option value={1} className="bg-slate-800">يوم واحد</option>
-              <option value={3} className="bg-slate-800">3 أيام</option>
-              <option value={7} className="bg-slate-800">أسبوع</option>
+              <option value={1} className="bg-slate-800">ظٹظˆظ… ظˆط§ط­ط¯</option>
+              <option value={3} className="bg-slate-800">3 ط£ظٹط§ظ…</option>
+              <option value={7} className="bg-slate-800">ط£ط³ط¨ظˆط¹</option>
             </select>
           </motion.div>
         )}
         
         <SettingsToggle
           icon={AlertTriangle}
-          title="تذكيرات المواعيد النهائية"
-          description="تنبيه عند اقتراب المواعيد النهائية"
+          title="طھط°ظƒظٹط±ط§طھ ط§ظ„ظ…ظˆط§ط¹ظٹط¯ ط§ظ„ظ†ظ‡ط§ط¦ظٹط©"
+          description="طھظ†ط¨ظٹظ‡ ط¹ظ†ط¯ ط§ظ‚طھط±ط§ط¨ ط§ظ„ظ…ظˆط§ط¹ظٹط¯ ط§ظ„ظ†ظ‡ط§ط¦ظٹط©"
           enabled={settings.deadlineReminders}
           onToggle={(v) => updateSetting('deadlineReminders', v)}
         />
@@ -297,21 +265,21 @@ export default function NotificationsSettingsPage() {
       {/* Progress & Achievements */}
       <SettingsSection
         icon={Trophy}
-        title="التقدم والإنجازات"
-        description="تقارير التقدم والإنجازات"
+        title="ط§ظ„طھظ‚ط¯ظ… ظˆط§ظ„ط¥ظ†ط¬ط§ط²ط§طھ"
+        description="طھظ‚ط§ط±ظٹط± ط§ظ„طھظ‚ط¯ظ… ظˆط§ظ„ط¥ظ†ط¬ط§ط²ط§طھ"
       >
         <SettingsToggle
           icon={Trophy}
-          title="إشعارات الإنجازات"
-          description="تلقي إشعار عند تحقيق إنجاز جديد"
+          title="ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„ط¥ظ†ط¬ط§ط²ط§طھ"
+          description="طھظ„ظ‚ظٹ ط¥ط´ط¹ط§ط± ط¹ظ†ط¯ طھط­ظ‚ظٹظ‚ ط¥ظ†ط¬ط§ط² ط¬ط¯ظٹط¯"
           enabled={settings.achievementAlerts}
           onToggle={(v) => updateSetting('achievementAlerts', v)}
         />
         
         <SettingsToggle
           icon={Calendar}
-          title="التقرير الأسبوعي"
-          description="ملخص أسبوعي لتقدمك الدراسي"
+          title="ط§ظ„طھظ‚ط±ظٹط± ط§ظ„ط£ط³ط¨ظˆط¹ظٹ"
+          description="ظ…ظ„ط®طµ ط£ط³ط¨ظˆط¹ظٹ ظ„طھظ‚ط¯ظ…ظƒ ط§ظ„ط¯ط±ط§ط³ظٹ"
           enabled={settings.weeklyReport}
           onToggle={(v) => updateSetting('weeklyReport', v)}
         />
@@ -323,21 +291,21 @@ export default function NotificationsSettingsPage() {
       {/* Social */}
       <SettingsSection
         icon={Users}
-        title="التفاعل الاجتماعي"
-        description="إشعارات التعليقات والإشارات"
+        title="ط§ظ„طھظپط§ط¹ظ„ ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹ"
+        description="ط¥ط´ط¹ط§ط±ط§طھ ط§ظ„طھط¹ظ„ظٹظ‚ط§طھ ظˆط§ظ„ط¥ط´ط§ط±ط§طھ"
       >
         <SettingsToggle
           icon={MessageSquare}
-          title="التعليقات"
-          description="إشعار عند تلقي تعليق جديد"
+          title="ط§ظ„طھط¹ظ„ظٹظ‚ط§طھ"
+          description="ط¥ط´ط¹ط§ط± ط¹ظ†ط¯ طھظ„ظ‚ظٹ طھط¹ظ„ظٹظ‚ ط¬ط¯ظٹط¯"
           enabled={settings.commentNotifications}
           onToggle={(v) => updateSetting('commentNotifications', v)}
         />
         
         <SettingsToggle
           icon={Users}
-          title="الإشارات"
-          description="إشعار عند الإشارة إليك"
+          title="ط§ظ„ط¥ط´ط§ط±ط§طھ"
+          description="ط¥ط´ط¹ط§ط± ط¹ظ†ط¯ ط§ظ„ط¥ط´ط§ط±ط© ط¥ظ„ظٹظƒ"
           enabled={settings.mentionNotifications}
           onToggle={(v) => updateSetting('mentionNotifications', v)}
         />
@@ -346,29 +314,29 @@ export default function NotificationsSettingsPage() {
       {/* Sound & Quiet Hours */}
       <SettingsSection
         icon={Volume2}
-        title="الصوت وأوقات الراحة"
-        description="إعدادات الأصوات وفترات عدم الإزعاج"
+        title="ط§ظ„طµظˆطھ ظˆط£ظˆظ‚ط§طھ ط§ظ„ط±ط§ط­ط©"
+        description="ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط£طµظˆط§طھ ظˆظپطھط±ط§طھ ط¹ط¯ظ… ط§ظ„ط¥ط²ط¹ط§ط¬"
       >
         <SettingsToggle
           icon={settings.soundEnabled ? Volume2 : VolumeX}
-          title="أصوات الإشعارات"
-          description="تشغيل صوت عند تلقي إشعار"
+          title="ط£طµظˆط§طھ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ"
+          description="طھط´ط؛ظٹظ„ طµظˆطھ ط¹ظ†ط¯ طھظ„ظ‚ظٹ ط¥ط´ط¹ط§ط±"
           enabled={settings.soundEnabled}
           onToggle={(v) => updateSetting('soundEnabled', v)}
         />
         
         <SettingsToggle
           icon={Smartphone}
-          title="الاهتزاز"
-          description="اهتزاز الجهاز عند تلقي إشعار"
+          title="ط§ظ„ط§ظ‡طھط²ط§ط²"
+          description="ط§ظ‡طھط²ط§ط² ط§ظ„ط¬ظ‡ط§ط² ط¹ظ†ط¯ طھظ„ظ‚ظٹ ط¥ط´ط¹ط§ط±"
           enabled={settings.vibrationEnabled}
           onToggle={(v) => updateSetting('vibrationEnabled', v)}
         />
         
         <SettingsToggle
           icon={Moon}
-          title="أوقات الراحة"
-          description="إيقاف الإشعارات في أوقات محددة"
+          title="ط£ظˆظ‚ط§طھ ط§ظ„ط±ط§ط­ط©"
+          description="ط¥ظٹظ‚ط§ظپ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ظپظٹ ط£ظˆظ‚ط§طھ ظ…ط­ط¯ط¯ط©"
           enabled={settings.quietHoursEnabled}
           onToggle={(v) => updateSetting('quietHoursEnabled', v)}
         />
@@ -381,7 +349,7 @@ export default function NotificationsSettingsPage() {
           >
             <div>
               <label className="text-sm text-slate-400 flex items-center gap-1">
-                <Moon className="h-3 w-3" /> من
+                <Moon className="h-3 w-3" /> ظ…ظ†
               </label>
               <input
                 type="time"
@@ -392,7 +360,7 @@ export default function NotificationsSettingsPage() {
             </div>
             <div>
               <label className="text-sm text-slate-400 flex items-center gap-1">
-                <Sun className="h-3 w-3" /> إلى
+                <Sun className="h-3 w-3" /> ط¥ظ„ظ‰
               </label>
               <input
                 type="time"
@@ -457,4 +425,5 @@ function ChannelCard({
     </motion.div>
   );
 }
+
 

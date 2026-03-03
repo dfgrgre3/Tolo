@@ -9,8 +9,10 @@
  * - البيانات الشخصية
  */
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useAuth } from '@/contexts/auth-context';
+
 import {
   User,
   Mail,
@@ -19,7 +21,6 @@ import {
   MapPin,
   Camera,
   Loader2,
-  Check,
   Edit3,
   Save,
   X,
@@ -61,17 +62,32 @@ const initialProfile: ProfileData = {
 };
 
 export default function ProfileSettingsPage() {
-  const user: any = null;
-  const [profile, setProfile] = useState<ProfileData>({
-    ...initialProfile,
-    firstName: user?.name?.split(' ')[0] || '',
-    lastName: user?.name?.split(' ').slice(1).join(' ') || '',
-    email: user?.email || '',
-  });
+  const { user, isLoading, refreshUser } = useAuth();
+  const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sync profile state with user data
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : '',
+        gender: (user.gender as 'male' | 'female') || 'male',
+        city: user.city || '',
+        school: user.school || '',
+        grade: user.grade || '3th',
+        bio: user.bio || '',
+        avatar: user.avatar || '',
+      });
+    }
+  }, [user]);
+
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     setProfile(prev => ({ ...prev, [field]: value }));
@@ -113,13 +129,33 @@ export default function ProfileSettingsPage() {
     setIsSaving(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          name: `${profile.firstName} ${profile.lastName}`.trim(),
+          phone: profile.phone,
+          birthDate: profile.birthDate,
+          gender: profile.gender,
+          city: profile.city,
+          school: profile.school,
+          grade: profile.grade,
+          bio: profile.bio,
+          avatar: profile.avatar,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'فشل حفظ التغييرات');
+      }
       
+      await refreshUser();
       toast.success('تم حفظ التغييرات بنجاح');
       setIsEditing(false);
-    } catch {
-      toast.error('حدث خطأ أثناء الحفظ');
+    } catch (error: any) {
+      toast.error(error.message || 'حدث خطأ أثناء الحفظ');
     } finally {
       setIsSaving(false);
     }
@@ -131,6 +167,17 @@ export default function ProfileSettingsPage() {
     { value: '3th', label: 'الصف الثالث الثانوي' },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
   return (
           <div className="max-w-4xl mx-auto space-y-8">
       {/* Header */}
@@ -232,15 +279,15 @@ export default function ProfileSettingsPage() {
           {/* Stats */}
           <div className="flex gap-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-white">42</div>
+              <div className="text-2xl font-bold text-white">{user.totalXP ?? 0}</div>
               <div className="text-xs text-slate-400">درس مكتمل</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-white">85%</div>
+              <div className="text-2xl font-bold text-white">{user.level ?? 1}</div>
               <div className="text-xs text-slate-400">معدل النجاح</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">A+</div>
+              <div className="text-2xl font-bold text-green-400">{user.currentStreak ?? 0}</div>
               <div className="text-xs text-slate-400">التقدير</div>
             </div>
           </div>
@@ -444,3 +491,4 @@ export default function ProfileSettingsPage() {
       </div>
       );
 }
+

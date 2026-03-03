@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SessionService } from '@/lib/auth/session-service';
 import { SecurityLogger, SecurityEventType } from '@/lib/auth/security-logger';
 import { withAuth, extractClientInfo, handleApiError } from '@/lib/api-utils';
+import { prisma } from '@/lib/db';
 
 /**
  * GET /api/auth/sessions
@@ -50,6 +51,28 @@ export async function DELETE(req: NextRequest) {
                 return NextResponse.json(
                     { error: 'Session ID is required' },
                     { status: 400 }
+                );
+            }
+
+            const session = await prisma.session.findUnique({
+                where: { id: sessionId },
+                select: {
+                    id: true,
+                    userId: true,
+                },
+            });
+
+            if (!session) {
+                return NextResponse.json(
+                    { error: 'Session not found' },
+                    { status: 404 }
+                );
+            }
+
+            if (session.userId !== userId) {
+                return NextResponse.json(
+                    { error: 'Forbidden' },
+                    { status: 403 }
                 );
             }
 

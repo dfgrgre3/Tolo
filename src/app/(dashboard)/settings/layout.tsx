@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -22,12 +22,17 @@ import {
   Palette,
   Globe,
   Lock,
+  LogOut,
   ChevronRight,
+
   ChevronLeft,
   Menu,
   X,
   Sparkles,
+  Loader2,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/auth-context';
+
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -100,9 +105,27 @@ export default function SettingsLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { user, isLoading, logout } = useAuth();
+
+  const handleLogout = async () => {
+    if (isLoggingOut) {
+      return;
+    }
+
+    setIsLoggingOut(true);
+    try {
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+
 
   // Detect mobile
   useEffect(() => {
@@ -116,6 +139,23 @@ export default function SettingsLayout({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    if (isLoading || user) {
+      return;
+    }
+
+    const redirectTarget = pathname || '/settings';
+    router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+  }, [isLoading, user, pathname, router]);
+
+  if (isLoading || !user) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="h-10 w-10 rounded-full border-2 border-indigo-400 border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   // Get current nav item
   const getCurrentNavItem = () => {
@@ -245,7 +285,37 @@ export default function SettingsLayout({
                   </Link>
                 );
               })}
+
+              {/* Logout Button */}
+              <button
+                onClick={handleLogout}
+                disabled={isLoggingOut}
+                className={cn(
+                  'w-full group relative flex items-center gap-3 rounded-xl p-3 transition-all duration-200',
+                  'text-red-400 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-60'
+                )}
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10 transition-colors group-hover:bg-red-500/20">
+                  {isLoggingOut ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <LogOut className="h-5 w-5" />
+                  )}
+                </div>
+                <AnimatePresence mode="wait">
+                  {isSidebarOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                    >
+                      <span className="font-medium whitespace-nowrap">تسجيل الخروج</span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </button>
             </nav>
+
 
             {/* Sidebar Footer */}
             <AnimatePresence mode="wait">
@@ -350,7 +420,23 @@ export default function SettingsLayout({
                       </Link>
                     );
                   })}
+
+                  <button
+                    onClick={handleLogout}
+                    disabled={isLoggingOut}
+                    className="w-full flex items-center gap-3 rounded-xl p-3 transition-all duration-200 text-red-400 hover:bg-red-500/10 disabled:opacity-60"
+                  >
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
+                      {isLoggingOut ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <LogOut className="h-5 w-5" />
+                      )}
+                    </div>
+                    <span className="font-medium">تسجيل الخروج</span>
+                  </button>
                 </nav>
+
               </motion.aside>
             </>
           )}

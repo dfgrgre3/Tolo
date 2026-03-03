@@ -2,7 +2,9 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ensureUser } from "@/lib/user-utils";
+import { useAuth } from "@/contexts/auth-context";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 import { logger } from "@/lib/logger";
 import {
   CourseCard,
@@ -20,7 +22,7 @@ type Course = {
   description: string;
   instructor: string;
   subject: string;
-  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EASY" | "MEDIUM" | "HARD";
   duration: number;
   thumbnailUrl?: string;
   price: number;
@@ -40,7 +42,8 @@ type CourseCategory = {
 };
 
 export default function CoursesPage() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const { user, isLoading: authLoading } = useAuth();
+  const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
   const [categories, setCategories] = useState<CourseCategory[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -49,10 +52,6 @@ export default function CoursesPage() {
   const [levelFilter, setLevelFilter] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
-
-  useEffect(() => {
-    ensureUser().then(setUserId);
-  }, []);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -66,115 +65,44 @@ export default function CoursesPage() {
       }
     };
 
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
     const fetchCourses = async () => {
-      if (!userId) return;
-      
       try {
         setLoading(true);
-        const res = await fetch(`/api/courses?userId=${userId}`);
+        // If user is logged in, pass userId to get enrollment status
+        const url = user?.id ? `/api/courses?userId=${user.id}` : "/api/courses";
+        const res = await fetch(url);
         const data = await res.json();
         
         // Handle new API response format
         let transformedCourses: Course[] = [];
         if (data.subjects) {
           // Transform subjects to courses format for display
-          transformedCourses = data.subjects.map((subject: { id: string; name: string; description: string | null; createdAt: string }) => ({
+          transformedCourses = data.subjects.map((subject: any) => ({
             id: subject.id,
-            title: subject.name,
+            title: subject.nameAr || subject.name,
             description: subject.description || "لا يوجد وصف متاح",
-            instructor: "المنصة التعليمية",
-            subject: subject.name,
-            level: "BEGINNER" as const,
-            duration: 10,
-            thumbnailUrl: null,
-            price: 0,
-            rating: 4.5,
-            enrolledCount: 0,
+            instructor: subject.instructorName || "المنصة التعليمية",
+            subject: subject.type || "General",
+            level: (subject.level as any) || "MEDIUM",
+            duration: subject.durationHours || 0,
+            thumbnailUrl: subject.thumbnailUrl,
+            price: subject.price || 0,
+            rating: subject.rating || 0,
+            enrolledCount: subject.enrolledCount || 0,
             createdAt: subject.createdAt || new Date().toISOString(),
-            tags: [subject.name],
-            enrolled: !!data.enrollments?.[subject.name],
-            progress: data.enrollments?.[subject.name]?.progress || 0
+            tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
+            enrolled: !!data.enrollments?.[subject.id],
+            progress: data.enrollments?.[subject.id]?.progress || 0
           }));
         } else if (Array.isArray(data)) {
           transformedCourses = data;
         }
 
-        const fakeCourses: Course[] = [
-          {
-            id: "fake-course-pro",
-            title: "احتراف تطوير واجهات المستخدم (Front-End Pro)",
-            description: "دورة شاملة تاخذك من الصفر إلى الاحتراف في تطوير واجهات الويب باستخدام أحدث التقنيات مثل React و Next.js و Tailwind CSS. تتضمن مشاريع عملية واقعية وتقييمات مستمرة ودعم من المدربين.",
-            instructor: "أحمد محمد",
-            subject: "برمجة وتطوير",
-            level: "INTERMEDIATE",
-            duration: 45,
-            thumbnailUrl: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
-            price: 299,
-            rating: 4.9,
-            enrolledCount: 15420,
-            createdAt: new Date().toISOString(),
-            tags: ["React", "Next.js", "تطوير ويب", "مشاريع عملية"],
-            enrolled: false,
-            progress: 0,
-            lessonsCount: 12
-          },
-          {
-            id: "fake-course-python",
-            title: "أساسيات لغة بايثون للذكاء الاصطناعي",
-            description: "تعلم بايثون من البداية مع التركيز على المكتبات الأساسية للذكاء الاصطناعي وتحليل البيانات مثل Pandas و NumPy. مناسب للمبتدئين.",
-            instructor: "سارة خالد",
-            subject: "ذكاء اصطناعي",
-            level: "BEGINNER",
-            duration: 30,
-            thumbnailUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
-            price: 150,
-            rating: 4.8,
-            enrolledCount: 8900,
-            createdAt: new Date(Date.now() - 86400000).toISOString(),
-            tags: ["Python", "AI", "Data Science", "مبتدئ"],
-            enrolled: false,
-            progress: 0,
-            lessonsCount: 20
-          },
-          {
-            id: "fake-course-design",
-            title: "تصميم واجهات المستخدم وتجربة المستخدم (UI/UX)",
-            description: "دورة مكثفة في تصميم الواجهات باستخدام Figma. تعلم المبادئ الأساسية للتصميم وكيفية إنشاء تجربة مستخدم متميزة من خلال تطبيقات عملية.",
-            instructor: "عمر عبدالله",
-            subject: "تصميم",
-            level: "BEGINNER",
-            duration: 25,
-            thumbnailUrl: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=80",
-            price: 0,
-            rating: 4.7,
-            enrolledCount: 22100,
-            createdAt: new Date(Date.now() - 172800000).toISOString(),
-            tags: ["UI", "UX", "Figma", "تصميم"],
-            enrolled: false,
-            progress: 0,
-            lessonsCount: 15
-          },
-          {
-            id: "fake-course-backend",
-            title: "تطوير الواجهات الخلفية باستخدام Node.js",
-            description: "تعلم كيفية بناء واجهات خلفية قوية وقابلة للتوسع باستخدام Node.js و Express. تشمل الدورة التعامل مع قواعد البيانات وبناء واجهات API وتأمينها.",
-            instructor: "محمود حسن",
-            subject: "برمجة وتطوير",
-            level: "ADVANCED",
-            duration: 60,
-            thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
-            price: 350,
-            rating: 4.9,
-            enrolledCount: 5400,
-            createdAt: new Date(Date.now() - 259200000).toISOString(),
-            tags: ["Node.js", "Express", "Backend", "API"],
-            enrolled: false,
-            progress: 0,
-            lessonsCount: 35
-          }
-        ];
-
-        setCourses([...fakeCourses, ...transformedCourses]);
+        setCourses(transformedCourses);
       } catch (error) {
         logger.error("Error fetching courses:", error);
         setCourses([]);
@@ -183,9 +111,10 @@ export default function CoursesPage() {
       }
     };
 
-    fetchCategories();
-    if (userId) fetchCourses();
-  }, [userId]);
+    if (!authLoading) {
+      fetchCourses();
+    }
+  }, [user?.id, authLoading]);
 
   // Filter and sort courses
   const filteredCourses = useMemo(() => {
@@ -237,52 +166,60 @@ export default function CoursesPage() {
   }), [courses]);
 
   const handleEnroll = async (courseId: string) => {
-    if (!userId) return;
+    if (!user) {
+      toast.error("يرجى تسجيل الدخول للتسجيل في الدورة");
+      router.push("/login?redirect=/courses");
+      return;
+    }
     setEnrollingId(courseId);
 
     try {
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId })
+        body: JSON.stringify({ userId: user.id })
       });
 
       if (res.ok) {
+        toast.success("تم التسجيل في الدورة بنجاح");
         setCourses(courses.map(course =>
           course.id === courseId ? { ...course, enrolled: true, progress: 0 } : course
         ));
       } else {
-        alert("حدث خطأ أثناء التسجيل في الدورة");
+        const errorData = await res.json();
+        toast.error(errorData.error || "حدث خطأ أثناء التسجيل في الدورة");
       }
     } catch (error) {
       logger.error("Error enrolling in course:", error);
-      alert("حدث خطأ أثناء التسجيل في الدورة");
+      toast.error("حدث خطأ أثناء التسجيل في الدورة");
     } finally {
       setEnrollingId(null);
     }
   };
 
   const handleUnenroll = async (courseId: string) => {
-    if (!userId) return;
+    if (!user) return;
     setEnrollingId(courseId);
 
     try {
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId })
+        body: JSON.stringify({ userId: user.id })
       });
 
       if (res.ok) {
+        toast.success("تم إلغاء التسجيل من الدورة");
         setCourses(courses.map(course =>
           course.id === courseId ? { ...course, enrolled: false, progress: undefined } : course
         ));
       } else {
-        alert("حدث خطأ أثناء إلغاء التسجيل من الدورة");
+        const errorData = await res.json();
+        toast.error(errorData.error || "حدث خطأ أثناء إلغاء التسجيل");
       }
     } catch (error) {
       logger.error("Error unenrolling from course:", error);
-      alert("حدث خطأ أثناء إلغاء التسجيل من الدورة");
+      toast.error("حدث خطأ أثناء إلغاء التسجيل");
     } finally {
       setEnrollingId(null);
     }

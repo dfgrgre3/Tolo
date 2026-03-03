@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
@@ -20,8 +21,10 @@ import { useMegaMenuState } from "./header/useMegaMenuState";
 import ProgressIndicator from "./header/ProgressIndicator";
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 
-// New enhanced imports
 import { useStickyHeader } from "./header/hooks/useStickyHeader";
+import { useAuth } from "@/contexts/auth-context";
+import { UserMenu } from "./header/UserMenu";
+import { LogIn, UserPlus } from "lucide-react";
 
 // Dynamic imports for better performance
 const CommandPalette = dynamic(
@@ -97,7 +100,7 @@ export default function Header() {
     showUserMenu: true,
   };
 
-  const user = null;
+  const { user, isLoading } = useAuth();
 
 
   // Mega menu state
@@ -212,7 +215,7 @@ export default function Header() {
                 setOpenMegaMenu={setOpenMegaMenu}
                 isActiveRoute={isActiveRoute}
                 mounted={mounted}
-                user={user}
+                user={user as any}
               />
             )}
 
@@ -270,10 +273,41 @@ export default function Header() {
 
               {/* Notifications */}
               {isMounted && focusVisibility.showNotifications && (
-                <EnhancedNotifications user={user} mounted={mounted} />
+                <EnhancedNotifications user={user as any} mounted={mounted} />
               )}
 
-              {/* User Menu removed */}
+              {/* User Menu & Auth Buttons */}
+              {isMounted && (
+                <div className="flex items-center gap-2">
+                  {isLoading ? (
+                    <div className="h-9 w-9 rounded-full bg-primary/10 animate-pulse" />
+                  ) : user ? (
+                    <UserMenu />
+                  ) : (
+                    <div className="hidden md:flex items-center gap-1.5">
+                      <Link href="/login">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="gap-1.5 hover:bg-primary/10 text-sm font-medium transition-all"
+                        >
+                          <LogIn className="h-4 w-4" />
+                          <span>تسجيل الدخول</span>
+                        </Button>
+                      </Link>
+                      <Link href="/register">
+                        <Button 
+                          size="sm" 
+                          className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-primary/20 transition-all font-bold px-4 hover:scale-105 active:scale-95"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          <span>إنشاء حساب</span>
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
 
 
               {/* Mobile Menu Button */}

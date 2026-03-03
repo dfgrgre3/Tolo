@@ -3,11 +3,9 @@
 import React, { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-export type ToastProps = {
-  message: string;
-  type?: 'success' | 'warning' | 'error';
-  onDismiss: () => void;
-};
+
+import { ToastProps, ToastContainerProps } from '@/types/toast';
+
 
 export const Toast = ({ message, type = 'success', onDismiss }: ToastProps) => {
   useEffect(() => {
@@ -39,10 +37,9 @@ export const Toast = ({ message, type = 'success', onDismiss }: ToastProps) => {
   );
 };
 
-export type ToastContainerProps = {
-  toasts: Array<{ id: string; message: string; type?: 'success' | 'warning' | 'error' }>;
-  onDismiss: (id: string) => void;
-};
+
+// ToastContainerProps is now imported from @/types/toast
+
 
 export const ToastContainer = ({ toasts, onDismiss }: ToastContainerProps) => {
   return (

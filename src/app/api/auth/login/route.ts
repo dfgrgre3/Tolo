@@ -9,63 +9,63 @@ import {
     handleApiError,
 } from '@/lib/api-utils';
 
-/**
- * Login Schema - Validates incoming login data.
- * Minimal validation here since AuthService handles the business logic.
- */
 const loginSchema = z.object({
-    email: z.string().email('Invalid email format'),
-    password: z.string().min(1, 'Password is required'),
+    email: z
+        .string()
+        .trim()
+        .email('Invalid email format')
+        .transform((value) => value.toLowerCase()),
+    password: z
+        .string()
+        .min(1, 'Password is required')
+        .max(256, 'Password is too long'),
     rememberMe: z.boolean().optional().default(false),
 });
 
-/**
- * Login Rate Limiter Configuration.
- * 5 failed attempts per 15 minutes, with 30-minute lockout.
- * This prevents brute-force attacks while remaining user-friendly.
- */
-const loginRateLimiter = new RateLimiter({
-    windowMs: 15 * 60 * 1000,     // 15-minute window
-    maxAttempts: 5,                 // 5 attempts allowed
-    lockoutMs: 30 * 60 * 1000,     // 30-minute lockout after exceeding
+const ipRateLimiter = new RateLimiter({
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 20,
+    lockoutMs: 30 * 60 * 1000,
 });
 
-/**
- * POST /api/auth/login
- * 
- * Authenticates a user with email and password.
- * 
- * Security layers:
- * 1. Rate limiting (Redis-backed sliding window)
- * 2. Input validation (Zod schema)
- * 3. Credential verification (bcrypt constant-time compare)
- * 4. Session creation with device tracking
- * 5. HttpOnly cookie storage (no token exposure to JS)
- * 6. Security event logging
- */
+const credentialRateLimiter = new RateLimiter({
+    windowMs: 15 * 60 * 1000,
+    maxAttempts: 5,
+    lockoutMs: 30 * 60 * 1000,
+});
+
+function buildIpRateLimitKey(ip: string): string {
+    return `login:ip:${ip}`;
+}
+
+function buildCredentialRateLimitKey(ip: string, email: string): string {
+    return `login:credential:${ip}:${email}`;
+}
+
+function createRateLimitResponse(remainingMinutes?: number): NextResponse {
+    const retryAfterSeconds = Math.max(60, (remainingMinutes || 15) * 60);
+    return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        {
+            status: 429,
+            headers: {
+                'Retry-After': retryAfterSeconds.toString(),
+            },
+        }
+    );
+}
+
 export async function POST(req: NextRequest) {
     try {
-        const { ip, userAgent, clientId } = extractClientInfo(req);
+        const { ip, userAgent } = extractClientInfo(req);
+        const ipRateLimitKey = buildIpRateLimitKey(ip);
 
-        // 1. Rate Limiting Check (Redis-backed)
-        const rateLimitResult = await loginRateLimiter.checkRateLimit(clientId);
-
-        if (!rateLimitResult.allowed) {
+        const ipLimitResult = await ipRateLimiter.checkRateLimit(ipRateLimitKey);
+        if (!ipLimitResult.allowed) {
             await SecurityLogger.logRateLimitExceeded(ip, userAgent, '/api/auth/login');
-
-            const retryAfter = rateLimitResult.remainingTime || 15;
-            return NextResponse.json(
-                { error: 'Too many login attempts. Please try again later.' },
-                {
-                    status: 429,
-                    headers: {
-                        'Retry-After': (retryAfter * 60).toString(),
-                    },
-                }
-            );
+            return createRateLimitResponse(ipLimitResult.remainingTime);
         }
 
-        // 2. Parse and validate request body
         const body = await req.json();
         const validation = loginSchema.safeParse(body);
 
@@ -77,8 +77,14 @@ export async function POST(req: NextRequest) {
         }
 
         const { email, password, rememberMe } = validation.data;
+        const credentialRateLimitKey = buildCredentialRateLimitKey(ip, email);
 
-        // 3. Authenticate via AuthService (Clean Architecture)
+        const credentialLimitResult = await credentialRateLimiter.checkRateLimit(credentialRateLimitKey);
+        if (!credentialLimitResult.allowed) {
+            await SecurityLogger.logRateLimitExceeded(ip, userAgent, '/api/auth/login');
+            return createRateLimitResponse(credentialLimitResult.remainingTime);
+        }
+
         const result = await AuthService.login({
             email,
             password,
@@ -88,8 +94,10 @@ export async function POST(req: NextRequest) {
         });
 
         if (!result.success) {
-            // Increment rate limiter on failed attempt
-            await loginRateLimiter.incrementAttempts(clientId);
+            await Promise.all([
+                ipRateLimiter.incrementAttempts(ipRateLimitKey),
+                credentialRateLimiter.incrementAttempts(credentialRateLimitKey),
+            ]);
 
             return NextResponse.json(
                 { error: result.error },
@@ -97,7 +105,6 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        // 4. Set HttpOnly cookies (tokens never exposed to JavaScript)
         const cookieStore = await cookies();
         const refreshMaxAge = rememberMe ? 7 * 24 * 60 * 60 : 24 * 60 * 60;
 
@@ -105,7 +112,7 @@ export async function POST(req: NextRequest) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 15 * 60, // 15 minutes
+            maxAge: 15 * 60,
             path: '/',
         });
 
@@ -125,10 +132,11 @@ export async function POST(req: NextRequest) {
             path: '/',
         });
 
-        // 5. Reset rate limiter on successful login
-        await loginRateLimiter.resetAttempts(clientId);
+        await Promise.all([
+            ipRateLimiter.resetAttempts(ipRateLimitKey),
+            credentialRateLimiter.resetAttempts(credentialRateLimitKey),
+        ]);
 
-        // 6. Return user data (no tokens in response body - they're in cookies)
         return NextResponse.json(
             {
                 user: result.user,

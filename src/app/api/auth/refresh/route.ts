@@ -68,7 +68,8 @@ export async function POST(req: NextRequest) {
         // 3. CRITICAL: Replay Attack Detection
         // If stored refreshToken doesn't match the one being used,
         // it means an old token is being reused → potential theft
-        if (session.refreshToken !== refreshToken) {
+        const refreshTokenHash = SessionService.hashRefreshToken(refreshToken);
+        if (session.refreshToken !== refreshTokenHash) {
             // Immediately revoke the session (nuclear option for safety)
             await SessionService.revokeSession(session.id);
             await SecurityLogger.logReplayAttack(session.userId, ip, userAgent, session.id);
@@ -92,11 +93,20 @@ export async function POST(req: NextRequest) {
             session.id
         );
 
+        const remainingSessionSeconds = Math.floor((session.expiresAt.getTime() - Date.now()) / 1000);
+        if (remainingSessionSeconds <= 0) {
+            clearAuthCookies(cookieStore);
+            return NextResponse.json(
+                { error: 'Session expired. Please login again.' },
+                { status: 403 }
+            );
+        }
+
         // 5. Update Session with New Refresh Token
         await prisma.session.update({
             where: { id: session.id },
             data: {
-                refreshToken: newRefreshToken,
+                refreshToken: SessionService.hashRefreshToken(newRefreshToken),
                 lastAccessed: new Date(),
             },
         });
@@ -106,7 +116,7 @@ export async function POST(req: NextRequest) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 15 * 60, // 15 minutes
+            maxAge: Math.min(15 * 60, remainingSessionSeconds),
             path: '/',
         });
 
@@ -114,7 +124,15 @@ export async function POST(req: NextRequest) {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'strict',
-            maxAge: 7 * 24 * 60 * 60, // 7 days
+            maxAge: remainingSessionSeconds,
+            path: '/',
+        });
+
+        cookieStore.set('session_id', session.id, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            maxAge: remainingSessionSeconds,
             path: '/',
         });
 

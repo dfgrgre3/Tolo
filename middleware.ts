@@ -19,10 +19,20 @@ import { jwtVerify } from 'jose';
  */
 
 // Route Configuration
-const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password'];
-const PROTECTED_PREFIXES = ['/dashboard', '/user', '/api/protected'];
+const PUBLIC_ROUTES = ['/login', '/register', '/forgot-password', '/reset-password', '/verify-email'];
+const PROTECTED_PREFIXES = ['/dashboard', '/user', '/settings', '/profile', '/account', '/api/protected'];
 const ADMIN_ROUTES = ['/admin', '/api/admin'];
 const TEACHER_ROUTES = ['/teacher'];
+const PUBLIC_AUTH_API_ROUTES = [
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/forgot-password',
+  '/api/auth/reset-password',
+  '/api/auth/verify-email',
+  '/api/auth/resend-verification',
+  '/api/auth/refresh',
+  '/api/auth/logout',
+];
 
 const JWT_SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET || 'super_secret_fallback_key_production_ready'
@@ -40,11 +50,13 @@ export async function middleware(request: NextRequest) {
   // ═══════════════════════════════════════════════════
   // 2. BYPASS CHECK - Static resources & auth endpoints
   // ═══════════════════════════════════════════════════
+  const isPublicAuthApiRoute = PUBLIC_AUTH_API_ROUTES.some((route) => pathname === route);
+
   if (
     pathname.includes('/_next/') ||
-    pathname.startsWith('/api/auth') ||
     pathname === '/favicon.ico' ||
-    PUBLIC_ROUTES.includes(pathname)
+    PUBLIC_ROUTES.includes(pathname) ||
+    isPublicAuthApiRoute
   ) {
     return response;
   }
@@ -54,10 +66,7 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = ADMIN_ROUTES.some(prefix => pathname.startsWith(prefix));
   const isTeacherRoute = TEACHER_ROUTES.some(prefix => pathname.startsWith(prefix));
 
-  // If route doesn't require protection, allow through
-  if (!isProtected && !isAdminRoute && !isTeacherRoute) {
-    return response;
-  }
+  const requiresAuth = isProtected || isAdminRoute || isTeacherRoute;
 
   // ═══════════════════════════════════════════════════
   // 3. TOKEN EXTRACTION & VERIFICATION
@@ -65,7 +74,7 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get('access_token')?.value;
 
   if (!token) {
-    return handleUnauthorized(request, pathname);
+    return requiresAuth ? handleUnauthorized(request, pathname) : response;
   }
 
   try {
@@ -100,9 +109,10 @@ export async function middleware(request: NextRequest) {
       },
     });
   } catch {
-    // Token is invalid or expired
-    // For API routes, return 401; for pages, redirect to login
-    return handleUnauthorized(request, pathname);
+    // Token is invalid or expired:
+    // - block protected routes
+    // - keep public routes accessible
+    return requiresAuth ? handleUnauthorized(request, pathname) : response;
   }
 }
 

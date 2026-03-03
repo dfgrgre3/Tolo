@@ -8,6 +8,9 @@ import Redis from 'ioredis';
 
 import { logger } from '@/lib/logger';
 
+// Simple in-memory fallback for when Redis is unavailable
+const memoryCache = new Map<string, { value: string; expires: number }>();
+
 /**
  * Cache metrics recorder
  * No-op stub that logs metrics via the unified logger.
@@ -22,23 +25,31 @@ function recordCacheMetric(operation: string, duration: number, success: boolean
 // Create Redis client with enhanced configuration for better performance and reliability
 // ioredis connects automatically on creation - no need to call .connect()
 export const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-  maxRetriesPerRequest: 3,
-  connectTimeout: 10000,
+  maxRetriesPerRequest: 1, // Reduce retries in dev to fail fast and fallback
+  connectTimeout: 5000,
   reconnectOnError: () => true, // Always retry on error
-  enableOfflineQueue: true,
+  enableOfflineQueue: false, // Don't queue commands if Redis is down
   keepAlive: 1,
-  lazyConnect: false, // Connect immediately (default)
+  lazyConnect: true, // Only connect when used
 });
 
 // Handle Redis connection events
 let redisErrorCount = 0;
+let isRedisAvailable = false;
+
 redisClient.on('connect', () => {
   redisErrorCount = 0;
+  isRedisAvailable = true;
   logger.info('Connected to Redis');
+});
+
+redisClient.on('ready', () => {
+  isRedisAvailable = true;
 });
 
 redisClient.on('error', (err: unknown) => {
   redisErrorCount++;
+  isRedisAvailable = false;
   // Only log the first few errors to avoid spamming
   if (redisErrorCount <= 3) {
     logger.error('Redis error:', err);
@@ -53,6 +64,7 @@ redisClient.on('reconnecting', () => {
     logger.warn('Redis reconnecting...');
   }
 });
+
 
 
 // Simple compression for large objects
@@ -85,6 +97,19 @@ export class CacheService {
     const trimmedKey = key.trim();
     const start = Date.now();
     try {
+      // Memory cache fallback
+      if (!isRedisAvailable) {
+        const item = memoryCache.get(trimmedKey);
+        const duration = Date.now() - start;
+        if (item && item.expires > Date.now()) {
+          recordCacheMetric('get', duration, true);
+          return JSON.parse(item.value) as T;
+        }
+        memoryCache.delete(trimmedKey);
+        recordCacheMetric('get', duration, false);
+        return null;
+      }
+
       const getPromise = redisClient.get(trimmedKey);
       const timeoutPromise = new Promise<string | null>((resolve) => {
         setTimeout(() => resolve(null), 2000); // 2 second timeout
@@ -148,6 +173,17 @@ export class CacheService {
         return;
       }
 
+      // Memory cache fallback
+      if (!isRedisAvailable) {
+        memoryCache.set(trimmedKey, {
+          value: serializedValue,
+          expires: Date.now() + (ttl * 1000)
+        });
+        const duration = Date.now() - start;
+        recordCacheMetric('set', duration, true);
+        return;
+      }
+
       const compressedValue = compressData(serializedValue);
 
       const setPromise = ttl > 0
@@ -182,6 +218,14 @@ export class CacheService {
     const trimmedKey = key.trim();
     const start = Date.now();
     try {
+      // Memory cache fallback
+      if (!isRedisAvailable) {
+        memoryCache.delete(trimmedKey);
+        const duration = Date.now() - start;
+        recordCacheMetric('del', duration, true);
+        return;
+      }
+
       const delPromise = redisClient.del(trimmedKey);
       const timeoutPromise = new Promise<never>((resolve, reject) => {
         setTimeout(() => reject(new Error('Cache delete timeout')), 2000); // 2 second timeout

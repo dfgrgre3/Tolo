@@ -6,6 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
+import CourseVideoPlayer from "@/components/video/CourseVideoPlayer";
 import {
   BookOpen,
   Clock,
@@ -13,11 +14,9 @@ import {
   Star,
   ChevronRight,
   ChevronLeft,
-  PlayCircle,
   CheckCircle2,
   Lock,
   GraduationCap,
-  Award,
   FileText,
   Share2,
   Bookmark,
@@ -56,6 +55,26 @@ type CourseLesson = {
   progress: number;
 };
 
+type CourseApiLesson = {
+  id: string;
+  title?: string;
+  name?: string;
+  description?: string | null;
+  content?: string | null;
+  videoUrl?: string | null;
+  duration?: number | null;
+  order?: number | null;
+  completed?: boolean;
+  progress?: number;
+};
+
+type LessonsApiResponse =
+  | CourseApiLesson[]
+  | {
+      lessons?: CourseApiLesson[];
+      progress?: Record<string, boolean>;
+    };
+
 const levelConfig = {
   BEGINNER: { label: "مبتدئ", color: "text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30" },
   INTERMEDIATE: { label: "متوسط", color: "text-amber-600 bg-amber-100 dark:bg-amber-900/30" },
@@ -84,86 +103,30 @@ export default function CourseDetailPage() {
 
     const fetchCourse = async () => {
       try {
-          const fakeCoursesMap: Record<string, any> = {
-            "fake-course-pro": {
-              id: "fake-course-pro",
-              title: "احتراف تطوير واجهات المستخدم (Front-End Pro)",
-              description: "دورة شاملة تاخذك من الصفر إلى الاحتراف في تطوير واجهات الويب باستخدام أحدث التقنيات مثل React و Next.js و Tailwind CSS. تتضمن مشاريع عملية واقعية وتقييمات مستمرة ودعم من المدربين.",
-              instructor: "أحمد محمد",
-              subject: "برمجة وتطوير",
-              level: "INTERMEDIATE",
-              duration: 45,
-              thumbnailUrl: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
-              price: 299,
-              rating: 4.9,
-              enrolledCount: 15420,
-              createdAt: new Date().toISOString(),
-              tags: ["React", "Next.js", "تطوير ويب", "مشاريع عملية"],
-              enrolled: false,
-              progress: 0
-            },
-            "fake-course-python": {
-              id: "fake-course-python",
-              title: "أساسيات لغة بايثون للذكاء الاصطناعي",
-              description: "تعلم بايثون من البداية مع التركيز على المكتبات الأساسية للذكاء الاصطناعي وتحليل البيانات مثل Pandas و NumPy. مناسب للمبتدئين.",
-              instructor: "سارة خالد",
-              subject: "ذكاء اصطناعي",
-              level: "BEGINNER",
-              duration: 30,
-              thumbnailUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
-              price: 150,
-              rating: 4.8,
-              enrolledCount: 8900,
-              createdAt: new Date(Date.now() - 86400000).toISOString(),
-              tags: ["Python", "AI", "Data Science", "مبتدئ"],
-              enrolled: false,
-              progress: 0
-            },
-            "fake-course-design": {
-              id: "fake-course-design",
-              title: "تصميم واجهات المستخدم وتجربة المستخدم (UI/UX)",
-              description: "دورة مكثفة في تصميم الواجهات باستخدام Figma. تعلم المبادئ الأساسية للتصميم وكيفية إنشاء تجربة مستخدم متميزة من خلال تطبيقات عملية.",
-              instructor: "عمر عبدالله",
-              subject: "تصميم",
-              level: "BEGINNER",
-              duration: 25,
-              thumbnailUrl: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=80",
-              price: 0,
-              rating: 4.7,
-              enrolledCount: 22100,
-              createdAt: new Date(Date.now() - 172800000).toISOString(),
-              tags: ["UI", "UX", "Figma", "تصميم"],
-              enrolled: false,
-              progress: 0
-            },
-            "fake-course-backend": {
-              id: "fake-course-backend",
-              title: "تطوير الواجهات الخلفية باستخدام Node.js",
-              description: "تعلم كيفية بناء واجهات خلفية قوية وقابلة للتوسع باستخدام Node.js و Express. تشمل الدورة التعامل مع قواعد البيانات وبناء واجهات API وتأمينها.",
-              instructor: "محمود حسن",
-              subject: "برمجة وتطوير",
-              level: "ADVANCED",
-              duration: 60,
-              thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
-              price: 350,
-              rating: 4.9,
-              enrolledCount: 5400,
-              createdAt: new Date(Date.now() - 259200000).toISOString(),
-              tags: ["Node.js", "Express", "Backend", "API"],
-              enrolled: false,
-              progress: 0
-            }
-          };
-
-        if (fakeCoursesMap[courseId]) {
-          setCourse(fakeCoursesMap[courseId]);
-          return;
-        }
-
         const res = await fetch(`/api/courses/${courseId}${userId ? `?userId=${userId}` : ""}`);
         if (res.ok) {
           const courseData = await res.json();
-          setCourse(courseData);
+          if (courseData?.subject) {
+            const subject = courseData.subject;
+
+            setCourse({
+              id: subject.id,
+              title: subject.nameAr || subject.name,
+              description: subject.description || "لا يوجد وصف متاح لهذه الدورة.",
+              instructor: subject.instructorName || "المنصة التعليمية",
+              subject: subject.nameAr || subject.name,
+              level: (subject.level as any) || "MEDIUM",
+              duration: subject.durationHours || 0,
+              thumbnailUrl: subject.thumbnailUrl || undefined,
+              price: subject.price || 0,
+              rating: subject.rating || 0,
+              enrolledCount: subject.enrolledCount || 0,
+              createdAt: subject.createdAt || new Date().toISOString(),
+              tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
+              enrolled: Boolean(courseData.enrollment),
+              progress: courseData.enrollment ? (courseData.enrollment.progress || 0) : undefined,
+            });
+          }
         } else {
           router.push("/courses");
         }
@@ -205,10 +168,40 @@ export default function CourseDetailPage() {
 
         const res = await fetch(`/api/courses/${courseId}/lessons${userId ? `?userId=${userId}` : ""}`);
         if (res.ok) {
-          const lessonsData = await res.json();
-          setLessons(lessonsData);
-          if (lessonsData.length > 0) {
-            setActiveLesson(lessonsData[0].id);
+          const lessonsData: LessonsApiResponse = await res.json();
+          const rawLessons = Array.isArray(lessonsData) ? lessonsData : lessonsData.lessons ?? [];
+          const progressMap =
+            Array.isArray(lessonsData) || !lessonsData.progress ? {} : lessonsData.progress;
+
+          const normalizedLessons: CourseLesson[] = rawLessons.map((lesson, index) => {
+            const fallbackProgress =
+              typeof lesson.progress === "number"
+                ? Math.min(100, Math.max(0, lesson.progress))
+                : 0;
+            const completed = lesson.completed ?? Boolean(progressMap[lesson.id]);
+
+            return {
+              id: lesson.id,
+              title: lesson.title || lesson.name || `الدرس ${index + 1}`,
+              description: lesson.description ?? undefined,
+              content: lesson.content ?? undefined,
+              videoUrl: lesson.videoUrl ?? undefined,
+              duration:
+                typeof lesson.duration === "number" && lesson.duration > 0
+                  ? lesson.duration
+                  : 600,
+              order:
+                typeof lesson.order === "number" && lesson.order > 0
+                  ? lesson.order
+                  : index + 1,
+              completed,
+              progress: completed ? 100 : fallbackProgress,
+            };
+          });
+
+          setLessons(normalizedLessons);
+          if (normalizedLessons.length > 0) {
+            setActiveLesson(normalizedLessons[0].id);
           }
         }
       } catch (error) {
@@ -241,7 +234,7 @@ export default function CourseDetailPage() {
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId })
+        body: JSON.stringify({ subject: courseId })
       });
 
       if (res.ok) {
@@ -299,43 +292,46 @@ export default function CourseDetailPage() {
 
   const handleLessonComplete = async (lessonId: string) => {
     if (!userId) return;
+    const targetLesson = lessons.find((lesson) => lesson.id === lessonId);
+    if (!targetLesson || targetLesson.completed) return;
+
+    const markLessonAsCompletedLocally = () => {
+      setLessons((previousLessons) => {
+        const updatedLessons = previousLessons.map((lesson) =>
+          lesson.id === lessonId ? { ...lesson, completed: true, progress: 100 } : lesson
+        );
+        const completedLessons = updatedLessons.filter((lesson) => lesson.completed).length;
+        const newProgress =
+          updatedLessons.length > 0
+            ? Math.round((completedLessons / updatedLessons.length) * 100)
+            : 0;
+
+        setCourse((previousCourse) =>
+          previousCourse ? { ...previousCourse, progress: newProgress } : previousCourse
+        );
+
+        return updatedLessons;
+      });
+    };
 
     try {
       if (courseId.startsWith("fake-course-")) {
-        setLessons(lessons.map(lesson =>
-          lesson.id === lessonId ? { ...lesson, completed: true, progress: 100 } : lesson
-        ));
-
-        if (course) {
-          // Add timeout to let state update flow, then calculate
-          setTimeout(() => {
-            const newLessons = lessons.map(lesson =>
-              lesson.id === lessonId ? { ...lesson, completed: true, progress: 100 } : lesson
-            );
-            const completedLessons = newLessons.filter(l => l.completed).length;
-            const newProgress = Math.round((completedLessons / newLessons.length) * 100);
-            setCourse({ ...course, progress: newProgress });
-          }, 0);
-        }
+        markLessonAsCompletedLocally();
         return;
       }
 
       const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, completed: true, progress: 100 })
+        body: JSON.stringify({
+          completed: true,
+          subject: course?.subject || ""
+        })
       });
 
       if (res.ok) {
-        setLessons(lessons.map(lesson =>
-          lesson.id === lessonId ? { ...lesson, completed: true, progress: 100 } : lesson
-        ));
+        markLessonAsCompletedLocally();
 
-        if (course) {
-          const completedLessons = lessons.filter(l => l.id === lessonId || l.completed).length;
-          const newProgress = Math.round((completedLessons / lessons.length) * 100);
-          setCourse({ ...course, progress: newProgress });
-        }
       } else {
         alert("حدث خطأ أثناء تحديث تقدم الدرس");
       }
@@ -720,26 +716,16 @@ export default function CourseDetailPage() {
 
                       {/* Video player area */}
                       {activeLessonData.videoUrl && course.enrolled ? (
-                        <div className="aspect-video bg-slate-900 flex items-center justify-center overflow-hidden">
-                          {activeLessonData.videoUrl.includes('youtube.com/embed') ? (
-                            <iframe 
-                              src={activeLessonData.videoUrl} 
-                              className="w-full h-full border-0"
-                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                              allowFullScreen 
-                            />
-                          ) : (
-                            <div className="text-center">
-                              <motion.div
-                                whileHover={{ scale: 1.1 }}
-                                className="h-20 w-20 mx-auto mb-4 rounded-full bg-white/10 flex items-center justify-center cursor-pointer"
-                              >
-                                <PlayCircle className="h-12 w-12 text-white" />
-                              </motion.div>
-                              <p className="text-white/70 text-sm">اضغط للتشغيل</p>
-                            </div>
-                          )}
-                        </div>
+                        <CourseVideoPlayer
+                          courseId={course.id}
+                          lessonId={activeLessonData.id}
+                          lessonTitle={activeLessonData.title}
+                          videoUrl={activeLessonData.videoUrl}
+                          alreadyCompleted={activeLessonData.completed}
+                          onLessonAutoComplete={() => {
+                            void handleLessonComplete(activeLessonData.id);
+                          }}
+                        />
                       ) : activeLessonData.videoUrl && !course.enrolled ? (
                         <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
                           <div className="text-center p-8">

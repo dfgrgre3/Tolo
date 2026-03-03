@@ -254,6 +254,39 @@ describe('AuthService', () => {
     });
 
     describe('login()', () => {
+        it('should normalize email before querying user record', async () => {
+            prisma.user.findUnique.mockResolvedValue(null);
+            prisma.securityLog.create.mockResolvedValue({});
+
+            await AuthService.login({
+                email: '  TEST@TEST.COM  ',
+                password: 'P@ssw0rd!',
+                ip: '127.0.0.1',
+                userAgent: 'test-agent',
+            });
+
+            expect(prisma.user.findUnique).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { email: 'test@test.com' },
+                })
+            );
+        });
+
+        it('should reject overly long passwords before database query', async () => {
+            prisma.securityLog.create.mockResolvedValue({});
+
+            const result = await AuthService.login({
+                email: 'test@test.com',
+                password: 'a'.repeat(257),
+                ip: '127.0.0.1',
+                userAgent: 'test-agent',
+            });
+
+            expect(result.success).toBe(false);
+            expect(result.statusCode).toBe(401);
+            expect(prisma.user.findUnique).not.toHaveBeenCalled();
+        });
+
         it('should return error for non-existent user', async () => {
             prisma.user.findUnique.mockResolvedValue(null);
             prisma.securityLog.create.mockResolvedValue({});

@@ -1,6 +1,7 @@
 import prisma from '@/lib/db';
 import { TokenService } from './token-service';
 import { logger } from '@/lib/logger';
+import { createHash } from 'crypto';
 
 /**
  * SessionService - Centralized session lifecycle management.
@@ -12,6 +13,42 @@ import { logger } from '@/lib/logger';
  * - Session expiry is enforced both at DB level and JWT level (defense in depth)
  */
 export class SessionService {
+    static hashRefreshToken(token: string): string {
+        return createHash('sha256').update(token).digest('hex');
+    }
+
+    private static inferDeviceInfo(userAgent: string) {
+        const value = (userAgent || '').toLowerCase();
+
+        let browser = 'Unknown';
+        if (value.includes('edg/')) browser = 'Edge';
+        else if (value.includes('chrome/') && !value.includes('edg/')) browser = 'Chrome';
+        else if (value.includes('firefox/')) browser = 'Firefox';
+        else if (value.includes('safari/') && !value.includes('chrome/')) browser = 'Safari';
+
+        let os = 'Unknown OS';
+        if (value.includes('windows')) os = 'Windows';
+        else if (value.includes('mac os')) os = 'macOS';
+        else if (value.includes('android')) os = 'Android';
+        else if (value.includes('iphone') || value.includes('ipad') || value.includes('ios')) os = 'iOS';
+        else if (value.includes('linux')) os = 'Linux';
+
+        let deviceType: 'desktop' | 'mobile' | 'tablet' = 'desktop';
+        if (value.includes('ipad') || value.includes('tablet')) {
+            deviceType = 'tablet';
+        } else if (value.includes('mobile') || value.includes('android') || value.includes('iphone')) {
+            deviceType = 'mobile';
+        }
+
+        return {
+            browser,
+            os,
+            deviceType,
+            name: `${browser} on ${os}`,
+            trusted: false,
+        };
+    }
+
     /**
      * Create a new session and generate tokens.
      * The session is stored in DB with the refresh token for rotation detection.
@@ -39,6 +76,7 @@ export class SessionService {
                 userId,
                 ip,
                 userAgent,
+                deviceInfo: JSON.stringify(this.inferDeviceInfo(userAgent)),
                 expiresAt,
                 isActive: true,
             },
@@ -56,7 +94,7 @@ export class SessionService {
         // 3. Store refresh token hash in session for rotation verification
         await prisma.session.update({
             where: { id: session.id },
-            data: { refreshToken },
+            data: { refreshToken: this.hashRefreshToken(refreshToken) },
         });
 
         return { session, accessToken, refreshToken };

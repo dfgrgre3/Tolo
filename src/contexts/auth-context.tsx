@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { clearUserId } from '@/lib/user-utils';
 
 /**
  * AuthContext - Client-side authentication state management.
@@ -23,7 +24,15 @@ export interface AuthUser {
     avatar: string | null;
     role: string;
     emailVerified: boolean | null;
+    phone?: string | null;
+    birthDate?: string | null;
+    gender?: string | null;
+    city?: string | null;
+    school?: string | null;
+    grade?: string | null;
+    bio?: string | null;
     createdAt?: string;
+
     lastLogin?: string;
     totalXP?: number;
     level?: number;
@@ -179,12 +188,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: data.error || 'Login failed' };
             }
 
-            setUser(data.user);
+            // Keep initial user payload for immediate UI updates, then hydrate full profile.
+            if (data.user) {
+                setUser(data.user);
+            }
+            await refreshUser();
             return { success: true };
         } catch {
             return { success: false, error: 'Network error. Please try again.' };
         }
-    }, []);
+    }, [refreshUser]);
 
     /**
      * Register function - creates account via API.
@@ -225,13 +238,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await fetch(`/api/auth/logout${allDevices ? '?all=true' : ''}`, {
                 method: 'POST',
                 credentials: 'include',
+                cache: 'no-store',
             });
         } catch {
             // Even if API call fails, clear local state
         }
 
         setUser(null);
-        router.push('/login');
+        clearUserId();
+        router.replace('/login');
         router.refresh();
     }, [router]);
 

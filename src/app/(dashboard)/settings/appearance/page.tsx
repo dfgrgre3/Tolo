@@ -1,25 +1,23 @@
 'use client';
 
 /**
- * 🎨 صفحة إعدادات المظهر - Appearance Settings
+ * ًںژ¨ طµظپط­ط© ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط¸ظ‡ط± - Appearance Settings
  * 
- * تخصيص مظهر التطبيق مع:
- * - السمات (فاتح/داكن/تلقائي)
- * - ألوان مخصصة
- * - حجم الخط
- * - تعديلات الواجهة
+ * طھط®طµظٹطµ ظ…ط¸ظ‡ط± ط§ظ„طھط·ط¨ظٹظ‚ ظ…ط¹:
+ * - ط§ظ„ط³ظ…ط§طھ (ظپط§طھط­/ط¯ط§ظƒظ†/طھظ„ظ‚ط§ط¦ظٹ)
+ * - ط£ظ„ظˆط§ظ† ظ…ط®طµطµط©
+ * - ط­ط¬ظ… ط§ظ„ط®ط·
+ * - طھط¹ط¯ظٹظ„ط§طھ ط§ظ„ظˆط§ط¬ظ‡ط©
  */
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Palette,
   Sun,
   Moon,
   Monitor,
   Type,
-  Minus,
-  Plus,
   Sparkles,
   Eye,
   Layout,
@@ -30,70 +28,74 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-interface AppearanceSettings {
-  theme: 'light' | 'dark' | 'system';
-  primaryColor: string;
-  accentColor: string;
-  fontSize: 'small' | 'medium' | 'large' | 'xlarge';
-  fontFamily: string;
-  reducedMotion: boolean;
-  highContrast: boolean;
-  compactMode: boolean;
-  sidebarPosition: 'right' | 'left';
-  borderRadius: 'none' | 'small' | 'medium' | 'large';
-}
-
-const initialSettings: AppearanceSettings = {
-  theme: 'dark',
-  primaryColor: '#6366f1',
-  accentColor: '#8b5cf6',
-  fontSize: 'medium',
-  fontFamily: 'system',
-  reducedMotion: false,
-  highContrast: false,
-  compactMode: false,
-  sidebarPosition: 'right',
-  borderRadius: 'medium',
-};
+import {
+  DEFAULT_APPEARANCE_SETTINGS,
+  type AppearanceSettingsPreference,
+} from '@/types/settings-preferences';
+import {
+  fetchSettingsPreferences,
+  saveSettingsPreferences,
+} from '@/app/(dashboard)/settings/preferences-client';
 
 const colorPresets = [
-  { name: 'بنفسجي', primary: '#6366f1', accent: '#8b5cf6' },
-  { name: 'أزرق', primary: '#3b82f6', accent: '#0ea5e9' },
-  { name: 'أخضر', primary: '#22c55e', accent: '#10b981' },
-  { name: 'برتقالي', primary: '#f97316', accent: '#fb923c' },
-  { name: 'وردي', primary: '#ec4899', accent: '#f472b6' },
-  { name: 'أحمر', primary: '#ef4444', accent: '#f87171' },
+  { name: 'ط¨ظ†ظپط³ط¬ظٹ', primary: '#6366f1', accent: '#8b5cf6' },
+  { name: 'ط£ط²ط±ظ‚', primary: '#3b82f6', accent: '#0ea5e9' },
+  { name: 'ط£ط®ط¶ط±', primary: '#22c55e', accent: '#10b981' },
+  { name: 'ط¨ط±طھظ‚ط§ظ„ظٹ', primary: '#f97316', accent: '#fb923c' },
+  { name: 'ظˆط±ط¯ظٹ', primary: '#ec4899', accent: '#f472b6' },
+  { name: 'ط£ط­ظ…ط±', primary: '#ef4444', accent: '#f87171' },
 ];
 
 const fontOptions = [
-  { value: 'system', label: 'خط النظام', sample: 'أ ب ت' },
-  { value: 'cairo', label: 'Cairo', sample: 'أ ب ت' },
-  { value: 'tajawal', label: 'Tajawal', sample: 'أ ب ت' },
-  { value: 'noto-kufi', label: 'Noto Kufi', sample: 'أ ب ت' },
+  { value: 'system', label: 'ط®ط· ط§ظ„ظ†ط¸ط§ظ…', sample: 'ط£ ط¨ طھ' },
+  { value: 'cairo', label: 'Cairo', sample: 'ط£ ط¨ طھ' },
+  { value: 'tajawal', label: 'Tajawal', sample: 'ط£ ط¨ طھ' },
+  { value: 'noto-kufi', label: 'Noto Kufi', sample: 'ط£ ط¨ طھ' },
 ];
 
 const fontSizes = [
-  { value: 'small', label: 'صغير', size: '14px' },
-  { value: 'medium', label: 'متوسط', size: '16px' },
-  { value: 'large', label: 'كبير', size: '18px' },
-  { value: 'xlarge', label: 'كبير جداً', size: '20px' },
+  { value: 'small', label: 'طµط؛ظٹط±', size: '14px' },
+  { value: 'medium', label: 'ظ…طھظˆط³ط·', size: '16px' },
+  { value: 'large', label: 'ظƒط¨ظٹط±', size: '18px' },
+  { value: 'xlarge', label: 'ظƒط¨ظٹط± ط¬ط¯ط§ظ‹', size: '20px' },
 ];
 
 export default function AppearanceSettingsPage() {
-  const [settings, setSettings] = useState<AppearanceSettings>(initialSettings);
+  const [settings, setSettings] = useState<AppearanceSettingsPreference>({ ...DEFAULT_APPEARANCE_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 500);
-    return () => clearTimeout(timer);
+    let mounted = true;
+
+    const loadSettings = async () => {
+      setIsLoading(true);
+      try {
+        const preferences = await fetchSettingsPreferences();
+        if (!mounted) return;
+        setSettings(preferences.appearance);
+      } catch {
+        if (!mounted) return;
+        setSettings({ ...DEFAULT_APPEARANCE_SETTINGS });
+        toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط¸ظ‡ط±');
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadSettings();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const updateSetting = <K extends keyof AppearanceSettings>(
+  const updateSetting = <K extends keyof AppearanceSettingsPreference>(
     key: K,
-    value: AppearanceSettings[K]
+    value: AppearanceSettingsPreference[K]
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
@@ -102,20 +104,24 @@ export default function AppearanceSettingsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const updatedPreferences = await saveSettingsPreferences({
+        appearance: settings,
+      });
+      setSettings(updatedPreferences.appearance);
       toast.success('تم حفظ إعدادات المظهر');
       setHasChanges(false);
-    } catch {
-      toast.error('حدث خطأ أثناء الحفظ');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'حدث خطأ أثناء حفظ الإعدادات';
+      toast.error(message);
     } finally {
       setIsSaving(false);
     }
   };
 
   const handleReset = () => {
-    setSettings(initialSettings);
+    setSettings({ ...DEFAULT_APPEARANCE_SETTINGS });
     setHasChanges(true);
-    toast.info('تم إعادة الإعدادات للقيم الافتراضية');
+    toast.info('طھظ… ط¥ط¹ط§ط¯ط© ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ظ„ظ„ظ‚ظٹظ… ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©');
   };
 
   if (isLoading) {
@@ -133,10 +139,10 @@ export default function AppearanceSettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <Palette className="h-7 w-7 text-indigo-400" />
-            المظهر
+            ط§ظ„ظ…ط¸ظ‡ط±
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            تخصيص مظهر التطبيق وألوانه
+            طھط®طµظٹطµ ظ…ط¸ظ‡ط± ط§ظ„طھط·ط¨ظٹظ‚ ظˆط£ظ„ظˆط§ظ†ظ‡
           </p>
         </div>
         
@@ -148,7 +154,7 @@ export default function AppearanceSettingsPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
           >
             <RotateCcw className="h-4 w-4" />
-            إعادة تعيين
+            ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ†
           </motion.button>
           
           {hasChanges && (
@@ -166,7 +172,7 @@ export default function AppearanceSettingsPage() {
               ) : (
                 <Check className="h-4 w-4" />
               )}
-              حفظ التغييرات
+              ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±ط§طھ
             </motion.button>
           )}
         </div>
@@ -181,17 +187,17 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Sun className="h-5 w-5 text-indigo-400" />
-            السمة
+            ط§ظ„ط³ظ…ط©
           </h3>
-          <p className="text-xs text-slate-400 mt-1">اختر سمة العرض المفضلة</p>
+          <p className="text-xs text-slate-400 mt-1">ط§ط®طھط± ط³ظ…ط© ط§ظ„ط¹ط±ط¶ ط§ظ„ظ…ظپط¶ظ„ط©</p>
         </div>
         
         <div className="p-6">
           <div className="grid grid-cols-3 gap-4">
             {[
-              { value: 'light', label: 'فاتح', icon: Sun },
-              { value: 'dark', label: 'داكن', icon: Moon },
-              { value: 'system', label: 'تلقائي', icon: Monitor },
+              { value: 'light', label: 'ظپط§طھط­', icon: Sun },
+              { value: 'dark', label: 'ط¯ط§ظƒظ†', icon: Moon },
+              { value: 'system', label: 'طھظ„ظ‚ط§ط¦ظٹ', icon: Monitor },
             ].map((theme) => {
               const Icon = theme.icon;
               const isSelected = settings.theme === theme.value;
@@ -201,7 +207,7 @@ export default function AppearanceSettingsPage() {
                   key={theme.value}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => updateSetting('theme', theme.value as AppearanceSettings['theme'])}
+                  onClick={() => updateSetting('theme', theme.value as AppearanceSettingsPreference['theme'])}
                   className={cn(
                     'relative flex flex-col items-center gap-3 p-6 rounded-xl border transition-all',
                     isSelected
@@ -249,9 +255,9 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-indigo-400" />
-            الألوان
+            ط§ظ„ط£ظ„ظˆط§ظ†
           </h3>
-          <p className="text-xs text-slate-400 mt-1">اختر لوحة الألوان المفضلة</p>
+          <p className="text-xs text-slate-400 mt-1">ط§ط®طھط± ظ„ظˆط­ط© ط§ظ„ط£ظ„ظˆط§ظ† ط§ظ„ظ…ظپط¶ظ„ط©</p>
         </div>
         
         <div className="p-6">
@@ -295,10 +301,10 @@ export default function AppearanceSettingsPage() {
           
           {/* Custom Color Picker */}
           <div className="mt-6 pt-6 border-t border-white/10">
-            <h4 className="text-sm font-medium text-white mb-4">لون مخصص</h4>
+            <h4 className="text-sm font-medium text-white mb-4">ظ„ظˆظ† ظ…ط®طµطµ</h4>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">اللون الرئيسي</label>
+                <label className="text-xs text-slate-400">ط§ظ„ظ„ظˆظ† ط§ظ„ط±ط¦ظٹط³ظٹ</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -315,7 +321,7 @@ export default function AppearanceSettingsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">اللون الثانوي</label>
+                <label className="text-xs text-slate-400">ط§ظ„ظ„ظˆظ† ط§ظ„ط«ط§ظ†ظˆظٹ</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -346,15 +352,15 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Type className="h-5 w-5 text-indigo-400" />
-            الخط والنص
+            ط§ظ„ط®ط· ظˆط§ظ„ظ†طµ
           </h3>
-          <p className="text-xs text-slate-400 mt-1">تخصيص الخطوط وحجم النص</p>
+          <p className="text-xs text-slate-400 mt-1">طھط®طµظٹطµ ط§ظ„ط®ط·ظˆط· ظˆط­ط¬ظ… ط§ظ„ظ†طµ</p>
         </div>
         
         <div className="p-6 space-y-6">
           {/* Font Size */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">حجم الخط</label>
+            <label className="text-sm font-medium text-white mb-4 block">ط­ط¬ظ… ط§ظ„ط®ط·</label>
             <div className="grid grid-cols-4 gap-3">
               {fontSizes.map((size) => {
                 const isSelected = settings.fontSize === size.value;
@@ -364,7 +370,7 @@ export default function AppearanceSettingsPage() {
                     key={size.value}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => updateSetting('fontSize', size.value as AppearanceSettings['fontSize'])}
+                    onClick={() => updateSetting('fontSize', size.value as AppearanceSettingsPreference['fontSize'])}
                     className={cn(
                       'flex flex-col items-center gap-2 p-4 rounded-xl border transition-all',
                       isSelected
@@ -372,7 +378,7 @@ export default function AppearanceSettingsPage() {
                         : 'bg-white/5 border-white/10 hover:bg-white/10'
                     )}
                   >
-                    <span style={{ fontSize: size.size }} className="text-white font-bold">أ</span>
+                    <span style={{ fontSize: size.size }} className="text-white font-bold">ط£</span>
                     <span className="text-xs text-slate-400">{size.label}</span>
                   </motion.button>
                 );
@@ -382,7 +388,7 @@ export default function AppearanceSettingsPage() {
           
           {/* Font Family */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">نوع الخط</label>
+            <label className="text-sm font-medium text-white mb-4 block">ظ†ظˆط¹ ط§ظ„ط®ط·</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {fontOptions.map((font) => {
                 const isSelected = settings.fontFamily === font.value;
@@ -420,32 +426,32 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Eye className="h-5 w-5 text-indigo-400" />
-            إمكانية الوصول
+            ط¥ظ…ظƒط§ظ†ظٹط© ط§ظ„ظˆطµظˆظ„
           </h3>
-          <p className="text-xs text-slate-400 mt-1">إعدادات تسهيل الوصول</p>
+          <p className="text-xs text-slate-400 mt-1">ط¥ط¹ط¯ط§ط¯ط§طھ طھط³ظ‡ظٹظ„ ط§ظ„ظˆطµظˆظ„</p>
         </div>
         
         <div className="p-6 space-y-4">
           <ToggleSetting
             icon={Zap}
-            title="تقليل الحركة"
-            description="إيقاف الرسوم المتحركة للأشخاص الحساسين للحركة"
+            title="طھظ‚ظ„ظٹظ„ ط§ظ„ط­ط±ظƒط©"
+            description="ط¥ظٹظ‚ط§ظپ ط§ظ„ط±ط³ظˆظ… ط§ظ„ظ…طھط­ط±ظƒط© ظ„ظ„ط£ط´ط®ط§طµ ط§ظ„ط­ط³ط§ط³ظٹظ† ظ„ظ„ط­ط±ظƒط©"
             enabled={settings.reducedMotion}
             onToggle={(v) => updateSetting('reducedMotion', v)}
           />
           
           <ToggleSetting
             icon={Eye}
-            title="تباين عالي"
-            description="زيادة التباين لتحسين وضوح العناصر"
+            title="طھط¨ط§ظٹظ† ط¹ط§ظ„ظٹ"
+            description="ط²ظٹط§ط¯ط© ط§ظ„طھط¨ط§ظٹظ† ظ„طھط­ط³ظٹظ† ظˆط¶ظˆط­ ط§ظ„ط¹ظ†ط§طµط±"
             enabled={settings.highContrast}
             onToggle={(v) => updateSetting('highContrast', v)}
           />
           
           <ToggleSetting
             icon={Layout}
-            title="الوضع المضغوط"
-            description="تقليل المسافات بين العناصر"
+            title="ط§ظ„ظˆط¶ط¹ ط§ظ„ظ…ط¶ط؛ظˆط·"
+            description="طھظ‚ظ„ظٹظ„ ط§ظ„ظ…ط³ط§ظپط§طھ ط¨ظٹظ† ط§ظ„ط¹ظ†ط§طµط±"
             enabled={settings.compactMode}
             onToggle={(v) => updateSetting('compactMode', v)}
           />
@@ -462,18 +468,18 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Layout className="h-5 w-5 text-indigo-400" />
-            شكل الزوايا
+            ط´ظƒظ„ ط§ظ„ط²ظˆط§ظٹط§
           </h3>
-          <p className="text-xs text-slate-400 mt-1">تخصيص استدارة زوايا العناصر</p>
+          <p className="text-xs text-slate-400 mt-1">طھط®طµظٹطµ ط§ط³طھط¯ط§ط±ط© ط²ظˆط§ظٹط§ ط§ظ„ط¹ظ†ط§طµط±</p>
         </div>
         
         <div className="p-6">
           <div className="grid grid-cols-4 gap-4">
             {[
-              { value: 'none', label: 'حادة', radius: '0px' },
-              { value: 'small', label: 'صغيرة', radius: '4px' },
-              { value: 'medium', label: 'متوسطة', radius: '8px' },
-              { value: 'large', label: 'كبيرة', radius: '16px' },
+              { value: 'none', label: 'ط­ط§ط¯ط©', radius: '0px' },
+              { value: 'small', label: 'طµط؛ظٹط±ط©', radius: '4px' },
+              { value: 'medium', label: 'ظ…طھظˆط³ط·ط©', radius: '8px' },
+              { value: 'large', label: 'ظƒط¨ظٹط±ط©', radius: '16px' },
             ].map((option) => {
               const isSelected = settings.borderRadius === option.value;
               
@@ -482,7 +488,7 @@ export default function AppearanceSettingsPage() {
                   key={option.value}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => updateSetting('borderRadius', option.value as AppearanceSettings['borderRadius'])}
+                  onClick={() => updateSetting('borderRadius', option.value as AppearanceSettingsPreference['borderRadius'])}
                   className={cn(
                     'flex flex-col items-center gap-3 p-4 border transition-all',
                     isSelected
@@ -516,7 +522,7 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Eye className="h-5 w-5 text-indigo-400" />
-            معاينة
+            ظ…ط¹ط§ظٹظ†ط©
           </h3>
         </div>
         
@@ -531,7 +537,7 @@ export default function AppearanceSettingsPage() {
                               settings.borderRadius === 'medium' ? '8px' : '16px',
               }}
             >
-              زر رئيسي
+              ط²ط± ط±ط¦ظٹط³ظٹ
             </div>
             <div
               className="p-4 text-white font-medium"
@@ -542,7 +548,7 @@ export default function AppearanceSettingsPage() {
                               settings.borderRadius === 'medium' ? '8px' : '16px',
               }}
             >
-              زر ثانوي
+              ط²ط± ط«ط§ظ†ظˆظٹ
             </div>
           </div>
         </div>

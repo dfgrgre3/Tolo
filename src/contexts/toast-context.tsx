@@ -1,7 +1,14 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { ToastContainer, ToastProps } from '../components/ui/Toast';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+
+import { ToastProps } from '@/types/toast';
+
+
+const ToastContainer = dynamic(() => import('../components/ui/Toast').then(mod => mod.ToastContainer), {
+  ssr: false
+});
 
 type ToastContextType = {
   showToast: (toast: Omit<ToastProps, 'id' | 'onDismiss'>) => string;

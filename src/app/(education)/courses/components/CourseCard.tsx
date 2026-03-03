@@ -20,7 +20,7 @@ export interface CourseCardProps {
   description: string;
   instructor: string;
   subject: string;
-  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+  level: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | "EASY" | "MEDIUM" | "HARD" | "EXPERT";
   duration: number;
   thumbnailUrl?: string;
   price: number;
@@ -36,27 +36,48 @@ export interface CourseCardProps {
   index?: number;
 }
 
-const levelConfig = {
+const levelConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
   BEGINNER: {
     label: "مبتدئ",
-    color: "from-emerald-400 to-emerald-600",
+    bg: "bg-emerald-500/10",
+    text: "text-emerald-600 dark:text-emerald-400",
+    border: "border-emerald-500/20"
+  },
+  EASY: {
+    label: "سهل",
     bg: "bg-emerald-500/10",
     text: "text-emerald-600 dark:text-emerald-400",
     border: "border-emerald-500/20"
   },
   INTERMEDIATE: {
     label: "متوسط",
-    color: "from-amber-400 to-amber-600",
+    bg: "bg-amber-500/10",
+    text: "text-amber-600 dark:text-amber-400",
+    border: "border-amber-500/20"
+  },
+  MEDIUM: {
+    label: "متوسط",
     bg: "bg-amber-500/10",
     text: "text-amber-600 dark:text-amber-400",
     border: "border-amber-500/20"
   },
   ADVANCED: {
     label: "متقدم",
-    color: "from-rose-400 to-rose-600",
     bg: "bg-rose-500/10",
     text: "text-rose-600 dark:text-rose-400",
     border: "border-rose-500/20"
+  },
+  HARD: {
+    label: "صعب",
+    bg: "bg-rose-500/10",
+    text: "text-rose-600 dark:text-rose-400",
+    border: "border-rose-500/20"
+  },
+  EXPERT: {
+    label: "خبير",
+    bg: "bg-purple-500/10",
+    text: "text-purple-600 dark:text-purple-400",
+    border: "border-purple-500/20"
   }
 };
 

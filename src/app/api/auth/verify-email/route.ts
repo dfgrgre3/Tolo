@@ -10,11 +10,25 @@ import { handleApiError } from '@/lib/api-utils';
  * 
  * Security: The raw token is never stored in the database, only its hash.
  */
-export async function GET(req: NextRequest) {
-    try {
-        const { searchParams } = new URL(req.url);
-        const token = searchParams.get('token');
 
+export async function GET(req: NextRequest) {
+    const { searchParams } = new URL(req.url);
+    const token = searchParams.get('token');
+    return processVerification(token);
+}
+
+export async function POST(req: NextRequest) {
+    try {
+        const body = await req.json();
+        const token = body.token;
+        return processVerification(token);
+    } catch (error) {
+        return handleApiError(error);
+    }
+}
+
+async function processVerification(token: string | null) {
+    try {
         if (!token) {
             return NextResponse.json(
                 { error: 'Verification token is required' },
@@ -32,7 +46,7 @@ export async function GET(req: NextRequest) {
         }
 
         return NextResponse.json(
-            { message: 'Email verified successfully! You can now log in.' },
+            { message: 'Email verified successfully!' },
             { status: 200 }
         );
     } catch (error) {

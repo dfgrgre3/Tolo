@@ -1,6 +1,15 @@
 import 'jest-extended';
 import '@testing-library/jest-dom';
 import React from 'react';
+import { TextDecoder, TextEncoder } from 'util';
+
+if (typeof global.TextEncoder === 'undefined') {
+  (global as any).TextEncoder = TextEncoder;
+}
+
+if (typeof global.TextDecoder === 'undefined') {
+  (global as any).TextDecoder = TextDecoder;
+}
 
 // Make React available globally for JSX
 if (typeof global.React === 'undefined') {

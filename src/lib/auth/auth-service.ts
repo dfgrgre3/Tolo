@@ -4,6 +4,7 @@ import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
 import { logger } from '@/lib/logger';
 import { randomBytes, createHash } from 'crypto';
+import { emailService } from '@/lib/services/email-service';
 
 /**
  * AuthService - Central authentication business logic layer.
@@ -53,6 +54,9 @@ export interface AuthResult {
     statusCode?: number;
 }
 
+// Constant bcrypt hash used for timing-safe comparison when user is not found.
+const DUMMY_PASSWORD_HASH = '$2a$12$RYM9CZPUKMeXAHOD01E4QeSjQIvT0.Q.rZEDkHXY/r8ok6sY4M1Ki';
+
 export class AuthService {
     /**
      * Authenticate a user with email and password.
@@ -65,11 +69,21 @@ export class AuthService {
      */
     static async login(input: LoginInput): Promise<AuthResult> {
         const { email, password, rememberMe = false, ip, userAgent } = input;
+        const normalizedEmail = email.toLowerCase().trim();
 
         try {
+            if (password.length > 256) {
+                await SecurityLogger.logFailedLogin(ip, userAgent, 'PASSWORD_TOO_LONG');
+                return {
+                    success: false,
+                    error: 'Invalid email or password',
+                    statusCode: 401,
+                };
+            }
+
             // 1. Find user by email
             const user = await prisma.user.findUnique({
-                where: { email: email.toLowerCase().trim() },
+                where: { email: normalizedEmail },
                 select: {
                     id: true,
                     email: true,
@@ -82,6 +96,10 @@ export class AuthService {
             });
 
             if (!user) {
+                // Run a timing-safe password comparison even when user is missing
+                // to make enumeration attacks harder.
+                await PasswordService.compare(password, DUMMY_PASSWORD_HASH);
+
                 // Log failed attempt (without exposing email in logs)
                 await SecurityLogger.logFailedLogin(ip, userAgent, 'USER_NOT_FOUND');
                 return {
@@ -212,8 +230,8 @@ export class AuthService {
                 userAgent,
             });
 
-            // TODO: Send verification email with verifyToken (not the hash)
-            // await EmailService.sendVerificationEmail(normalizedEmail, verifyToken);
+            // 6. Send verification email
+            await emailService.sendVerificationEmail(normalizedEmail, verifyToken);
 
             return {
                 success: true,
@@ -236,6 +254,7 @@ export class AuthService {
             };
         }
     }
+
 
     /**
      * Verify a user's email address using the verification token.
@@ -265,10 +284,149 @@ export class AuthService {
                 },
             });
 
+            // Log email verification
+            await SecurityLogger.log({
+                userId: user.id,
+                eventType: SecurityEventType.EMAIL_VERIFIED,
+                ip: 'SYSTEM', // Context missing here, but usually called from API
+                userAgent: 'SYSTEM',
+            });
+
             return { success: true };
         } catch (error) {
             logger.error('[AUTH_VERIFY_EMAIL_ERROR]', { error });
             return { success: false, error: 'Internal server error' };
+        }
+    }
+
+    /**
+     * Initiate password reset flow.
+     */
+    static async forgotPassword(email: string, ip: string, userAgent: string): Promise<{ success: boolean }> {
+        try {
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await prisma.user.findUnique({
+                where: { email: normalizedEmail },
+            });
+
+            if (!user) {
+                // Ambiguous response for security (prevent enumeration)
+                return { success: true };
+            }
+
+            // Generate reset token
+            const resetToken = randomBytes(32).toString('hex');
+            const resetTokenHash = createHash('sha256').update(resetToken).digest('hex');
+            const resetExpires = new Date(Date.now() + 1 * 60 * 60 * 1000); // 1 hour
+
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    resetToken: resetTokenHash,
+                    resetTokenExpires: resetExpires,
+                },
+            });
+
+            await SecurityLogger.log({
+                userId: user.id,
+                eventType: SecurityEventType.PASSWORD_RESET_REQUEST,
+                ip,
+                userAgent,
+            });
+
+            // 4. Send password reset email
+            await emailService.sendPasswordResetLink(normalizedEmail, resetToken);
+            logger.info('[PASSWORD_RESET_LINK_SENT]', { email: normalizedEmail });
+
+            return { success: true };
+        } catch (error) {
+            logger.error('[AUTH_FORGOT_PASSWORD_ERROR]', { error });
+            return { success: true }; // Still return success to prevent timing attacks/enumeration
+        }
+    }
+
+    /**
+     * Complete password reset flow.
+     */
+    static async resetPassword(token: string, newPassword: string, ip: string, userAgent: string): Promise<{ success: boolean; error?: string }> {
+        try {
+            const tokenHash = createHash('sha256').update(token).digest('hex');
+
+            const user = await prisma.user.findFirst({
+                where: {
+                    resetToken: tokenHash,
+                    resetTokenExpires: { gt: new Date() },
+                },
+            });
+
+            if (!user) {
+                return { success: false, error: 'Invalid or expired reset token' };
+            }
+
+            // Hash new password
+            const passwordHash = await PasswordService.hash(newPassword);
+
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    passwordHash,
+                    resetToken: null,
+                    resetTokenExpires: null,
+                    passwordChangedAt: new Date(),
+                },
+            });
+
+            // Invalidate all existing sessions for this user for security
+            await SessionService.revokeAllSessions(user.id);
+
+            await SecurityLogger.log({
+                userId: user.id,
+                eventType: SecurityEventType.PASSWORD_RESET_COMPLETE,
+                ip,
+                userAgent,
+            });
+
+            return { success: true };
+        } catch (error) {
+            logger.error('[AUTH_RESET_PASSWORD_ERROR]', { error });
+            return { success: false, error: 'Internal server error' };
+        }
+    }
+
+    /**
+     * Resend verification email.
+     */
+    static async resendVerification(email: string, ip: string, userAgent: string): Promise<{ success: boolean; error?: string }> {
+        try {
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await prisma.user.findUnique({
+                where: { email: normalizedEmail },
+            });
+
+            if (!user || user.emailVerified) {
+                return { success: true }; // Ambiguous
+            }
+
+            // Generate new token
+            const verifyToken = randomBytes(32).toString('hex');
+            const verifyTokenHash = createHash('sha256').update(verifyToken).digest('hex');
+            const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    emailVerificationToken: verifyTokenHash,
+                    emailVerificationExpires: verifyExpires,
+                },
+            });
+
+            // 4. Send verification email
+            await emailService.sendVerificationEmail(normalizedEmail, verifyToken);
+
+            return { success: true };
+        } catch (error) {
+            logger.error('[AUTH_RESEND_VERIFICATION_ERROR]', { error });
+            return { success: true };
         }
     }
 
@@ -286,6 +444,13 @@ export class AuthService {
                 avatar: true,
                 role: true,
                 emailVerified: true,
+                phone: true,
+                bio: true,
+                school: true,
+                grade: true,
+                city: true,
+                birthDate: true,
+                gender: true,
                 createdAt: true,
                 lastLogin: true,
                 totalXP: true,
@@ -293,5 +458,88 @@ export class AuthService {
                 currentStreak: true,
             },
         });
+    }
+
+    /**
+     * Update user profile information.
+     */
+    static async updateProfile(userId: string, data: {
+        name?: string;
+        username?: string;
+        phone?: string;
+        avatar?: string;
+        bio?: string;
+        school?: string;
+        grade?: string;
+        city?: string;
+        birthDate?: string;
+        gender?: string;
+    }) {
+        try {
+            return await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    ...data,
+                    birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
+                },
+            });
+        } catch (error) {
+            logger.error('[AUTH_UPDATE_PROFILE_ERROR]', { error });
+            throw error;
+        }
+    }
+
+    /**
+     * Change user password after validating current password.
+     */
+    static async changePassword(userId: string, currentPassword: string, newPassword: string, ip: string, userAgent: string) {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { passwordHash: true }
+            });
+
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            // Verify current password
+            const isValid = await PasswordService.compare(currentPassword, user.passwordHash) as boolean;
+            if (!isValid) {
+                await SecurityLogger.log({
+                    userId,
+                    eventType: SecurityEventType.PASSWORD_CHANGE,
+                    ip,
+                    userAgent,
+                    metadata: { reason: 'INVALID_CURRENT_PASSWORD', success: false }
+                });
+                throw new Error('كلمة المرور الحالية غير صحيحة');
+            }
+
+            // Hash and update new password
+            const newPasswordHash = await PasswordService.hash(newPassword);
+            await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    passwordHash: newPasswordHash,
+                    passwordChangedAt: new Date()
+                }
+            });
+
+            // Log success
+            await SecurityLogger.log({
+                userId,
+                eventType: SecurityEventType.PASSWORD_CHANGE,
+                ip,
+                userAgent,
+                metadata: { success: true }
+            });
+
+            return { success: true };
+
+        } catch (error: any) {
+            logger.error('[AUTH_CHANGE_PASSWORD_ERROR]', { error });
+            throw error;
+        }
     }
 }

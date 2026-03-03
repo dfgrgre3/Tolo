@@ -61,6 +61,7 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
   );
 }
 
-export * from '@/contexts/toast-context';
-export * from '@/contexts/websocket-context';
-export * from '@/contexts/auth-context';
+
+// No re-exports here to avoid circular dependencies. 
+// Import contexts directly from '@/contexts/...'
+

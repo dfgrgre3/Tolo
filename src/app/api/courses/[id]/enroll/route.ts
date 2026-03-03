@@ -14,11 +14,6 @@ export async function POST(
     return withAuth(req, async ({ userId }) => {
       try {
         const { id } = await params;
-        const { subject } = await req.json();
-
-        if (!subject) {
-          return badRequestResponse("المادة مطلوبة");
-        }
 
         // Check if user exists
         const user = await prisma.user.findUnique({
@@ -33,7 +28,7 @@ export async function POST(
         const existingEnrollment = await prisma.subjectEnrollment.findFirst({
           where: {
             userId,
-            subjectId: subject
+            subjectId: id
           }
         });
 
@@ -46,7 +41,7 @@ export async function POST(
           data: {
             id: crypto.randomUUID(),
             userId,
-            subjectId: subject,
+            subjectId: id,
             targetWeeklyHours: 0 // Default value, can be updated later
           }
         });

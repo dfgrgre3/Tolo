@@ -23,6 +23,8 @@ import { cn } from "@/lib/utils";
 // import removed
 import { useTheme } from "next-themes";
 import { headerAnimations } from "./hooks/useHeaderAnimations";
+import { useAuth } from "@/contexts/auth-context";
+import { LogIn, UserPlus, LogOut, Settings, User as UserIcon } from "lucide-react";
 
 interface HeaderMobileMenuEnhancedProps {
   isMobileMenuOpen: boolean;
@@ -43,6 +45,7 @@ export function HeaderMobileMenuEnhanced({
   // Theme
   const { theme, setTheme } = useTheme();
   const shouldReduceMotion = useReducedMotion();
+  const { user, logout, isLoading } = useAuth();
 
   // State
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
@@ -266,7 +269,73 @@ export function HeaderMobileMenuEnhanced({
                 </form>
               </div>
 
-            {/* User Profile Section removed */}
+            {/* User Profile Section */}
+            <div className="px-5 py-2">
+              {isLoading ? (
+                <div className="h-20 w-full rounded-2xl bg-muted animate-pulse" />
+              ) : user ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/10 via-primary/5 to-transparent border border-primary/10 shadow-sm">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-12 w-12 border-2 border-background shadow-md">
+                      <AvatarImage src={user.avatar || undefined} />
+                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">
+                        {user.name?.[0] || user.email[0].toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold truncate text-foreground">{user.name || user.username}</span>
+                      <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-4">
+                    <Button 
+                      variant="secondary" 
+                      size="sm" 
+                      className="flex-1 h-9 rounded-xl gap-2 text-xs font-bold"
+                      asChild
+                    >
+                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
+                        <UserIcon className="h-3.5 w-3.5" />
+                        الملف الشخصي
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => {
+                        logout();
+                        setIsMobileMenuOpen(false);
+                      }}
+                    >
+                      <LogOut className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="rounded-2xl h-11 border-primary/20 hover:bg-primary/5 text-primary gap-2 transition-all font-bold"
+                    asChild
+                  >
+                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                      <LogIn className="h-4 w-4" />
+                      دخول
+                    </Link>
+                  </Button>
+                  <Button 
+                    className="rounded-2xl h-11 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 shadow-lg shadow-primary/20 transition-all font-bold"
+                    asChild
+                  >
+                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                      <UserPlus className="h-4 w-4" />
+                      اشتراك
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
 
 
             {/* Navigation */}

@@ -1,15 +1,6 @@
 'use client';
 
-/**
- * 📱 صفحة إدارة الأجهزة - Device Management
- * 
- * إدارة الأجهزة المتصلة مع:
- * - عرض الأجهزة النشطة
- * - إلغاء الجلسات
- * - الوثوق بالأجهزة
- */
-
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Smartphone,
@@ -17,26 +8,31 @@ import {
   Tablet,
   Globe,
   Shield,
-  MapPin,
   Clock,
-  CheckCircle,
-  XCircle,
   AlertTriangle,
   Loader2,
   MoreVertical,
   LogOut,
-  Star,
-  StarOff,
-  Edit3,
-  Trash2,
   RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { ar } from 'date-fns/locale';
+import { useAuth } from '@/contexts/auth-context';
 
-interface Device {
+type SessionApiRecord = {
+  id: string;
+  userAgent: string;
+  ip: string;
+  deviceInfo: string | null;
+  createdAt: string;
+  lastAccessed: string;
+  expiresAt: string;
+  isCurrent: boolean;
+};
+
+type Device = {
   id: string;
   name: string;
   type: 'desktop' | 'mobile' | 'tablet';
@@ -47,126 +43,154 @@ interface Device {
   lastActive: Date;
   isCurrent: boolean;
   isTrusted: boolean;
+};
+
+type ParsedDeviceInfo = {
+  name?: string;
+  browser?: string;
+  os?: string;
+  deviceType?: 'desktop' | 'mobile' | 'tablet';
+  trusted?: boolean;
+};
+
+function detectDevice(ua: string): { browser: string; os: string; type: Device['type'] } {
+  const value = ua.toLowerCase();
+
+  let browser = 'Unknown';
+  if (value.includes('edg/')) browser = 'Edge';
+  else if (value.includes('chrome/') && !value.includes('edg/')) browser = 'Chrome';
+  else if (value.includes('firefox/')) browser = 'Firefox';
+  else if (value.includes('safari/') && !value.includes('chrome/')) browser = 'Safari';
+
+  let os = 'Unknown OS';
+  if (value.includes('windows')) os = 'Windows';
+  else if (value.includes('mac os')) os = 'macOS';
+  else if (value.includes('android')) os = 'Android';
+  else if (value.includes('iphone') || value.includes('ipad') || value.includes('ios')) os = 'iOS';
+  else if (value.includes('linux')) os = 'Linux';
+
+  let type: Device['type'] = 'desktop';
+  if (value.includes('ipad') || value.includes('tablet')) type = 'tablet';
+  else if (value.includes('mobile') || value.includes('android') || value.includes('iphone')) type = 'mobile';
+
+  return { browser, os, type };
+}
+
+function parseDeviceInfo(raw: string | null): ParsedDeviceInfo {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as ParsedDeviceInfo;
+  } catch {
+    return {};
+  }
+}
+
+function mapSessionToDevice(session: SessionApiRecord): Device {
+  const info = parseDeviceInfo(session.deviceInfo);
+  const fallback = detectDevice(session.userAgent || '');
+  const type = info.deviceType ?? fallback.type;
+  const browser = info.browser ?? fallback.browser;
+  const os = info.os ?? fallback.os;
+  const name = info.name ?? `${browser} على ${os}`;
+
+  return {
+    id: session.id,
+    name,
+    type,
+    browser,
+    os,
+    ip: session.ip || 'unknown',
+    location: session.ip || 'unknown',
+    lastActive: new Date(session.lastAccessed),
+    isCurrent: session.isCurrent,
+    isTrusted: Boolean(info.trusted),
+  };
 }
 
 export default function DevicesPage() {
+  const { logout } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRevoking, setIsRevoking] = useState<string | null>(null);
   const [showRevokeAllConfirm, setShowRevokeAllConfirm] = useState(false);
 
-  useEffect(() => {
-    const loadDevices = async () => {
+  const loadDevices = useCallback(async (refreshOnly = false) => {
+    if (refreshOnly) {
+      setIsRefreshing(true);
+    } else {
       setIsLoading(true);
-      
-      try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        const mockDevices: Device[] = [
-          {
-            id: '1',
-            name: 'Chrome على Windows',
-            type: 'desktop',
-            browser: 'Chrome 120',
-            os: 'Windows 11',
-            ip: '192.168.1.1',
-            location: 'القاهرة، مصر',
-            lastActive: new Date(),
-            isCurrent: true,
-            isTrusted: true,
-          },
-          {
-            id: '2',
-            name: 'Safari على iPhone',
-            type: 'mobile',
-            browser: 'Safari 17',
-            os: 'iOS 17.2',
-            ip: '192.168.1.2',
-            location: 'الرياض، السعودية',
-            lastActive: new Date(Date.now() - 2 * 60 * 60 * 1000),
-            isCurrent: false,
-            isTrusted: true,
-          },
-          {
-            id: '3',
-            name: 'Firefox على MacBook',
-            type: 'desktop',
-            browser: 'Firefox 121',
-            os: 'macOS Sonoma',
-            ip: '192.168.1.3',
-            location: 'دبي، الإمارات',
-            lastActive: new Date(Date.now() - 24 * 60 * 60 * 1000),
-            isCurrent: false,
-            isTrusted: false,
-          },
-          {
-            id: '4',
-            name: 'Chrome على iPad',
-            type: 'tablet',
-            browser: 'Chrome 120',
-            os: 'iPadOS 17',
-            ip: '192.168.1.4',
-            location: 'جدة، السعودية',
-            lastActive: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-            isCurrent: false,
-            isTrusted: false,
-          },
-        ];
-        
-        setDevices(mockDevices);
-      } catch {
-        toast.error('فشل في تحميل الأجهزة');
-      } finally {
-        setIsLoading(false);
+    }
+
+    try {
+      const response = await fetch('/api/auth/sessions', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch active sessions');
       }
-    };
-    
-    loadDevices();
+
+      const payload = (await response.json()) as { sessions?: SessionApiRecord[] };
+      const mapped = Array.isArray(payload.sessions)
+        ? payload.sessions.map(mapSessionToDevice)
+        : [];
+      setDevices(mapped);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'فشل تحميل الأجهزة المتصلة';
+      toast.error(message);
+      setDevices([]);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadDevices();
+  }, [loadDevices]);
 
   const handleRevoke = async (deviceId: string) => {
     setIsRevoking(deviceId);
-    
+
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setDevices(prev => prev.filter(d => d.id !== deviceId));
-      toast.success('تم إلغاء الجلسة بنجاح');
-    } catch {
-      toast.error('فشل في إلغاء الجلسة');
+      const response = await fetch('/api/auth/sessions', {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: deviceId }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({ error: 'Failed to revoke session' }));
+        throw new Error(payload.error || 'Failed to revoke session');
+      }
+
+      setDevices(prev => prev.filter(device => device.id !== deviceId));
+      toast.success('تم تسجيل خروج الجهاز بنجاح');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'فشل إنهاء الجلسة';
+      toast.error(message);
     } finally {
       setIsRevoking(null);
     }
   };
 
   const handleRevokeAll = async () => {
-    try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setDevices(prev => prev.filter(d => d.isCurrent));
-      toast.success('تم إلغاء جميع الجلسات');
-      setShowRevokeAllConfirm(false);
-    } catch {
-      toast.error('فشل في إلغاء الجلسات');
-    }
+    setShowRevokeAllConfirm(false);
+    await logout(true);
   };
 
-  const handleToggleTrust = async (deviceId: string) => {
-    setDevices(prev => prev.map(d => 
-      d.id === deviceId ? { ...d, isTrusted: !d.isTrusted } : d
-    ));
-    
-    const device = devices.find(d => d.id === deviceId);
-    if (device) {
-      toast.success(device.isTrusted ? 'تم إزالة الوثوق بالجهاز' : 'تم الوثوق بالجهاز');
-    }
-  };
-
-  const getDeviceIcon = (type: Device['type']) => {
-    switch (type) {
-      case 'mobile': return Smartphone;
-      case 'tablet': return Tablet;
-      default: return Monitor;
-    }
-  };
+  const currentDevice = useMemo(() => devices.find(device => device.isCurrent), [devices]);
+  const otherDevices = useMemo(() => devices.filter(device => !device.isCurrent), [devices]);
+  const trustedCount = useMemo(() => devices.filter(device => device.isTrusted).length, [devices]);
+  const uniqueIpCount = useMemo(() => new Set(devices.map(device => device.ip)).size, [devices]);
 
   if (isLoading) {
     return (
@@ -176,24 +200,17 @@ export default function DevicesPage() {
     );
   }
 
-  const currentDevice = devices.find(d => d.isCurrent);
-  const otherDevices = devices.filter(d => !d.isCurrent);
-  const trustedCount = devices.filter(d => d.isTrusted).length;
-
   return (
     <div className="max-w-4xl mx-auto space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <Smartphone className="h-7 w-7 text-indigo-400" />
             الأجهزة المتصلة
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            إدارة الأجهزة التي سجلت الدخول منها
-          </p>
+          <p className="text-sm text-slate-400 mt-1">إدارة الجلسات النشطة المرتبطة بحسابك</p>
         </div>
-        
+
         {otherDevices.length > 0 && (
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -202,12 +219,11 @@ export default function DevicesPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-500/20 text-red-400 font-medium border border-red-500/30 hover:bg-red-500/30 transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            إلغاء الكل
+            تسجيل خروج الكل
           </motion.button>
         )}
       </div>
 
-      {/* Stats */}
       <div className="grid sm:grid-cols-3 gap-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -220,11 +236,11 @@ export default function DevicesPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{devices.length}</p>
-              <p className="text-xs text-slate-400">إجمالي الأجهزة</p>
+              <p className="text-xs text-slate-400">إجمالي الجلسات</p>
             </div>
           </div>
         </motion.div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -237,11 +253,11 @@ export default function DevicesPage() {
             </div>
             <div>
               <p className="text-2xl font-bold text-white">{trustedCount}</p>
-              <p className="text-xs text-slate-400">أجهزة موثوقة</p>
+              <p className="text-xs text-slate-400">جلسات موثوقة</p>
             </div>
           </div>
         </motion.div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -253,14 +269,13 @@ export default function DevicesPage() {
               <Globe className="h-5 w-5 text-purple-400" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-white">{new Set(devices.map(d => d.location.split('،')[1]?.trim())).size}</p>
-              <p className="text-xs text-slate-400">مناطق مختلفة</p>
+              <p className="text-2xl font-bold text-white">{uniqueIpCount}</p>
+              <p className="text-xs text-slate-400">عناوين IP مختلفة</p>
             </div>
           </div>
         </motion.div>
       </div>
 
-      {/* Current Device */}
       {currentDevice && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -270,14 +285,13 @@ export default function DevicesPage() {
           <div className="p-4 border-b border-white/10">
             <div className="flex items-center gap-2">
               <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-              <h3 className="font-semibold text-white">الجهاز الحالي</h3>
+              <h3 className="font-semibold text-white">هذا الجهاز</h3>
             </div>
           </div>
-          <DeviceCard device={currentDevice} onRevoke={() => {}} onToggleTrust={() => handleToggleTrust(currentDevice.id)} />
+          <DeviceCard device={currentDevice} onRevoke={() => undefined} />
         </motion.div>
       )}
 
-      {/* Other Devices */}
       {otherDevices.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -287,13 +301,18 @@ export default function DevicesPage() {
           <div className="p-4 border-b border-white/10 flex items-center justify-between">
             <h3 className="font-semibold text-white flex items-center gap-2">
               <Monitor className="h-5 w-5 text-indigo-400" />
-              الأجهزة الأخرى ({otherDevices.length})
+              أجهزة أخرى ({otherDevices.length})
             </h3>
-            <button 
-              onClick={() => window.location.reload()}
-              className="flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors"
+            <button
+              onClick={() => loadDevices(true)}
+              disabled={isRefreshing}
+              className="flex items-center gap-1 text-sm text-slate-400 hover:text-white transition-colors disabled:opacity-60"
             >
-              <RefreshCw className="h-4 w-4" />
+              {isRefreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
               تحديث
             </button>
           </div>
@@ -305,12 +324,11 @@ export default function DevicesPage() {
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  transition={{ delay: index * 0.1 }}
+                  transition={{ delay: index * 0.05 }}
                 >
-                  <DeviceCard 
-                    device={device} 
+                  <DeviceCard
+                    device={device}
                     onRevoke={() => handleRevoke(device.id)}
-                    onToggleTrust={() => handleToggleTrust(device.id)}
                     isRevoking={isRevoking === device.id}
                   />
                 </motion.div>
@@ -320,7 +338,6 @@ export default function DevicesPage() {
         </motion.div>
       )}
 
-      {/* Empty State */}
       {otherDevices.length === 0 && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -329,13 +346,10 @@ export default function DevicesPage() {
         >
           <Shield className="h-12 w-12 text-green-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-white mb-2">لا توجد أجهزة أخرى</h3>
-          <p className="text-sm text-slate-400">
-            أنت مسجل الدخول فقط من هذا الجهاز
-          </p>
+          <p className="text-sm text-slate-400">أنت مسجل دخول فقط من هذا الجهاز</p>
         </motion.div>
       )}
 
-      {/* Revoke All Confirmation Modal */}
       <AnimatePresence>
         {showRevokeAllConfirm && (
           <>
@@ -358,15 +372,13 @@ export default function DevicesPage() {
                     <AlertTriangle className="h-6 w-6 text-red-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">إلغاء جميع الجلسات</h3>
-                    <p className="text-sm text-slate-400">سيتم تسجيل خروجك من جميع الأجهزة</p>
+                    <h3 className="text-lg font-bold text-white">تسجيل خروج جميع الأجهزة</h3>
+                    <p className="text-sm text-slate-400">
+                      سيتم تسجيل خروجك من كل الأجهزة بما فيها الجهاز الحالي
+                    </p>
                   </div>
                 </div>
-                
-                <p className="text-slate-300 mb-6">
-                  هل أنت متأكد من رغبتك في إلغاء جميع الجلسات؟ سيتم تسجيل خروجك من {otherDevices.length} جهاز باستثناء هذا الجهاز.
-                </p>
-                
+
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowRevokeAllConfirm(false)}
@@ -378,7 +390,7 @@ export default function DevicesPage() {
                     onClick={handleRevokeAll}
                     className="flex-1 p-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors"
                   >
-                    تأكيد الإلغاء
+                    تأكيد
                   </button>
                 </div>
               </div>
@@ -390,43 +402,35 @@ export default function DevicesPage() {
   );
 }
 
-// Device Card Component
-function DeviceCard({ 
-  device, 
+function DeviceCard({
+  device,
   onRevoke,
-  onToggleTrust,
   isRevoking = false,
-}: { 
-  device: Device; 
+}: {
+  device: Device;
   onRevoke: () => void;
-  onToggleTrust: () => void;
   isRevoking?: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
-  
-  const getDeviceIcon = (type: Device['type']) => {
-    switch (type) {
-      case 'mobile': return Smartphone;
-      case 'tablet': return Tablet;
-      default: return Monitor;
-    }
-  };
-  
-  const Icon = getDeviceIcon(device.type);
+  const DeviceIcon = device.type === 'mobile' ? Smartphone : device.type === 'tablet' ? Tablet : Monitor;
 
   return (
     <div className="p-4 hover:bg-white/5 transition-colors">
       <div className="flex items-start gap-4">
-        <div className={cn(
-          'flex h-12 w-12 items-center justify-center rounded-xl',
-          device.isCurrent ? 'bg-indigo-500/20' : 'bg-white/10'
-        )}>
-          <Icon className={cn(
-            'h-6 w-6',
-            device.isCurrent ? 'text-indigo-400' : 'text-slate-400'
-          )} />
+        <div
+          className={cn(
+            'flex h-12 w-12 items-center justify-center rounded-xl',
+            device.isCurrent ? 'bg-indigo-500/20' : 'bg-white/10'
+          )}
+        >
+          <DeviceIcon
+            className={cn(
+              'h-6 w-6',
+              device.isCurrent ? 'text-indigo-400' : 'text-slate-400'
+            )}
+          />
         </div>
-        
+
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h4 className="font-medium text-white truncate">{device.name}</h4>
@@ -436,26 +440,29 @@ function DeviceCard({
               </span>
             )}
             {device.isTrusted && (
-              <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+              <span className="px-2 py-0.5 text-[10px] rounded-full bg-yellow-500/20 text-yellow-300">
+                موثوق
+              </span>
             )}
           </div>
-          
+
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
             <span className="flex items-center gap-1">
               <Globe className="h-3 w-3" />
               {device.browser} • {device.os}
             </span>
             <span className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              {device.location}
+              IP: {device.ip}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
-              {device.isCurrent ? 'نشط الآن' : formatDistanceToNow(device.lastActive, { addSuffix: true, locale: ar })}
+              {device.isCurrent
+                ? 'نشط الآن'
+                : formatDistanceToNow(device.lastActive, { addSuffix: true, locale: ar })}
             </span>
           </div>
         </div>
-        
+
         {!device.isCurrent && (
           <div className="relative">
             <button
@@ -464,7 +471,7 @@ function DeviceCard({
             >
               <MoreVertical className="h-5 w-5 text-slate-400" />
             </button>
-            
+
             <AnimatePresence>
               {showMenu && (
                 <>
@@ -483,25 +490,6 @@ function DeviceCard({
                   >
                     <button
                       onClick={() => {
-                        onToggleTrust();
-                        setShowMenu(false);
-                      }}
-                      className="w-full flex items-center gap-2 p-3 text-sm text-slate-300 hover:bg-white/10 transition-colors"
-                    >
-                      {device.isTrusted ? (
-                        <>
-                          <StarOff className="h-4 w-4" />
-                          إزالة الوثوق
-                        </>
-                      ) : (
-                        <>
-                          <Star className="h-4 w-4" />
-                          الوثوق بالجهاز
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => {
                         onRevoke();
                         setShowMenu(false);
                       }}
@@ -513,7 +501,7 @@ function DeviceCard({
                       ) : (
                         <LogOut className="h-4 w-4" />
                       )}
-                      إلغاء الجلسة
+                      تسجيل خروج الجهاز
                     </button>
                   </motion.div>
                 </>

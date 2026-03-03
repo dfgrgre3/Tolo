@@ -2,6 +2,7 @@
 const nextConfig = {
   // Enable React strict mode for better performance
   reactStrictMode: true,
+  transpilePackages: ['framer-motion'],
 
   // Skip type checking during build (run separately in CI)
   typescript: {
@@ -57,7 +58,6 @@ const nextConfig = {
   // Optimize package imports
   experimental: {
     optimizePackageImports: [
-      'framer-motion',
       'lucide-react',
       'react-hook-form',
       '@radix-ui/react-dialog',
@@ -72,23 +72,6 @@ const nextConfig = {
   webpack: (config, { dev, isServer }) => {
     // Prevent Node.js modules from being bundled for client
     if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-        crypto: false,
-        stream: false,
-        url: false,
-        zlib: false,
-        http: false,
-        https: false,
-        assert: false,
-        os: false,
-        path: false,
-        'child_process': false,
-      };
-
       // Add aliases for node: scheme imports and server-side packages
       config.resolve.alias = {
         ...config.resolve.alias,
@@ -99,22 +82,15 @@ const nextConfig = {
         '@elastic/elasticsearch': false,
         'winston': false,
         'winston-elasticsearch': false,
-        '@': require('path').resolve(__dirname, 'src/'),
       };
     } else {
       // Server-side alias
       config.resolve.alias = {
         ...config.resolve.alias,
-        '@': require('path').resolve(__dirname, 'src/'),
       };
     }
 
     if (dev) {
-      config.optimization = {
-        ...config.optimization,
-        moduleIds: 'named',
-      };
-
       config.watchOptions = {
         ...config.watchOptions,
         ignored: ['**/node_modules/**', '**/.git/**', '**/.next/**'],
