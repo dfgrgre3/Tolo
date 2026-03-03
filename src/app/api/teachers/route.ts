@@ -1,8 +1,9 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from "@/lib/logger";
-import { TEACHER_ROLES, USER_ROLE } from '@/lib/constants';
+import { TEACHER_ROLES, UserRole } from '@/lib/constants';
+import { successResponse, handleApiError, badRequestResponse } from '@/lib/api-utils';
 
 export async function GET(request: NextRequest) {
 	return opsWrapper(request, async (req) => {
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
 			const teachers = await prisma.user.findMany({
 				where: {
 					role: {
-						in: TEACHER_ROLES as unknown as string[]
+						in: [...TEACHER_ROLES]
 					}
 				},
 				select: {
@@ -36,7 +37,7 @@ export async function GET(request: NextRequest) {
 			const teachersList = teachers.flatMap(teacher => {
 				// If teacher has subjects, create one entry per subject
 				if (teacher.subjectEnrollments && teacher.subjectEnrollments.length > 0) {
-					return teacher.subjectEnrollments.map(enrollment => ({
+					return teacher.subjectEnrollments.map((enrollment: any) => ({
 						id: teacher.id,
 						name: teacher.name || teacher.email || "ظ…ط¹ظ„ظ…",
 						subject: enrollment.subject.name,
@@ -52,13 +53,9 @@ export async function GET(request: NextRequest) {
 				}];
 			});
 
-			return NextResponse.json(teachersList, { status: 200 });
+			return successResponse(teachersList);
 		} catch (error) {
-			logger.error("Error fetching teachers:", error);
-			return NextResponse.json(
-				{ error: "Failed to fetch teachers" },
-				{ status: 500 }
-			);
+			return handleApiError(error);
 		}
 	});
 }
@@ -71,10 +68,7 @@ export async function POST(req: NextRequest) {
 
 			// Validate required fields
 			if (!email) {
-				return NextResponse.json(
-					{ error: "Email is required" },
-					{ status: 400 }
-				);
+				return badRequestResponse("Email is required");
 			}
 
 			// Create or update user with TEACHER role
@@ -82,13 +76,13 @@ export async function POST(req: NextRequest) {
 				where: { email },
 				update: {
 					name: name || undefined,
-					role: USER_ROLE.TEACHER
+					role: UserRole.TEACHER
 				},
 				create: {
 					email,
 					name: name || email,
 					passwordHash: "", // Password should be set separately
-					role: USER_ROLE.TEACHER
+					role: UserRole.TEACHER
 				}
 			});
 
@@ -113,18 +107,14 @@ export async function POST(req: NextRequest) {
 				}
 			}
 
-			return NextResponse.json({
+			return successResponse({
 				id: user.id,
 				name: user.name || user.email,
 				subject: subject || "",
 				onlineUrl: onlineUrl || null
-			}, { status: 201 });
+			}, undefined, 201);
 		} catch (error) {
-			logger.error("Error creating teacher:", error);
-			return NextResponse.json(
-				{ error: "Failed to create teacher" },
-				{ status: 500 }
-			);
+			return handleApiError(error);
 		}
 	});
 } 

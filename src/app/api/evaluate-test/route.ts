@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/db';
 import { OpenAI } from 'openai';
-import { rateLimit } from '@/lib/api-utils';
+import { rateLimit, withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -13,73 +13,56 @@ const openai = process.env.OPENAI_API_KEY
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      // Apply rate limiting
-      const rateLimitResult = await rateLimit(req, 20, 'evaluate_test'); // 20 requests per window
-      if (rateLimitResult) {
-        return rateLimitResult;
-      }
+    return withAuth(req, async ({ userId }) => {
+      try {
+        // Apply rate limiting
+        const rateLimitResult = await rateLimit(req, 20, 'evaluate_test'); // 20 requests per window
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
 
-      // Verify authentication
-      const userId = req.headers.get("x-user-id");
-      if (!userId) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
+        const { testId, answers, timeSpent } = await req.json();
 
-      const { testId, answers, timeSpent } = await req.json();
+        if (!testId || !answers) {
+          return badRequestResponse('Test ID and answers are required');
+        }
 
-      if (!testId || !answers) {
-        return NextResponse.json(
-          { error: 'Test ID and answers are required' },
-          { status: 400 }
-        );
-      }
+        // Get user from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId }
+        });
 
-      // Get user from database
-      const user = await prisma.user.findUnique({
-        where: { id: userId }
-      });
+        if (!user) {
+          return notFoundResponse('User not found');
+        }
 
-      if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
+        // Get test with questions from database
+        const test = await prisma.aiGeneratedExam.findUnique({
+          where: { id: testId },
+          include: { questions: true }
+        });
 
-      // Get test with questions from database
-      const test = await prisma.aiGeneratedExam.findUnique({
-        where: { id: testId },
-        include: { questions: true }
-      });
+        if (!test) {
+          return notFoundResponse('Test not found');
+        }
 
-      if (!test) {
-        return NextResponse.json(
-          { error: 'Test not found' },
-          { status: 404 }
-        );
-      }
+        // Prepare answers and questions for AI evaluation
+        const questionsForEvaluation = test.questions.map((q) => ({
+          id: q.id,
+          question: q.question,
+          options: q.options && typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          points: q.points
+        }));
 
-      // Prepare answers and questions for AI evaluation
-      const questionsForEvaluation = test.questions.map((q) => ({
-        id: q.id,
-        question: q.question,
-        options: q.options ? JSON.parse(q.options) : null,
-        correctAnswer: q.correctAnswer,
-        explanation: q.explanation,
-        points: q.points
-      }));
+        const userAnswersForEvaluation = answers.map((a: { questionId: string; value: string }) => ({
+          questionId: a.questionId,
+          value: a.value
+        }));
 
-      const userAnswersForEvaluation = answers.map((a: { questionId: string; value: string }) => ({
-        questionId: a.questionId,
-        value: a.value
-      }));
-
-      // Create prompt for AI to evaluate answers
-      const prompt = `
+        // Create prompt for AI to evaluate answers
+        const prompt = `
         قم بتقييم إجابات الطالب على الاختبار التالي في مادة ${getSubjectName(test.subjectId)}.
 
         الأسئلة والإجابات الصحيحة:
@@ -127,68 +110,66 @@ export async function POST(request: NextRequest) {
         }
       `;
 
-      // Call OpenAI API to evaluate answers
-      if (!openai) {
-        throw new Error("OpenAI API key is not configured");
+        // Call OpenAI API to evaluate answers
+        if (!openai) {
+          throw new Error("OpenAI API key is not configured");
+        }
+
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        });
+
+        const responseContent = completion.choices[0].message.content;
+        if (!responseContent) {
+          throw new Error("Empty response from AI");
+        }
+
+        const evaluation = JSON.parse(responseContent);
+
+        // Calculate score
+        let score = 0;
+        let totalPoints = 0;
+
+        test.questions.forEach((question) => {
+          totalPoints += question.points;
+          const result = evaluation.detailedResults.find((r: { questionId: string; isCorrect: boolean }) => r.questionId === question.id);
+          if (result && result.isCorrect) {
+            score += question.points;
+          }
+        });
+
+        // Save test result to database
+        const testResult = await prisma.testResult.create({
+          data: {
+            userId: user.id,
+            examId: testId,
+            score,
+            totalScore: totalPoints,
+            timeTaken: timeSpent,
+            answers: JSON.stringify(answers)
+          }
+        });
+
+        // Return the evaluation result
+        return successResponse({
+          result: {
+            testId,
+            answers,
+            score,
+            totalPoints,
+            timeSpent,
+            completedAt: new Date(),
+            feedback: evaluation.summary,
+            detailedResults: evaluation.detailedResults
+          }
+        });
+      } catch (error: unknown) {
+        logger.error('Error evaluating test:', error);
+        return handleApiError(error);
       }
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
-
-      const responseContent = completion.choices[0].message.content;
-      if (!responseContent) {
-        throw new Error("Empty response from AI");
-      }
-
-      const evaluation = JSON.parse(responseContent);
-
-      // Calculate score
-      let score = 0;
-      let totalPoints = 0;
-
-      test.questions.forEach((question) => {
-        totalPoints += question.points;
-        const result = evaluation.detailedResults.find((r: { questionId: string; isCorrect: boolean }) => r.questionId === question.id);
-        if (result && result.isCorrect) {
-          score += question.points;
-        }
-      });
-
-      // Save test result to database
-      const testResult = await prisma.testResult.create({
-        data: {
-          userId: user.id,
-          examId: testId,
-          score,
-          totalScore: totalPoints,
-          timeTaken: timeSpent,
-          answers: JSON.stringify(answers)
-        }
-      });
-
-      // Return the evaluation result
-      return NextResponse.json({
-        result: {
-          testId,
-          answers,
-          score,
-          totalPoints,
-          timeSpent,
-          completedAt: new Date(),
-          feedback: evaluation.summary,
-          detailedResults: evaluation.detailedResults
-        }
-      });
-    } catch (error: unknown) {
-      logger.error('Error evaluating test:', error);
-      return NextResponse.json(
-        { error: 'Failed to evaluate test' },
-        { status: 500 }
-      );
-    }
+    });
   });
 }
 

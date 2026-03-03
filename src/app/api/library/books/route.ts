@@ -1,32 +1,29 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
+import { ERROR_CODES } from '@/lib/error-codes';
 
 // GET all books
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-    const subject = searchParams.get("subject");
+      const subjectParam = searchParams.get("subject") ?? searchParams.get("subjectId");
 
-    const where = subject ? { subject } : {};
+      const where = subjectParam ? { subjectId: subjectParam } : {};
 
-    const books = await (prisma as any).book.findMany({
-      where,
-      orderBy: [
-        { createdAt: "desc" },
-        { downloads: "desc" }
-      ]
-    });
+      const books = await prisma.book.findMany({
+        where,
+        orderBy: [
+          { createdAt: "desc" },
+          { downloads: "desc" }
+        ]
+      });
 
-    return NextResponse.json(books);
-  } catch (error) {
-    logger.error("Error fetching books:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في جلب الكتب" },
-      { status: 500 }
-    );
+      return successResponse(books);
+    } catch (error: unknown) {
+      return handleApiError(error);
     }
   });
 }
@@ -35,34 +32,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const { title, author, description, subject, coverUrl, downloadUrl, tags } = await req.json();
+      const { title, author, description, subject, subjectId, coverUrl, downloadUrl, tags } = await req.json();
 
-    if (!title || !author || !description || !subject || !downloadUrl) {
-      return NextResponse.json(
-        { error: "جميع الحقول المطلوبة يجب ملؤها" },
-        { status: 400 }
-      );
-    }
+      const finalSubjectId = subjectId || subject;
 
-    const newBook = await (prisma as any).book.create({
-      data: {
-        title,
-        author,
-        description,
-        subject,
-        coverUrl,
-        downloadUrl,
-        tags: Array.isArray(tags) ? tags : (tags ? [tags] : []) // Ensure tags is an array for JSON field
+      if (!title || !author || !description || !finalSubjectId || !downloadUrl) {
+        return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها", ERROR_CODES.MISSING_PARAMETER);
       }
-    });
 
-    return NextResponse.json(newBook, { status: 201 });
-  } catch (error) {
-    logger.error("Error creating book:", error);
-    return NextResponse.json(
-      { error: "حدث خطأ في إضافة الكتاب" },
-      { status: 500 }
-    );
+      const newBook = await prisma.book.create({
+        data: {
+          title,
+          author,
+          description,
+          subjectId: finalSubjectId,
+          coverUrl,
+          downloadUrl,
+          tags: (Array.isArray(tags) ? tags : (tags ? [tags] : [])) as any // Suppressing TS error due to stale Prisma Client
+        }
+      });
+
+      return successResponse(newBook, undefined, 201);
+    } catch (error: unknown) {
+      return handleApiError(error);
     }
   });
 }

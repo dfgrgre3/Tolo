@@ -9,7 +9,7 @@ import {
 	parseRequestBody,
 	createStandardErrorResponse,
 	createSuccessResponse,
-} from '@/lib/api-helpers';
+} from '@/lib/api-utils';
 
 export async function GET(req: NextRequest) {
 	return opsWrapper(req, async (request) => {

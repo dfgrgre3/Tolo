@@ -1,8 +1,9 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { CacheService } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 
 // GET all announcements with caching
 export async function GET(request: NextRequest) {
@@ -43,13 +44,10 @@ export async function GET(request: NextRequest) {
         600 // Cache for 10 minutes
       );
 
-      return NextResponse.json(announcements);
+      return successResponse(announcements);
     } catch (error: unknown) {
       logger.error("Error fetching announcements:", error);
-      return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ط¥ط¹ظ„ط§ظ†ط§طھ" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
@@ -65,10 +63,7 @@ export async function POST(request: NextRequest) {
       } = await req.json();
 
       if (!title || !content || !priority) {
-        return NextResponse.json(
-          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
-          { status: 400 }
-        );
+        return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها");
       }
 
       const newAnnouncement = await prisma.announcement.create({
@@ -92,13 +87,10 @@ export async function POST(request: NextRequest) {
       // Invalidate all announcements cache when creating new announcement
       await CacheService.invalidatePattern('announcements*');
 
-      return NextResponse.json(transformedAnnouncement, { status: 201 });
+      return successResponse(transformedAnnouncement, undefined, 201);
     } catch (error: unknown) {
       logger.error("Error creating announcement:", error);
-      return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ط¥ط¹ظ„ط§ظ†" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

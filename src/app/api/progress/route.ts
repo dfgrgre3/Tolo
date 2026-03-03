@@ -10,7 +10,7 @@ import {
   createStandardErrorResponse,
   createSuccessResponse,
   addSecurityHeaders
-} from '@/lib/api-helpers';
+} from '@/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {

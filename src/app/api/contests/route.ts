@@ -1,7 +1,8 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse, withAuth, notFoundResponse } from '@/lib/api-utils';
 
 // GET all contests
 export async function GET(request: NextRequest) {
@@ -28,13 +29,10 @@ export async function GET(request: NextRequest) {
         // participantsCount: contest._count?.participants // Not in schema
       }));
 
-      return NextResponse.json(transformedContests);
+      return successResponse(transformedContests);
     } catch (error: unknown) {
       logger.error("Error fetching contests:", error);
-      return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ط³ط§ط¨ظ‚ط§طھ" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
@@ -42,74 +40,66 @@ export async function GET(request: NextRequest) {
 // POST create a new contest
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      const {
-        userId,
-        title,
-        description,
-        imageUrl,
-        startDate,
-        endDate,
-        prize,
-        category,
-        tags
-      } = await req.json();
-
-      if (!userId || !title || !description || !startDate || !endDate) {
-        return NextResponse.json(
-          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
-          { status: 400 }
-        );
-      }
-
-      // Check if user exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId }
-      });
-
-      if (!user) {
-        return NextResponse.json(
-          { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
-          { status: 404 }
-        );
-      }
-
-      const newContest = await prisma.contest.create({
-        data: {
+    return withAuth(req, async ({ userId }) => {
+      try {
+        const {
           title,
           description,
-          // imageUrl, // Not in schema
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
-          prizes: prize ? JSON.stringify(prize) : undefined, // Schema has prizes
-          // category, // Not in schema
-          // organizerId: userId, // Not in schema
-          // tags: tags || [] // Not in schema
+          imageUrl,
+          startDate,
+          endDate,
+          prize,
+          category,
+          tags
+        } = await req.json();
+
+        if (!title || !description || !startDate || !endDate) {
+          return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها");
         }
-      });
 
-      // Transform the data to match the frontend structure
-      const transformedContest = {
-        id: newContest.id,
-        title: newContest.title,
-        description: newContest.description,
-        // imageUrl: newContest.imageUrl,
-        startDate: newContest.startDate.toISOString(),
-        endDate: newContest.endDate.toISOString(),
-        prize: newContest.prizes,
-        // category: newContest.category,
-        // organizerName: user.name,
-        // tags: newContest.tags,
-        // participantsCount: 0
-      };
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId }
+        });
 
-      return NextResponse.json(transformedContest, { status: 201 });
-    } catch (error: unknown) {
-      logger.error("Error creating contest:", error);
-      return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط³ط§ط¨ظ‚ط©" },
-        { status: 500 }
-      );
-    }
+        if (!user) {
+          return notFoundResponse("المستخدم غير موجود");
+        }
+
+        const newContest = await prisma.contest.create({
+          data: {
+            title,
+            description,
+            // imageUrl, // Not in schema
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            prizes: prize ? JSON.stringify(prize) : undefined, // Schema has prizes
+            // category, // Not in schema
+            // organizerId: userId, // Not in schema
+            // tags: tags || [] // Not in schema
+          }
+        });
+
+        // Transform the data to match the frontend structure
+        const transformedContest = {
+          id: newContest.id,
+          title: newContest.title,
+          description: newContest.description,
+          // imageUrl: newContest.imageUrl,
+          startDate: newContest.startDate.toISOString(),
+          endDate: newContest.endDate.toISOString(),
+          prize: newContest.prizes,
+          // category: newContest.category,
+          // organizerName: user.name,
+          // tags: newContest.tags,
+          // participantsCount: 0
+        };
+
+        return successResponse(transformedContest, undefined, 201);
+      } catch (error: unknown) {
+        logger.error("Error creating contest:", error);
+        return handleApiError(error);
+      }
+    });
   });
 }

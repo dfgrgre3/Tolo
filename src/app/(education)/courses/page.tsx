@@ -75,9 +75,10 @@ export default function CoursesPage() {
         const data = await res.json();
         
         // Handle new API response format
+        let transformedCourses: Course[] = [];
         if (data.subjects) {
           // Transform subjects to courses format for display
-          const transformedCourses = data.subjects.map((subject: { id: string; name: string; description: string | null; createdAt: string }) => ({
+          transformedCourses = data.subjects.map((subject: { id: string; name: string; description: string | null; createdAt: string }) => ({
             id: subject.id,
             title: subject.name,
             description: subject.description || "لا يوجد وصف متاح",
@@ -94,12 +95,86 @@ export default function CoursesPage() {
             enrolled: !!data.enrollments?.[subject.name],
             progress: data.enrollments?.[subject.name]?.progress || 0
           }));
-          setCourses(transformedCourses);
         } else if (Array.isArray(data)) {
-          setCourses(data);
-        } else {
-          setCourses([]);
+          transformedCourses = data;
         }
+
+        const fakeCourses: Course[] = [
+          {
+            id: "fake-course-pro",
+            title: "احتراف تطوير واجهات المستخدم (Front-End Pro)",
+            description: "دورة شاملة تاخذك من الصفر إلى الاحتراف في تطوير واجهات الويب باستخدام أحدث التقنيات مثل React و Next.js و Tailwind CSS. تتضمن مشاريع عملية واقعية وتقييمات مستمرة ودعم من المدربين.",
+            instructor: "أحمد محمد",
+            subject: "برمجة وتطوير",
+            level: "INTERMEDIATE",
+            duration: 45,
+            thumbnailUrl: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
+            price: 299,
+            rating: 4.9,
+            enrolledCount: 15420,
+            createdAt: new Date().toISOString(),
+            tags: ["React", "Next.js", "تطوير ويب", "مشاريع عملية"],
+            enrolled: false,
+            progress: 0,
+            lessonsCount: 12
+          },
+          {
+            id: "fake-course-python",
+            title: "أساسيات لغة بايثون للذكاء الاصطناعي",
+            description: "تعلم بايثون من البداية مع التركيز على المكتبات الأساسية للذكاء الاصطناعي وتحليل البيانات مثل Pandas و NumPy. مناسب للمبتدئين.",
+            instructor: "سارة خالد",
+            subject: "ذكاء اصطناعي",
+            level: "BEGINNER",
+            duration: 30,
+            thumbnailUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
+            price: 150,
+            rating: 4.8,
+            enrolledCount: 8900,
+            createdAt: new Date(Date.now() - 86400000).toISOString(),
+            tags: ["Python", "AI", "Data Science", "مبتدئ"],
+            enrolled: false,
+            progress: 0,
+            lessonsCount: 20
+          },
+          {
+            id: "fake-course-design",
+            title: "تصميم واجهات المستخدم وتجربة المستخدم (UI/UX)",
+            description: "دورة مكثفة في تصميم الواجهات باستخدام Figma. تعلم المبادئ الأساسية للتصميم وكيفية إنشاء تجربة مستخدم متميزة من خلال تطبيقات عملية.",
+            instructor: "عمر عبدالله",
+            subject: "تصميم",
+            level: "BEGINNER",
+            duration: 25,
+            thumbnailUrl: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=80",
+            price: 0,
+            rating: 4.7,
+            enrolledCount: 22100,
+            createdAt: new Date(Date.now() - 172800000).toISOString(),
+            tags: ["UI", "UX", "Figma", "تصميم"],
+            enrolled: false,
+            progress: 0,
+            lessonsCount: 15
+          },
+          {
+            id: "fake-course-backend",
+            title: "تطوير الواجهات الخلفية باستخدام Node.js",
+            description: "تعلم كيفية بناء واجهات خلفية قوية وقابلة للتوسع باستخدام Node.js و Express. تشمل الدورة التعامل مع قواعد البيانات وبناء واجهات API وتأمينها.",
+            instructor: "محمود حسن",
+            subject: "برمجة وتطوير",
+            level: "ADVANCED",
+            duration: 60,
+            thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
+            price: 350,
+            rating: 4.9,
+            enrolledCount: 5400,
+            createdAt: new Date(Date.now() - 259200000).toISOString(),
+            tags: ["Node.js", "Express", "Backend", "API"],
+            enrolled: false,
+            progress: 0,
+            lessonsCount: 35
+          }
+        ];
+
+        setCourses([...fakeCourses, ...transformedCourses]);
       } catch (error) {
         logger.error("Error fetching courses:", error);
         setCourses([]);

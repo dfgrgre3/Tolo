@@ -9,7 +9,7 @@ import {
   createStandardErrorResponse,
   createSuccessResponse,
   addSecurityHeaders
-} from '@/lib/api-helpers';
+} from '@/lib/api-utils';
 
 // GET all courses (now subjects)
 export async function GET(request: NextRequest) {

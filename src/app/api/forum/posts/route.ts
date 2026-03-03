@@ -2,6 +2,7 @@
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 
 // GET all forum posts
 export async function GET(request: NextRequest) {
@@ -40,18 +41,13 @@ export async function GET(request: NextRequest) {
         categoryId: post.categoryId,
         categoryName: post.category.name,
         createdAt: post.createdAt.toISOString(),
-        views: post.views,
         repliesCount: post._count.replies,
         isPinned: post.isPinned
       }));
 
-      return NextResponse.json(transformedPosts);
+      return successResponse(transformedPosts);
     } catch (error: unknown) {
-      logger.error("Error fetching forum posts:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب الموضوع" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
@@ -63,10 +59,7 @@ export async function POST(request: NextRequest) {
       const { userId, title, content, categoryId } = await req.json();
 
       if (!userId || !title || !content || !categoryId) {
-        return NextResponse.json(
-          { error: "جميع الحقول مطلوبة" },
-          { status: 400 }
-        );
+        return badRequestResponse("جميع الحقول مطلوبة");
       }
 
       // Check if user exists
@@ -76,22 +69,16 @@ export async function POST(request: NextRequest) {
       });
 
       if (!user) {
-        return NextResponse.json(
-          { error: "المستخدم غير موجود" },
-          { status: 404 }
-        );
+        return badRequestResponse("المستخدم غير موجود", "USER_NOT_FOUND");
       }
 
       // Check if category exists
-      const category = await prisma.forumCategory.findUnique({
+      const category = await prisma.category.findUnique({
         where: { id: categoryId }
       });
 
       if (!category) {
-        return NextResponse.json(
-          { error: "التصنيف غير موجود" },
-          { status: 404 }
-        );
+        return badRequestResponse("التصنيف غير موجود", "CATEGORY_NOT_FOUND");
       }
 
       const newPost = await prisma.forumPost.create({
@@ -111,13 +98,9 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      return NextResponse.json(newPost, { status: 201 });
+      return successResponse(newPost, undefined, 201);
     } catch (error: unknown) {
-      logger.error("Error creating forum post:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في إنشاء الموضوع" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

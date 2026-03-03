@@ -84,6 +84,82 @@ export default function CourseDetailPage() {
 
     const fetchCourse = async () => {
       try {
+          const fakeCoursesMap: Record<string, any> = {
+            "fake-course-pro": {
+              id: "fake-course-pro",
+              title: "احتراف تطوير واجهات المستخدم (Front-End Pro)",
+              description: "دورة شاملة تاخذك من الصفر إلى الاحتراف في تطوير واجهات الويب باستخدام أحدث التقنيات مثل React و Next.js و Tailwind CSS. تتضمن مشاريع عملية واقعية وتقييمات مستمرة ودعم من المدربين.",
+              instructor: "أحمد محمد",
+              subject: "برمجة وتطوير",
+              level: "INTERMEDIATE",
+              duration: 45,
+              thumbnailUrl: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
+              price: 299,
+              rating: 4.9,
+              enrolledCount: 15420,
+              createdAt: new Date().toISOString(),
+              tags: ["React", "Next.js", "تطوير ويب", "مشاريع عملية"],
+              enrolled: false,
+              progress: 0
+            },
+            "fake-course-python": {
+              id: "fake-course-python",
+              title: "أساسيات لغة بايثون للذكاء الاصطناعي",
+              description: "تعلم بايثون من البداية مع التركيز على المكتبات الأساسية للذكاء الاصطناعي وتحليل البيانات مثل Pandas و NumPy. مناسب للمبتدئين.",
+              instructor: "سارة خالد",
+              subject: "ذكاء اصطناعي",
+              level: "BEGINNER",
+              duration: 30,
+              thumbnailUrl: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
+              price: 150,
+              rating: 4.8,
+              enrolledCount: 8900,
+              createdAt: new Date(Date.now() - 86400000).toISOString(),
+              tags: ["Python", "AI", "Data Science", "مبتدئ"],
+              enrolled: false,
+              progress: 0
+            },
+            "fake-course-design": {
+              id: "fake-course-design",
+              title: "تصميم واجهات المستخدم وتجربة المستخدم (UI/UX)",
+              description: "دورة مكثفة في تصميم الواجهات باستخدام Figma. تعلم المبادئ الأساسية للتصميم وكيفية إنشاء تجربة مستخدم متميزة من خلال تطبيقات عملية.",
+              instructor: "عمر عبدالله",
+              subject: "تصميم",
+              level: "BEGINNER",
+              duration: 25,
+              thumbnailUrl: "https://images.unsplash.com/photo-1561070791-2526d30994b5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=80",
+              price: 0,
+              rating: 4.7,
+              enrolledCount: 22100,
+              createdAt: new Date(Date.now() - 172800000).toISOString(),
+              tags: ["UI", "UX", "Figma", "تصميم"],
+              enrolled: false,
+              progress: 0
+            },
+            "fake-course-backend": {
+              id: "fake-course-backend",
+              title: "تطوير الواجهات الخلفية باستخدام Node.js",
+              description: "تعلم كيفية بناء واجهات خلفية قوية وقابلة للتوسع باستخدام Node.js و Express. تشمل الدورة التعامل مع قواعد البيانات وبناء واجهات API وتأمينها.",
+              instructor: "محمود حسن",
+              subject: "برمجة وتطوير",
+              level: "ADVANCED",
+              duration: 60,
+              thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1470&q=80",
+              price: 350,
+              rating: 4.9,
+              enrolledCount: 5400,
+              createdAt: new Date(Date.now() - 259200000).toISOString(),
+              tags: ["Node.js", "Express", "Backend", "API"],
+              enrolled: false,
+              progress: 0
+            }
+          };
+
+        if (fakeCoursesMap[courseId]) {
+          setCourse(fakeCoursesMap[courseId]);
+          return;
+        }
+
         const res = await fetch(`/api/courses/${courseId}${userId ? `?userId=${userId}` : ""}`);
         if (res.ok) {
           const courseData = await res.json();
@@ -99,6 +175,34 @@ export default function CourseDetailPage() {
 
     const fetchLessons = async () => {
       try {
+        if (courseId.startsWith("fake-course-")) {
+          const allFakeLessons: Record<string, CourseLesson[]> = {
+            "fake-course-pro": [
+              { id: "l1", title: "مقدمة في React", description: "تعرف على أساسيات مكتبة React وكيفية عملها", videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: 720, order: 1, completed: false, progress: 0 },
+              { id: "l2", title: "مكونات React (Components)", description: "كيفية بناء مكونات قابلة لإعادة الاستخدام", content: "<h3>شرح المكونات</h3><p>المكونات هي حجر الأساس في بناء تطبيقات React...</p>", duration: 900, order: 2, completed: false, progress: 0 },
+              { id: "l3", title: "إدارة الحالة (State)", description: "كيفية إدارة وتحديث البيانات داخل المكونات", videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: 1200, order: 3, completed: false, progress: 0 },
+              { id: "l4", title: "التعامل مع Next.js", description: "الأساسيات والانتقال من React إلى Next.js", content: "<h3>مزايا Next.js</h3><ul><li>SSR/SSG</li><li>توجيه تلقائي</li></ul>", duration: 1500, order: 4, completed: false, progress: 0 },
+            ],
+            "fake-course-python": [
+              { id: "p1", title: "مقدمة في بايثون", description: "تنصيب البيئة وأول برنامج", videoUrl: "https://www.youtube.com/embed/rfscVS0vtbw", duration: 600, order: 1, completed: false, progress: 0 },
+              { id: "p2", title: "المتغيرات والبيانات", description: "التعامل مع النصوص والأرقام", content: "<p>في هذا الدرس سنتعلم القواعد الأساسية للمتغيرات في بايثون.</p>", duration: 800, order: 2, completed: false, progress: 0 },
+            ],
+            "fake-course-design": [
+              { id: "d1", title: "أساسيات UI/UX", description: "الفرق بين UI و UX", videoUrl: "https://www.youtube.com/embed/c9Wg6Cb_YlU", duration: 900, order: 1, completed: false, progress: 0 },
+              { id: "d2", title: "مقدمة إلى Figma", description: "شرح واجهة البرنامج", content: "<p>برنامج فيجما هو الأداة الأقوى لتصميم الواجهات حالياً.</p>", duration: 1100, order: 2, completed: false, progress: 0 },
+            ],
+            "fake-course-backend": [
+              { id: "b1", title: "ما هو Node.js", description: "فهم بيئة تشغيل نود", videoUrl: "https://www.youtube.com/embed/TlB_eWDSMt4", duration: 850, order: 1, completed: false, progress: 0 },
+              { id: "b2", title: "إعداد خادم Express", description: "إنشاء أول خادم", content: "<p>مثال على إنشاء خادم مبسط باستخدام Express.</p>", duration: 1200, order: 2, completed: false, progress: 0 },
+            ]
+          };
+
+          const fakeLessons = allFakeLessons[courseId] || allFakeLessons["fake-course-pro"];
+          setLessons(fakeLessons);
+          setActiveLesson(fakeLessons[0].id);
+          return;
+        }
+
         const res = await fetch(`/api/courses/${courseId}/lessons${userId ? `?userId=${userId}` : ""}`);
         if (res.ok) {
           const lessonsData = await res.json();
@@ -126,6 +230,14 @@ export default function CourseDetailPage() {
     setEnrolling(true);
 
     try {
+      if (courseId.startsWith("fake-course-")) {
+        setTimeout(() => {
+          if (course) setCourse({ ...course, enrolled: true, progress: 0 });
+          setEnrolling(false);
+        }, 1000);
+        return;
+      }
+
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -143,7 +255,9 @@ export default function CourseDetailPage() {
       logger.error("Error enrolling in course:", error);
       alert("حدث خطأ أثناء التسجيل في الدورة");
     } finally {
-      setEnrolling(false);
+      if (!courseId.startsWith("fake-course-")) {
+        setEnrolling(false);
+      }
     }
   };
 
@@ -152,6 +266,14 @@ export default function CourseDetailPage() {
     setEnrolling(true);
 
     try {
+      if (courseId.startsWith("fake-course-")) {
+        setTimeout(() => {
+          if (course) setCourse({ ...course, enrolled: false, progress: undefined });
+          setEnrolling(false);
+        }, 1000);
+        return;
+      }
+
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
@@ -169,7 +291,9 @@ export default function CourseDetailPage() {
       logger.error("Error unenrolling from course:", error);
       alert("حدث خطأ أثناء إلغاء التسجيل من الدورة");
     } finally {
-      setEnrolling(false);
+      if (!courseId.startsWith("fake-course-")) {
+        setEnrolling(false);
+      }
     }
   };
 
@@ -177,6 +301,25 @@ export default function CourseDetailPage() {
     if (!userId) return;
 
     try {
+      if (courseId.startsWith("fake-course-")) {
+        setLessons(lessons.map(lesson =>
+          lesson.id === lessonId ? { ...lesson, completed: true, progress: 100 } : lesson
+        ));
+
+        if (course) {
+          // Add timeout to let state update flow, then calculate
+          setTimeout(() => {
+            const newLessons = lessons.map(lesson =>
+              lesson.id === lessonId ? { ...lesson, completed: true, progress: 100 } : lesson
+            );
+            const completedLessons = newLessons.filter(l => l.completed).length;
+            const newProgress = Math.round((completedLessons / newLessons.length) * 100);
+            setCourse({ ...course, progress: newProgress });
+          }, 0);
+        }
+        return;
+      }
+
       const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -577,16 +720,25 @@ export default function CourseDetailPage() {
 
                       {/* Video player area */}
                       {activeLessonData.videoUrl && course.enrolled ? (
-                        <div className="aspect-video bg-slate-900 flex items-center justify-center">
-                          <div className="text-center">
-                            <motion.div
-                              whileHover={{ scale: 1.1 }}
-                              className="h-20 w-20 mx-auto mb-4 rounded-full bg-white/10 flex items-center justify-center cursor-pointer"
-                            >
-                              <PlayCircle className="h-12 w-12 text-white" />
-                            </motion.div>
-                            <p className="text-white/70 text-sm">اضغط للتشغيل</p>
-                          </div>
+                        <div className="aspect-video bg-slate-900 flex items-center justify-center overflow-hidden">
+                          {activeLessonData.videoUrl.includes('youtube.com/embed') ? (
+                            <iframe 
+                              src={activeLessonData.videoUrl} 
+                              className="w-full h-full border-0"
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                              allowFullScreen 
+                            />
+                          ) : (
+                            <div className="text-center">
+                              <motion.div
+                                whileHover={{ scale: 1.1 }}
+                                className="h-20 w-20 mx-auto mb-4 rounded-full bg-white/10 flex items-center justify-center cursor-pointer"
+                              >
+                                <PlayCircle className="h-12 w-12 text-white" />
+                              </motion.div>
+                              <p className="text-white/70 text-sm">اضغط للتشغيل</p>
+                            </div>
+                          )}
                         </div>
                       ) : activeLessonData.videoUrl && !course.enrolled ? (
                         <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">

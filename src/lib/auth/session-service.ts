@@ -1,0 +1,182 @@
+import prisma from '@/lib/db';
+import { TokenService } from './token-service';
+import { logger } from '@/lib/logger';
+
+/**
+ * SessionService - Centralized session lifecycle management.
+ * 
+ * Design Decisions:
+ * - Sessions are DB-backed for reliable revocation (unlike stateless JWT-only approaches)
+ * - Each session tracks IP and User Agent for device identification
+ * - Supports "logout from all devices" by revoking all user sessions
+ * - Session expiry is enforced both at DB level and JWT level (defense in depth)
+ */
+export class SessionService {
+    /**
+     * Create a new session and generate tokens.
+     * The session is stored in DB with the refresh token for rotation detection.
+     * 
+     * @param userId - The authenticated user's ID
+     * @param role - The user's role (USER, ADMIN, etc.)
+     * @param ip - Client IP address
+     * @param userAgent - Client user agent string
+     * @param rememberMe - Extended session duration (7d vs 1d)
+     */
+    static async createSession(
+        userId: string,
+        role: string,
+        ip: string,
+        userAgent: string,
+        rememberMe: boolean = false
+    ) {
+        // Session expiration: 7 days for "remember me", 1 day otherwise
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + (rememberMe ? 7 : 1));
+
+        // 1. Create session record first to get the session ID
+        const session = await prisma.session.create({
+            data: {
+                userId,
+                ip,
+                userAgent,
+                expiresAt,
+                isActive: true,
+            },
+        });
+
+        // 2. Generate tokens with session binding
+        const accessToken = await TokenService.generateAccessToken({
+            userId,
+            role,
+            sessionId: session.id,
+        });
+
+        const refreshToken = await TokenService.generateRefreshToken(userId, session.id);
+
+        // 3. Store refresh token hash in session for rotation verification
+        await prisma.session.update({
+            where: { id: session.id },
+            data: { refreshToken },
+        });
+
+        return { session, accessToken, refreshToken };
+    }
+
+    /**
+     * Revoke a specific session (single device logout).
+     */
+    static async revokeSession(sessionId: string): Promise<void> {
+        if (!sessionId) return;
+
+        try {
+            await prisma.session.update({
+                where: { id: sessionId },
+                data: {
+                    isActive: false,
+                    refreshToken: null,
+                },
+            });
+        } catch (error) {
+            logger.error('[SESSION_REVOKE_FAILED]', { sessionId, error });
+        }
+    }
+
+    /**
+     * Revoke ALL sessions for a user (logout from all devices).
+     * Critical for password change, account compromise, etc.
+     * 
+     * @param userId - The user whose sessions to revoke
+     * @param exceptSessionId - Optional session ID to keep active (current device)
+     */
+    static async revokeAllSessions(userId: string, exceptSessionId?: string): Promise<number> {
+        try {
+            const whereClause: Record<string, unknown> = {
+                userId,
+                isActive: true,
+            };
+
+            if (exceptSessionId) {
+                whereClause.NOT = { id: exceptSessionId };
+            }
+
+            const result = await prisma.session.updateMany({
+                where: whereClause as any,
+                data: {
+                    isActive: false,
+                    refreshToken: null,
+                },
+            });
+
+            return result.count;
+        } catch (error) {
+            logger.error('[REVOKE_ALL_SESSIONS_FAILED]', { userId, error });
+            return 0;
+        }
+    }
+
+    /**
+     * Get all active sessions for a user (for session management UI).
+     */
+    static async getActiveSessions(userId: string) {
+        return prisma.session.findMany({
+            where: {
+                userId,
+                isActive: true,
+                expiresAt: { gt: new Date() },
+            },
+            select: {
+                id: true,
+                ip: true,
+                userAgent: true,
+                deviceInfo: true,
+                createdAt: true,
+                lastAccessed: true,
+                expiresAt: true,
+            },
+            orderBy: { lastAccessed: 'desc' },
+        });
+    }
+
+    /**
+     * Validate that a session is active and not expired.
+     */
+    static async validateSession(sessionId: string) {
+        const session = await prisma.session.findUnique({
+            where: { id: sessionId, isActive: true },
+            include: { user: true },
+        });
+
+        if (!session || session.expiresAt < new Date()) {
+            return null;
+        }
+
+        // Update last accessed timestamp (non-blocking)
+        prisma.session.update({
+            where: { id: sessionId },
+            data: { lastAccessed: new Date() },
+        }).catch(() => { /* fire and forget */ });
+
+        return session;
+    }
+
+    /**
+     * Cleanup expired sessions (should be called by a cron job in production).
+     */
+    static async cleanupExpiredSessions(): Promise<number> {
+        try {
+            const result = await prisma.session.deleteMany({
+                where: {
+                    OR: [
+                        { expiresAt: { lt: new Date() } },
+                        { isActive: false, updatedAt: { lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }, // 30 days old inactive
+                    ],
+                },
+            });
+
+            return result.count;
+        } catch (error) {
+            logger.error('[SESSION_CLEANUP_FAILED]', { error });
+            return 0;
+        }
+    }
+}

@@ -1,7 +1,8 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
 
 // GET all blog posts
 export async function GET(request: NextRequest) {
@@ -39,87 +40,73 @@ export async function GET(request: NextRequest) {
         publishedAt: post.publishedAt ? post.publishedAt.toISOString() : null
       }));
 
-      return NextResponse.json(transformedPosts);
+      return successResponse(transformedPosts);
     } catch (error: unknown) {
       logger.error("Error fetching blog posts:", error);
-      return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¬ظ„ط¨ ط§ظ„ظ…ظ‚ط§ظ„ط§طھ" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
 
-// POST create a new blog post
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      const { userId, title, excerpt, content, categoryId } = await req.json();
+    return withAuth(req, async ({ userId }) => {
+      try {
+        const { title, excerpt, content, categoryId } = await req.json();
 
-      if (!userId || !title || !excerpt || !content || !categoryId) {
-        return NextResponse.json(
-          { error: "ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§" },
-          { status: 400 }
-        );
-      }
-
-      // Check if user exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true }
-      });
-
-      if (!user) {
-        return NextResponse.json(
-          { error: "ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
-          { status: 404 }
-        );
-      }
-
-      // Check if category exists
-      const category = await prisma.blogCategory.findUnique({
-        where: { id: categoryId }
-      });
-
-      if (!category) {
-        return NextResponse.json(
-          { error: "ط§ظ„طھطµظ†ظٹظپ ط؛ظٹط± ظ…ظˆط¬ظˆط¯" },
-          { status: 404 }
-        );
-      }
-
-      // Generate slug from title
-      const slug = title
-        .toLowerCase()
-        .replace(/ /g, '-')
-        .replace(/[^\w-]+/g, '');
-
-      const newPost = await prisma.blogPost.create({
-        data: {
-          title,
-          excerpt,
-          content,
-          authorId: userId,
-          categoryId,
-          slug: `${slug}-${Date.now()}` // Ensure uniqueness
-        },
-        include: {
-          author: {
-            select: { name: true }
-          },
-          category: {
-            select: { name: true }
-          }
+        if (!title || !excerpt || !content || !categoryId) {
+          return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها");
         }
-      });
 
-      return NextResponse.json(newPost, { status: 201 });
-    } catch (error: unknown) {
-      logger.error("Error creating blog post:", error);
-      return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ط¥ظ†ط´ط§ط، ط§ظ„ظ…ظ‚ط§ظ„" },
-        { status: 500 }
-      );
-    }
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true }
+        });
+
+        if (!user) {
+          return badRequestResponse("المستخدم غير موجود");
+        }
+
+        // Check if category exists
+        const category = await prisma.category.findUnique({
+          where: { id: categoryId }
+        });
+
+        if (!category) {
+          return badRequestResponse("التصنيف غير موجود");
+        }
+
+        // Generate slug from title
+        const slug = title
+          .toLowerCase()
+          .replace(/ /g, '-')
+          .replace(/[^\w-]+/g, '');
+
+        const newPost = await prisma.blogPost.create({
+          data: {
+            title,
+            excerpt,
+            content,
+            authorId: userId,
+            categoryId,
+            slug: `${slug}-${Date.now()}` // Ensure uniqueness
+          },
+          include: {
+            author: {
+              select: { name: true }
+            },
+            category: {
+              select: { name: true }
+            }
+          }
+        });
+
+        return successResponse(newPost, undefined, 201);
+      } catch (error: unknown) {
+        logger.error("Error creating blog post:", error);
+        return handleApiError(error);
+      }
+    });
   });
 }

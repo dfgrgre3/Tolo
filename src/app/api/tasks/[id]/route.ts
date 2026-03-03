@@ -1,145 +1,130 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from "@/lib/db";
 import { gamificationService } from "@/lib/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { TASK_STATUS } from '@/lib/constants';
+import { TaskStatus } from '@/lib/constants';
+import { successResponse, badRequestResponse, notFoundResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return opsWrapper(req, async (request) => {
-    try {
-      const { id } = await params;
-      // Authenticate user via middleware
-      const userId = request.headers.get("x-user-id");
-      if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return withAuth(request, async (authUser) => {
+      try {
+        const { id } = await params;
+
+        const task = await prisma.task.findFirst({
+          where: {
+            id,
+            userId: authUser.userId // Ensure user can only access their own tasks
+          }
+        });
+
+        if (!task) return notFoundResponse('Task not found');
+        return successResponse(task);
+      } catch (e: unknown) {
+        return handleApiError(e);
       }
-      const authUser = { userId };
-
-      const task = await prisma.task.findFirst({
-        where: {
-          id,
-          userId: authUser.userId // Ensure user can only access their own tasks
-        }
-      });
-
-      if (!task) return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-      return NextResponse.json(task);
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Server error';
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
+    });
   });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return opsWrapper(req, async (request) => {
-    try {
-      const { id } = await params;
-      // Authenticate user via middleware
-      const userId = request.headers.get("x-user-id");
-      if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      const authUser = { userId };
+    return withAuth(request, async (authUser) => {
+      try {
+        const { id } = await params;
+        const data = await request.json();
 
-      const data = await request.json();
+        // Validate that the task belongs to the authenticated user
+        const existingTask = await prisma.task.findFirst({
+          where: {
+            id,
+            userId: authUser.userId
+          }
+        });
 
-      // Validate that the task belongs to the authenticated user
-      const existingTask = await prisma.task.findFirst({
-        where: {
-          id,
-          userId: authUser.userId
+        if (!existingTask) {
+          return notFoundResponse('Task not found');
         }
-      });
 
-      if (!existingTask) {
-        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
-      }
+        // Whitelist allowed fields to prevent mass assignment vulnerability
+        const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subjectId'];
+        const updates: Record<string, unknown> = {};
 
-      // Whitelist allowed fields to prevent mass assignment vulnerability
-      const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subjectId'];
-      const updates: Record<string, unknown> = {};
-
-      for (const field of allowedFields) {
-        if (field in data) {
-          if (field === 'dueAt' && typeof data[field] === 'string') {
-            updates[field] = new Date(data[field]);
-          } else if (field === 'completedAt' && data[field] === true) {
-            updates[field] = new Date();
-          } else if (field === 'completedAt' && data[field] === false) {
-            updates[field] = null;
-          } else if (field === 'description' && data[field] === '') {
-            updates[field] = null;
-          } else {
-            updates[field] = data[field];
+        for (const field of allowedFields) {
+          if (field in data) {
+            if (field === 'dueAt' && typeof data[field] === 'string') {
+              updates[field] = new Date(data[field]);
+            } else if (field === 'completedAt' && data[field] === true) {
+              updates[field] = new Date();
+            } else if (field === 'completedAt' && data[field] === false) {
+              updates[field] = null;
+            } else if (field === 'description' && data[field] === '') {
+              updates[field] = null;
+            } else {
+              updates[field] = data[field];
+            }
           }
         }
-      }
 
-      if ('subject' in data) updates.subjectId = data.subject || null;
+        if ('subject' in data) updates.subjectId = data.subject || null;
 
-      // Prevent changing userId through mass assignment
-      if ('userId' in data) {
-        return NextResponse.json({ error: 'Cannot change task ownership' }, { status: 400 });
-      }
-
-      // Check if task is being marked as completed
-      const isCompleting = (updates['status'] === TASK_STATUS.COMPLETED && existingTask.status !== TASK_STATUS.COMPLETED) ||
-        (updates['completedAt'] !== undefined && !existingTask.completedAt);
-
-      const updated = await prisma.task.update({
-        where: { id },
-        data: updates as any,
-      });
-
-      // Trigger gamification if task is being completed
-      if (isCompleting) {
-        try {
-          await gamificationService.updateUserProgress(authUser.userId, 'task_completed', {});
-        } catch (gamificationError) {
-          logger.error('Error updating gamification for task:', gamificationError);
-          // Don't fail the request if gamification fails
+        // Prevent changing userId through mass assignment
+        if ('userId' in data) {
+          return badRequestResponse('Cannot change task ownership');
         }
-      }
 
-      return NextResponse.json(updated);
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Server error';
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
+        // Check if task is being marked as completed
+        const isCompleting = (updates['status'] === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED) ||
+          (updates['completedAt'] !== undefined && !existingTask.completedAt);
+
+        const updated = await prisma.task.update({
+          where: { id },
+          data: updates as any,
+        });
+
+        // Trigger gamification if task is being completed
+        if (isCompleting) {
+          try {
+            await gamificationService.updateUserProgress(authUser.userId, 'task_completed', {});
+          } catch (gamificationError) {
+            logger.error('Error updating gamification for task:', gamificationError);
+            // Don't fail the request if gamification fails
+          }
+        }
+
+        return successResponse(updated);
+      } catch (e: unknown) {
+        return handleApiError(e);
+      }
+    });
   });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   return opsWrapper(req, async (request) => {
-    try {
-      const { id } = await params;
-      // Authenticate user via middleware
-      const userId = request.headers.get("x-user-id");
-      if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      const authUser = { userId };
+    return withAuth(request, async (authUser) => {
+      try {
+        const { id } = await params;
 
-      // Validate that the task belongs to the authenticated user before deletion
-      const existingTask = await prisma.task.findFirst({
-        where: {
-          id,
-          userId: authUser.userId
+        // Validate that the task belongs to the authenticated user before deletion
+        const existingTask = await prisma.task.findFirst({
+          where: {
+            id,
+            userId: authUser.userId
+          }
+        });
+
+        if (!existingTask) {
+          return notFoundResponse('Task not found');
         }
-      });
 
-      if (!existingTask) {
-        return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+        await prisma.task.delete({ where: { id } });
+        return successResponse({ ok: true });
+      } catch (e: unknown) {
+        return handleApiError(e);
       }
-
-      await prisma.task.delete({ where: { id } });
-      return NextResponse.json({ ok: true });
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : 'Server error';
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
+    });
   });
 }
 

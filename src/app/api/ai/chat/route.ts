@@ -9,7 +9,7 @@ import {
   createStandardErrorResponse,
   createSuccessResponse,
   addSecurityHeaders
-} from '@/lib/api-helpers';
+} from '@/lib/api-utils';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {

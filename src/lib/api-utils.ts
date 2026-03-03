@@ -3,6 +3,7 @@ import { ZodSchema } from 'zod';
 import { redis } from '@/lib/redis';
 
 import { logger } from '@/lib/logger';
+import { ERROR_CODES } from '@/lib/error-codes';
 
 // Rate limiting configuration
 interface RateLimitConfig {
@@ -40,79 +41,8 @@ export class RateLimiter {
    * @returns Rate limit check result
    */
   async checkRateLimit(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<RateLimitResult> {
-    // Validate inputs
-    if (!clientId || typeof clientId !== 'string' || clientId.trim().length === 0) {
-      logger.warn('Invalid clientId provided to checkRateLimit');
-      return {
-        allowed: true,
-        attempts: 0
-      };
-    }
-
-    const trimmedClientId = clientId.trim();
-    const key = `rate_limit:${trimmedClientId}`;
-    const lockoutKey = `lockout:${trimmedClientId}`;
-
-    const now = Date.now();
-    const windowStart = now - config.windowMs;
-
-    try {
-      // Check if account is locked with timeout protection
-      const getLockPromise = redis.get(lockoutKey);
-      const lockTimeoutPromise = new Promise<string | null>((resolve) => {
-        setTimeout(() => resolve(null), 1000); // 1 second timeout
-      });
-
-      const lockedUntil = await Promise.race([getLockPromise, lockTimeoutPromise]);
-
-      if (lockedUntil) {
-        const lockoutTime = parseInt(lockedUntil, 10);
-        if (!isNaN(lockoutTime) && now < lockoutTime) {
-          const remainingTime = Math.ceil((lockoutTime - now) / 60000); // in minutes
-          return {
-            allowed: false,
-            attempts: config.maxAttempts,
-            remainingTime,
-            lockedUntil: lockoutTime
-          };
-        } else {
-          // Lockout expired, remove the lockout key (non-blocking)
-          redis.del(lockoutKey).catch((error: unknown) => {
-            logger.warn('Failed to remove expired lockout key:', error);
-          });
-        }
-      }
-
-      // Use Redis pipeline for atomic operations with timeout protection
-      const pipeline = redis.multi();
-
-      // Remove old entries outside the window
-      pipeline.zremrangebyscore(key, 0, windowStart);
-
-      // Get current count
-      pipeline.zcard(key);
-
-      const execPromise = pipeline.exec();
-      const execTimeoutPromise = new Promise<never>((resolve, reject) => {
-        setTimeout(() => reject(new Error('Redis pipeline timeout')), 2000); // 2 second timeout
-      });
-
-      const results = await Promise.race([execPromise, execTimeoutPromise]);
-      const currentCount = (results && results[1] && results[1][1]) ? (results[1][1] as number) : 0;
-
-      return {
-        allowed: currentCount < config.maxAttempts,
-        attempts: currentCount,
-        remainingTime: undefined
-      };
-    } catch (error) {
-      logger.error('Rate limiting check error:', error);
-      // Fail open - don't block requests if rate limiting fails
-      return {
-        allowed: true,
-        attempts: 0
-      };
-    }
+    const { rateLimitingService } = await import('@/lib/services/rate-limiting-service');
+    return rateLimitingService.checkRateLimit(clientId, config);
   }
 
   /**
@@ -121,54 +51,8 @@ export class RateLimiter {
    * @param config Rate limiting configuration
    */
   async incrementAttempts(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<void> {
-    // Validate inputs
-    if (!clientId || typeof clientId !== 'string' || clientId.trim().length === 0) {
-      logger.warn('Invalid clientId provided to incrementAttempts');
-      return;
-    }
-
-    const trimmedClientId = clientId.trim();
-    const key = `rate_limit:${trimmedClientId}`;
-    const lockoutKey = `lockout:${trimmedClientId}`;
-
-    const now = Date.now();
-
-    try {
-      // Use Redis pipeline for atomic operations with timeout protection
-      const pipeline = redis.multi();
-
-      // Add current attempt
-      pipeline.zadd(key, now, now.toString());
-
-      // Set expiration for the sorted set
-      const expirationSeconds = Math.ceil(config.windowMs / 1000);
-      pipeline.expire(key, expirationSeconds);
-
-      const execPromise = pipeline.exec();
-      const execTimeoutPromise = new Promise<never>((resolve, reject) => {
-        setTimeout(() => reject(new Error('Redis pipeline timeout')), 2000); // 2 second timeout
-      });
-
-      await Promise.race([execPromise, execTimeoutPromise]);
-
-      // Check if we need to lock the account (non-blocking)
-      this.checkRateLimit(trimmedClientId, config)
-        .then((result) => {
-          if (result.attempts >= config.maxAttempts && config.lockoutMs) {
-            // Lock the account
-            const lockoutUntil = now + config.lockoutMs;
-            const lockoutSeconds = Math.ceil(config.lockoutMs / 1000);
-            redis.setex(lockoutKey, lockoutSeconds, lockoutUntil.toString()).catch((error: unknown) => {
-              logger.warn('Failed to set lockout:', error);
-            });
-          }
-        })
-        .catch((error) => {
-          logger.warn('Failed to check rate limit after increment:', error);
-        });
-    } catch (error) {
-      logger.error('Failed to record failed attempt:', error);
-    }
+    const { rateLimitingService } = await import('@/lib/services/rate-limiting-service');
+    return rateLimitingService.recordFailedAttempt(clientId, config);
   }
 
   /**
@@ -176,14 +60,8 @@ export class RateLimiter {
    * @param clientId Unique identifier for the client
    */
   async resetAttempts(clientId: string): Promise<void> {
-    const key = `rate_limit:${clientId}`;
-    const lockoutKey = `lockout:${clientId}`;
-
-    try {
-      await redis.del(key, lockoutKey);
-    } catch (error) {
-      logger.error('Failed to reset rate limit:', error);
-    }
+    const { rateLimitingService } = await import('@/lib/services/rate-limiting-service');
+    return rateLimitingService.resetAttempts(clientId);
   }
 }
 
@@ -265,7 +143,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     return NextResponse.json(
       {
         error: 'Invalid JSON in request body',
-        code: 'INVALID_JSON',
+        code: ERROR_CODES.INVALID_JSON,
         status: 400
       },
       { status: 400 }
@@ -275,7 +153,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
   if ((error as { name: string }).name === 'ZodError') {
     const apiError: APIError = {
       error: 'Validation error',
-      code: 'VALIDATION_ERROR',
+      code: ERROR_CODES.VALIDATION_ERROR,
       details: ((error as { errors: unknown[] }).errors || []) as unknown as Record<string, unknown>,
       status: 400
     };
@@ -286,7 +164,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     return NextResponse.json(
       {
         error: 'Resource already exists',
-        code: 'DUPLICATE_RESOURCE',
+        code: ERROR_CODES.DUPLICATE_RESOURCE,
         status: 409
       },
       { status: 409 }
@@ -297,7 +175,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     return NextResponse.json(
       {
         error: 'Resource not found',
-        code: 'NOT_FOUND',
+        code: ERROR_CODES.NOT_FOUND,
         status: 404
       },
       { status: 404 }
@@ -309,7 +187,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
   return NextResponse.json(
     {
       error: 'Internal server error',
-      code: 'INTERNAL_ERROR',
+      code: ERROR_CODES.INTERNAL_ERROR,
       status: 500
     },
     { status: 500 }
@@ -337,7 +215,7 @@ export function unauthorizedResponse(message = 'Unauthorized'): NextResponse<API
   return NextResponse.json(
     {
       error: message,
-      code: 'UNAUTHORIZED',
+      code: ERROR_CODES.UNAUTHORIZED,
       status: 401
     },
     { status: 401 }
@@ -345,7 +223,7 @@ export function unauthorizedResponse(message = 'Unauthorized'): NextResponse<API
 }
 
 // Bad request error helper
-export function badRequestResponse(message = 'Bad Request', code = 'BAD_REQUEST'): NextResponse<APIError> {
+export function badRequestResponse(message = 'Bad Request', code: string = ERROR_CODES.BAD_REQUEST): NextResponse<APIError> {
   return NextResponse.json(
     {
       error: message,
@@ -361,7 +239,7 @@ export function notFoundResponse(message = 'Resource not found'): NextResponse<A
   return NextResponse.json(
     {
       error: message,
-      code: 'NOT_FOUND',
+      code: ERROR_CODES.NOT_FOUND,
       status: 404
     },
     { status: 404 }
@@ -432,7 +310,7 @@ export async function applyRateLimit(
     return NextResponse.json(
       {
         error: 'Too many requests',
-        code: 'RATE_LIMIT_EXCEEDED',
+        code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
         retryAfter
       },
       {
@@ -465,7 +343,7 @@ export function validateRequiredParams(
       return NextResponse.json(
         {
           error: `Missing required parameter: ${param}`,
-          code: 'MISSING_PARAMETER'
+          code: ERROR_CODES.MISSING_PARAMETER
         },
         { status: 400 }
       );
@@ -547,18 +425,15 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
  * @returns NextResponse with error
  */
 export function createErrorResponse(message: string, status: number = 500, details?: unknown, code?: string): NextResponse {
-  if (code) {
-    return NextResponse.json(
-      {
-        error: message,
-        code,
-        details,
-        status
-      },
-      { status }
-    );
-  }
-  return badRequestResponse(message, 'ERROR');
+  return NextResponse.json(
+    {
+      error: message,
+      code: code || ERROR_CODES.INTERNAL_ERROR,
+      details,
+      status
+    },
+    { status }
+  );
 }
 
 /**
@@ -587,4 +462,47 @@ export async function rateLimit(
   windowMs: number = 15 * 60 * 1000 // 15 minutes default
 ): Promise<NextResponse | null> {
   return applyRateLimit(req, limit, windowMs);
+}
+
+export function createStandardErrorResponse(error: any, defaultMessage: string, status: number = 500): NextResponse {
+  const message = error instanceof Error ? error.message : defaultMessage;
+  return createErrorResponse(message, status, undefined, status === 400 ? ERROR_CODES.BAD_REQUEST : ERROR_CODES.INTERNAL_ERROR);
+}
+
+export async function parseRequestBody<T>(req: NextRequest, options?: { maxSize?: number, required?: boolean }) {
+  try {
+    const text = await req.text();
+    if (!text && options?.required) {
+      return { success: false as const, error: badRequestResponse('Missing body', ERROR_CODES.MISSING_PARAMETER) };
+    }
+    if (!text) {
+      return { success: true as const, data: {} as T };
+    }
+    if (options?.maxSize && text.length > options.maxSize) {
+      return { success: false as const, error: createErrorResponse('Payload too large', 413, undefined, ERROR_CODES.BAD_REQUEST) };
+    }
+    const data = JSON.parse(text) as T;
+    return { success: true as const, data };
+  } catch (e) {
+    return { success: false as const, error: badRequestResponse('Invalid JSON', ERROR_CODES.INVALID_JSON) };
+  }
+}
+
+/**
+ * Standardized authentication wrapper for API routes.
+ * Extracts user ID and Role from headers (injected by Next.js middleware)
+ * and automatically returns unauthorized response if missing.
+ */
+export async function withAuth(
+  req: NextRequest,
+  handler: (user: { userId: string; userRole: string }) => Promise<NextResponse> | NextResponse
+): Promise<NextResponse> {
+  const userId = req.headers.get("x-user-id");
+  const userRole = req.headers.get("x-user-role") || "USER";
+
+  if (!userId) {
+    return unauthorizedResponse();
+  }
+
+  return handler({ userId, userRole });
 }

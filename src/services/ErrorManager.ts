@@ -106,7 +106,7 @@ class ErrorManager {
     if (this.logs.length > this.maxLogs) this.logs.shift();
 
     if (process.env.NODE_ENV === 'development') {
-      logger.error(`[${logEntry.severity.toUpperCase()}] ${logEntry.message}`, logEntry);
+      logger.error(`[${logEntry.severity.toUpperCase()}] ${logEntry.message}`, JSON.stringify(logEntry, null, 2));
     }
 
     return logEntry.id;

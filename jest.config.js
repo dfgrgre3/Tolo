@@ -4,7 +4,8 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
-    '\\.(css|less|scss|sass)$': '<rootDir>/tests/__mocks__/styleMock.js'
+    '\\.(css|less|scss|sass)$': '<rootDir>/tests/__mocks__/styleMock.js',
+    '^server-only$': '<rootDir>/tests/__mocks__/server-only.js'
   },
   testMatch: [
     '<rootDir>/tests/**/*.test.{ts,tsx}',

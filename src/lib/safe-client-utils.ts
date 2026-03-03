@@ -620,6 +620,11 @@ export async function safeFetch<T = any>(
   }
 }
 
+export function getSafeUserId(): string | null {
+  const [userId] = useSafeLocalStorage('x-user-id', '');
+  return userId || null;
+}
+
 // ==================== Export All ====================
 
 const safeClientUtils = {
@@ -645,6 +650,7 @@ const safeClientUtils = {
   isBrowser,
   safeWindow,
   safeDocument,
+  getSafeUserId,
 
   // Safe fetch & JSON
   safeJsonParse,

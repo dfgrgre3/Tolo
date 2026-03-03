@@ -4,6 +4,7 @@ import { withCache } from "@/lib/cache-middleware";
 import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { successResponse, badRequestResponse, unauthorizedResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
 
 export async function GET(req: NextRequest) {
@@ -19,7 +20,7 @@ async function handleGetRequest(req: NextRequest) {
 
     // Validate userId parameter
     if (!userId || userId === 'undefined' || userId.trim() === '') {
-      return NextResponse.json({ error: "userId required" }, { status: 400 });
+      return badRequestResponse("userId required");
     }
 
     // Use enhanced caching for frequently accessed subjects
@@ -34,60 +35,52 @@ async function handleGetRequest(req: NextRequest) {
       600 // 10 minutes TTL
     );
 
-    return NextResponse.json(subjects);
+    return successResponse(subjects);
   } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return handleApiError(e);
   }
 }
 
 // POST - Enroll in a new subject
-// POST - Enroll in a new subject
 export async function POST(req: NextRequest) {
   return opsWrapper(req, async (request) => {
-    try {
-      const userId = request.headers.get('x-user-id');
+    return withAuth(request, async (authUser) => {
+      try {
 
-      if (!userId) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-      }
+        const { subject } = await request.json();
 
-      const authUser = { userId };
-
-      const { subject } = await request.json();
-
-      if (!subject) {
-        return NextResponse.json({ error: "Subject ID required" }, { status: 400 });
-      }
-
-      // Check if already enrolled
-      const existingEnrollment = await prisma.subjectEnrollment.findFirst({
-        where: {
-          userId: authUser.userId,
-          subjectId: subject
+        if (!subject) {
+          return badRequestResponse("Subject ID required");
         }
-      });
 
-      if (existingEnrollment) {
-        return NextResponse.json({ error: "Already enrolled in this subject" }, { status: 400 });
-      }
+        // Check if already enrolled
+        const existingEnrollment = await prisma.subjectEnrollment.findFirst({
+          where: {
+            userId: authUser.userId,
+            subjectId: subject
+          }
+        });
 
-      // Create enrollment
-      const enrollment = await prisma.subjectEnrollment.create({
-        data: {
-          id: `${authUser.userId}_${subject}_${Date.now()}`,
-          userId: authUser.userId,
-          subjectId: subject
+        if (existingEnrollment) {
+          return badRequestResponse("Already enrolled in this subject");
         }
-      });
 
-      // Invalidate user's subject cache
-      await invalidateUserCache(authUser.userId);
+        // Create enrollment
+        const enrollment = await prisma.subjectEnrollment.create({
+          data: {
+            id: `${authUser.userId}_${subject}_${Date.now()}`,
+            userId: authUser.userId,
+            subjectId: subject
+          }
+        });
 
-      return NextResponse.json(enrollment, { status: 201 });
-    } catch (e: unknown) {
-      const errorMessage = e instanceof Error ? e.message : "Server error";
-      return NextResponse.json({ error: errorMessage }, { status: 500 });
-    }
+        // Invalidate user's subject cache
+        await invalidateUserCache(authUser.userId);
+
+        return successResponse(enrollment, undefined, 201);
+      } catch (e: unknown) {
+        return handleApiError(e);
+      }
+    });
   });
 }

@@ -1,6 +1,5 @@
 {
     "recommendations": [
-        "google.geminicodeassist",
-        "anthropic.claude-code"
+        "google.geminicodeassist"
     ]
 }

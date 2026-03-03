@@ -6,8 +6,10 @@ import { TEACHER_ROLES } from '@/lib/constants';
 import {
 	createStandardErrorResponse,
 	createSuccessResponse,
-	addSecurityHeaders
-} from '@/lib/api-helpers';
+	addSecurityHeaders,
+	successResponse,
+	handleApiError
+} from '@/lib/api-utils';
 
 type SearchScope = "all" | "courses" | "teachers" | "forum" | "exams";
 
@@ -30,17 +32,14 @@ export async function GET(request: NextRequest) {
 			const limit = parseInt(searchParams.get("limit") || "10");
 
 			if (!query.trim()) {
-				const response = NextResponse.json({ results: [], total: 0 });
+				const response = successResponse({ results: [], total: 0 });
 				return addSecurityHeaders(response);
 			}
 
 			// Validate limit parameter
 			if (isNaN(limit) || limit < 1 || limit > 100) {
-				const response = NextResponse.json(
-					{ error: "ط­ط¯ ط؛ظٹط± طµط­ظٹط­. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط¨ظٹظ† 1 ظˆ 100", code: 'INVALID_LIMIT' },
-					{ status: 400 }
-				);
-				return addSecurityHeaders(response);
+				const response = createStandardErrorResponse(new Error("ط­ط¯ ط؛ظٹط± طµط­ظٹط­. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط¨ظٹظ† 1 ظˆ 100"), "invalid_limit", 400);
+				return addSecurityHeaders(response as NextResponse);
 			}
 
 			const results: SearchResult[] = [];
@@ -108,7 +107,7 @@ export async function GET(request: NextRequest) {
 					const teachersPromise = prisma.user.findMany({
 						where: {
 							AND: [
-								{ role: { in: TEACHER_ROLES as unknown as string[] } },
+								{ role: { in: [...TEACHER_ROLES] } },
 								{
 									OR: [
 										{ name: { contains: query, mode: "insensitive" } },
@@ -261,10 +260,7 @@ export async function GET(request: NextRequest) {
 			});
 		} catch (error) {
 			logger.error("Error in search API:", error);
-			return createStandardErrorResponse(
-				error,
-				"حدث خطأ في البحث"
-			);
+			return handleApiError(error);
 		}
 	});
 }

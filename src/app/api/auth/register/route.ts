@@ -1,0 +1,125 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { AuthService } from '@/lib/auth/auth-service';
+import { z } from 'zod';
+import {
+    extractClientInfo,
+    RateLimiter,
+    handleApiError,
+} from '@/lib/api-utils';
+import { SecurityLogger } from '@/lib/auth/security-logger';
+
+/**
+ * Registration Schema with strong password policy.
+ * 
+ * Password Requirements:
+ * - Minimum 8 characters
+ * - At least 1 uppercase letter
+ * - At least 1 lowercase letter
+ * - At least 1 number
+ * - At least 1 special character
+ * - Must match confirmPassword
+ */
+const registerSchema = z.object({
+    email: z.string().email('Invalid email format'),
+    password: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .refine((val) => /[A-Z]/.test(val), 'Must contain an uppercase letter')
+        .refine((val) => /[a-z]/.test(val), 'Must contain a lowercase letter')
+        .refine((val) => /[0-9]/.test(val), 'Must contain a number')
+        .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), 'Must contain a special character'),
+    confirmPassword: z.string().optional(),
+    username: z.string().min(3, 'Username must be at least 3 characters').optional(),
+}).refine((data) => {
+    // Only validate confirmPassword if it's provided
+    if (data.confirmPassword !== undefined) {
+        return data.password === data.confirmPassword;
+    }
+    return true;
+}, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+});
+
+/**
+ * Registration Rate Limiter.
+ * More restrictive than login: 3 attempts per 30 minutes.
+ * Prevents mass account creation (spam/abuse).
+ */
+const registerRateLimiter = new RateLimiter({
+    windowMs: 30 * 60 * 1000,     // 30-minute window
+    maxAttempts: 3,                 // 3 registrations allowed
+    lockoutMs: 60 * 60 * 1000,     // 1-hour lockout
+});
+
+/**
+ * POST /api/auth/register
+ * 
+ * Registers a new user account.
+ * 
+ * Security measures:
+ * 1. Rate limiting to prevent mass account creation
+ * 2. Strong password validation
+ * 3. Ambiguous response for duplicate emails (prevents enumeration)
+ * 4. Email verification token generation
+ */
+export async function POST(req: NextRequest) {
+    try {
+        const { ip, userAgent, clientId } = extractClientInfo(req);
+
+        // 1. Rate limiting
+        const rateLimitResult = await registerRateLimiter.checkRateLimit(`register:${clientId}`);
+
+        if (!rateLimitResult.allowed) {
+            await SecurityLogger.logRateLimitExceeded(ip, userAgent, '/api/auth/register');
+            return NextResponse.json(
+                { error: 'Too many registration attempts. Please try again later.' },
+                { status: 429 }
+            );
+        }
+
+        // 2. Parse and validate request body
+        const body = await req.json();
+        const validation = registerSchema.safeParse(body);
+
+        if (!validation.success) {
+            return NextResponse.json(
+                {
+                    error: 'Invalid data',
+                    details: validation.error.errors.map(e => e.message),
+                },
+                { status: 400 }
+            );
+        }
+
+        const { email, password, username } = validation.data;
+
+        // 3. Register via AuthService
+        const result = await AuthService.register({
+            email,
+            username,
+            password,
+            ip,
+            userAgent,
+        });
+
+        if (!result.success) {
+            return NextResponse.json(
+                { error: result.error },
+                { status: result.statusCode || 500 }
+            );
+        }
+
+        // Increment rate limiter
+        await registerRateLimiter.incrementAttempts(`register:${clientId}`);
+
+        // 4. Return success (ambiguous for duplicate emails)
+        return NextResponse.json(
+            {
+                message: 'Registration successful! Please check your email to verify your account.',
+            },
+            { status: result.statusCode || 201 }
+        );
+    } catch (error) {
+        return handleApiError(error);
+    }
+}

@@ -8,7 +8,7 @@ import { gamificationService } from '@/lib/services/gamification-service';
 import { firestoreService } from '@/lib/services/firestore-service';
 import { rateLimit, handleApiError, badRequestResponse, unauthorizedResponse, successResponse } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { TASK_STATUS, TASK_STATUS_VALUES, TASK_PRIORITY, TASK_PRIORITY_VALUES, TASK_PRIORITY_MAP, TASK_DEFAULTS, type TaskStatus, type TaskPriority } from '@/lib/constants';
+import { TaskStatus, TASK_STATUS_VALUES, TASK_PRIORITY, TASK_PRIORITY_VALUES, TASK_PRIORITY_MAP, TASK_DEFAULTS, type TaskPriority } from '@/lib/constants';
 
 // Validation schemas
 const TaskCreateSchema = z.object({
@@ -18,7 +18,7 @@ const TaskCreateSchema = z.object({
   priority: z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]).optional(),
   subjectId: z.string().optional().nullable(),
   subject: z.string().optional().nullable(), // For backward compatibility
-  status: z.enum([TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS, TASK_STATUS.COMPLETED] as [string, ...string[]]).optional(),
+  status: z.enum([TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED] as [string, ...string[]]).optional(),
 });
 
 const TaskUpdateSchema = z.object({
@@ -29,7 +29,7 @@ const TaskUpdateSchema = z.object({
   priority: z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]).optional(),
   subjectId: z.string().optional().nullable(),
   subject: z.string().optional().nullable(), // For backward compatibility
-  status: z.enum([TASK_STATUS.PENDING, TASK_STATUS.IN_PROGRESS, TASK_STATUS.COMPLETED] as [string, ...string[]]).optional(),
+  status: z.enum([TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED] as [string, ...string[]]).optional(),
 });
 
 // Rate limiting configuration
@@ -96,7 +96,7 @@ async function handleGetRequest(req: NextRequest) {
     const where: {
       userId: string;
       completedAt?: { not: null } | null;
-      status?: string;
+      status?: TaskStatus;
       priority?: number;
       subjectId?: string;
     } = {
@@ -108,8 +108,8 @@ async function handleGetRequest(req: NextRequest) {
       where.completedAt = isCompleted ? { not: null } : null;
     }
 
-    if (status) {
-      where.status = status;
+    if (status) { // Re-added if statement
+      where.status = status as TaskStatus;
     }
 
     if (priority) {
@@ -138,7 +138,7 @@ async function handleGetRequest(req: NextRequest) {
     const tasks = await Promise.race([fetchPromise, dbFetchTimeoutPromise]);
 
     // Return successful response
-    return NextResponse.json(tasks);
+    return successResponse(tasks);
   } catch (error: unknown) {
     return handleApiError(error);
   }
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Return successful response
-      return NextResponse.json(task, { status: 201 });
+      return successResponse(task, undefined, 201);
     } catch (error: unknown) {
       return handleApiError(error);
     }
@@ -330,8 +330,8 @@ export async function PUT(request: NextRequest) {
           ...(dueDate !== undefined && { dueAt: dueDate ? new Date(dueDate) : null }),
           ...(priorityNumber !== undefined && { priority: priorityNumber }),
           ...(status !== undefined && { status }),
-          ...(subjectId !== undefined || subject !== undefined ? { subjectId: subjectId || subject || null } : {}),
-        },
+          ...(subjectId !== undefined || subject !== undefined ? { subjectId: subjectId || subject || null } : undefined),
+        } as any,
       });
 
       const updateTimeoutPromise = new Promise<never>((resolve, reject) => {
@@ -341,7 +341,7 @@ export async function PUT(request: NextRequest) {
       const task = await Promise.race([updatePromise, updateTimeoutPromise]);
 
       // Invalidate cache and trigger gamification in parallel (non-blocking)
-      const wasCompleted = task.status === TASK_STATUS.COMPLETED && existingTask.status !== TASK_STATUS.COMPLETED;
+      const wasCompleted = task.status === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED;
       Promise.allSettled([
         invalidateUserCache(decodedToken.userId),
         wasCompleted ? gamificationService.updateUserProgress(decodedToken.userId, 'task_completed', {}) : Promise.resolve(),
@@ -353,7 +353,7 @@ export async function PUT(request: NextRequest) {
       });
 
       // Return successful response
-      return NextResponse.json(task);
+      return successResponse(task);
     } catch (error: unknown) {
       return handleApiError(error);
     }
@@ -428,7 +428,7 @@ export async function DELETE(request: NextRequest) {
       });
 
       // Return successful response
-      return NextResponse.json(null);
+      return successResponse(null);
     } catch (error: unknown) {
       return handleApiError(error);
     }

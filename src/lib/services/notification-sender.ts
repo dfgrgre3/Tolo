@@ -175,7 +175,7 @@ export async function sendMultiChannelNotification(
                         userId,
                         title,
                         message,
-                        type,
+                        type: type.toUpperCase() as any,
                         actionUrl,
                         icon,
                         isRead: false,

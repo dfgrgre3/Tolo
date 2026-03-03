@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { handleApiError, successResponse, notFoundResponse } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 
 // GET a single event by ID
@@ -25,10 +26,7 @@ export async function GET(
       });
 
       if (!event) {
-        return NextResponse.json(
-          { error: "المناسبة غير موجودة" },
-          { status: 404 }
-        );
+        return notFoundResponse("المناسبة غير موجودة");
       }
 
       // Transform the data to match the frontend structure
@@ -49,13 +47,10 @@ export async function GET(
         tags: event.tags
       };
 
-      return NextResponse.json(transformedEvent);
+      return successResponse(transformedEvent);
     } catch (error) {
       logger.error("Error fetching event:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب بيانات المناسبة" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

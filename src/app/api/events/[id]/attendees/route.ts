@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 
 // GET all attendees for an event
@@ -18,10 +19,7 @@ export async function GET(
       });
 
       if (!event) {
-        return NextResponse.json(
-          { error: "المناسبة غير موجودة" },
-          { status: 404 }
-        );
+        return notFoundResponse("المناسبة غير موجودة");
       }
 
       const attendees = await prisma.eventAttendee.findMany({
@@ -55,13 +53,10 @@ export async function GET(
         };
       });
 
-      return NextResponse.json(transformedAttendees);
+      return successResponse(transformedAttendees);
     } catch (error: unknown) {
       logger.error("Error fetching event attendees:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب المشاركين" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
@@ -72,90 +67,72 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return opsWrapper(request, async (req) => {
-    try {
-      const { id } = await params;
-      const { userId } = await req.json();
+    return withAuth(req, async ({ userId }) => {
+      try {
+        const { id } = await params;
 
-      if (!userId) {
-        return NextResponse.json(
-          { error: "معرف المستخدم مطلوب" },
-          { status: 400 }
-        );
-      }
-
-      // Check if event exists
-      const event = await prisma.event.findUnique({
-        where: { id },
-        include: {
-          _count: {
-            select: { attendees: true }
+        // Check if event exists
+        const event = await prisma.event.findUnique({
+          where: { id },
+          include: {
+            _count: {
+              select: { attendees: true }
+            }
           }
+        });
+
+        if (!event) {
+          return notFoundResponse("المناسبة غير موجودة");
         }
-      });
 
-      if (!event) {
-        return NextResponse.json(
-          { error: "المناسبة غير موجودة" },
-          { status: 404 }
-        );
-      }
+        // Check if max attendees limit reached
+        if (event.maxAttendees && event._count.attendees >= event.maxAttendees) {
+          return badRequestResponse("وصل الحد الأقصى للمشاركين");
+        }
 
-      // Check if max attendees limit reached
-      if (event.maxAttendees && event._count.attendees >= event.maxAttendees) {
-        return NextResponse.json(
-          { error: "وصل الحد الأقصى للمشاركين" },
-          { status: 400 }
-        );
-      }
+        // Check if user is already attending
+        const existingAttendance = await prisma.eventAttendee.findUnique({
+          where: {
+            eventId_userId: {
+              eventId: id,
+              userId
+            }
+          }
+        });
 
-      // Check if user is already attending
-      const existingAttendance = await prisma.eventAttendee.findUnique({
-        where: {
-          eventId_userId: {
+        if (existingAttendance) {
+          return badRequestResponse("المستخدم مشارك بالفعل");
+        }
+
+        // Add attendee
+        const newAttendee = await prisma.eventAttendee.create({
+          data: {
             eventId: id,
             userId
           }
-        }
-      });
+        });
 
-      if (existingAttendance) {
-        return NextResponse.json(
-          { error: "المستخدم مشارك بالفعل" },
-          { status: 400 }
-        );
+        // Fetch user details
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: {
+            id: true,
+            name: true,
+            avatar: true
+          }
+        });
+
+        return successResponse({
+          id: user?.id || userId,
+          name: user?.name || 'Unknown',
+          avatar: user?.avatar || null,
+          joinedAt: newAttendee.createdAt.toISOString()
+        }, undefined, 201);
+      } catch (error: unknown) {
+        logger.error("Error joining event:", error);
+        return handleApiError(error);
       }
-
-      // Add attendee
-      const newAttendee = await prisma.eventAttendee.create({
-        data: {
-          eventId: id,
-          userId
-        }
-      });
-
-      // Fetch user details
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          id: true,
-          name: true,
-          avatar: true
-        }
-      });
-
-      return NextResponse.json({
-        id: user?.id || userId,
-        name: user?.name || 'Unknown',
-        avatar: user?.avatar || null,
-        joinedAt: newAttendee.createdAt.toISOString()
-      }, { status: 201 });
-    } catch (error: unknown) {
-      logger.error("Error joining event:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في الانضمام للمناسبة" },
-        { status: 500 }
-      );
-    }
+    });
   });
 }
 
@@ -165,51 +142,39 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   return opsWrapper(request, async (req) => {
-    try {
-      const { id } = await params;
-      const { userId } = await req.json();
+    return withAuth(req, async ({ userId }) => {
+      try {
+        const { id } = await params;
 
-      if (!userId) {
-        return NextResponse.json(
-          { error: "معرف المستخدم مطلوب" },
-          { status: 400 }
-        );
-      }
-
-      // Check if attendance exists
-      const attendance = await prisma.eventAttendee.findUnique({
-        where: {
-          eventId_userId: {
-            eventId: id,
-            userId
+        // Check if attendance exists
+        const attendance = await prisma.eventAttendee.findUnique({
+          where: {
+            eventId_userId: {
+              eventId: id,
+              userId
+            }
           }
+        });
+
+        if (!attendance) {
+          return notFoundResponse("المستخدم غير مشارك في هذه المناسبة");
         }
-      });
 
-      if (!attendance) {
-        return NextResponse.json(
-          { error: "المستخدم غير مشارك في هذه المناسبة" },
-          { status: 404 }
-        );
-      }
-
-      // Remove attendee
-      await prisma.eventAttendee.delete({
-        where: {
-          eventId_userId: {
-            eventId: id,
-            userId
+        // Remove attendee
+        await prisma.eventAttendee.delete({
+          where: {
+            eventId_userId: {
+              eventId: id,
+              userId
+            }
           }
-        }
-      });
+        });
 
-      return NextResponse.json({ success: true });
-    } catch (error: unknown) {
-      logger.error("Error leaving event:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في مغادرة المناسبة" },
-        { status: 500 }
-      );
-    }
+        return successResponse({ success: true });
+      } catch (error: unknown) {
+        logger.error("Error leaving event:", error);
+        return handleApiError(error);
+      }
+    });
   });
 }

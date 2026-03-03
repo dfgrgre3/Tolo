@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
 import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { successResponse, unauthorizedResponse, badRequestResponse, notFoundResponse, handleApiError } from "@/lib/api-utils";
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     return opsWrapper(req, async (request) => {
@@ -9,12 +10,12 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
             // Verify authentication via middleware headers
             const userId = request.headers.get("x-user-id");
             if (!userId) {
-                return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+                return unauthorizedResponse();
             }
             const { id: subjectId } = await params;
 
             if (!subjectId) {
-                return NextResponse.json({ error: "Subject ID required" }, { status: 400 });
+                return badRequestResponse("Subject ID required");
             }
 
             // Find and delete enrollment
@@ -26,7 +27,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
             });
 
             if (!enrollment) {
-                return NextResponse.json({ error: "Enrollment not found" }, { status: 404 });
+                return notFoundResponse("Enrollment not found");
             }
 
             await prisma.subjectEnrollment.delete({
@@ -38,10 +39,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
             // Invalidate user's subject cache
             await invalidateUserCache(userId);
 
-            return NextResponse.json({ message: "Unenrolled successfully" });
+            return successResponse({ message: "Unenrolled successfully" });
         } catch (e: unknown) {
-            const errorMessage = e instanceof Error ? e.message : "Server error";
-            return NextResponse.json({ error: errorMessage }, { status: 500 });
+            return handleApiError(e);
         }
     });
 }

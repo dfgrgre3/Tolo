@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { ProgressSummary } from "@/lib/server-data-fetch";
 import { UserHome } from "@/app/components/home/UserHome";
 import { User as ApiUser } from "@/types/user";
+import { UserRole } from "@/types/enums";
 import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { logger } from "@/lib/logger";
@@ -65,7 +66,8 @@ export function HomeClient({ summary }: HomeClientProps) {
     id: 'guest',
     email: '',
     name: 'زائر',
-    role: 'STUDENT',
+    image: null,
+    role: UserRole.USER,
     emailVerified: false,
     twoFactorEnabled: false,
     lastLogin: null,

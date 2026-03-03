@@ -1,7 +1,8 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 
 // GET all forum categories
 export async function GET(request: NextRequest) {
@@ -12,13 +13,10 @@ export async function GET(request: NextRequest) {
         orderBy: { name: "asc" }
       });
 
-      return NextResponse.json(categories);
+      return successResponse(categories);
     } catch (error) {
       logger.error("Error fetching forum categories:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب التصنيفات" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
@@ -30,10 +28,7 @@ export async function POST(request: NextRequest) {
       const { name, description, icon } = await req.json();
 
       if (!name || !description) {
-        return NextResponse.json(
-          { error: "الاسم والوصف مطلوبان" },
-          { status: 400 }
-        );
+        return badRequestResponse("الاسم والوصف مطلوبان");
       }
 
       const newCategory = await prisma.category.create({
@@ -46,13 +41,10 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      return NextResponse.json(newCategory, { status: 201 });
+      return successResponse(newCategory, undefined, 201);
     } catch (error) {
       logger.error("Error creating forum category:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في إنشاء التصنيف" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

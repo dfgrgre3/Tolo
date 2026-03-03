@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { withAuth, successResponse, handleApiError, unauthorizedResponse } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 
 // GET all conversations for a user
@@ -8,88 +9,91 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  return opsWrapper(request, async () => {
-    try {
-      const { userId } = await params;
+  return opsWrapper(request, async (req) => {
+    return withAuth(req, async ({ userId: authUserId }) => {
+      try {
+        const { userId } = await params;
 
-      // Get all messages where the user is either sender or receiver
-      const messages = await prisma.message.findMany({
-        where: {
-          OR: [
-            { senderId: userId },
-            { receiverId: userId }
-          ]
-        },
-        orderBy: {
-          createdAt: "desc"
+        if (userId !== authUserId) {
+          return unauthorizedResponse('You can only view your own conversations');
         }
-      });
 
-      // Group messages by conversation partner and get the latest message for each
-      const conversationMap = new Map<string, {
-        id: string;
-        userId: string;
-        name: string | null;
-        avatar: string | null;
-        lastSeen: Date | null;
-        lastMessage: string;
-        lastMessageTime: Date;
-        unreadCount: number;
-        isOnline: boolean;
-      }>();
+        // Get all messages where the user is either sender or receiver
+        const messages = await prisma.message.findMany({
+          where: {
+            OR: [
+              { senderId: userId },
+              { receiverId: userId }
+            ]
+          },
+          orderBy: {
+            createdAt: "desc"
+          }
+        });
 
-      for (const message of messages) {
-        const partnerId = message.senderId === userId ? message.receiverId : message.senderId;
+        // Group messages by conversation partner and get the latest message for each
+        const conversationMap = new Map<string, {
+          id: string;
+          userId: string;
+          name: string | null;
+          avatar: string | null;
+          lastSeen: Date | null;
+          lastMessage: string;
+          lastMessageTime: Date;
+          unreadCount: number;
+          isOnline: boolean;
+        }>();
 
-        if (!conversationMap.has(partnerId)) {
-          // Get partner info
-          const partner = await prisma.user.findUnique({
-            where: { id: partnerId },
-            select: {
-              id: true,
-              name: true,
-              avatar: true,
-              lastLogin: true
-            }
-          });
+        for (const message of messages) {
+          const partnerId = message.senderId === userId ? message.receiverId : message.senderId;
 
-          if (partner) {
-            // Count unread messages
-            const unreadCount = await prisma.message.count({
-              where: {
-                senderId: partnerId,
-                receiverId: userId,
-                isRead: false
+          if (!conversationMap.has(partnerId)) {
+            // Get partner info
+            const partner = await prisma.user.findUnique({
+              where: { id: partnerId },
+              select: {
+                id: true,
+                name: true,
+                avatar: true,
+                lastLogin: true
               }
             });
 
-            conversationMap.set(partnerId, {
-              id: `conv-${userId}-${partnerId}`,
-              userId: partnerId,
-              name: partner.name,
-              avatar: partner.avatar,
-              lastSeen: partner.lastLogin,
-              lastMessage: message.content,
-              lastMessageTime: message.createdAt,
-              unreadCount,
-              isOnline: false // This would be determined by a real-time system
-            });
+            if (partner) {
+              // Count unread messages
+              const unreadCount = await prisma.message.count({
+                where: {
+                  senderId: partnerId,
+                  receiverId: userId,
+                  isRead: false
+                }
+              });
+
+              conversationMap.set(partnerId, {
+                id: `conv-${userId}-${partnerId}`,
+                userId: partnerId,
+                name: partner.name,
+                avatar: partner.avatar,
+                lastSeen: partner.lastLogin,
+                lastMessage: message.content,
+                lastMessageTime: message.createdAt,
+                unreadCount,
+                isOnline: false // This would be determined by a real-time system
+              });
+            }
           }
         }
+
+        // Convert map to array and sort by last message time
+        const conversations = Array.from(conversationMap.values()).sort((a, b) =>
+          new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
+        );
+
+        return successResponse(conversations);
+      } catch (error: unknown) {
+        logger.error("Error fetching conversations:", error);
+        return handleApiError(error);
       }
-
-      // Convert map to array and sort by last message time
-      const conversations = Array.from(conversationMap.values()).sort((a, b) =>
-        new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
-      );
-
-      return NextResponse.json(conversations);
-    } catch (error: unknown) {
-      logger.error("Error fetching conversations:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب المحادثات" },
-        { status: 500 }
-      );
-    }
+    });
   });
 }

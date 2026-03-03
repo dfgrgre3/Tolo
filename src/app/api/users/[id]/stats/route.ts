@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
-import { TASK_STATUS } from '@/lib/constants';
+import { TaskStatus } from '@/lib/constants';
+import { successResponse, unauthorizedResponse, handleApiError, createErrorResponse } from '@/lib/api-utils';
 
 // Type for Prisma client with optional models
 type PrismaClientWithOptionalModels = typeof prisma & {
@@ -23,19 +24,19 @@ export async function GET(
       // Authenticate user check via middleware
       const userId = req.headers.get("x-user-id");
       if (!userId) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        return unauthorizedResponse();
       }
       const authUser = { userId };
 
       if (authUser.userId !== id) {
-        return NextResponse.json({ error: "Forbidden: Can only access your own stats" }, { status: 403 });
+        return createErrorResponse("Forbidden: Can only access your own stats", 403);
       }
 
       // Get completed tasks count
       const completedTasks = await prisma.task.count({
         where: {
           userId: id,
-          status: TASK_STATUS.COMPLETED
+          status: TaskStatus.COMPLETED
         }
       });
 
@@ -126,13 +127,10 @@ export async function GET(
         blogPosts
       };
 
-      return NextResponse.json(stats);
+      return successResponse(stats);
     } catch (error) {
       logger.error("Error fetching user stats:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب إحصائيات المستخدم" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

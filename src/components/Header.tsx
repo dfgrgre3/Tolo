@@ -74,8 +74,9 @@ const MemoizedHeaderBreadcrumbs = memo(HeaderBreadcrumbs);
 
 export default function Header() {
   const pathname = usePathname();
-  const shouldReduceMotion = useReducedMotion();
+  const reduceMotion = useReducedMotion();
   const [isMounted, setIsMounted] = useState(false);
+  const shouldReduceMotion = isMounted ? reduceMotion : false;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   
@@ -255,15 +256,15 @@ export default function Header() {
                 </div>
               )}
 
-              {/* Contextual Help */}
+              {/* ContextualHelp */}
               <div className="hidden md:block">
-                <ContextualHelp className="hover:bg-primary/10 dark:hover:bg-primary/15" />
+                <ContextualHelp />
               </div>
 
               {/* Theme Toggle */}
               {mounted && (
                 <div className="hidden md:flex">
-                  <ThemeToggle className="hover:bg-primary/10 dark:hover:bg-primary/15" />
+                  <ThemeToggle />
                 </div>
               )}
 

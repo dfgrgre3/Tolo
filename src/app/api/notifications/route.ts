@@ -1,5 +1,5 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -9,7 +9,9 @@ import {
   createStandardErrorResponse,
   createSuccessResponse,
   addSecurityHeaders
-} from '@/lib/api-helpers';
+} from '@/lib/api-utils';
+import { unauthorizedResponse, badRequestResponse, successResponse } from '@/lib/api-utils';
+import { ERROR_CODES } from '@/lib/error-codes';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -17,11 +19,7 @@ export async function GET(request: NextRequest) {
       // Verify authentication via middleware
       const userId = req.headers.get("x-user-id");
       if (!userId) {
-        const response = NextResponse.json(
-          { error: 'Unauthorized', code: 'UNAUTHORIZED' },
-          { status: 401 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(unauthorizedResponse());
       }
       const decodedToken: any = { userId: "default-user" };
 
@@ -33,20 +31,12 @@ export async function GET(request: NextRequest) {
 
       const limit = parseInt(limitParam, 10);
       if (isNaN(limit) || limit > 100 || limit < 1) {
-        const response = NextResponse.json(
-          { error: 'Invalid limit parameter. Must be between 1 and 100.', code: 'INVALID_PARAMETER' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(badRequestResponse('Invalid limit parameter. Must be between 1 and 100.', ERROR_CODES.INVALID_PARAMETER));
       }
 
       const offset = parseInt(offsetParam, 10);
       if (isNaN(offset) || offset < 0) {
-        const response = NextResponse.json(
-          { error: 'Invalid offset parameter. Must be a non-negative integer.', code: 'INVALID_PARAMETER' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(badRequestResponse('Invalid offset parameter. Must be a non-negative integer.', ERROR_CODES.INVALID_PARAMETER));
       }
 
       // Build where clause with proper typing
@@ -80,7 +70,7 @@ export async function GET(request: NextRequest) {
         dbTimeoutPromise,
       ]);
 
-      const response = NextResponse.json({
+      const response = successResponse({
         notifications,
         unreadCount,
         hasMore: notifications.length === limit
@@ -102,11 +92,7 @@ export async function POST(request: NextRequest) {
       // Verify authentication via middleware
       const userId = req.headers.get("x-user-id");
       if (!userId) {
-        const response = NextResponse.json(
-          { error: 'Unauthorized', code: 'UNAUTHORIZED' },
-          { status: 401 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(unauthorizedResponse());
       }
       const decodedToken: any = { userId: "default-user" };
 
@@ -132,47 +118,27 @@ export async function POST(request: NextRequest) {
 
       // Validate required fields
       if (!title || typeof title !== 'string' || title.trim().length === 0) {
-        const response = NextResponse.json(
-          { error: 'Title is required and must be a non-empty string', code: 'MISSING_TITLE' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(badRequestResponse('Title is required and must be a non-empty string', ERROR_CODES.MISSING_PARAMETER));
       }
 
       if (!message || typeof message !== 'string' || message.trim().length === 0) {
-        const response = NextResponse.json(
-          { error: 'Message is required and must be a non-empty string', code: 'MISSING_MESSAGE' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(badRequestResponse('Message is required and must be a non-empty string', ERROR_CODES.MISSING_PARAMETER));
       }
 
       // Validate title and message length
       if (title.trim().length > 200) {
-        const response = NextResponse.json(
-          { error: 'Title is too long. Maximum length is 200 characters.', code: 'TITLE_TOO_LONG' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(badRequestResponse('Title is too long. Maximum length is 200 characters.', ERROR_CODES.INVALID_PARAMETER));
       }
 
       if (message.trim().length > 1000) {
-        const response = NextResponse.json(
-          { error: 'Message is too long. Maximum length is 1000 characters.', code: 'MESSAGE_TOO_LONG' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(badRequestResponse('Message is too long. Maximum length is 1000 characters.', ERROR_CODES.INVALID_PARAMETER));
       }
 
       // Validate type if provided
       const validTypes = ['info', 'success', 'warning', 'error'];
       const notificationType = type || 'info';
       if (!validTypes.includes(notificationType)) {
-        const response = NextResponse.json(
-          { error: `Invalid type. Must be one of: ${validTypes.join(', ')}`, code: 'INVALID_TYPE' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
+        return addSecurityHeaders(badRequestResponse(`Invalid type. Must be one of: ${validTypes.join(', ')}`, ERROR_CODES.INVALID_PARAMETER));
       }
 
       // Create notification with timeout protection
@@ -181,7 +147,7 @@ export async function POST(request: NextRequest) {
           userId: decodedToken.userId,
           title: title.trim(),
           message: message.trim(),
-          type: notificationType,
+          type: notificationType.toUpperCase() as any,
           actionUrl: actionUrl && typeof actionUrl === 'string' ? actionUrl.trim() : null,
           icon: icon && typeof icon === 'string' ? icon.trim() : null,
           isRead: false

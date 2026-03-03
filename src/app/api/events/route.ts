@@ -1,8 +1,9 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { EventBus } from '@/lib/event-bus';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
+import { ERROR_CODES } from '@/lib/error-codes';
 
 // GET all events
 export async function GET(request: NextRequest) {
@@ -40,13 +41,9 @@ export async function GET(request: NextRequest) {
         tags: event.tags
       }));
 
-      return NextResponse.json(transformedEvents);
+      return successResponse(transformedEvents);
     } catch (error: unknown) {
-      logger.error("Error fetching events:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب المناسبات" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
@@ -71,10 +68,7 @@ export async function POST(request: NextRequest) {
       } = await req.json();
 
       if (!userId || !title || !description || !startDate || !endDate || !category) {
-        return NextResponse.json(
-          { error: "جميع الحقول المطلوبة يجب ملؤها" },
-          { status: 400 }
-        );
+        return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها", ERROR_CODES.MISSING_PARAMETER);
       }
 
       // Check if user exists
@@ -83,10 +77,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (!user) {
-        return NextResponse.json(
-          { error: "المستخدم غير موجود" },
-          { status: 404 }
-        );
+        return badRequestResponse("المستخدم غير موجود", ERROR_CODES.NOT_FOUND);
       }
 
       const newEvent = await prisma.event.create({
@@ -133,13 +124,9 @@ export async function POST(request: NextRequest) {
 
       await eventBus.publish('event.created', transformedEvent);
 
-      return NextResponse.json(transformedEvent, { status: 201 });
+      return successResponse(transformedEvent, undefined, 201);
     } catch (error: unknown) {
-      logger.error("Error creating event:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في إنشاء المناسبة" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

@@ -3,95 +3,75 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { successResponse, unauthorizedResponse, notFoundResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
 // جلب إعدادات الإشعارات
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      // Verify authentication via middleware headers
-      const userId = req.headers.get("x-user-id");
-      if (!userId) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
+    return withAuth(request, async (authUser) => {
+      try {
 
-      // Get user notification settings
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: {
-          emailNotifications: true,
-          smsNotifications: true,
-          phone: true
+        // Get user notification settings
+        const user = await prisma.user.findUnique({
+          where: { id: authUser.userId },
+          select: {
+            emailNotifications: true,
+            smsNotifications: true,
+            phone: true
+          }
+        });
+
+        if (!user) {
+          return notFoundResponse('User not found');
         }
-      });
 
-      if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
+        return successResponse({
+          emailNotifications: user.emailNotifications,
+          smsNotifications: user.smsNotifications,
+          phone: user.phone
+        });
+      } catch (error) {
+        logger.error('Error fetching notification settings:', error);
+        return handleApiError(error);
       }
-
-      return NextResponse.json({
-        emailNotifications: user.emailNotifications,
-        smsNotifications: user.smsNotifications,
-        phone: user.phone
-      });
-    } catch (error) {
-      logger.error('Error fetching notification settings:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch notification settings' },
-        { status: 500 }
-      );
-    }
+    });
   });
 }
 
 // تحديث إعدادات الإشعارات
 export async function PUT(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      // Verify authentication via middleware headers
-      const userId = req.headers.get("x-user-id");
-      if (!userId) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
+    return withAuth(request, async (authUser) => {
+      try {
+
+        const { emailNotifications, smsNotifications, phone } = await req.json();
+
+        // Update user notification settings
+        const updatedUser = await prisma.user.update({
+          where: { id: authUser.userId },
+          data: {
+            emailNotifications,
+            smsNotifications,
+            phone
+          },
+          select: {
+            id: true,
+            emailNotifications: true,
+            smsNotifications: true,
+            phone: true
+          }
+        });
+
+        return successResponse({
+          success: true,
+          emailNotifications: updatedUser.emailNotifications,
+          smsNotifications: updatedUser.smsNotifications,
+          phone: updatedUser.phone
+        });
+      } catch (error) {
+        logger.error('Error updating notification settings:', error);
+        return handleApiError(error);
       }
-
-      const { emailNotifications, smsNotifications, phone } = await req.json();
-
-      // Update user notification settings
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          emailNotifications,
-          smsNotifications,
-          phone
-        },
-        select: {
-          id: true,
-          emailNotifications: true,
-          smsNotifications: true,
-          phone: true
-        }
-      });
-
-      return NextResponse.json({
-        success: true,
-        emailNotifications: updatedUser.emailNotifications,
-        smsNotifications: updatedUser.smsNotifications,
-        phone: updatedUser.phone
-      });
-    } catch (error) {
-      logger.error('Error updating notification settings:', error);
-      return NextResponse.json(
-        { error: 'Failed to update notification settings' },
-        { status: 500 }
-      );
-    }
+    });
   });
 }

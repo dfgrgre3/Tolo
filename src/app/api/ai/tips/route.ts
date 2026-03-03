@@ -1,8 +1,8 @@
-﻿
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { AI_PROVIDERS, getDefaultProvider } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { handleApiError, successResponse, createErrorResponse } from '@/lib/api-utils';
 
 import { logger } from '@/lib/logger';
 
@@ -15,10 +15,7 @@ export async function POST(request: NextRequest) {
       const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
 
       if (!selectedProvider.apiKey) {
-        return NextResponse.json(
-          { error: `ظ…ظپطھط§ط­ API ظ„ظ€ ${selectedProvider.name} ط؛ظٹط± ظ…ظ‡ظٹط£` },
-          { status: 500 }
-        );
+        return createErrorResponse(`مفتاح API لـ ${selectedProvider.name} غير مهيأ`, 500);
       }
 
       // ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط³طھط®ط¯ظ… ط¥ط°ط§ طھظ… طھظˆظپظٹط± ظ…ط¹ط±ظپ ط§ظ„ظ…ط³طھط®ط¯ظ…
@@ -102,9 +99,7 @@ export async function POST(request: NextRequest) {
         if (!response.ok) {
           const errorData = await response.json();
           logger.error("Error from OpenAI:", errorData);
-          return NextResponse.json({
-            error: "ط¹ط°ط±ط§ظ‹طŒ ظٹظˆط§ط¬ظ‡ ط§ظ„ظ†ط¸ط§ظ… ط¨ط¹ط¶ ط§ظ„طµط¹ظˆط¨ط§طھ ط§ظ„طھظ‚ظ†ظٹط© ظپظٹ طھظ‚ط¯ظٹظ… ط§ظ„ظ†طµط§ط¦ط­ ط­ط§ظ„ظٹط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹."
-          }, { status: 500 });
+          return createErrorResponse("عذراً، يواجه النظام بعض الصعوبات التقنية في تقديم النصائح حالياً. يرجى المحاولة مرة أخرى لاحقاً.", 500);
         }
 
         const data = await response.json();
@@ -133,9 +128,7 @@ export async function POST(request: NextRequest) {
         if (!response.ok) {
           const errorData = await response.json();
           logger.error("Error from Gemini:", errorData);
-          return NextResponse.json({
-            error: "ط¹ط°ط±ط§ظ‹طŒ ظٹظˆط§ط¬ظ‡ ط§ظ„ظ†ط¸ط§ظ… ط¨ط¹ط¶ ط§ظ„طµط¹ظˆط¨ط§طھ ط§ظ„طھظ‚ظ†ظٹط© ظپظٹ طھظ‚ط¯ظٹظ… ط§ظ„ظ†طµط§ط¦ط­ ط­ط§ظ„ظٹط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹."
-          }, { status: 500 });
+          return createErrorResponse("عذراً، يواجه النظام بعض الصعوبات التقنية في تقديم النصائح حالياً. يرجى المحاولة مرة أخرى لاحقاً.", 500);
         }
 
         const data = await response.json();
@@ -164,26 +157,23 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        return NextResponse.json({
+        return successResponse({
           ...tipsData,
           provider: selectedProvider.name
         });
       } catch (parseError) {
         logger.error("Error parsing tips JSON:", parseError);
 
-        // ط¥ط°ط§ ظپط´ظ„ طھط­ظ„ظٹظ„ JSONطŒ ظ‚ظ… ط¨ط¥ط±ط¬ط§ط¹ ط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„ط®ط§ظ…
-        return NextResponse.json({
+        // إذا فشل تحليل JSON، قم بإرجاع المحتوى الخام
+        return successResponse({
           rawContent: tipsContent,
-          message: "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ†طµط§ط¦ط­ ظˆظ„ظƒظ† ط­ط¯ط« ط®ط·ط£ ظپظٹ طھظ†ط³ظٹظ‚ظ‡ط§. ظٹط±ط¬ظ‰ ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظ…ط­طھظˆظ‰ ط£ط¯ظ†ط§ظ‡.",
+          message: "تم إنشاء النصائح ولكن حدث خطأ في تنسيقها. يرجى مراجعة المحتوى أدناه.",
           provider: selectedProvider.name
         });
       }
     } catch (error: unknown) {
       logger.error("Error in AI tips API:", error);
-      return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ظپظٹ ظ…ط¹ط§ظ„ط¬ط© ط·ظ„ط¨ظƒ" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

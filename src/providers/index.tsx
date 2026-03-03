@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
-// import removed
+import { AuthProvider } from '@/contexts/auth-context';
 import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
@@ -11,20 +11,28 @@ type GlobalProvidersProps = {
   children: React.ReactNode;
 };
 
+/**
+ * GlobalProviders - Root provider composition.
+ * 
+ * Provider order matters:
+ * 1. ClientLayoutProvider - Base client-side setup
+ * 2. ThemeProvider - Theme management (must be early for FOUC prevention)
+ * 3. AuthProvider - Authentication state (before any auth-dependent providers)
+ * 4. ToastProvider - Notifications (can be used by auth for error toasts)
+ * 5. WebSocketProvider - Real-time features (needs auth state)
+ */
 export function GlobalProviders({ children }: GlobalProvidersProps) {
   const [mounted, setMounted] = useState(false);
   const [isReady, setIsReady] = useState(false);
   
   useEffect(() => {
     setMounted(true);
-    // Small delay to ensure all providers are fully initialized
     const timer = setTimeout(() => {
       setIsReady(true);
     }, 0);
     return () => clearTimeout(timer);
   }, []);
   
-  // ✅ تم إزالة نظام تسجيل الدخول بالكامل من المشروع
   return (
     <>
       <Suspense fallback={null}>
@@ -35,15 +43,17 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
             enableSystem
             disableTransitionOnChange
           >
-            <ToastProvider>
-              {mounted && isReady ? (
-                <WebSocketProvider>
-                  {children}
-                </WebSocketProvider>
-              ) : (
-                <>{children}</>
-              )}
-            </ToastProvider>
+            <AuthProvider>
+              <ToastProvider>
+                {mounted && isReady ? (
+                  <WebSocketProvider>
+                    {children}
+                  </WebSocketProvider>
+                ) : (
+                  <>{children}</>
+                )}
+              </ToastProvider>
+            </AuthProvider>
           </ThemeProvider>
         </ClientLayoutProvider>
       </Suspense>
@@ -53,3 +63,4 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
 
 export * from '@/contexts/toast-context';
 export * from '@/contexts/websocket-context';
+export * from '@/contexts/auth-context';

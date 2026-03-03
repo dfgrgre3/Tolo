@@ -1,20 +1,19 @@
+import { UserRole, TaskStatus, FocusStrategy, Difficulty, NotificationType } from '@prisma/client';
+
 /**
- * API Constants
- * Centralized constants for API routes to avoid hardcoded values
+ * Enums from Prisma mapping
  */
+export {
+  UserRole,
+  TaskStatus,
+  FocusStrategy,
+  Difficulty,
+  NotificationType
+};
 
-// Task Status Constants
-export const TASK_STATUS = {
-  PENDING: 'PENDING',
-  IN_PROGRESS: 'IN_PROGRESS',
-  COMPLETED: 'COMPLETED',
-} as const;
+export const TASK_STATUS_VALUES = Object.values(TaskStatus);
 
-export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
-
-export const TASK_STATUS_VALUES = Object.values(TASK_STATUS);
-
-// Task Priority Constants
+// Task Priority Constants (Not in Prisma as enum)
 export const TASK_PRIORITY = {
   LOW: 'LOW',
   MEDIUM: 'MEDIUM',
@@ -34,29 +33,30 @@ export const TASK_PRIORITY_MAP: Record<TaskPriority, number> = {
 
 // Task Defaults
 export const TASK_DEFAULTS = {
-  STATUS: TASK_STATUS.PENDING,
+  STATUS: TaskStatus.PENDING,
   PRIORITY: TASK_PRIORITY.MEDIUM,
   PRIORITY_NUMBER: TASK_PRIORITY_MAP[TASK_PRIORITY.MEDIUM],
 } as const;
 
-// User Role Constants
-export const USER_ROLE = {
-  TEACHER: 'TEACHER',
-  ADMIN: 'ADMIN',
-  STUDENT: 'STUDENT',
-  // Lowercase variants for compatibility
-  teacher: 'teacher',
-  admin: 'admin',
-  student: 'student',
-} as const;
-
-export type UserRole = typeof USER_ROLE[keyof typeof USER_ROLE];
-
 // Teacher roles array for queries
 export const TEACHER_ROLES = [
-  USER_ROLE.TEACHER,
-  USER_ROLE.ADMIN,
-  USER_ROLE.teacher,
-  USER_ROLE.admin,
+  UserRole.TEACHER,
+  UserRole.ADMIN,
 ] as const;
 
+// Types from enums.ts moved here
+export enum SubjectType {
+  MATH = 'MATH',
+  PHYSICS = 'PHYSICS',
+  CHEMISTRY = 'CHEMISTRY',
+  ARABIC = 'ARABIC',
+  ENGLISH = 'ENGLISH'
+}
+
+export enum ExamType {
+  FINAL = 'FINAL',
+  MIDTERM = 'MIDTERM',
+  QUIZ = 'QUIZ',
+  PRACTICE = 'PRACTICE',
+  OTHER = 'OTHER'
+}

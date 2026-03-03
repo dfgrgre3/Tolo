@@ -1,5 +1,6 @@
-﻿import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
+import { successResponse, handleApiError } from '@/lib/api-utils';
 
 // Create a lightweight guest user and return its id for local usage
 // The time management page stores this id in localStorage and uses it
@@ -17,9 +18,8 @@ export async function POST(_req: NextRequest) {
       select: { id: true },
     });
 
-    return NextResponse.json({ id: user.id });
+    return successResponse({ id: user.id });
   } catch (e: unknown) {
-    const errorMessage = e instanceof Error ? e.message : "Server error";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return handleApiError(e);
   }
 }

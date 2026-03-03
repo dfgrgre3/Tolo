@@ -3,7 +3,7 @@ import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
 import { OpenAI } from 'openai';
-import { rateLimit } from '@/lib/api-utils';
+import { rateLimit, withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -11,49 +11,34 @@ export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      const openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
-      });
-      // Apply rate limiting
-      const rateLimitResult = await rateLimit(req, 10, 'generate_test'); // 10 requests per window
-      if (rateLimitResult) {
-        return rateLimitResult;
-      }
+    return withAuth(req, async ({ userId }) => {
+      try {
+        const openai = new OpenAI({
+          apiKey: process.env.OPENAI_API_KEY,
+        });
+        // Apply rate limiting
+        const rateLimitResult = await rateLimit(req, 10, 'generate_test'); // 10 requests per window
+        if (rateLimitResult) {
+          return rateLimitResult;
+        }
 
-      // Verify authentication via middleware headers
-      const userId = req.headers.get("x-user-id");
+        const { subject, difficulty, questionCount, questionTypes, timeLimit, lesson } = await req.json();
 
-      if (!userId) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
+        if (!subject) {
+          return badRequestResponse('Subject is required');
+        }
 
-      const { subject, difficulty, questionCount, questionTypes, timeLimit, lesson } = await req.json();
+        // Get user from database
+        const user = await prisma.user.findUnique({
+          where: { id: userId }
+        });
 
-      if (!subject) {
-        return NextResponse.json(
-          { error: 'Subject is required' },
-          { status: 400 }
-        );
-      }
+        if (!user) {
+          return notFoundResponse('User not found');
+        }
 
-      // Get user from database
-      const user = await prisma.user.findUnique({
-        where: { id: userId }
-      });
-
-      if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
-
-      // Create prompt for AI to generate test
-      const prompt = `
+        // Create prompt for AI to generate test
+        const prompt = `
       قم بإنشاء اختبار في مادة ${getSubjectName(subject)}${lesson ? ` حول موضوع ${lesson}` : ''}.
 
       التفاصيل:
@@ -88,79 +73,74 @@ export async function POST(request: NextRequest) {
       }
     `;
 
-      // Call OpenAI API to generate test
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [{ role: "user", content: prompt }],
-        response_format: { type: "json_object" },
-      });
+        // Call OpenAI API to generate test
+        const completion = await openai.chat.completions.create({
+          model: "gpt-4",
+          messages: [{ role: "user", content: prompt }],
+          response_format: { type: "json_object" },
+        });
 
-      const responseContent = completion.choices[0].message.content;
-      if (!responseContent) {
-        throw new Error("Empty response from AI");
-      }
-
-      const generatedTest = JSON.parse(responseContent);
-
-      // Look up subject in database
-      const dbSubject = await prisma.subject.findFirst({
-        where: {
-          OR: [
-            { name: { equals: subject, mode: 'insensitive' } },
-            { nameAr: { equals: subject, mode: 'insensitive' } }
-          ]
+        const responseContent = completion.choices[0].message.content;
+        if (!responseContent) {
+          throw new Error("Empty response from AI");
         }
-      });
 
-      if (!dbSubject) {
-        return NextResponse.json(
-          { error: `Subject ${subject} not found` },
-          { status: 404 }
-        );
-      }
+        const generatedTest = JSON.parse(responseContent);
 
-      // Create exam in database
-      const newExam = await prisma.aiGeneratedExam.create({
-        data: {
-          userId: user.id,
-          subjectId: dbSubject.id,
-          title: String(generatedTest.title || `اختبار ${subject}`),
-          year: new Date().getFullYear(),
-          difficulty: String(difficulty || 'medium'),
-          duration: Number(timeLimit || 30),
-        }
-      });
-
-
-
-      // Create questions in database
-      for (const q of generatedTest.questions) {
-        await prisma.aiQuestion.create({
-          data: {
-            examId: newExam.id,
-            question: q.question,
-            options: q.options ? q.options : Prisma.JsonNull,
-            correctAnswer: q.correctAnswer,
-            explanation: q.explanation,
-            points: q.points || 1
+        // Look up subject in database
+        const dbSubject = await prisma.subject.findFirst({
+          where: {
+            OR: [
+              { name: { equals: subject, mode: 'insensitive' } },
+              { nameAr: { equals: subject, mode: 'insensitive' } }
+            ]
           }
         });
+
+        if (!dbSubject) {
+          return notFoundResponse(`Subject ${subject} not found`);
+        }
+
+        // Create exam in database
+        const newExam = await prisma.aiGeneratedExam.create({
+          data: {
+            userId: user.id,
+            subjectId: dbSubject.id,
+            title: String(generatedTest.title || `اختبار ${subject}`),
+            year: new Date().getFullYear(),
+            difficulty: (difficulty || 'MEDIUM').toUpperCase() as any,
+            duration: Number(timeLimit || 30),
+          }
+        });
+
+
+
+        // Create questions in database
+        for (const q of generatedTest.questions) {
+          await prisma.aiQuestion.create({
+            data: {
+              examId: newExam.id,
+              question: q.question,
+              options: q.options ? q.options : Prisma.JsonNull,
+              correctAnswer: q.correctAnswer,
+              explanation: q.explanation,
+              points: q.points || 1
+            }
+          });
+        }
+
+        // Return the created exam with questions
+        const examWithQuestions = await prisma.aiGeneratedExam.findUnique({
+          where: { id: newExam.id },
+          include: { questions: true }
+        });
+
+        return successResponse({ test: examWithQuestions });
+      } catch (error) {
+        logger.error('Error generating test:', error);
+        return handleApiError(error);
       }
-
-      // Return the created exam with questions
-      const examWithQuestions = await prisma.aiGeneratedExam.findUnique({
-        where: { id: newExam.id },
-        include: { questions: true }
-      });
-
-      return NextResponse.json({ test: examWithQuestions });
-    } catch (error) {
-      logger.error('Error generating test:', error);
-      return NextResponse.json(
-        { error: 'Failed to generate test' },
-        { status: 500 }
-      );
-    }
+    });
   });
 }
 
