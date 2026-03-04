@@ -8,10 +8,44 @@ import { logger } from '@/lib/logger';
 
 const SW_PATH = "/sw.js";
 const SW_SCOPE = "/";
+const SW_CACHE_PREFIX = "thanawy-search";
+
+async function cleanupServiceWorkerArtifacts(): Promise<void> {
+	try {
+		const registration = await navigator.serviceWorker.getRegistration(SW_SCOPE);
+		if (registration) {
+			await registration.unregister();
+		}
+	} catch (error) {
+		logger.debug("Service Worker cleanup (unregister) skipped:", error);
+	}
+
+	if (!("caches" in window)) {
+		return;
+	}
+
+	try {
+		const cacheNames = await caches.keys();
+		await Promise.all(
+			cacheNames
+				.filter((name) => name.startsWith(SW_CACHE_PREFIX))
+				.map((name) => caches.delete(name))
+		);
+	} catch (error) {
+		logger.debug("Service Worker cleanup (cache) skipped:", error);
+	}
+}
 
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
 	if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
 		logger.debug("Service Worker not supported");
+		return null;
+	}
+
+	// Avoid stale dev assets/chunks by disabling and cleaning Service Workers outside production.
+	if (process.env.NODE_ENV !== "production") {
+		await cleanupServiceWorkerArtifacts();
+		logger.debug("Service Worker disabled outside production");
 		return null;
 	}
 

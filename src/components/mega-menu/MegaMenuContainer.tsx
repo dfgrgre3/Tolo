@@ -47,14 +47,21 @@ export function MegaMenuContainer({ children, menuWidth, onClose }: MegaMenuCont
 				damping: 40,
 				mass: 0.8
 			}}
-			className={`fixed top-16 left-1/2 -translate-x-1/2 w-full max-w-[110vw] md:${menuWidth} lg:${menuWidth} xl:${menuWidth} z-50 overflow-hidden`}
+			className={cn(
+				"fixed left-1/2 -translate-x-1/2 w-full max-w-[110vw] z-50 overflow-hidden",
+				`md:${menuWidth} lg:${menuWidth} xl:${menuWidth}`
+			)}
+			style={{ 
+				top: 'var(--header-height, 64px)',
+				transition: 'top 0.3s ease-out'
+			}}
 			onMouseLeave={onClose}
 			data-mega-menu-content
 			role="dialog"
 			aria-modal="true"
 			aria-label="القائمة الرئيسية"
 		>
-			<div className="relative bg-gradient-to-br from-popover/98 via-popover/95 to-popover/98 backdrop-blur-2xl rounded-b-3xl border border-border/60 shadow-2xl shadow-black/50 overflow-hidden">
+			<div className="relative bg-gradient-to-br from-popover/98 via-popover/95 to-popover/98 backdrop-blur-2xl rounded-b-2xl border-x border-b border-border/60 shadow-2xl shadow-black/50 overflow-hidden">
 				{/* Animated mesh gradient background */}
 				<div className="absolute inset-0 bg-gradient-to-br from-primary/12 via-primary/5 via-primary/8 to-primary/12 pointer-events-none" />
 				

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { logger } from '@/lib/logger';
 import { AlertCircle, RefreshCw, Sword, Shield, Scroll, Trophy, Skull, Target, Clock, Swords, CheckCircle2 } from "lucide-react";
@@ -16,15 +17,18 @@ const SubjectCardSkeleton = () => (
 
 // --- Presentational Components ---
 const SubjectCard = memo(({ emoji, name, onClick }: { emoji: string; name: string; onClick: () => void }) => (
-    <button
+    <motion.button
         onClick={onClick}
-        className={`${rpgCommonStyles.card} group w-full flex flex-col items-center justify-center gap-4 hover:border-primary/50 hover:bg-white/10 transition-all duration-300 transform hover:scale-105 min-h-[160px]`}
+        whileHover={{ y: -8, scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className={`${rpgCommonStyles.card} group w-full flex flex-col items-center justify-center gap-5 hover:border-red-500/40 hover:bg-black/40 transition-all duration-500 transform min-h-[180px] relative overflow-hidden backdrop-blur-2xl p-6`}
         aria-label={`تحدي مادة ${name}`}
     >
-        <div className="text-5xl drop-shadow-lg group-hover:scale-110 transition-transform duration-300 filter group-hover:brightness-125" role="img" aria-hidden="true">{emoji}</div>
-        <div className="text-lg font-bold text-gray-200 group-hover:text-primary transition-colors">{name}</div>
-        <div className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity -mt-2">انقر لبدء المعركة</div>
-    </button>
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        <div className="text-6xl drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] group-hover:scale-125 transition-transform duration-500 filter group-hover:brightness-125 relative z-10" role="img" aria-hidden="true">{emoji}</div>
+        <div className="text-xl font-black text-gray-100 group-hover:text-red-400 transition-colors tracking-tight relative z-10">{name}</div>
+        <div className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/0 group-hover:text-red-500/100 transition-all duration-500 mt-1 relative z-10">بداية المعركة</div>
+    </motion.button>
 ));
 SubjectCard.displayName = "SubjectCard";
 
@@ -219,15 +223,20 @@ const ExamsSectionComponent = () => {
 
             <div className="relative z-10 max-w-7xl mx-auto">
                 {/* Section Header */}
-                <div className="text-center mb-12">
-                    <div className="inline-flex items-center justify-center p-3 mb-4 rounded-full bg-gradient-to-br from-red-600/20 to-orange-600/20 ring-1 ring-red-500/40 backdrop-blur-xl shadow-[0_0_15px_rgba(239,68,68,0.2)]">
-                        <Swords className="w-8 h-8 text-red-500" />
-                    </div>
-                    <h2 id="exams-heading" className={`text-4xl md:text-5xl font-black mb-4 ${rpgCommonStyles.goldText}`}>
-                         ساحة المعارك (Battle Arena)
+                <div className="text-center mb-16 relative">
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-red-600/10 rounded-full blur-[100px] -z-10" />
+                    <motion.div 
+                        initial={{ scale: 0.8, rotate: -10 }}
+                        whileInView={{ scale: 1, rotate: 0 }}
+                        className="inline-flex items-center justify-center p-5 mb-8 rounded-[2rem] bg-black/60 border-2 border-red-500/40 backdrop-blur-2xl shadow-[0_0_40px_rgba(239,68,68,0.3)] ring-1 ring-white/10"
+                    >
+                        <Swords className="w-12 h-12 text-red-500 filter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
+                    </motion.div>
+                    <h2 id="exams-heading" className={`text-5xl md:text-7xl font-black mb-6 tracking-tighter ${rpgCommonStyles.goldText}`}>
+                         ساحة المعارك (ARENA)
                     </h2>
-                    <p className="text-gray-400 mb-8 max-w-2xl mx-auto text-lg leading-relaxed">
-                        اختر سلاحك (المادة) واستعد لمواجهة التحديات. كل انتصار يقربك من المستوى التالي!
+                    <p className="text-gray-400 mb-8 max-w-3xl mx-auto text-xl font-medium border-x-2 border-red-500/20 px-8 leading-relaxed">
+                        اختر سلاحك (المادة) واستعد لمواجهة التحديات. كل انتصار يقربك من نيل رتبة "البطل الأسطوري".
                     </p>
                 </div>
                 

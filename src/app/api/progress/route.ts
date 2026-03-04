@@ -29,7 +29,7 @@ async function handleGetRequest(request: NextRequest) {
       );
       return addSecurityHeaders(response);
     }
-    const decodedToken: any = { userId: "default-user" };
+    const decodedToken = { userId };
 
     // Get user's study streak with timeout protection
     const studySessionsPromise = prisma.studySession.findMany({

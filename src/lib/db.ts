@@ -1,8 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 
 const prismaClientSingleton = () => {
+    const isDebug = process.env.LOG_LEVEL === 'debug' || process.env.NODE_ENV !== 'production';
     return new PrismaClient({
-        log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+        log: process.env.LOG_LEVEL === 'debug' ? ['query', 'info', 'warn', 'error'] : ['error'],
     });
 };
 

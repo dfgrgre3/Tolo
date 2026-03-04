@@ -2,44 +2,50 @@ import React from "react";
 
 export const UserHomeSkeleton = () => {
   return (
-    <div className="container mx-auto px-4 py-8 space-y-8 animate-pulse dir-rtl">
-      {/* Header Skeleton */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="space-y-3">
-          <div className="h-8 w-64 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
-          <div className="h-4 w-96 bg-gray-200 dark:bg-gray-800 rounded-lg"></div>
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 animate-pulse bg-[#0A0A0F] min-h-screen" dir="rtl">
+      {/* Hero Skeleton */}
+      <div className="h-[500px] w-full rounded-[2.5rem] bg-white/5 border border-white/10 p-8">
+        <div className="flex flex-col items-center gap-8 mb-12">
+          <div className="h-10 w-48 bg-white/10 rounded-full"></div>
+          <div className="h-20 w-[80%] bg-white/10 rounded-2xl"></div>
+          <div className="h-12 w-96 bg-white/10 rounded-xl"></div>
+          <div className="h-24 w-48 bg-white/10 rounded-3xl mt-4"></div>
         </div>
-        <div className="h-10 w-40 bg-gray-200 dark:bg-gray-800 rounded-full"></div>
+        <div className="h-32 w-full max-w-4xl mx-auto rounded-3xl bg-white/10"></div>
       </div>
 
-      {/* Level Progress Skeleton */}
-      <div className="h-64 w-full rounded-3xl bg-gray-200 dark:bg-gray-800"></div>
-
-      {/* Main Grid Skeleton */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
-        {/* Left Column (Sidebar) */}
-        <div className="xl:col-span-3 space-y-6 order-2 xl:order-1">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="h-48 rounded-2xl bg-gray-200 dark:bg-gray-800"></div>
-          ))}
+      {/* Main Vertical Content Skeleton */}
+      <div className="max-w-5xl mx-auto w-full space-y-12">
+        {/* Quick Links Skeleton */}
+        <div className="space-y-6">
+           <div className="h-10 w-64 bg-white/5 rounded-lg"></div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+             {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-56 rounded-2xl bg-white/5 border border-white/10"></div>
+             ))}
+           </div>
         </div>
 
-        {/* Center/Right Column */}
-        <div className="xl:col-span-9 space-y-8 order-1 xl:order-2">
-          {/* Search */}
-          <div className="h-16 rounded-xl bg-gray-200 dark:bg-gray-800"></div>
-          
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-40 rounded-2xl bg-gray-200 dark:bg-gray-800"></div>
-            <div className="h-40 rounded-2xl bg-gray-200 dark:bg-gray-800"></div>
-          </div>
+        {/* Analytics/Performance Skeleton */}
+        <div className="h-96 w-full rounded-[2rem] bg-white/5 border border-white/10"></div>
+        
+        {/* Exams Skeleton */}
+        <div className="h-[600px] w-full rounded-[2rem] bg-white/5 border border-white/10 p-10">
+           <div className="w-full flex flex-col items-center gap-6 mb-12">
+             <div className="h-16 w-16 rounded-full bg-white/10"></div>
+             <div className="h-12 w-96 bg-white/10 rounded-xl"></div>
+           </div>
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-6">
+             {[1, 2, 3, 4, 5].map((i) => (
+               <div key={i} className="h-40 rounded-2xl bg-white/5 border border-white/10"></div>
+             ))}
+           </div>
+        </div>
 
-          {/* Performance Chart */}
-          <div className="h-96 rounded-2xl bg-gray-200 dark:bg-gray-800"></div>
-          
-          {/* Other Sections */}
-          <div className="h-64 rounded-2xl bg-gray-200 dark:bg-gray-800"></div>
+        {/* Intelligence Sections */}
+        <div className="space-y-12">
+           <div className="h-96 w-full rounded-[2rem] bg-white/5 border border-white/10"></div>
+           <div className="h-80 w-full rounded-[2rem] bg-white/5 border border-white/10"></div>
         </div>
       </div>
     </div>

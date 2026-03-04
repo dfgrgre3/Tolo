@@ -711,6 +711,7 @@ model SubTopic {
   name        String
   description String?
   content     String?
+  videoUrl    String?
   order       Int             @default(0)
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt

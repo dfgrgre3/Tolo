@@ -60,12 +60,6 @@ export const coursesMegaMenu: MegaMenuCategory[] = [
 				description: "استعرض جميع الدورات المتاحة",
 			},
 			{
-				href: "/courses/my-courses",
-				label: "دوراتي",
-				icon: Book,
-				description: "الدورات المسجلة فيها",
-			},
-			{
 				href: "/courses/enrolled",
 				label: "الدورات المسجلة",
 				icon: CheckCircle,
@@ -82,18 +76,6 @@ export const coursesMegaMenu: MegaMenuCategory[] = [
 	{
 		title: "محتوى الدورات",
 		items: [
-			{
-				href: "/courses/videos",
-				label: "الفيديوهات",
-				icon: Video,
-				description: "مقاطع الفيديو التعليمية",
-			},
-			{
-				href: "/courses/lessons",
-				label: "الدروس",
-				icon: PlayCircle,
-				description: "الدروس التفاعلية",
-			},
 			{
 				href: "/courses/materials",
 				label: "المواد التعليمية",
@@ -137,18 +119,6 @@ export const scheduleMegaMenu: MegaMenuCategory[] = [
 				label: "الجدول اليومي",
 				icon: Calendar,
 				description: "جدولك الدراسي اليوم",
-			},
-			{
-				href: "/schedule/weekly",
-				label: "الجدول الأسبوعي",
-				icon: Calendar,
-				description: "جدولك الأسبوعي",
-			},
-			{
-				href: "/schedule/monthly",
-				label: "الجدول الشهري",
-				icon: Calendar,
-				description: "جدولك الشهري",
 			},
 		],
 	},
@@ -194,12 +164,6 @@ export const timeManagementMegaMenu: MegaMenuCategory[] = [
 				icon: Activity,
 				description: "تتبع وقتك الدراسي",
 			},
-			{
-				href: "/time/schedule",
-				label: "الجدول الأسبوعي",
-				icon: Calendar,
-				description: "جدولك الأسبوعي",
-			},
 		],
 	},
 	{
@@ -233,18 +197,6 @@ export const libraryMegaMenu: MegaMenuCategory[] = [
 		title: "المكتبة الرقمية",
 		items: [
 			{
-				href: "/library",
-				label: "جميع الكتب",
-				icon: Book,
-				description: "استعرض جميع الكتب",
-			},
-			{
-				href: "/library/books",
-				label: "الكتب",
-				icon: BookOpen,
-				description: "الكتب التعليمية",
-			},
-			{
 				href: "/library/documents",
 				label: "الوثائق",
 				icon: FileText,
@@ -261,18 +213,6 @@ export const libraryMegaMenu: MegaMenuCategory[] = [
 	{
 		title: "التصنيفات",
 		items: [
-			{
-				href: "/library/favorites",
-				label: "المفضلة",
-				icon: Star,
-				description: "كتبك المفضلة",
-			},
-			{
-				href: "/library/recent",
-				label: "المؤخر",
-				icon: Clock,
-				description: "الكتب المفتوحة مؤخراً",
-			},
 			{
 				href: "/library/upload",
 				label: "رفع ملف",
@@ -519,24 +459,6 @@ export const aiSuggestionsMegaMenu: MegaMenuCategory[] = [
   {
     title: "أدوات الذكاء الاصطناعي",
     items: [
-      {
-        href: "/ai/content-generator",
-        label: "إنشاء المحتوى",
-        icon: Lightbulb,
-        description: "أنشئ محتوى تعليمي بمساعدة الذكاء الاصطناعي",
-      },
-      {
-        href: "/ai/summarizer",
-        label: "تلخيص النصوص",
-        icon: FileText,
-        description: "تلخيص المقالات والكتب",
-      },
-      {
-        href: "/ai/quiz-generator",
-        label: "إنشاء الاختبارات",
-        icon: CheckCircle,
-        description: "أنشئ اختبارات تفاعلية",
-      },
       {
         href: "/ai/progress-analysis",
         label: "تحليل التقدم",

@@ -10,14 +10,14 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-    const userId = searchParams.get('userId');
+      const userId = searchParams.get('userId') || req.headers.get('x-user-id');
     
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'userId required', success: false },
-        { status: 400 }
-      );
-    }
+      if (!userId) {
+        return NextResponse.json(
+          { error: 'userId required', success: false },
+          { status: 400 }
+        );
+      }
     
     // In production, this would:
     // 1. Analyze user's historical performance data

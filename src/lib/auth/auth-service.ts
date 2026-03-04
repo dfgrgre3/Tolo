@@ -43,6 +43,7 @@ export interface AuthResult {
         id: string;
         email: string;
         username: string | null;
+        name?: string | null;
         role: string;
         avatar: string | null;
         emailVerified: boolean | null;
@@ -88,6 +89,7 @@ export class AuthService {
                     id: true,
                     email: true,
                     username: true,
+                    name: true,
                     passwordHash: true,
                     role: true,
                     avatar: true,
@@ -155,6 +157,7 @@ export class AuthService {
                     id: user.id,
                     email: user.email,
                     username: user.username,
+                    name: user.name,
                     role: user.role,
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
@@ -239,6 +242,7 @@ export class AuthService {
                     id: user.id,
                     email: user.email,
                     username: user.username,
+                    name: user.username || normalizedEmail.split('@')[0],
                     role: user.role,
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
@@ -396,7 +400,7 @@ export class AuthService {
     /**
      * Resend verification email.
      */
-    static async resendVerification(email: string, ip: string, userAgent: string): Promise<{ success: boolean; error?: string }> {
+    static async resendVerification(email: string, _ip: string, _userAgent: string): Promise<{ success: boolean; error?: string }> {
         try {
             const normalizedEmail = email.toLowerCase().trim();
             const user = await prisma.user.findUnique({
@@ -445,12 +449,6 @@ export class AuthService {
                 role: true,
                 emailVerified: true,
                 phone: true,
-                bio: true,
-                school: true,
-                grade: true,
-                city: true,
-                birthDate: true,
-                gender: true,
                 createdAt: true,
                 lastLogin: true,
                 totalXP: true,
@@ -476,12 +474,16 @@ export class AuthService {
         gender?: string;
     }) {
         try {
+            const updateData = {
+                name: data.name,
+                username: data.username,
+                phone: data.phone,
+                avatar: data.avatar,
+            };
+
             return await prisma.user.update({
                 where: { id: userId },
-                data: {
-                    ...data,
-                    birthDate: data.birthDate ? new Date(data.birthDate) : undefined,
-                },
+                data: updateData,
             });
         } catch (error) {
             logger.error('[AUTH_UPDATE_PROFILE_ERROR]', { error });

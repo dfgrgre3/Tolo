@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   ChevronDown,
@@ -25,6 +25,7 @@ import { useTheme } from "next-themes";
 import { headerAnimations } from "./hooks/useHeaderAnimations";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, UserPlus, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { buildLoginUrl } from "@/lib/auth/navigation";
 
 interface HeaderMobileMenuEnhancedProps {
   isMobileMenuOpen: boolean;
@@ -41,6 +42,7 @@ export function HeaderMobileMenuEnhanced({
 }: HeaderMobileMenuEnhancedProps) {
   const mobileMenuRef = useRef<HTMLDivElement>(null);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   // Theme
   const { theme, setTheme } = useTheme();
@@ -201,6 +203,12 @@ export function HeaderMobileMenuEnhanced({
     return items;
   }, []);
 
+  const loginUrl = useMemo(() => {
+    const query = searchParams.toString();
+    const fullPath = `${pathname || '/'}${query ? `?${query}` : ''}`;
+    return buildLoginUrl(fullPath);
+  }, [pathname, searchParams]);
+
   return (
     <AnimatePresence>
       {isMobileMenuOpen && (
@@ -319,7 +327,7 @@ export function HeaderMobileMenuEnhanced({
                     className="rounded-2xl h-11 border-primary/20 hover:bg-primary/5 text-primary gap-2 transition-all font-bold"
                     asChild
                   >
-                    <Link href="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href={loginUrl} onClick={() => setIsMobileMenuOpen(false)}>
                       <LogIn className="h-4 w-4" />
                       دخول
                     </Link>

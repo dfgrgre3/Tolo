@@ -12,6 +12,8 @@ export interface ProgressSummary {
   streakDays: number;
 }
 
+import { TokenService, TokenPayload } from '@/lib/auth/token-service';
+
 /**
  * Get user ID from server-side (cookies or session)
  */
@@ -19,10 +21,10 @@ async function getServerUserId(): Promise<string | null> {
   try {
     // Try to get authenticated user first
     const cookieStore = await cookies();
-    const token = cookieStore.get('token')?.value || cookieStore.get('access_token')?.value;
+    const token = cookieStore.get('access_token')?.value || cookieStore.get('token')?.value;
 
     if (token) {
-      const payload: any = { userId: "default-user" };
+      const payload = await TokenService.verifyToken<TokenPayload>(token);
       if (payload && payload.userId) {
         return payload.userId;
       }

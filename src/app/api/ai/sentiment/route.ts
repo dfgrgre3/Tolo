@@ -7,15 +7,13 @@ import { logger } from '@/lib/logger';
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const decodedToken: any = { userId: "default-user" };
-      if (!decodedToken) {
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: "غير مصرح" },
           { status: 401 }
         );
       }
-
-      const userId = decodedToken.userId;
       const { text, context } = await req.json();
 
       if (!text) {
@@ -44,15 +42,13 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const decodedToken: any = { userId: "default-user" };
-      if (!decodedToken) {
+      const userId = req.headers.get("x-user-id");
+      if (!userId) {
         return NextResponse.json(
           { error: "غير مصرح" },
           { status: 401 }
         );
       }
-
-      const userId = decodedToken.userId;
       const { searchParams } = new URL(req.url);
       const days = parseInt(searchParams.get('days') || '7');
 

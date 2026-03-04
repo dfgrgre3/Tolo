@@ -21,6 +21,7 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { logger } from '@/lib/logger';
+import { rpgCommonStyles } from "../constants";
 
 // Note: Arabic locale may not be available in all date-fns versions
 // Fallback to English if Arabic locale is not found
@@ -50,9 +51,40 @@ interface Notification {
 interface StudySession {
   id: string;
   subject?: string;
+  subjectId?: string;
   duration?: number;
+  durationMin?: number;
+  startTime?: string | Date;
   createdAt?: string | Date;
   timestamp?: string | Date;
+}
+
+interface NotificationsApiResponse {
+  data?: {
+    notifications?: Notification[];
+  };
+  notifications?: Notification[];
+}
+
+interface StudySessionsApiResponse {
+  data?: StudySession[];
+  sessions?: StudySession[];
+}
+
+function extractNotifications(payload: NotificationsApiResponse | Notification[] | null): Notification[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.notifications)) return payload.notifications;
+  if (Array.isArray(payload.data?.notifications)) return payload.data.notifications;
+  return [];
+}
+
+function extractStudySessions(payload: StudySessionsApiResponse | StudySession[] | null): StudySession[] {
+  if (!payload) return [];
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload.sessions)) return payload.sessions;
+  if (Array.isArray(payload.data)) return payload.data;
+  return [];
 }
 
 export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
@@ -64,44 +96,43 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
       const userId = getSafeUserId();
       
       try {
-        // Fetch real activities from API
-        const { data, error } = await safeFetch<Notification[]>(
+        const { data, error } = await safeFetch<NotificationsApiResponse | Notification[]>(
           `/api/notifications${userId ? `?userId=${userId}` : ''}`,
           undefined,
-          []
+          null
         );
 
-        if (!error && data && data.length > 0) {
-          // Transform API data to ActivityItem format
-          const transformedActivities = data.map((notification) => ({
+        const notifications = extractNotifications(data);
+        if (!error && notifications.length > 0) {
+          const transformedActivities = notifications.map((notification) => ({
             id: notification.id || `activity-${Date.now()}-${Math.random()}`,
             type: (notification.type as ActivityItem['type']) || "notification",
-            title: notification.title || "إشعار جديد",
+            title: notification.title || "ط¥ط´ط¹ط§ط± ط¬ط¯ظٹط¯",
             description: notification.message || notification.description || "",
             timestamp: new Date(notification.createdAt || notification.timestamp || Date.now()),
             icon: <Bell className="h-5 w-5" />,
-            color: "text-blue-600 bg-blue-100",
+            color: "text-blue-400 bg-blue-500/10 border-blue-500/20",
             user: notification.userId
           }));
 
           setActivities(transformedActivities);
         } else {
-          // If no notifications, try to get study sessions
-          const { data: sessionsData } = await safeFetch<StudySession[]>(
+          const { data: sessionsData } = await safeFetch<StudySessionsApiResponse | StudySession[]>(
             `/api/study-sessions${userId ? `?userId=${userId}` : ''}`,
             undefined,
-            []
+            null
           );
+          const sessions = extractStudySessions(sessionsData);
 
-          if (sessionsData && sessionsData.length > 0) {
-            const sessionActivities = sessionsData.slice(0, 5).map((session) => ({
+          if (sessions.length > 0) {
+            const sessionActivities = sessions.slice(0, 5).map((session) => ({
               id: `session-${session.id}`,
               type: "study_session" as const,
-              title: `جلسة دراسة: ${session.subject || 'عام'}`,
-              description: `${session.duration || 0} دقيقة من الدراسة`,
-              timestamp: new Date(session.createdAt || session.timestamp || Date.now()),
+              title: `ط¬ظ„ط³ط© ط¯ط±ط§ط³ط©: ${session.subject || session.subjectId || 'عام'}`,
+              description: `${session.duration ?? session.durationMin ?? 0} ط¯ظ‚ظٹظ‚ط© ظ…ظ† ط§ظ„ط¯ط±ط§ط³ط©`,
+              timestamp: new Date(session.createdAt || session.startTime || session.timestamp || Date.now()),
               icon: <BookOpen className="h-5 w-5" />,
-              color: "text-blue-600 bg-blue-100"
+              color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20"
             }));
 
             setActivities(sessionActivities);
@@ -109,16 +140,12 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
         }
       } catch (error) {
         logger.error("Error fetching activities:", error);
-        // Keep empty array instead of showing fake data
         setActivities([]);
       }
     };
 
     fetchActivities();
-
-    // Poll for updates every 30 seconds
     const interval = setInterval(fetchActivities, 30000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -127,51 +154,55 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
     try {
       return formatDistanceToNow(date, { addSuffix: true, locale: ar });
     } catch {
-      // Fallback to relative time in Arabic manually if date-fns fails
       const seconds = Math.floor((new Date().getTime() - date.getTime()) / 1000);
-      if (seconds < 60) return "منذ لحظات";
-      if (seconds < 3600) return `منذ ${Math.floor(seconds / 60)} دقيقة`;
-      if (seconds < 86400) return `منذ ${Math.floor(seconds / 3600)} ساعة`;
-      return `منذ ${Math.floor(seconds / 86400)} يوم`;
+      if (seconds < 60) return "ظ…ظ†ط° ظ„ط­ط¸ط§طھ";
+      if (seconds < 3600) return `ظ…ظ†ط° ${Math.floor(seconds / 60)} ط¯ظ‚ظٹظ‚ط©`;
+      if (seconds < 86400) return `ظ…ظ†ط° ${Math.floor(seconds / 3600)} ط³ط§ط¹ط©`;
+      return `ظ…ظ†ط° ${Math.floor(seconds / 86400)} ظٹظˆظ…`;
     }
   };
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-200/25 via-transparent to-cyan-200/25" />
+    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-16 shadow-2xl relative overflow-hidden group/activity`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 via-transparent to-cyan-500/10 opacity-30 group-hover/activity:opacity-50 transition-opacity duration-1000" />
+      <div className="absolute -top-24 -left-24 w-80 h-80 bg-blue-600/10 rounded-full blur-[120px] pointer-events-none group-hover/activity:scale-110 transition-transform duration-1000" />
+      <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-cyan-600/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-8 flex items-center justify-between"
+          transition={{ duration: 0.6 }}
+          className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6"
         >
-          <div>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="rounded-full bg-gradient-to-r from-blue-600 to-cyan-600 p-3">
-                <Activity className="h-6 w-6 text-white" />
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <div className="absolute inset-0 bg-blue-500/30 rounded-2xl blur-lg animate-pulse" />
+              <div className="relative rounded-2xl bg-black/40 p-4 ring-2 ring-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
+                <Activity className="h-8 w-8 text-blue-400" />
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-primary">
-                سجل النشاط المباشر
-              </h2>
             </div>
-            <p className="text-muted-foreground text-lg">
-              تابع أحدث أنشطتك وإنجازاتك لحظة بلحظة
-            </p>
+            <div>
+              <h2 className={`text-4xl md:text-5xl font-black tracking-tight ${rpgCommonStyles.neonText} mb-2`}>
+                ط³ط¬ظ„ ط§ظ„ظ†ط´ط§ط· ط§ظ„ظ…ط¨ط§ط´ط±
+              </h2>
+              <p className="text-gray-400 text-lg font-medium border-r-4 border-blue-500/30 pr-4">
+                Live Activity: طھط§ط¨ط¹ ط£ط­ط¯ط« ط£ظ†ط´ط·طھظƒ ظˆط¥ظ†ط¬ط§ط²ط§طھظƒ ظ„ط­ط¸ط© ط¨ظ„ط­ط¸ط©.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className={`h-3 w-3 rounded-full ${isLive ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`} />
-            <span className="text-sm font-medium text-muted-foreground">
-              {isLive ? "مباشر" : "غير متصل"}
+          <div className="flex items-center gap-4 self-start md:self-auto px-6 py-3 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl shadow-inner group-hover/activity:border-blue-500/30 transition-colors">
+            <div className={`h-3 w-3 rounded-full ${isLive ? 'bg-emerald-500 animate-pulse shadow-[0_0_15px_rgba(16,185,129,0.8)]' : 'bg-gray-400'}`} />
+            <span className="text-sm font-black text-gray-300 tracking-wider">
+              {isLive ? "ظ†ط¸ط§ظ… ظ…طھط²ط§ظ…ظ† (ONLINE)" : "ط؛ظٹط± ظ…طھطµظ„ (OFFLINE)"}
             </span>
           </div>
         </motion.div>
 
         <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
           <AnimatePresence>
-            {activities.map((activity, index) => (
+            {activities.length > 0 ? activities.map((activity, index) => (
               <motion.div
                 key={activity.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -180,41 +211,43 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
                 transition={{ delay: index * 0.05 }}
                 layout
               >
-                <Card className="border-slate-200/80 shadow-sm hover:shadow-md transition-all duration-300 group">
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-4">
-                      <div className={`flex-shrink-0 rounded-xl p-3 ${activity.color} transition-transform group-hover:scale-110`}>
+                <Card className="bg-black/40 border-white/5 shadow-2xl hover:bg-white/5 hover:border-blue-500/30 transition-all duration-500 group/item relative overflow-hidden backdrop-blur-xl">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-blue-500/0 translate-x-[-100%] group-hover/item:animate-shimmer" />
+                  <CardContent className="p-6">
+                    <div className="flex items-start gap-6">
+                      <div className={`flex-shrink-0 rounded-2xl p-4 border ${activity.color} transition-all duration-500 group-hover/item:scale-110 group-hover/item:rotate-3 shadow-xl relative z-10`}>
                         {activity.icon}
                       </div>
                       
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <h3 className="font-semibold text-slate-900 text-base">
+                      <div className="flex-1 min-w-0 relative z-10">
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <h3 className="font-black text-gray-100 text-xl group-hover/item:text-blue-400 transition-colors">
                             {activity.title}
                           </h3>
-                          <span className="flex-shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                          <span className="flex-shrink-0 text-xs font-bold text-gray-500 flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                            <Clock className="h-3 w-3 text-blue-400" />
                             {formatTime(activity.timestamp)}
                           </span>
                         </div>
                         
-                        <p className="text-sm text-muted-foreground mb-3">
+                        <p className="text-gray-400 text-base mb-6 leading-relaxed line-clamp-2 group-hover/item:text-gray-300 transition-colors">
                           {activity.description}
                         </p>
 
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <Badge 
                             variant="outline" 
-                            className="text-xs border-slate-200"
+                            className="text-[10px] uppercase tracking-[0.2em] font-black border-white/10 bg-white/5 text-gray-400 px-3 py-1"
                           >
-                            {activity.type === "achievement" && "إنجاز"}
-                            {activity.type === "task_completed" && "مهمة مكتملة"}
-                            {activity.type === "study_session" && "جلسة دراسة"}
-                            {activity.type === "milestone" && "معلم"}
-                            {activity.type === "notification" && "إشعار"}
+                            {activity.type === "achievement" && "ط¥ظ†ط¬ط§ط² ط¹ط¸ظٹظ… (Epic Achievement)"}
+                            {activity.type === "task_completed" && "ظ…ظ‡ظ…ط© ظ…ظƒطھظ…ظ„ط© (Quest Clear)"}
+                            {activity.type === "study_session" && "ط¬ظ„ط³ط© طھط¯ط±ظٹط¨ (Training Log)"}
+                            {activity.type === "milestone" && "ظ…ط¹ظ„ظ… ط¬ط¯ظٹط¯ (Level Milestone)"}
+                            {activity.type === "notification" && "ط¥ط´ط¹ط§ط± ظ†ط¸ط§ظ… (System Alert)"}
                           </Badge>
                           {index === 0 && (
-                            <Badge className="text-xs bg-blue-600 text-white">
-                              جديد
+                            <Badge className="text-[10px] uppercase font-black px-3 py-1 bg-blue-600/20 text-blue-400 border border-blue-500/30 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                              ط­ط¯ط« ط§ظ„ط¢ظ† (NEW)
                             </Badge>
                           )}
                         </div>
@@ -223,31 +256,32 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
                   </CardContent>
                 </Card>
               </motion.div>
-            ))}
+            )) : !activities.length && (
+              <div className="text-center py-20 flex flex-col items-center">
+                 <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                   <Activity className="h-10 w-10 text-gray-600" />
+                 </div>
+                 <p className="text-xl font-bold text-gray-500 mb-2">ط§ظ„ط³ط¬ظ„ط§طھ ظپط§ط±ط؛ط© ط­ط§ظ„ظٹط§ظ‹</p>
+                 <p className="text-sm text-gray-600">ط§ط¨ط¯ط£ ظ…ط؛ط§ظ…ط±طھظƒ ط§ظ„ظٹظˆظ… ظ„طھط¸ظ‡ط± ظ†ط´ط§ط·ط§طھظƒ ظ‡ظ†ط§</p>
+              </div>
+            )}
           </AnimatePresence>
         </div>
-
-        {activities.length === 0 && (
-          <div className="text-center py-12">
-            <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">لا توجد أنشطة حديثة</p>
-          </div>
-        )}
       </div>
 
       <style jsx>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 6px;
+          width: 5px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #cbd5e1;
-          border-radius: 3px;
+          background: rgba(255, 255, 255, 0.05);
+          border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #94a3b8;
+          background: rgba(255, 255, 255, 0.1);
         }
       `}</style>
     </section>
@@ -255,4 +289,5 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
 });
 
 export default LiveActivityFeedSection;
+
 

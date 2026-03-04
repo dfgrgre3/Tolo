@@ -437,8 +437,28 @@ function isHtmlContent(text: string): boolean {
     trimmed.startsWith('<html') ||
     trimmed.startsWith('<HTML') ||
     trimmed.startsWith('<Html') ||
-    (trimmed.startsWith('<') && trimmed.includes('<head') || trimmed.includes('<body'))
+    (trimmed.startsWith('<') && (trimmed.includes('<head') || trimmed.includes('<body')))
   );
+}
+
+function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
+  if (response.status !== 401) return false;
+  if (!isBrowser()) return false;
+  if (!url.startsWith('/api/')) return false;
+  if (url.startsWith('/api/auth/')) return false;
+  return true;
+}
+
+async function refreshAuthSession(): Promise<boolean> {
+  try {
+    const refreshResponse = await fetch('/api/auth/refresh', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    return refreshResponse.ok;
+  } catch {
+    return false;
+  }
 }
 
 export async function safeJsonParse<T = any>(
@@ -541,7 +561,19 @@ export async function safeFetch<T = any>(
   fallback: T | null = null
 ): Promise<{ data: T | null; error: Error | null; response: Response | null }> {
   try {
-    const response = await fetch(url, options);
+    const fetchOptions: RequestInit = {
+      ...options,
+      credentials: options?.credentials ?? 'include',
+    };
+
+    let response = await fetch(url, fetchOptions);
+
+    if (shouldAttemptTokenRefresh(url, response)) {
+      const refreshed = await refreshAuthSession();
+      if (refreshed) {
+        response = await fetch(url, fetchOptions);
+      }
+    }
 
     // استخدام safeJsonParse الذي يتعامل مع HTML و JSON بشكل آمن
     const data = await safeJsonParse<T>(response, fallback);
@@ -621,8 +653,17 @@ export async function safeFetch<T = any>(
 }
 
 export function getSafeUserId(): string | null {
-  const [userId] = useSafeLocalStorage('x-user-id', '');
-  return userId || null;
+  const legacyUserId = safeGetItem<string>('x-user-id', { fallback: '' });
+  if (typeof legacyUserId === 'string' && legacyUserId.trim().length > 0) {
+    return legacyUserId;
+  }
+
+  const userId = safeGetItem<string>('tw_user_id', { fallback: '' });
+  if (typeof userId === 'string' && userId.trim().length > 0) {
+    return userId;
+  }
+
+  return null;
 }
 
 // ==================== Export All ====================

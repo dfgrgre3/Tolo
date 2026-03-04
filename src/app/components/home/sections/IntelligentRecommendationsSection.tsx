@@ -47,6 +47,8 @@ interface Recommendation {
   actionUrl: string;
 }
 
+import { rpgCommonStyles } from "../constants";
+
 export const IntelligentRecommendationsSection = memo(function IntelligentRecommendationsSection() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,28 +102,29 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "high":
-        return "bg-red-100 text-red-700 border-red-200";
+        return "bg-red-500/10 text-red-400 border-red-500/30";
       case "medium":
-        return "bg-yellow-100 text-yellow-700 border-yellow-200";
+        return "bg-yellow-500/10 text-yellow-400 border-yellow-500/30";
       default:
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-blue-500/10 text-blue-400 border-blue-500/30";
     }
   };
 
   const getPriorityLabel = (priority: string) => {
     switch (priority) {
       case "high":
-        return "عالي الأولوية";
+        return "أولوية قصوى";
       case "medium":
-        return "متوسط الأولوية";
+        return "أولوية متوسطة";
       default:
-        return "منخفض الأولوية";
+        return "أولوية عادية";
     }
   };
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-purple-200/25 via-transparent to-indigo-200/25" />
+    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 shadow-2xl overflow-hidden`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-indigo-500/5" />
+      <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="relative z-10">
         <motion.div
@@ -129,18 +132,18 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
+          className="mb-10 text-center"
         >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 p-3">
-              <Sparkles className="h-6 w-6 text-white" />
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="rounded-full bg-purple-500/20 p-4 ring-1 ring-purple-500/40 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+              <Sparkles className="h-8 w-8 text-purple-400 animate-pulse" />
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-primary">
-              توصيات ذكية مخصصة
+            <h2 className={`text-3xl md:text-5xl font-black ${rpgCommonStyles.neonText}`}>
+              التوصيات الذكية (AI Oracle)
             </h2>
           </div>
-          <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
-            توصيات مدعومة بالذكاء الاصطناعي مصممة خصيصاً لك بناءً على أدائك وتفضيلاتك
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+            توصيات مدعومة بالذكاء الاصطناعي مصممة خصيصاً لك بناءً على أدائك القتالي وتطورك المعرفي.
           </p>
         </motion.div>
 
@@ -150,125 +153,128 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.1 }}
-          className="flex flex-wrap justify-center gap-3 mb-8"
+          className="flex flex-wrap justify-center gap-3 mb-12"
         >
           {categories.map((category) => (
             <button
               key={category.id}
               onClick={() => setSelectedCategory(category.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all ${
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border transition-all duration-300 ${
                 selectedCategory === category.id
-                  ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-transparent shadow-lg"
-                  : "bg-white/80 text-slate-700 border-slate-200 hover:border-purple-300 hover:bg-purple-50"
+                  ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(124,58,237,0.4)] scale-105"
+                  : "bg-white/5 text-gray-400 border-white/10 hover:border-primary/50 hover:bg-white/10"
               }`}
             >
               {category.icon}
-              <span className="font-medium">{category.label}</span>
+              <span className="font-bold text-sm tracking-wide">{category.label}</span>
             </button>
           ))}
         </motion.div>
 
         {/* Recommendations Grid */}
         {loading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence>
-              {filteredRecommendations.map((recommendation, index) => (
+              {filteredRecommendations.length > 0 ? filteredRecommendations.map((recommendation, index) => (
                 <motion.div
                   key={recommendation.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9 }}
                   transition={{ delay: index * 0.1 }}
-                  whileHover={{ y: -5, scale: 1.02 }}
+                  whileHover={{ y: -8 }}
                 >
-                  <Card className="h-full border-slate-200/80 shadow-lg transition-all duration-300 overflow-hidden group relative hover:shadow-[0_0_25px_rgba(124,58,237,0.25)] hover:border-purple-500/40 dark:bg-slate-900/40 dark:border-slate-700">
-                    {/* Glowing Effect Background */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <Card className="h-full bg-white/5 border-white/5 hover:border-primary/30 transition-all duration-500 overflow-hidden group relative shadow-xl hover:bg-white/[0.08]">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     
-                    <CardHeader className="pb-3 relative z-10">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="rounded-xl bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 p-2 ring-1 ring-purple-500/10">
+                    <CardHeader className="pb-4 relative z-10">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-xl bg-white/5 p-2.5 ring-1 ring-white/10 shadow-inner group-hover:scale-110 transition-transform">
                             {typeof recommendation.icon === 'string' 
-                              ? (iconMap[recommendation.icon] || <Sparkles className="h-5 w-5 text-purple-600" />)
+                              ? (iconMap[recommendation.icon] || <Sparkles className="h-5 w-5 text-primary" />)
                               : recommendation.icon}
                           </div>
-                          <Badge className={getPriorityColor(recommendation.priority)}>
+                          <Badge className={`${getPriorityColor(recommendation.priority)} text-[10px] uppercase font-black tracking-widest`}>
                             {getPriorityLabel(recommendation.priority)}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-1 text-xs font-bold text-purple-600 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-full">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">
                           <Zap className="h-3 w-3 fill-current" />
-                          {recommendation.impact}%
+                          <span>+{recommendation.impact}% XP</span>
                         </div>
                       </div>
-                      <CardTitle className="text-lg font-bold text-slate-900 dark:text-slate-100 line-clamp-2">
+                      <CardTitle className="text-xl font-bold text-gray-100 group-hover:text-primary transition-colors leading-tight">
                         {recommendation.title}
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4 relative z-10">
-                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                    <CardContent className="space-y-6 relative z-10">
+                      <p className="text-sm text-gray-400 leading-relaxed line-clamp-3">
                         {recommendation.description}
                       </p>
 
-                      {recommendation.estimatedTime && (
-                        <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-slate-800/50 w-fit px-2 py-1 rounded-md">
-                          <Clock className="h-3.5 w-3.5" />
-                          <span>{recommendation.estimatedTime}</span>
+                      <div className="flex flex-wrap gap-4">
+                        {recommendation.estimatedTime && (
+                          <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5">
+                            <Clock className="h-3 w-3" />
+                            <span>{recommendation.estimatedTime}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-gray-500 bg-white/5 px-2.5 py-1.5 rounded-lg border border-white/5">
+                          <Target className="h-3 w-3" />
+                          <span>تأثير عالي</span>
                         </div>
-                      )}
+                      </div>
 
                       {/* Impact Bar */}
-                      <div className="space-y-1.5 pt-2">
-                        <div className="flex justify-between text-xs font-medium">
-                          <span className="text-muted-foreground">التأثير المتوقع على مستواك</span>
-                          <span className="text-purple-600">{recommendation.impact}%</span>
+                      <div className="space-y-2 pt-2">
+                        <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                          <span>قوة التأثير (Impact Power)</span>
+                          <span className="text-primary">{recommendation.impact}%</span>
                         </div>
-                        <div className="h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <div className="h-2 bg-black/40 rounded-full overflow-hidden ring-1 ring-white/5 shadow-inner">
                           <motion.div
                             initial={{ width: 0 }}
                             animate={{ width: `${recommendation.impact}%` }}
-                            transition={{ delay: index * 0.1 + 0.3, duration: 0.8 }}
-                            className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full"
+                            transition={{ delay: index * 0.1 + 0.3, duration: 1, ease: "easeOut" }}
+                            className="h-full bg-gradient-to-r from-primary via-purple-500 to-indigo-600 rounded-full shadow-[0_0_10px_rgba(124,58,237,0.5)]"
                           />
                         </div>
                       </div>
 
-                      <Link href={recommendation.actionUrl} className="block mt-4">
-                        <Button className="w-full bg-slate-900 hover:bg-gradient-to-r hover:from-purple-600 hover:to-indigo-600 dark:bg-slate-800 text-white transition-all duration-300 shadow-md group-hover:shadow-lg">
-                          <span>تنفيذ التوصية</span>
-                          <ArrowRight className="h-4 w-4 mr-2 group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1 transition-transform" />
+                      <Link href={recommendation.actionUrl} className="block mt-2">
+                        <Button className="w-full bg-primary hover:bg-primary/90 text-white font-bold h-11 rounded-xl transition-all duration-300 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95">
+                          <span>بدء التنفيذ</span>
+                          <ArrowRight className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
                         </Button>
                       </Link>
                     </CardContent>
                   </Card>
                 </motion.div>
-              ))}
+              )) : (
+                <div className="col-span-full text-center py-20 flex flex-col items-center">
+                   <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                     <Target className="h-10 w-10 text-gray-600" />
+                   </div>
+                   <p className="text-xl font-bold text-gray-500 mb-2">لا توجد توصيات حالياً</p>
+                   <p className="text-sm text-gray-600">استمر في إتمام المهام لنتمكن من تحليل أدائك</p>
+                </div>
+              )}
             </AnimatePresence>
           </div>
         )}
 
         {error && !loading && (
-          <div className="text-center py-12">
-            <p className="text-red-500 mb-4">{error}</p>
-            <Button onClick={() => window.location.reload()} variant="outline">
-              إعادة المحاولة
+          <div className="text-center py-20">
+            <p className="text-red-400 font-bold mb-6 text-xl">{error}</p>
+            <Button onClick={() => window.location.reload()} variant="outline" className="border-white/10 hover:bg-white/10 text-gray-300 rounded-xl px-8">
+              إعادة محاولة الاتصال
             </Button>
           </div>
-        )}
-
-        {!loading && !error && filteredRecommendations.length === 0 && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-12"
-          >
-            <p className="text-muted-foreground">لا توجد توصيات متاحة حالياً</p>
-          </motion.div>
         )}
       </div>
     </section>

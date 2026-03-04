@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       if (!userId) {
         return addSecurityHeaders(unauthorizedResponse());
       }
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken = { userId };
 
       // Get and validate query parameters
       const { searchParams } = new URL(req.url);
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       if (!userId) {
         return addSecurityHeaders(unauthorizedResponse());
       }
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken = { userId };
 
       // Parse request body with timeout protection using standardized helper
       const bodyResult = await parseRequestBody<{

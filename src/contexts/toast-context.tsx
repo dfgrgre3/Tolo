@@ -1,14 +1,8 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
-import dynamic from 'next/dynamic';
-
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { ToastContainer } from '@/components/ui/Toast';
 import { ToastProps } from '@/types/toast';
-
-
-const ToastContainer = dynamic(() => import('../components/ui/Toast').then(mod => mod.ToastContainer), {
-  ssr: false
-});
 
 type ToastContextType = {
   showToast: (toast: Omit<ToastProps, 'id' | 'onDismiss'>) => string;
@@ -50,7 +44,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       return '';
     }
 
-    const id = `toast-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
     const newToast: Toast = {
       ...toast,
       id,

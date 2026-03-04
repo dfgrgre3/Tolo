@@ -1,14 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, Lock, User, Loader2, AlertCircle, CheckCircle2, ArrowRight, Eye, EyeOff, Check, X } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
+import {
+  DEFAULT_AUTHENTICATED_ROUTE,
+  sanitizeRedirectPath,
+} from '@/lib/auth/navigation';
 
 const registerSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
@@ -37,11 +41,14 @@ const passwordRequirements = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register: registerUser } = useAuth();
+  const searchParams = useSearchParams();
+  const { register: registerUser, isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const [status, setStatus] = useState<{ type: 'error' | 'success'; message: string } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const redirectUrl = sanitizeRedirectPath(searchParams.get('redirect'), DEFAULT_AUTHENTICATED_ROUTE);
+  const loginUrl = `/login?redirect=${encodeURIComponent(redirectUrl)}`;
 
   const {
     register,
@@ -68,6 +75,25 @@ export default function RegisterPage() {
   const strengthLabel = strength < 3 ? 'Weak' : strength < 5 ? 'Good' : 'Strong';
   const strengthColor = strength < 3 ? 'text-red-500' : strength < 5 ? 'text-yellow-500' : 'text-green-500';
 
+  const redirectAfterRegister = useCallback((target: string) => {
+    router.replace(target);
+    router.refresh();
+
+    if (typeof window !== 'undefined') {
+      window.setTimeout(() => {
+        if (window.location.pathname === '/register' || window.location.pathname === '/login') {
+          window.location.assign(target);
+        }
+      }, 450);
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (!isAuthLoading && isAuthenticated) {
+      redirectAfterRegister(redirectUrl);
+    }
+  }, [isAuthLoading, isAuthenticated, redirectAfterRegister, redirectUrl]);
+
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     setStatus(null);
@@ -75,11 +101,22 @@ export default function RegisterPage() {
     const result = await registerUser(data.email, data.password, data.username);
 
     if (result.success) {
+      const successMessage = result.autoLoggedIn
+        ? 'Account created successfully! Redirecting you now...'
+        : 'Account created successfully! Check your email to verify.';
+
       setStatus({
         type: 'success',
-        message: result.message || 'Account created successfully! Check your email to verify.',
+        message: result.message || successMessage,
       });
-      setTimeout(() => router.push('/login'), 3000);
+
+      if (result.autoLoggedIn) {
+        setIsLoading(false);
+        redirectAfterRegister(redirectUrl);
+        return;
+      }
+
+      setTimeout(() => router.push(loginUrl), 3000);
     } else {
       setStatus({
         type: 'error',
@@ -286,7 +323,7 @@ export default function RegisterPage() {
       <div className="mt-6 text-center">
         <p className="text-sm text-gray-400">
           Already have an account?{' '}
-          <Link href="/login" className="font-semibold text-white hover:text-blue-400 transition-colors">
+          <Link href={loginUrl} className="font-semibold text-white hover:text-blue-400 transition-colors">
             Sign in
           </Link>
         </p>

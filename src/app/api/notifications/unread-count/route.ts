@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       if (!userId) {
         return addSecurityHeaders(unauthorizedResponse());
       }
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken = { userId };
 
       // Get unread count with timeout protection
       const countPromise = prisma.notification.count({

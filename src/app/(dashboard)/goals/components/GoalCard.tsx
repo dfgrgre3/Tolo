@@ -1,3 +1,5 @@
+"use client";
+
 import { motion } from 'framer-motion';
 import { CustomGoal } from '@/hooks/use-gamification';
 

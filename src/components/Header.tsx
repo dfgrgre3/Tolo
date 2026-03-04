@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,7 @@ import { useStickyHeader } from "./header/hooks/useStickyHeader";
 import { useAuth } from "@/contexts/auth-context";
 import { UserMenu } from "./header/UserMenu";
 import { LogIn, UserPlus } from "lucide-react";
+import { buildLoginUrl } from "@/lib/auth/navigation";
 
 // Dynamic imports for better performance
 const CommandPalette = dynamic(
@@ -77,6 +78,7 @@ const MemoizedHeaderBreadcrumbs = memo(HeaderBreadcrumbs);
 
 export default function Header() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const reduceMotion = useReducedMotion();
   const [isMounted, setIsMounted] = useState(false);
   const shouldReduceMotion = isMounted ? reduceMotion : false;
@@ -105,6 +107,27 @@ export default function Header() {
 
   // Mega menu state
   const { openMegaMenu, setOpenMegaMenu, mounted } = useMegaMenuState();
+
+  const headerRef = useRef<HTMLElement>(null);
+
+  // Measure header height for MegaMenu positioning
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const updateHeight = () => {
+      const height = headerRef.current?.offsetHeight;
+      if (height) {
+        document.documentElement.style.setProperty('--header-height', `${height}px`);
+      }
+    };
+    
+    updateHeight();
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (headerRef.current) resizeObserver.observe(headerRef.current);
+    
+    // Also update on scroll/shrink
+    return () => resizeObserver.disconnect();
+  }, [mounted, isShrunk, pathname]);
 
   // Header preferences REMOVED - hardcoded preferences
   const headerPreferences = {
@@ -152,7 +175,8 @@ export default function Header() {
       // Blur and background
       "backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 dark:bg-background/90",
       // Hide on scroll
-      focusVisibility.headerVisible && !isHidden ? "translate-y-0" : "-translate-y-full",
+      // Hide on scroll (but NOT when mega menu is open)
+      focusVisibility.headerVisible && (!isHidden || !!openMegaMenu) ? "translate-y-0" : "-translate-y-full",
       // Scrolled state
       isScrolled && "bg-background/95 shadow-lg shadow-black/10 dark:shadow-black/40 border-border/60 dark:border-border/70",
       // Shrunk state
@@ -178,6 +202,12 @@ export default function Header() {
     return "h-16";
   }, [headerPreferences.compactMode, isShrunk]);
 
+  const loginUrl = useMemo(() => {
+    const query = searchParams.toString();
+    const fullPath = `${pathname || '/'}${query ? `?${query}` : ''}`;
+    return buildLoginUrl(fullPath);
+  }, [pathname, searchParams]);
+
   return (
     <>
       {/* Reading Progress Bar */}
@@ -190,10 +220,11 @@ export default function Header() {
       )}
 
       <motion.header
+        ref={headerRef}
         className={computedHeaderClasses}
         initial={false}
         animate={{
-          y: focusVisibility.headerVisible && !isHidden ? 0 : -100,
+          y: focusVisibility.headerVisible && (!isHidden || !!openMegaMenu) ? 0 : -100,
         }}
         transition={{
           type: "spring",
@@ -285,7 +316,7 @@ export default function Header() {
                     <UserMenu />
                   ) : (
                     <div className="hidden md:flex items-center gap-1.5">
-                      <Link href="/login">
+                      <Link href={loginUrl}>
                         <Button 
                           variant="ghost" 
                           size="sm" 

@@ -69,10 +69,9 @@ export function HydrationFix() {
                   mutation.addedNodes.forEach((node) => {
                     if (node.nodeType === 1) { // Element node
                       removeExtensionAttributes(node);
-                      // Also clean children
-                      if (node.querySelectorAll) {
-                        node.querySelectorAll('*').forEach(removeExtensionAttributes);
-                      }
+                      // Optimization: Only clean immediate children if relatively small
+                      // but avoid querySelectorAll('*') on large trees.
+                      // For most cases, the extension attributes are on the node itself.
                     }
                   });
                   
@@ -87,7 +86,7 @@ export function HydrationFix() {
                 childList: true,
                 subtree: true,
                 attributes: true,
-                attributeFilter: attributesToRemove
+                attributeFilter: ['bis_skin_checked', 'bis_register']
               });
             };
             

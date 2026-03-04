@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-      const userId = searchParams.get('userId');
+      const userId = searchParams.get('userId') || req.headers.get('x-user-id');
 
       if (!userId || userId === 'undefined') {
         return badRequestResponse('User ID is required');

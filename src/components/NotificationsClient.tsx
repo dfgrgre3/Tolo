@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 // تم إزالة نظام تسجيل الدخول
 
-import { logger } from '@/lib/logger';
-
 async function getUserId(): Promise<string | null> {
 	// Get user ID from auth token - only run on client side
 	// Token is in httpOnly cookie - no need to send Authorization header
@@ -18,7 +16,7 @@ async function getUserId(): Promise<string | null> {
 		const data = await res.json();
 		return data.user.id;
 	} catch (error) {
-		logger.error("Error getting user ID:", error);
+		console.error("Error getting user ID:", error);
 		return null;
 	}
 }

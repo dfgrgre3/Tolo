@@ -1,15 +1,18 @@
 'use client';
 
-import React, { useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-
+import React, { useEffect, useState } from 'react';
 
 import { ToastProps, ToastContainerProps } from '@/types/toast';
 
-
 export const Toast = ({ message, type = 'success', onDismiss }: ToastProps) => {
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 5000);
+    setIsVisible(true);
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(onDismiss, 300); // Wait for transition before unmounting
+    }, 5000);
     return () => clearTimeout(timer);
   }, [onDismiss]);
 
@@ -20,20 +23,20 @@ export const Toast = ({ message, type = 'success', onDismiss }: ToastProps) => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className={`${bgColor[type]} text-white px-4 py-2 rounded-md shadow-lg flex items-center min-w-[200px]`}
+    <div
+      className={`${bgColor[type]} text-white px-4 py-2 rounded-md shadow-lg flex items-center min-w-[200px] transition-all duration-300 transform ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
     >
       <span>{message}</span>
       <button 
-        onClick={onDismiss}
+        onClick={() => {
+          setIsVisible(false);
+          setTimeout(onDismiss, 300);
+        }}
         className="ml-2 text-white hover:text-gray-200"
       >
         &times;
       </button>
-    </motion.div>
+    </div>
   );
 };
 
@@ -44,16 +47,14 @@ export const Toast = ({ message, type = 'success', onDismiss }: ToastProps) => {
 export const ToastContainer = ({ toasts, onDismiss }: ToastContainerProps) => {
   return (
     <div className="fixed bottom-4 right-4 z-50 space-y-2">
-      <AnimatePresence>
-        {toasts.map((toast) => (
-          <Toast
-            key={toast.id}
-            message={toast.message}
-            type={toast.type}
-            onDismiss={() => onDismiss(toast.id)}
-          />
-        ))}
-      </AnimatePresence>
+      {toasts.map((toast) => (
+        <Toast
+          key={toast.id}
+          message={toast.message}
+          type={toast.type}
+          onDismiss={() => onDismiss(toast.id)}
+        />
+      ))}
     </div>
   );
 };

@@ -61,7 +61,8 @@ async function handleGetRequest(req: NextRequest) {
     if (!userId) {
       return unauthorizedResponse();
     }
-    const decodedToken: any = { userId: "default-user" };
+    // Use userId from headers (set by middleware)
+    const decodedToken = { userId };
 
     const { searchParams } = new URL(req.url);
     const limitParam = searchParams.get('limit') || '20';
@@ -159,7 +160,7 @@ export async function POST(request: NextRequest) {
       if (!userId) {
         return unauthorizedResponse();
       }
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken = { userId };
 
       // Parse and validate request body with timeout protection
       let body;
@@ -254,7 +255,7 @@ export async function PUT(request: NextRequest) {
       if (!userId) {
         return unauthorizedResponse();
       }
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken = { userId };
 
       // Parse and validate request body with timeout protection
       let body;
@@ -375,7 +376,7 @@ export async function DELETE(request: NextRequest) {
       if (!userId) {
         return unauthorizedResponse();
       }
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken = { userId };
 
       const { searchParams } = new URL(req.url);
       const taskId = searchParams.get('id');

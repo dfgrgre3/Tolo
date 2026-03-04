@@ -15,7 +15,8 @@ import {
   Calendar,
   Lightbulb,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Clock
 } from "lucide-react";
 
 interface Prediction {
@@ -29,6 +30,8 @@ interface Prediction {
   }>;
   recommendations: string[];
 }
+
+import { rpgCommonStyles } from "../constants";
 
 export const ProgressPredictionsSection = memo(function ProgressPredictionsSection() {
   const [predictions, setPredictions] = useState<Prediction[]>([]);
@@ -64,36 +67,35 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
     fetchPredictions();
   }, []);
 
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return "text-green-600 bg-green-100";
-    if (confidence >= 60) return "text-yellow-600 bg-yellow-100";
-    return "text-orange-600 bg-orange-100";
+  const getConfidenceLevel = (confidence: number) => {
+    if (confidence >= 80) return { label: "دقة فائقة", color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30" };
+    if (confidence >= 60) return { label: "دقة عالية", color: "bg-blue-500/10 text-blue-400 border-blue-500/30" };
+    return { label: "توقع أولي", color: "bg-amber-500/10 text-amber-400 border-amber-500/30" };
   };
 
-  const getMilestoneStatusColor = (status: string) => {
+  const getMilestoneStatusBadge = (status: string) => {
     switch (status) {
       case "achieved":
-        return "bg-green-100 text-green-700 border-green-200";
+        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
       case "current":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-primary/10 text-primary border-primary/20";
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
+        return "bg-white/5 text-gray-500 border-white/10";
     }
   };
 
   if (loading) {
     return (
-      <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-        </div>
+      <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 flex justify-center items-center`}>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary shadow-[0_0_15px_rgba(124,58,237,0.5)]" />
       </section>
     );
   }
 
   return (
-    <section className="relative overflow-hidden rounded-3xl border border-slate-100/80 bg-white/80 px-6 md:px-12 py-12 shadow-xl backdrop-blur-md">
-      <div className="absolute inset-0 bg-gradient-to-br from-indigo-200/25 via-transparent to-purple-200/25" />
+    <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 shadow-2xl overflow-hidden`}>
+      <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5" />
+      <div className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="relative z-10">
         <motion.div
@@ -101,141 +103,129 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
+          className="mb-12 text-center"
         >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 p-3">
-              <Sparkles className="h-6 w-6 text-white" />
+          <div className="flex flex-col items-center gap-4 mb-6">
+            <div className="rounded-full bg-indigo-500/20 p-4 ring-1 ring-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
+              <TrendingUp className="h-8 w-8 text-indigo-400 animate-pulse" />
             </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-primary">
-              تنبؤات التقدم الذكية
+            <h2 className={`text-3xl md:text-5xl font-black ${rpgCommonStyles.neonText}`}>
+              رؤى المستقبل (Prediction Engine)
             </h2>
           </div>
-          <p className="text-muted-foreground text-lg">
-            تنبؤات مدعومة بالذكاء الاصطناعي بناءً على أدائك الحالي وأنماط التعلم
+          <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
+            محرك ذكاء اصطناعي يحلل مسارك القتالي ليتنبأ بمستوى نمو مهاراتك القادم.
           </p>
         </motion.div>
 
-        <div className="grid gap-6 md:grid-cols-2">
-          {predictions.map((prediction, index) => (
-            <motion.div
-              key={prediction.period}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              whileHover={{ y: -5 }}
-            >
-              <Card className="border-slate-200/80 shadow-lg hover:shadow-xl transition-all h-full">
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-4">
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5 text-indigo-600" />
-                      <span>{prediction.period}</span>
-                    </CardTitle>
-                    <Badge className={getConfidenceColor(prediction.confidence)}>
-                      ثقة: {prediction.confidence}%
-                    </Badge>
-                  </div>
-
-                  {/* Predicted Score */}
-                  <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-6 mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        الدرجة المتوقعة
-                      </span>
-                      <TrendingUp className="h-5 w-5 text-indigo-600" />
+        <div className="grid gap-8 md:grid-cols-2">
+          {predictions.map((prediction, index) => {
+            const conf = getConfidenceLevel(prediction.confidence);
+            return (
+              <motion.div
+                key={prediction.period}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="h-full"
+              >
+                <Card className="bg-white/5 border-white/5 shadow-xl hover:bg-white/[0.08] transition-all duration-500 border-none group">
+                  <CardHeader className="p-8 pb-4">
+                    <div className="flex items-center justify-between mb-6">
+                      <CardTitle className="flex items-center gap-3 text-xl font-bold text-gray-100 group-hover:text-primary transition-colors">
+                        <Calendar className="h-6 w-6 text-indigo-400" />
+                        <span>{prediction.period}</span>
+                      </CardTitle>
+                      <Badge className={`${conf.color} text-[10px] uppercase font-black tracking-widest`}>
+                        {conf.label}
+                      </Badge>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-5xl font-bold text-indigo-700">
-                        {prediction.predictedScore}
-                      </span>
-                      <span className="text-lg text-muted-foreground">%</span>
-                    </div>
-                    <Progress value={prediction.predictedScore} className="mt-4 h-3" />
-                  </div>
-                </CardHeader>
 
-                <CardContent className="space-y-6">
-                  {/* Milestones */}
-                  <div>
-                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <Target className="h-4 w-4 text-indigo-600" />
-                      المعالم القادمة
-                    </h4>
-                    <div className="space-y-2">
-                      {prediction.milestones.map((milestone, idx) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 + idx * 0.05 }}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-slate-50"
-                        >
-                          <div className="flex-shrink-0 w-2 h-2 rounded-full bg-indigo-600 mt-2" />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="text-sm font-medium text-slate-900">
-                                {milestone.goal}
+                    <div className="bg-black/40 rounded-3xl p-8 border border-white/5 shadow-inner relative overflow-hidden group/box">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent"></div>
+                      <div className="relative z-10 flex items-center justify-between mb-4">
+                        <span className="text-xs font-bold uppercase tracking-widest text-gray-500">
+                          الدرجة القتالية المتوقعة
+                        </span>
+                        <Target className="h-5 w-5 text-primary animate-bounce-slow" />
+                      </div>
+                      <div className="relative z-10 flex items-baseline gap-3">
+                        <span className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-400 to-indigo-500 drop-shadow-[0_0_15px_rgba(124,58,237,0.4)]">
+                          {prediction.predictedScore}
+                        </span>
+                        <span className="text-xl font-bold text-gray-500">%</span>
+                      </div>
+                      <div className="mt-8 h-3 bg-black/60 rounded-full overflow-hidden ring-1 ring-white/5 p-[1px]">
+                         <motion.div 
+                           initial={{ width: 0 }}
+                           animate={{ width: `${prediction.predictedScore}%` }}
+                           transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
+                           className="h-full bg-gradient-to-r from-primary via-indigo-500 to-blue-600 rounded-full shadow-[0_0_10px_rgba(124,58,237,0.5)]"
+                         />
+                      </div>
+                    </div>
+                  </CardHeader>
+
+                  <CardContent className="p-8 pt-4 space-y-8">
+                    <div>
+                      <h4 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-primary rounded-full"></div>
+                        خريطة الأهداف (Roadmap)
+                      </h4>
+                      <div className="space-y-3">
+                        {prediction.milestones.map((milestone, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
+                          >
+                            <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(124,58,237,0.8)]" />
+                            <div className="flex-1">
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="font-bold text-gray-200">
+                                  {milestone.goal}
+                                </span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={`text-[9px] uppercase font-black px-2 py-0.5 border ${getMilestoneStatusBadge(milestone.status)}`}
+                                >
+                                  {milestone.status === "achieved" && "مكتمل"}
+                                  {milestone.status === "current" && "قيد المواجهة"}
+                                  {milestone.status === "upcoming" && "هدف مستقبلي"}
+                                </Badge>
+                              </div>
+                              <span className="text-[10px] font-bold text-gray-500 flex items-center gap-1">
+                                 <Clock className="w-3 h-3" />
+                                 {milestone.date}
                               </span>
-                              <Badge 
-                                variant="outline" 
-                                className={`text-xs ${getMilestoneStatusColor(milestone.status)}`}
-                              >
-                                {milestone.status === "achieved" && "محقق"}
-                                {milestone.status === "current" && "جاري"}
-                                {milestone.status === "upcoming" && "قادم"}
-                              </Badge>
                             </div>
-                            <span className="text-xs text-muted-foreground">
-                            <span className="text-xs text-muted-foreground">
-                              {(() => {
-                                try {
-                                  const date = new Date(milestone.date);
-                                  return isNaN(date.getTime()) 
-                                    ? milestone.date 
-                                    : date.toLocaleDateString("ar-EG", {
-                                        year: "numeric",
-                                        month: "long",
-                                        day: "numeric"
-                                      });
-                                } catch (e) {
-                                  return milestone.date;
-                                }
-                              })()}
-                            </span>
-                            </span>
                           </div>
-                        </motion.div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Recommendations */}
-                  <div>
-                    <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                      <Lightbulb className="h-4 w-4 text-yellow-600" />
-                      توصيات لتحسين الأداء
-                    </h4>
-                    <div className="space-y-2">
-                      {prediction.recommendations.map((rec, idx) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: index * 0.1 + idx * 0.05 }}
-                          className="flex items-start gap-3 p-3 rounded-lg bg-yellow-50/50 border border-yellow-100"
-                        >
-                          <ArrowRight className="h-4 w-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                          <span className="text-sm text-slate-700">{rec}</span>
-                        </motion.div>
-                      ))}
+                    <div>
+                      <h4 className="text-sm font-black text-amber-400/80 uppercase tracking-[0.2em] mb-4 flex items-center gap-3">
+                        <div className="w-1.5 h-6 bg-amber-500 rounded-full"></div>
+                        تكتيكات مقترحة (Tactics)
+                      </h4>
+                      <div className="grid gap-3">
+                        {prediction.recommendations.map((rec, idx) => (
+                          <div
+                            key={idx}
+                            className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10 transition-colors"
+                          >
+                            <ArrowRight className="h-4 w-4 text-amber-500/70 flex-shrink-0 mt-0.5" />
+                            <span className="text-sm font-medium text-gray-300 leading-relaxed">{rec}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
         </div>
 
         {/* Info Banner */}
@@ -244,24 +234,22 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          className="mt-8"
+          className="mt-12"
         >
-          <Card className="border-0 bg-gradient-to-r from-indigo-600 to-purple-600 shadow-xl">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 text-white">
-                <div className="rounded-full bg-white/20 p-3 backdrop-blur-md">
-                  <Sparkles className="h-6 w-6" />
+          <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-r from-primary/10 via-indigo-600/20 to-primary/10 border border-white/10 backdrop-blur-xl">
+             <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-right">
+                <div className="rounded-2xl bg-white/10 p-4 border border-white/20 shadow-xl backdrop-blur-md">
+                   <Lightbulb className="h-8 w-8 text-amber-400 fill-amber-400" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-bold mb-1">كيف تعمل التنبؤات؟</h3>
-                  <p className="text-sm text-white/80">
-                    نستخدم خوارزميات التعلم الآلي لتحليل أدائك السابق، أنماط الدراسة، والاتجاهات
-                    لتقديم تنبؤات دقيقة حول تقدمك المستقبلي
-                  </p>
+                   <h3 className="text-xl font-black text-white mb-2 tracking-tight">كيف يعمل محرك التنبؤ؟</h3>
+                   <p className="text-gray-400 text-sm leading-relaxed max-w-4xl">
+                     نقوم بتحليل سجل تدريبك (دراستك)، وكثافة جلساتك، ونتائج معاركك (اختباراتك) عبر خوارزميات التعلم الآلي
+                     لنمنحك توقعات دقيقة تساعدك في رسم خطتك المستقبلية للسيطرة على موادك الدراسية.
+                   </p>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+             </div>
+          </div>
         </motion.div>
       </div>
     </section>

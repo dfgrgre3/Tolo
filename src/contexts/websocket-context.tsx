@@ -1,10 +1,8 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ErrorInfo } from 'react';
-import React from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import type { ErrorInfo } from 'react';
 import { logger } from '@/lib/logger';
-
-// import { useToast } from '@/contexts/toast-context'; // Not needed - WebSocket is disabled
 
 type WebSocketContextType = {
   socket: WebSocket | null;
@@ -81,7 +79,7 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
     let ws: WebSocket | null = null;
     let reconnectAttempts = 0;
     const maxReconnectAttempts = 3;
-    let reconnectTimeout: NodeJS.Timeout | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
       // Double check WebSocket is still enabled

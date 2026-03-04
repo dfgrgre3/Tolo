@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
+import { sanitizeRedirectPath } from '@/lib/auth/navigation';
 
 /**
  * AuthContext - Client-side authentication state management.
@@ -44,9 +45,13 @@ interface AuthContextType {
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
-    register: (email: string, password: string, username?: string) => Promise<{ success: boolean; error?: string; message?: string }>;
+    register: (
+        email: string,
+        password: string,
+        username?: string
+    ) => Promise<{ success: boolean; error?: string; message?: string; autoLoggedIn?: boolean }>;
     logout: (allDevices?: boolean) => Promise<void>;
-    refreshUser: () => Promise<void>;
+    refreshUser: (options?: { clearOnFailure?: boolean }) => Promise<boolean>;
     fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
 
@@ -64,6 +69,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const isRefreshing = useRef(false);
     const refreshPromise = useRef<Promise<boolean> | null>(null);
+
+    const delay = useCallback((ms: number) => {
+        return new Promise<void>((resolve) => {
+            setTimeout(resolve, ms);
+        });
+    }, []);
 
     /**
      * Attempt to refresh the access token.
@@ -120,7 +131,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Refresh failed - user needs to login again
             setUser(null);
-            router.push('/login');
+            if (typeof window !== 'undefined') {
+                const fullPath = `${window.location.pathname}${window.location.search}`;
+                const redirectPath = sanitizeRedirectPath(fullPath, '/');
+                const loginUrl = redirectPath === '/login'
+                    ? '/login'
+                    : `/login?redirect=${encodeURIComponent(redirectPath)}`;
+                router.replace(loginUrl);
+            } else {
+                router.replace('/login');
+            }
         }
 
         return response;
@@ -130,7 +150,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      * Fetch current user profile from the server.
      * Called on mount and after login to sync state.
      */
-    const refreshUser = useCallback(async () => {
+    const refreshUser = useCallback(async (options?: { clearOnFailure?: boolean }) => {
+        const clearOnFailure = options?.clearOnFailure ?? true;
+
         try {
             const response = await fetch('/api/auth/me', {
                 credentials: 'include',
@@ -139,7 +161,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (response.ok) {
                 const data = await response.json();
                 setUser(data.user);
-                return;
+                return true;
             }
 
             // If 401, try refreshing token
@@ -155,14 +177,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     if (retryResponse.ok) {
                         const data = await retryResponse.json();
                         setUser(data.user);
-                        return;
+                        return true;
                     }
                 }
             }
 
-            setUser(null);
+            if (clearOnFailure) {
+                setUser(null);
+            }
+            return false;
         } catch {
-            setUser(null);
+            if (clearOnFailure) {
+                setUser(null);
+            }
+            return false;
         }
     }, [refreshToken]);
 
@@ -188,16 +216,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return { success: false, error: data.error || 'Login failed' };
             }
 
-            // Keep initial user payload for immediate UI updates, then hydrate full profile.
+            // Keep initial user payload for immediate UI updates.
             if (data.user) {
-                setUser(data.user);
+                setUser({
+                    id: data.user.id,
+                    email: data.user.email,
+                    username: data.user.username ?? null,
+                    name: data.user.name ?? data.user.username ?? null,
+                    avatar: data.user.avatar ?? null,
+                    role: data.user.role ?? 'USER',
+                    emailVerified: data.user.emailVerified ?? null,
+                });
             }
-            await refreshUser();
+
+            // Post-login hydration can race with cookie persistence in some browsers.
+            // Give a tiny initial delay for cookies to settle, then retry briefly.
+            await delay(50);
+            let hydrated = await refreshUser({ clearOnFailure: false });
+            if (!hydrated) {
+                await delay(150);
+                hydrated = await refreshUser({ clearOnFailure: false });
+            }
+            if (!hydrated) {
+                await delay(300);
+                hydrated = await refreshUser({ clearOnFailure: false });
+            }
+
+            if (!hydrated && !data.user) {
+                setUser(null);
+                return { success: false, error: 'Unable to restore your session. Please try again.' };
+            }
+
             return { success: true };
         } catch {
             return { success: false, error: 'Network error. Please try again.' };
         }
-    }, [refreshUser]);
+    }, [delay, refreshUser]);
 
     /**
      * Register function - creates account via API.
@@ -206,7 +260,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: string,
         password: string,
         username?: string
-    ): Promise<{ success: boolean; error?: string; message?: string }> => {
+    ): Promise<{ success: boolean; error?: string; message?: string; autoLoggedIn?: boolean }> => {
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
@@ -224,11 +278,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 };
             }
 
-            return { success: true, message: data.message };
+            // Prefer server-driven auto-login from /api/auth/register when available.
+            if (data?.autoLoggedIn === true) {
+                if (data.user) {
+                    setUser({
+                        id: data.user.id,
+                        email: data.user.email,
+                        username: data.user.username ?? null,
+                        name: data.user.name ?? data.user.username ?? null,
+                        avatar: data.user.avatar ?? null,
+                        role: data.user.role ?? 'USER',
+                        emailVerified: data.user.emailVerified ?? null,
+                    });
+                }
+
+                await delay(50);
+                let hydrated = await refreshUser({ clearOnFailure: false });
+                if (!hydrated) {
+                    await delay(150);
+                    hydrated = await refreshUser({ clearOnFailure: false });
+                }
+                if (!hydrated) {
+                    await delay(300);
+                    hydrated = await refreshUser({ clearOnFailure: false });
+                }
+
+                if (!hydrated && !data.user) {
+                    setUser(null);
+                    return {
+                        success: false,
+                        error: 'Unable to restore your session after registration. Please sign in.',
+                    };
+                }
+
+                return {
+                    success: true,
+                    message: data.message,
+                    autoLoggedIn: true,
+                };
+            }
+
+            // Backward-compatible fallback: try immediate sign-in client-side.
+            const loginResult = await login(email.trim().toLowerCase(), password, false);
+            if (loginResult.success) {
+                return { success: true, message: data.message, autoLoggedIn: true };
+            }
+
+            return { success: true, message: data.message, autoLoggedIn: false };
         } catch {
             return { success: false, error: 'Network error. Please try again.' };
         }
-    }, []);
+    }, [delay, login, refreshUser]);
 
     /**
      * Logout function - clears session and redirects to login.

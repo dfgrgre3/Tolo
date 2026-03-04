@@ -1,20 +1,20 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-// Auth removed
+import { useAuth } from "@/contexts/auth-context";
 import { ProgressSummary } from "@/lib/server-data-fetch";
 import { UserHome } from "@/app/components/home/UserHome";
 import { User as ApiUser } from "@/types/user";
 import { UserRole } from "@/types/enums";
 import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
-import { logger } from "@/lib/logger";
 
 interface HomeClientProps {
   summary: ProgressSummary | null;
 }
 
 export function HomeClient({ summary }: HomeClientProps) {
+  const { user: authUser, isLoading, isAuthenticated } = useAuth();
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
@@ -52,7 +52,7 @@ export function HomeClient({ summary }: HomeClientProps) {
              ]);
         }
       } catch (err) {
-        logger.error("Failed to fetch performance metrics", err);
+        console.error("Failed to fetch performance metrics", err);
       } finally {
         setMetricsLoading(false);
       }
@@ -61,23 +61,74 @@ export function HomeClient({ summary }: HomeClientProps) {
     fetchPerformance();
   }, []);
 
-  // --- User Transformation (Guest mode only) ---
-  const guestUser: ApiUser = {
-    id: 'guest',
-    email: '',
-    name: 'زائر',
-    image: null,
-    role: UserRole.USER,
-    emailVerified: false,
-    twoFactorEnabled: false,
-    lastLogin: null,
-    provider: 'local',
-  };
-
+  // --- Build user object: prefer authenticated user, fallback to guest ---
+  const displayUser: ApiUser = isAuthenticated && authUser
+    ? {
+        id: authUser.id,
+        email: authUser.email,
+        name: authUser.name || authUser.username || null,
+        username: authUser.username || null,
+        avatar: authUser.avatar || null,
+        role: (authUser.role as UserRole) || UserRole.USER,
+        phone: authUser.phone || null,
+        phoneVerified: false,
+        emailVerified: authUser.emailVerified ?? false,
+        createdAt: authUser.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        twoFactorEnabled: false,
+        biometricEnabled: false,
+        lastLogin: authUser.lastLogin || null,
+        totalXP: authUser.totalXP ?? 0,
+        level: authUser.level ?? 1,
+        currentStreak: authUser.currentStreak ?? 0,
+        longestStreak: 0,
+        totalStudyTime: 0,
+        tasksCompleted: 0,
+        examsPassed: 0,
+        pomodoroSessions: 0,
+        deepWorkSessions: 0,
+        studyXP: 0,
+        taskXP: 0,
+        examXP: 0,
+        challengeXP: 0,
+        questXP: 0,
+        seasonXP: 0,
+      }
+    : {
+        id: 'guest',
+        email: '',
+        name: 'زائر',
+        username: 'guest',
+        avatar: null,
+        role: UserRole.USER,
+        phone: null,
+        phoneVerified: false,
+        emailVerified: false,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        twoFactorEnabled: false,
+        biometricEnabled: false,
+        lastLogin: null,
+        totalXP: 0,
+        level: 1,
+        currentStreak: 0,
+        longestStreak: 0,
+        totalStudyTime: 0,
+        tasksCompleted: 0,
+        examsPassed: 0,
+        pomodoroSessions: 0,
+        deepWorkSessions: 0,
+        studyXP: 0,
+        taskXP: 0,
+        examXP: 0,
+        challengeXP: 0,
+        questXP: 0,
+        seasonXP: 0,
+      };
 
   return (
     <UserHome 
-      user={guestUser} 
+      user={displayUser} 
       summary={summary} 
       performanceMetrics={performanceMetrics}
       metricsLoading={metricsLoading}

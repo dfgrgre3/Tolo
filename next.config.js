@@ -114,13 +114,18 @@ const nextConfig = {
 
   // Configure headers for better caching
   async headers() {
+    const isProd = process.env.NODE_ENV === 'production';
+    const staticCacheHeader = isProd
+      ? 'public, max-age=31536000, immutable'
+      : 'no-store, no-cache, must-revalidate';
+
     return [
       {
         source: '/_next/static/(.*)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: staticCacheHeader,
           },
         ],
       },

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/lib/auth/auth-service';
 import { z } from 'zod';
+import { cookies } from 'next/headers';
 import {
     extractClientInfo,
     RateLimiter,
@@ -112,9 +113,64 @@ export async function POST(req: NextRequest) {
         // Increment rate limiter
         await registerRateLimiter.incrementAttempts(`register:${clientId}`);
 
+        // For brand-new accounts, attempt immediate session creation to avoid
+        // forcing an extra login step on the client.
+        const isNewAccount = result.statusCode === 201 && !!result.user;
+        if (isNewAccount) {
+            const loginResult = await AuthService.login({
+                email,
+                password,
+                rememberMe: false,
+                ip,
+                userAgent,
+            });
+
+            if (loginResult.success && loginResult.accessToken && loginResult.refreshToken && loginResult.sessionId) {
+                const cookieStore = await cookies();
+                const refreshMaxAge = 24 * 60 * 60;
+
+                cookieStore.set('access_token', loginResult.accessToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'strict',
+                    maxAge: 15 * 60,
+                    path: '/',
+                });
+
+                cookieStore.set('refresh_token', loginResult.refreshToken, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'strict',
+                    maxAge: refreshMaxAge,
+                    path: '/',
+                });
+
+                cookieStore.set('session_id', loginResult.sessionId, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: 'lax',
+                    maxAge: refreshMaxAge,
+                    path: '/',
+                });
+
+                return NextResponse.json(
+                    {
+                        success: true,
+                        autoLoggedIn: true,
+                        user: loginResult.user,
+                        message: 'Registration successful! You are now signed in.',
+                    },
+                    { status: 201 }
+                );
+            }
+        }
+
         // 4. Return success (ambiguous for duplicate emails)
         return NextResponse.json(
             {
+                success: true,
+                autoLoggedIn: false,
+                user: result.user ?? null,
                 message: 'Registration successful! Please check your email to verify your account.',
             },
             { status: result.statusCode || 201 }

@@ -20,10 +20,7 @@ export async function GET(request: NextRequest) {
 
       // If not in query params, try to get from authenticated user
       if (!userId) {
-        const verification = { isValid: true, user: { userId: 'default-user' } };
-        if (verification.isValid && verification.user) {
-          userId = verification.user.userId;
-        }
+        userId = req.headers.get("x-user-id");
       }
 
       if (!userId) {

@@ -141,21 +141,21 @@ export default function CourseDetailPage() {
         if (courseId.startsWith("fake-course-")) {
           const allFakeLessons: Record<string, CourseLesson[]> = {
             "fake-course-pro": [
-              { id: "l1", title: "مقدمة في React", description: "تعرف على أساسيات مكتبة React وكيفية عملها", videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: 720, order: 1, completed: false, progress: 0 },
+              { id: "l1", title: "مقدمة في React", description: "تعرف على أساسيات مكتبة React وكيفية عملها", videoUrl: "https://vjs.zencdn.net/v/oceans.mp4", duration: 720, order: 1, completed: false, progress: 0 },
               { id: "l2", title: "مكونات React (Components)", description: "كيفية بناء مكونات قابلة لإعادة الاستخدام", content: "<h3>شرح المكونات</h3><p>المكونات هي حجر الأساس في بناء تطبيقات React...</p>", duration: 900, order: 2, completed: false, progress: 0 },
-              { id: "l3", title: "إدارة الحالة (State)", description: "كيفية إدارة وتحديث البيانات داخل المكونات", videoUrl: "https://www.youtube.com/embed/dQw4w9WgXcQ", duration: 1200, order: 3, completed: false, progress: 0 },
+              { id: "l3", title: "إدارة الحالة (State)", description: "كيفية إدارة وتحديث البيانات داخل المكونات", videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4", duration: 1200, order: 3, completed: false, progress: 0 },
               { id: "l4", title: "التعامل مع Next.js", description: "الأساسيات والانتقال من React إلى Next.js", content: "<h3>مزايا Next.js</h3><ul><li>SSR/SSG</li><li>توجيه تلقائي</li></ul>", duration: 1500, order: 4, completed: false, progress: 0 },
             ],
             "fake-course-python": [
-              { id: "p1", title: "مقدمة في بايثون", description: "تنصيب البيئة وأول برنامج", videoUrl: "https://www.youtube.com/embed/rfscVS0vtbw", duration: 600, order: 1, completed: false, progress: 0 },
+              { id: "p1", title: "مقدمة في بايثون", description: "تنصيب البيئة وأول برنامج", videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", duration: 600, order: 1, completed: false, progress: 0 },
               { id: "p2", title: "المتغيرات والبيانات", description: "التعامل مع النصوص والأرقام", content: "<p>في هذا الدرس سنتعلم القواعد الأساسية للمتغيرات في بايثون.</p>", duration: 800, order: 2, completed: false, progress: 0 },
             ],
             "fake-course-design": [
-              { id: "d1", title: "أساسيات UI/UX", description: "الفرق بين UI و UX", videoUrl: "https://www.youtube.com/embed/c9Wg6Cb_YlU", duration: 900, order: 1, completed: false, progress: 0 },
+              { id: "d1", title: "أساسيات UI/UX", description: "الفرق بين UI و UX", videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4", duration: 900, order: 1, completed: false, progress: 0 },
               { id: "d2", title: "مقدمة إلى Figma", description: "شرح واجهة البرنامج", content: "<p>برنامج فيجما هو الأداة الأقوى لتصميم الواجهات حالياً.</p>", duration: 1100, order: 2, completed: false, progress: 0 },
             ],
             "fake-course-backend": [
-              { id: "b1", title: "ما هو Node.js", description: "فهم بيئة تشغيل نود", videoUrl: "https://www.youtube.com/embed/TlB_eWDSMt4", duration: 850, order: 1, completed: false, progress: 0 },
+              { id: "b1", title: "ما هو Node.js", description: "فهم بيئة تشغيل نود", videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", duration: 850, order: 1, completed: false, progress: 0 },
               { id: "b2", title: "إعداد خادم Express", description: "إنشاء أول خادم", content: "<p>مثال على إنشاء خادم مبسط باستخدام Express.</p>", duration: 1200, order: 2, completed: false, progress: 0 },
             ]
           };
