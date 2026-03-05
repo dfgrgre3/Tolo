@@ -2,6 +2,7 @@ import prisma from '@/lib/db';
 import { PasswordService } from './password-service';
 import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
+import { TwoFactorService } from './two-factor-service';
 import { logger } from '@/lib/logger';
 import { randomBytes, createHash } from 'crypto';
 import { emailService } from '@/lib/services/email-service';
@@ -33,6 +34,7 @@ export interface RegisterInput {
     email: string;
     username?: string;
     password: string;
+    role?: string;
     ip: string;
     userAgent: string;
 }
@@ -47,10 +49,13 @@ export interface AuthResult {
         role: string;
         avatar: string | null;
         emailVerified: boolean | null;
+        twoFactorEnabled?: boolean;
     };
     accessToken?: string;
     refreshToken?: string;
     sessionId?: string;
+    requires2FA?: boolean;
+    tempToken?: string;
     error?: string;
     statusCode?: number;
 }
@@ -68,8 +73,8 @@ export class AuthService {
      * 3. Session creation with device tracking
      * 4. Security event logging
      */
-    static async login(input: LoginInput): Promise<AuthResult> {
-        const { email, password, rememberMe = false, ip, userAgent } = input;
+    static async login(input: LoginInput & { location?: string }): Promise<AuthResult> {
+        const { email, password, rememberMe = false, ip, userAgent, location } = input;
         const normalizedEmail = email.toLowerCase().trim();
 
         try {
@@ -94,6 +99,7 @@ export class AuthService {
                     role: true,
                     avatar: true,
                     emailVerified: true,
+                    twoFactorEnabled: true,
                 },
             });
 
@@ -123,7 +129,28 @@ export class AuthService {
                 };
             }
 
-            // 3. Optional: Check email verification
+            // 3. Check for 2FA
+            if (user.twoFactorEnabled) {
+                // Generate a temporary restricted token for 2FA verification phase
+                const tempToken = await PasswordService.hash(user.id + Date.now()); // Simple temp identifier
+                return {
+                    success: true,
+                    requires2FA: true,
+                    tempToken,
+                    user: {
+                        id: user.id,
+                        email: user.email,
+                        username: user.username,
+                        name: user.name,
+                        role: user.role,
+                        avatar: user.avatar,
+                        emailVerified: user.emailVerified,
+                        twoFactorEnabled: user.twoFactorEnabled,
+                    }
+                };
+            }
+
+            // 4. Optional: Check email verification
             // Uncomment for production when email service is ready
             // if (!user.emailVerified) {
             //     return {
@@ -133,13 +160,14 @@ export class AuthService {
             //     };
             // }
 
-            // 4. Create session and generate tokens
+            // 5. Create session and generate tokens
             const { session, accessToken, refreshToken } = await SessionService.createSession(
                 user.id,
                 user.role,
                 ip,
                 userAgent,
-                rememberMe
+                rememberMe,
+                location
             );
 
             // 5. Update last login timestamp
@@ -177,6 +205,73 @@ export class AuthService {
     }
 
     /**
+     * Verify 2FA token and complete login.
+     */
+    static async verify2FA(userId: string, token: string, ip: string, userAgent: string, rememberMe: boolean = false): Promise<AuthResult> {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    id: true,
+                    email: true,
+                    username: true,
+                    name: true,
+                    role: true,
+                    avatar: true,
+                    emailVerified: true,
+                    twoFactorSecret: true,
+                },
+            });
+
+            if (!user || !user.twoFactorSecret) {
+                return { success: false, error: 'User not found or 2FA not enabled', statusCode: 404 };
+            }
+
+            const isValid = TwoFactorService.verifyToken(token, user.twoFactorSecret);
+
+            if (!isValid) {
+                await SecurityLogger.logFailedLogin(ip, userAgent, 'INVALID_2FA_TOKEN');
+                return { success: false, error: 'Invalid 2FA token', statusCode: 401 };
+            }
+
+            // Complete login
+            const { session, accessToken, refreshToken } = await SessionService.createSession(
+                user.id,
+                user.role,
+                ip,
+                userAgent,
+                rememberMe
+            );
+
+            await prisma.user.update({
+                where: { id: user.id },
+                data: { lastLogin: new Date() },
+            });
+
+            await SecurityLogger.logLogin(user.id, ip, userAgent, session.id);
+
+            return {
+                success: true,
+                user: {
+                    id: user.id,
+                    email: user.email,
+                    username: user.username,
+                    name: user.name,
+                    role: user.role,
+                    avatar: user.avatar,
+                    emailVerified: user.emailVerified,
+                },
+                accessToken,
+                refreshToken,
+                sessionId: session.id,
+            };
+        } catch (error) {
+            logger.error('[AUTH_2FA_VERIFY_ERROR]', { error });
+            return { success: false, error: 'Internal server error', statusCode: 500 };
+        }
+    }
+
+    /**
      * Register a new user account.
      * 
      * Security measures:
@@ -185,8 +280,8 @@ export class AuthService {
      * 3. Email verification token generation
      * 4. Security event logging
      */
-    static async register(input: RegisterInput): Promise<AuthResult> {
-        const { email, username, password, ip, userAgent } = input;
+    static async register(input: RegisterInput & { location?: string }): Promise<AuthResult> {
+        const { email, username, password, role = 'USER', ip, userAgent, location } = input;
 
         try {
             const normalizedEmail = email.toLowerCase().trim();
@@ -538,10 +633,118 @@ export class AuthService {
             });
 
             return { success: true };
-
         } catch (error: any) {
             logger.error('[AUTH_CHANGE_PASSWORD_ERROR]', { error });
             throw error;
+        }
+    }
+
+    /**
+     * Request a passwordless Magic Link.
+     */
+    static async requestMagicLink(email: string, ip: string, userAgent: string): Promise<{ success: boolean; error?: string }> {
+        try {
+            const normalizedEmail = email.toLowerCase().trim();
+            const user = await prisma.user.findUnique({
+                where: { email: normalizedEmail },
+                select: { id: true, email: true }
+            });
+
+            if (!user) {
+                // Return success anyway to prevent email enumeration
+                return { success: true };
+            }
+
+            // Generate secure token
+            const magicToken = randomBytes(32).toString('hex');
+            const magicTokenHash = createHash('sha256').update(magicToken).digest('hex');
+            const expires = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    magicLinkToken: magicTokenHash,
+                    magicLinkExpires: expires,
+                }
+            });
+
+            // Send email
+            await emailService.sendMagicLink(normalizedEmail, magicToken);
+
+            await SecurityLogger.log({
+                userId: user.id,
+                eventType: SecurityEventType.MAGIC_LINK_REQUESTED,
+                ip,
+                userAgent,
+                metadata: { method: 'MAGIC_LINK' }
+            });
+
+            return { success: true };
+        } catch (error) {
+            logger.error('[AUTH_MAGIC_LINK_REQUEST_ERROR]', { error });
+            return { success: false, error: 'حدث خطأ أثناء إرسال الرابط' };
+        }
+    }
+
+    /**
+     * Verify Magic Link and log the user in.
+     */
+    static async verifyMagicLink(token: string, ip: string, userAgent: string, location?: string): Promise<AuthResult> {
+        try {
+            const tokenHash = createHash('sha256').update(token).digest('hex');
+
+            const user = await prisma.user.findFirst({
+                where: {
+                    magicLinkToken: tokenHash,
+                    magicLinkExpires: { gt: new Date() },
+                },
+                select: {
+                    id: true,
+                    email: true,
+                    username: true,
+                    name: true,
+                    role: true,
+                    avatar: true,
+                    emailVerified: true,
+                }
+            });
+
+            if (!user) {
+                return { success: false, error: 'الرابط غير صالح أو انتهت صلاحيته', statusCode: 401 };
+            }
+
+            // Create session
+            const { session, accessToken, refreshToken } = await SessionService.createSession(
+                user.id,
+                user.role,
+                ip,
+                userAgent,
+                true, // Default to persistent for magic links
+                location
+            );
+
+            // Clear magic link token (one-time use)
+            await prisma.user.update({
+                where: { id: user.id },
+                data: {
+                    magicLinkToken: null,
+                    magicLinkExpires: null,
+                    lastLogin: new Date(),
+                }
+            });
+
+            await SecurityLogger.logLogin(user.id, ip, userAgent, session.id);
+
+            return {
+                success: true,
+                user,
+                accessToken,
+                refreshToken,
+                sessionId: session.id
+            };
+        } catch (error) {
+            logger.error('[AUTH_MAGIC_LINK_VERIFY_ERROR]', { error });
+            return { success: false, error: 'حدث خطأ أثناء تسجيل الدخول', statusCode: 500 };
         }
     }
 }

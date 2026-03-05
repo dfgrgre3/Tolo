@@ -1,28 +1,31 @@
 "use client";
 
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Search, 
-  SlidersHorizontal, 
-  ChevronDown,
-  X,
-  Sparkles,
-  BookOpen,
-  GraduationCap,
+import React, { useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import {
   Beaker,
+  BookOpen,
   Calculator,
+  ChevronDown,
+  Code2,
   Globe,
-  Palette,
-  Music,
-  type LucideIcon
+  Landmark,
+  Languages,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  X,
+  type LucideIcon,
 } from "lucide-react";
 
 interface Category {
   id: string;
   name: string;
   icon: string;
+  count?: number;
 }
+
+type CourseLevelFilter = "all" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 
 interface CoursesFilterProps {
   categories: Category[];
@@ -32,25 +35,54 @@ interface CoursesFilterProps {
   setSearchTerm: (term: string) => void;
   sortBy: "newest" | "popular" | "rated" | "price-low" | "price-high";
   setSortBy: (sort: "newest" | "popular" | "rated" | "price-low" | "price-high") => void;
-  levelFilter: string;
-  setLevelFilter: (level: string) => void;
+  levelFilter: CourseLevelFilter;
+  setLevelFilter: (level: CourseLevelFilter) => void;
   resultsCount: number;
+  hasActiveFilters?: boolean;
+  onResetFilters?: () => void;
 }
 
-const iconMap: Record<string, LucideIcon> = {
-  "📖": BookOpen,
-  "🎓": GraduationCap,
-  "🧪": Beaker,
-  "🔢": Calculator,
-  "🌍": Globe,
-  "🎨": Palette,
-  "🎵": Music,
-  "default": BookOpen
+const categoryIconsById: Record<string, LucideIcon> = {
+  MATH: Calculator,
+  PHYSICS: Beaker,
+  CHEMISTRY: Beaker,
+  BIOLOGY: Beaker,
+  ARABIC: Languages,
+  ENGLISH: Languages,
+  HISTORY: Landmark,
+  GEOGRAPHY: Globe,
+  PROGRAMMING: Code2,
+  COMPUTER_SCIENCE: Code2,
 };
 
-const getIcon = (iconString: string) => {
-  return iconMap[iconString] || iconMap.default;
-};
+function resolveCategoryIcon(category: Category): LucideIcon {
+  const byId = categoryIconsById[category.id];
+  if (byId) {
+    return byId;
+  }
+
+  if (category.icon?.includes("🧪") || category.icon?.includes("⚛")) {
+    return Beaker;
+  }
+
+  if (category.icon?.includes("🌍")) {
+    return Globe;
+  }
+
+  if (category.icon?.includes("🔢")) {
+    return Calculator;
+  }
+
+  if (category.icon?.includes("💻") || category.icon?.includes("🖥")) {
+    return Code2;
+  }
+
+  if (category.icon?.includes("🏛")) {
+    return Landmark;
+  }
+
+  return BookOpen;
+}
 
 export const CoursesFilter: React.FC<CoursesFilterProps> = ({
   categories,
@@ -62,47 +94,55 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
   setSortBy,
   levelFilter,
   setLevelFilter,
-  resultsCount
+  resultsCount,
+  hasActiveFilters = false,
+  onResetFilters,
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
-  const sortOptions = [
-    { value: "newest", label: "الأحدث" },
-    { value: "popular", label: "الأكثر شهرة" },
-    { value: "rated", label: "الأعلى تقييماً" },
-    { value: "price-low", label: "السعر: الأقل" },
-    { value: "price-high", label: "السعر: الأعلى" }
-  ];
+  const sortOptions = useMemo(
+    () => [
+      { value: "newest", label: "الأحدث" },
+      { value: "popular", label: "الأكثر طلبًا" },
+      { value: "rated", label: "الأعلى تقييمًا" },
+      { value: "price-low", label: "السعر: الأقل" },
+      { value: "price-high", label: "السعر: الأعلى" },
+    ],
+    []
+  );
 
-  const levelOptions = [
-    { value: "all", label: "جميع المستويات", color: "bg-slate-500" },
-    { value: "BEGINNER", label: "مبتدئ", color: "bg-emerald-500" },
-    { value: "INTERMEDIATE", label: "متوسط", color: "bg-amber-500" },
-    { value: "ADVANCED", label: "متقدم", color: "bg-rose-500" }
-  ];
+  const levelOptions = useMemo(
+    () => [
+      { value: "all", label: "كل المستويات", color: "bg-slate-500" },
+      { value: "BEGINNER", label: "مبتدئ", color: "bg-emerald-500" },
+      { value: "INTERMEDIATE", label: "متوسط", color: "bg-amber-500" },
+      { value: "ADVANCED", label: "متقدم", color: "bg-rose-500" },
+    ],
+    []
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Search and Toggle Filters Row */}
-      <div className="flex flex-col md:flex-row gap-4">
-        {/* Search Bar */}
-        <div className="flex-1 relative group">
-          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
+    <section className="space-y-4">
+      <div className="flex flex-col gap-4 md:flex-row">
+        <div className="group relative flex-1">
+          <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20 opacity-0 blur-xl transition-opacity duration-500 group-focus-within:opacity-100" />
           <div className="relative flex items-center">
-            <Search className="absolute right-4 h-5 w-5 text-slate-400 group-focus-within:text-blue-500 transition-colors duration-300" />
+            <Search className="absolute right-4 h-5 w-5 text-slate-400 transition-colors duration-300 group-focus-within:text-blue-500" />
             <input
               type="text"
-              placeholder="ابحث عن دورة، مدرب، أو موضوع..."
+              placeholder="ابحث عن دورة أو مدرس أو مهارة..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pr-12 pl-4 py-3.5 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-300"
+              onChange={(event) => setSearchTerm(event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-white/90 py-3.5 pl-12 pr-12 text-slate-900 backdrop-blur-sm transition-all duration-300 placeholder:text-slate-400 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500/50 dark:border-slate-700 dark:bg-slate-800/80 dark:text-white"
             />
-            {searchTerm && (
+            {searchTerm.trim() !== "" && (
               <motion.button
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
                 onClick={() => setSearchTerm("")}
-                className="absolute left-4 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="absolute left-4 rounded-full p-1 transition-colors hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <X className="h-4 w-4 text-slate-400" />
               </motion.button>
@@ -110,90 +150,92 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
           </div>
         </div>
 
-        {/* Filter Toggle Button */}
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl border transition-all duration-300 ${
-            showFilters 
-              ? "bg-blue-500 text-white border-blue-500" 
-              : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-300"
+          onClick={() => setShowFilters((prev) => !prev)}
+          className={`flex items-center gap-2 rounded-2xl border px-5 py-3.5 transition-all duration-300 ${
+            showFilters
+              ? "border-blue-500 bg-blue-500 text-white"
+              : "border-slate-200 bg-white text-slate-700 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           }`}
         >
           <SlidersHorizontal className="h-5 w-5" />
           <span className="font-medium">الفلاتر</span>
-          <motion.div
-            animate={{ rotate: showFilters ? 180 : 0 }}
-            transition={{ duration: 0.3 }}
-          >
+          <motion.div animate={{ rotate: showFilters ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDown className="h-4 w-4" />
           </motion.div>
         </motion.button>
       </div>
 
-      {/* Categories */}
       <div className="flex flex-wrap gap-2">
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => setActiveCategory("all")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 ${
             activeCategory === "all"
-              ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
-              : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-300"
+              ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/20"
+              : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
           }`}
         >
           <Sparkles className="h-4 w-4" />
           <span>الكل</span>
         </motion.button>
-        
+
         {categories.map((category) => {
-          const IconComponent = getIcon(category.icon);
+          const IconComponent = resolveCategoryIcon(category);
+          const isActive = activeCategory === category.id;
+
           return (
             <motion.button
               key={category.id}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
               onClick={() => setActiveCategory(category.id)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                activeCategory === category.id
-                  ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg shadow-blue-500/25"
-                  : "bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:border-blue-300"
+              className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 ${
+                isActive
+                  ? "bg-gradient-to-r from-blue-500 to-indigo-500 text-white shadow-lg shadow-blue-500/20"
+                  : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
               }`}
             >
               <IconComponent className="h-4 w-4" />
               <span>{category.name}</span>
+              {typeof category.count === "number" && (
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs ${
+                    isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-300"
+                  }`}
+                >
+                  {category.count}
+                </span>
+              )}
             </motion.button>
           );
         })}
       </div>
 
-      {/* Expanded Filters */}
       <AnimatePresence>
         {showFilters && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 rounded-2xl bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border border-slate-200 dark:border-slate-700">
-              {/* Sort By */}
+            <div className="grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-white/90 p-6 backdrop-blur-sm dark:border-slate-700 dark:bg-slate-800/80 md:grid-cols-2 lg:grid-cols-3">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  ترتيب حسب
-                </label>
+                <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">ترتيب النتائج</p>
                 <div className="flex flex-wrap gap-2">
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
                       onClick={() => setSortBy(option.value as typeof sortBy)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ${
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                         sortBy === option.value
                           ? "bg-blue-500 text-white"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                       }`}
                     >
                       {option.label}
@@ -202,45 +244,46 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
                 </div>
               </div>
 
-              {/* Level Filter */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  المستوى
-                </label>
+                <p className="mb-2 text-sm font-medium text-slate-700 dark:text-slate-300">مستوى الدورة</p>
                 <div className="flex flex-wrap gap-2">
                   {levelOptions.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => setLevelFilter(option.value)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-300 ${
+                      onClick={() => setLevelFilter(option.value as CourseLevelFilter)}
+                      className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                         levelFilter === option.value
                           ? "bg-blue-500 text-white"
-                          : "bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
                       }`}
                     >
-                      <span className={`w-2 h-2 rounded-full ${option.color}`} />
+                      <span className={`h-2 w-2 rounded-full ${option.color}`} />
                       {option.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Results Count */}
-              <div className="flex items-end">
-                <div className="w-full p-4 rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 border border-blue-100 dark:border-blue-800/30">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {resultsCount}
-                  </div>
-                  <div className="text-sm text-slate-600 dark:text-slate-400">
-                    دورة متاحة
-                  </div>
+              <div className="flex flex-col justify-between gap-3">
+                <div className="rounded-xl border border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 p-4 dark:border-blue-800/30 dark:from-blue-900/20 dark:to-indigo-900/20">
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{resultsCount}</p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">دورة مطابقة</p>
                 </div>
+
+                {hasActiveFilters && onResetFilters && (
+                  <button
+                    onClick={onResetFilters}
+                    className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-600 dark:border-slate-700 dark:text-slate-300"
+                  >
+                    إعادة ضبط الفلاتر
+                  </button>
+                )}
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </section>
   );
 };
 

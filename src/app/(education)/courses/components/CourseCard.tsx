@@ -11,7 +11,8 @@ import {
   PlayCircle,
   ChevronLeft,
   Bookmark,
-  GraduationCap
+  GraduationCap,
+  Loader2
 } from "lucide-react";
 
 export interface CourseCardProps {
@@ -32,6 +33,7 @@ export interface CourseCardProps {
   lessonsCount?: number;
   onEnroll?: () => void;
   onUnenroll?: () => void;
+  isProcessing?: boolean;
   featured?: boolean;
   index?: number;
 }
@@ -99,6 +101,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   lessonsCount,
   onEnroll,
   onUnenroll,
+  isProcessing = false,
   featured = false,
   index = 0
 }) => {
@@ -249,10 +252,18 @@ export const CourseCard: React.FC<CourseCardProps> = ({
             </div>
           </div>
           
-          {/* Duration */}
-          <div className="flex items-center gap-1 text-muted-foreground">
-            <Clock className="h-4 w-4" />
-            <span>{duration} ساعة</span>
+          {/* Duration and lessons */}
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>{duration} ساعة</span>
+            </div>
+            {typeof lessonsCount === "number" && lessonsCount > 0 && (
+              <div className="flex items-center gap-1">
+                <BookOpen className="h-4 w-4" />
+                <span>{lessonsCount}</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -307,9 +318,10 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onUnenroll}
-                className="p-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-rose-500 hover:border-rose-300 transition-colors duration-300"
+                disabled={isProcessing}
+                className="p-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-rose-500 hover:border-rose-300 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-70"
               >
-                <Bookmark className="h-4 w-4 fill-current" />
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bookmark className="h-4 w-4 fill-current" />}
               </motion.button>
             </div>
           ) : (
@@ -317,10 +329,20 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onEnroll}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300"
+              disabled={isProcessing}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-75"
             >
-              <span>{price === 0 ? "سجل مجاناً" : "سجل الآن"}</span>
-              <ChevronLeft className="h-4 w-4" />
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>جاري التنفيذ...</span>
+                </>
+              ) : (
+                <>
+                  <span>{price === 0 ? "سجل مجاناً" : "سجل الآن"}</span>
+                  <ChevronLeft className="h-4 w-4" />
+                </>
+              )}
             </motion.button>
           )}
         </div>
@@ -330,3 +352,4 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 };
 
 export default CourseCard;
+

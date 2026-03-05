@@ -52,8 +52,11 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Validate Session in Database
-        const session = await prisma.session.findUnique({
-            where: { id: payload.sessionId, isActive: true },
+        const session = await prisma.session.findFirst({
+            where: {
+                id: payload.sessionId,
+                isActive: true,
+            },
             include: { user: true },
         });
 
@@ -112,25 +115,27 @@ export async function POST(req: NextRequest) {
         });
 
         // 6. Set New Cookies
+        const isProduction = process.env.NODE_ENV === 'production';
+
         cookieStore.set('access_token', newAccessToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isProduction,
+            sameSite: 'lax',
             maxAge: Math.min(15 * 60, remainingSessionSeconds),
             path: '/',
         });
 
         cookieStore.set('refresh_token', newRefreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isProduction,
+            sameSite: 'lax',
             maxAge: remainingSessionSeconds,
             path: '/',
         });
 
         cookieStore.set('session_id', session.id, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: isProduction,
             sameSite: 'lax',
             maxAge: remainingSessionSeconds,
             path: '/',

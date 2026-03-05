@@ -165,6 +165,56 @@ class EmailService {
 
     return this.sendEmail({ to, subject, text, html });
   }
+
+  /**
+   * Send magic login link (Passwordless)
+   */
+  async sendMagicLink(to: string, token: string): Promise<boolean> {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const magicLink = `${baseUrl}/api/auth/magic-link/verify?token=${token}`;
+
+    const subject = 'رابط الدخول السريع - منصة ثانوية';
+    const text = `مرحباً،\n\nاستخدم الرابط التالي لتسجيل الدخول مباشرة إلى حسابك:\n${magicLink}\n\nصلاحية الرابط 15 دقيقة فقط.`;
+    const html = `
+      <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+        <h2 style="color: #4F46E5; text-align: center;">دخول سريع وآمن</h2>
+        <p style="color: #374151; font-size: 16px; line-height: 1.5;">مرحباً، لقد طلبت رابطاً لتسجيل الدخول السريع. انقر على الزر أدناه للدخول إلى حسابك فوراً دون الحاجة لكلمة مرور:</p>
+        <div style="text-align: center; margin: 35px 0;">
+          <a href="${magicLink}" style="background-color: #4F46E5; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 18px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">دخول إلى المنصة</a>
+        </div>
+        <p style="color: #6B7280; font-size: 14px; text-align: center;">صلاحية الرابط 15 دقيقة فقط، ويستخدم لمرة واحدة.</p>
+        <hr style="border: 0; border-top: 1px solid #f3f4f6; margin: 25px 0;" />
+        <p style="color: #9CA3AF; font-size: 12px; text-align: center;">إذا لم تطلب هذا الرابط، يرجى تجاهل هذه الرسالة.</p>
+      </div>
+    `;
+
+    return this.sendEmail({ to, subject, text, html });
+  }
+
+  /**
+   * Send an alert for a new login from a new device/location.
+   */
+  async sendLoginAlert(email: string, details: { ip: string; device: string; time: string }): Promise<boolean> {
+    try {
+      const subject = '🚨 تنبيه أمني: تسجيل دخول جديد';
+      const html = `
+        <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <h2 style="color: #e11d48;">تنبيه أمني جديد</h2>
+          <p>تم تسجيل دخول جديد إلى حسابك في منصة ثانوية.</p>
+          <div style="background: #f4f4f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p><strong>الجهاز:</strong> ${details.device}</p>
+            <p><strong>العنوان (IP):</strong> ${details.ip}</p>
+            <p><strong>الوقت:</strong> ${details.time}</p>
+          </div>
+          <p>إذا لم تكن أنت من قام بهذا النشاط، يرجى تغيير كلمة المرور فوراً.</p>
+        </div>
+      `;
+      const text = `تنبيه أمني جديد: تم تسجيل دخول جديد إلى حسابك. الجهاز: ${details.device}، IP: ${details.ip}`;
+      return await this.sendEmail({ to: email, subject, text, html });
+    } catch {
+      return false;
+    }
+  }
 }
 
 export const emailService = new EmailService();

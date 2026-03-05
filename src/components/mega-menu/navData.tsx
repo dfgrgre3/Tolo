@@ -1,4 +1,4 @@
-import {
+﻿import {
 	Home,
 	BookOpen,
 	Calendar,
@@ -25,16 +25,12 @@ import {
 	Bell,
 	Shield,
 	Activity,
-	PlayCircle,
-	Video,
-	Book,
 	FileText as FileTextIcon,
+	History as HistoryIcon,
 	Download,
 	Upload,
 	Star,
 	CheckCircle,
-	XCircle,
-	AlertCircle,
 } from "lucide-react";
 import { MegaMenuCategory } from "./types";
 import type { LucideIcon } from "lucide-react";
@@ -60,13 +56,13 @@ export const coursesMegaMenu: MegaMenuCategory[] = [
 				description: "استعرض جميع الدورات المتاحة",
 			},
 			{
-				href: "/courses/enrolled",
+				href: "/progress",
 				label: "الدورات المسجلة",
 				icon: CheckCircle,
 				description: "الدورات التي سجلت فيها",
 			},
 			{
-				href: "/courses/favorites",
+				href: "/resources",
 				label: "المفضلة",
 				icon: Star,
 				description: "الدورات المفضلة لديك",
@@ -77,13 +73,13 @@ export const coursesMegaMenu: MegaMenuCategory[] = [
 		title: "محتوى الدورات",
 		items: [
 			{
-				href: "/courses/materials",
+				href: "/library",
 				label: "المواد التعليمية",
 				icon: FileTextIcon,
 				description: "الملفات والمواد الدراسية",
 			},
 			{
-				href: "/courses/downloads",
+				href: "/resources",
 				label: "التحميلات",
 				icon: Download,
 				description: "تحميل المواد",
@@ -94,13 +90,13 @@ export const coursesMegaMenu: MegaMenuCategory[] = [
 		title: "التقدم في الدورات",
 		items: [
 			{
-				href: "/courses/progress",
+				href: "/progress",
 				label: "تقدمي في الدورات",
 				icon: TrendingUp,
 				description: "تتبع تقدمك في الدورات",
 			},
 			{
-				href: "/courses/certificates",
+				href: "/achievements",
 				label: "الشهادات",
 				icon: Award,
 				description: "شهادات إتمام الدورات",
@@ -126,19 +122,19 @@ export const scheduleMegaMenu: MegaMenuCategory[] = [
 		title: "الفعاليات والمناسبات",
 		items: [
 			{
-				href: "/schedule/events",
+				href: "/events",
 				label: "الفعاليات",
 				icon: Sparkles,
 				description: "الفعاليات القادمة",
 			},
 			{
-				href: "/schedule/exams",
+				href: "/exams",
 				label: "الامتحانات",
 				icon: ClipboardList,
 				description: "جدول الامتحانات",
 			},
 			{
-				href: "/schedule/reminders",
+				href: "/notifications",
 				label: "التذكيرات",
 				icon: Bell,
 				description: "تذكيراتك المهمة",
@@ -159,7 +155,7 @@ export const timeManagementMegaMenu: MegaMenuCategory[] = [
 				description: "نظرة عامة على وقتك",
 			},
 			{
-				href: "/time/tracker",
+				href: "/time",
 				label: "تتبع الوقت",
 				icon: Activity,
 				description: "تتبع وقتك الدراسي",
@@ -170,19 +166,19 @@ export const timeManagementMegaMenu: MegaMenuCategory[] = [
 		title: "المهام والتذكيرات",
 		items: [
 			{
-				href: "/time/tasks",
+				href: "/tasks",
 				label: "المهام",
 				icon: BookMarked,
 				description: "مهامك اليومية",
 			},
 			{
-				href: "/time/reminders",
+				href: "/notifications",
 				label: "التذكيرات",
 				icon: Bell,
 				description: "تذكيراتك المهمة",
 			},
 			{
-				href: "/time/history",
+				href: "/time",
 				label: "سجل الجلسات",
 				icon: Clock,
 				description: "سجل جلساتك الدراسية",
@@ -197,13 +193,13 @@ export const libraryMegaMenu: MegaMenuCategory[] = [
 		title: "المكتبة الرقمية",
 		items: [
 			{
-				href: "/library/documents",
+				href: "/library",
 				label: "الوثائق",
 				icon: FileText,
 				description: "الوثائق والملفات",
 			},
 			{
-				href: "/library/downloads",
+				href: "/resources",
 				label: "التحميلات",
 				icon: Download,
 				description: "الملفات المحملة",
@@ -214,7 +210,7 @@ export const libraryMegaMenu: MegaMenuCategory[] = [
 		title: "التصنيفات",
 		items: [
 			{
-				href: "/library/upload",
+				href: "/resources",
 				label: "رفع ملف",
 				icon: Upload,
 				description: "رفع ملف جديد",
@@ -235,13 +231,13 @@ export const analyticsMegaMenu: MegaMenuCategory[] = [
 				description: "إحصائياتك العامة",
 			},
 			{
-				href: "/analytics/progress",
+				href: "/progress",
 				label: "التقدم الدراسي",
 				icon: TrendingUp,
 				description: "تتبع تقدمك الدراسي",
 			},
 			{
-				href: "/analytics/performance",
+				href: "/analytics",
 				label: "الأداء",
 				icon: Activity,
 				description: "تحليل أدائك",
@@ -252,13 +248,13 @@ export const analyticsMegaMenu: MegaMenuCategory[] = [
 		title: "التقارير",
 		items: [
 			{
-				href: "/analytics/reports",
+				href: "/analytics",
 				label: "التقارير",
 				icon: FileText,
 				description: "التقارير التفصيلية",
 			},
 			{
-				href: "/analytics/exports",
+				href: "/analytics",
 				label: "تصدير البيانات",
 				icon: Download,
 				description: "تصدير بياناتك",
@@ -349,7 +345,7 @@ export const moreMegaMenu: MegaMenuCategory[] = [
 				description: "إنجازاتك وميدالياتك",
 			},
 			{
-				href: "/contests",
+				href: "/contests/new",
 				label: "المسابقات",
 				icon: Trophy,
 				description: "المسابقات التعليمية",
@@ -414,16 +410,16 @@ export const moreMegaMenu: MegaMenuCategory[] = [
 				description: "إشعاراتك الخاصة",
 			},
 			{
-				href: "/security",
+				href: "/settings/security",
 				label: "الأمان",
 				icon: Shield,
 				description: "إعدادات الأمان والحماية",
 			},
 			{
-				href: "/security/activity",
-				label: "سجل النشاط",
-				icon: Activity,
-				description: "سجل نشاطات الحساب",
+				href: "/settings/security/logs",
+				label: "سجل الأمان",
+				icon: HistoryIcon,
+				description: "سجل نشاطات الأمان والحماية",
 			},
 		],
 	},
@@ -442,14 +438,14 @@ export const aiSuggestionsMegaMenu: MegaMenuCategory[] = [
         badge: "AI",
       },
       {
-        href: "/ai/recommendations",
+        href: "/ai",
         label: "التوصيات الشخصية",
         icon: Sparkles,
         description: "محتوى مخصص بناءً على نشاطك",
         badge: "جديد",
       },
       {
-        href: "/ai/learning-path",
+        href: "/tips",
         label: "مسار التعلم",
         icon: Target,
         description: "خطة دراسية مخصصة",
@@ -460,7 +456,7 @@ export const aiSuggestionsMegaMenu: MegaMenuCategory[] = [
     title: "أدوات الذكاء الاصطناعي",
     items: [
       {
-        href: "/ai/progress-analysis",
+        href: "/analytics",
         label: "تحليل التقدم",
         icon: BarChart3,
         description: "تحليل شامل لتقدمك الدراسي",

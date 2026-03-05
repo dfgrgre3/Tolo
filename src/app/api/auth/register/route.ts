@@ -65,7 +65,7 @@ const registerRateLimiter = new RateLimiter({
  */
 export async function POST(req: NextRequest) {
     try {
-        const { ip, userAgent, clientId } = extractClientInfo(req);
+        const { ip, userAgent, clientId, location } = extractClientInfo(req);
 
         // 1. Rate limiting
         const rateLimitResult = await registerRateLimiter.checkRateLimit(`register:${clientId}`);
@@ -101,6 +101,7 @@ export async function POST(req: NextRequest) {
             password,
             ip,
             userAgent,
+            location,
         });
 
         if (!result.success) {
@@ -123,31 +124,33 @@ export async function POST(req: NextRequest) {
                 rememberMe: false,
                 ip,
                 userAgent,
+                location,
             });
 
             if (loginResult.success && loginResult.accessToken && loginResult.refreshToken && loginResult.sessionId) {
                 const cookieStore = await cookies();
-                const refreshMaxAge = 24 * 60 * 60;
+                const isProduction = process.env.NODE_ENV === 'production';
+                const refreshMaxAge = 7 * 24 * 60 * 60; // 7 days default
 
                 cookieStore.set('access_token', loginResult.accessToken, {
                     httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'strict',
+                    secure: isProduction,
+                    sameSite: 'lax',
                     maxAge: 15 * 60,
                     path: '/',
                 });
 
                 cookieStore.set('refresh_token', loginResult.refreshToken, {
                     httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: 'strict',
+                    secure: isProduction,
+                    sameSite: 'lax',
                     maxAge: refreshMaxAge,
                     path: '/',
                 });
 
                 cookieStore.set('session_id', loginResult.sessionId, {
                     httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
+                    secure: isProduction,
                     sameSite: 'lax',
                     maxAge: refreshMaxAge,
                     path: '/',

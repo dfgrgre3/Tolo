@@ -39,6 +39,10 @@ model User {
   recoveryCodes                 String?
   smsNotifications              Boolean?              @default(false)
   biometricEnabled              Boolean               @default(false)
+  magicLinkToken                String?
+  magicLinkExpires              DateTime?
+  googleId                      String?               @unique
+  githubId                      String?               @unique
   passwordChangedAt             DateTime?
   passwordExpiresAt             DateTime?
   passwordExpirationWarningSent Boolean               @default(false)
@@ -256,6 +260,8 @@ model Session {
   expiresAt    DateTime
   lastAccessed DateTime @default(now())
   isActive     Boolean  @default(true)
+  isTrusted    Boolean  @default(false)
+  location     String?
   refreshToken String?
   updatedAt    DateTime @updatedAt
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)

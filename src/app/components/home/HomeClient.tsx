@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { ProgressSummary } from "@/lib/server-data-fetch";
 import { UserHome } from "@/app/components/home/UserHome";
@@ -15,11 +16,30 @@ interface HomeClientProps {
 
 export function HomeClient({ summary }: HomeClientProps) {
   const { user: authUser, isLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
 
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login?redirect=%2F');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
   // --- Data Fetching Logic for Performance ---
   useEffect(() => {
+    if (isLoading) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setPerformanceMetrics([]);
+      setMetricsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     async function fetchPerformance() {
       try {
         setMetricsLoading(true);
@@ -29,6 +49,8 @@ export function HomeClient({ summary }: HomeClientProps) {
           undefined,
           null
         );
+
+        if (cancelled) return;
 
         if (data?.metrics) {
            const transformed: PerformanceMetric[] = Object.entries(data.metrics).map(([key, val]: [string, any]) => ({
@@ -52,14 +74,24 @@ export function HomeClient({ summary }: HomeClientProps) {
              ]);
         }
       } catch (err) {
+        if (cancelled) return;
         console.error("Failed to fetch performance metrics", err);
       } finally {
-        setMetricsLoading(false);
+        if (!cancelled) {
+          setMetricsLoading(false);
+        }
       }
     }
 
     fetchPerformance();
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, isAuthenticated]);
+
+  if (isLoading || !isAuthenticated || !authUser) {
+    return null;
+  }
 
   // --- Build user object: prefer authenticated user, fallback to guest ---
   const displayUser: ApiUser = isAuthenticated && authUser

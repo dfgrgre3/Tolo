@@ -99,3 +99,37 @@ export async function DELETE(req: NextRequest) {
         }
     });
 }
+
+/**
+ * PATCH /api/auth/sessions
+ * 
+ * Toggle trust status of a session.
+ */
+export async function PATCH(req: NextRequest) {
+    return withAuth(req, async ({ userId }) => {
+        try {
+            const { ip, userAgent } = extractClientInfo(req);
+            const body = await req.json();
+            const { sessionId, isTrusted } = body;
+
+            if (!sessionId) {
+                return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
+            }
+
+            if (typeof isTrusted !== 'boolean') {
+                return NextResponse.json({ error: 'isTrusted must be a boolean' }, { status: 400 });
+            }
+
+            const updated = await SessionService.toggleSessionTrust(sessionId, userId, isTrusted);
+            if (!updated) {
+                return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+            }
+
+            await SecurityLogger.logTrustChange(userId, ip, userAgent, sessionId, isTrusted);
+
+            return NextResponse.json({ success: true });
+        } catch (error) {
+            return handleApiError(error);
+        }
+    });
+}

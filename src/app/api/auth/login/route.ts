@@ -57,7 +57,7 @@ function createRateLimitResponse(remainingMinutes?: number): NextResponse {
 
 export async function POST(req: NextRequest) {
     try {
-        const { ip, userAgent } = extractClientInfo(req);
+        const { ip, userAgent, location } = extractClientInfo(req);
         const ipRateLimitKey = buildIpRateLimitKey(ip);
 
         const ipLimitResult = await ipRateLimiter.checkRateLimit(ipRateLimitKey);
@@ -91,6 +91,7 @@ export async function POST(req: NextRequest) {
             rememberMe,
             ip,
             userAgent,
+            location,
         });
 
         if (!result.success) {
@@ -106,27 +107,29 @@ export async function POST(req: NextRequest) {
         }
 
         const cookieStore = await cookies();
-        const refreshMaxAge = rememberMe ? 7 * 24 * 60 * 60 : 24 * 60 * 60;
+        // rememberMe=true → 30 days, default → 7 days (ensures sessions survive browser restarts)
+        const refreshMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
+        const isProduction = process.env.NODE_ENV === 'production';
 
         cookieStore.set('access_token', result.accessToken!, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isProduction,
+            sameSite: 'lax',
             maxAge: 15 * 60,
             path: '/',
         });
 
         cookieStore.set('refresh_token', result.refreshToken!, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: isProduction,
+            sameSite: 'lax',
             maxAge: refreshMaxAge,
             path: '/',
         });
 
         cookieStore.set('session_id', result.sessionId!, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: isProduction,
             sameSite: 'lax',
             maxAge: refreshMaxAge,
             path: '/',

@@ -11,6 +11,8 @@ export interface NavItem {
 export interface MegaMenuCategory {
 	title: string;
 	items: NavItem[];
+	isPriority?: boolean;
+	priorityLabel?: string;
 }
 
 import type { User } from "@/types/user";

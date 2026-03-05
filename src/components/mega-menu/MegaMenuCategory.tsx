@@ -41,9 +41,9 @@ export const MegaMenuCategory = memo(forwardRef<HTMLDivElement, MegaMenuCategory
 			}}
 			whileHover={{ scale: 1.01 }}
 			className={cn(
-				"space-y-3 group/category relative rounded-xl p-3 md:p-4 transition-all duration-300",
-				"hover:bg-gradient-to-br hover:from-primary/5 hover:via-primary/3 hover:to-primary/5",
-				"border border-transparent hover:border-primary/20",
+				"space-y-3 group/category relative rounded-2xl p-3 md:p-5 transition-all duration-500",
+				"bg-white/[0.02] border border-white/5",
+				category.isPriority ? "border-primary/40 bg-primary/5 shadow-[0_0_20px_rgba(var(--primary),0.1)]" : "hover:bg-white/[0.05] hover:border-white/10",
 				isCompact && "space-y-2 p-2 md:p-3"
 			)}
 			role="group"
@@ -87,27 +87,35 @@ export const MegaMenuCategory = memo(forwardRef<HTMLDivElement, MegaMenuCategory
 					)}
 				</motion.div>
 				
-				{/* Title and Count */}
 				<div className="flex-1 flex items-center justify-between">
-					<h3 
-						id={`category-title-${categoryIndex}`}
-						className={cn(
-							"font-semibold text-foreground group-hover/category:text-primary transition-colors duration-300",
-							isCompact ? "text-sm" : "text-base md:text-lg"
+					<div className="flex flex-col">
+						<h3 
+							id={`category-title-${categoryIndex}`}
+							className={cn(
+								"font-black text-foreground group-hover/category:text-primary transition-colors duration-300 flex items-center gap-2",
+								isCompact ? "text-sm" : "text-base md:text-lg"
+							)}
+						>
+							{category.title}
+						</h3>
+						{category.priorityLabel && !isCompact && (
+							<span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">
+								{category.priorityLabel}
+							</span>
 						)}
-					>
-						{category.title}
-					</h3>
+					</div>
 					
 					{/* Item count badge */}
 					<motion.span
 						initial={{ opacity: 0, scale: 0.8 }}
 						animate={{ opacity: 1, scale: 1 }}
 						className={cn(
-							"text-xs font-medium px-2 py-0.5 rounded-full transition-colors",
-							hasActiveSearch 
-								? "bg-primary/15 text-primary border border-primary/30" 
-								: "bg-muted/50 text-muted-foreground border border-border/50"
+							"text-[10px] font-black px-2 py-0.5 rounded-lg transition-colors",
+							category.isPriority 
+								? "bg-primary text-white shadow-[0_0_10px_rgba(var(--primary),0.5)]" 
+								: hasActiveSearch 
+									? "bg-primary/15 text-primary border border-primary/30" 
+									: "bg-white/5 text-gray-500 border border-white/10"
 						)}
 					>
 						{itemCount}

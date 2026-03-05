@@ -10,12 +10,26 @@ import { safeGetItem, safeSetItem } from './safe-client-utils';
 
 const LOCAL_USER_KEY = 'tw_user_id';
 
+function normalizeUserId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const lowered = trimmed.toLowerCase();
+  if (lowered === 'undefined' || lowered === 'null' || lowered === 'nan') {
+    return null;
+  }
+
+  return trimmed;
+}
+
 /**
  * التأكد من وجود معرف المستخدم، وإنشاء مستخدم ضيف إذا لزم الأمر
  * Ensure user ID exists, create guest user if needed
  */
 export async function ensureUser(): Promise<string> {
-  let id = safeGetItem(LOCAL_USER_KEY, { fallback: null });
+  let id: string | null = normalizeUserId(safeGetItem(LOCAL_USER_KEY, { fallback: null }));
   
   if (!id) {
     try {
@@ -26,7 +40,7 @@ export async function ensureUser(): Promise<string> {
       
       if (res.ok) {
         const data = await res.json();
-        id = data.id;
+        id = normalizeUserId(data.id);
         if (id) {
           safeSetItem(LOCAL_USER_KEY, id);
         }
@@ -46,7 +60,8 @@ export async function ensureUser(): Promise<string> {
  * Get user ID from storage only (without creating)
  */
 export function getUserId(): string | null {
-  return safeGetItem(LOCAL_USER_KEY, { fallback: null });
+  const value = safeGetItem(LOCAL_USER_KEY, { fallback: null });
+  return normalizeUserId(value);
 }
 
 /**
@@ -54,7 +69,12 @@ export function getUserId(): string | null {
  * Set user ID in storage
  */
 export function setUserId(userId: string): boolean {
-  return safeSetItem(LOCAL_USER_KEY, userId);
+  const normalized = normalizeUserId(userId);
+  if (!normalized) {
+    return clearUserId();
+  }
+
+  return safeSetItem(LOCAL_USER_KEY, normalized);
 }
 
 /**

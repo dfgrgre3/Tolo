@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useEffect } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,20 +26,38 @@ export function MegaMenu({
 	user
 }: MegaMenuComponentProps) {
 	const megaMenuRef = useRef<HTMLDivElement>(null);
+	const closeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+	const clearCloseTimeout = useCallback(() => {
+		if (closeTimeoutRef.current) {
+			clearTimeout(closeTimeoutRef.current);
+			closeTimeoutRef.current = null;
+		}
+	}, []);
+
+	const scheduleClose = useCallback(() => {
+		clearCloseTimeout();
+		closeTimeoutRef.current = setTimeout(() => {
+			onClose();
+			closeTimeoutRef.current = null;
+		}, 140);
+	}, [clearCloseTimeout, onClose]);
 
 	const handleMouseEnter = useCallback(() => {
+		clearCloseTimeout();
 		if (onOpen && !isOpen) {
 			onOpen();
 		}
-	}, [onOpen, isOpen]);
+	}, [clearCloseTimeout, onOpen, isOpen]);
 
 	const handleClick = useCallback(() => {
+		clearCloseTimeout();
 		if (isOpen) {
 			onClose();
 		} else if (onOpen) {
 			onOpen();
 		}
-	}, [isOpen, onClose, onOpen]);
+	}, [clearCloseTimeout, isOpen, onClose, onOpen]);
 
 	const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
 		if (e.key === 'Enter' || e.key === ' ') {
@@ -47,6 +65,10 @@ export function MegaMenu({
 			handleClick();
 		}
 	}, [handleClick]);
+
+	useEffect(() => {
+		return () => clearCloseTimeout();
+	}, [clearCloseTimeout]);
 
 	return (
 		<div className="relative group" ref={megaMenuRef}>
@@ -59,8 +81,10 @@ export function MegaMenu({
 					className
 				)}
 				onMouseEnter={handleMouseEnter}
+				onMouseLeave={scheduleClose}
 				onClick={handleClick}
 				onKeyDown={handleKeyDown}
+				onFocus={handleMouseEnter}
 				data-mega-menu-trigger
 				aria-expanded={isOpen}
 				aria-haspopup="dialog"
@@ -88,7 +112,11 @@ export function MegaMenu({
 
 			<AnimatePresence>
 				{isOpen && (
-					<div data-mega-menu-content>
+					<div
+						data-mega-menu-content
+						onMouseEnter={clearCloseTimeout}
+						onMouseLeave={scheduleClose}
+					>
 						<MegaMenuContent
 							categories={categories}
 							isOpen={isOpen}

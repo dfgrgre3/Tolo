@@ -644,23 +644,76 @@ export async function safeFetch<T = any>(
     if (process.env.NODE_ENV === 'development') {
       logger.error('[Development] Fetch error:', error);
     }
+    const signalWasAborted = Boolean(
+      options?.signal &&
+      typeof options.signal === 'object' &&
+      'aborted' in options.signal &&
+      (options.signal as AbortSignal).aborted
+    );
+
+    let normalizedError: Error;
+    if (error instanceof Error) {
+      normalizedError = error;
+    } else if (typeof error === 'string' && error.trim().length > 0) {
+      normalizedError = new Error(error);
+    } else if (
+      typeof error === 'object' &&
+      error !== null &&
+      'message' in error &&
+      typeof (error as { message: unknown }).message === 'string' &&
+      (error as { message: string }).message.trim().length > 0
+    ) {
+      normalizedError = new Error((error as { message: string }).message);
+    } else {
+      normalizedError = new Error('Unknown fetch error');
+    }
+
+    if (signalWasAborted && normalizedError.name !== 'AbortError') {
+      normalizedError.name = 'AbortError';
+      if (!normalizedError.message || normalizedError.message === 'Unknown fetch error') {
+        normalizedError.message = 'Request was aborted';
+      }
+    }
+
     return {
       data: fallback,
-      error: error instanceof Error ? error : new Error('Unknown fetch error'),
+      error: normalizedError,
       response: null
     };
   }
 }
 
 export function getSafeUserId(): string | null {
-  const legacyUserId = safeGetItem<string>('x-user-id', { fallback: '' });
-  if (typeof legacyUserId === 'string' && legacyUserId.trim().length > 0) {
+  const normalizeUserId = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null;
+
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const lowered = trimmed.toLowerCase();
+    if (lowered === 'undefined' || lowered === 'null' || lowered === 'nan') {
+      return null;
+    }
+
+    return trimmed;
+  };
+
+  const legacyUserIdRaw = safeGetItem<unknown>('x-user-id', { fallback: '' });
+  const legacyUserId = normalizeUserId(legacyUserIdRaw);
+  if (legacyUserId) {
     return legacyUserId;
   }
+  if (typeof legacyUserIdRaw === 'string' && legacyUserIdRaw.trim().length > 0) {
+    safeRemoveItem('x-user-id');
+  }
 
-  const userId = safeGetItem<string>('tw_user_id', { fallback: '' });
-  if (typeof userId === 'string' && userId.trim().length > 0) {
+  const userIdRaw = safeGetItem<unknown>('tw_user_id', { fallback: '' });
+  const userId = normalizeUserId(userIdRaw);
+  if (userId) {
     return userId;
+  }
+  if (typeof userIdRaw === 'string' && userIdRaw.trim().length > 0) {
+    safeRemoveItem('tw_user_id');
   }
 
   return null;

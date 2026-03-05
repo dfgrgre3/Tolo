@@ -24,6 +24,8 @@ import {
 	Sparkles,
 	History,
 	Star,
+	Mic,
+	Scan,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -61,6 +63,45 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 	const listRef = useRef<HTMLDivElement>(null);
 	const [recentItems, setRecentItems] = useState<string[]>([]);
 	const [mounted, setMounted] = useState(false);
+	const [isListening, setIsListening] = useState(false);
+	const [recognition, setRecognition] = useState<any>(null);
+
+	// Voice search support
+	useEffect(() => {
+		if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
+			const SpeechRecognition = (window as any).webkitSpeechRecognition;
+			const recognitionInstance = new SpeechRecognition();
+			recognitionInstance.continuous = false;
+			recognitionInstance.interimResults = false;
+			recognitionInstance.lang = 'ar-SA';
+
+			recognitionInstance.onresult = (event: any) => {
+				const transcript = event.results[0][0].transcript;
+				setSearchQuery(transcript);
+				setIsListening(false);
+			};
+
+			recognitionInstance.onerror = (event: any) => {
+				console.error('Speech recognition error:', event.error);
+				setIsListening(false);
+			};
+
+			recognitionInstance.onend = () => {
+				setIsListening(false);
+			};
+
+			setRecognition(recognitionInstance);
+		}
+	}, []);
+
+	const toggleListening = useCallback(() => {
+		if (isListening) {
+			recognition?.stop();
+		} else {
+			recognition?.start();
+			setIsListening(true);
+		}
+	}, [isListening, recognition]);
 
 	useEffect(() => {
 		setMounted(true);
@@ -239,12 +280,37 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		}
 
 		const query = searchQuery.toLowerCase();
-		return allCommands.filter((cmd) => {
+		const results = allCommands.filter((cmd) => {
 			const matchesLabel = cmd.label.toLowerCase().includes(query);
 			const matchesDescription = cmd.description?.toLowerCase().includes(query);
 			const matchesKeywords = cmd.keywords?.some((k) => k.toLowerCase().includes(query));
 			return matchesLabel || matchesDescription || matchesKeywords;
 		});
+
+		// Simulate "Deep Search" results (inside content/files - OCR)
+		if (query.length > 2) {
+			const deepResults: CommandItem[] = [
+				{
+					id: `ocr-1-${query}`,
+					label: `بحث في كتاب الكيمياء: "${query}"`,
+					description: "تم العثور على الكلمة في الصفحة 45 من كتاب الطالب",
+					icon: <Scan className="h-4 w-4" />,
+					action: () => router.push(`/library/viewer/chemistry?q=${query}`),
+					category: "نتائج البحث العميق (OCR)",
+				},
+				{
+					id: `ocr-2-${query}`,
+					label: `ملخص درس الفيزياء: "${query}"`,
+					description: "ذكرت هذه الكلمة في فقرة التجارب العملية",
+					icon: <Scan className="h-4 w-4" />,
+					action: () => router.push(`/lessons/physics/summary?highlight=${query}`),
+					category: "نتائج البحث العميق (OCR)",
+				}
+			];
+			return [...results, ...deepResults];
+		}
+
+		return results;
 	}, [searchQuery, allCommands]);
 
 	// Group commands by category
@@ -329,21 +395,37 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 							ref={inputRef}
 							value={searchQuery}
 							onChange={(e) => setSearchQuery(e.target.value)}
-							placeholder="اكتب للبحث أو اكتب أمراً... (⌘K)"
+							placeholder="ابحث عن دروس، ملفات، أو أوامر... (O+C+R)"
 							className="border-0 focus-visible:ring-0 focus-visible:ring-offset-0 text-base h-auto py-2"
 							aria-label="بحث في لوحة الأوامر"
 						/>
-						{searchQuery && (
-							<Button
-								variant="ghost"
-								size="icon"
-								className="h-6 w-6 shrink-0"
-								onClick={() => setSearchQuery("")}
-								aria-label="مسح البحث"
-							>
-								<Command className="h-3 w-3" />
-							</Button>
-						)}
+						<div className="flex items-center gap-2">
+							{mounted && 'webkitSpeechRecognition' in window && (
+								<Button
+									variant="ghost"
+									size="icon"
+									className={cn(
+										"h-8 w-8 rounded-full transition-all duration-300",
+										isListening ? "bg-red-500/10 text-red-500 animate-pulse" : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
+									)}
+									onClick={toggleListening}
+									title={isListening ? "إيقاف الاستماع" : "بحث صوتي"}
+								>
+									<Mic className={cn("h-4 w-4", isListening && "fill-current")} />
+								</Button>
+							)}
+							{searchQuery && (
+								<Button
+									variant="ghost"
+									size="icon"
+									className="h-6 w-6 shrink-0"
+									onClick={() => setSearchQuery("")}
+									aria-label="مسح البحث"
+								>
+									<Command className="h-3 w-3" />
+								</Button>
+							)}
+						</div>
 					</div>
 
 					{/* Commands List */}

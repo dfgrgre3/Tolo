@@ -2,19 +2,21 @@
 
 import React, { useRef } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Star, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
 import { CourseCard, CourseCardProps } from "./CourseCard";
 
 interface FeaturedCoursesProps {
   courses: CourseCardProps[];
   onEnroll: (courseId: string) => void;
   onUnenroll: (courseId: string) => void;
+  enrollingId?: string | null;
 }
 
 export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
   courses,
   onEnroll,
-  onUnenroll
+  onUnenroll,
+  enrollingId = null,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -50,10 +52,10 @@ export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
           </motion.div>
           <div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              الدورات المميزة
+              ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ظ…ظ…ظٹط²ط©
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              أفضل الدورات المختارة لك
+              ط£ظپط¶ظ„ ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ظ…ط®طھط§ط±ط© ظ„ظƒ
             </p>
           </div>
         </div>
@@ -96,6 +98,7 @@ export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
                 {...course}
                 featured={true}
                 index={index}
+                isProcessing={enrollingId === course.id}
                 onEnroll={() => onEnroll(course.id)}
                 onUnenroll={() => onUnenroll(course.id)}
               />

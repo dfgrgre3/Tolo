@@ -13,7 +13,7 @@ import { SignJWT, jwtVerify } from 'jose';
 
 // Configuration
 export const ACCESS_TOKEN_EXPIRATION = '15m'; // Short-lived for security
-export const REFRESH_TOKEN_EXPIRATION = '7d'; // Long-lived for UX
+export const REFRESH_TOKEN_EXPIRATION = '30d'; // Matches maximum session duration (rememberMe)
 
 // SECURITY CRITICAL: In production, JWT_SECRET MUST be set via environment variable.
 // The fallback key is only for development and will produce a warning.

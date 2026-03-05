@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
 	User,
@@ -28,17 +26,16 @@ import {
 	BookOpen,
 	FileText,
 	MessageSquare,
-	Award,
 	TrendingUp,
 	Activity,
 	Sparkles,
 	BarChart3,
 } from "lucide-react";
-import { ensureUser } from "@/lib/user-utils";
-// import removed
-
-
+import { useAuth } from "@/contexts/auth-context";
 import { logger } from '@/lib/logger';
+import { ProfileLevel } from "./components/ProfileLevel";
+import { RecentAchievements } from "./components/RecentAchievements";
+import { RecentActivity } from "./components/RecentActivity";
 
 type ProfileUser = {
 	id: string;
@@ -60,17 +57,24 @@ type UserStats = {
 	blogPosts: number;
 	studyStreak?: number;
 	achievementsCount?: number;
+	level?: number;
+	currentXP?: number;
+	nextLevelXP?: number;
+	totalXP?: number;
 };
 
 export default function ProfilePage() {
 	const router = useRouter();
-	const [userId, setUserId] = useState<string | null>(null);
+	const { user: authUser, isLoading: authLoading } = useAuth();
+	const userId = authUser?.id ?? null;
 	const [user, setUser] = useState<ProfileUser | null>(null);
 	const [stats, setStats] = useState<UserStats | null>(null);
 	const [loading, setLoading] = useState(true);
 	const [isEditing, setIsEditing] = useState(false);
 	const [activeTab, setActiveTab] = useState("overview");
 	const [isSaving, setIsSaving] = useState(false);
+	const [achievements, setAchievements] = useState<any[]>([]);
+	const [activities, setActivities] = useState<any[]>([]);
 	const [editForm, setEditForm] = useState({
 		name: "",
 		email: "",
@@ -80,51 +84,135 @@ export default function ProfilePage() {
 	});
 
 	useEffect(() => {
-		ensureUser().then(setUserId);
-	}, []);
+		let isMounted = true;
 
-	useEffect(() => {
-		if (!userId) return;
+		const fetchWithTimeout = async (url: string, timeoutMs = 15000) => {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+			try {
+				return await fetch(url, { signal: controller.signal, credentials: "include" });
+			} finally {
+				clearTimeout(timeoutId);
+			}
+		};
+
+		// Wait for auth to finish loading before trying to fetch profile
+		if (authLoading) return;
+
+		// If auth finished and no user, redirect to login
+		if (!userId) {
+			setLoading(false);
+			router.replace('/login?redirect=/profile');
+			return;
+		}
 
 		const fetchUserData = async () => {
 			try {
-				const res = await fetch(`/api/users/${userId}`);
+				const res = await fetchWithTimeout(`/api/users/${userId}`);
 				if (res.ok) {
-					const userData = await res.json();
-					setUser(userData);
-					setEditForm({
-						name: userData.name,
-						email: userData.email,
-						bio: userData.bio || "",
-						grade: userData.grade || "",
-						school: userData.school || "",
-					});
+					// successResponse wraps data in { data: ..., status: ... }
+					const json = await res.json();
+					const userData = json.data ?? json;
+					if (isMounted) {
+						setUser(userData);
+						setEditForm({
+							name: userData.name || "",
+							email: userData.email || "",
+							bio: userData.bio || "",
+							grade: userData.grade || "",
+							school: userData.school || "",
+						});
+					}
+				} else {
+					logger.error("Failed to fetch user data:", res.status);
 				}
 			} catch (error) {
-				logger.error("Error fetching user data:", error);
+				if (error instanceof DOMException && error.name === "AbortError") {
+					logger.warn("User data request timed out");
+				} else {
+					logger.error("Error fetching user data:", error);
+				}
 			}
 		};
 
 		const fetchUserStats = async () => {
 			try {
-				const res = await fetch(`/api/users/${userId}/stats`);
+				const res = await fetchWithTimeout(`/api/users/${userId}/stats`);
 				if (res.ok) {
-					const statsData = await res.json();
-					setStats(statsData);
+					const json = await res.json();
+					const statsData = json.data ?? json;
+					if (isMounted) {
+						setStats(statsData);
+					}
 				}
 			} catch (error) {
-				logger.error("Error fetching user stats:", error);
+				if (error instanceof DOMException && error.name === "AbortError") {
+					logger.warn("User stats request timed out");
+				} else {
+					logger.error("Error fetching user stats:", error);
+				}
+			}
+		};
+
+		const fetchUserAchievements = async () => {
+			try {
+				const res = await fetchWithTimeout(`/api/users/${userId}/achievements`);
+				if (res.ok) {
+					const json = await res.json();
+					const achievementsData = json.data ?? json;
+					if (isMounted) {
+						setAchievements(Array.isArray(achievementsData) ? achievementsData : []);
+					}
+				}
+			} catch (error) {
+				if (error instanceof DOMException && error.name === "AbortError") {
+					logger.warn("User achievements request timed out");
+				} else {
+					logger.error("Error fetching user achievements:", error);
+				}
+			}
+		};
+
+		const fetchUserActivities = async () => {
+			try {
+				const res = await fetchWithTimeout(`/api/users/${userId}/activities`);
+				if (res.ok) {
+					const json = await res.json();
+					const activitiesData = json.data ?? json;
+					if (isMounted) {
+						setActivities(Array.isArray(activitiesData) ? activitiesData : []);
+					}
+				}
+			} catch (error) {
+				if (error instanceof DOMException && error.name === "AbortError") {
+					logger.warn("User activities request timed out");
+				} else {
+					logger.error("Error fetching user activities:", error);
+				}
 			}
 		};
 
 		const loadData = async () => {
 			setLoading(true);
-			await Promise.all([fetchUserData(), fetchUserStats()]);
-			setLoading(false);
+			try {
+				// Keep profile rendering dependent on essential data only.
+				await Promise.allSettled([fetchUserData(), fetchUserStats()]);
+				// Load secondary sections in background so they can't block the page.
+				void fetchUserAchievements();
+				void fetchUserActivities();
+			} finally {
+				if (isMounted) {
+					setLoading(false);
+				}
+			}
 		};
 
 		loadData();
-	}, [userId]);
+
+		return () => {
+			isMounted = false;
+		};
+	}, [userId, authLoading, router]);
 
 	const handleEditSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -139,7 +227,8 @@ export default function ProfilePage() {
 			});
 
 			if (res.ok) {
-				const updatedUser = await res.json();
+				const json = await res.json();
+				const updatedUser = json.data ?? json;
 				setUser(updatedUser);
 				setIsEditing(false);
 			} else {
@@ -183,6 +272,18 @@ export default function ProfilePage() {
 			alert("حدث خطأ أثناء رفع الصورة");
 		}
 	};
+
+	// Show loading while auth is still resolving
+	if (authLoading) {
+		return (
+			<div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 to-blue-50/30">
+				<div className="text-center space-y-4">
+					<div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+					<p className="text-lg font-medium text-muted-foreground">جاري التحقق من الهوية...</p>
+				</div>
+			</div>
+		);
+	}
 
 	return (
 		<>
@@ -392,12 +493,22 @@ export default function ProfilePage() {
 							</CardContent>
 						</Card>
 					)}
+
+					{/* Level Card */}
+					{stats && stats.level !== undefined && (
+						<ProfileLevel
+							level={stats.level}
+							currentXP={stats.currentXP || 0}
+							nextLevelXP={stats.nextLevelXP || 100}
+							totalXP={stats.totalXP || 0}
+						/>
+					)}
 				</div>
 
 				{/* Profile Content */}
 				<div className="lg:col-span-2">
 					<Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-					<TabsList className="grid w-full grid-cols-5 mb-6">
+					<TabsList className="grid w-full grid-cols-4 mb-6">
 						<TabsTrigger value="overview">نظرة عامة</TabsTrigger>
 						<TabsTrigger value="stats">الإحصائيات</TabsTrigger>
 						<TabsTrigger value="achievements">الإنجازات</TabsTrigger>
@@ -630,52 +741,11 @@ export default function ProfilePage() {
 						</TabsContent>
 
 						<TabsContent value="achievements" className="space-y-6">
-							<Card>
-								<CardHeader>
-									<CardTitle className="flex items-center gap-2">
-										<Award className="h-5 w-5" />
-										الإنجازات
-									</CardTitle>
-									<CardDescription>الإنجازات التي حصلت عليها</CardDescription>
-								</CardHeader>
-								<CardContent>
-									<div className="text-center py-12 text-muted-foreground">
-										<Award className="h-16 w-16 mx-auto mb-4 opacity-30" />
-										<p>لا توجد إنجازات متاحة حالياً</p>
-										<Button variant="outline" className="mt-4" asChild>
-											<Link href="/achievements">عرض جميع الإنجازات</Link>
-										</Button>
-									</div>
-								</CardContent>
-							</Card>
+							<RecentAchievements achievements={achievements} />
 						</TabsContent>
 
 						<TabsContent value="activity" className="space-y-6">
-							<Card>
-								<CardHeader>
-									<div className="flex justify-between items-center">
-										<div>
-											<CardTitle className="flex items-center gap-2">
-												<Activity className="h-5 w-5" />
-												النشاط الأخير
-											</CardTitle>
-											<CardDescription>آخر الأنشطة التي قمت بها في المنصة</CardDescription>
-										</div>
-										<Button variant="outline" size="sm" asChild>
-											<Link href="/activity">عرض الكل</Link>
-										</Button>
-									</div>
-								</CardHeader>
-								<CardContent>
-									<div className="text-center py-12 text-muted-foreground">
-										<Activity className="h-16 w-16 mx-auto mb-4 opacity-30" />
-										<p>لا يوجد نشاط مؤخراً</p>
-										<Button variant="outline" className="mt-4" asChild>
-											<Link href="/">ابدأ التعلم الآن</Link>
-										</Button>
-									</div>
-								</CardContent>
-							</Card>
+							<RecentActivity activities={activities} />
 						</TabsContent>
 
 						{/* Security tab removed */}

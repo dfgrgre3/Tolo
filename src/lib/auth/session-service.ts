@@ -59,18 +59,23 @@ export class SessionService {
      * @param userAgent - Client user agent string
      * @param rememberMe - Extended session duration (7d vs 1d)
      */
+    /**
+     * Create a new session and generate tokens.
+     */
     static async createSession(
         userId: string,
         role: string,
         ip: string,
         userAgent: string,
-        rememberMe: boolean = false
+        rememberMe: boolean = false,
+        location?: string
     ) {
-        // Session expiration: 7 days for "remember me", 1 day otherwise
+        // Session expiration: 30 days for "remember me", 7 days otherwise
+        // 7-day default ensures normal users don't get logged out on every browser restart
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + (rememberMe ? 7 : 1));
+        expiresAt.setDate(expiresAt.getDate() + (rememberMe ? 30 : 7));
 
-        // 1. Create session record first to get the session ID
+        // 1. Create session record
         const session = await prisma.session.create({
             data: {
                 userId,
@@ -79,10 +84,12 @@ export class SessionService {
                 deviceInfo: JSON.stringify(this.inferDeviceInfo(userAgent)),
                 expiresAt,
                 isActive: true,
+                location: location || 'Unknown',
+                isTrusted: false, // Starts as untrusted
             },
         });
 
-        // 2. Generate tokens with session binding
+        // 2. Generate tokens
         const accessToken = await TokenService.generateAccessToken({
             userId,
             role,
@@ -91,13 +98,29 @@ export class SessionService {
 
         const refreshToken = await TokenService.generateRefreshToken(userId, session.id);
 
-        // 3. Store refresh token hash in session for rotation verification
+        // 3. Store refresh token hash
         await prisma.session.update({
             where: { id: session.id },
             data: { refreshToken: this.hashRefreshToken(refreshToken) },
         });
 
         return { session, accessToken, refreshToken };
+    }
+
+    /**
+     * Toggle Session trust status (Trust/Untrust device)
+     */
+    static async toggleSessionTrust(sessionId: string, userId: string, isTrusted: boolean) {
+        const result = await prisma.session.updateMany({
+            where: {
+                id: sessionId,
+                userId,
+                isActive: true,
+            },
+            data: { isTrusted },
+        });
+
+        return result.count > 0;
     }
 
     /**
@@ -131,10 +154,22 @@ export class SessionService {
             const whereClause: Record<string, unknown> = {
                 userId,
                 isActive: true,
+                expiresAt: { gt: new Date() },
             };
 
             if (exceptSessionId) {
-                whereClause.NOT = { id: exceptSessionId };
+                // Use the Prisma specific NOT syntax for the WHERE object
+                return prisma.session.updateMany({
+                    where: {
+                        userId,
+                        isActive: true,
+                        id: { not: exceptSessionId }
+                    },
+                    data: {
+                        isActive: false,
+                        refreshToken: null
+                    }
+                }).then(res => res.count);
             }
 
             const result = await prisma.session.updateMany({
@@ -170,6 +205,8 @@ export class SessionService {
                 createdAt: true,
                 lastAccessed: true,
                 expiresAt: true,
+                isTrusted: true,
+                location: true,
             },
             orderBy: { lastAccessed: 'desc' },
         });
@@ -179,8 +216,11 @@ export class SessionService {
      * Validate that a session is active and not expired.
      */
     static async validateSession(sessionId: string) {
-        const session = await prisma.session.findUnique({
-            where: { id: sessionId, isActive: true },
+        const session = await prisma.session.findFirst({
+            where: {
+                id: sessionId,
+                isActive: true,
+            },
             include: { user: true },
         });
 

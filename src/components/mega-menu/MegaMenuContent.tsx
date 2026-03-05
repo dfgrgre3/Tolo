@@ -98,7 +98,7 @@ export function MegaMenuContent({
 			<>
 				<MegaMenuBackdrop onClose={onClose} />
 				
-				<MegaMenuContainer menuWidth={menuWidth} onClose={onClose}>
+				<MegaMenuContainer menuWidth={menuWidth}>
 					<MegaMenuHeader
 						searchQuery={searchQuery}
 						setSearchQuery={setSearchQuery}

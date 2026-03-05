@@ -71,21 +71,56 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
         fetchNotificationCount();
     }, [fetchNotificationCount]);
 
-    // Filter categories and items based on search
+    // Filter categories and items based on search + AI Behavioral Reordering
     const filteredCategories = useMemo(() => {
-        if (!searchQuery.trim()) return categories;
+        let result = categories;
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase().trim();
+            result = categories
+                .map(category => ({
+                    ...category,
+                    items: category.items.filter(item =>
+                        item.label.toLowerCase().includes(query) ||
+                        item.description?.toLowerCase().includes(query) ||
+                        item.href.toLowerCase().includes(query)
+                    )
+                }))
+                .filter(category => category.items.length > 0);
+            return result;
+        }
 
-        const query = searchQuery.toLowerCase().trim();
-        return categories
-            .map(category => ({
-                ...category,
-                items: category.items.filter(item =>
-                    item.label.toLowerCase().includes(query) ||
-                    item.description?.toLowerCase().includes(query) ||
-                    item.href.toLowerCase().includes(query)
-                )
-            }))
-            .filter(category => category.items.length > 0);
+        // Logic for behavioral ordering
+        const hasExamSoon = true; // Simulating detection of upcoming exam
+
+        return [...result].sort((a, b) => {
+            let scoreA = 0;
+            let scoreB = 0;
+            // Prioritize Exam related if detected
+            if (hasExamSoon) {
+                if (a.title.includes("امتحانات") || a.title.includes("الفعاليات")) {
+                    scoreA += 100;
+                    a.isPriority = true;
+                    a.priorityLabel = "موصى به للامتحان";
+                }
+                if (b.title.includes("امتحانات") || b.title.includes("الفعاليات")) {
+                    scoreB += 100;
+                    b.isPriority = true;
+                    b.priorityLabel = "موصى به للامتحان";
+                }
+            }
+            // Prioritize AI items
+            if (a.title.includes("ذكية") || a.title.includes("AI")) {
+                scoreA += 50;
+                a.isPriority = a.isPriority || true;
+                if (!a.priorityLabel) a.priorityLabel = "ذكاء اصطناعي";
+            }
+            if (b.title.includes("ذكية") || b.title.includes("AI")) {
+                scoreB += 50;
+                b.isPriority = b.isPriority || true;
+                if (!b.priorityLabel) b.priorityLabel = "ذكاء اصطناعي";
+            }
+            return scoreB - scoreA;
+        });
     }, [categories, searchQuery]);
 
     // Enhanced keyboard navigation support

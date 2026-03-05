@@ -1,271 +1,304 @@
 ﻿import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
-
-import { getOrSetEnhanced } from '@/lib/cache-service-unified';
-import { logger } from '@/lib/logger';
+import { prisma } from "@/lib/db";
+import { logger } from "@/lib/logger";
+import { withAuth } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import {
-  parseRequestBody,
-  createStandardErrorResponse,
-  createSuccessResponse,
-  addSecurityHeaders
-} from '@/lib/api-utils';
+  buildCategoriesFromCourses,
+  getSubjectLessonCounts,
+  getSubjectProgressMap,
+  mapSubjectToCourse,
+  resolveCourseLevel,
+  type CourseSummary,
+} from "@/lib/courses/course-service";
 
-// GET all courses (now subjects)
+const SORT_OPTIONS = ["newest", "popular", "rated", "price-low", "price-high"] as const;
+type SortOption = (typeof SORT_OPTIONS)[number];
+
+function normalizeFilterToken(value: string | null): string {
+  if (!value) {
+    return "";
+  }
+
+  return value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+}
+
+function isSortOption(value: string | null): value is SortOption {
+  return SORT_OPTIONS.includes(value as SortOption);
+}
+
+function applyCourseFilters(
+  courses: CourseSummary[],
+  options: {
+    search: string;
+    category: string;
+    level: string;
+    sort: SortOption;
+  }
+): CourseSummary[] {
+  const { search, category, level, sort } = options;
+
+  const filtered = courses.filter((course) => {
+    const matchesCategory = !category || category === "ALL" || course.categoryId === category;
+    const matchesLevel = !level || level === "ALL" || course.level === resolveCourseLevel(level);
+
+    if (!search) {
+      return matchesCategory && matchesLevel;
+    }
+
+    const normalizedSearch = search.toLowerCase();
+    const matchesSearch =
+      course.title.toLowerCase().includes(normalizedSearch) ||
+      course.description.toLowerCase().includes(normalizedSearch) ||
+      course.instructor.toLowerCase().includes(normalizedSearch) ||
+      course.tags.some((tag) => tag.toLowerCase().includes(normalizedSearch));
+
+    return matchesCategory && matchesLevel && matchesSearch;
+  });
+
+  return filtered.sort((left, right) => {
+    switch (sort) {
+      case "popular":
+        return right.enrolledCount - left.enrolledCount;
+      case "rated":
+        return right.rating - left.rating;
+      case "price-low":
+        return left.price - right.price;
+      case "price-high":
+        return right.price - left.price;
+      case "newest":
+      default:
+        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    }
+  });
+}
+
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-      const userId = searchParams.get("userId");
+      const search = searchParams.get("search")?.trim() ?? "";
+      const category = normalizeFilterToken(searchParams.get("category"));
+      const level = normalizeFilterToken(searchParams.get("level"));
+      const sort: SortOption = isSortOption(searchParams.get("sort"))
+        ? (searchParams.get("sort") as SortOption)
+        : "newest";
 
-      // Validate userId if provided
-      if (userId && (typeof userId !== 'string' || userId.trim().length === 0)) {
-        const response = NextResponse.json(
-          { error: "معرف المستخدم غير صحيح", code: 'INVALID_USER_ID' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
+      const authenticatedUserId = req.headers.get("x-user-id")?.trim() || null;
 
-      const trimmedUserId = userId?.trim() || null;
-
-      // Get all subjects with timeout protection
-      const subjectsPromise = getOrSetEnhanced(
-        'subjects:all',
-        async () => {
-          const fetchPromise = prisma.subject.findMany({
-            where: {
-              isActive: true
+      const subjects = await prisma.subject.findMany({
+        where: {
+          isActive: true,
+        },
+        include: {
+          teachers: {
+            select: {
+              name: true,
+              rating: true,
             },
             orderBy: {
-              name: 'asc'
-            }
-          });
-
-          const timeoutPromise = new Promise<never>((resolve, reject) => {
-            setTimeout(() => reject(new Error('Database query timeout')), 10000);
-          });
-
-          return await Promise.race([fetchPromise, timeoutPromise]);
+              rating: "desc",
+            },
+          },
+          _count: {
+            select: {
+              enrollments: true,
+            },
+          },
         },
-        300 // Cache for 5 minutes
-      );
-
-      const timeoutPromise = new Promise<never>((resolve, reject) => {
-        setTimeout(() => reject(new Error('Cache operation timeout')), 5000);
+        orderBy: {
+          createdAt: "desc",
+        },
       });
 
-      const subjects = await Promise.race([subjectsPromise, timeoutPromise]);
+      const subjectIds = subjects.map((subject) => subject.id);
+      const lessonCounts = await getSubjectLessonCounts(subjectIds);
 
-      // If userId is provided, get enrollment information with timeout protection
-      let enrollments = {};
-      if (trimmedUserId) {
-        try {
-          const enrollmentsPromise = prisma.subjectEnrollment.findMany({
-            where: {
-              userId: trimmedUserId
-            }
-          });
+      const enrollmentMap = new Map<string, boolean>();
+      const progressMap = new Map<string, number>();
 
-          const enrollmentsTimeoutPromise = new Promise<never>((resolve, reject) => {
-            setTimeout(() => reject(new Error('Database query timeout')), 5000);
-          });
+      if (authenticatedUserId && subjectIds.length > 0) {
+        const enrollments = await prisma.subjectEnrollment.findMany({
+          where: {
+            userId: authenticatedUserId,
+            subjectId: {
+              in: subjectIds,
+            },
+          },
+          select: {
+            subjectId: true,
+          },
+        });
 
-          const userEnrollments = await Promise.race([enrollmentsPromise, enrollmentsTimeoutPromise]);
+        const enrolledSubjectIds = enrollments.map((enrollment) => enrollment.subjectId);
+        for (const subjectId of enrolledSubjectIds) {
+          enrollmentMap.set(subjectId, true);
+        }
 
-          enrollments = userEnrollments.reduce((acc, enrollment) => {
-            if (enrollment.subjectId) {
-              acc[enrollment.subjectId] = enrollment;
-            }
-            return acc;
-          }, {} as Record<string, typeof userEnrollments[0]>);
-        } catch (enrollmentError) {
-          // Log but don't block response - enrollments are optional
-          logger.warn('Error fetching enrollments:', enrollmentError);
+        if (enrolledSubjectIds.length > 0) {
+          const progressBySubject = await getSubjectProgressMap(authenticatedUserId, enrolledSubjectIds);
+          for (const subjectId of enrolledSubjectIds) {
+            progressMap.set(subjectId, progressBySubject[subjectId]?.percentage ?? 0);
+          }
         }
       }
 
-      const response = NextResponse.json({
-        subjects,
-        enrollments
+      const courseList = subjects.map((subject) =>
+        mapSubjectToCourse(subject, {
+          lessonsCount: lessonCounts[subject.id] ?? 0,
+          enrolled: enrollmentMap.has(subject.id),
+          progress: progressMap.get(subject.id),
+        })
+      );
+
+      const filteredCourses = applyCourseFilters(courseList, {
+        search,
+        category,
+        level,
+        sort,
       });
-      return addSecurityHeaders(response);
+
+      const categories = buildCategoriesFromCourses(courseList);
+
+      return NextResponse.json({
+        courses: filteredCourses,
+        subjects: filteredCourses,
+        categories,
+        meta: {
+          total: filteredCourses.length,
+          totalAvailable: courseList.length,
+          filters: {
+            search,
+            category: category || "ALL",
+            level: level || "ALL",
+            sort,
+          },
+        },
+      });
     } catch (error) {
-      logger.error("Error fetching subjects:", error);
-      return createStandardErrorResponse(
-        error,
-        "حدث خطأ أثناء معالجة الطلب"
+      logger.error("Failed to fetch courses", error);
+      return NextResponse.json(
+        {
+          error: "حدث خطأ أثناء جلب الدورات.",
+        },
+        { status: 500 }
       );
     }
   });
 }
 
-// POST to create a new course (now subject)
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      // Verify authentication
-      const userId = req.headers.get("x-user-id");
-      if (!userId) {
-        return NextResponse.json(
-          { error: "Unauthorized", code: "UNAUTHORIZED" },
-          { status: 401 }
-        );
-      }
-      // Note: verification.user is not available from headers only. If role check is needed, fetch user from DB.
+    return withAuth(req, async ({ userRole }) => {
+      try {
+        if (userRole !== "ADMIN" && userRole !== "TEACHER") {
+          return NextResponse.json(
+            {
+              error: "لا تملك صلاحية إنشاء دورة جديدة.",
+            },
+            { status: 403 }
+          );
+        }
 
-      // Optional: Check for admin role if needed
-      // if (verification.user?.role !== 'ADMIN') { ... }
+        const body = (await req.json()) as {
+          name?: string;
+          nameAr?: string;
+          code?: string;
+          description?: string;
+          type?: string;
+          color?: string;
+          icon?: string;
+          isActive?: boolean;
+        };
 
-      // Parse request body with timeout protection using standardized helper
-      const bodyResult = await parseRequestBody<{
-        name?: string;
-        nameAr?: string;
-        code?: string;
-        description?: string;
-        color?: string;
-        icon?: string;
-      }>(req, {
-        maxSize: 2048, // 2KB max
-        required: true,
-      });
+        const name = body.name?.trim();
+        const nameAr = body.nameAr?.trim() || null;
+        const code = body.code?.trim().toUpperCase() || null;
 
-      if (!bodyResult.success) {
-        return bodyResult.error;
-      }
-
-      const body = bodyResult.data;
-
-      const { name, nameAr, code, description, color, icon } = body;
-
-      // Validate required fields
-      if (!name || typeof name !== 'string' || name.trim().length === 0) {
-        const response = NextResponse.json(
-          { error: "الاسم مطلوب", code: 'MISSING_NAME' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      if (!nameAr || typeof nameAr !== 'string' || nameAr.trim().length === 0) {
-        const response = NextResponse.json(
-          { error: "الاسم بالعربية مطلوب", code: 'MISSING_NAME_AR' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      if (!code || typeof code !== 'string' || code.trim().length === 0) {
-        const response = NextResponse.json(
-          { error: "الرمز مطلوب", code: 'MISSING_CODE' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      // Validate field lengths
-      if (name.trim().length > 200) {
-        const response = NextResponse.json(
-          { error: "الاسم طويل جداً (الحد الأقصى 200 حرف)", code: 'NAME_TOO_LONG' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      if (nameAr.trim().length > 200) {
-        const response = NextResponse.json(
-          { error: "الاسم بالعربية طويل جداً (الحد الأقصى 200 حرف)", code: 'NAME_AR_TOO_LONG' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      if (code.trim().length > 50) {
-        const response = NextResponse.json(
-          { error: "الرمز طويل جداً (الحد الأقصى 50 حرف)", code: 'CODE_TOO_LONG' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      if (description && typeof description === 'string' && description.trim().length > 1000) {
-        const response = NextResponse.json(
-          { error: "الوصف طويل جداً (الحد الأقصى 1000 حرف)", code: 'DESCRIPTION_TOO_LONG' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      const trimmedCode = code.trim().toUpperCase();
-
-      // Check if subject with this name already exists with timeout protection
-      const findPromise = prisma.subject.findUnique({
-        where: { name: name.trim() }
-      });
-
-      const findTimeoutPromise = new Promise<never>((resolve, reject) => {
-        setTimeout(() => reject(new Error('Database query timeout')), 5000);
-      });
-
-      const existingSubject = await Promise.race([findPromise, findTimeoutPromise]);
-
-      if (existingSubject) {
-        const response = NextResponse.json(
-          { error: "توجد مادة بنفس الاسم بالفعل", code: 'DUPLICATE_NAME' },
-          { status: 400 }
-        );
-        return addSecurityHeaders(response);
-      }
-
-      // Validate color format if provided
-      if (color && typeof color === 'string') {
-        const colorRegex = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-        if (!colorRegex.test(color.trim())) {
-          const response = NextResponse.json(
-            { error: "تنسيق اللون غير صحيح (يجب أن يكون hex color)", code: 'INVALID_COLOR' },
+        if (!name) {
+          return NextResponse.json(
+            {
+              error: "اسم الدورة مطلوب.",
+            },
             { status: 400 }
           );
-          return addSecurityHeaders(response);
         }
-      }
 
-      // Create new subject with timeout protection
-      const createPromise = prisma.subject.create({
-        data: {
-          name: name.trim(),
-          nameAr: nameAr?.trim(),
-          code: trimmedCode,
-          description: description?.trim() || null,
-          color: (color && typeof color === 'string') ? color.trim() : '#3b82f6',
-          icon: (icon && typeof icon === 'string') ? icon.trim() : 'BookOpen',
-          isActive: true
-        }
-      });
-
-      const createTimeoutPromise = new Promise<never>((resolve, reject) => {
-        setTimeout(() => reject(new Error('Database operation timeout')), 10000);
-      });
-
-      const newSubject = await Promise.race([createPromise, createTimeoutPromise]);
-
-      // Invalidate cache (non-blocking)
-      // In a real implementation, you might want to invalidate related caches as well
-      import('@/lib/cache-service-unified').then(({ CacheService }) => {
-        CacheService.del('subjects:all').catch((error) => {
-          logger.warn('Cache invalidation failed:', error);
+        const duplicateSubject = await prisma.subject.findFirst({
+          where: {
+            OR: [
+              { name },
+              ...(code ? [{ code }] : []),
+            ],
+          },
+          select: {
+            id: true,
+          },
         });
-      }).catch(() => {
-        // Ignore import errors
-      });
 
-      return createSuccessResponse(newSubject, undefined, 201);
-    } catch (error) {
-      logger.error("Error creating subject:", error);
-      return createStandardErrorResponse(
-        error,
-        "حدث خطأ أثناء معالجة الطلب"
-      );
-    }
+        if (duplicateSubject) {
+          return NextResponse.json(
+            {
+              error: "توجد دورة بنفس الاسم أو الرمز بالفعل.",
+            },
+            { status: 409 }
+          );
+        }
+
+        const createdSubject = await prisma.subject.create({
+          data: {
+            name,
+            nameAr,
+            code,
+            description: body.description?.trim() || null,
+            type: body.type?.trim() || null,
+            color: body.color?.trim() || null,
+            icon: body.icon?.trim() || null,
+            isActive: body.isActive ?? true,
+          },
+          include: {
+            teachers: {
+              select: {
+                name: true,
+                rating: true,
+              },
+              orderBy: {
+                rating: "desc",
+              },
+            },
+            _count: {
+              select: {
+                enrollments: true,
+              },
+            },
+          },
+        });
+
+        const course = mapSubjectToCourse(createdSubject, {
+          lessonsCount: 0,
+          enrolled: false,
+        });
+
+        return NextResponse.json(
+          {
+            course,
+            subject: course,
+          },
+          { status: 201 }
+        );
+      } catch (error) {
+        logger.error("Failed to create course", error);
+        return NextResponse.json(
+          {
+            error: "حدث خطأ أثناء إنشاء الدورة.",
+          },
+          { status: 500 }
+        );
+      }
+    });
   });
 }
-

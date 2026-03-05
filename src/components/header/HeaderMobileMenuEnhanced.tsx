@@ -9,7 +9,6 @@ import {
 
   Search,
   X,
-  Bell,
   Moon,
   Sun,
   Home,
@@ -22,9 +21,8 @@ import { mainNavItemsWithMegaMenu, moreMegaMenu } from "@/components/mega-menu/n
 import { cn } from "@/lib/utils";
 // import removed
 import { useTheme } from "next-themes";
-import { headerAnimations } from "./hooks/useHeaderAnimations";
 import { useAuth } from "@/contexts/auth-context";
-import { LogIn, UserPlus, LogOut, Settings, User as UserIcon } from "lucide-react";
+import { LogIn, UserPlus, LogOut, User as UserIcon } from "lucide-react";
 import { buildLoginUrl } from "@/lib/auth/navigation";
 
 interface HeaderMobileMenuEnhancedProps {
@@ -32,6 +30,14 @@ interface HeaderMobileMenuEnhancedProps {
   setIsMobileMenuOpen: (open: boolean) => void;
   isActiveRoute: (href: string) => boolean;
   mounted: boolean;
+}
+
+interface MobileSearchResult {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badge?: string;
+  section?: string;
 }
 
 export function HeaderMobileMenuEnhanced({
@@ -54,11 +60,15 @@ export function HeaderMobileMenuEnhanced({
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
 
-  // Close menu when route changes
-  useEffect(() => {
+  const closeMobileMenu = useCallback(() => {
     setIsMobileMenuOpen(false);
     setExpandedMenus(new Set());
     setSearchQuery("");
+  }, [setIsMobileMenuOpen]);
+
+  // Close menu when route changes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
   }, [pathname, setIsMobileMenuOpen]);
 
   // Lock body scroll when menu is open
@@ -84,13 +94,13 @@ export function HeaderMobileMenuEnhanced({
         !mobileMenuRef.current.contains(target) &&
         !target?.closest?.("[data-mobile-menu-trigger]")
       ) {
-        setIsMobileMenuOpen(false);
+        closeMobileMenu();
       }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMobileMenuOpen, mounted, setIsMobileMenuOpen]);
+  }, [closeMobileMenu, isMobileMenuOpen, mounted]);
 
 
 
@@ -105,17 +115,6 @@ export function HeaderMobileMenuEnhanced({
       return next;
     });
   }, []);
-
-  const handleSearch = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-      if (searchQuery.trim()) {
-        router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
-        setIsMobileMenuOpen(false);
-      }
-    },
-    [searchQuery, router, setIsMobileMenuOpen]
-  );
 
   const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -197,11 +196,92 @@ export function HeaderMobileMenuEnhanced({
     []
   );
 
-  // All navigation items including "More"
-  const allNavItems = useMemo(() => {
-    const items = [...mainNavItemsWithMegaMenu];
-    return items;
-  }, []);
+  const allNavItems = useMemo(
+    () => mainNavItemsWithMegaMenu.filter((item) => item.href !== "/"),
+    []
+  );
+
+  const normalizedSearchQuery = useMemo(
+    () => searchQuery.trim().toLowerCase(),
+    [searchQuery]
+  );
+
+  const searchResults = useMemo<MobileSearchResult[]>(() => {
+    const items: MobileSearchResult[] = [];
+    const seen = new Set<string>();
+
+    const addItem = (entry: MobileSearchResult) => {
+      const key = `${entry.href}::${entry.label}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      items.push(entry);
+    };
+
+    addItem({
+      href: "/",
+      label: "الرئيسية",
+      icon: Home,
+    });
+
+    allNavItems.forEach((item) => {
+      addItem({
+        href: item.href,
+        label: item.label,
+        icon: item.icon,
+        badge: item.badge,
+        section: item.label,
+      });
+
+      (item.megaMenu || []).forEach((category) => {
+        category.items.forEach((subItem) => {
+          addItem({
+            href: subItem.href,
+            label: subItem.label,
+            icon: subItem.icon,
+            badge: subItem.badge,
+            section: item.label,
+          });
+        });
+      });
+    });
+
+    moreMegaMenu.forEach((category) => {
+      category.items.forEach((subItem) => {
+        addItem({
+          href: subItem.href,
+          label: subItem.label,
+          icon: subItem.icon,
+          badge: subItem.badge,
+          section: category.title,
+        });
+      });
+    });
+
+    if (!normalizedSearchQuery) {
+      return [];
+    }
+
+    return items
+      .filter((entry) => {
+        return (
+          entry.label.toLowerCase().includes(normalizedSearchQuery) ||
+          entry.href.toLowerCase().includes(normalizedSearchQuery) ||
+          entry.section?.toLowerCase().includes(normalizedSearchQuery)
+        );
+      })
+      .slice(0, 12);
+  }, [allNavItems, normalizedSearchQuery]);
+
+  const handleSearch = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!normalizedSearchQuery || searchResults.length === 0) return;
+
+      router.push(searchResults[0].href);
+      closeMobileMenu();
+    },
+    [closeMobileMenu, normalizedSearchQuery, router, searchResults]
+  );
 
   const loginUrl = useMemo(() => {
     const query = searchParams.toString();
@@ -217,7 +297,7 @@ export function HeaderMobileMenuEnhanced({
           <motion.div
             {...overlayVariants}
             className="fixed inset-0 bg-black/60 dark:bg-black/80 z-40 lg:hidden backdrop-blur-sm"
-            onClick={() => setIsMobileMenuOpen(false)}
+            onClick={() => closeMobileMenu()}
           />
 
           {/* Menu Panel */}
@@ -244,7 +324,7 @@ export function HeaderMobileMenuEnhanced({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsMobileMenuOpen(false)}
+                onClick={() => closeMobileMenu()}
                 className="rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors duration-300"
               >
                 <X className="h-5 w-5" />
@@ -260,7 +340,7 @@ export function HeaderMobileMenuEnhanced({
                   <div className="absolute inset-0 bg-primary/5 rounded-2xl -m-1 scale-95 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300 pointer-events-none" />
                   <Input
                     type="text"
-                    placeholder="ابحث عن دروس، مسابقات..."
+                    placeholder="ابحث داخل التنقل..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
@@ -302,7 +382,7 @@ export function HeaderMobileMenuEnhanced({
                       className="flex-1 h-9 rounded-xl gap-2 text-xs font-bold"
                       asChild
                     >
-                      <Link href="/profile" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Link href="/profile" onClick={() => closeMobileMenu()}>
                         <UserIcon className="h-3.5 w-3.5" />
                         الملف الشخصي
                       </Link>
@@ -313,7 +393,7 @@ export function HeaderMobileMenuEnhanced({
                       className="h-9 w-9 rounded-xl hover:bg-destructive/10 hover:text-destructive"
                       onClick={() => {
                         logout();
-                        setIsMobileMenuOpen(false);
+                        closeMobileMenu();
                       }}
                     >
                       <LogOut className="h-4 w-4" />
@@ -327,7 +407,7 @@ export function HeaderMobileMenuEnhanced({
                     className="rounded-2xl h-11 border-primary/20 hover:bg-primary/5 text-primary gap-2 transition-all font-bold"
                     asChild
                   >
-                    <Link href={loginUrl} onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href={loginUrl} onClick={() => closeMobileMenu()}>
                       <LogIn className="h-4 w-4" />
                       دخول
                     </Link>
@@ -336,7 +416,7 @@ export function HeaderMobileMenuEnhanced({
                     className="rounded-2xl h-11 bg-primary hover:bg-primary/90 text-primary-foreground gap-2 shadow-lg shadow-primary/20 transition-all font-bold"
                     asChild
                   >
-                    <Link href="/register" onClick={() => setIsMobileMenuOpen(false)}>
+                    <Link href="/register" onClick={() => closeMobileMenu()}>
                       <UserPlus className="h-4 w-4" />
                       اشتراك
                     </Link>
@@ -353,11 +433,61 @@ export function HeaderMobileMenuEnhanced({
               animate="show"
               className="px-4 pb-8 space-y-2"
             >
+              {normalizedSearchQuery && (
+                <motion.div variants={staggerItem} className="space-y-1.5">
+                  {searchResults.length > 0 ? (
+                    searchResults.map((result) => {
+                      const ResultIcon = result.icon;
+                      const isActiveResult = mounted && isActiveRoute(result.href);
+
+                      return (
+                        <Link
+                          key={`${result.href}-${result.label}`}
+                          href={result.href}
+                          onClick={() => closeMobileMenu()}
+                          className={cn(
+                            "flex items-center gap-3 p-3 rounded-xl transition-all duration-200 border",
+                            isActiveResult
+                              ? "bg-primary/10 text-primary border-primary/20"
+                              : "bg-muted/40 border-transparent hover:bg-muted"
+                          )}
+                        >
+                          <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-background text-muted-foreground">
+                            <ResultIcon className="h-4 w-4" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold truncate">{result.label}</span>
+                              {result.badge && (
+                                <span className="px-1.5 py-0.5 text-[10px] rounded-full bg-primary/15 text-primary font-bold">
+                                  {result.badge}
+                                </span>
+                              )}
+                            </div>
+                            {result.section && (
+                              <span className="text-xs text-muted-foreground truncate block">
+                                {result.section}
+                              </span>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-border/60 bg-muted/30 px-4 py-5 text-center text-sm text-muted-foreground">
+                      لا توجد نتائج مطابقة
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {!normalizedSearchQuery && (
+                <>
               {/* Quick Navigation */}
               <motion.div variants={staggerItem}>
                 <Link
                   href="/"
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => closeMobileMenu()}
                   className={cn(
                     "flex items-center gap-3 p-3 rounded-xl transition-all duration-200",
                     isActiveRoute("/")
@@ -433,7 +563,7 @@ export function HeaderMobileMenuEnhanced({
                                         <Link
                                           key={subItem.href}
                                           href={subItem.href}
-                                          onClick={() => setIsMobileMenuOpen(false)}
+                                          onClick={() => closeMobileMenu()}
                                           className={cn(
                                             "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
                                             subIsActive
@@ -461,7 +591,7 @@ export function HeaderMobileMenuEnhanced({
                     ) : (
                       <Link
                         href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={() => closeMobileMenu()}
                         className={cn(
                           "flex items-center gap-3 p-3.5 rounded-xl transition-all duration-300 border border-transparent",
                           isActive
@@ -531,7 +661,7 @@ export function HeaderMobileMenuEnhanced({
                                   <Link
                                     key={subItem.href}
                                     href={subItem.href}
-                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    onClick={() => closeMobileMenu()}
                                     className={cn(
                                       "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200",
                                       subIsActive
@@ -552,6 +682,8 @@ export function HeaderMobileMenuEnhanced({
                   </AnimatePresence>
                 </div>
               </motion.div>
+                </>
+              )}
             </motion.div>
             </div>
 

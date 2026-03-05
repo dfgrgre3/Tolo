@@ -44,13 +44,14 @@ interface AuthContextType {
     user: AuthUser | null;
     isLoading: boolean;
     isAuthenticated: boolean;
-    login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
+    login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string }>;
     register: (
         email: string,
         password: string,
         username?: string
     ) => Promise<{ success: boolean; error?: string; message?: string; autoLoggedIn?: boolean }>;
     logout: (allDevices?: boolean) => Promise<void>;
+    verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
     refreshUser: (options?: { clearOnFailure?: boolean }) => Promise<boolean>;
     fetchWithAuth: (url: string, options?: RequestInit) => Promise<Response>;
 }
@@ -108,8 +109,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     /**
-     * Fetch wrapper that automatically handles 401 responses
-     * by refreshing the token and retrying the request once.
+     * Fetch wrapper that automatically handles 401 responses.
+     * On 401, we attempt /api/auth/refresh once, then retry the original request.
+     * This is used for API calls OTHER than /api/auth/me (which handles refresh internally).
      */
     const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}): Promise<Response> => {
         const response = await fetch(url, {
@@ -117,8 +119,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             credentials: 'include',
         });
 
-        // If unauthorized, try refreshing the token
         if (response.status === 401) {
+            // Try to refresh via the dedicated endpoint
             const refreshed = await refreshToken();
 
             if (refreshed) {
@@ -131,6 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             // Refresh failed - user needs to login again
             setUser(null);
+            clearUserId();
             if (typeof window !== 'undefined') {
                 const fullPath = `${window.location.pathname}${window.location.search}`;
                 const redirectPath = sanitizeRedirectPath(fullPath, '/');
@@ -149,13 +152,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     /**
      * Fetch current user profile from the server.
      * Called on mount and after login to sync state.
+     *
+     * IMPORTANT: /api/auth/me handles token refresh internally (Priority 2 path).
+     * Do NOT call refreshToken() separately here — doing so causes a race condition
+     * where the same refresh token is used twice, triggering the replay-attack
+     * detection and permanently revoking the session.
      */
     const refreshUser = useCallback(async (options?: { clearOnFailure?: boolean }) => {
         const clearOnFailure = options?.clearOnFailure ?? true;
 
         try {
+            // /api/auth/me auto-refreshes tokens if the access_token is expired
+            // but a valid refresh_token exists. No need to call /api/auth/refresh.
             const response = await fetch('/api/auth/me', {
                 credentials: 'include',
+                cache: 'no-store',
             });
 
             if (response.ok) {
@@ -164,35 +175,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 return true;
             }
 
-            // If 401, try refreshing token
-            if (response.status === 401) {
-                const refreshed = await refreshToken();
-
-                if (refreshed) {
-                    // Retry fetching user
-                    const retryResponse = await fetch('/api/auth/me', {
-                        credentials: 'include',
-                    });
-
-                    if (retryResponse.ok) {
-                        const data = await retryResponse.json();
-                        setUser(data.user);
-                        return true;
-                    }
-                }
-            }
-
+            // 401 means no valid token pair exists — user truly needs to log in.
             if (clearOnFailure) {
                 setUser(null);
+                clearUserId();
             }
             return false;
         } catch {
             if (clearOnFailure) {
                 setUser(null);
+                clearUserId();
             }
             return false;
         }
-    }, [refreshToken]);
+    }, []);
 
     /**
      * Login function - authenticates with the API and updates state.
@@ -201,7 +197,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: string,
         password: string,
         rememberMe: boolean = false
-    ): Promise<{ success: boolean; error?: string }> => {
+    ): Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string }> => {
         try {
             const response = await fetch('/api/auth/login', {
                 method: 'POST',
@@ -214,6 +210,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             if (!response.ok) {
                 return { success: false, error: data.error || 'Login failed' };
+            }
+
+            // If 2FA is required, return early with relevant data
+            if (data.requires2FA) {
+                return { 
+                    success: true, 
+                    requires2FA: true, 
+                    userId: data.user?.id 
+                };
             }
 
             // Keep initial user payload for immediate UI updates.
@@ -246,6 +251,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser(null);
                 return { success: false, error: 'Unable to restore your session. Please try again.' };
             }
+
+            return { success: true };
+        } catch {
+            return { success: false, error: 'Network error. Please try again.' };
+        }
+    }, [delay, refreshUser]);
+
+    /**
+     * Verify 2FA token and complete login.
+     */
+    const verify2FA = useCallback(async (
+        userId: string,
+        token: string,
+        rememberMe: boolean = false
+    ): Promise<{ success: boolean; error?: string }> => {
+        try {
+            const response = await fetch('/api/auth/2fa/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, token, rememberMe }),
+                credentials: 'include',
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                return { success: false, error: data.error || '2FA verification failed' };
+            }
+
+            if (data.user) {
+                setUser({
+                    id: data.user.id,
+                    email: data.user.email,
+                    username: data.user.username ?? null,
+                    name: data.user.name ?? data.user.username ?? null,
+                    avatar: data.user.avatar ?? null,
+                    role: data.user.role ?? 'USER',
+                    emailVerified: data.user.emailVerified ?? null,
+                });
+            }
+
+            await delay(50);
+            await refreshUser({ clearOnFailure: false });
 
             return { success: true };
         } catch {
@@ -375,6 +423,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         login,
         register,
         logout,
+        verify2FA,
         refreshUser,
         fetchWithAuth,
     };

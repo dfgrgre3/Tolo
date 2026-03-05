@@ -1,16 +1,15 @@
 "use client";
 
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface MegaMenuContainerProps {
 	children: React.ReactNode;
 	menuWidth: string;
-	onClose: () => void;
 }
 
-export function MegaMenuContainer({ children, menuWidth, onClose }: MegaMenuContainerProps) {
+export function MegaMenuContainer({ children, menuWidth }: MegaMenuContainerProps) {
 	const menuRef = useRef<HTMLDivElement>(null);
 	
 	// Mouse tracking for interactive effects
@@ -20,20 +19,20 @@ export function MegaMenuContainer({ children, menuWidth, onClose }: MegaMenuCont
 	const mouseXSpring = useSpring(mouseX, springConfig);
 	const mouseYSpring = useSpring(mouseY, springConfig);
 
-	const handleMouseMove = (e: MouseEvent) => {
+	const handleMouseMove = useCallback((e: MouseEvent) => {
 		if (!menuRef.current) return;
 		const rect = menuRef.current.getBoundingClientRect();
 		const x = e.clientX - rect.left;
 		const y = e.clientY - rect.top;
 		mouseX.set(x);
 		mouseY.set(y);
-	};
+	}, [mouseX, mouseY]);
 
 	useEffect(() => {
 		if (!menuRef.current) return;
 		window.addEventListener("mousemove", handleMouseMove);
 		return () => window.removeEventListener("mousemove", handleMouseMove);
-	}, [mouseX, mouseY]);
+	}, [handleMouseMove]);
 
 	return (
 		<motion.div
@@ -55,7 +54,6 @@ export function MegaMenuContainer({ children, menuWidth, onClose }: MegaMenuCont
 				top: 'var(--header-height, 64px)',
 				transition: 'top 0.3s ease-out'
 			}}
-			onMouseLeave={onClose}
 			data-mega-menu-content
 			role="dialog"
 			aria-modal="true"

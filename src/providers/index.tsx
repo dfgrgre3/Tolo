@@ -6,6 +6,16 @@ import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      retry: 1,
+    },
+  },
+});
 
 type GlobalProvidersProps = {
   children: React.ReactNode;
@@ -37,24 +47,26 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
     <>
       <Suspense fallback={null}>
         <ClientLayoutProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <AuthProvider>
-              <ToastProvider>
-                {mounted && isReady ? (
-                  <WebSocketProvider>
-                    {children}
-                  </WebSocketProvider>
-                ) : (
-                  <>{children}</>
-                )}
-              </ToastProvider>
-            </AuthProvider>
-          </ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              <AuthProvider>
+                <ToastProvider>
+                  {mounted && isReady ? (
+                    <WebSocketProvider>
+                      {children}
+                    </WebSocketProvider>
+                  ) : (
+                    <>{children}</>
+                  )}
+                </ToastProvider>
+              </AuthProvider>
+            </ThemeProvider>
+          </QueryClientProvider>
         </ClientLayoutProvider>
       </Suspense>
     </>

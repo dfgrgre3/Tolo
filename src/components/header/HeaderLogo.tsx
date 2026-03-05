@@ -27,10 +27,10 @@ export function HeaderLogo() {
 				<div className="absolute inset-0 rounded-xl bg-gradient-to-tr from-primary/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 			</motion.div>
 			<div className="flex flex-col">
-				<span className="font-bold text-lg leading-tight bg-gradient-to-r from-foreground via-foreground to-foreground/80 bg-clip-text transition-all group-hover:scale-105 inline-block group-hover:from-primary group-hover:via-primary/90 group-hover:to-primary/80">
+				<span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-foreground via-foreground/90 to-primary bg-[length:200%_auto] animate-gradient-x bg-clip-text text-transparent transition-all group-hover:from-primary group-hover:to-primary/60 inline-block">
 					ثانوية بذكاء
 				</span>
-				<span className="text-xs text-muted-foreground leading-tight hidden sm:block opacity-80 group-hover:opacity-100 transition-opacity">
+				<span className="text-[10px] uppercase tracking-widest text-muted-foreground/80 leading-tight hidden sm:block group-hover:text-primary/70 transition-colors">
 					ThanaWy Smart
 				</span>
 			</div>

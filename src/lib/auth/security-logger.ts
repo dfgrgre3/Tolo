@@ -24,6 +24,8 @@ export enum SecurityEventType {
     SUSPICIOUS_ACTIVITY = 'SUSPICIOUS_ACTIVITY',
     REPLAY_ATTACK_DETECTED = 'REPLAY_ATTACK_DETECTED',
     ACCOUNT_LOCKED = 'ACCOUNT_LOCKED',
+    MAGIC_LINK_REQUESTED = 'MAGIC_LINK_REQUESTED',
+    DEVICE_TRUST_CHANGE = 'DEVICE_TRUST_CHANGE',
 }
 
 interface SecurityLogInput {
@@ -137,4 +139,18 @@ export class SecurityLogger {
             metadata: { endpoint },
         });
     }
+
+    /**
+     * Log device trust toggle.
+     */
+    static async logTrustChange(userId: string, ip: string, userAgent: string, sessionId: string, isTrusted: boolean): Promise<void> {
+        await this.log({
+            userId,
+            eventType: SecurityEventType.DEVICE_TRUST_CHANGE,
+            ip,
+            userAgent,
+            metadata: { sessionId, isTrusted, action: isTrusted ? 'TRUST' : 'UNTRUST' },
+        });
+    }
 }
+

@@ -9,7 +9,10 @@
  * - التحقق بخطوتين
  */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { ar } from 'date-fns/locale';
+import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
 import { 
   Shield, 
@@ -39,6 +42,37 @@ export default function SecurityPage() {
     confirmPassword: '',
   });
   const [isLoading, setIsLoading] = useState(false);
+
+  // Security Logs State
+  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+
+  const EVENT_LABELS: Record<string, string> = {
+    LOGIN_SUCCESS: 'تسجيل دخول ناجح',
+    LOGIN_FAILED: 'محاولة دخول فاشلة',
+    LOGOUT: 'تسجيل خروج',
+    REGISTER: 'إنشاء حساب جديد',
+    PASSWORD_CHANGE: 'تغيير كلمة المرور',
+    MAGIC_LINK_REQUESTED: 'طلب رابط دخول',
+    DEVICE_TRUST_CHANGE: 'تغيير حالة ثقة الجهاز',
+    SUSPICIOUS_ACTIVITY: 'نشاط مشبوه',
+  };
+
+  useEffect(() => {
+    const fetchRecentLogs = async () => {
+      try {
+        const res = await fetch('/api/auth/security-logs?limit=3');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setRecentLogs(data.logs || []);
+      } catch (err) {
+        console.error('Failed to fetch logs');
+      } finally {
+        setIsLoadingLogs(false);
+      }
+    };
+    fetchRecentLogs();
+  }, []);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -216,25 +250,36 @@ export default function SecurityPage() {
             <History className="h-5 w-5 text-indigo-400" />
             سجل النشاطات الأمنية
           </h3>
-          <button className="text-sm text-indigo-400 hover:underline">عرض الكل</button>
+          <Link href="/settings/security/logs" className="text-sm text-indigo-400 hover:underline">عرض الكل</Link>
         </div>
         <div className="space-y-4">
-          {[
-            { event: 'تسجيل دخول ناجح', time: 'منذ ساعتين', status: 'success' },
-            { event: 'تغيير البريد الإلكتروني', time: 'أمس الساعة 10:30 م', status: 'warning' },
-          ].map((item, i) => (
-            <div key={i} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
-                {item.status === 'success' ? (
-                  <CheckCircle2 className="h-4 w-4 text-green-400" />
-                ) : (
-                  <AlertTriangle className="h-4 w-4 text-yellow-400" />
-                )}
-                <span className="text-slate-300">{item.event}</span>
-              </div>
-              <span className="text-slate-500">{item.time}</span>
+          {isLoadingLogs ? (
+            <div className="flex items-center justify-center py-4">
+              <Loader2 className="h-5 w-5 text-indigo-500 animate-spin" />
             </div>
-          ))}
+          ) : recentLogs.length > 0 ? (
+            recentLogs.map((log) => (
+              <div key={log.id} className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
+                  {log.eventType.includes('SUCCESS') || log.eventType === 'REGISTER' ? (
+                    <CheckCircle2 className="h-4 w-4 text-green-400" />
+                  ) : log.eventType.includes('FAILED') || log.eventType.includes('SUSPICIOUS') ? (
+                    <AlertTriangle className="h-4 w-4 text-red-400" />
+                  ) : (
+                    <Shield className="h-4 w-4 text-indigo-400" />
+                  )}
+                  <span className="text-slate-300">
+                    {EVENT_LABELS[log.eventType] || log.eventType}
+                  </span>
+                </div>
+                <span className="text-slate-500">
+                  {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: ar })}
+                </span>
+              </div>
+            ))
+          ) : (
+            <p className="text-center text-xs text-slate-500 py-2">لا يوجد نشاطات مسجلة حتى الآن</p>
+          )}
         </div>
       </section>
     </div>

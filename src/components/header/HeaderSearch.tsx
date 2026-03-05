@@ -22,7 +22,6 @@ import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import errorManager from "@/services/ErrorManager";
 import { useToast } from "@/contexts/toast-context";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
-import { VirtualList } from "@/components/ui/VirtualList";
 import { registerServiceWorker, preCacheSearch } from "@/lib/service-worker";
 
 import { logger } from '@/lib/logger';
@@ -31,12 +30,13 @@ interface HeaderSearchProps {
 	isMobile?: boolean;
 }
 
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const router = useRouter();
 	const { showToast } = useToast();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
-	const [searchSuggestions, setSearchSuggestions] = useState<string[]>([]);
 	interface SearchResult {
 		id: string;
 		title: string;
@@ -56,7 +56,6 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const [mounted, setMounted] = useState(false);
 	const searchInputRef = useRef<HTMLInputElement>(null);
 	const searchCacheRef = useRef<Map<string, { results: SearchResult[]; timestamp: number }>>(new Map());
-	const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 	// Register service worker on mount
 	useEffect(() => {
@@ -302,14 +301,22 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 	const handleSearch = useCallback((e: React.FormEvent) => {
 		e.preventDefault();
-		if (searchQuery.trim()) {
-			const scopeParam = searchScope !== "all" ? `&scope=${searchScope}` : "";
-			router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}${scopeParam}`);
-			setIsSearchOpen(false);
-			setSearchQuery("");
-			setSearchResults([]);
+		const normalizedQuery = searchQuery.trim();
+		if (!normalizedQuery) return;
+
+		const selectedResult =
+			selectedResultIndex >= 0 ? searchResults[selectedResultIndex] : searchResults[0];
+
+		if (selectedResult) {
+			handleSearchResultClick(selectedResult);
+			return;
 		}
-	}, [searchQuery, searchScope, router]);
+
+		showToast({
+			message: "لا توجد نتائج مطابقة لهذا البحث حالياً.",
+			type: "warning",
+		});
+	}, [handleSearchResultClick, searchQuery, searchResults, selectedResultIndex, showToast]);
 
 	const handleRecentSearchClick = useCallback((search: string) => {
 		setSearchQuery(search);

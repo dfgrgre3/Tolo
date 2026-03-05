@@ -5,6 +5,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import { useProgressiveImage } from "@/hooks/use-progressive-loading";
 import { useClientEffect } from "@/hooks/use-client-effect";
+import { motion } from "framer-motion";
 
 interface LazyAvatarProps {
 	src?: string | null;
@@ -15,6 +16,7 @@ interface LazyAvatarProps {
 	priority?: boolean;
 	onLoad?: () => void;
 	onError?: (error: Error) => void;
+	level?: number;
 }
 
 const sizeClasses = {
@@ -33,6 +35,7 @@ export function LazyAvatar({
 	priority = false,
 	onLoad,
 	onError,
+	level = 1,
 }: LazyAvatarProps) {
 	const [isInView, setIsInView] = useState(priority);
 	const observerRef = useRef<IntersectionObserver | null>(null);
@@ -98,8 +101,21 @@ export function LazyAvatar({
 		: "var(--primary)";
 
 	return (
-		<div ref={avatarRef} className={cn("relative", className)}>
-			<Avatar className={cn(sizeClasses[size], "transition-opacity duration-300", isLoading && "opacity-50")}>
+		<div ref={avatarRef} className={cn("relative group", className)}>
+			{/* Animated Frame for high level (Legend) */}
+			{level >= 50 && (
+				<motion.div 
+					animate={{ rotate: 360 }}
+					transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+					className="absolute -inset-1 rounded-full bg-gradient-to-r from-amber-500 via-primary to-purple-500 blur-sm opacity-70 group-hover:opacity-100 transition-opacity"
+				/>
+			)}
+			<Avatar className={cn(
+				sizeClasses[size], 
+				"relative z-10 transition-all duration-500", 
+				isLoading && "opacity-50",
+				level >= 50 && "border-2 border-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.5)]"
+			)}>
 				{isInView && loadedSrc && !error ? (
 					<AvatarImage
 						src={loadedSrc}
@@ -118,8 +134,16 @@ export function LazyAvatar({
 					{fallback || alt?.charAt(0).toUpperCase() || "?"}
 				</AvatarFallback>
 			</Avatar>
+			
+			{/* Rank Badge */}
+			{level >= 10 && (
+				<div className="absolute -bottom-1 -right-1 bg-primary text-[10px] font-black px-1.5 py-0.5 rounded-full border border-white/20 shadow-lg z-20 text-white">
+					{level}
+				</div>
+			)}
+
 			{isLoading && (
-				<div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+				<div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
 					<div className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
 				</div>
 			)}

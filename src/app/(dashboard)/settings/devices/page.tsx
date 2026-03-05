@@ -30,6 +30,8 @@ type SessionApiRecord = {
   lastAccessed: string;
   expiresAt: string;
   isCurrent: boolean;
+  isTrusted: boolean;
+  location: string | null;
 };
 
 type Device = {
@@ -104,10 +106,10 @@ function mapSessionToDevice(session: SessionApiRecord): Device {
     browser,
     os,
     ip: session.ip || 'unknown',
-    location: session.ip || 'unknown',
+    location: session.location || 'غير محدد',
     lastActive: new Date(session.lastAccessed),
     isCurrent: session.isCurrent,
-    isTrusted: Boolean(info.trusted),
+    isTrusted: session.isTrusted,
   };
 }
 
@@ -185,6 +187,25 @@ export default function DevicesPage() {
   const handleRevokeAll = async () => {
     setShowRevokeAllConfirm(false);
     await logout(true);
+  };
+
+  const handleToggleTrust = async (deviceId: string, currentStatus: boolean) => {
+    try {
+      const response = await fetch('/api/auth/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: deviceId, isTrusted: !currentStatus }),
+      });
+
+      if (!response.ok) throw new Error('فشل تحديث حالة الثقة');
+
+      setDevices(prev => 
+        prev.map(d => d.id === deviceId ? { ...d, isTrusted: !currentStatus } : d)
+      );
+      toast.success(!currentStatus ? 'تم تمييز الجهاز كموثوق' : 'تمت إزالة حالة الثقة');
+    } catch (error) {
+      toast.error('حدث خطأ أثناء التحديث');
+    }
   };
 
   const currentDevice = useMemo(() => devices.find(device => device.isCurrent), [devices]);
@@ -288,7 +309,11 @@ export default function DevicesPage() {
               <h3 className="font-semibold text-white">هذا الجهاز</h3>
             </div>
           </div>
-          <DeviceCard device={currentDevice} onRevoke={() => undefined} />
+          <DeviceCard 
+            device={currentDevice} 
+            onRevoke={() => undefined} 
+            onToggleTrust={() => handleToggleTrust(currentDevice.id, currentDevice.isTrusted)}
+          />
         </motion.div>
       )}
 
@@ -330,6 +355,7 @@ export default function DevicesPage() {
                     device={device}
                     onRevoke={() => handleRevoke(device.id)}
                     isRevoking={isRevoking === device.id}
+                    onToggleTrust={() => handleToggleTrust(device.id, device.isTrusted)}
                   />
                 </motion.div>
               ))}
@@ -405,10 +431,12 @@ export default function DevicesPage() {
 function DeviceCard({
   device,
   onRevoke,
+  onToggleTrust,
   isRevoking = false,
 }: {
   device: Device;
   onRevoke: () => void;
+  onToggleTrust: () => void;
   isRevoking?: boolean;
 }) {
   const [showMenu, setShowMenu] = useState(false);
@@ -490,11 +518,21 @@ function DeviceCard({
                   >
                     <button
                       onClick={() => {
+                        onToggleTrust();
+                        setShowMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2 p-3 text-sm text-yellow-400 hover:bg-yellow-500/10 transition-colors"
+                    >
+                      <Shield className="h-4 w-4" />
+                      {device.isTrusted ? 'إزالة من الموثوقة' : 'تمييز كموثوق'}
+                    </button>
+                    <button
+                      onClick={() => {
                         onRevoke();
                         setShowMenu(false);
                       }}
                       disabled={isRevoking}
-                      className="w-full flex items-center gap-2 p-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                      className="w-full flex items-center gap-2 p-3 text-sm text-red-400 hover:bg-red-500/10 transition-colors border-t border-white/5 disabled:opacity-50"
                     >
                       {isRevoking ? (
                         <Loader2 className="h-4 w-4 animate-spin" />

@@ -74,6 +74,7 @@ export function extractClientInfo(request: NextRequest): {
   ip: string;
   userAgent: string;
   clientId: string;
+  location: string;
 } {
   // Extract IP address
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
@@ -84,13 +85,20 @@ export function extractClientInfo(request: NextRequest): {
   // Extract User Agent
   const userAgent = request.headers.get('user-agent') || 'unknown';
 
+  // Extract Location (e.g. from Vercel or Cloudflare headers, or mock)
+  const location =
+    request.headers.get('x-vercel-ip-city') ?
+      `${request.headers.get('x-vercel-ip-city')}, ${request.headers.get('x-vercel-ip-country')}` :
+      request.headers.get('cf-ipcountry') || 'Unknown';
+
   // Create unique client identifier
   const clientId = `${ip}:${userAgent}`;
 
   return {
     ip,
     userAgent,
-    clientId
+    clientId,
+    location
   };
 }
 
@@ -488,6 +496,97 @@ export async function parseRequestBody<T>(req: NextRequest, options?: { maxSize?
   }
 }
 
+export interface AuthContextUser {
+  userId: string;
+  userRole: string;
+  role: string;
+  sessionId?: string;
+}
+
+async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser | null> {
+  try {
+    const { TokenService } = await import('@/lib/auth/token-service');
+    const accessToken = req.cookies.get('access_token')?.value;
+
+    if (accessToken) {
+      const accessPayload = await TokenService.verifyToken<{
+        type?: string;
+        userId?: string;
+        role?: string;
+        sessionId?: string;
+      }>(accessToken);
+
+      if (accessPayload?.type === 'access' && typeof accessPayload.userId === 'string') {
+        const role = typeof accessPayload.role === 'string' ? accessPayload.role : 'USER';
+        return {
+          userId: accessPayload.userId,
+          userRole: role,
+          role,
+          sessionId: typeof accessPayload.sessionId === 'string' ? accessPayload.sessionId : undefined,
+        };
+      }
+    }
+
+    const refreshToken = req.cookies.get('refresh_token')?.value;
+    if (!refreshToken) {
+      return null;
+    }
+
+    const refreshPayload = await TokenService.verifyToken<{
+      type?: string;
+      sessionId?: string;
+    }>(refreshToken);
+
+    if (refreshPayload?.type !== 'refresh' || typeof refreshPayload.sessionId !== 'string') {
+      return null;
+    }
+
+    const [{ SessionService }, dbModule] = await Promise.all([
+      import('@/lib/auth/session-service'),
+      import('@/lib/db'),
+    ]);
+    const prisma = dbModule.default ?? dbModule.prisma;
+
+    const session = await prisma.session.findFirst({
+      where: {
+        id: refreshPayload.sessionId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        userId: true,
+        refreshToken: true,
+        expiresAt: true,
+        user: {
+          select: {
+            role: true,
+          },
+        },
+      },
+    });
+
+    if (!session || session.expiresAt <= new Date()) {
+      return null;
+    }
+
+    const refreshHash = SessionService.hashRefreshToken(refreshToken);
+    if (!session.refreshToken || session.refreshToken !== refreshHash) {
+      return null;
+    }
+
+    const role = session.user?.role ?? 'USER';
+    return {
+      userId: session.userId,
+      userRole: role,
+      role,
+      sessionId: session.id,
+    };
+  } catch (error) {
+    logger.debug('[WITH_AUTH_COOKIE_FALLBACK_FAILED]', error);
+    return null;
+  }
+}
+
 /**
  * Standardized authentication wrapper for API routes.
  * Extracts user ID and Role from headers (injected by Next.js middleware)
@@ -495,14 +594,25 @@ export async function parseRequestBody<T>(req: NextRequest, options?: { maxSize?
  */
 export async function withAuth(
   req: NextRequest,
-  handler: (user: { userId: string; userRole: string }) => Promise<NextResponse> | NextResponse
+  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
 ): Promise<NextResponse> {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role") || "USER";
+  const sessionId = req.headers.get("x-session-id") || undefined;
 
-  if (!userId) {
+  if (userId) {
+    return handler({
+      userId,
+      userRole,
+      role: userRole,
+      sessionId,
+    });
+  }
+
+  const fallbackAuth = await resolveAuthFromCookies(req);
+  if (!fallbackAuth) {
     return unauthorizedResponse();
   }
 
-  return handler({ userId, userRole });
+  return handler(fallbackAuth);
 }

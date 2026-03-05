@@ -16,6 +16,9 @@ interface ReadingProgressBarProps {
     to: string;
   };
   animate?: boolean;
+  value?: number;
+  label?: string;
+  isDaily?: boolean;
 }
 
 export const ReadingProgressBar = memo(function ReadingProgressBar({
@@ -29,8 +32,14 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
     to: "to-primary/70 dark:to-primary/60",
   },
   animate = true,
+  value,
+  label,
+  isDaily = false,
 }: ReadingProgressBarProps) {
-  const { scrollProgress } = useStickyHeader({ enableProgress: true });
+  const { scrollProgress } = useStickyHeader({ enableProgress: !isDaily && value === undefined });
+  
+  // Use provided value, or scroll progress
+  const currentProgress = value !== undefined ? value : scrollProgress;
 
   // Memoize gradient class
   const gradientClass = useMemo(() => {
@@ -63,8 +72,14 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
       aria-valuenow={displayProgress}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-label="تقدم القراءة"
+      aria-label={label || (isDaily ? "تقدم الإنجاز اليومي" : "تقدم القراءة")}
     >
+      {label && (
+        <div className="flex justify-between items-center mb-1 px-4">
+          <span className="text-[10px] font-black text-primary uppercase tracking-widest">{label}</span>
+          <span className="text-[10px] font-black text-primary">{displayProgress}%</span>
+        </div>
+      )}
       {/* Background track */}
       <div
         className="w-full bg-border/30 dark:bg-border/20"
@@ -74,19 +89,23 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
         {animate ? (
           <motion.div
             className={cn(
-              "h-full origin-left",
+              "h-full origin-left relative",
               gradientClass,
-              "shadow-md shadow-primary/30 dark:shadow-primary/40"
+              isDaily ? "shadow-[0_0_15px_rgba(168,85,247,0.5)]" : "shadow-[0_0_10px_rgba(var(--primary),0.5)]"
             )}
             initial={{ scaleX: 0 }}
-            animate={{ scaleX: scrollProgress / 100 }}
+            animate={{ scaleX: currentProgress / 100 }}
             transition={{
               type: "spring",
               stiffness: 100,
               damping: 20,
               mass: 0.5,
             }}
-          />
+          >
+            {/* Glow effect at the end of the bar */}
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-full bg-white/40 blur-sm rounded-full" />
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-[150%] bg-primary blur-[2px] rounded-full shadow-[0_0_10px_var(--primary)]" />
+          </motion.div>
         ) : (
           <div
             className={cn(
@@ -94,19 +113,19 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
               gradientClass,
               "shadow-md shadow-primary/30 dark:shadow-primary/40"
             )}
-            style={{ transform: `scaleX(${scrollProgress / 100})` }}
+            style={{ transform: `scaleX(${currentProgress / 100})` }}
           />
         )}
       </div>
 
       {/* Optional percentage indicator */}
-      {showPercentage && scrollProgress > 0 && (
+      {showPercentage && currentProgress > 0 && (
         <motion.div
-          initial={{ opacity: 0, y: -5 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
           className={cn(
-            "absolute left-2 text-xs font-medium text-primary bg-background/95 dark:bg-background/90 backdrop-blur-md px-1.5 py-0.5 rounded shadow-md dark:shadow-lg",
-            position === "top" ? "top-full mt-1" : "bottom-full mb-1"
+            "absolute left-2 text-[10px] font-black text-primary bg-background/95 dark:bg-background/90 backdrop-blur-md px-2 py-0.5 rounded-full shadow-lg border border-primary/20",
+            position === "top" ? "top-full mt-2" : "bottom-full mb-2"
           )}
         >
           {displayProgress}%

@@ -170,19 +170,11 @@ export default function Header() {
   // Memoized header classes
   const computedHeaderClasses = useMemo(() => {
     const base = cn(
-      "sticky top-0 z-50 w-full border-b transition-all",
-      shouldReduceMotion ? "duration-0" : "duration-300 ease-out",
-      // Blur and background
-      "backdrop-blur-xl supports-[backdrop-filter]:bg-background/85 dark:bg-background/90",
-      // Hide on scroll
-      // Hide on scroll (but NOT when mega menu is open)
+      "sticky top-0 z-50 w-full transition-all duration-500 ease-in-out border-b backdrop-blur-md bg-background/70 dark:bg-background/80 shadow-[0_4px_30px_rgba(0,0,0,0.05)]",
       focusVisibility.headerVisible && (!isHidden || !!openMegaMenu) ? "translate-y-0" : "-translate-y-full",
-      // Scrolled state
-      isScrolled && "bg-background/95 shadow-lg shadow-black/10 dark:shadow-black/40 border-border/60 dark:border-border/70",
-      // Shrunk state
+      isScrolled && "bg-background/90 shadow-[0_4px_30px_rgba(0,0,0,0.15)] dark:shadow-[0_4px_30px_rgba(0,0,0,0.35)] border-primary/20",
       isShrunk && headerPreferences.compactMode && "py-0",
-      // User logged in premium effect
-      isMounted && user && !isScrolled && "border-primary/15 dark:border-primary/20 bg-gradient-to-r from-primary/8 dark:from-primary/10 via-background to-primary/8 dark:to-primary/10",
+      isMounted && user && !isScrolled && "bg-gradient-to-r from-primary/5 via-transparent to-primary/5 border-primary/10",
     );
     return base;
   }, [
@@ -320,7 +312,7 @@ export default function Header() {
                         <Button 
                           variant="ghost" 
                           size="sm" 
-                          className="gap-1.5 hover:bg-primary/10 text-sm font-medium transition-all"
+                          className="gap-1.5 hover:bg-primary/10 text-sm font-semibold transition-all hover:scale-105 active:scale-95 px-4"
                         >
                           <LogIn className="h-4 w-4" />
                           <span>تسجيل الدخول</span>
@@ -329,10 +321,11 @@ export default function Header() {
                       <Link href="/register">
                         <Button 
                           size="sm" 
-                          className="gap-1.5 bg-primary hover:bg-primary/90 text-primary-foreground shadow-md hover:shadow-primary/20 transition-all font-bold px-4 hover:scale-105 active:scale-95"
+                          className="gap-2 bg-gradient-to-r from-primary via-primary/95 to-primary/80 hover:from-primary hover:to-primary/90 text-primary-foreground shadow-[0_4px_15px_rgba(var(--primary),0.25)] hover:shadow-primary/40 transition-all font-bold px-6 hover:scale-105 active:scale-95 group relative overflow-hidden"
                         >
-                          <UserPlus className="h-4 w-4" />
-                          <span>إنشاء حساب</span>
+                          <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-[-20deg]" />
+                          <UserPlus className="h-4 w-4 transition-transform group-hover:rotate-12 relative z-10" />
+                          <span className="relative z-10 font-bold">إنشاء حساب</span>
                         </Button>
                       </Link>
                     </div>

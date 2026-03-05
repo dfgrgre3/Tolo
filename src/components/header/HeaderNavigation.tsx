@@ -86,42 +86,46 @@ export function HeaderNavigation({
 						whileHover={{ scale: 1.02 }}
 						whileTap={{ scale: 0.98 }}
 					>
-					<Link
-						href={item.href}
-						prefetch={true}
-						className={cn(
-							"relative flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 hover:bg-accent/80 hover:text-accent-foreground group/nav",
-							isActive &&
-								"bg-primary/10 text-primary font-semibold shadow-sm"
-						)}
-					>
+						<Link
+							href={item.href}
+							prefetch={true}
+							className={cn(
+								"relative flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 group/nav",
+								"hover:bg-primary/5 hover:text-primary",
+								isActive ? "text-primary font-bold" : "text-muted-foreground hover:text-foreground"
+							)}
+						>
 							{item.icon ? (
 								<span className={cn(
-									"transition-transform duration-300",
-									"group-hover/nav:scale-110 group-hover/nav:rotate-3",
-									mounted && isActive && "text-primary"
+									"transition-all duration-500",
+									"group-hover/nav:scale-125 group-hover/nav:rotate-12",
+									mounted && isActive ? "text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.5)]" : "opacity-70 group-hover/nav:opacity-100"
 								)}>
-									{createIcon(item.icon, "h-4 w-4")}
+									{createIcon(item.icon, "h-4.5 w-4.5")}
 								</span>
 							) : null}
-							<span className="relative">{item.label}</span>
+							<span className="relative z-10">{item.label}</span>
 							{item.badge && mounted && (
 								<motion.span
-									initial={false}
-									animate={{ scale: 1 }}
-									style={{ transform: 'none' }}
-									className="absolute -top-1 -right-1 bg-gradient-to-r from-primary to-primary/80 text-primary-foreground text-[10px] px-1.5 py-0.5 rounded-full font-bold shadow-sm animate-pulse"
+									initial={{ scale: 0.5, opacity: 0 }}
+									animate={{ scale: 1, opacity: 1 }}
+									className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center bg-primary text-[10px] text-primary-foreground rounded-full font-bold shadow-lg shadow-primary/20"
 								>
 									{item.badge}
 								</motion.span>
 							)}
 							{isActive && (
 								<motion.div
-									className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
-									layoutId={`activeIndicator-${item.href}`}
-									initial={false}
-									style={{ transform: 'none' }}
-									transition={{ type: "spring", stiffness: 380, damping: 30 }}
+									className="absolute inset-0 bg-primary/10 border border-primary/20 rounded-xl"
+									layoutId="nav-bg"
+									transition={{ type: "spring", stiffness: 400, damping: 30 }}
+								/>
+							)}
+							{isActive && (
+								<motion.div
+									className="absolute -bottom-[2px] left-1/2 -translate-x-1/2 w-8 h-[3px] bg-primary rounded-full shadow-[0_0_12px_rgba(var(--primary),0.8)]"
+									layoutId="nav-indicator"
+									transition={{ type: "spring", stiffness: 400, damping: 30 }}
 								/>
 							)}
 						</Link>
