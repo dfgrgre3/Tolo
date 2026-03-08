@@ -46,9 +46,25 @@ interface AuthContextType {
     isAuthenticated: boolean;
     login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; requires2FA?: boolean; userId?: string; error?: string }>;
     register: (
-        email: string,
-        password: string,
-        username?: string
+        data: {
+            email: string;
+            password: string;
+            username?: string;
+            role?: string;
+            country?: string;
+            dateOfBirth?: string | null;
+            gender?: string;
+            phone?: string;
+            alternativePhone?: string;
+            gradeLevel?: string;
+            educationType?: string;
+            section?: string;
+            interestedSubjects?: string[];
+            studyGoal?: string;
+            subjectsTaught?: string[];
+            classesTaught?: string[];
+            experienceYears?: string;
+        }
     ) => Promise<{ success: boolean; error?: string; message?: string; autoLoggedIn?: boolean }>;
     logout: (allDevices?: boolean) => Promise<void>;
     verify2FA: (userId: string, token: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
@@ -305,15 +321,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
      * Register function - creates account via API.
      */
     const register = useCallback(async (
-        email: string,
-        password: string,
-        username?: string
+        dataPayload: {
+            email: string;
+            password: string;
+            username?: string;
+            role?: string;
+            country?: string;
+            dateOfBirth?: string | null;
+            gender?: string;
+            phone?: string;
+            alternativePhone?: string;
+            gradeLevel?: string;
+            educationType?: string;
+            section?: string;
+            interestedSubjects?: string[];
+            studyGoal?: string;
+            subjectsTaught?: string[];
+            classesTaught?: string[];
+            experienceYears?: string;
+        }
     ): Promise<{ success: boolean; error?: string; message?: string; autoLoggedIn?: boolean }> => {
         try {
             const response = await fetch('/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, username }),
+                body: JSON.stringify(dataPayload),
                 credentials: 'include',
             });
 
@@ -367,7 +399,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             // Backward-compatible fallback: try immediate sign-in client-side.
-            const loginResult = await login(email.trim().toLowerCase(), password, false);
+            const loginResult = await login(dataPayload.email.trim().toLowerCase(), dataPayload.password, false);
             if (loginResult.success) {
                 return { success: true, message: data.message, autoLoggedIn: true };
             }

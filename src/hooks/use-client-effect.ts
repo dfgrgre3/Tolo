@@ -9,7 +9,7 @@ async function getLogger() {
     try {
       const loggerModule = await import('@/lib/logger');
       loggerInstance = loggerModule.logger;
-    } catch (error) {
+    } catch {
       // Fallback to console if logger fails to load
       loggerInstance = {
         info: (...args: unknown[]) => console.info(...args),
@@ -101,6 +101,7 @@ export function useClientEffect(
         cleanupRef.current = undefined;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return { isHydrated: isHydratedRef.current, hasRun: hasRunRef.current };
@@ -120,10 +121,12 @@ export function useClientEffectSafe(
 ) {
   const [isHydrated, setIsHydrated] = useState(false);
   const [hasRun, setHasRun] = useState(false);
+  const hasRunRef = useRef(false);
 
   // Mark as hydrated on client
   useEffect(() => {
-    setIsHydrated(true);
+    const hydrateTimer = window.setTimeout(() => setIsHydrated(true), 0);
+    return () => window.clearTimeout(hydrateTimer);
   }, []);
 
   useEffect(() => {
@@ -138,15 +141,22 @@ export function useClientEffectSafe(
     }
 
     // Skip if already run and hydration safety is enabled
-    if (options?.skipHydration && hasRun) {
+    if (options?.skipHydration && hasRunRef.current) {
       return;
     }
 
-    setHasRun(true);
+    hasRunRef.current = true;
+    const runTimer = window.setTimeout(() => setHasRun(true), 0);
     if (typeof effect === 'function') {
-      return effect();
+      const cleanup = effect();
+      return () => {
+        window.clearTimeout(runTimer);
+        if (typeof cleanup === 'function') cleanup();
+      };
     }
-  }, [isHydrated, hasRun, ...(deps || [])]);
+    return () => window.clearTimeout(runTimer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHydrated, ...(deps || [])]);
 
   return { isHydrated, hasRun };
 }
@@ -164,6 +174,7 @@ export function useClientLayoutEffect(effect: () => void | (() => void), deps?: 
     if (typeof window !== 'undefined' && typeof effect === 'function') {
       return effect();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
 

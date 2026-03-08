@@ -1,6 +1,6 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
 /.pnp
 .pnp.*
@@ -10,42 +10,97 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
-# next.js
+# Build and Production
 /.next/
 /out/
-
-# production
 /build
+/dist
+/.vercel
+*.tsbuildinfo
+next-env.d.ts
 
-# misc
-.DS_Store
+# Environment and Secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 *.pem
+# Ignore any specific secret files if needed
+# credentials.json
 
-# debug
+# Logs and Debug
+/logs
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# Testing
+/coverage
+/.nyc_output
+/test-results
+/junit.xml
 
-# vercel
-.vercel
+# IDE and Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.eslintcache
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+# OS Specific
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+desktop.ini
+ehthumbs.db
 
+# Prisma / Database
+/src/generated
 /src/generated/prisma
+/prisma/generated
+# Local SQLite databases
+*.db
+*.db-journal
 
-# lighthouse results
-lighthouse-results.json
+# Python (Found .venv in project)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
 
-# build artifacts
+# Terraform (Found terraform directory)
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+*.tfvars.json
+override.tf
+override.tf.json
+_override.tf
+_override.tf.json
+
+# Misc
 *.bak
 *.old
 *.tmp
+*.temp
+lighthouse-results.json
+db-errors.txt
+db-errors-utf8.txt
+duplicate-report.json
+duplicate-pages.txt

@@ -1,6 +1,5 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters"]
   engineType      = "library"
 }
 
@@ -61,7 +60,23 @@ model User {
   challengeXP                   Int                   @default(0)
   questXP                       Int                   @default(0)
   seasonXP                      Int                   @default(0)
-  role                          UserRole              @default(USER)
+  role                          UserRole              @default(STUDENT)
+  
+  country                       String?
+  dateOfBirth                   DateTime?
+  gender                        String?
+  alternativePhone              String?
+  
+  gradeLevel                    String?
+  educationType                 String?
+  section                       String?
+  interestedSubjects            String[]              @default([])
+  studyGoal                     String?
+  
+  subjectsTaught                String[]              @default([])
+  classesTaught                 String[]              @default([])
+  experienceYears               String?
+
   aiChatMessages                AiChatMessage[]
   aiGeneratedContent            AiGeneratedContent[]
   aiGeneratedExams              AiGeneratedExam[]
@@ -1059,6 +1074,7 @@ model SecurityQuestion {
 
 enum UserRole {
   USER
+  STUDENT
   ADMIN
   TEACHER
   MODERATOR

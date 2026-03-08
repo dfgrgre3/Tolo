@@ -37,6 +37,19 @@ export interface RegisterInput {
     role?: string;
     ip: string;
     userAgent: string;
+    country?: string;
+    dateOfBirth?: Date | null;
+    gender?: string;
+    phone?: string;
+    alternativePhone?: string;
+    gradeLevel?: string;
+    educationType?: string;
+    section?: string;
+    interestedSubjects?: string[];
+    studyGoal?: string;
+    subjectsTaught?: string[];
+    classesTaught?: string[];
+    experienceYears?: string;
 }
 
 export interface AuthResult {
@@ -281,7 +294,12 @@ export class AuthService {
      * 4. Security event logging
      */
     static async register(input: RegisterInput & { location?: string }): Promise<AuthResult> {
-        const { email, username, password, role = 'USER', ip, userAgent, location } = input;
+        const {
+            email, username, password, role = 'STUDENT', ip, userAgent, location,
+            country, dateOfBirth, gender, phone, alternativePhone,
+            gradeLevel, educationType, section, interestedSubjects = [], studyGoal,
+            subjectsTaught = [], classesTaught = [], experienceYears
+        } = input;
 
         try {
             const normalizedEmail = email.toLowerCase().trim();
@@ -316,7 +334,20 @@ export class AuthService {
                     emailVerificationToken: verifyTokenHash,
                     emailVerificationExpires: verifyExpires,
                     emailVerified: false,
-                    role: 'USER',
+                    role: role && role !== 'STUDENT' ? (role as any) : undefined,
+                    country,
+                    dateOfBirth,
+                    gender,
+                    phone,
+                    alternativePhone,
+                    gradeLevel,
+                    educationType,
+                    section,
+                    interestedSubjects,
+                    studyGoal,
+                    subjectsTaught,
+                    classesTaught,
+                    experienceYears
                 },
             });
 

@@ -30,6 +30,20 @@ const registerSchema = z.object({
         .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), 'Must contain a special character'),
     confirmPassword: z.string().optional(),
     username: z.string().min(3, 'Username must be at least 3 characters').optional(),
+    role: z.enum(['STUDENT', 'TEACHER']).default('STUDENT'),
+    country: z.string().optional(),
+    dateOfBirth: z.string().datetime().optional().nullable(),
+    gender: z.string().optional(),
+    phone: z.string().optional(),
+    alternativePhone: z.string().optional(),
+    gradeLevel: z.string().optional(),
+    educationType: z.string().optional(),
+    section: z.string().optional(),
+    interestedSubjects: z.array(z.string()).optional(),
+    studyGoal: z.string().optional(),
+    subjectsTaught: z.array(z.string()).optional(),
+    classesTaught: z.array(z.string()).optional(),
+    experienceYears: z.string().optional(),
 }).refine((data) => {
     // Only validate confirmPassword if it's provided
     if (data.confirmPassword !== undefined) {
@@ -92,13 +106,31 @@ export async function POST(req: NextRequest) {
             );
         }
 
-        const { email, password, username } = validation.data;
+        const {
+            email, password, username, role, country, dateOfBirth, gender,
+            phone, alternativePhone, gradeLevel, educationType, section,
+            interestedSubjects, studyGoal, subjectsTaught, classesTaught, experienceYears
+        } = validation.data;
 
         // 3. Register via AuthService
         const result = await AuthService.register({
             email,
             username,
             password,
+            role,
+            country,
+            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+            gender,
+            phone,
+            alternativePhone,
+            gradeLevel,
+            educationType,
+            section,
+            interestedSubjects,
+            studyGoal,
+            subjectsTaught,
+            classesTaught,
+            experienceYears,
             ip,
             userAgent,
             location,

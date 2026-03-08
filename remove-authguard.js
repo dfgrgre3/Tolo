@@ -21,7 +21,7 @@ function processFile(file) {
     content = content.replace(/<\/AuthGuard>\r?\n?/g, '');
     
     // remove other auth-related imports if they are throwing errors
-    content = content.replace(/import\s*\{\s*authService[^\}]*\}\s*from\s+['"][^'"]*auth-service['"];?\r?\n?/g, '');
+    content = content.replace(/import\s*\{\s*authService[^}]*\}\s*from\s+['"][^'"]*auth-service['"];?\r?\n?/g, '');
     
     if (content !== original) {
         fs.writeFileSync(file, content);

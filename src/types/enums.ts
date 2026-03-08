@@ -31,6 +31,7 @@ export enum TaskStatus {
 
 export enum UserRole {
     USER = 'USER',
+    STUDENT = 'STUDENT',
     ADMIN = 'ADMIN',
     TEACHER = 'TEACHER',
     MODERATOR = 'MODERATOR',

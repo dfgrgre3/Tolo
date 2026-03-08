@@ -18,7 +18,7 @@ function processFile(file) {
     
     // Fix decodedToken = null
     content = content.replace(/const\s+(decodedToken|payload|authResult)\s*=\s*null;/g, 'const $1: any = { userId: "default-user" };');
-    content = content.replace(/const\s+(decodedToken|payload|authResult)\s*=\s*\{[^\}]*\};/g, 'const $1: any = { userId: "default-user" };');
+    content = content.replace(/const\s+(decodedToken|payload|authResult)\s*=\s*\{[^}]*\};/g, 'const $1: any = { userId: "default-user" };');
     // For authService references that weren't caught
     content = content.replace(/authService\.verifyToken/g, 'null as any');
     content = content.replace(/authService\.requireAuth/g, '(() => ({success: true})) as any');

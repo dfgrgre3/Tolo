@@ -38,7 +38,7 @@ export function isLocalStorageAvailable(): boolean {
     window.localStorage.setItem(testKey, 'test');
     window.localStorage.removeItem(testKey);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -54,7 +54,7 @@ export function isSessionStorageAvailable(): boolean {
     window.sessionStorage.setItem(testKey, 'test');
     window.sessionStorage.removeItem(testKey);
     return true;
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -195,9 +195,13 @@ export function useSafeLocalStorage<T = any>(
 
   // تحميل القيمة من localStorage بعد التحميل
   useEffect(() => {
-    setMounted(true);
+    const mountTimer = window.setTimeout(() => setMounted(true), 0);
     const value = safeGetItem(key, { fallback: initialValue });
-    setStoredValue(value as T);
+    const valueTimer = window.setTimeout(() => setStoredValue(value as T), 0);
+    return () => {
+      window.clearTimeout(mountTimer);
+      window.clearTimeout(valueTimer);
+    };
   }, [key, initialValue]);
 
   // دالة لتحديث القيمة
@@ -228,12 +232,16 @@ export function useSafeSessionStorage<T = any>(
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
   useEffect(() => {
-    setMounted(true);
+    const mountTimer = window.setTimeout(() => setMounted(true), 0);
     const value = safeGetItem(key, {
       fallback: initialValue,
       storageType: 'session'
     });
-    setStoredValue(value as T);
+    const valueTimer = window.setTimeout(() => setStoredValue(value as T), 0);
+    return () => {
+      window.clearTimeout(mountTimer);
+      window.clearTimeout(valueTimer);
+    };
   }, [key, initialValue]);
 
   const setValue = useCallback((value: T | ((prev: T) => T)) => {
@@ -304,7 +312,8 @@ export function useIsMounted(): boolean {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const mountTimer = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(mountTimer);
   }, []);
 
   return mounted;
@@ -347,15 +356,17 @@ export function useSafeMediaQuery(query: string): boolean {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const mountTimer = window.setTimeout(() => setMounted(true), 0);
 
-    if (!isBrowser()) return;
+    if (!isBrowser()) {
+      return () => window.clearTimeout(mountTimer);
+    }
 
     try {
       const media = window.matchMedia(query);
 
       // تعيين القيمة الأولية
-      setMatches(media.matches);
+      initialMatchTimer = window.setTimeout(() => setMatches(media.matches), 0);
 
       // الاستماع للتغييرات
       const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
@@ -363,14 +374,26 @@ export function useSafeMediaQuery(query: string): boolean {
       // استخدام الطريقة المناسبة حسب دعم المتصفح
       if (media.addEventListener) {
         media.addEventListener('change', listener);
-        return () => media.removeEventListener('change', listener);
+        return () => {
+          if (initialMatchTimer !== null) window.clearTimeout(initialMatchTimer);
+          window.clearTimeout(mountTimer);
+          media.removeEventListener('change', listener);
+        };
       } else {
         // للمتصفحات القديمة
         media.addListener(listener);
-        return () => media.removeListener(listener);
+        return () => {
+          if (initialMatchTimer !== null) window.clearTimeout(initialMatchTimer);
+          window.clearTimeout(mountTimer);
+          media.removeListener(listener);
+        };
       }
     } catch (e) {
       logger.warn('Failed to setup media query:', e);
+      return () => {
+        if (initialMatchTimer !== null) window.clearTimeout(initialMatchTimer);
+        window.clearTimeout(mountTimer);
+      };
     }
   }, [query]);
 
@@ -421,11 +444,6 @@ export function useSafeEventListener<K extends keyof WindowEventMap>(
  * التحقق من أن الاستجابة هي JSON وليست HTML
  * Check if response is JSON and not HTML
  */
-function isJsonResponse(response: Response): boolean {
-  const contentType = response.headers.get('content-type');
-  return contentType?.includes('application/json') ?? false;
-}
-
 /**
  * التحقق من أن النص هو HTML وليس JSON
  */
@@ -640,10 +658,6 @@ export async function safeFetch<T = any>(
 
     return { data, error: null, response };
   } catch (error) {
-    // فقط في وضع التطوير نُظهر تفاصيل الخطأ
-    if (process.env.NODE_ENV === 'development') {
-      logger.error('[Development] Fetch error:', error);
-    }
     const signalWasAborted = Boolean(
       options?.signal &&
       typeof options.signal === 'object' &&
@@ -673,6 +687,11 @@ export async function safeFetch<T = any>(
       if (!normalizedError.message || normalizedError.message === 'Unknown fetch error') {
         normalizedError.message = 'Request was aborted';
       }
+    }
+
+    // فقط في وضع التطوير نُظهر تفاصيل الأخطاء غير المتوقعة
+    if (process.env.NODE_ENV === 'development' && normalizedError.name !== 'AbortError') {
+      logger.error('[Development] Fetch error:', normalizedError);
     }
 
     return {
