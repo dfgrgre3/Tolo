@@ -66,6 +66,14 @@ export async function GET(req: NextRequest) {
         // Replay-attack guard: compare stored hash
         const refreshTokenHash = SessionService.hashRefreshToken(refreshToken);
         if (session.refreshToken !== refreshTokenHash) {
+            // Check for grace period
+            const recentlyRotated = await SessionService.isRecentlyRotated(refreshTokenHash, session.id);
+            if (recentlyRotated) {
+                // Fetch full user profile and return success
+                const user = await AuthService.getCurrentUser(session.user.id);
+                return NextResponse.json({ user }, { status: 200 });
+            }
+
             await SessionService.revokeSession(session.id);
             cookieStore.delete('access_token');
             cookieStore.delete('refresh_token');
@@ -92,6 +100,9 @@ export async function GET(req: NextRequest) {
                 lastAccessed: new Date(),
             },
         });
+
+        // Mark old token as rotated
+        await SessionService.markTokenAsRotated(refreshTokenHash, session.id);
 
         // Fetch full user profile
         const user = await AuthService.getCurrentUser(session.user.id);

@@ -595,17 +595,41 @@ export class AuthService {
         bio?: string;
         school?: string;
         grade?: string;
+        gradeLevel?: string;
         city?: string;
         birthDate?: string;
+        dateOfBirth?: Date;
         gender?: string;
+        country?: string;
+        alternativePhone?: string;
+        educationType?: string;
+        section?: string;
+        studyGoal?: string;
     }) {
         try {
-            const updateData = {
+            const updateData: any = {
                 name: data.name,
                 username: data.username,
                 phone: data.phone,
                 avatar: data.avatar,
+                bio: data.bio,
+                school: data.school,
+                gradeLevel: data.gradeLevel || data.grade,
+                city: data.city,
+                gender: data.gender,
+                country: data.country,
+                alternativePhone: data.alternativePhone,
+                educationType: data.educationType,
+                section: data.section,
+                studyGoal: data.studyGoal,
             };
+
+            // Handle birthDate/dateOfBirth
+            if (data.dateOfBirth) {
+                updateData.dateOfBirth = data.dateOfBirth;
+            } else if (data.birthDate) {
+                updateData.dateOfBirth = new Date(data.birthDate);
+            }
 
             return await prisma.user.update({
                 where: { id: userId },

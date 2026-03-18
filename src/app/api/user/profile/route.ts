@@ -13,7 +13,11 @@ export async function PATCH(req: NextRequest) {
             const body = await req.json();
 
             // Validate input (could add more robust validation here)
-            const { name, username, phone, avatar, bio, school, grade, city, birthDate, gender } = body;
+            const { 
+                name, username, phone, avatar, bio, school, grade, 
+                gradeLevel, city, birthDate, gender, country,
+                alternativePhone, educationType, section, studyGoal 
+            } = body;
 
             const updatedUser = await AuthService.updateProfile(userId, {
                 name,
@@ -23,9 +27,15 @@ export async function PATCH(req: NextRequest) {
                 bio,
                 school,
                 grade,
+                gradeLevel,
                 city,
                 birthDate,
                 gender,
+                country,
+                alternativePhone,
+                educationType,
+                section,
+                studyGoal,
             });
 
             return NextResponse.json({

@@ -1,0 +1,50 @@
+version: "2"
+type: frontend
+tech_stack:
+  - TypeScript
+  - Next.js
+  - Tailwind CSS
+  - Prisma
+  - Winston (Server Logging)
+  - Custom Unified Logger
+routes:
+  - path: /events
+    file: src/app/(community)/events/page.tsx
+    auth_required: false
+    description: Events listing page
+  - path: /login
+    file: src/app/(auth)/login/page.tsx
+    auth_required: false
+    description: User login page
+  - path: /dashboard
+    file: src/app/(dashboard)/dashboard/page.tsx
+    auth_required: true
+    description: Main user dashboard
+features:
+  - name: Community Events
+    description: Browse and filter community events
+    files:
+      - src/app/(community)/events/page.tsx
+      - src/app/api/events/route.ts
+    entry_route: /events
+    user_interactions:
+      - Navigate to events page
+      - Filter events by category
+      - Search events by title or description
+      - View event details
+    api_calls:
+      - method: GET
+        endpoint: /api/events
+    auth_required: false
+  - name: Guest User Creation
+    description: Automatically create a guest user if none exists
+    files:
+      - src/lib/user-utils.ts
+      - src/app/api/users/guest/route.ts
+    user_interactions:
+      - Page load (automatic)
+    api_calls:
+      - method: POST
+        endpoint: /api/users/guest
+    auth_required: false
+known_limitations: []

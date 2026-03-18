@@ -587,6 +587,39 @@ async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser
   }
 }
 
+async function resolveAuthFromAuthorization(req: NextRequest): Promise<AuthContextUser | null> {
+  try {
+    const { TokenService } = await import('@/lib/auth/token-service');
+    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || '';
+    const trimmed = authHeader.trim();
+    if (!/^bearer\s+/i.test(trimmed)) return null;
+
+    const token = trimmed.replace(/^bearer\s+/i, '').trim();
+    if (!token) return null;
+
+    const accessPayload = await TokenService.verifyToken<{
+      type?: string;
+      userId?: string;
+      role?: string;
+      sessionId?: string;
+    }>(token);
+
+    if (accessPayload?.type === 'access' && typeof accessPayload.userId === 'string') {
+      const role = typeof accessPayload.role === 'string' ? accessPayload.role : 'USER';
+      return {
+        userId: accessPayload.userId,
+        userRole: role,
+        role,
+        sessionId: typeof accessPayload.sessionId === 'string' ? accessPayload.sessionId : undefined,
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Standardized authentication wrapper for API routes.
  * Extracts user ID and Role from headers (injected by Next.js middleware)
@@ -607,6 +640,11 @@ export async function withAuth(
       role: userRole,
       sessionId,
     });
+  }
+
+  const fromAuthorization = await resolveAuthFromAuthorization(req);
+  if (fromAuthorization) {
+    return handler(fromAuthorization);
   }
 
   const fallbackAuth = await resolveAuthFromCookies(req);

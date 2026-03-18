@@ -1,20 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import StatsCards from './StatsCards';
-import PerformanceMetrics from './PerformanceMetrics';
-import UpcomingRemindersCard from './UpcomingRemindersCard';
-import UpcomingTasksCard from './UpcomingTasksCard';
-import QuickActions from './QuickActions';
-import AdvancedReports from './AdvancedReports';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { BarChart3, X } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import type { TimeStats, Task, Reminder, SubjectType, StudySession } from '../types';
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Target, 
+  Calendar, 
+  CheckCircle2, 
+  Circle, 
+  Clock, 
+  Flame, 
+  TrendingUp, 
+  Trophy,
+  Zap,
+  BookOpen
+} from 'lucide-react';
+import { formatTime } from '../utils/timeUtils';
+import type { Task, Reminder, StudySession, TimeStats } from '../types';
+import QuickActions from './QuickActions';
+import UpcomingTasksCard from './UpcomingTasksCard';
+import UpcomingRemindersCard from './UpcomingRemindersCard';
 
 interface DashboardTabProps {
   stats: TimeStats;
-  subjects: SubjectType[];
+  subjects: string[];
   tasks: Task[];
   reminders: Reminder[];
   studySessions: StudySession[];
@@ -39,135 +50,270 @@ export default function DashboardTab({
   onToggleUpcomingReminders,
   onTimerToggle
 }: DashboardTabProps) {
-  const [showReports, setShowReports] = useState(false);
+  const upcomingTasks = tasks
+    .filter(task => 
+      task.dueAt && 
+      new Date(task.dueAt) > new Date() && 
+      (showCompletedTasks || task.status !== 'COMPLETED')
+    )
+    .sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime())
+    .slice(0, 5);
 
-  const handleQuickAction = (action: string) => {
-    switch (action) {
-      case 'new-task':
-        onTabChange('tasks');
-        break;
-      case 'new-reminder':
-        onTabChange('reminders');
-        break;
-      case 'start-timer':
-        onTimerToggle();
-        onTabChange('tracker');
-        break;
-      case 'view-schedule':
-        onTabChange('schedule');
-        break;
-      case 'view-analytics':
-        setShowReports(true);
-        break;
-      case 'view-history':
-        onTabChange('history');
-        break;
-      case 'quick-study':
-        onTimerToggle();
-        onTabChange('tracker');
-        break;
-      default:
-        break;
-    }
-  };
-
-  const handleExportReport = () => {
-    // Create a simple text report
-    const report = `
-تقرير الأداء - ${new Date().toLocaleDateString('ar-EG')}
-
-الإحصائيات:
-- المهام المكتملة: ${stats.completedTasks}
-- المهام المعلقة: ${stats.pendingTasks}
-- ساعات المذاكرة: ${stats.studyHours}
-- التذكيرات القادمة: ${stats.upcomingReminders}
-- تقدم الهدف اليومي: ${Math.round(stats.dailyGoalProgress)}%
-- تقدم الهدف الأسبوعي: ${Math.round(stats.weeklyGoalProgress)}%
-- سلسلة الأيام: ${stats.streakDays} يوم
-- درجة التركيز: ${stats.focusScore}%
-
----
-تم إنشاء التقرير من لوحة تنظيم الوقت
-    `;
-    
-    const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `تقرير_الأداء_${new Date().toISOString().split('T')[0]}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
+  const recentSessions = studySessions
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+    .slice(0, 3);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="animate-in fade-in slide-in-from-top-4 duration-700">
-        <StatsCards 
-          stats={stats} 
-          subjectsCount={subjects.length}
-          onTabChange={onTabChange}
-        />
-      </div>
-      
-      <div className="animate-in fade-in slide-in-from-top-4 duration-700" style={{ animationDelay: '100ms' }}>
-        <QuickActions onAction={handleQuickAction} />
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
-        <div className="lg:col-span-2">
-          <PerformanceMetrics stats={stats} totalTasks={tasks.length} />
-        </div>
-        
-        <div className="lg:col-span-1 space-y-6">
-          <div className="animate-in fade-in slide-in-from-right-4 duration-700">
-            <UpcomingRemindersCard
-              reminders={reminders}
-              showUpcomingOnly={showUpcomingRemindersOnly}
-              onToggleView={onToggleUpcomingReminders}
-              onTabChange={onTabChange}
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">المهام المكتملة</CardTitle>
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <span className="text-2xl font-bold">{stats.completedTasks}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              من أصل {tasks.length} مهمة
+            </p>
+            <Progress 
+              value={tasks.length ? Math.round((stats.completedTasks / tasks.length) * 100) : 0} 
+              className="mt-2 h-1.5" 
             />
-          </div>
-          
-          <div className="animate-in fade-in slide-in-from-right-4 duration-700" style={{ animationDelay: '200ms' }}>
-            <UpcomingTasksCard
-              tasks={tasks}
-              showCompleted={showCompletedTasks}
-              onToggleView={onToggleCompletedTasks}
-              onTabChange={onTabChange}
-              onTimerToggle={onTimerToggle}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">ساعات الدراسة</CardTitle>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-orange-500" />
+              <span className="text-2xl font-bold">{stats.studyHours}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              هذا الأسبوع
+            </p>
+            <Progress 
+              value={Math.min(100, stats.weeklyGoalProgress)} 
+              className="mt-2 h-1.5" 
             />
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">الانضباط</CardTitle>
+            <div className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-purple-500" />
+              <span className="text-2xl font-bold">{stats.disciplineScore}%</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              استمرارية وتحقيق الأهداف
+            </p>
+            <Progress 
+              value={stats.disciplineScore} 
+              className="mt-2 h-1.5 bg-purple-300" 
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">الإتقان</CardTitle>
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-emerald-500" />
+              <span className="text-2xl font-bold">{stats.masteryScore}%</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              كفاءة الدراسة والتركيز
+            </p>
+            <Progress 
+              value={stats.masteryScore} 
+              className="mt-2 h-1.5 bg-emerald-300" 
+            />
+          </CardContent>
+        </Card>
       </div>
 
-      <Dialog open={showReports} onOpenChange={setShowReports}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <BarChart3 className="h-5 w-5" />
-                تقارير الأداء المتقدمة
-              </span>
-              <Button
-                variant="ghost"
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span>الإجراءات السريعة</span>
+              </CardTitle>
+              <CardDescription>
+                ابدأ المهام أو مؤقت الدراسة بنقرة واحدة
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <QuickActions
+                onAction={(action) => {
+                  switch (action) {
+                    case 'new-task':
+                      onTabChange('tasks');
+                      return;
+                    case 'new-reminder':
+                      onTabChange('reminders');
+                      return;
+                    case 'start-timer':
+                    case 'quick-study':
+                      onTimerToggle(undefined);
+                      return;
+                    case 'set-goal':
+                      onTabChange('goals');
+                      return;
+                    case 'view-schedule':
+                      onTabChange('schedule');
+                      return;
+                    case 'view-analytics':
+                      onTabChange('analytics');
+                      return;
+                    case 'view-history':
+                      onTabChange('history');
+                      return;
+                    default:
+                      return;
+                  }
+                }}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>المهام القادمة</CardTitle>
+                <CardDescription>المهام التي يجب إنجازها قريباً</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
                 size="sm"
-                onClick={() => setShowReports(false)}
+                onClick={onToggleCompletedTasks}
               >
-                <X className="h-4 w-4" />
+                {showCompletedTasks ? 'إخفاء المكتملة' : 'عرض المكتملة'}
               </Button>
-            </DialogTitle>
-          </DialogHeader>
-          <AdvancedReports
-            tasks={tasks}
-            studySessions={studySessions}
-            reminders={reminders}
-            stats={stats}
-            onExport={handleExportReport}
-          />
-        </DialogContent>
-      </Dialog>
+            </CardHeader>
+            <CardContent>
+              <UpcomingTasksCard 
+                tasks={upcomingTasks}
+                showCompleted={showCompletedTasks}
+                onToggleView={onToggleCompletedTasks}
+                onTabChange={onTabChange}
+                onTimerToggle={onTimerToggle}
+              />
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Flame className="h-5 w-5 text-orange-500" />
+                متوالية الالتزام
+              </CardTitle>
+              <CardDescription>
+                عدد الأيام المتتالية التي تحقق فيها أهدافك
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-orange-500">{stats.streakDays}</div>
+                  <div className="text-sm text-muted-foreground">يوم</div>
+                </div>
+              </div>
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center text-sm">
+                  <Zap className="h-4 w-4 text-yellow-500 ml-2" />
+                  <span>التركيز: {stats.focusScore}%</span>
+                </div>
+                <div className="flex items-center text-sm">
+                  <TrendingUp className="h-4 w-4 text-blue-500 ml-2" />
+                  <span>الكفاءة: {stats.studyEfficiency}%</span>
+                </div>
+                <div className="flex items-center text-sm">
+                  <Clock className="h-4 w-4 text-purple-500 ml-2" />
+                  <span>البومودورو: {stats.pomodoroSessions}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>التذكيرات القادمة</CardTitle>
+                <CardDescription>تذكيراتك في الـ 24 ساعة القادمة</CardDescription>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={onToggleUpcomingReminders}
+              >
+                {showUpcomingRemindersOnly ? 'إظهار الكل' : 'القادمة فقط'}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <UpcomingRemindersCard 
+                reminders={reminders.filter(r => {
+                  const now = new Date();
+                  const remindDate = new Date(r.remindAt);
+                  return remindDate > now;
+                })} 
+                showUpcomingOnly={showUpcomingRemindersOnly}
+                onToggleView={onToggleUpcomingReminders}
+                onTabChange={onTabChange}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>جلسات الدراسة الأخيرة</CardTitle>
+              <CardDescription>سجل جلساتك الدراسية الأخيرة</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {recentSessions.length > 0 ? (
+                <div className="space-y-4">
+                  {recentSessions.map((session, index) => (
+                    <div 
+                      key={`${session.id}-${index}`} 
+                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium truncate">
+                          {session.taskId 
+                            ? tasks.find(t => t.id === session.taskId)?.title || 'جلسة مذاكرة' 
+                            : 'جلسة مذاكرة'}
+                        </div>
+                        <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                          <Clock className="h-3 w-3" />
+                          {formatTime(session.durationMin * 60)} • {new Date(session.startTime).toLocaleDateString('ar-SA')}
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="ml-2">
+                        {Math.floor(session.durationMin)} د
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-center text-muted-foreground py-4">لا توجد جلسات بعد</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

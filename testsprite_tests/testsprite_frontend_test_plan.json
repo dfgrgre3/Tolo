@@ -1,0 +1,406 @@
+[
+  {
+    "id": "TC001",
+    "title": "Load events listing successfully",
+    "description": "Verifies the events page loads and shows an events list after fetching events.",
+    "category": "Community Events",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /events"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/events\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Events\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Filter events by category",
+    "description": "Verifies selecting a category filter updates the visible events list.",
+    "category": "Community Events",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /events"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click on the \"Category\" filter dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Select a category option other than \"All\" from the dropdown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the selected category value is visible in the filter control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "Search events by title or description (returns matches)",
+    "description": "Verifies searching with a common keyword shows matching results.",
+    "category": "Community Events",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /events"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click into the search input on the events page"
+      },
+      {
+        "type": "action",
+        "description": "Type \"community\" into the search input"
+      },
+      {
+        "type": "action",
+        "description": "Press Enter"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "Search events with no matches shows empty state",
+    "description": "Verifies searching with a rare term shows a no-results message or empty state.",
+    "category": "Community Events",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /events"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click into the search input on the events page"
+      },
+      {
+        "type": "action",
+        "description": "Type \"zzzz-no-such-event-12345\" into the search input"
+      },
+      {
+        "type": "action",
+        "description": "Press Enter"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"No results\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "Open an event to view details",
+    "description": "Verifies clicking an event item shows its details view.",
+    "category": "Community Events",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /events"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click on the first event item in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event details section is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a visible event title is present on the details view"
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Change filters after searching refines results",
+    "description": "Verifies combining search and category filter still updates the displayed events list.",
+    "category": "Community Events",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /events"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      },
+      {
+        "type": "action",
+        "description": "Click into the search input on the events page"
+      },
+      {
+        "type": "action",
+        "description": "Type \"festival\" into the search input"
+      },
+      {
+        "type": "action",
+        "description": "Press Enter"
+      },
+      {
+        "type": "action",
+        "description": "Click on the \"Category\" filter dropdown"
+      },
+      {
+        "type": "action",
+        "description": "Select a category option other than \"All\" from the dropdown"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify an event list is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Successful login redirects user to dashboard",
+    "description": "Verifies a registered user can log in from /login and is redirected to /dashboard with dashboard content visible.",
+    "category": "User Authentication (Login & Dashboard)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Dashboard\" is visible"
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Login fails with invalid password and shows error",
+    "description": "Verifies the login page shows an invalid-credentials error and does not navigate to the dashboard when the password is wrong.",
+    "category": "User Authentication (Login & Dashboard)",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"valid.user@example.com\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"wrong-password\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Invalid credentials\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Login fails with non-existent user and shows error",
+    "description": "Verifies the login page shows an error and remains on /login when the user does not exist.",
+    "category": "User Authentication (Login & Dashboard)",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"does.not.exist.98765@example.com\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"some-password\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Invalid credentials\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Login validation: missing password prevents login submission",
+    "description": "Verifies the login form blocks submission or shows a validation message when password is missing.",
+    "category": "User Authentication (Login & Dashboard)",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Password\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Login validation: missing email prevents login submission",
+    "description": "Verifies the login form blocks submission or shows a validation message when email is missing.",
+    "category": "User Authentication (Login & Dashboard)",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Click the \"Login\" button"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Email\" is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/login\""
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "Pressing Enter in password field submits login and redirects to dashboard",
+    "description": "Verifies the login form can be submitted via Enter key from the password field and results in a successful redirect to /dashboard.",
+    "category": "User Authentication (Login & Dashboard)",
+    "priority": "Low",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /login"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_USER}}\" into the email field"
+      },
+      {
+        "type": "action",
+        "description": "Type \"{{LOGIN_PASSWORD}}\" into the password field"
+      },
+      {
+        "type": "action",
+        "description": "Press \"Enter\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify URL contains \"/dashboard\""
+      },
+      {
+        "type": "assertion",
+        "description": "Verify text \"Dashboard\" is visible"
+      }
+    ]
+  }
+]

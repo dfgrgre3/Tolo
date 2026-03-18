@@ -1,11 +1,28 @@
 'use client';
 
-import { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { BarChart3, TrendingUp, TrendingDown, Clock, Target, Calendar, Zap } from 'lucide-react';
+import { 
+  TrendingUp, 
+  Target, 
+  Calendar, 
+  Clock, 
+  Flame, 
+  Trophy,
+  Zap,
+  BookOpen,
+  BarChart3,
+  Activity,
+  Brain,
+  Target as TargetIcon,
+  Award as AwardIcon,
+  Flame as FlameIcon
+} from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import type { Task, StudySession, Reminder } from '../types';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, subDays, subWeeks } from 'date-fns';
+import { format, isSameDay, subDays } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 interface TimeAnalyticsProps {
@@ -14,83 +31,89 @@ interface TimeAnalyticsProps {
   reminders: Reminder[];
 }
 
-export default function TimeAnalytics({ tasks, studySessions, reminders }: TimeAnalyticsProps) {
-  const now = new Date();
-  const analytics = useMemo(() => {
-    const weekStart = startOfWeek(now, { locale: ar });
-    const weekEnd = endOfWeek(now, { locale: ar });
-    const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+const TimeAnalytics = ({ tasks, studySessions, reminders }: TimeAnalyticsProps) => {
+  // Prepare data for the charts
+  const prepareWeeklyData = () => {
+    const now = new Date();
+    const data = [];
     
-    // Weekly study time distribution
-    const weeklyStudyTime = weekDays.map(day => {
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(now.getDate() - i);
+      const dateStr = date.toLocaleDateString('ar-SA');
+      
       const daySessions = studySessions.filter(session => 
-        isSameDay(new Date(session.startTime), day)
+        isSameDay(new Date(session.startTime), date)
       );
-      return daySessions.reduce((sum, s) => sum + s.durationMin, 0);
-    });
-    
-    // Task completion trend
-    const last7Days = Array.from({ length: 7 }, (_, i) => subDays(now, 6 - i));
-    const taskCompletionTrend = last7Days.map(day => {
+      
       const dayTasks = tasks.filter(task => 
-        task.completedAt && isSameDay(new Date(task.completedAt), day)
+        task.completedAt && 
+        isSameDay(new Date(task.completedAt), date)
       );
-      return dayTasks.length;
-    });
+      
+      data.push({
+        name: format(date, 'EEEE', { locale: ar }).slice(0, 2),
+        studyHours: Math.round(daySessions.reduce((sum, s) => sum + s.durationMin, 0) / 60 * 10) / 10,
+        completedTasks: dayTasks.length,
+        date: dateStr
+      });
+    }
     
-    // Subject-based time distribution
-    const subjectTimeMap = new Map<string, number>();
-    studySessions.forEach(session => {
-      if (session.subject) {
-        const current = subjectTimeMap.get(session.subject) || 0;
-        subjectTimeMap.set(session.subject, current + session.durationMin);
-      }
-    });
+    return data;
+  };
+
+  const prepareProductivityData = () => {
+    // Calculate productivity metrics over time
+    const now = new Date();
+    const data = [];
     
-    // Average session duration
-    const avgSessionDuration = studySessions.length > 0
-      ? studySessions.reduce((sum, s) => sum + s.durationMin, 0) / studySessions.length
-      : 0;
-    
-    // Task completion rate
-    const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length;
-    const completionRate = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
-    
-    // Reminder effectiveness (reminders that led to completed tasks)
-    const effectiveReminders = reminders.filter(r => {
-      const relatedTasks = tasks.filter(t => 
-        t.dueAt && Math.abs(new Date(t.dueAt).getTime() - new Date(r.remindAt).getTime()) < 24 * 60 * 60 * 1000
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(now.getDate() - i);
+      
+      const daySessions = studySessions.filter(session => 
+        isSameDay(new Date(session.startTime), date)
       );
-      return relatedTasks.some(t => t.status === 'COMPLETED');
-    }).length;
+      
+      const dayTasks = tasks.filter(task => 
+        task.completedAt && 
+        isSameDay(new Date(task.completedAt), date)
+      );
+      
+      // Calculate productivity score for the day
+      const studyHours = daySessions.reduce((sum, s) => sum + s.durationMin, 0) / 60;
+      const completedTasks = dayTasks.length;
+      const pomodoroSessions = daySessions.filter(s => s.durationMin >= 20 && s.durationMin <= 30).length;
+      
+      // Productivity score formula: weighted combination of study hours, completed tasks, and focused sessions
+      const productivityScore = Math.min(100, Math.round(
+        (studyHours / 8) * 40 +  // Up to 40% for study hours (max 8 hours = 100%)
+        (completedTasks / 10) * 40 +  // Up to 40% for completed tasks (max 10 tasks = 100%)
+        (pomodoroSessions / 5) * 20  // Up to 20% for focused sessions (max 5 sessions = 100%)
+      ));
+      
+      data.push({
+        name: format(date, 'EEEE', { locale: ar }).slice(0, 2),
+        productivity: productivityScore,
+        studyHours: Math.round(studyHours * 10) / 10,
+        pomodoroSessions,
+        date: date.toDateString()
+      });
+    }
     
-    // Peak study hours
-    const hourDistribution = Array.from({ length: 24 }, () => 0);
-    studySessions.forEach(session => {
-      const hour = new Date(session.startTime).getHours();
-      hourDistribution[hour] += session.durationMin;
-    });
-    const peakHour = hourDistribution.indexOf(Math.max(...hourDistribution));
-    
-    // Productivity score (0-100)
-    const productivityScore = Math.min(100, Math.round(
-      (completionRate * 0.4) +
-      (avgSessionDuration / 60 * 10 * 0.3) +
-      (weeklyStudyTime.reduce((a, b) => a + b, 0) / 60 / 20 * 100 * 0.3)
-    ));
-    
-    return {
-      weeklyStudyTime,
-      taskCompletionTrend,
-      subjectTimeMap,
-      avgSessionDuration,
-      completionRate,
-      effectiveReminders,
-      peakHour,
-      productivityScore,
-      totalStudyHours: weeklyStudyTime.reduce((a, b) => a + b, 0) / 60
-    };
-  }, [tasks, studySessions, reminders]);
+    return data;
+  };
+
+  const weeklyData = prepareWeeklyData();
+  const productivityData = prepareProductivityData();
+
+  // Calculate additional metrics
+  const totalStudyHours = studySessions.reduce((sum, session) => sum + session.durationMin, 0) / 60;
+  const avgStudyHours = totalStudyHours / 7;
+  const totalPomodoroSessions = studySessions.filter(session => 
+    session.durationMin >= 20 && session.durationMin <= 30
+  ).length;
+  const avgPomodoroPerDay = totalPomodoroSessions / 7;
 
   return (
     <div className="space-y-6">
@@ -100,150 +123,207 @@ export default function TimeAnalytics({ tasks, studySessions, reminders }: TimeA
             <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ml-2">
               <BarChart3 className="h-5 w-5 text-primary" />
             </div>
-            تحليل الوقت والإنتاجية
+            تحليلات الإنتاجية
           </CardTitle>
+          <CardDescription className="mt-2">
+            رؤى مفصلة عن أدائك ومستوى إنتاجيتك عبر الزمن
+          </CardDescription>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
-          {/* Productivity Score */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 rounded-lg bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-950/20 border border-blue-200/50 dark:border-blue-800/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-sm">درجة الإنتاجية</span>
-                <Zap className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+        <CardContent className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">متوسط الساعات الدراسية يومياً</h3>
+                <Badge variant="secondary">{avgStudyHours.toFixed(1)} ساعة</Badge>
               </div>
-              <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
-                {analytics.productivityScore}%
-              </div>
-              <Progress value={analytics.productivityScore} className="h-2" />
+              <Progress value={Math.min(100, (avgStudyHours / 8) * 100)} className="h-2" />
             </div>
-            
-            <div className="p-4 rounded-lg bg-gradient-to-br from-green-50/50 to-transparent dark:from-green-950/20 border border-green-200/50 dark:border-green-800/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-sm">متوسط الجلسة</span>
-                <Clock className="h-4 w-4 text-green-600 dark:text-green-400" />
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium">متوسط جلسات البومودورو يومياً</h3>
+                <Badge variant="secondary">{avgPomodoroPerDay.toFixed(1)} جلسة</Badge>
               </div>
-              <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
-                {Math.round(analytics.avgSessionDuration)} د
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {studySessions.length} جلسة إجمالية
-              </p>
-            </div>
-            
-            <div className="p-4 rounded-lg bg-gradient-to-br from-purple-50/50 to-transparent dark:from-purple-950/20 border border-purple-200/50 dark:border-purple-800/50">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-medium text-sm">ساعات هذا الأسبوع</span>
-                <Target className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-              </div>
-              <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
-                {analytics.totalStudyHours.toFixed(1)}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                هدف: 20 ساعة/أسبوع
-              </p>
+              <Progress value={Math.min(100, (avgPomodoroPerDay / 5) * 100)} className="h-2" />
             </div>
           </div>
 
-          {/* Weekly Study Time Chart */}
-          <div className="p-4 rounded-lg bg-gradient-to-br from-gray-50/50 to-transparent dark:from-gray-900/20 border border-gray-200/50 dark:border-gray-800/50">
-            <h3 className="font-semibold mb-4 flex items-center">
-              <Calendar className="h-4 w-4 ml-2" />
-              توزيع وقت المذاكرة خلال الأسبوع
-            </h3>
-            <div className="space-y-2">
-              {analytics.weeklyStudyTime.map((minutes, index) => {
-                const dayName = format(new Date(startOfWeek(now, { locale: ar }).getTime() + index * 24 * 60 * 60 * 1000), 'EEEE', { locale: ar });
-                const hours = minutes / 60;
-                const maxHours = Math.max(...analytics.weeklyStudyTime) / 60 || 1;
-                const percentage = (hours / maxHours) * 100;
-                
-                return (
-                  <div key={index} className="space-y-1">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="font-medium">{dayName}</span>
-                      <span className="text-muted-foreground">{hours.toFixed(1)} ساعة</span>
-                    </div>
-                    <Progress value={percentage} className="h-3" />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Subject Time Distribution */}
-          {analytics.subjectTimeMap.size > 0 && (
-            <div className="p-4 rounded-lg bg-gradient-to-br from-orange-50/50 to-transparent dark:from-orange-950/20 border border-orange-200/50 dark:border-orange-800/50">
-              <h3 className="font-semibold mb-4 flex items-center">
-                <Target className="h-4 w-4 ml-2" />
-                توزيع الوقت حسب المادة
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <h3 className="font-medium mb-4 flex items-center gap-2">
+                <Activity className="h-4 w-4 text-indigo-500" />
+                ساعات الدراسة والمهمات المكتملة
               </h3>
-              <div className="space-y-2">
-                {Array.from(analytics.subjectTimeMap.entries())
-                  .sort((a, b) => b[1] - a[1])
-                  .map(([subject, minutes]) => {
-                    const hours = minutes / 60;
-                    const totalMinutes = Array.from(analytics.subjectTimeMap.values()).reduce((a, b) => a + b, 0);
-                    const percentage = totalMinutes > 0 ? (minutes / totalMinutes) * 100 : 0;
-                    
-                    return (
-                      <div key={subject} className="space-y-1">
-                        <div className="flex justify-between items-center text-sm">
-                          <span className="font-medium">{subject}</span>
-                          <span className="text-muted-foreground">{hours.toFixed(1)} ساعة</span>
-                        </div>
-                        <Progress value={percentage} className="h-3" />
-                      </div>
-                    );
-                  })}
-              </div>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart
+                  data={weeklyData}
+                  margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    formatter={(value, name) => [
+                      name === 'studyHours' ? `${value} ساعة` : value,
+                      name === 'studyHours' ? 'ساعات الدراسة' : 'المهام المكتملة'
+                    ]}
+                    labelFormatter={(label) => `اليوم: ${label}`}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Area type="monotone" dataKey="studyHours" stackId="1" stroke="#4f46e5" fill="url(#colorStudy)" strokeWidth={2} name="ساعات الدراسة" />
+                  <Line type="monotone" dataKey="completedTasks" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} name="المهام المكتملة" />
+                  <defs>
+                    <linearGradient id="colorStudy" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#c7d2fe" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#c7d2fe" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
-          )}
 
-          {/* Peak Study Hour */}
-          {analytics.peakHour >= 0 && (
-            <div className="p-4 rounded-lg bg-gradient-to-br from-pink-50/50 to-transparent dark:from-pink-950/20 border border-pink-200/50 dark:border-pink-800/50">
-              <h3 className="font-semibold mb-2 flex items-center">
-                <Clock className="h-4 w-4 ml-2" />
-                ساعة الذروة للمذاكرة
+            <div>
+              <h3 className="font-medium mb-4 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-teal-500" />
+                مقياس الإنتاجية
               </h3>
-              <p className="text-2xl font-bold text-pink-600 dark:text-pink-400">
-                {analytics.peakHour}:00 - {analytics.peakHour + 1}:00
-              </p>
-              <p className="text-sm text-muted-foreground mt-1">
-                أكثر ساعة تذاكر فيها خلال الأسبوع
-              </p>
-            </div>
-          )}
-
-          {/* Task Completion Trend */}
-          <div className="p-4 rounded-lg bg-gradient-to-br from-indigo-50/50 to-transparent dark:from-indigo-950/20 border border-indigo-200/50 dark:border-indigo-800/50">
-            <h3 className="font-semibold mb-4 flex items-center">
-              <TrendingUp className="h-4 w-4 ml-2" />
-              اتجاه إكمال المهام (آخر 7 أيام)
-            </h3>
-            <div className="flex items-end justify-between gap-2 h-32">
-              {analytics.taskCompletionTrend.map((count, index) => {
-                const maxCount = Math.max(...analytics.taskCompletionTrend) || 1;
-                const height = (count / maxCount) * 100;
-                
-                return (
-                  <div key={index} className="flex-1 flex flex-col items-center gap-1">
-                    <div 
-                      className="w-full bg-gradient-to-t from-indigo-600 to-indigo-400 dark:from-indigo-500 dark:to-indigo-300 rounded-t-lg transition-all hover:opacity-80"
-                      style={{ height: `${Math.max(height, 5)}%` }}
-                      title={`${count} مهام`}
-                    />
-                    <span className="text-xs text-muted-foreground">
-                      {format(subDays(now, 6 - index), 'd', { locale: ar })}
-                    </span>
-                  </div>
-                );
-              })}
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart
+                  data={productivityData}
+                  margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.3} />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 100]} axisLine={false} tickLine={false} />
+                  <Tooltip 
+                    formatter={(value) => [`${value}%`, 'نسبة']}
+                    labelFormatter={(label) => `اليوم: ${label}`}
+                    contentStyle={{
+                      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="productivity" 
+                    stroke="#0d9488" 
+                    strokeWidth={3} 
+                    dot={{ r: 5 }} 
+                    activeDot={{ r: 8 }} 
+                    name="مقياس الإنتاجية"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي الساعات الدراسية</CardTitle>
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-blue-500" />
+              <span className="text-2xl font-bold">{totalStudyHours.toFixed(1)}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              هذا الأسبوع
+            </p>
+            <Progress 
+              value={Math.min(100, (totalStudyHours / 40) * 100)} 
+              className="mt-2 h-1.5" 
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">إجمالي جلسات البومودورو</CardTitle>
+            <div className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-orange-500" />
+              <span className="text-2xl font-bold">{totalPomodoroSessions}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              هذا الأسبوع
+            </p>
+            <Progress 
+              value={Math.min(100, (totalPomodoroSessions / 35) * 100)} 
+              className="mt-2 h-1.5" 
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">نقطة التركيز</CardTitle>
+            <div className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-purple-500" />
+              <span className="text-2xl font-bold">{Math.round(productivityData.reduce((sum, d) => sum + d.productivity, 0) / 7)}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              متوسط الأسبوع
+            </p>
+            <Progress 
+              value={Math.round(productivityData.reduce((sum, d) => sum + d.productivity, 0) / 7)} 
+              className="mt-2 h-1.5 bg-purple-300" 
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-0">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">الانضباط</CardTitle>
+            <div className="flex items-center gap-2">
+              <FlameIcon className="h-5 w-5 text-emerald-500" />
+              <span className="text-2xl font-bold">{calculateStreak(studySessions)}</span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <p className="text-xs text-muted-foreground">
+              أيام متتالية
+            </p>
+            <Progress 
+              value={Math.min(100, calculateStreak(studySessions) * 10)} 
+              className="mt-2 h-1.5 bg-emerald-300" 
+            />
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
+};
+
+// Helper function to calculate streak
+function calculateStreak(studySessions: any[]): number {
+  let streak = 0;
+  const today = new Date();
+  const sessionDates = [...new Set(studySessions.map(s => new Date(s.startTime).toDateString()))];
+  const sortedDates = sessionDates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
+  
+  // Count backwards from today
+  for (let i = 0; i < 30; i++) {
+    const date = new Date();
+    date.setDate(today.getDate() - i);
+    const dateStr = date.toDateString();
+    if (sortedDates.includes(dateStr)) {
+      streak++;
+    } else if (i > 0) { // Don't break if it's the first day (today) with no session
+      break;
+    }
+  }
+  
+  return streak;
 }
 
+export default TimeAnalytics;

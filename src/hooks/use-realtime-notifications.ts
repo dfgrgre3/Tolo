@@ -42,7 +42,7 @@ export function useRealtimeNotifications({
 			}
 
 			// Create new EventSource connection
-			const eventSource = new EventSource(url);
+			const eventSource = new EventSource(url, { withCredentials: true });
 			eventSourceRef.current = eventSource;
 
 			eventSource.onmessage = (event) => {

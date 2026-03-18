@@ -1,13 +1,36 @@
 "use client";
 
-import { Loader2 } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export function LoadingState() {
 	return (
-		<div className="flex flex-col items-center justify-center py-16">
-			<Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-			<p className="text-muted-foreground">جاري تحميل الإنجازات...</p>
+		<div className="flex flex-col items-center justify-center py-32 h-[50vh]">
+			<div className="relative mb-6">
+				<motion.div 
+					className="w-20 h-20 rounded-full border-4 border-primary/20"
+				/>
+				<motion.div 
+					className="w-20 h-20 rounded-full border-4 border-primary border-t-transparent absolute top-0 left-0"
+					animate={{ rotate: 360 }}
+					transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+				/>
+				<motion.div 
+					className="text-3xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
+					animate={{ scale: [0.8, 1.1, 0.8] }}
+					transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+				>
+					🏆
+				</motion.div>
+			</div>
+			
+			<div className="space-y-2 text-center">
+				<h3 className="text-xl font-bold bg-gradient-to-l from-primary to-primary/60 bg-clip-text text-transparent">
+					جاري تجهيز سجل الإنجازات...
+				</h3>
+				<p className="text-sm text-muted-foreground font-medium animate-pulse">
+					نجمع بيانات تفوقك ونجاحاتك
+				</p>
+			</div>
 		</div>
 	);
 }
-

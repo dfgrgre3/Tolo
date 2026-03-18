@@ -150,6 +150,12 @@ export async function POST(request: NextRequest) {
 
         const notification = await Promise.race([createPromise, createTimeoutPromise]);
 
+        // Publish to real-time stream
+        const { eventBus } = await import('@/lib/event-bus');
+        eventBus.publish('notification.created', notification).catch(err => 
+            logger.error('Failed to publish notification event:', err)
+        );
+
         return createSuccessResponse({ notification }, undefined, 201);
       } catch (error) {
         logger.error('Error creating notification:', error);

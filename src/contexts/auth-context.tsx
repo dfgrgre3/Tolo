@@ -86,6 +86,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const router = useRouter();
     const isRefreshing = useRef(false);
     const refreshPromise = useRef<Promise<boolean> | null>(null);
+    const userFetchPromise = useRef<Promise<boolean> | null>(null);
 
     const delay = useCallback((ms: number) => {
         return new Promise<void>((resolve) => {
@@ -167,44 +168,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     /**
      * Fetch current user profile from the server.
-     * Called on mount and after login to sync state.
-     *
-     * IMPORTANT: /api/auth/me handles token refresh internally (Priority 2 path).
-     * Do NOT call refreshToken() separately here — doing so causes a race condition
-     * where the same refresh token is used twice, triggering the replay-attack
-     * detection and permanently revoking the session.
+     * centralizes auth state restoration.
      */
     const refreshUser = useCallback(async (options?: { clearOnFailure?: boolean }) => {
         const clearOnFailure = options?.clearOnFailure ?? true;
 
         try {
-            // /api/auth/me auto-refreshes tokens if the access_token is expired
-            // but a valid refresh_token exists. No need to call /api/auth/refresh.
+            // Priority: if we're already refreshing tokens, wait for that first
+            if (isRefreshing.current && refreshPromise.current) {
+                await refreshPromise.current;
+            }
+
             const response = await fetch('/api/auth/me', {
                 credentials: 'include',
                 cache: 'no-store',
             });
 
-            if (response.ok) {
+            // If it returns 401, it might be because the access token is expired
+            // but the server-side /api/auth/me didn't auto-refresh (or failed).
+            // We should try one explicit refresh if we haven't already.
+            if (response.status === 401) {
+                const refreshed = await refreshToken();
+                if (refreshed) {
+                    // Retry getting user with new tokens
+                    const retryResponse = await fetch('/api/auth/me', {
+                        credentials: 'include',
+                        cache: 'no-store',
+                    });
+                    if (retryResponse.ok) {
+                        const data = await retryResponse.json();
+                        setUser(data.user);
+                        return true;
+                    }
+                }
+            } else if (response.ok) {
                 const data = await response.json();
                 setUser(data.user);
                 return true;
             }
 
-            // 401 means no valid token pair exists — user truly needs to log in.
             if (clearOnFailure) {
                 setUser(null);
                 clearUserId();
             }
             return false;
-        } catch {
+        } catch (error) {
+            console.error('refreshUser error:', error);
             if (clearOnFailure) {
                 setUser(null);
                 clearUserId();
             }
             return false;
         }
-    }, []);
+    }, [refreshToken]);
 
     /**
      * Login function - authenticates with the API and updates state.

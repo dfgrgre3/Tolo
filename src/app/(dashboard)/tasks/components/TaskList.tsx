@@ -42,20 +42,21 @@ export const TaskList: React.FC<TaskListProps> = ({
           className={`border-l-4 transition-all duration-200 hover:shadow-md ${
             task.priority === 2 ? 'border-red-500' : 
             task.priority === 1 ? 'border-yellow-500' : 'border-green-500'
-          } ${task.status === 'COMPLETED' ? 'opacity-75' : ''}`}
+          } ${task.status === TaskStatus.COMPLETED ? 'opacity-75 bg-green-50' : ''}`}
         >
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <Checkbox
-                  checked={task.status === 'COMPLETED'}
+                  checked={task.status === TaskStatus.COMPLETED}
                   onCheckedChange={() => onStatusChange(task.id, task.status)}
+                  disabled={task.status === TaskStatus.COMPLETED}
                 />
-                <span className={`${task.status === 'COMPLETED' ? 'line-through text-gray-500' : ''}`}>
+                <span className={`${task.status === TaskStatus.COMPLETED ? 'line-through text-gray-500' : ''}`}>
                   {task.title}
                 </span>
               </div>
-              <div className="flex items-center">
+              <div className="flex items-center space-x-1">
                 <Button variant="ghost" size="sm" onClick={() => onEdit(task)}>
                   <Edit className="h-4 w-4" />
                 </Button>
@@ -96,10 +97,10 @@ export const TaskList: React.FC<TaskListProps> = ({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1">
                   {getStatusIcon(task.status)}
-                  <span className="text-sm text-gray-500">
-                    {task.status === 'PENDING' && 'قيد الانتظار'}
-                    {task.status === 'IN_PROGRESS' && 'قيد التنفيذ'}
-                    {task.status === 'COMPLETED' && 'مكتملة'}
+                  <span className="text-sm text-gray-500 capitalize">
+                    {task.status === TaskStatus.PENDING && 'قيد الانتظار'}
+                    {task.status === TaskStatus.IN_PROGRESS && 'قيد التنفيذ'}
+                    {task.status === TaskStatus.COMPLETED && 'مكتملة'}
                   </span>
                 </div>
                 {getPriorityBadge(task.priority)}
@@ -118,12 +119,12 @@ export const TaskList: React.FC<TaskListProps> = ({
                 
                 {task.dueAt && (
                   <Badge 
-                    variant={isOverdue(task.dueAt) ? "destructive" : "outline"} 
+                    variant={isOverdue(task.dueAt) && task.status !== TaskStatus.COMPLETED ? "destructive" : "outline"} 
                     className="text-xs flex items-center gap-1"
                   >
                     <Calendar className="h-3 w-3" />
-                    {new Date(task.dueAt).toLocaleDateString()}
-                    {isOverdue(task.dueAt) && (
+                    {new Date(task.dueAt).toLocaleDateString('ar-EG', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {isOverdue(task.dueAt) && task.status !== TaskStatus.COMPLETED && (
                       <span className="text-xs">(متأخر)</span>
                     )}
                   </Badge>

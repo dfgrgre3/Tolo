@@ -1,0 +1,18 @@
+[
+  {
+    "projectId": "bef10793-1718-4690-8fc0-f5307fc049b5",
+    "testId": "82ec4bd7-6d21-46a9-be6e-399eda4a3ba7",
+    "userId": "b4188498-60a1-70ea-0fa7-2d1bca2df751",
+    "title": "TC001-Load events listing successfully",
+    "description": "Verifies the events page loads and shows an events list after fetching events.",
+    "code": "import asyncio\nfrom playwright import async_api\nfrom playwright.async_api import expect\n\nasync def run_test():\n    pw = None\n    browser = None\n    context = None\n\n    try:\n        # Start a Playwright session in asynchronous mode\n        pw = await async_api.async_playwright().start()\n\n        # Launch a Chromium browser in headless mode with custom arguments\n        browser = await pw.chromium.launch(\n            headless=True,\n            args=[\n                \"--window-size=1280,720\",         # Set the browser window size\n                \"--disable-dev-shm-usage\",        # Avoid using /dev/shm which can cause issues in containers\n                \"--ipc=host\",                     # Use host-level IPC for better stability\n                \"--single-process\"                # Run the browser in a single process mode\n            ],\n        )\n\n        # Create a new browser context (like an incognito window)\n        context = await browser.new_context()\n        context.set_default_timeout(5000)\n\n        # Open a new page in the browser context\n        page = await context.new_page()\n\n        # Interact with the page elements to simulate user flow\n        # -> Navigate to http://localhost:3000/http://localhost:3000/login?redirect=%2F\n        await page.goto(\"http://localhost:3000/http://localhost:3000/login?redirect=%2F\", wait_until=\"commit\", timeout=10000)\n        \n        # -> Navigate to /events by using explicit navigation to 'http://localhost:3000/events' and then verify the page content (URL contains '/events', 'Events' text visible, and an events list is present).\n        await page.goto(\"http://localhost:3000/events\", wait_until=\"commit\", timeout=10000)\n        \n        # --> Assertions to verify final state\n        frame = context.pages[-1]\n        assert '/events' in frame.url\n        await expect(frame.locator('text=Events').first).to_be_visible(timeout=3000)\n        await expect(frame.locator(\"xpath=//ul[li]\").first).to_be_visible(timeout=3000)\n        await asyncio.sleep(5)\n\n    finally:\n        if context:\n            await context.close()\n        if browser:\n            await browser.close()\n        if pw:\n            await pw.stop()\n\nasyncio.run(run_test())\n    ",
+    "testStatus": "PASSED",
+    "testError": "",
+    "testType": "FRONTEND",
+    "createFrom": "mcp",
+    "priority": "High",
+    "testVisualization": "https://testsprite-videos.s3.us-east-1.amazonaws.com/b4188498-60a1-70ea-0fa7-2d1bca2df751/1772982521666063//tmp/test_task/result.webm",
+    "created": "2026-03-08T15:07:06.802Z",
+    "modified": "2026-03-08T15:08:41.815Z"
+  }
+]

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ensureUser } from "@/lib/user-utils";
 
 import { logger } from '@/lib/logger';
+import { safeFetch } from "@/lib/safe-client-utils";
 
 type Event = {
   id: string;
@@ -33,23 +34,34 @@ export default function EventsPage() {
   const [sortBy, setSortBy] = useState<"newest" | "soonest">("newest");
 
   useEffect(() => {
-    ensureUser().then(setUserId);
+    const controller = new AbortController();
+    ensureUser(controller.signal).then(setUserId);
+    return () => controller.abort();
   }, []);
 
   useEffect(() => {
+    const controller = new AbortController();
+    
     const fetchEvents = async () => {
-      try {
-        const res = await fetch("/api/events");
-        if (res.ok) {
-          const data = await res.json() as Event[];
-          setEvents(data);
-        }
-      } catch (error) {
-        logger.error("Error fetching events:", error);
+      const { data, error } = await safeFetch<Event[]>("/api/events", {
+        signal: controller.signal
+      });
+      
+      if (data) {
+        setEvents(data);
+      } else if (error && error.name !== 'AbortError') {
+        logger.error("Error fetching events:", error, {
+          source: 'EventsPage',
+          severity: 'medium'
+        });
       }
     };
 
     fetchEvents();
+    
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   useEffect(() => {

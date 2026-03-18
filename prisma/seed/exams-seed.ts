@@ -9,28 +9,28 @@ const seedExams = [
   // Math Exams - امتحانات الرياضيات
   { 
     id: randomUUID(),
-    subject: SubjectType.MATH, 
+    subjectId: SubjectType.MATH, 
     title: "امتحان الرياضيات - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.MATH, 
+    subjectId: SubjectType.MATH, 
     title: "امتحان الرياضيات - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.MATH, 
+    subjectId: SubjectType.MATH, 
     title: "نموذج امتحان رياضيات - 2023", 
     year: 2023, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.MATH, 
+    subjectId: SubjectType.MATH, 
     title: "امتحان رياضيات - اختبار قصير", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
@@ -39,28 +39,28 @@ const seedExams = [
   // Physics Exams - امتحانات الفيزياء
   { 
     id: randomUUID(),
-    subject: SubjectType.PHYSICS, 
+    subjectId: SubjectType.PHYSICS, 
     title: "امتحان الفيزياء - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.PHYSICS, 
+    subjectId: SubjectType.PHYSICS, 
     title: "امتحان الفيزياء - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.PHYSICS, 
+    subjectId: SubjectType.PHYSICS, 
     title: "نموذج امتحان فيزياء - 2023", 
     year: 2023, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.PHYSICS, 
+    subjectId: SubjectType.PHYSICS, 
     title: "امتحان فيزياء - اختبار قصير", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
@@ -69,28 +69,28 @@ const seedExams = [
   // Chemistry Exams - امتحانات الكيمياء
   { 
     id: randomUUID(),
-    subject: SubjectType.CHEMISTRY, 
+    subjectId: SubjectType.CHEMISTRY, 
     title: "امتحان الكيمياء - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.CHEMISTRY, 
+    subjectId: SubjectType.CHEMISTRY, 
     title: "امتحان الكيمياء - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.CHEMISTRY, 
+    subjectId: SubjectType.CHEMISTRY, 
     title: "نموذج امتحان كيمياء - 2023", 
     year: 2023, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: SubjectType.CHEMISTRY, 
+    subjectId: SubjectType.CHEMISTRY, 
     title: "امتحان كيمياء - اختبار قصير", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
@@ -99,56 +99,56 @@ const seedExams = [
   // Additional subjects - مواد إضافية
   { 
     id: randomUUID(),
-    subject: "اللغة العربية", 
+    subjectId: "اللغة العربية", 
     title: "امتحان اللغة العربية - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: "اللغة العربية", 
+    subjectId: "اللغة العربية", 
     title: "امتحان اللغة العربية - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: "اللغة الإنجليزية", 
+    subjectId: "اللغة الإنجليزية", 
     title: "امتحان اللغة الإنجليزية - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: "اللغة الإنجليزية", 
+    subjectId: "اللغة الإنجليزية", 
     title: "امتحان اللغة الإنجليزية - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: "العلوم", 
+    subjectId: "العلوم", 
     title: "امتحان العلوم - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: "العلوم", 
+    subjectId: "العلوم", 
     title: "امتحان العلوم - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: "الدراسات الاجتماعية", 
+    subjectId: "الدراسات الاجتماعية", 
     title: "امتحان الدراسات الاجتماعية - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subject: "الدراسات الاجتماعية", 
+    subjectId: "الدراسات الاجتماعية", 
     title: "امتحان الدراسات الاجتماعية - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
@@ -178,7 +178,7 @@ async function seedExamsData() {
       
       // الحصول على الامتحانات الموجودة للتحقق من البيانات المفقودة
       const existingExams = await prisma.exam.findMany({
-        select: { id: true, title: true, year: true, subject: true }
+        select: { id: true, title: true, year: true, subjectId: true }
       });
       
       // فلترة الامتحانات المفقودة بناءً على العنوان والسنة والمادة
@@ -186,7 +186,7 @@ async function seedExamsData() {
         !existingExams.some(existing => 
           existing.title === seedExam.title && 
           existing.year === seedExam.year && 
-          existing.subject === seedExam.subject
+          existing.subjectId === seedExam.subjectId
         )
       );
       

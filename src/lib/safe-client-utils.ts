@@ -362,6 +362,9 @@ export function useSafeMediaQuery(query: string): boolean {
       return () => window.clearTimeout(mountTimer);
     }
 
+    // Used for cleanup in both the try and catch paths.
+    let initialMatchTimer: number | null = null;
+
     try {
       const media = window.matchMedia(query);
 

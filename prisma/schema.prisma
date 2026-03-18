@@ -72,6 +72,8 @@ model User {
   section                       String?
   interestedSubjects            String[]              @default([])
   studyGoal                     String?
+  bio                           String?               @db.Text
+  school                        String?
   
   subjectsTaught                String[]              @default([])
   classesTaught                 String[]              @default([])

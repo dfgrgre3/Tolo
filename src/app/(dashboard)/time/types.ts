@@ -98,5 +98,8 @@ export interface TimeStats {
   weeklyGoalProgress: number;
   streakDays: number;
   focusScore: number;
+  pomodoroSessions: number;
+  studyEfficiency: number;
+  disciplineScore: number;
+  masteryScore: number;
 }
-

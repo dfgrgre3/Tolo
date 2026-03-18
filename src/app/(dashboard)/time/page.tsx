@@ -206,6 +206,26 @@ export default function TimeManagementPage() {
           );
   }
 
+  // Calculate quick stats for header
+  const today = new Date();
+  const todayString = today.toISOString().split('T')[0];
+  const completedToday = studySessionsLocal.filter(session => 
+    session.startTime.startsWith(todayString)
+  ).length;
+  
+  const quickStats = {
+    todayTasks: tasksLocal.filter(t => 
+      t.dueAt && new Date(t.dueAt).toDateString() === today.toDateString()
+    ).length,
+    overdueTasks: tasksLocal.filter(t => 
+      t.dueAt && new Date(t.dueAt) < today && t.status !== 'COMPLETED'
+    ).length,
+    completedToday: tasksLocal.filter(t => 
+      t.completedAt && new Date(t.completedAt).toDateString() === today.toDateString()
+    ).length,
+    studyHours: stats.studyHours
+  };
+
   return (
           <div className="container mx-auto p-4 rtl" dir="rtl">
       <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -213,6 +233,7 @@ export default function TimeManagementPage() {
           isTimerRunning={isTimerRunning}
           onTimerToggle={() => handleTimerToggle()}
           onRefresh={fetchData}
+          quickStats={quickStats}
         />
       </div>
 
@@ -407,7 +428,7 @@ export default function TimeManagementPage() {
               <TimeTracker 
                 userId={userId}
                 tasks={mapTasksForTimeTracker()}
-                subjects={subjects}
+                subjects={subjects.map(String)}
                 onStudySessionCreate={handleStudySessionCreate}
               />
             </div>
@@ -441,7 +462,7 @@ export default function TimeManagementPage() {
           <div className="animate-in fade-in duration-700">
             <StudySessionsHistory 
               sessions={filteredSessions.length > 0 ? filteredSessions : studySessionsLocal} 
-              subjects={subjects}
+              subjects={subjects.map(String)}
             />
           </div>
         </TabsContent>

@@ -72,8 +72,10 @@ export default function NotificationsClient() {
 			if (!userId) return; // Skip if not authenticated
 			const loadAndSchedule = async () => {
 				if (!active) return;
+				try {
 				const res = await fetch(`/api/reminders?userId=${userId}`);
-				const reminders: Reminder[] = await res.json();
+				const json = await res.json();
+				const reminders: Reminder[] = (Array.isArray(json) ? json : json.data) || [];
 				// Clear existing timers
 				timersRef.current.forEach((t) => clearTimeout(t.timer));
 				timersRef.current = [];
@@ -102,6 +104,9 @@ export default function NotificationsClient() {
 						new Notification(r.title, { body: r.message || "تذكير بعد 10 دقائق" });
 					}, delay);
 					timersRef.current.push({ id: r.id, occurrence: next.toISOString(), timer });
+				}
+				} catch (error) {
+					console.error("Error in loadAndSchedule:", error);
 				}
 			};
 			await loadAndSchedule();

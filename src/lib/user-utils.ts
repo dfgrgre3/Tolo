@@ -5,8 +5,8 @@
  * Helper functions for user ID management
  */
 
-import { safeGetItem, safeSetItem } from './safe-client-utils';
-import { logger } from '@/lib/logger';
+import { safeGetItem, safeSetItem, safeFetch } from './safe-client-utils';
+import { logger } from '@/lib/logger';
 
 const LOCAL_USER_KEY = 'tw_user_id';
 
@@ -28,27 +28,26 @@ function normalizeUserId(value: unknown): string | null {
  * التأكد من وجود معرف المستخدم، وإنشاء مستخدم ضيف إذا لزم الأمر
  * Ensure user ID exists, create guest user if needed
  */
-export async function ensureUser(): Promise<string> {
+export async function ensureUser(signal?: AbortSignal): Promise<string> {
   let id: string | null = normalizeUserId(safeGetItem(LOCAL_USER_KEY, { fallback: null }));
   
   if (!id) {
     try {
-      const res = await fetch('/api/users/guest', { 
+      const { data, error } = await safeFetch<{ id: string }>('/api/users/guest', { 
         method: 'POST',
-        next: { revalidate: 3600 } // Cache for 1 hour
+        signal
       });
       
-      if (res.ok) {
-        const data = await res.json();
+      if (data?.id) {
         id = normalizeUserId(data.id);
         if (id) {
           safeSetItem(LOCAL_USER_KEY, id);
         }
-      } else {
-        logger.warn('Failed to create guest user:', res.statusText);
+      } else if (error) {
+        logger.warn('Failed to create guest user:', error.message);
       }
     } catch (error) {
-      logger.warn('Error creating guest user:', error);
+      logger.warn('Unexpected error creating guest user:', error);
     }
   }
   
@@ -86,4 +85,3 @@ export function clearUserId(): boolean {
 }
 
 export { LOCAL_USER_KEY };
-

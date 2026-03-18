@@ -1,6 +1,6 @@
 "use client";
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Achievement } from '../types';
 import {
@@ -12,8 +12,8 @@ import {
 	getRarityLabel,
 	formatArabicDate,
 } from '../utils';
-import { Trophy, Lock, Zap, X, Calendar, Target, Award } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Trophy, Lock, Zap, Calendar, Target, Award, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface AchievementModalProps {
 	achievement: Achievement;
@@ -25,141 +25,229 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 	const isEarned = achievement.isEarned || false;
 	const rarity = achievement.rarity || 'common';
 
+	// Get subtle ring colors based on rarity for the border glow effect
+	const getRarityGlow = () => {
+		switch (rarity) {
+			case 'legendary': return 'from-yellow-400 via-orange-500 to-red-500';
+			case 'epic': return 'from-purple-400 via-fuchsia-500 to-pink-500';
+			case 'rare': return 'from-blue-400 via-cyan-500 to-teal-500';
+			default: return 'from-primary/50 via-primary to-primary/50';
+		}
+	};
+
 	return (
 		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-				<DialogHeader>
-					<div className="flex items-start gap-4">
-						<motion.div
-							initial={{ scale: 0, rotate: -180 }}
-							animate={{ scale: 1, rotate: 0 }}
-							transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-							className={`text-6xl ${
-								isEarned ? '' : 'grayscale opacity-50'
-							}`}
-						>
-							{achievement.icon || getCategoryIcon(achievement.category)}
-						</motion.div>
-						<div className="flex-1">
-							<DialogTitle className="text-2xl mb-2">{achievement.title}</DialogTitle>
-							<div className="flex flex-wrap gap-2 mb-4">
-								<Badge
-									variant="outline"
-									className={getDifficultyColor(achievement.difficulty)}
-								>
+			<DialogContent className="max-w-xl p-0 overflow-hidden border-0 bg-transparent shadow-2xl rounded-[2rem] sm:rounded-[2.5rem]">
+				{/* Hidden Title for Accessibility */}
+				<DialogTitle className="sr-only">{achievement.title}</DialogTitle>
+				<DialogDescription className="sr-only">{achievement.description}</DialogDescription>
+
+				<div className="relative bg-card/95 backdrop-blur-3xl overflow-hidden rounded-[2rem] sm:rounded-[2.5rem]">
+					{/* Modal Header Background */}
+					<div className="h-40 sm:h-48 w-full relative overflow-hidden">
+						{/* Animated Gradient Background */}
+						<div className={`absolute inset-0 bg-gradient-to-br ${isEarned ? getRarityGlow() : 'from-muted to-muted-foreground/30'} opacity-20`} />
+						
+						{isEarned && (
+							<motion.div 
+								animate={{ 
+									rotate: 360,
+									scale: [1, 1.2, 1]
+								}}
+								transition={{ 
+									rotate: { duration: 20, repeat: Infinity, ease: "linear" },
+									scale: { duration: 4, repeat: Infinity, ease: "easeInOut" }
+								}}
+								className={`absolute -top-1/2 -left-1/2 w-[200%] h-[200%] bg-[conic-gradient(var(--tw-gradient-stops))] ${getRarityGlow()} opacity-30`}
+								style={{ filter: "blur(40px)" }}
+							/>
+						)}
+
+						{/* Pattern overlay */}
+						<div className="absolute inset-0 opacity-[0.03] mix-blend-overlay" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+					</div>
+
+					{/* Modal Body */}
+					<div className="relative pt-16 sm:pt-20 px-6 sm:px-10 pb-8 sm:pb-10 bg-gradient-to-b from-transparent to-background/50">
+						{/* Floating Icon */}
+						<div className="absolute -top-16 sm:-top-20 left-1/2 transform -translate-x-1/2 flex justify-center">
+							<motion.div
+								initial={{ scale: 0, y: 50, rotate: -180 }}
+								animate={{ scale: 1, y: 0, rotate: 0 }}
+								transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.1 }}
+								className={`w-32 h-32 sm:w-40 sm:h-40 rounded-full flex items-center justify-center shadow-2xl ${
+									isEarned ? `bg-gradient-to-br ${getRarityGlow()}` : 'bg-muted border-[4px] border-background'
+								} p-1 relative z-20`}
+							>
+								<div className="w-full h-full bg-card rounded-full flex items-center justify-center relative overflow-hidden">
+									{isEarned && <div className={`absolute inset-0 bg-gradient-to-br ${getRarityGlow()} opacity-20`} />}
+									<span className={`text-6xl sm:text-7xl relative z-10 ${!isEarned && 'grayscale opacity-30'}`}>
+										{achievement.icon || getCategoryIcon(achievement.category)}
+									</span>
+									{isEarned && (
+										<motion.div
+											initial={{ opacity: 0 }}
+											animate={{ opacity: [0, 1, 0] }}
+											transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+											className="absolute inset-0 bg-white/20"
+										/>
+									)}
+								</div>
+								
+								{/* Earned Badge Overlay */}
+								{isEarned && (
+									<motion.div 
+										initial={{ scale: 0 }}
+										animate={{ scale: 1 }}
+										transition={{ type: "spring", delay: 0.5 }}
+										className="absolute -bottom-2 -right-2 bg-yellow-500 text-white p-2.5 rounded-full shadow-lg border-[3px] border-card z-30"
+									>
+										<Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
+									</motion.div>
+								)}
+							</motion.div>
+						</div>
+
+						{/* Content */}
+						<div className="text-center mt-2 mb-8">
+							<motion.h2 
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 0.2 }}
+								className={`text-2xl sm:text-3xl font-black mb-3 ${
+									achievement.isSecret && !isEarned 
+										? 'filter blur-[5px] select-none text-muted-foreground' 
+										: 'text-foreground'
+								}`}
+							>
+								{achievement.isSecret && !isEarned ? 'إنجاز سري غير معروف' : achievement.title}
+							</motion.h2>
+
+							<motion.div 
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ delay: 0.3 }}
+								className="flex flex-wrap justify-center gap-2 mb-6"
+							>
+								<Badge variant="secondary" className={`text-xs font-bold px-3 py-1 ${getDifficultyColor(achievement.difficulty)}`}>
 									{getDifficultyLabel(achievement.difficulty)}
 								</Badge>
-								<Badge variant="outline" className={getRarityColor(rarity)}>
+								<Badge variant="secondary" className={`text-xs font-bold px-3 py-1 ${getRarityColor(rarity)}`}>
 									{getRarityLabel(rarity)}
 								</Badge>
-								<Badge variant="outline">
+								<Badge variant="outline" className="text-xs font-bold px-3 py-1 bg-background/50">
 									{getCategoryIcon(achievement.category)} {getCategoryLabel(achievement.category)}
 								</Badge>
-							</div>
+							</motion.div>
+
+							{(!achievement.isSecret || isEarned) ? (
+								<motion.p 
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									transition={{ delay: 0.4 }}
+									className="text-muted-foreground leading-relaxed max-w-sm mx-auto"
+								>
+									{achievement.description}
+								</motion.p>
+							) : (
+								<motion.div 
+									initial={{ opacity: 0 }}
+									animate={{ opacity: 1 }}
+									transition={{ delay: 0.4 }}
+									className="flex flex-col items-center justify-center gap-2 text-primary/70"
+								>
+									<Sparkles className="w-6 h-6 animate-pulse" />
+									<p className="font-medium italic text-sm">استمر في استكشاف المنصة لاكتشاف هذا الإنجاز السري المخبأ!</p>
+								</motion.div>
+							)}
 						</div>
-						{isEarned ? (
-							<Trophy className="h-6 w-6 text-yellow-500" />
-						) : (
-							<Lock className="h-6 w-6 text-muted-foreground" />
+
+						{/* Stats grid */}
+						<motion.div 
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ delay: 0.5 }}
+							className="grid grid-cols-2 gap-4 mb-6"
+						>
+							<div className="bg-secondary/40 border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
+								<div className="p-2 bg-yellow-500/10 rounded-xl text-yellow-500">
+									<Zap className="w-5 h-5" />
+								</div>
+								<div className="text-2xl font-black">{achievement.xpReward}</div>
+								<div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">مكافأة نقاط XP</div>
+							</div>
+
+							{achievement.progress !== undefined && achievement.maxProgress ? (
+								<div className="bg-secondary/40 border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
+									<div className="absolute bottom-0 inset-x-0 h-1 bg-secondary">
+										<motion.div 
+											className="h-full bg-primary"
+											initial={{ width: 0 }}
+									animate={{ width: `${Math.min(100, (achievement.progress / achievement.maxProgress) * 100)}%` }}
+											transition={{ duration: 1, delay: 0.8 }}
+										/>
+									</div>
+									<div className="p-2 bg-blue-500/10 rounded-xl text-blue-500">
+										<Target className="w-5 h-5" />
+									</div>
+									<div className="text-2xl font-black">
+										{achievement.progress} <span className="text-sm font-medium text-muted-foreground">/ {achievement.maxProgress}</span>
+									</div>
+									<div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">نسبة التقدم</div>
+								</div>
+							) : (
+								<div className="bg-secondary/40 border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2">
+									<div className={`p-2 rounded-xl ${isEarned ? 'bg-green-500/10 text-green-500' : 'bg-orange-500/10 text-orange-500'}`}>
+										{isEarned ? <Trophy className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+									</div>
+								<div className={`text-lg font-bold ${isEarned ? 'text-green-600 dark:text-green-400' : 'text-orange-600 dark:text-orange-400'}`}>
+										{isEarned ? 'مكتسب' : 'مغلق'}
+									</div>
+									<div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">الحالة الحالية</div>
+								</div>
+							)}
+						</motion.div>
+
+						{/* Requirements List */}
+						<AnimatePresence>
+							{Object.keys(achievement.requirements).length > 0 && (!achievement.isSecret || isEarned) && (
+								<motion.div 
+									initial={{ opacity: 0, height: 0 }}
+									animate={{ opacity: 1, height: 'auto' }}
+									transition={{ delay: 0.6 }}
+									className="mb-6 bg-card border rounded-2xl overflow-hidden"
+								>
+									<div className="px-5 py-3 border-b bg-muted/40 font-semibold flex items-center gap-2 text-sm">
+										<Award className="w-4 h-4 text-primary" />
+										متطلبات الإنجاز
+									</div>
+									<div className="divide-y">
+										{Object.entries(achievement.requirements).map(([key, value]) => (
+											<div key={key} className="flex items-center justify-between p-4 text-sm hover:bg-muted/20 transition-colors">
+												<span className="text-muted-foreground font-medium">{key}</span>
+												<span className="font-bold bg-secondary px-2.5 py-1 rounded-md">{String(value)}</span>
+											</div>
+										))}
+									</div>
+								</motion.div>
+							)}
+						</AnimatePresence>
+
+						{/* Footer Note Date */}
+						{isEarned && achievement.earnedAt && (
+							<motion.div 
+								initial={{ opacity: 0 }}
+								animate={{ opacity: 1 }}
+								transition={{ delay: 0.7 }}
+								className="flex items-center justify-center gap-2 text-sm font-medium text-green-600 dark:text-green-400 bg-green-500/10 py-3 rounded-xl"
+							>
+								<Calendar className="w-4 h-4" />
+								<span>تم الحصول عليه في {formatArabicDate(achievement.earnedAt)}</span>
+							</motion.div>
 						)}
 					</div>
-				</DialogHeader>
-
-				<div className="space-y-6">
-					{/* Description */}
-					{(!achievement.isSecret || isEarned) && (
-						<div>
-							<h4 className="font-semibold mb-2 flex items-center gap-2">
-								<Award className="h-4 w-4" />
-								الوصف
-							</h4>
-							<p className="text-muted-foreground">{achievement.description}</p>
-						</div>
-					)}
-
-					{/* Stats */}
-					<div className="grid grid-cols-2 gap-4">
-						<div className="p-4 rounded-lg border bg-secondary/50">
-							<div className="flex items-center gap-2 mb-2">
-								<Zap className="h-4 w-4 text-yellow-500" />
-								<span className="text-sm text-muted-foreground">النقاط</span>
-							</div>
-							<div className="text-2xl font-bold">{achievement.xpReward} XP</div>
-						</div>
-
-						{achievement.progress !== undefined && achievement.maxProgress && (
-							<div className="p-4 rounded-lg border bg-secondary/50">
-								<div className="flex items-center gap-2 mb-2">
-									<Target className="h-4 w-4 text-blue-500" />
-									<span className="text-sm text-muted-foreground">التقدم</span>
-								</div>
-								<div className="text-2xl font-bold">
-									{achievement.progress} / {achievement.maxProgress}
-								</div>
-								<div className="mt-2 h-2 bg-secondary rounded-full overflow-hidden">
-									<div
-										className="h-full bg-gradient-to-r from-primary to-primary/80 rounded-full transition-all duration-500"
-										style={{
-											width: `${(achievement.progress / achievement.maxProgress) * 100}%`,
-										} as React.CSSProperties}
-									/>
-								</div>
-							</div>
-						)}
-					</div>
-
-					{/* Requirements */}
-					{Object.keys(achievement.requirements).length > 0 && (
-						<div>
-							<h4 className="font-semibold mb-2">المتطلبات</h4>
-							<div className="space-y-2">
-								{Object.entries(achievement.requirements).map(([key, value]) => (
-									<div
-										key={key}
-										className="flex items-center justify-between p-2 rounded border bg-secondary/30"
-									>
-										<span className="text-sm text-muted-foreground">{key}</span>
-										<span className="font-medium">{String(value)}</span>
-									</div>
-								))}
-							</div>
-						</div>
-					)}
-
-					{/* Earned Date */}
-					{isEarned && achievement.earnedAt && (
-						<div className="flex items-center gap-2 p-4 rounded-lg border bg-green-50 dark:bg-green-950/20">
-							<Calendar className="h-4 w-4 text-green-600 dark:text-green-400" />
-							<div>
-								<div className="text-sm text-muted-foreground">تم الحصول عليها في</div>
-								<div className="font-semibold text-green-700 dark:text-green-400">
-									{formatArabicDate(achievement.earnedAt)}
-								</div>
-							</div>
-						</div>
-					)}
-
-					{/* Locked Message */}
-					{!isEarned && (
-						<div className="p-4 rounded-lg border border-orange-200 dark:border-orange-900/50 bg-orange-50 dark:bg-orange-950/20">
-							<div className="flex items-start gap-2">
-								<Lock className="h-5 w-5 text-orange-600 dark:text-orange-400 mt-0.5" />
-								<div>
-									<div className="font-semibold text-orange-900 dark:text-orange-300 mb-1">
-										إنجاز غير محرز
-									</div>
-									<div className="text-sm text-orange-700 dark:text-orange-400">
-										{achievement.progress !== undefined && achievement.maxProgress
-											? `أنت على بعد ${achievement.maxProgress - achievement.progress} خطوة من الحصول على هذا الإنجاز!`
-											: 'استمر في المذاكرة وإكمال المهام للحصول على هذا الإنجاز'}
-									</div>
-								</div>
-							</div>
-						</div>
-					)}
 				</div>
 			</DialogContent>
 		</Dialog>
 	);
 }
-

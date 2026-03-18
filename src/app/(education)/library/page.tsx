@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 
 import { ensureUser } from "@/lib/user-utils";
 
@@ -32,6 +33,18 @@ export default function LibraryPage() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "popular" | "rated">("newest");
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [formData, setFormData] = useState({
+    title: "",
+    author: "",
+    description: "",
+    subjectId: "",
+    tags: [] as string[],
+    tagInput: ""
+  });
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedCover, setSelectedCover] = useState<File | null>(null);
 
   useEffect(() => {
     ensureUser().then(setUserId);
@@ -56,6 +69,98 @@ export default function LibraryPage() {
     fetchBooks();
   }, []);
 
+  const handleAddTag = () => {
+    if (formData.tagInput.trim() && !formData.tags.includes(formData.tagInput.trim())) {
+      setFormData({
+        ...formData,
+        tags: [...formData.tags, formData.tagInput.trim()]
+      });
+      setFormData(prev => ({ ...prev, tagInput: "" }));
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    setFormData({
+      ...formData,
+      tags: formData.tags.filter(tag => tag !== tagToRemove)
+    });
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedFile(e.target.files[0]);
+    }
+  };
+
+  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setSelectedCover(e.target.files[0]);
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedFile || !formData.title || !formData.author || !formData.description || !formData.subjectId) {
+      toast.error("الرجاء ملء جميع الحقول المطلوبة ورفع الملف");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append('title', formData.title);
+      formDataObj.append('author', formData.author);
+      formDataObj.append('description', formData.description);
+      formDataObj.append('subjectId', formData.subjectId);
+      formDataObj.append('tags', JSON.stringify(formData.tags));
+      formDataObj.append('bookFile', selectedFile);
+      
+      if (selectedCover) {
+        formDataObj.append('cover', selectedCover);
+      }
+
+      const response = await fetch('/api/library/upload', {
+        method: 'POST',
+        body: formDataObj,
+        headers: {
+          // We'll need to add authorization token here
+          'Authorization': `Bearer ${localStorage.getItem('auth-token') || ''}`
+        }
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        toast.success("تم رفع الكتاب بنجاح!");
+        setShowUploadModal(false);
+        // Reset form
+        setFormData({
+          title: "",
+          author: "",
+          description: "",
+          subjectId: "",
+          tags: [],
+          tagInput: ""
+        });
+        setSelectedFile(null);
+        setSelectedCover(null);
+        // Refresh books list
+        const res = await fetch("/api/library/books");
+        const data = await res.json();
+        setBooks(data);
+      } else {
+        toast.error(result.error || "حدث خطأ أثناء رفع الكتاب");
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error("حدث خطأ أثناء رفع الكتاب");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const filteredBooks = Array.isArray(books) ? books.filter(book => {
     const matchesCategory = activeCategory === "all" || book.subject === activeCategory;
     const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -77,13 +182,19 @@ export default function LibraryPage() {
   });
 
   return (
-          <div className="px-4">
-        <section className="mx-auto max-w-7xl py-8 space-y-6">
+    <div className="px-4">
+      <section className="mx-auto max-w-7xl py-8 space-y-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">المكتبة الرقمية</h1>
             <p className="text-muted-foreground">وصول لمجموعة واسعة من الكتب والموارد التعليمية</p>
           </div>
+          <button 
+            onClick={() => setShowUploadModal(true)}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
+          >
+            رفع كتاب
+          </button>
         </div>
 
         {/* Categories */}
@@ -226,7 +337,159 @@ export default function LibraryPage() {
             <p className="text-muted-foreground">جرب تغيير التصنيف أو معايير البحث</p>
           </div>
         )}
-        </section>
-      </div>
-      );
+      </section>
+
+      {/* Upload Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">رفع كتاب جديد</h2>
+                <button 
+                  onClick={() => setShowUploadModal(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleUpload}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">عنوان الكتاب</label>
+                    <input
+                      type="text"
+                      value={formData.title}
+                      onChange={(e) => setFormData({...formData, title: e.target.value})}
+                      className="w-full border rounded-md px-3 py-2"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">المؤلف</label>
+                    <input
+                      type="text"
+                      value={formData.author}
+                      onChange={(e) => setFormData({...formData, author: e.target.value})}
+                      className="w-full border rounded-md px-3 py-2"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">الوصف</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({...formData, description: e.target.value})}
+                      className="w-full border rounded-md px-3 py-2"
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">التصنيف</label>
+                    <select
+                      value={formData.subjectId}
+                      onChange={(e) => setFormData({...formData, subjectId: e.target.value})}
+                      className="w-full border rounded-md px-3 py-2"
+                      required
+                    >
+                      <option value="">اختر التصنيف</option>
+                      {categories.map(category => (
+                        <option key={category.id} value={category.id}>{category.name}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">الوسوم</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={formData.tagInput}
+                        onChange={(e) => setFormData({...formData, tagInput: e.target.value})}
+                        className="flex-1 border rounded-md px-3 py-2"
+                        placeholder="أضف وسمًا واضغط Enter"
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddTag();
+                          }
+                        }}
+                      />
+                      <button 
+                        type="button" 
+                        onClick={handleAddTag}
+                        className="px-3 py-2 bg-secondary text-secondary-foreground rounded-md"
+                      >
+                        إضافة
+                      </button>
+                    </div>
+                    
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {formData.tags.map((tag, index) => (
+                        <div key={index} className="flex items-center bg-muted px-2 py-1 rounded">
+                          <span>{tag}</span>
+                          <button 
+                            type="button" 
+                            onClick={() => handleRemoveTag(tag)}
+                            className="ml-1 text-destructive"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">ملف الكتاب</label>
+                    <input
+                      type="file"
+                      accept=".pdf,.epub,.mobi,.djvu,.cbz,.cbr,.doc,.docx"
+                      onChange={handleFileChange}
+                      className="w-full border rounded-md px-3 py-2"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">صورة الغلاف (اختياري)</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleCoverChange}
+                      className="w-full border rounded-md px-3 py-2"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowUploadModal(false)}
+                      className="px-4 py-2 border rounded-md"
+                    >
+                      إلغاء
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={uploading}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
+                    >
+                      {uploading ? 'جاري الرفع...' : 'رفع الكتاب'}
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }

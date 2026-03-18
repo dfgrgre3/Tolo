@@ -16,12 +16,17 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
     dailyGoalProgress: 0,
     weeklyGoalProgress: 0,
     streakDays: 0,
-    focusScore: 0
+    focusScore: 0,
+    pomodoroSessions: 0,
+    studyEfficiency: 0,
+    disciplineScore: 0,
+    masteryScore: 0
   });
 
   const calculateStats = useCallback(() => {
     const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length;
     const pendingTasks = tasks.filter(t => t.status === 'PENDING').length;
+    
     // Calculate study hours for current week only
     const now = new Date();
     const startOfWeek = new Date(now);
@@ -74,7 +79,37 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
       }
     }
     
-    const completionRate = tasks.length > 0 ? (completedTasks / tasks.length) * 100 : 0;
+    // Calculate pomodoro sessions (sessions of approximately 25 minutes)
+    const pomodoroSessions = studySessions.filter(session => 
+      session.durationMin >= 20 && session.durationMin <= 30
+    ).length;
+    
+    // Calculate study efficiency based on actual vs planned time
+    let studyEfficiency = 0;
+    if (studySessions.length > 0) {
+      const totalActualTime = studySessions.reduce((sum, session) => sum + session.durationMin, 0);
+      const totalEstimatedTime = tasks.reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
+      if (totalEstimatedTime > 0) {
+        studyEfficiency = Math.min(100, Math.round((totalActualTime / totalEstimatedTime) * 100));
+      }
+    }
+    
+    // Calculate discipline score based on task completion rate
+    const totalTasks = tasks.length;
+    const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
+    const disciplineScore = Math.min(100, Math.round(
+      completionRate * 0.4 + // 40% weight to completion rate
+      (streakDays / 30) * 100 * 0.3 + // 30% weight to streak consistency
+      (weeklyGoalProgress * 0.3) // 30% weight to goal achievement
+    ));
+    
+    // Calculate mastery score based on subject performance
+    const masteryScore = Math.min(100, Math.round(
+      completionRate * 0.5 + // 50% weight to completion rate
+      (pomodoroSessions / Math.max(1, studySessions.length)) * 100 * 0.3 + // 30% weight to focused study
+      dailyGoalProgress * 0.2 // 20% weight to daily consistency
+    ));
+    
     const focusScore = Math.min(100, Math.round(completionRate * 0.7 + dailyGoalProgress * 0.3));
     
     setStats({
@@ -85,7 +120,11 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
       dailyGoalProgress,
       weeklyGoalProgress,
       streakDays,
-      focusScore
+      focusScore,
+      pomodoroSessions,
+      studyEfficiency,
+      disciplineScore,
+      masteryScore
     });
   }, [tasks, studySessions, reminders]);
 
@@ -112,13 +151,19 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
         newPending++;
       }
       
+      // Recalculate scores when tasks change
+      const totalTasks = tasks.length;
+      const completionRate = totalTasks > 0 ? (newCompleted / totalTasks) * 100 : 0;
+      const focusScore = Math.min(100, Math.round(completionRate * 0.7 + prevStats.dailyGoalProgress * 0.3));
+      
       return {
         ...prevStats,
         completedTasks: newCompleted,
-        pendingTasks: newPending
+        pendingTasks: newPending,
+        focusScore
       };
     });
-  }, []);
+  }, [tasks.length]);
 
   const updateStatsOnTaskCreate = useCallback((task: Task) => {
     if (task.status === 'PENDING') {
@@ -173,11 +218,16 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
       
       const weeklyGoalProgress = Math.min(100, (newWeeklyMinutes / 1260) * 100);
       
+      // Update pomodoro sessions if this session is close to 25 minutes
+      const isPomodoro = session.durationMin >= 20 && session.durationMin <= 30;
+      const newPomodoroSessions = isPomodoro ? prevStats.pomodoroSessions + 1 : prevStats.pomodoroSessions;
+      
       return {
         ...prevStats,
         studyHours,
         dailyGoalProgress,
-        weeklyGoalProgress
+        weeklyGoalProgress,
+        pomodoroSessions: newPomodoroSessions
       };
     });
   }, []);
@@ -214,4 +264,3 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
     updateStatsOnReminderDelete
   };
 }
-

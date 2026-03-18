@@ -20,13 +20,43 @@ export default function NewAnnouncementPage() {
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [success, setSuccess] = useState(false);
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
   useEffect(() => {
     ensureUser().then(setUserId);
   }, []);
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+    
+    if (!title.trim()) {
+      newErrors.title = "العنوان مطلوب";
+    } else if (title.trim().length < 5) {
+      newErrors.title = "العنوان يجب أن يتكون من 5 أحرف على الأقل";
+    }
+    
+    if (!content.trim()) {
+      newErrors.content = "المحتوى مطلوب";
+    } else if (content.trim().length < 10) {
+      newErrors.content = "المحتوى يجب أن يتكون من 10 أحرف على الأقل";
+    }
+    
+    if (expiresAt && new Date(expiresAt) < new Date()) {
+      newErrors.expiresAt = "تاريخ الانتهاء يجب أن يكون في المستقبل";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleAddTag = () => {
     if (tagInput.trim() && !tags.includes(tagInput.trim())) {
+      if (tagInput.trim().length < 2) {
+        alert("الوسم يجب أن يتكون من حرفين على الأقل");
+        return;
+      }
       setTags([...tags, tagInput.trim()]);
       setTagInput("");
     }
@@ -36,9 +66,24 @@ export default function NewAnnouncementPage() {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!userId || !title.trim() || !content.trim()) return;
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    if (!userId) {
+      alert("يجب تسجيل الدخول لإنشاء إعلان");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -47,8 +92,8 @@ export default function NewAnnouncementPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
-          title,
-          content,
+          title: title.trim(),
+          content: content.trim(),
           imageUrl,
           expiresAt: expiresAt || null,
           priority,
@@ -58,10 +103,14 @@ export default function NewAnnouncementPage() {
       });
 
       if (res.ok) {
+        setSuccess(true);
         const newAnnouncement = await res.json() as { id: string };
-        router.push(`/announcements/${newAnnouncement.id}`);
+        setTimeout(() => {
+          router.push(`/announcements/${newAnnouncement.id}`);
+        }, 1500);
       } else {
-        alert("حدث خطأ أثناء إنشاء الإعلان");
+        const errorData = await res.json();
+        alert(errorData.message || "حدث خطأ أثناء إنشاء الإعلان");
       }
     } catch (error) {
       logger.error("Error creating announcement:", error);
@@ -86,8 +135,8 @@ export default function NewAnnouncementPage() {
   ];
 
   return (
-          <div className="px-4">
-        <section className="mx-auto max-w-3xl py-8 space-y-6">
+    <div className="px-4">
+      <section className="mx-auto max-w-3xl py-8 space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/announcements" className="hover:text-primary">الإعلانات والمسابقات</Link>
           <span>/</span>
@@ -99,36 +148,60 @@ export default function NewAnnouncementPage() {
           <p className="text-muted-foreground">شارك الآخرين بالإعلانات الهامة</p>
         </div>
 
+        {success && (
+          <div className="rounded-lg bg-green-50 border border-green-200 p-4 text-green-700 text-center">
+            تم إنشاء الإعلان بنجاح! جاري التوجيه...
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-lg border p-4 space-y-4">
+          <div className="rounded-lg border p-4 space-y-6">
             <div>
               <label htmlFor="title" className="block text-sm font-medium mb-1">
-                العنوان
+                العنوان *
               </label>
               <input
                 id="title"
                 type="text"
-                className="w-full border rounded-md px-3 py-2"
+                className={`w-full border rounded-md px-3 py-2 ${errors.title ? 'border-red-500' : ''}`}
                 placeholder="أدخل عنوان الإعلان..."
                 value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
+                onChange={(e) => {
+                  setTitle(e.target.value);
+                  if (errors.title) setErrors({...errors, title: ''});
+                }}
+                aria-invalid={!!errors.title}
+                aria-describedby={errors.title ? "title-error" : undefined}
               />
+              {errors.title && (
+                <p id="title-error" className="mt-1 text-sm text-red-500">
+                  {errors.title}
+                </p>
+              )}
             </div>
 
             <div>
               <label htmlFor="content" className="block text-sm font-medium mb-1">
-                المحتوى
+                المحتوى *
               </label>
               <textarea
                 id="content"
                 rows={6}
-                className="w-full border rounded-md px-3 py-2"
+                className={`w-full border rounded-md px-3 py-2 ${errors.content ? 'border-red-500' : ''}`}
                 placeholder="اكتب محتوى الإعلان..."
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
-                required
+                onChange={(e) => {
+                  setContent(e.target.value);
+                  if (errors.content) setErrors({...errors, content: ''});
+                }}
+                aria-invalid={!!errors.content}
+                aria-describedby={errors.content ? "content-error" : undefined}
               ></textarea>
+              {errors.content && (
+                <p id="content-error" className="mt-1 text-sm text-red-500">
+                  {errors.content}
+                </p>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -141,7 +214,6 @@ export default function NewAnnouncementPage() {
                   className="w-full border rounded-md px-3 py-2"
                   value={priority}
                   onChange={(e) => setPriority(e.target.value as "low" | "medium" | "high" | "urgent")}
-                  required
                 >
                   {priorities.map((prio) => (
                     <option key={prio.id} value={prio.id}>
@@ -160,7 +232,6 @@ export default function NewAnnouncementPage() {
                   className="w-full border rounded-md px-3 py-2"
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  required
                 >
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>
@@ -171,33 +242,64 @@ export default function NewAnnouncementPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="imageUrl" className="block text-sm font-medium mb-1">
-                  رابط الصورة (اختياري)
-                </label>
-                <input
-                  id="imageUrl"
-                  type="text"
-                  className="w-full border rounded-md px-3 py-2"
-                  placeholder="أدخل رابط الصورة..."
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                />
-              </div>
+            <div className="pt-2">
+              <button
+                type="button"
+                className="flex items-center gap-2 text-sm font-medium text-primary"
+                onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+              >
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  className={`h-4 w-4 transform transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+                <span>خيارات متقدمة</span>
+              </button>
 
-              <div>
-                <label htmlFor="expiresAt" className="block text-sm font-medium mb-1">
-                  تاريخ الانتهاء (اختياري)
-                </label>
-                <input
-                  id="expiresAt"
-                  type="date"
-                  className="w-full border rounded-md px-3 py-2"
-                  value={expiresAt}
-                  onChange={(e) => setExpiresAt(e.target.value)}
-                />
-              </div>
+              {showAdvancedOptions && (
+                <div className="mt-4 space-y-4 pt-4 border-t">
+                  <div>
+                    <label htmlFor="imageUrl" className="block text-sm font-medium mb-1">
+                      رابط الصورة (اختياري)
+                    </label>
+                    <input
+                      id="imageUrl"
+                      type="text"
+                      className="w-full border rounded-md px-3 py-2"
+                      placeholder="أدخل رابط الصورة..."
+                      value={imageUrl}
+                      onChange={(e) => setImageUrl(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="expiresAt" className="block text-sm font-medium mb-1">
+                      تاريخ الانتهاء (اختياري)
+                    </label>
+                    <input
+                      id="expiresAt"
+                      type="date"
+                      className={`w-full border rounded-md px-3 py-2 ${errors.expiresAt ? 'border-red-500' : ''}`}
+                      value={expiresAt}
+                      onChange={(e) => {
+                        setExpiresAt(e.target.value);
+                        if (errors.expiresAt) setErrors({...errors, expiresAt: ''});
+                      }}
+                      aria-invalid={!!errors.expiresAt}
+                      aria-describedby={errors.expiresAt ? "expiresAt-error" : undefined}
+                    />
+                    {errors.expiresAt && (
+                      <p id="expiresAt-error" className="mt-1 text-sm text-red-500">
+                        {errors.expiresAt}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -212,7 +314,8 @@ export default function NewAnnouncementPage() {
                   placeholder="أضف وسماً..."
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddTag())}
+                  onKeyDown={handleKeyDown}
+                  aria-label="إضافة وسم جديد"
                 />
                 <button
                   type="button"
@@ -230,6 +333,7 @@ export default function NewAnnouncementPage() {
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
                       onClick={() => handleRemoveTag(tag)}
+                      aria-label={`إزالة الوسم ${tag}`}
                     >
                       ×
                     </button>
@@ -239,23 +343,24 @@ export default function NewAnnouncementPage() {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3">
+          <div className="flex flex-col sm:flex-row justify-end gap-3">
             <Link
               href="/announcements"
-              className="px-4 py-2 border rounded-md"
+              className="px-4 py-2 border rounded-md text-center"
             >
               إلغاء
             </Link>
             <button
               type="submit"
               className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
-              disabled={isSubmitting || !title.trim() || !content.trim()}
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
             >
               {isSubmitting ? "جاري النشر..." : "نشر الإعلان"}
             </button>
           </div>
         </form>
-        </section>
-      </div>
-      );
+      </section>
+    </div>
+  );
 }

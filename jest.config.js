@@ -39,6 +39,7 @@ module.exports = {
   // Fix for ES modules (jose, uuid, @simplewebauthn libraries)
   // Transform these packages from ES modules to CommonJS
   transformIgnorePatterns: [
-    'node_modules/(?!(jose|uuid|@simplewebauthn|lucide-react)/)'
+    // Also include @scure packages which are ESM and break Jest parsing
+    'node_modules/(?!(jose|uuid|@simplewebauthn|lucide-react|@scure)/)'
   ],
 }

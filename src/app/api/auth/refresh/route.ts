@@ -73,6 +73,16 @@ export async function POST(req: NextRequest) {
         // it means an old token is being reused → potential theft
         const refreshTokenHash = SessionService.hashRefreshToken(refreshToken);
         if (session.refreshToken !== refreshTokenHash) {
+            // Check for grace period: was this token recently rotated?
+            const recentlyRotated = await SessionService.isRecentlyRotated(refreshTokenHash, session.id);
+            if (recentlyRotated) {
+                // Return success as this is likely a concurrent request race condition
+                return NextResponse.json(
+                    { message: 'Session already refreshed' },
+                    { status: 200 }
+                );
+            }
+
             // Immediately revoke the session (nuclear option for safety)
             await SessionService.revokeSession(session.id);
             await SecurityLogger.logReplayAttack(session.userId, ip, userAgent, session.id);
@@ -113,6 +123,9 @@ export async function POST(req: NextRequest) {
                 lastAccessed: new Date(),
             },
         });
+
+        // 5b. Mark old token as recently rotated (grace period)
+        await SessionService.markTokenAsRotated(refreshTokenHash, session.id);
 
         // 6. Set New Cookies
         const isProduction = process.env.NODE_ENV === 'production';

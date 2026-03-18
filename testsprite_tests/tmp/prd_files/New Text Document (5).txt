@@ -1,0 +1,231 @@
+أنت مهندس برمجيات خبير عالمي في تطوير وتحليل الواجهات الأمامية (Frontend Architect) ولديك خبرة عميقة في تحليل مشاريع كبيرة مثل Amazon وAlibaba وNoon.
+
+المطلوب منك إجراء تحليل احترافي شامل وعميق لجميع ملفات الواجهة الأمامية في المشروع الحالي.
+
+قم بتحليل المشروع بالكامل وكأنك تقوم بعمل Technical Audit لمشروع كبير قبل إطلاقه للإنتاج (Production).
+
+يجب أن يكون التحليل مفصل للغاية ومنظم في أقسام واضحة.
+
+---
+
+أولاً: تحليل هيكل المشروع (Project Structure)
+
+قم بتحليل هيكل مجلدات المشروع بالكامل مثل:
+
+src/
+app/
+components/
+hooks/
+lib/
+utils/
+styles/
+services/
+store/
+
+حدد:
+
+هل الهيكل منظم بشكل احترافي أم لا
+هل يوجد فصل واضح بين المنطق والواجهة
+هل يوجد تكرار غير ضروري في الملفات
+هل Naming Convention صحيح
+هل Architecture مناسب للمشاريع الكبيرة
+هل يمكن تحسين الهيكل
+
+اقترح هيكل أفضل إذا لزم الأمر.
+
+---
+
+ثانياً: تحليل الصفحات (Pages Analysis)
+
+قم بتحليل جميع الصفحات الموجودة مثل:
+
+Home
+Product Page
+Category Page
+Cart
+Checkout
+Auth Pages
+Profile
+Dashboard
+
+حدد:
+
+هل الصفحات منظمة
+هل يوجد Code Splitting
+هل يتم تحميل بيانات بشكل صحيح
+هل يوجد تحميل زائد للبيانات
+هل يوجد مشاكل في SEO
+
+---
+
+ثالثاً: تحليل المكونات (Components Analysis)
+
+حلل جميع المكونات:
+
+UI Components
+Layout Components
+Feature Components
+
+حدد:
+
+هل المكونات قابلة لإعادة الاستخدام
+هل يوجد Components ضخمة يجب تقسيمها
+هل يوجد Props Drilling
+هل يوجد Patterns غير صحيحة
+
+اقترح أفضل Component Architecture.
+
+---
+
+رابعاً: تحليل إدارة الحالة (State Management)
+
+حدد نوع إدارة الحالة المستخدمة:
+
+Redux
+Zustand
+Context API
+React Query
+SWR
+
+قم بتحليل:
+
+هل إدارة الحالة منظمة
+هل يتم تحميل البيانات بكفاءة
+هل هناك إعادة Render غير ضرورية
+هل هناك تحسينات ممكنة
+
+---
+
+خامساً: تحليل الأداء (Performance Audit)
+
+قم بتحليل أداء الواجهة الأمامية بالكامل:
+
+Bundle Size
+Code Splitting
+Lazy Loading
+Image Optimization
+Caching
+Tree Shaking
+
+حدد:
+
+ما الذي يبطئ الموقع
+ما الملفات الثقيلة
+ما التحسينات الممكنة
+
+---
+
+سادساً: تحليل تجربة المستخدم (UX/UI)
+
+حلل:
+
+سهولة الاستخدام
+تجربة المستخدم
+وضوح الواجهة
+تنظيم العناصر
+قابلية التصفح
+
+حدد:
+
+المشاكل
+التحسينات المقترحة
+
+---
+
+سابعاً: تحليل الأمان (Frontend Security)
+
+قم بفحص:
+
+XSS
+Exposure of secrets
+Unsafe API calls
+LocalStorage misuse
+Token handling
+
+حدد:
+
+أي مشاكل أمنية محتملة.
+
+---
+
+ثامناً: تحليل أفضل الممارسات (Best Practices)
+
+تحقق من:
+
+Clean Code
+SOLID Principles
+Component Design
+Accessibility
+SEO Best Practices
+
+---
+
+تاسعاً: تحليل الأخطاء المحتملة (Bug Detection)
+
+ابحث عن:
+
+Bugs
+Edge cases
+Unhandled states
+Loading errors
+Race conditions
+
+---
+
+عاشراً: تحليل قابلية التوسع (Scalability)
+
+هل هذا المشروع يمكنه التوسع ليصبح:
+
+E-commerce كبير
+منصة تعليمية
+منصة SaaS
+
+حدد المشاكل التي قد تمنع التوسع.
+
+---
+
+الحادي عشر: قائمة المشاكل (Issues List)
+
+قم بإخراج جدول يحتوي على:
+
+المشكلة
+مكانها
+خطورتها (Low / Medium / High)
+الحل المقترح
+
+---
+
+الثاني عشر: خطة التحسين (Improvement Roadmap)
+
+ضع خطة تطوير مرتبة:
+
+Critical Fixes
+Performance Improvements
+Architecture Improvements
+UX Improvements
+
+---
+
+الثالث عشر: تقييم المشروع النهائي
+
+قم بإعطاء تقييم شامل:
+
+Architecture: /10
+Code Quality: /10
+Performance: /10
+Security: /10
+Scalability: /10
+
+ثم أعط تقييم نهائي للمشروع.
+
+---
+
+المخرجات المطلوبة:
+
+تحليل تفصيلي
+ملاحظات واضحة
+اقتراحات تحسين عملية
+أمثلة كود إذا لزم الأمر
+شرح المشاكل التقنية
+
+يجب أن يكون التحليل احترافي للغاية وكأنك تقوم بمراجعة مشروع شركة كبيرة قبل إطلاقه.

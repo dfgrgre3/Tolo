@@ -64,31 +64,51 @@ export default function TasksPage() {
         setLoading(false);
       })
       .catch((error) => {
-        toast.error(error.message);
+        console.error('Error fetching tasks:', error);
+        toast.error(error.message || 'حدث خطأ أثناء جلب المهام');
         setLoading(false);
       });
   };
 
   const filteredAndSortedTasks = useMemo(() => {
-    return tasks
-      .filter(task => {
-        const searchTermLower = searchTerm.toLowerCase();
-        return (statusFilter === 'ALL' || task.status === statusFilter) && 
-               (task.title.toLowerCase().includes(searchTermLower) || 
-                (task.description && task.description.toLowerCase().includes(searchTermLower)));
-      })
-      .sort((a, b) => {
-        if (sortBy === 'priority') {
-          return b.priority - a.priority;
-        }
-        if (sortBy === 'dueAt') {
-          if (!a.dueAt) return 1;
-          if (!b.dueAt) return -1;
-          return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
-        }
-        return 0;
-      });
-  }, [tasks, statusFilter, sortBy, searchTerm]);
+    let result = [...tasks];
+    
+    // Apply status filter based on active tab
+    if (activeTab === 'pending') {
+      result = result.filter(task => task.status === 'PENDING');
+    } else if (activeTab === 'inProgress') {
+      result = result.filter(task => task.status === 'IN_PROGRESS');
+    } else if (activeTab === 'completed') {
+      result = result.filter(task => task.status === 'COMPLETED');
+    } else if (statusFilter !== 'ALL') {
+      result = result.filter(task => task.status === statusFilter);
+    }
+
+    // Apply search term filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(task =>
+        task.title.toLowerCase().includes(term) ||
+        (task.description && task.description.toLowerCase().includes(term)) ||
+        (task.subject && task.subject.toLowerCase().includes(term))
+      );
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      if (sortBy === 'priority') {
+        return b.priority - a.priority;
+      }
+      if (sortBy === 'dueAt') {
+        if (!a.dueAt) return 1;
+        if (!b.dueAt) return -1;
+        return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+      }
+      return 0;
+    });
+
+    return result;
+  }, [tasks, statusFilter, sortBy, searchTerm, activeTab]);
 
   const handleAddTaskSubmit = (data: z.infer<typeof taskSchema>) => {
     fetch('/api/tasks', {
@@ -108,7 +128,8 @@ export default function TasksPage() {
         toast.success('تمت إضافة المهمة بنجاح');
       })
       .catch((error) => {
-        toast.error(error.message);
+        console.error('Error adding task:', error);
+        toast.error(error.message || 'حدث خطأ أثناء إضافة المهمة');
       });
   };
 
@@ -134,7 +155,8 @@ export default function TasksPage() {
         toast.success('تم تحديث المهمة بنجاح');
       })
       .catch((error) => {
-        toast.error(error.message);
+        console.error('Error updating task:', error);
+        toast.error(error.message || 'حدث خطأ أثناء تحديث المهمة');
       });
   };
 
@@ -156,7 +178,8 @@ export default function TasksPage() {
         toast.success(`تم ${newStatus === 'COMPLETED' ? 'إكمال' : 'إعادة فتح'} المهمة بنجاح`);
       })
       .catch((error) => {
-        toast.error(error.message);
+        console.error('Error updating task status:', error);
+        toast.error(error.message || 'حدث خطأ أثناء تحديث حالة المهمة');
       });
   };
 
@@ -168,7 +191,8 @@ export default function TasksPage() {
         toast.success('تم حذف المهمة بنجاح');
       })
       .catch((error) => {
-        toast.error(error.message);
+        console.error('Error deleting task:', error);
+        toast.error(error.message || 'حدث خطأ أثناء حذف المهمة');
       });
   };
 
@@ -267,7 +291,7 @@ export default function TasksPage() {
         </TabsContent>
         <TabsContent value="pending" className="mt-4">
           <TaskList 
-            tasks={filteredAndSortedTasks.filter(task => task.status === 'PENDING')} 
+            tasks={filteredAndSortedTasks} 
             onStatusChange={handleStatusChange}
             onEdit={openEditDialog}
             onDelete={handleDeleteTask}
@@ -278,7 +302,7 @@ export default function TasksPage() {
         </TabsContent>
         <TabsContent value="inProgress" className="mt-4">
           <TaskList 
-            tasks={filteredAndSortedTasks.filter(task => task.status === 'IN_PROGRESS')} 
+            tasks={filteredAndSortedTasks} 
             onStatusChange={handleStatusChange}
             onEdit={openEditDialog}
             onDelete={handleDeleteTask}
@@ -289,7 +313,7 @@ export default function TasksPage() {
         </TabsContent>
         <TabsContent value="completed" className="mt-4">
           <TaskList 
-            tasks={filteredAndSortedTasks.filter(task => task.status === 'COMPLETED')} 
+            tasks={filteredAndSortedTasks} 
             onStatusChange={handleStatusChange}
             onEdit={openEditDialog}
             onDelete={handleDeleteTask}

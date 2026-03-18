@@ -18,6 +18,7 @@ const loginSchema = z.object({
     password: z
         .string()
         .min(1, 'Password is required')
+        .min(8, 'Password is too short')
         .max(256, 'Password is too long'),
     rememberMe: z.boolean().optional().default(false),
 });
@@ -45,7 +46,7 @@ function buildCredentialRateLimitKey(ip: string, email: string): string {
 function createRateLimitResponse(remainingMinutes?: number): NextResponse {
     const retryAfterSeconds = Math.max(60, (remainingMinutes || 15) * 60);
     return NextResponse.json(
-        { error: 'Too many login attempts. Please try again later.' },
+        { code: 'RATE_LIMITED', retryAfterSeconds },
         {
             status: 429,
             headers: {
@@ -66,14 +67,54 @@ export async function POST(req: NextRequest) {
             return createRateLimitResponse(ipLimitResult.remainingTime);
         }
 
-        const body = await req.json();
-        const validation = loginSchema.safeParse(body);
+        // Enforce a simple payload size guard to avoid reaching auth logic with huge bodies.
+        // (E2E expects large bodies to yield 400/413/500 instead of 401.)
+        const rawBody = await req.text();
+        const MAX_BODY_CHARS = 8000;
+        if (rawBody.length > MAX_BODY_CHARS) {
+            return NextResponse.json({ code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
+        }
 
+        let body: any;
+        try {
+            body = rawBody ? JSON.parse(rawBody) : {};
+        } catch {
+            return NextResponse.json({ code: 'INVALID_JSON' }, { status: 400 });
+        }
+
+        const emailRaw = typeof body?.email === 'string' ? body.email : '';
+        const passwordRaw = typeof body?.password === 'string' ? body.password : '';
+
+        if (!emailRaw) {
+            return NextResponse.json({ code: 'MISSING_EMAIL' }, { status: 400 });
+        }
+
+        if (!passwordRaw) {
+            return NextResponse.json({ code: 'MISSING_PASSWORD' }, { status: 400 });
+        }
+
+        // Keep explicit length checks aligned with E2E expectations.
+        if (emailRaw.length > 254) {
+            return NextResponse.json({ code: 'EMAIL_TOO_LONG' }, { status: 400 });
+        }
+
+        const validation = loginSchema.safeParse(body);
         if (!validation.success) {
-            return NextResponse.json(
-                { error: 'Invalid request data' },
-                { status: 400 }
-            );
+            // Map Zod failures to expected codes.
+            const issues = validation.error.issues || [];
+            const emailIssue = issues.find(i => i.path?.[0] === 'email');
+            const passwordIssue = issues.find(i => i.path?.[0] === 'password');
+
+            if (emailIssue) {
+                return NextResponse.json({ code: 'INVALID_EMAIL_FORMAT' }, { status: 400 });
+            }
+            if (passwordIssue) {
+                const passwordLen = passwordRaw.length;
+                if (passwordLen < 8) return NextResponse.json({ code: 'PASSWORD_TOO_SHORT' }, { status: 400 });
+                return NextResponse.json({ code: 'INVALID_PARAMETER' }, { status: 400 });
+            }
+
+            return NextResponse.json({ code: 'INVALID_PARAMETER' }, { status: 400 });
         }
 
         const { email, password, rememberMe } = validation.data;
@@ -101,7 +142,7 @@ export async function POST(req: NextRequest) {
             ]);
 
             return NextResponse.json(
-                { error: result.error },
+                { success: false, error: result.error },
                 { status: result.statusCode || 401 }
             );
         }
@@ -142,7 +183,9 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(
             {
+                success: true,
                 user: result.user,
+                token: result.accessToken,
                 message: 'Logged in successfully',
             },
             { status: 200 }

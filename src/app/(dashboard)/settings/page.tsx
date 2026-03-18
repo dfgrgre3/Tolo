@@ -3,15 +3,13 @@
 /**
  * 👤 صفحة الملف الشخصي - Profile Settings
  * 
- * الصفحة الرئيسية للإعدادات مع:
- * - معلومات الملف الشخصي
- * - تحميل الصورة
- * - البيانات الشخصية
+ * الصفحة الرئيسية للإعدادات مع تحديث شامل للبيانات الشخصية والدراسية والمهنية.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
+import Link from 'next/link';
 
 import {
   User,
@@ -27,10 +25,14 @@ import {
   GraduationCap,
   Building2,
   Award,
+  Globe,
+  Briefcase,
+  BookOpen,
+  CheckCircle,
+  Hash,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-// import removed
 import { SettingsHeader, SettingsInput, SettingsCard } from './components';
 
 interface ProfileData {
@@ -38,27 +40,62 @@ interface ProfileData {
   lastName: string;
   email: string;
   phone: string;
+  alternativePhone: string;
   birthDate: string;
-  gender: 'male' | 'female';
+  gender: string;
+  country: string;
   city: string;
   school: string;
-  grade: string;
+  gradeLevel: string;
+  educationType: string;
+  section: string;
+  studyGoal: string;
   bio: string;
   avatar: string;
+  // Teacher specific
+  subjectsTaught: string[];
+  experienceYears: string;
 }
+
+const educationTypes = [
+  { value: 'GENERAL', label: 'ثانوية عامة (عام)' },
+  { value: 'STEM', label: 'ثانوية STEM' },
+  { value: 'AZHAR', label: 'ثانوية أزهرية' },
+  { value: 'TECHNICAL', label: 'ثانوية فنية' },
+];
+
+const sections = [
+  { value: 'SCIENCE_BIO', label: 'علمي علوم' },
+  { value: 'SCIENCE_MATH', label: 'علمي رياضة' },
+  { value: 'LITERARY', label: 'أدبي' },
+  { value: 'NONE', label: 'غير محدد' },
+];
+
+const gradeLevels = [
+  { value: '1_SEC', label: 'الصف الأول الثانوي' },
+  { value: '2_SEC', label: 'الصف الثاني الثانوي' },
+  { value: '3_SEC', label: 'الصف الثالث الثانوي' },
+];
 
 const initialProfile: ProfileData = {
   firstName: '',
   lastName: '',
   email: '',
   phone: '',
+  alternativePhone: '',
   birthDate: '',
   gender: 'male',
+  country: 'مصر',
   city: '',
   school: '',
-  grade: '3th',
+  gradeLevel: '3_SEC',
+  educationType: 'GENERAL',
+  section: 'SCIENCE_BIO',
+  studyGoal: '',
   bio: '',
   avatar: '',
+  subjectsTaught: [],
+  experienceYears: '',
 };
 
 export default function ProfileSettingsPage() {
@@ -77,19 +114,25 @@ export default function ProfileSettingsPage() {
         lastName: user.name?.split(' ').slice(1).join(' ') || '',
         email: user.email || '',
         phone: user.phone || '',
+        alternativePhone: (user as any).alternativePhone || '',
         birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : '',
-        gender: (user.gender as 'male' | 'female') || 'male',
+        gender: user.gender || 'male',
+        country: (user as any).country || 'مصر',
         city: user.city || '',
-        school: user.school || '',
-        grade: user.grade || '3th',
-        bio: user.bio || '',
+        school: (user as any).school || '',
+        gradeLevel: (user as any).gradeLevel || '3_SEC',
+        educationType: (user as any).educationType || 'GENERAL',
+        section: (user as any).section || 'SCIENCE_BIO',
+        studyGoal: (user as any).studyGoal || '',
+        bio: (user as any).bio || '',
         avatar: user.avatar || '',
+        subjectsTaught: (user as any).subjectsTaught || [],
+        experienceYears: (user as any).experienceYears || '',
       });
     }
   }, [user]);
 
-
-  const handleInputChange = (field: keyof ProfileData, value: string) => {
+  const handleInputChange = (field: keyof ProfileData, value: any) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
@@ -113,16 +156,18 @@ export default function ProfileSettingsPage() {
 
     setIsUploadingAvatar(true);
     
-    // Simulate upload
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setProfile(prev => ({ ...prev, avatar: event.target?.result as string }));
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setProfile(prev => ({ ...prev, avatar: event.target?.result as string }));
+        setIsUploadingAvatar(false);
+        toast.success('تمت معاينة الصورة بنجاح (احفظ التغييرات لاعتمادها)');
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
       setIsUploadingAvatar(false);
-      toast.success('تم تحديث الصورة بنجاح');
-    };
-    reader.readAsDataURL(file);
+      toast.error('فشل تحميل الصورة');
+    }
   }, []);
 
   const handleSave = async () => {
@@ -136,11 +181,16 @@ export default function ProfileSettingsPage() {
         body: JSON.stringify({
           name: `${profile.firstName} ${profile.lastName}`.trim(),
           phone: profile.phone,
+          alternativePhone: profile.alternativePhone,
           birthDate: profile.birthDate,
           gender: profile.gender,
+          country: profile.country,
           city: profile.city,
           school: profile.school,
-          grade: profile.grade,
+          gradeLevel: profile.gradeLevel,
+          educationType: profile.educationType,
+          section: profile.section,
+          studyGoal: profile.studyGoal,
           bio: profile.bio,
           avatar: profile.avatar,
         }),
@@ -161,12 +211,6 @@ export default function ProfileSettingsPage() {
     }
   };
 
-  const grades = [
-    { value: '1th', label: 'الصف الأول الثانوي' },
-    { value: '2th', label: 'الصف الثاني الثانوي' },
-    { value: '3th', label: 'الصف الثالث الثانوي' },
-  ];
-
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
@@ -175,11 +219,12 @@ export default function ProfileSettingsPage() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
+
+  const isTeacher = user.role === 'TEACHER';
+
   return (
-          <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-8 pb-10">
       {/* Header */}
       <SettingsHeader
         icon={User}
@@ -188,13 +233,13 @@ export default function ProfileSettingsPage() {
         actionButton={
           !isEditing
             ? {
-                label: 'تعديل',
+                label: 'تعديل الملف',
                 onClick: () => setIsEditing(true),
                 variant: 'primary',
                 icon: Edit3,
               }
             : {
-                label: 'حفظ',
+                label: 'حفظ التغييرات',
                 onClick: handleSave,
                 loading: isSaving,
                 variant: 'primary',
@@ -204,106 +249,120 @@ export default function ProfileSettingsPage() {
       />
       
       {isEditing && (
-        <motion.button
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={() => setIsEditing(false)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="flex justify-end"
         >
-          <X className="h-4 w-4" />
-          إلغاء
-        </motion.button>
+          <button
+            onClick={() => setIsEditing(false)}
+            className="flex items-center gap-2 px-6 py-2 rounded-xl bg-white/5 text-slate-300 font-medium hover:bg-white/10 hover:text-white transition-all border border-white/10"
+          >
+            <X className="h-4 w-4" />
+            إلغاء التعديل
+          </button>
+        </motion.div>
       )}
 
-      {/* Avatar Section */}
+      {/* Hero / Avatar Section */}
       <SettingsCard gradient delay={0}>
-        <div className="p-6">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Avatar */}
-          <div className="relative group">
-            <div className="h-32 w-32 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 p-1">
-              <div className="h-full w-full rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
-                {profile.avatar ? (
-                  <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
-                ) : (
-                  <User className="h-16 w-16 text-slate-400" />
-                )}
-              </div>
-            </div>
-            
-            {isEditing && (
-              <button
-                onClick={handleAvatarClick}
-                disabled={isUploadingAvatar}
-                className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-              >
-                {isUploadingAvatar ? (
-                  <Loader2 className="h-8 w-8 text-white animate-spin" />
-                ) : (
-                  <Camera className="h-8 w-8 text-white" />
-                )}
-              </button>
-            )}
-            
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarChange}
-              className="hidden"
-            />
-          </div>
-
-          {/* User Info Summary */}
-          <div className="text-center sm:text-right flex-1">
-            <h2 className="text-2xl font-bold text-white">
-              {profile.firstName} {profile.lastName}
-            </h2>
-            <p className="text-slate-400 mt-1">{profile.email}</p>
-            <div className="flex items-center justify-center sm:justify-start gap-4 mt-3">
-              <div className="flex items-center gap-1 text-sm text-slate-400">
-                <GraduationCap className="h-4 w-4" />
-                <span>{grades.find(g => g.value === profile.grade)?.label}</span>
-              </div>
-              {profile.city && (
-                <div className="flex items-center gap-1 text-sm text-slate-400">
-                  <MapPin className="h-4 w-4" />
-                  <span>{profile.city}</span>
+        <div className="p-8">
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            <div className="relative group">
+              <div className="h-32 w-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-lg shadow-indigo-500/20">
+                <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden border-2 border-slate-900/50">
+                  {profile.avatar ? (
+                    <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
+                  ) : (
+                    <User className="h-16 w-16 text-slate-600" />
+                  )}
                 </div>
+              </div>
+              
+              {isEditing && (
+                <button
+                  onClick={handleAvatarClick}
+                  disabled={isUploadingAvatar}
+                  className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300"
+                >
+                  {isUploadingAvatar ? (
+                    <Loader2 className="h-8 w-8 text-white animate-spin" />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <Camera className="h-6 w-6 text-white" />
+                      <span className="text-[10px] text-white font-medium">تغيير الصورة</span>
+                    </div>
+                  )}
+                </button>
               )}
+              
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarChange}
+                className="hidden"
+              />
             </div>
-          </div>
 
-          {/* Stats */}
-          <div className="flex gap-6">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{user.totalXP ?? 0}</div>
-              <div className="text-xs text-slate-400">درس مكتمل</div>
+            <div className="text-center md:text-right flex-1 space-y-2">
+              <div className="flex flex-col md:flex-row md:items-center gap-3">
+                <h2 className="text-3xl font-bold text-white tracking-tight">
+                  {profile.firstName} {profile.lastName}
+                </h2>
+                <span className={cn(
+                  "inline-flex w-fit mx-auto md:mx-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                  isTeacher ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
+                )}>
+                  {isTeacher ? 'مدرس' : 'طالب'}
+                </span>
+              </div>
+              <p className="text-slate-400 font-medium">{profile.email}</p>
+              
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                  <GraduationCap className="h-3.5 w-3.5 text-indigo-400" />
+                  <span>{gradeLevels.find(g => g.value === profile.gradeLevel)?.label || 'غير محدد'}</span>
+                </div>
+                {profile.city && (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                    <MapPin className="h-3.5 w-3.5 text-pink-400" />
+                    <span>{profile.city}, {profile.country}</span>
+                  </div>
+                )}
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-white">{user.level ?? 1}</div>
-              <div className="text-xs text-slate-400">معدل النجاح</div>
+
+            <div className="grid grid-cols-3 gap-6 pt-4 md:pt-0 border-t md:border-t-0 md:border-r border-white/10 md:pr-8">
+              <div className="text-center group">
+                <div className="text-2xl font-bold text-white group-hover:text-indigo-400 transition-colors">{user.totalXP || 0}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">نقطة خبرة</div>
+              </div>
+              <div className="text-center group">
+                <div className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">{user.level || 1}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">المستوى</div>
+              </div>
+              <div className="text-center group">
+                <div className="text-2xl font-bold text-orange-400 group-hover:scale-110 transition-transform">{user.currentStreak || 0}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">أيام متتالية</div>
+              </div>
             </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">{user.currentStreak ?? 0}</div>
-              <div className="text-xs text-slate-400">التقدير</div>
-            </div>
-          </div>
           </div>
         </div>
       </SettingsCard>
+
+      {/* Main Info */}
       <SettingsCard delay={0.1}>
-        <div className="p-4 border-b border-white/10">
+        <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <User className="h-5 w-5 text-indigo-400" />
-            المعلومات الشخصية
+            المعلومات الأساسية
           </h3>
+          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">المعلومات الشخصية</p>
         </div>
         
-        <div className="p-6 space-y-6">
-          <div className="grid sm:grid-cols-2 gap-6">
+        <div className="p-8 space-y-8">
+          <div className="grid sm:grid-cols-2 gap-8">
             <SettingsInput
               id="firstName"
               label="الاسم الأول"
@@ -311,7 +370,7 @@ export default function ProfileSettingsPage() {
               value={profile.firstName}
               onChange={(e) => handleInputChange('firstName', e.target.value)}
               disabled={!isEditing}
-              placeholder="أدخل اسمك الأول"
+              placeholder="مثال: أحمد"
             />
             <SettingsInput
               id="lastName"
@@ -320,35 +379,44 @@ export default function ProfileSettingsPage() {
               value={profile.lastName}
               onChange={(e) => handleInputChange('lastName', e.target.value)}
               disabled={!isEditing}
-              placeholder="أدخل اسمك الأخير"
+              placeholder="مثال: محمد"
             />
           </div>
           
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-2 gap-8">
             <SettingsInput
               id="email"
               label="البريد الإلكتروني"
               icon={Mail}
               type="email"
               value={profile.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
               disabled={true}
-              placeholder="example@email.com"
-              hint="لا يمكن تغيير البريد الإلكتروني"
+              hint="لا يمكن تعديل البريد الإلكتروني الأساسي"
             />
             <SettingsInput
               id="phone"
-              label="رقم الهاتف"
+              label="رقم الهاتف الأساسي"
               icon={Phone}
               type="tel"
               value={profile.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
               disabled={!isEditing}
-              placeholder="+966 5XX XXX XXXX"
+              placeholder="01xxxxxxxxx"
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-6">
+          <div className="grid sm:grid-cols-2 gap-8">
+            <SettingsInput
+              id="alternativePhone"
+              label="رقم هاتف الطوارئ"
+              icon={Phone}
+              type="tel"
+              value={profile.alternativePhone}
+              onChange={(e) => handleInputChange('alternativePhone', e.target.value)}
+              disabled={!isEditing}
+              placeholder="01xxxxxxxxx"
+              hint="رقم هاتف لولي الأمر أو للطوارئ"
+            />
             <SettingsInput
               id="birthDate"
               label="تاريخ الميلاد"
@@ -358,137 +426,229 @@ export default function ProfileSettingsPage() {
               onChange={(e) => handleInputChange('birthDate', e.target.value)}
               disabled={!isEditing}
             />
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">الجنس</label>
+          </div>
+
+          <div className="grid sm:grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-slate-300">الجنس</label>
               <div className="flex gap-4">
-                <label className={cn(
-                  'flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all',
-                  profile.gender === 'male'
-                    ? 'bg-indigo-500/20 border-indigo-500/50 text-white'
-                    : 'bg-white/5 border-white/10 text-slate-400',
-                  !isEditing && 'cursor-not-allowed opacity-60'
-                )}>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="male"
-                    checked={profile.gender === 'male'}
-                    onChange={() => handleInputChange('gender', 'male')}
+                {['male', 'female'].map((g) => (
+                  <button
+                    key={g}
+                    type="button"
                     disabled={!isEditing}
-                    className="hidden"
-                  />
-                  <span>ذكر</span>
-                </label>
-                <label className={cn(
-                  'flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border cursor-pointer transition-all',
-                  profile.gender === 'female'
-                    ? 'bg-pink-500/20 border-pink-500/50 text-white'
-                    : 'bg-white/5 border-white/10 text-slate-400',
-                  !isEditing && 'cursor-not-allowed opacity-60'
-                )}>
-                  <input
-                    type="radio"
-                    name="gender"
-                    value="female"
-                    checked={profile.gender === 'female'}
-                    onChange={() => handleInputChange('gender', 'female')}
-                    disabled={!isEditing}
-                    className="hidden"
-                  />
-                  <span>أنثى</span>
-                </label>
+                    onClick={() => handleInputChange('gender', g)}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-3 p-3.5 rounded-2xl border transition-all duration-300 font-medium capitalize',
+                      profile.gender === g
+                        ? g === 'male' 
+                          ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 shadow-inner shadow-indigo-500/10'
+                          : 'bg-pink-500/20 border-pink-500/50 text-pink-300 shadow-inner shadow-pink-500/10'
+                        : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10',
+                      !isEditing && 'opacity-60 cursor-not-allowed'
+                    )}
+                  >
+                    <CheckCircle className={cn("h-4 w-4", profile.gender === g ? "opacity-100" : "opacity-0")} />
+                    {g === 'male' ? 'ذكر' : 'أنثى'}
+                  </button>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </SettingsCard>
 
-      {/* Academic Information */}
-      <SettingsCard delay={0.2}>
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <GraduationCap className="h-5 w-5 text-indigo-400" />
-            المعلومات الدراسية
-          </h3>
-        </div>
-        
-        <div className="p-6 space-y-6">
-          <div className="grid sm:grid-cols-2 gap-6">
-            <SettingsInput
-              id="school"
-              label="المدرسة"
-              icon={Building2}
-              value={profile.school}
-              onChange={(e) => handleInputChange('school', e.target.value)}
-              disabled={!isEditing}
-              placeholder="اسم المدرسة"
-            />
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">الصف الدراسي</label>
-              <select
-                value={profile.grade}
-                onChange={(e) => handleInputChange('grade', e.target.value)}
+            <div className="grid grid-cols-2 gap-4">
+              <SettingsInput
+                id="country"
+                label="الدولة"
+                icon={Globe}
+                value={profile.country}
+                onChange={(e) => handleInputChange('country', e.target.value)}
                 disabled={!isEditing}
-                className={cn(
-                  'w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white',
-                  'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50',
-                  'disabled:opacity-60 disabled:cursor-not-allowed'
-                )}
-              >
-                {grades.map(grade => (
-                  <option key={grade.value} value={grade.value} className="bg-slate-800">
-                    {grade.label}
-                  </option>
-                ))}
-              </select>
+                placeholder="مصر"
+              />
+              <SettingsInput
+                id="city"
+                label="المدينة / المحافظة"
+                icon={MapPin}
+                value={profile.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                disabled={!isEditing}
+                placeholder="القاهرة"
+              />
             </div>
           </div>
-
-          <SettingsInput
-            id="city"
-            label="المدينة"
-            icon={MapPin}
-            value={profile.city}
-            onChange={(e) => handleInputChange('city', e.target.value)}
-            disabled={!isEditing}
-            placeholder="اسم المدينة"
-          />
         </div>
       </SettingsCard>
 
-      {/* Bio */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden"
-      >
-        <div className="p-4 border-b border-white/10">
+      {/* Academic / Professional Info */}
+      <SettingsCard delay={0.2}>
+        <div className="p-5 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
-            <Award className="h-5 w-5 text-indigo-400" />
-            نبذة عني
+            {isTeacher ? <Briefcase className="h-5 w-5 text-indigo-400" /> : <GraduationCap className="h-5 w-5 text-indigo-400" />}
+            {isTeacher ? 'المعلومات المهنية' : 'المعلومات الدراسية'}
           </h3>
         </div>
         
-        <div className="p-6">
-          <textarea
-            value={profile.bio}
-            onChange={(e) => handleInputChange('bio', e.target.value)}
-            disabled={!isEditing}
-            placeholder="اكتب نبذة قصيرة عن نفسك..."
-            rows={4}
-            className={cn(
-              'w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-slate-500 resize-none',
-              'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50',
-              'disabled:opacity-60 disabled:cursor-not-allowed'
-            )}
-          />
-          <p className="text-xs text-slate-500 mt-2">
-            {profile.bio.length}/500 حرف
+        <div className="p-8 space-y-8">
+          {!isTeacher ? (
+            <>
+              <div className="grid sm:grid-cols-2 gap-8">
+                <SettingsInput
+                  id="school"
+                  label="المدرسة / المعهد"
+                  icon={Building2}
+                  value={profile.school}
+                  onChange={(e) => handleInputChange('school', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="اسم مدرستك الحالية"
+                />
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-300">الصف الدراسي</label>
+                  <select
+                    value={profile.gradeLevel}
+                    onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
+                    disabled={!isEditing}
+                    className={cn(
+                      'w-full p-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white shadow-lg',
+                      'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all',
+                      'disabled:opacity-60 disabled:cursor-not-allowed'
+                    )}
+                  >
+                    {gradeLevels.map(grade => (
+                      <option key={grade.value} value={grade.value}>{grade.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-300">نوع التعليم</label>
+                  <select
+                    value={profile.educationType}
+                    onChange={(e) => handleInputChange('educationType', e.target.value)}
+                    disabled={!isEditing}
+                    className={cn(
+                      'w-full p-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white',
+                      'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-60'
+                    )}
+                  >
+                    {educationTypes.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-300">الشعبة / التخصص</label>
+                  <select
+                    value={profile.section}
+                    onChange={(e) => handleInputChange('section', e.target.value)}
+                    disabled={!isEditing}
+                    className={cn(
+                      'w-full p-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white',
+                      'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-60'
+                    )}
+                  >
+                    {sections.map(sec => (
+                      <option key={sec.value} value={sec.value}>{sec.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <SettingsInput
+                id="studyGoal"
+                label="هدفك الدراسي"
+                icon={Award}
+                value={profile.studyGoal}
+                onChange={(e) => handleInputChange('studyGoal', e.target.value)}
+                disabled={!isEditing}
+                placeholder="مثال: دخول كلية الهندسة"
+                hint="سيساعدنا هذا في توفير محتوى تعليمي مخصص لك"
+              />
+            </>
+          ) : (
+            <>
+              <div className="grid sm:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <label className="text-sm font-semibold text-slate-300">المواد التي تدرسها</label>
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-indigo-300 text-sm font-medium flex flex-wrap gap-2 min-h-[58px]">
+                    {profile.subjectsTaught.length > 0 ? (
+                      profile.subjectsTaught.map((sub, i) => (
+                        <span key={i} className="bg-indigo-500/20 px-2 py-1 rounded-md border border-indigo-500/30">
+                          {sub}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-slate-500 italic">لم يتم تحديد مواد</span>
+                    )}
+                  </div>
+                </div>
+                <SettingsInput
+                  id="experienceYears"
+                  label="سنوات الخبرة"
+                  icon={Hash}
+                  value={profile.experienceYears}
+                  onChange={(e) => handleInputChange('experienceYears', e.target.value)}
+                  disabled={!isEditing}
+                  placeholder="مثال: 10 سنوات"
+                />
+              </div>
+            </>
+          )}
+        </div>
+      </SettingsCard>
+
+      {/* Bio / About */}
+      <SettingsCard delay={0.3}>
+        <div className="p-5 border-b border-white/10">
+          <h3 className="font-semibold text-white flex items-center gap-2">
+            <BookOpen className="h-5 w-5 text-indigo-400" />
+            نبذة تعريفية
+          </h3>
+        </div>
+        
+        <div className="p-8">
+          <div className="relative">
+            <textarea
+              id="bio"
+              value={profile.bio}
+              onChange={(e) => handleInputChange('bio', e.target.value.slice(0, 500))}
+              disabled={!isEditing}
+              placeholder="اكتب نبذة عن اهتماماتك أو أهدافك..."
+              rows={4}
+              className={cn(
+                'w-full p-5 rounded-2xl bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-600 resize-none font-medium leading-relaxed shadow-lg',
+                'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all',
+                'disabled:opacity-60 disabled:cursor-not-allowed'
+              )}
+            />
+            <div className="absolute bottom-4 left-4">
+              <span className={cn(
+                "text-xs font-bold font-mono px-2 py-1 rounded-md",
+                profile.bio.length >= 450 ? "bg-red-500/20 text-red-400" : "bg-white/5 text-slate-500"
+              )}>
+                {profile.bio.length} / 500
+              </span>
+            </div>
+          </div>
+          <p className="text-xs text-slate-500 mt-4 leading-relaxed font-medium">
+            ستظهر هذه النبذة في ملفك الشخصي العام وفي مجتمعات النقاش الخاصة بالمناهج.
           </p>
         </div>
-      </motion.div>
-      </div>
-      );
-}
+      </SettingsCard>
 
+      {/* Help Panel */}
+      <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 flex flex-col md:flex-row items-center gap-6">
+        <div className="bg-indigo-500/20 p-4 rounded-xl">
+          <Building2 className="h-8 w-8 text-indigo-400" />
+        </div>
+        <div className="flex-1 text-right">
+          <h4 className="text-white font-bold text-lg mb-1">خصوصية بياناتك</h4>
+          <p className="text-slate-400 text-sm leading-relaxed max-w-2xl">
+            نحن نهتم بخصوصيتك. البيانات الأكاديمية مثل المدرسة والشعبة تستخدم فقط لتحسين تجربتك التعليمية وتوفير الدروس المناسبة لمنهجك. يمكنك إدارة ظهور هذه البيانات من صفحة <Link href="/settings/privacy" className="text-indigo-400 hover:underline">الخصوصية</Link>.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
