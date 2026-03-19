@@ -69,7 +69,7 @@ function ResetPasswordForm() {
           message: result.error || 'Failed to reset password.',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       setStatus({
         type: 'error',
         message: 'Network error. Please try again.',

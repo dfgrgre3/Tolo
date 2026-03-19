@@ -159,12 +159,17 @@ export function useHydrationSafeState<T>(
   const serverValueRef = useRef(initialValue);
 
   useEffect(() => {
-    setIsHydrated(true);
+    // Use microtask to avoid synchronous setState during hydration
+    const timeoutId = setTimeout(() => {
+      setIsHydrated(true);
 
-    // Check for hydration mismatch
-    if (options?.onHydrationMismatch && serverValueRef.current !== state) {
-      options.onHydrationMismatch(serverValueRef.current, state);
-    }
+      // Check for hydration mismatch
+      if (options?.onHydrationMismatch && serverValueRef.current !== state) {
+        options.onHydrationMismatch(serverValueRef.current, state);
+      }
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const setHydrationSafeState: React.Dispatch<React.SetStateAction<T>> = useCallback(

@@ -1,16 +1,16 @@
 'use client';
 
 /**
- * ًںژ¨ طµظپط­ط© ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط¸ظ‡ط± - Appearance Settings
+ * 🎨 صفحة إعدادات المظهر - Appearance Settings
  * 
- * طھط®طµظٹطµ ظ…ط¸ظ‡ط± ط§ظ„طھط·ط¨ظٹظ‚ ظ…ط¹:
- * - ط§ظ„ط³ظ…ط§طھ (ظپط§طھط­/ط¯ط§ظƒظ†/طھظ„ظ‚ط§ط¦ظٹ)
- * - ط£ظ„ظˆط§ظ† ظ…ط®طµطµط©
- * - ط­ط¬ظ… ط§ظ„ط®ط·
- * - طھط¹ط¯ظٹظ„ط§طھ ط§ظ„ظˆط§ط¬ظ‡ط©
+ * تخصيص مظهر التطبيق مع:
+ * - السمات (فاتح/داكن/تلقائي)
+ * - ألوان مخصصة
+ * - حجم الخط
+ * - تعديلات الواجهة
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Palette,
@@ -38,26 +38,26 @@ import {
 } from '@/app/(dashboard)/settings/preferences-client';
 
 const colorPresets = [
-  { name: 'ط¨ظ†ظپط³ط¬ظٹ', primary: '#6366f1', accent: '#8b5cf6' },
-  { name: 'ط£ط²ط±ظ‚', primary: '#3b82f6', accent: '#0ea5e9' },
-  { name: 'ط£ط®ط¶ط±', primary: '#22c55e', accent: '#10b981' },
-  { name: 'ط¨ط±طھظ‚ط§ظ„ظٹ', primary: '#f97316', accent: '#fb923c' },
-  { name: 'ظˆط±ط¯ظٹ', primary: '#ec4899', accent: '#f472b6' },
-  { name: 'ط£ط­ظ…ط±', primary: '#ef4444', accent: '#f87171' },
+  { name: 'بنفسجي', primary: '#6366f1', accent: '#8b5cf6' },
+  { name: 'أزرق', primary: '#3b82f6', accent: '#0ea5e9' },
+  { name: 'أخضر', primary: '#22c55e', accent: '#10b981' },
+  { name: 'برتقالي', primary: '#f97316', accent: '#fb923c' },
+  { name: 'وردي', primary: '#ec4899', accent: '#f472b6' },
+  { name: 'أحمر', primary: '#ef4444', accent: '#f87171' },
 ];
 
 const fontOptions = [
-  { value: 'system', label: 'ط®ط· ط§ظ„ظ†ط¸ط§ظ…', sample: 'ط£ ط¨ طھ' },
-  { value: 'cairo', label: 'Cairo', sample: 'ط£ ط¨ طھ' },
-  { value: 'tajawal', label: 'Tajawal', sample: 'ط£ ط¨ طھ' },
-  { value: 'noto-kufi', label: 'Noto Kufi', sample: 'ط£ ط¨ طھ' },
+  { value: 'system', label: 'خط النظام', sample: 'أ ب ت' },
+  { value: 'cairo', label: 'Cairo', sample: 'أ ب ت' },
+  { value: 'tajawal', label: 'Tajawal', sample: 'أ ب ت' },
+  { value: 'noto-kufi', label: 'Noto Kufi', sample: 'أ ب ت' },
 ];
 
 const fontSizes = [
-  { value: 'small', label: 'طµط؛ظٹط±', size: '14px' },
-  { value: 'medium', label: 'ظ…طھظˆط³ط·', size: '16px' },
-  { value: 'large', label: 'ظƒط¨ظٹط±', size: '18px' },
-  { value: 'xlarge', label: 'ظƒط¨ظٹط± ط¬ط¯ط§ظ‹', size: '20px' },
+  { value: 'small', label: 'صغير', size: '14px' },
+  { value: 'medium', label: 'متوسط', size: '16px' },
+  { value: 'large', label: 'كبير', size: '18px' },
+  { value: 'xlarge', label: 'كبير جداً', size: '20px' },
 ];
 
 export default function AppearanceSettingsPage() {
@@ -78,7 +78,7 @@ export default function AppearanceSettingsPage() {
       } catch {
         if (!mounted) return;
         setSettings({ ...DEFAULT_APPEARANCE_SETTINGS });
-        toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط¸ظ‡ط±');
+        toast.error('فشل تحميل إعدادات المظهر');
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -93,12 +93,81 @@ export default function AppearanceSettingsPage() {
     };
   }, []);
 
+  // Apply theme to document
+  const applyTheme = useCallback((theme: 'light' | 'dark' | 'system') => {
+    const root = document.documentElement;
+    if (theme === 'system') {
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      root.classList.toggle('dark', prefersDark);
+    } else {
+      root.classList.toggle('dark', theme === 'dark');
+    }
+  }, []);
+
+  // Apply CSS variables for colors
+  const applyColors = useCallback((primaryColor: string, accentColor: string) => {
+    const root = document.documentElement;
+    root.style.setProperty('--color-primary', primaryColor);
+    root.style.setProperty('--color-accent', accentColor);
+    root.style.setProperty('--primary', primaryColor);
+    root.style.setProperty('--accent', accentColor);
+  }, []);
+
+  // Apply font size
+  const applyFontSize = useCallback((fontSize: 'small' | 'medium' | 'large' | 'xlarge') => {
+    const sizes = { small: '14px', medium: '16px', large: '18px', xlarge: '20px' };
+    document.documentElement.style.fontSize = sizes[fontSize];
+  }, []);
+
+  // Apply reduced motion
+  const applyReducedMotion = useCallback((reducedMotion: boolean) => {
+    document.documentElement.classList.toggle('reduce-motion', reducedMotion);
+  }, []);
+
+  // Apply high contrast
+  const applyHighContrast = useCallback((highContrast: boolean) => {
+    document.documentElement.classList.toggle('high-contrast', highContrast);
+  }, []);
+
+  // Apply compact mode
+  const applyCompactMode = useCallback((compactMode: boolean) => {
+    document.documentElement.classList.toggle('compact-mode', compactMode);
+  }, []);
+
+  // Apply all settings on initial load
+  useEffect(() => {
+    if (!isLoading && settings) {
+      applyTheme(settings.theme);
+      applyColors(settings.primaryColor, settings.accentColor);
+      applyFontSize(settings.fontSize);
+      applyReducedMotion(settings.reducedMotion);
+      applyHighContrast(settings.highContrast);
+      applyCompactMode(settings.compactMode);
+    }
+  }, [isLoading, settings, applyTheme, applyColors, applyFontSize, applyReducedMotion, applyHighContrast, applyCompactMode]);
+
   const updateSetting = <K extends keyof AppearanceSettingsPreference>(
     key: K,
     value: AppearanceSettingsPreference[K]
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
+
+    // Apply changes immediately for visual feedback
+    if (key === 'theme') {
+      applyTheme(value as 'light' | 'dark' | 'system');
+    } else if (key === 'primaryColor' || key === 'accentColor') {
+      const newSettings = { ...settings, [key]: value };
+      applyColors(newSettings.primaryColor, newSettings.accentColor);
+    } else if (key === 'fontSize') {
+      applyFontSize(value as 'small' | 'medium' | 'large' | 'xlarge');
+    } else if (key === 'reducedMotion') {
+      applyReducedMotion(value as boolean);
+    } else if (key === 'highContrast') {
+      applyHighContrast(value as boolean);
+    } else if (key === 'compactMode') {
+      applyCompactMode(value as boolean);
+    }
   };
 
   const handleSave = async () => {
@@ -121,7 +190,7 @@ export default function AppearanceSettingsPage() {
   const handleReset = () => {
     setSettings({ ...DEFAULT_APPEARANCE_SETTINGS });
     setHasChanges(true);
-    toast.info('طھظ… ط¥ط¹ط§ط¯ط© ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ ظ„ظ„ظ‚ظٹظ… ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©');
+    toast.info('تم إعادة الإعدادات للقيم الافتراضية');
   };
 
   if (isLoading) {
@@ -139,10 +208,10 @@ export default function AppearanceSettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <Palette className="h-7 w-7 text-indigo-400" />
-            ط§ظ„ظ…ط¸ظ‡ط±
+            المظهر
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            طھط®طµظٹطµ ظ…ط¸ظ‡ط± ط§ظ„طھط·ط¨ظٹظ‚ ظˆط£ظ„ظˆط§ظ†ظ‡
+            تخصيص مظهر التطبيق وألوانه
           </p>
         </div>
         
@@ -154,7 +223,7 @@ export default function AppearanceSettingsPage() {
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
           >
             <RotateCcw className="h-4 w-4" />
-            ط¥ط¹ط§ط¯ط© طھط¹ظٹظٹظ†
+            إعادة تعيين
           </motion.button>
           
           {hasChanges && (
@@ -172,7 +241,7 @@ export default function AppearanceSettingsPage() {
               ) : (
                 <Check className="h-4 w-4" />
               )}
-              ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±ط§طھ
+              حفظ التغييرات
             </motion.button>
           )}
         </div>
@@ -187,17 +256,17 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Sun className="h-5 w-5 text-indigo-400" />
-            ط§ظ„ط³ظ…ط©
+            السمة
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ط§ط®طھط± ط³ظ…ط© ط§ظ„ط¹ط±ط¶ ط§ظ„ظ…ظپط¶ظ„ط©</p>
+          <p className="text-xs text-slate-400 mt-1">اختر سمة العرض المفضلة</p>
         </div>
         
         <div className="p-6">
           <div className="grid grid-cols-3 gap-4">
             {[
-              { value: 'light', label: 'ظپط§طھط­', icon: Sun },
-              { value: 'dark', label: 'ط¯ط§ظƒظ†', icon: Moon },
-              { value: 'system', label: 'طھظ„ظ‚ط§ط¦ظٹ', icon: Monitor },
+              { value: 'light', label: 'فاتح', icon: Sun },
+              { value: 'dark', label: 'داكن', icon: Moon },
+              { value: 'system', label: 'تلقائي', icon: Monitor },
             ].map((theme) => {
               const Icon = theme.icon;
               const isSelected = settings.theme === theme.value;
@@ -255,9 +324,9 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-indigo-400" />
-            ط§ظ„ط£ظ„ظˆط§ظ†
+            الألوان
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ط§ط®طھط± ظ„ظˆط­ط© ط§ظ„ط£ظ„ظˆط§ظ† ط§ظ„ظ…ظپط¶ظ„ط©</p>
+          <p className="text-xs text-slate-400 mt-1">اختر لوحة الألوان المفضلة</p>
         </div>
         
         <div className="p-6">
@@ -301,10 +370,10 @@ export default function AppearanceSettingsPage() {
           
           {/* Custom Color Picker */}
           <div className="mt-6 pt-6 border-t border-white/10">
-            <h4 className="text-sm font-medium text-white mb-4">ظ„ظˆظ† ظ…ط®طµطµ</h4>
+            <h4 className="text-sm font-medium text-white mb-4">لون مخصص</h4>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">ط§ظ„ظ„ظˆظ† ط§ظ„ط±ط¦ظٹط³ظٹ</label>
+                <label className="text-xs text-slate-400">اللون الرئيسي</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -321,7 +390,7 @@ export default function AppearanceSettingsPage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs text-slate-400">ط§ظ„ظ„ظˆظ† ط§ظ„ط«ط§ظ†ظˆظٹ</label>
+                <label className="text-xs text-slate-400">اللون الثانوي</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -352,15 +421,15 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Type className="h-5 w-5 text-indigo-400" />
-            ط§ظ„ط®ط· ظˆط§ظ„ظ†طµ
+            الخط والنص
           </h3>
-          <p className="text-xs text-slate-400 mt-1">طھط®طµظٹطµ ط§ظ„ط®ط·ظˆط· ظˆط­ط¬ظ… ط§ظ„ظ†طµ</p>
+          <p className="text-xs text-slate-400 mt-1">تخصيص الخطوط وحجم النص</p>
         </div>
         
         <div className="p-6 space-y-6">
           {/* Font Size */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">ط­ط¬ظ… ط§ظ„ط®ط·</label>
+            <label className="text-sm font-medium text-white mb-4 block">حجم الخط</label>
             <div className="grid grid-cols-4 gap-3">
               {fontSizes.map((size) => {
                 const isSelected = settings.fontSize === size.value;
@@ -378,7 +447,7 @@ export default function AppearanceSettingsPage() {
                         : 'bg-white/5 border-white/10 hover:bg-white/10'
                     )}
                   >
-                    <span style={{ fontSize: size.size }} className="text-white font-bold">ط£</span>
+                    <span style={{ fontSize: size.size }} className="text-white font-bold">أ</span>
                     <span className="text-xs text-slate-400">{size.label}</span>
                   </motion.button>
                 );
@@ -388,7 +457,7 @@ export default function AppearanceSettingsPage() {
           
           {/* Font Family */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">ظ†ظˆط¹ ط§ظ„ط®ط·</label>
+            <label className="text-sm font-medium text-white mb-4 block">نوع الخط</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {fontOptions.map((font) => {
                 const isSelected = settings.fontFamily === font.value;
@@ -426,32 +495,32 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Eye className="h-5 w-5 text-indigo-400" />
-            ط¥ظ…ظƒط§ظ†ظٹط© ط§ظ„ظˆطµظˆظ„
+            إمكانية الوصول
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ط¥ط¹ط¯ط§ط¯ط§طھ طھط³ظ‡ظٹظ„ ط§ظ„ظˆطµظˆظ„</p>
+          <p className="text-xs text-slate-400 mt-1">إعدادات تسهيل الوصول</p>
         </div>
         
         <div className="p-6 space-y-4">
           <ToggleSetting
             icon={Zap}
-            title="طھظ‚ظ„ظٹظ„ ط§ظ„ط­ط±ظƒط©"
-            description="ط¥ظٹظ‚ط§ظپ ط§ظ„ط±ط³ظˆظ… ط§ظ„ظ…طھط­ط±ظƒط© ظ„ظ„ط£ط´ط®ط§طµ ط§ظ„ط­ط³ط§ط³ظٹظ† ظ„ظ„ط­ط±ظƒط©"
+            title="تقليل الحركة"
+            description="إيقاف الرسوم المتحركة للأشخاص الحساسين للحركة"
             enabled={settings.reducedMotion}
             onToggle={(v) => updateSetting('reducedMotion', v)}
           />
           
           <ToggleSetting
             icon={Eye}
-            title="طھط¨ط§ظٹظ† ط¹ط§ظ„ظٹ"
-            description="ط²ظٹط§ط¯ط© ط§ظ„طھط¨ط§ظٹظ† ظ„طھط­ط³ظٹظ† ظˆط¶ظˆط­ ط§ظ„ط¹ظ†ط§طµط±"
+            title="تباين عالي"
+            description="زيادة التباين لتحسين وضوح العناصر"
             enabled={settings.highContrast}
             onToggle={(v) => updateSetting('highContrast', v)}
           />
           
           <ToggleSetting
             icon={Layout}
-            title="ط§ظ„ظˆط¶ط¹ ط§ظ„ظ…ط¶ط؛ظˆط·"
-            description="طھظ‚ظ„ظٹظ„ ط§ظ„ظ…ط³ط§ظپط§طھ ط¨ظٹظ† ط§ظ„ط¹ظ†ط§طµط±"
+            title="الوضع المضغوط"
+            description="تقليل المسافات بين العناصر"
             enabled={settings.compactMode}
             onToggle={(v) => updateSetting('compactMode', v)}
           />
@@ -468,18 +537,18 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Layout className="h-5 w-5 text-indigo-400" />
-            ط´ظƒظ„ ط§ظ„ط²ظˆط§ظٹط§
+            شكل الزوايا
           </h3>
-          <p className="text-xs text-slate-400 mt-1">طھط®طµظٹطµ ط§ط³طھط¯ط§ط±ط© ط²ظˆط§ظٹط§ ط§ظ„ط¹ظ†ط§طµط±</p>
+          <p className="text-xs text-slate-400 mt-1">تخصيص استدارة زوايا العناصر</p>
         </div>
         
         <div className="p-6">
           <div className="grid grid-cols-4 gap-4">
             {[
-              { value: 'none', label: 'ط­ط§ط¯ط©', radius: '0px' },
-              { value: 'small', label: 'طµط؛ظٹط±ط©', radius: '4px' },
-              { value: 'medium', label: 'ظ…طھظˆط³ط·ط©', radius: '8px' },
-              { value: 'large', label: 'ظƒط¨ظٹط±ط©', radius: '16px' },
+              { value: 'none', label: 'حادة', radius: '0px' },
+              { value: 'small', label: 'صغيرة', radius: '4px' },
+              { value: 'medium', label: 'متوسطة', radius: '8px' },
+              { value: 'large', label: 'كبيرة', radius: '16px' },
             ].map((option) => {
               const isSelected = settings.borderRadius === option.value;
               
@@ -522,7 +591,7 @@ export default function AppearanceSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Eye className="h-5 w-5 text-indigo-400" />
-            ظ…ط¹ط§ظٹظ†ط©
+            معاينة
           </h3>
         </div>
         
@@ -537,7 +606,7 @@ export default function AppearanceSettingsPage() {
                               settings.borderRadius === 'medium' ? '8px' : '16px',
               }}
             >
-              ط²ط± ط±ط¦ظٹط³ظٹ
+              زر رئيسي
             </div>
             <div
               className="p-4 text-white font-medium"
@@ -548,7 +617,7 @@ export default function AppearanceSettingsPage() {
                               settings.borderRadius === 'medium' ? '8px' : '16px',
               }}
             >
-              ط²ط± ط«ط§ظ†ظˆظٹ
+              زر ثانوي
             </div>
           </div>
         </div>

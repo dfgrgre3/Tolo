@@ -3,7 +3,8 @@ import { safeFetch } from "@/lib/safe-client-utils";
 import errorManager from "@/services/ErrorManager";
 import { ensureUser } from "@/lib/user-utils";
 import type { Schedule, SubjectEnrollment, Task, StudySession, Reminder, SubjectType } from '../types';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface UseTimeDataReturn {
   userId: string | null;
@@ -14,6 +15,10 @@ interface UseTimeDataReturn {
   reminders: Reminder[];
   isLoading: boolean;
   fetchData: () => Promise<void>;
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  setReminders: React.Dispatch<React.SetStateAction<Reminder[]>>;
+  setStudySessions: React.Dispatch<React.SetStateAction<StudySession[]>>;
+  setSchedule: React.Dispatch<React.SetStateAction<Schedule | null>>;
 }
 
 export function useTimeData(): UseTimeDataReturn {
@@ -31,9 +36,9 @@ export function useTimeData(): UseTimeDataReturn {
       setIsLoading(false);
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
       // Use Promise.allSettled for better error handling - allows partial success
       const results = await Promise.allSettled([
@@ -202,7 +207,10 @@ export function useTimeData(): UseTimeDataReturn {
     studySessions,
     reminders,
     isLoading,
-    fetchData
+    fetchData,
+    setTasks,
+    setReminders,
+    setStudySessions,
+    setSchedule
   };
 }
-

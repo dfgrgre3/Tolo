@@ -16,7 +16,6 @@ import {
   Mail,
   Phone,
   Calendar,
-  MapPin,
   Camera,
   Loader2,
   Edit3,
@@ -99,7 +98,7 @@ const initialProfile: ProfileData = {
 };
 
 export default function ProfileSettingsPage() {
-  const { user, isLoading, refreshUser } = useAuth();
+  const { user, isLoading, refreshUser, fetchWithAuth } = useAuth();
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -118,7 +117,7 @@ export default function ProfileSettingsPage() {
         birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : '',
         gender: user.gender || 'male',
         country: (user as any).country || 'مصر',
-        city: user.city || '',
+        city: (user as any).city || '',
         school: (user as any).school || '',
         gradeLevel: (user as any).gradeLevel || '3_SEC',
         educationType: (user as any).educationType || 'GENERAL',
@@ -185,7 +184,6 @@ export default function ProfileSettingsPage() {
           birthDate: profile.birthDate,
           gender: profile.gender,
           country: profile.country,
-          city: profile.city,
           school: profile.school,
           gradeLevel: profile.gradeLevel,
           educationType: profile.educationType,
@@ -324,12 +322,6 @@ export default function ProfileSettingsPage() {
                   <GraduationCap className="h-3.5 w-3.5 text-indigo-400" />
                   <span>{gradeLevels.find(g => g.value === profile.gradeLevel)?.label || 'غير محدد'}</span>
                 </div>
-                {profile.city && (
-                  <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                    <MapPin className="h-3.5 w-3.5 text-pink-400" />
-                    <span>{profile.city}, {profile.country}</span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -464,15 +456,6 @@ export default function ProfileSettingsPage() {
                 onChange={(e) => handleInputChange('country', e.target.value)}
                 disabled={!isEditing}
                 placeholder="مصر"
-              />
-              <SettingsInput
-                id="city"
-                label="المدينة / المحافظة"
-                icon={MapPin}
-                value={profile.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                disabled={!isEditing}
-                placeholder="القاهرة"
               />
             </div>
           </div>

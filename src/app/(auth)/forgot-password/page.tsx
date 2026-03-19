@@ -50,7 +50,7 @@ export default function ForgotPasswordPage() {
           message: result.error || 'Something went wrong. Please try again.',
         });
       }
-    } catch (error) {
+    } catch (_error) {
       setStatus({
         type: 'error',
         message: 'Network error. Please check your connection.',

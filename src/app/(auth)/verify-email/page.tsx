@@ -2,7 +2,7 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 
@@ -39,7 +39,7 @@ function VerifyEmailContent() {
           setStatus('error');
           setMessage(result.error || 'Verification failed.');
         }
-      } catch (error) {
+      } catch (_error) {
         setStatus('error');
         setMessage('Network error. Please try again.');
       }

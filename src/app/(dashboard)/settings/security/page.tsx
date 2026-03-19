@@ -5,36 +5,38 @@
  * 
  * إدارة أمان الحساب:
  * - تغيير كلمة المرور
- * - إدارة الجلسات
  * - التحقق بخطوتين
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ar } from 'date-fns/locale';
 import { formatDistanceToNow } from 'date-fns';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Shield, 
   Key, 
   Lock, 
   ChevronRight, 
   LogOut, 
-  Smartphone, 
   History,
   AlertTriangle,
   CheckCircle2,
   Loader2,
-  Monitor,
-  Settings
+  Settings,
+  ShieldCheck,
+  ShieldX
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
+import { DeleteAccountDialog, TwoFactorSetupModal } from '../components';
+import { useRouter } from 'next/navigation';
 
 export default function SecurityPage() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const router = useRouter();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -43,6 +45,13 @@ export default function SecurityPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Two-Factor Authentication State
+  const [is2FAEnabled, setIs2FAEnabled] = useState(false);
+  const [isLoading2FA, setIsLoading2FA] = useState(true);
+  const [show2FAModal, setShow2FAModal] = useState(false);
+  const [isDisabling2FA, setIsDisabling2FA] = useState(false);
+
+  
   // Security Logs State
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
@@ -58,21 +67,40 @@ export default function SecurityPage() {
     SUSPICIOUS_ACTIVITY: 'نشاط مشبوه',
   };
 
-  useEffect(() => {
-    const fetchRecentLogs = async () => {
-      try {
-        const res = await fetch('/api/auth/security-logs?limit=3');
-        if (!res.ok) throw new Error();
+  // Fetch 2FA Status
+  const fetch2FAStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/2fa/status');
+      if (res.ok) {
         const data = await res.json();
-        setRecentLogs(data.logs || []);
-      } catch (err) {
-        console.error('Failed to fetch logs');
-      } finally {
-        setIsLoadingLogs(false);
+        setIs2FAEnabled(data.enabled);
       }
-    };
-    fetchRecentLogs();
+    } catch (err) {
+      console.error('Failed to fetch 2FA status');
+    } finally {
+      setIsLoading2FA(false);
+    }
   }, []);
+
+  
+  // Fetch Recent Security Logs
+  const fetchRecentLogs = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/security-logs?limit=3');
+      if (!res.ok) throw new Error();
+      const data = await res.json();
+      setRecentLogs(data.logs || []);
+    } catch (err) {
+      console.error('Failed to fetch logs');
+    } finally {
+      setIsLoadingLogs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetch2FAStatus();
+    fetchRecentLogs();
+  }, [fetch2FAStatus, fetchRecentLogs]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +132,65 @@ export default function SecurityPage() {
       toast.error(error.message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle 2FA Toggle
+  const handle2FAToggle = async () => {
+    if (is2FAEnabled) {
+      // Disable 2FA
+      setIsDisabling2FA(true);
+      try {
+        const res = await fetch('/api/auth/2fa/disable', { method: 'POST' });
+        if (res.ok) {
+          setIs2FAEnabled(false);
+          toast.success('تم تعطيل المصادقة الثنائية');
+        } else {
+          const error = await res.json();
+          throw new Error(error.error || 'فشل في تعطيل المصادقة الثنائية');
+        }
+      } catch (error: any) {
+        toast.error(error.message);
+      } finally {
+        setIsDisabling2FA(false);
+      }
+    } else {
+      // Enable 2FA - show modal
+      setShow2FAModal(true);
+    }
+  };
+
+  const handle2FASuccess = () => {
+    setIs2FAEnabled(true);
+    fetch2FAStatus();
+  };
+
+  
+  
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return;
+
+    try {
+      const res = await fetch(`/api/users/${user.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+
+      if (res.ok) {
+        toast.success("تم حذف الحساب بنجاح");
+        localStorage.clear();
+        sessionStorage.clear();
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
+      } else {
+        const errorData = await res.json().catch(() => ({ error: "حدث خطأ غير معروف" }));
+        toast.error(errorData.error || "حدث خطأ أثناء حذف الحساب");
+      }
+    } catch (error) {
+      console.error("Error deleting account:", error);
+      toast.error("حدث خطأ أثناء حذف الحساب");
     }
   };
 
@@ -197,52 +284,66 @@ export default function SecurityPage() {
       <section className="rounded-2xl bg-white/5 border border-white/10 p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-              <Shield className="h-6 w-6 text-green-400" />
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              is2FAEnabled ? "bg-green-500/10" : "bg-slate-500/10"
+            )}>
+              {isLoading2FA ? (
+                <Loader2 className="h-6 w-6 text-slate-400 animate-spin" />
+              ) : is2FAEnabled ? (
+                <ShieldCheck className="h-6 w-6 text-green-400" />
+              ) : (
+                <Shield className="h-6 w-6 text-slate-400" />
+              )}
             </div>
             <div>
               <h3 className="font-semibold text-white">المصادقة الثنائية (2FA)</h3>
-              <p className="text-sm text-slate-400">إضافة طبقة حماية إضافية لحسابك</p>
+              <p className="text-sm text-slate-400">
+                {isLoading2FA ? 'جاري التحميل...' : 
+                 is2FAEnabled ? 'مفعّلة - حسابك محمي بطبقة إضافية' : 
+                 'إضافة طبقة حماية إضافية لحسابك'}
+              </p>
             </div>
           </div>
-          <button className="px-4 py-2 rounded-xl bg-green-500/20 text-green-400 hover:bg-green-500/30 transition-colors">
-            تفعيل
-          </button>
-        </div>
-      </section>
-
-      {/* Active Sessions */}
-      <section className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
-        <div className="p-4 border-b border-white/10">
-          <h3 className="font-semibold text-white flex items-center gap-2">
-            <Smartphone className="h-5 w-5 text-indigo-400" />
-            الجلسات النشطة
-          </h3>
-        </div>
-        <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="h-10 w-10 rounded-lg bg-white/5 flex items-center justify-center">
-                <Monitor className="h-5 w-5 text-slate-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-white">Windows • Chrome</p>
-                <p className="text-xs text-slate-500">القاهرة، مصر • نشط الآن</p>
-              </div>
-            </div>
-            <span className="px-2 py-1 rounded text-[10px] bg-green-500/20 text-green-400 uppercase font-bold">هذا الجهاز</span>
-          </div>
-          
           <button 
-            onClick={() => logout(true)}
-            className="w-full mt-4 flex items-center justify-center gap-2 p-3 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors"
+            onClick={handle2FAToggle}
+            disabled={isLoading2FA || isDisabling2FA}
+            className={cn(
+              "px-4 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50",
+              is2FAEnabled 
+                ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
+                : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+            )}
           >
-            <LogOut className="h-4 w-4" />
-            تسجيل الخروج من جميع الأجهزة
+            {isDisabling2FA ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : is2FAEnabled ? (
+              <>
+                <ShieldX className="h-4 w-4" />
+                تعطيل
+              </>
+            ) : (
+              <>
+                <ShieldCheck className="h-4 w-4" />
+                تفعيل
+              </>
+            )}
           </button>
         </div>
+        {is2FAEnabled && (
+          <div className="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm text-green-300">المصادقة الثنائية مفعّلة</p>
+              <p className="text-xs text-green-400/70 mt-1">
+                سيُطلب منك رمز التحقق عند تسجيل الدخول من أجهزة جديدة
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
+      
       {/* Security Log Summary */}
       <section className="rounded-2xl bg-white/5 border border-white/10 p-6">
         <div className="flex items-center justify-between mb-4">
@@ -282,6 +383,34 @@ export default function SecurityPage() {
           )}
         </div>
       </section>
+
+      {/* Danger Zone - Delete Account */}
+      <section className="rounded-2xl bg-red-500/5 border border-red-500/20 overflow-hidden">
+        <div className="p-4 border-b border-red-500/20 bg-red-500/10">
+          <h3 className="font-semibold text-red-400 flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            منطقة الخطر
+          </h3>
+        </div>
+        <div className="p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h4 className="font-medium text-white">حذف الحساب نهائياً</h4>
+              <p className="text-sm text-slate-400 mt-1">
+                سيتم حذف حسابك وجميع بياناتك بشكل دائم. هذا الإجراء لا يمكن التراجع عنه.
+              </p>
+            </div>
+            <DeleteAccountDialog onConfirm={handleDeleteAccount} />
+          </div>
+        </div>
+      </section>
+
+      {/* 2FA Setup Modal */}
+      <TwoFactorSetupModal
+        isOpen={show2FAModal}
+        onClose={() => setShow2FAModal(false)}
+        onSuccess={handle2FASuccess}
+      />
     </div>
   );
 }

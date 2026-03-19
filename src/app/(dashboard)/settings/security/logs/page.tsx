@@ -77,6 +77,41 @@ export default function SecurityLogsPage() {
     (log.location || '').includes(filter)
   );
 
+  // Export logs to CSV
+  const handleExportLogs = useCallback(() => {
+    if (filteredLogs.length === 0) {
+      toast.error('لا توجد سجلات للتصدير');
+      return;
+    }
+
+    const headers = ['التاريخ', 'الحدث', 'IP', 'الموقع', 'User Agent', 'بيانات إضافية'];
+    const rows = filteredLogs.map(log => [
+      new Date(log.createdAt).toLocaleString('ar-EG'),
+      EVENT_LABELS[log.eventType]?.label || log.eventType,
+      log.ip,
+      log.location || 'غير معروف',
+      log.userAgent,
+      log.metadata || ''
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `security-logs-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    
+    toast.success('تم تصدير السجل بنجاح');
+  }, [filteredLogs]);
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 p-4">
       {/* Header */}
@@ -97,7 +132,7 @@ export default function SecurityLogsPage() {
         </div>
 
         <button 
-          onClick={() => {}} 
+          onClick={handleExportLogs} 
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors text-sm"
         >
           <Download className="h-4 w-4" />

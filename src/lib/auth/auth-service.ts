@@ -580,6 +580,19 @@ export class AuthService {
                 totalXP: true,
                 level: true,
                 currentStreak: true,
+                // Additional profile fields needed by settings page
+                alternativePhone: true,
+                dateOfBirth: true,
+                gender: true,
+                country: true,
+                school: true,
+                gradeLevel: true,
+                educationType: true,
+                section: true,
+                studyGoal: true,
+                bio: true,
+                subjectsTaught: true,
+                experienceYears: true,
             },
         });
     }

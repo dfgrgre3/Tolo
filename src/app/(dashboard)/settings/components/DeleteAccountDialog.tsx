@@ -13,7 +13,8 @@ import {
 	DialogTrigger,
 } from "@/components/ui/dialog";
 import { Trash2 } from "lucide-react";
-import { DELETE_CONFIRMATION_TEXT } from "./constants";
+
+const DELETE_CONFIRMATION_TEXT = "حذف";
 
 interface DeleteAccountDialogProps {
 	onConfirm: () => void;
@@ -90,4 +91,3 @@ function DeleteAccountDialog({ onConfirm }: DeleteAccountDialogProps) {
 }
 
 export default memo(DeleteAccountDialog);
-

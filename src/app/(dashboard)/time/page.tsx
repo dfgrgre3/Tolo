@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WeeklySchedule from "@/app/(dashboard)/time/components/WeeklySchedule";
 import TaskManagement from "@/app/(dashboard)/time/components/TaskManagement";
@@ -8,7 +8,7 @@ import StudySessionsHistory from "@/app/(dashboard)/time/components/StudySession
 import Reminders from "@/app/(dashboard)/time/components/Reminders";
 import TimeTracker from "@/app/(dashboard)/time/components/TimeTracker";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Settings, Filter, Search, BarChart3, Play, Pause, Cog } from 'lucide-react';
+import { RefreshCw, Settings, Filter, Search, BarChart3, Play, Pause } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -19,12 +19,14 @@ import TimeAnalytics from './components/TimeAnalytics';
 import ProductivityInsights from './components/ProductivityInsights';
 import ExportDialog from './components/ExportDialog';
 import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
+import TimeErrorBoundary from './components/TimeErrorBoundary';
 
 // Hooks
 import { useTimeData } from './hooks/useTimeData';
 import { useTimeStats } from './hooks/useTimeStats';
 import { useTimeFilters } from './hooks/useTimeFilters';
 import { useOverdueNotifications } from './hooks/useOverdueNotifications';
+import { useToast } from '@/contexts/toast-context';
 
 // Types
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
@@ -48,6 +50,9 @@ export default function TimeManagementPage() {
   const [showAnalytics, setShowAnalytics] = useState(false);
   const [showInsights, setShowInsights] = useState(false);
 
+  // Toast notifications
+  const { showToast } = useToast();
+
   // Custom hooks
   const { 
     userId, 
@@ -57,7 +62,11 @@ export default function TimeManagementPage() {
     studySessions, 
     reminders, 
     isLoading, 
-    fetchData 
+    fetchData,
+    setTasks,
+    setReminders,
+    setStudySessions,
+    setSchedule
   } = useTimeData();
 
   const {
@@ -81,96 +90,97 @@ export default function TimeManagementPage() {
     showUpcomingRemindersOnly
   });
 
-  // Local state management for tasks, reminders, and sessions
-  const [tasksLocal, setTasksLocal] = useState<Task[]>(tasks);
-  const [remindersLocal, setRemindersLocal] = useState<Reminder[]>(reminders);
-  const [studySessionsLocal, setStudySessionsLocal] = useState<StudySession[]>(studySessions);
-  const [scheduleLocal, setScheduleLocal] = useState<Schedule | null>(schedule);
-
-  // Sync with hook data
-  useEffect(() => {
-    setTasksLocal(tasks);
-    setRemindersLocal(reminders);
-    setStudySessionsLocal(studySessions);
-    setScheduleLocal(schedule);
-  }, [tasks, reminders, studySessions, schedule]);
-
   // Handle task updates
-  const handleTaskUpdate = (updatedTask: Task) => {
-    const oldTask = tasksLocal.find(t => t.id === updatedTask.id);
-    setTasksLocal(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
+  const handleTaskUpdate = useCallback((updatedTask: Task) => {
+    const oldTask = tasks.find(t => t.id === updatedTask.id);
+    setTasks(prev => prev.map(t => t.id === updatedTask.id ? updatedTask : t));
     if (oldTask) {
       updateStatsOnTaskChange(oldTask, updatedTask);
     }
-  };
+  }, [tasks, setTasks, updateStatsOnTaskChange]);
 
   // Handle new task creation
-  const handleTaskCreate = (newTask: Task) => {
-    setTasksLocal(prev => [newTask, ...prev]);
+  const handleTaskCreate = useCallback((newTask: Task) => {
+    setTasks(prev => [newTask, ...prev]);
     updateStatsOnTaskCreate(newTask);
-  };
+    showToast({
+      message: `تم إنشاء المهمة "${newTask.title}" بنجاح`,
+      type: 'success'
+    });
+  }, [setTasks, updateStatsOnTaskCreate, showToast]);
 
   // Handle task deletion
-  const handleTaskDelete = (taskId: string) => {
-    const task = tasksLocal.find(t => t.id === taskId);
+  const handleTaskDelete = useCallback((taskId: string) => {
+    const task = tasks.find(t => t.id === taskId);
     if (!task) return;
-    setTasksLocal(prev => prev.filter(t => t.id !== taskId));
+    setTasks(prev => prev.filter(t => t.id !== taskId));
     updateStatsOnTaskDelete(task);
-  };
+    showToast({
+      message: `تم حذف المهمة "${task.title}"`,
+      type: 'warning'
+    });
+  }, [tasks, setTasks, updateStatsOnTaskDelete, showToast]);
 
   // Handle new study session
-  const handleStudySessionCreate = (newSession: StudySession) => {
-    setStudySessionsLocal(prev => [newSession, ...prev]);
+  const handleStudySessionCreate = useCallback((newSession: StudySession) => {
+    setStudySessions(prev => [newSession, ...prev]);
     updateStatsOnSessionCreate(newSession);
-  };
+    showToast({
+      message: `تم تسجيل ${newSession.durationMin} دقيقة من المذاكرة`,
+      type: 'success'
+    });
+  }, [setStudySessions, updateStatsOnSessionCreate, showToast]);
 
   // Handle reminder updates
-  const handleReminderUpdate = (updatedReminder: Reminder) => {
-    setRemindersLocal(prev => prev.map(r => r.id === updatedReminder.id ? updatedReminder : r));
-  };
+  const handleReminderUpdate = useCallback((updatedReminder: Reminder) => {
+    setReminders(prev => prev.map(r => r.id === updatedReminder.id ? updatedReminder : r));
+  }, [setReminders]);
 
   // Handle new reminder creation
-  const handleReminderCreate = (newReminder: Reminder) => {
-    setRemindersLocal(prev => [newReminder, ...prev]);
+  const handleReminderCreate = useCallback((newReminder: Reminder) => {
+    setReminders(prev => [newReminder, ...prev]);
     updateStatsOnReminderCreate(newReminder);
-  };
+    showToast({
+      message: `تم إضافة تذكير "${newReminder.title}"`,
+      type: 'success'
+    });
+  }, [setReminders, updateStatsOnReminderCreate, showToast]);
 
   // Handle reminder deletion
-  const handleReminderDelete = (reminderId: string) => {
-    const reminder = remindersLocal.find(r => r.id === reminderId);
+  const handleReminderDelete = useCallback((reminderId: string) => {
+    const reminder = reminders.find(r => r.id === reminderId);
     if (!reminder) return;
-    setRemindersLocal(prev => prev.filter(r => r.id !== reminderId));
+    setReminders(prev => prev.filter(r => r.id !== reminderId));
     updateStatsOnReminderDelete(reminder);
-  };
+    showToast({
+      message: `تم حذف تذكير "${reminder.title}"`,
+      type: 'warning'
+    });
+  }, [reminders, setReminders, updateStatsOnReminderDelete, showToast]);
 
   // Handle schedule updates
-  const handleScheduleUpdate = (updatedSchedule: Schedule) => {
-    setScheduleLocal(updatedSchedule);
-  };
+  const handleScheduleUpdate = useCallback((updatedSchedule: Schedule) => {
+    setSchedule(updatedSchedule);
+  }, [setSchedule]);
 
-  // Handle notifications
-  const handleNotification = (message: string, type: 'warning' | 'error') => {
-    // You can integrate with your notification system here
+  // Handle notifications with toast
+  const handleNotification = useCallback((message: string, type: 'warning' | 'error') => {
     logger.info(`[${type.toUpperCase()}] ${message}`);
-    // Example: toast notification
-    if (typeof window !== 'undefined' && (window as any).toast) {
-      (window as any).toast({
-        title: type === 'error' ? 'تنبيه مهم' : 'إشعار',
-        description: message,
-        variant: type === 'error' ? 'destructive' : 'default'
-      });
-    }
-  };
+    showToast({
+      message: type === 'error' ? `تنبيه مهم: ${message}` : message,
+      type: type === 'error' ? 'error' : 'warning'
+    });
+  }, [showToast]);
 
   // Overdue notifications
   useOverdueNotifications({
-    tasks: tasksLocal,
+    tasks,
     onNotification: handleNotification
   });
 
   // Handle timer start/stop
-  const handleTimerToggle = (taskId?: string) => {
-    setIsTimerRunning(!isTimerRunning);
+  const handleTimerToggle = useCallback((taskId?: string) => {
+    setIsTimerRunning(prev => !prev);
     if (taskId) {
       setCurrentTaskId(taskId);
     }
@@ -178,16 +188,35 @@ export default function TimeManagementPage() {
     if (!isTimerRunning) {
       setActiveTab("tracker");
     }
-  };
+  }, [isTimerRunning]);
 
   // Map our Task type to TimeTracker's expected Task type
-  const mapTasksForTimeTracker = (): TimeTrackerTask[] => {
-    return tasksLocal.map(task => ({
+  const mapTasksForTimeTracker = useMemo((): TimeTrackerTask[] => {
+    return tasks.map(task => ({
       id: task.id,
       title: task.title,
       status: task.status || 'PENDING'
     }));
-  };
+  }, [tasks]);
+
+  // Calculate quick stats for header
+  const quickStats = useMemo(() => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    
+    return {
+      todayTasks: tasks.filter(t => 
+        t.dueAt && new Date(t.dueAt).toDateString() === today.toDateString()
+      ).length,
+      overdueTasks: tasks.filter(t => 
+        t.dueAt && new Date(t.dueAt) < today && t.status !== 'COMPLETED'
+      ).length,
+      completedToday: tasks.filter(t => 
+        t.completedAt && new Date(t.completedAt).toDateString() === today.toDateString()
+      ).length,
+      studyHours: stats.studyHours
+    };
+  }, [tasks, stats.studyHours]);
 
   if (isLoading) {
     return (
@@ -206,34 +235,18 @@ export default function TimeManagementPage() {
           );
   }
 
-  // Calculate quick stats for header
-  const today = new Date();
-  const todayString = today.toISOString().split('T')[0];
-  const completedToday = studySessionsLocal.filter(session => 
-    session.startTime.startsWith(todayString)
-  ).length;
-  
-  const quickStats = {
-    todayTasks: tasksLocal.filter(t => 
-      t.dueAt && new Date(t.dueAt).toDateString() === today.toDateString()
-    ).length,
-    overdueTasks: tasksLocal.filter(t => 
-      t.dueAt && new Date(t.dueAt) < today && t.status !== 'COMPLETED'
-    ).length,
-    completedToday: tasksLocal.filter(t => 
-      t.completedAt && new Date(t.completedAt).toDateString() === today.toDateString()
-    ).length,
-    studyHours: stats.studyHours
-  };
-
   return (
-          <div className="container mx-auto p-4 rtl" dir="rtl">
+    <TimeErrorBoundary onReset={fetchData}>
+      <div className="container mx-auto p-4 rtl" dir="rtl">
       <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
         <TimeManagementHeader
           isTimerRunning={isTimerRunning}
           onTimerToggle={() => handleTimerToggle()}
           onRefresh={fetchData}
           quickStats={quickStats}
+          subjects={subjects}
+          userId={userId || undefined}
+          onTaskCreate={handleTaskCreate}
         />
       </div>
 
@@ -282,9 +295,9 @@ export default function TimeManagementPage() {
             <KeyboardShortcutsHelp />
             <div className="flex gap-2">
               <ExportDialog 
-                tasks={tasksLocal}
-                studySessions={studySessionsLocal}
-                reminders={remindersLocal}
+                tasks={tasks}
+                studySessions={studySessions}
+                reminders={reminders}
               />
               <Button
                 variant="outline"
@@ -303,7 +316,7 @@ export default function TimeManagementPage() {
             subjects={subjects}
             tasks={filteredTasks}
             reminders={filteredReminders}
-            studySessions={studySessionsLocal}
+            studySessions={studySessions}
             showCompletedTasks={showCompletedTasks}
             showUpcomingRemindersOnly={showUpcomingRemindersOnly}
             onTabChange={setActiveTab}
@@ -315,13 +328,13 @@ export default function TimeManagementPage() {
           {showAnalytics && (
             <div className="space-y-6">
               <TimeAnalytics
-                tasks={tasksLocal}
-                studySessions={studySessionsLocal}
-                reminders={remindersLocal}
+                tasks={tasks}
+                studySessions={studySessions}
+                reminders={reminders}
               />
               <ProductivityInsights
-                tasks={tasksLocal}
-                studySessions={studySessionsLocal}
+                tasks={tasks}
+                studySessions={studySessions}
               />
             </div>
           )}
@@ -342,7 +355,7 @@ export default function TimeManagementPage() {
           </div>
           {userId && (
             <div className="animate-in fade-in duration-700">
-              <WeeklySchedule schedule={scheduleLocal} subjects={subjects} userId={userId} onScheduleUpdate={handleScheduleUpdate} />
+              <WeeklySchedule schedule={schedule} subjects={subjects} userId={userId} onScheduleUpdate={handleScheduleUpdate} />
             </div>
           )}
         </TabsContent>
@@ -427,7 +440,7 @@ export default function TimeManagementPage() {
             <div className="animate-in fade-in duration-700">
               <TimeTracker 
                 userId={userId}
-                tasks={mapTasksForTimeTracker()}
+                tasks={mapTasksForTimeTracker}
                 subjects={subjects.map(String)}
                 onStudySessionCreate={handleStudySessionCreate}
               />
@@ -461,7 +474,7 @@ export default function TimeManagementPage() {
           </div>
           <div className="animate-in fade-in duration-700">
             <StudySessionsHistory 
-              sessions={filteredSessions.length > 0 ? filteredSessions : studySessionsLocal} 
+              sessions={filteredSessions.length > 0 ? filteredSessions : studySessions} 
               subjects={subjects.map(String)}
             />
           </div>
@@ -492,7 +505,7 @@ export default function TimeManagementPage() {
           {userId && (
             <div className="animate-in fade-in duration-700">
               <Reminders 
-                initialReminders={filteredReminders.length > 0 ? filteredReminders : remindersLocal} 
+                initialReminders={filteredReminders.length > 0 ? filteredReminders : reminders} 
                 userId={userId}
                 onReminderUpdate={handleReminderUpdate}
                 onReminderCreate={handleReminderCreate}
@@ -504,5 +517,6 @@ export default function TimeManagementPage() {
 
       </Tabs>
       </div>
-      );
+    </TimeErrorBoundary>
+  );
 }

@@ -2,9 +2,10 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PlusCircle, Play, Pause, RefreshCw, Download, Settings, Calendar, Clock, TrendingUp, Target } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
+import CreateTaskDialog from './CreateTaskDialog';
+import type { SubjectType, Task } from '../types';
 
 interface QuickStats {
   todayTasks: number;
@@ -20,6 +21,9 @@ interface TimeManagementHeaderProps {
   isRefreshing?: boolean;
   onExport?: () => void;
   quickStats?: QuickStats;
+  subjects?: SubjectType[];
+  userId?: string;
+  onTaskCreate?: (task: Task) => void;
 }
 
 export default function TimeManagementHeader({
@@ -28,9 +32,13 @@ export default function TimeManagementHeader({
   onRefresh,
   isRefreshing: isRefreshingProp = false,
   onExport,
-  quickStats
+  quickStats,
+  subjects = [],
+  userId,
+  onTaskCreate
 }: TimeManagementHeaderProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -42,6 +50,13 @@ export default function TimeManagementHeader({
   };
 
   const refreshing = isRefreshing || isRefreshingProp;
+
+  const handleTaskCreate = (task: Task) => {
+    if (onTaskCreate) {
+      onTaskCreate(task);
+    }
+    setIsCreateTaskOpen(false);
+  };
 
   return (
     <div className="flex flex-col gap-4 rtl" dir="rtl">
@@ -78,22 +93,24 @@ export default function TimeManagementHeader({
           <p className="text-muted-foreground">إدارة وقتك بفعالية وتحقيق أهدافك الأكاديمية</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2 transition-all hover:shadow-md hover:scale-105">
-                <PlusCircle className="h-4 w-4" />
-                مهمة جديدة
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md rtl" dir="rtl">
-              <DialogHeader>
-                <DialogTitle>إنشاء مهمة جديدة</DialogTitle>
-              </DialogHeader>
-              <div className="py-4">
-                <p className="text-muted-foreground">سيتم إضافة وظيفة إنشاء المهام قريباً</p>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <Button 
+            className="flex items-center gap-2 transition-all hover:shadow-md hover:scale-105"
+            onClick={() => setIsCreateTaskOpen(true)}
+            disabled={!userId}
+          >
+            <PlusCircle className="h-4 w-4" />
+            مهمة جديدة
+          </Button>
+          
+          {userId && subjects.length > 0 && onTaskCreate && (
+            <CreateTaskDialog
+              open={isCreateTaskOpen}
+              onOpenChange={setIsCreateTaskOpen}
+              onTaskCreate={handleTaskCreate}
+              subjects={subjects}
+              userId={userId}
+            />
+          )}
           
           <Button 
             onClick={onTimerToggle}

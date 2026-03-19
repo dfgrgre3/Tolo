@@ -11,7 +11,7 @@ import { LoadingState } from './components/LoadingState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, TrendingUp, Sparkles, Info, Star, Target, Zap, Clock, BookOpen, User, Lock } from 'lucide-react';
+import { Trophy, Sparkles, Info, Clock, BookOpen, Lock, Star, Target, Zap } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
 export default function AchievementsPage() {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ import {
 import { formatTime, calculateFocusScore } from '../utils/timeUtils';  // Updated import
 import type { Task as TaskType, StudySession, TimeTrackerTask } from '../types';
 import { TimeSettingsData } from './TimeSettings';
+import { useToast } from '@/contexts/toast-context';
 
 interface TimeTrackerProps {
   userId: string;
@@ -32,6 +33,7 @@ interface TimeTrackerProps {
 }
 
 const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrackerProps) => {
+  const { showToast } = useToast();
   const [timerSeconds, setTimerSeconds] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
@@ -100,7 +102,39 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
     };
   }, [isRunning, timeLeft, settings]);
 
-  const handleTimerComplete = () => {
+  // Calculate total study time today
+  const todayStudyMinutes = useMemo(() => {
+    const today = new Date().toDateString();
+    return sessions
+      .filter(s => new Date(s.startTime).toDateString() === today)
+      .reduce((sum, s) => sum + s.durationMin, 0);
+  }, [sessions]);
+
+  // Keyboard shortcuts for timer control
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Space to toggle timer
+      if (e.code === 'Space' && e.target === document.body) {
+        e.preventDefault();
+        toggleTimer();
+      }
+      // R to reset
+      if (e.code === 'KeyR' && e.target === document.body) {
+        e.preventDefault();
+        resetTimer();
+      }
+      // S to skip
+      if (e.code === 'KeyS' && e.target === document.body) {
+        e.preventDefault();
+        skipCurrentPhase();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isRunning, timeLeft, currentPomodoroState]);
+
+  const handleTimerComplete = useCallback(() => {
     if (currentPomodoroState === 'work') {
       // Completed a work session
       const newPomodoroCount = pomodoroCount + 1;
@@ -127,6 +161,12 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
 
         setSessions(prev => [session, ...prev]);
         onStudySessionCreate(session);
+        
+        // Show toast notification
+        showToast({
+          message: `تم إكمال جلسة دراسة ${Math.floor((WORK_DURATION - timeLeft) / 60)} دقيقة`,
+          type: 'success'
+        });
       }
 
       // Determine next state
@@ -160,7 +200,7 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
     // Update goal completion
     const completion = Math.min(100, Math.floor((pomodoroCount / GOAL_TARGET) * 100));
     setGoalCompletion(completion);
-  };
+  }, [currentPomodoroState, pomodoroCount, activeTaskId, WORK_DURATION, timeLeft, settings, userId, onStudySessionCreate, showToast, LONG_BREAK, SHORT_BREAK]);
 
   const toggleTimer = () => {
     if (timeLeft === 0) {

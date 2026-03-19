@@ -169,13 +169,14 @@ export default function DashboardTab({
                       onTimerToggle(undefined);
                       return;
                     case 'set-goal':
-                      onTabChange('goals');
+                      // Goals not implemented yet - show tasks instead
+                      onTabChange('tasks');
                       return;
                     case 'view-schedule':
                       onTabChange('schedule');
                       return;
                     case 'view-analytics':
-                      onTabChange('analytics');
+                      // Analytics shown on dashboard tab
                       return;
                     case 'view-history':
                       onTabChange('history');

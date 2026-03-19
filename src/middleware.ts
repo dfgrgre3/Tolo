@@ -7,7 +7,7 @@ import {
   sanitizeRedirectPath,
 } from '@/lib/auth/navigation';
 
-const PROTECTED_PREFIXES = ['/dashboard', '/user', '/settings', '/profile', '/account', '/api/protected'];
+const PROTECTED_PREFIXES = ['/dashboard', '/user', '/settings', '/profile', '/api/protected'];
 const ADMIN_ROUTES = ['/admin', '/api/admin'];
 const TEACHER_ROUTES = ['/teacher'];
 const PUBLIC_AUTH_API_ROUTES = [

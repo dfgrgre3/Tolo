@@ -50,7 +50,7 @@ export interface StudySession {
   startTime: string;
   endTime: string;
   subjectId: string;
-  subject?: any; // The relation object
+  subject?: SubjectType;
   createdAt: string;
   updatedAt: string;
 }
@@ -86,7 +86,7 @@ export interface Reminder {
 export interface TimeTrackerTask {
   id: string;
   title: string;
-  status: string;
+  status: 'PENDING' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 }
 
 export interface TimeStats {

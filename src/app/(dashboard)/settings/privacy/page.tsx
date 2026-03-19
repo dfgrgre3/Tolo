@@ -1,13 +1,13 @@
 'use client';
 
 /**
- * ًں”’ طµظپط­ط© ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®طµظˆطµظٹط© - Privacy Settings
+ * صفحة إعدادات الخصوصية - Privacy Settings
  * 
- * ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®طµظˆطµظٹط© ظ…ط¹:
- * - ط®طµظˆطµظٹط© ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ
- * - ط¥ط¯ط§ط±ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
- * - ط³ط¬ظ„ ط§ظ„ظ†ط´ط§ط·
- * - ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨
+ * إعدادات الخصوصية مع:
+ * - خصوصية الملف الشخصي
+ * - إدارة البيانات
+ * - سجل النشاط
+ * - حذف الحساب
  */
 
 import { useState, useEffect } from 'react';
@@ -33,6 +33,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { SettingsHeader, SettingsCard, SettingsToggle } from '@/app/(dashboard)/settings/components';
 import { useAuth } from '@/contexts/auth-context';
+import { useSettingsSync } from '@/hooks/useSettingsSync';
 import {
   DEFAULT_PRIVACY_SETTINGS,
   type PrivacySettingsPreference,
@@ -45,6 +46,7 @@ import {
 export default function PrivacySettingsPage() {
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { applySettingsFromPreferences } = useSettingsSync();
   const [settings, setSettings] = useState<PrivacySettingsPreference>({ ...DEFAULT_PRIVACY_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -61,10 +63,12 @@ export default function PrivacySettingsPage() {
         const preferences = await fetchSettingsPreferences();
         if (!mounted) return;
         setSettings(preferences.privacy);
+        // Apply any settings that affect the UI
+        applySettingsFromPreferences(preferences);
       } catch {
         if (!mounted) return;
         setSettings({ ...DEFAULT_PRIVACY_SETTINGS });
-        toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط®طµظˆطµظٹط©');
+        toast.error('فشل تحميل إعدادات الخصوصية');
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -77,7 +81,7 @@ export default function PrivacySettingsPage() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [applySettingsFromPreferences]);
 
   const updateSetting = <K extends keyof PrivacySettingsPreference>(
     key: K,
@@ -203,12 +207,12 @@ export default function PrivacySettingsPage() {
       {/* Header */}
       <SettingsHeader
         icon={Lock}
-        title="ط§ظ„ط®طµظˆطµظٹط©"
-        description="ط¥ط¯ط§ط±ط© ط®طµظˆطµظٹط© ط­ط³ط§ط¨ظƒ ظˆط¨ظٹط§ظ†ط§طھظƒ"
+        title="الخصوصية"
+        description="إدارة خصوصية حسابك وبياناتك"
         actionButton={
           hasChanges
             ? {
-                label: 'ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±ط§طھ',
+                label: 'حفظ التغييرات',
                 onClick: handleSave,
                 loading: isSaving,
                 variant: 'primary',
@@ -223,17 +227,17 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Eye className="h-5 w-5 text-indigo-400" />
-            ط¸ظ‡ظˆط± ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ
+            ظهور الملف الشخصي
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ظ…ظ† ظٹظ…ظƒظ†ظ‡ ط±ط¤ظٹط© ظ…ظ„ظپظƒ ط§ظ„ط´ط®طµظٹ</p>
+          <p className="text-xs text-slate-400 mt-1">من يمكنه رؤية ملفك الشخصي</p>
         </div>
         
         <div className="p-6">
           <div className="grid grid-cols-3 gap-4">
             {[
-              { value: 'public', label: 'ط§ظ„ط¬ظ…ظٹط¹', icon: Globe, description: 'ط£ظٹ ط´ط®طµ ظٹظ…ظƒظ†ظ‡ ط±ط¤ظٹط© ظ…ظ„ظپظƒ' },
-              { value: 'friends', label: 'ط§ظ„ط£طµط¯ظ‚ط§ط،', icon: Users, description: 'ط§ظ„ط£طµط¯ظ‚ط§ط، ظپظ‚ط·' },
-              { value: 'private', label: 'ط®ط§طµ', icon: Lock, description: 'ط£ظ†طھ ظپظ‚ط·' },
+              { value: 'public', label: 'الجميع', icon: Globe, description: 'أي شخص يمكنه رؤية ملفك' },
+              { value: 'friends', label: 'الأصدقاء', icon: Users, description: 'الأصدقاء فقط' },
+              { value: 'private', label: 'خاص', icon: Lock, description: 'أنت فقط' },
             ].map((option) => {
               const Icon = option.icon;
               const isSelected = settings.profileVisibility === option.value;
@@ -280,40 +284,40 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <History className="h-5 w-5 text-indigo-400" />
-            ط¥ط¸ظ‡ط§ط± ط§ظ„ظ†ط´ط§ط·
+            إظهار النشاط
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ط§ظ„طھط­ظƒظ… ظپظٹ ظ…ط§ ظٹط±ط§ظ‡ ط§ظ„ط¢ط®ط±ظˆظ† ط¹ظ†ظƒ</p>
+          <p className="text-xs text-slate-400 mt-1">التحكم في ما يراه الآخرون عنك</p>
         </div>
         
         <div className="p-4 space-y-2">
           <SettingsToggle
             icon={Eye}
-            title="ط­ط§ظ„ط© ط§ظ„ط§طھطµط§ظ„"
-            description="ط¥ط¸ظ‡ط§ط± ط£ظ†ظƒ ظ…طھطµظ„ ط§ظ„ط¢ظ†"
+            title="حالة الاتصال"
+            description="إظهار أنك متصل الآن"
             enabled={settings.showOnlineStatus}
             onToggle={(v) => updateSetting('showOnlineStatus', v)}
           />
           
           <SettingsToggle
             icon={History}
-            title="ط¢ط®ط± ط¸ظ‡ظˆط±"
-            description="ط¥ط¸ظ‡ط§ط± ظˆظ‚طھ ط¢ط®ط± ظ†ط´ط§ط· ظ„ظƒ"
+            title="آخر ظهور"
+            description="إظهار وقت آخر نشاط لك"
             enabled={settings.showLastSeen}
             onToggle={(v) => updateSetting('showLastSeen', v)}
           />
           
           <SettingsToggle
             icon={Eye}
-            title="ط§ظ„طھظ‚ط¯ظ… ط§ظ„ط¯ط±ط§ط³ظٹ"
-            description="ط¥ط¸ظ‡ط§ط± ظ†ط³ط¨ط© ط¥ظƒظ…ط§ظ„ ط§ظ„ط¯ظˆط±ط§طھ"
+            title="التقدم الدراسي"
+            description="إظهار نسبة إكمال الدورات"
             enabled={settings.showProgress}
             onToggle={(v) => updateSetting('showProgress', v)}
           />
           
           <SettingsToggle
             icon={Shield}
-            title="ط§ظ„ط¥ظ†ط¬ط§ط²ط§طھ"
-            description="ط¥ط¸ظ‡ط§ط± ط´ط§ط±ط§طھظƒ ظˆط¥ظ†ط¬ط§ط²ط§طھظƒ"
+            title="الإنجازات"
+            description="إظهار شاراتك وإنجازاتك"
             enabled={settings.showAchievements}
             onToggle={(v) => updateSetting('showAchievements', v)}
           />
@@ -328,19 +332,19 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Users className="h-5 w-5 text-indigo-400" />
-            ط§ظ„طھظˆط§طµظ„
+            التواصل
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ظ…ظ† ظٹظ…ظƒظ†ظ‡ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ظƒ</p>
+          <p className="text-xs text-slate-400 mt-1">من يمكنه التواصل معك</p>
         </div>
         
         <div className="p-4 space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-medium text-white">ظ…ظ† ظٹظ…ظƒظ†ظ‡ ط¥ط±ط³ط§ظ„ ط±ط³ط§ط¦ظ„</label>
+            <label className="text-sm font-medium text-white">من يمكنه مراسلتك</label>
             <div className="grid grid-cols-3 gap-3">
               {[
-                { value: 'everyone', label: 'ط§ظ„ط¬ظ…ظٹط¹' },
-                { value: 'friends', label: 'ط§ظ„ط£طµط¯ظ‚ط§ط، ظپظ‚ط·' },
-                { value: 'none', label: 'ظ„ط§ ط£ط­ط¯' },
+                { value: 'everyone', label: 'الجميع' },
+                { value: 'friends', label: 'الأصدقاء فقط' },
+                { value: 'none', label: 'لا أحد' },
               ].map((option) => {
                 const isSelected = settings.allowMessages === option.value;
                 
@@ -364,8 +368,8 @@ export default function PrivacySettingsPage() {
           
           <SettingsToggle
             icon={Users}
-            title="ط·ظ„ط¨ط§طھ ط§ظ„طµط¯ط§ظ‚ط©"
-            description="ط§ظ„ط³ظ…ط§ط­ ظ„ظ„ط¢ط®ط±ظٹظ† ط¨ط¥ط±ط³ط§ظ„ ط·ظ„ط¨ط§طھ طµط¯ط§ظ‚ط©"
+            title="طلبات الصداقة"
+            description="السماح للآخرين بإرسال طلبات صداقة"
             enabled={settings.allowFriendRequests}
             onToggle={(v) => updateSetting('allowFriendRequests', v)}
           />
@@ -377,32 +381,32 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <FileText className="h-5 w-5 text-indigo-400" />
-            ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆط§ظ„طھط­ظ„ظٹظ„ط§طھ
+            البيانات والتحليلات
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ط¥ط¯ط§ط±ط© ظƒظٹظپظٹط© ط§ط³طھط®ط¯ط§ظ… ط¨ظٹط§ظ†ط§طھظƒ</p>
+          <p className="text-xs text-slate-400 mt-1">إدارة كيفية استخدام بياناتك</p>
         </div>
         
         <div className="p-4 space-y-2">
           <SettingsToggle
             icon={FileText}
-            title="ط¬ظ…ط¹ ط§ظ„ط¨ظٹط§ظ†ط§طھ"
-            description="ط§ظ„ط³ظ…ط§ط­ ط¨ط¬ظ…ط¹ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ط³طھط®ط¯ط§ظ… ظ„طھط­ط³ظٹظ† ط§ظ„ط®ط¯ظ…ط©"
+            title="جمع البيانات"
+            description="السماح بجمع بيانات الاستخدام لتحسين الخدمة"
             enabled={settings.dataCollection}
             onToggle={(v) => updateSetting('dataCollection', v)}
           />
           
           <SettingsToggle
             icon={Shield}
-            title="ط§ظ„طھط®طµظٹطµ"
-            description="ط§ط³طھط®ط¯ط§ظ… ط¨ظٹط§ظ†ط§طھظƒ ظ„طھط®طµظٹطµ ط§ظ„طھط¬ط±ط¨ط©"
+            title="التخصيص"
+            description="استخدام بياناتك لتخصيص التجربة"
             enabled={settings.personalization}
             onToggle={(v) => updateSetting('personalization', v)}
           />
           
           <SettingsToggle
             icon={History}
-            title="ط§ظ„طھط­ظ„ظٹظ„ط§طھ"
-            description="ط§ظ„ظ…ط´ط§ط±ظƒط© ظپظٹ طھط­ط³ظٹظ† ط§ظ„ظ…ظ†طھط¬"
+            title="التحليلات"
+            description="المشاركة في تحسين المنتج"
             enabled={settings.analytics}
             onToggle={(v) => updateSetting('analytics', v)}
           />
@@ -414,9 +418,9 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Download className="h-5 w-5 text-indigo-400" />
-            ط¥ط¯ط§ط±ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
+            إدارة البيانات
           </h3>
-          <p className="text-xs text-slate-400 mt-1">طھظ†ط²ظٹظ„ ط£ظˆ ط­ط°ظپ ط¨ظٹط§ظ†ط§طھظƒ</p>
+          <p className="text-xs text-slate-400 mt-1">تنزيل أو حذف بياناتك</p>
         </div>
         
         <div className="p-4 space-y-4">
@@ -429,8 +433,8 @@ export default function PrivacySettingsPage() {
                 <Download className="h-5 w-5 text-indigo-400" />
               </div>
               <div className="text-right">
-                <p className="font-medium text-white">طھظ†ط²ظٹظ„ ط¨ظٹط§ظ†ط§طھظٹ</p>
-                <p className="text-xs text-slate-400">ط§ط­طµظ„ ط¹ظ„ظ‰ ظ†ط³ط®ط© ظ…ظ† ط¬ظ…ظٹط¹ ط¨ظٹط§ظ†ط§طھظƒ</p>
+                <p className="font-medium text-white">تنزيل بياناتي</p>
+                <p className="text-xs text-slate-400">احصل على نسخة من جميع بياناتك</p>
               </div>
             </div>
             <ChevronDown className="h-5 w-5 text-slate-400" />
@@ -445,8 +449,8 @@ export default function PrivacySettingsPage() {
                 <History className="h-5 w-5 text-orange-400" />
               </div>
               <div className="text-right">
-                <p className="font-medium text-white">ظ…ط³ط­ ط³ط¬ظ„ ط§ظ„ظ†ط´ط§ط·</p>
-                <p className="text-xs text-slate-400">ط­ط°ظپ ط³ط¬ظ„ ط§ظ„ط¨ط­ط« ظˆط§ظ„طھطµظپط­</p>
+                <p className="font-medium text-white">مسح سجل النشاط</p>
+                <p className="text-xs text-slate-400">حذف سجل البحث والتصفح</p>
               </div>
             </div>
             <ChevronDown className="h-5 w-5 text-slate-400" />
@@ -459,9 +463,9 @@ export default function PrivacySettingsPage() {
         <div className="p-4 border-b border-red-500/30">
           <h3 className="font-semibold text-red-400 flex items-center gap-2">
             <AlertTriangle className="h-5 w-5" />
-            ظ…ظ†ط·ظ‚ط© ط§ظ„ط®ط·ط±
+            منطقة الخطر
           </h3>
-          <p className="text-xs text-red-400/80 mt-1">ط¥ط¬ط±ط§ط،ط§طھ ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ†ظ‡ط§</p>
+          <p className="text-xs text-red-400/80 mt-1">إجراءات لا يمكن التراجع عنها</p>
         </div>
         
         <div className="p-4">
@@ -474,8 +478,8 @@ export default function PrivacySettingsPage() {
                 <UserX className="h-5 w-5 text-red-400" />
               </div>
               <div className="text-right">
-                <p className="font-medium text-red-400">ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨ ظ†ظ‡ط§ط¦ظٹط§ظ‹</p>
-                <p className="text-xs text-red-400/70">ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط¨ظٹط§ظ†ط§طھظƒ ط¨ط´ظƒظ„ ظ†ظ‡ط§ط¦ظٹ</p>
+                <p className="font-medium text-red-400">حذف الحساب نهائياً</p>
+                <p className="text-xs text-red-400/70">سيتم حذف جميع بياناتك بشكل نهائي</p>
               </div>
             </div>
             <Trash2 className="h-5 w-5 text-red-400" />
@@ -506,31 +510,31 @@ export default function PrivacySettingsPage() {
                     <AlertTriangle className="h-6 w-6 text-red-400" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-white">طھط£ظƒظٹط¯ ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨</h3>
-                    <p className="text-sm text-slate-400">ظ‡ط°ط§ ط§ظ„ط¥ط¬ط±ط§ط، ظ„ط§ ظٹظ…ظƒظ† ط§ظ„طھط±ط§ط¬ط¹ ط¹ظ†ظ‡</p>
+                    <h3 className="text-lg font-bold text-white">تأكيد حذف الحساب</h3>
+                    <p className="text-sm text-slate-400">هذا الإجراء لا يمكن التراجع عنه</p>
                   </div>
                 </div>
                 
                 <p className="text-slate-300 mb-6">
-                  ظ‡ظ„ ط£ظ†طھ ظ…طھط£ظƒط¯ ظ…ظ† ط±ط؛ط¨طھظƒ ظپظٹ ط­ط°ظپ ط­ط³ط§ط¨ظƒطں ط³ظٹطھظ… ط­ط°ظپ ط¬ظ…ظٹط¹ ط¨ظٹط§ظ†ط§طھظƒ ط¨ظ…ط§ ظپظٹ ط°ظ„ظƒ:
+                  سيتم حذف جميع بياناتك بشكل نهائي، بما في ذلك:
                 </p>
                 
                 <ul className="space-y-2 mb-6 text-sm text-slate-400">
                   <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    ط¬ظ…ظٹط¹ ط§ظ„ط¯ظˆط±ط§طھ ظˆط§ظ„طھظ‚ط¯ظ… ط§ظ„ظ…ط­ط±ط²
+                    جميع الدورات والتقدم المحرز
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    ط§ظ„ط¥ظ†ط¬ط§ط²ط§طھ ظˆط§ظ„ط´ط§ط±ط§طھ
+                    الإنجازات والشارات
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    ط§ظ„ظ…ط­ط§ط¯ط«ط§طھ ظˆط§ظ„ط±ط³ط§ط¦ظ„
+                    المحادثات والرسائل
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
-                    ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ط­ط³ط§ط¨
+                    إعدادات الحساب
                   </li>
                 </ul>
                 
@@ -539,14 +543,14 @@ export default function PrivacySettingsPage() {
                     onClick={() => setShowDeleteConfirm(false)}
                     className="flex-1 p-3 rounded-xl bg-white/10 text-white font-medium hover:bg-white/20 transition-colors"
                   >
-                    ط¥ظ„ط؛ط§ط،
+                    إلغاء
                   </button>
                   <button
                     onClick={handleDeleteAccount}
                     disabled={isDeletingAccount}
                     className="flex-1 p-3 rounded-xl bg-red-500 text-white font-medium hover:bg-red-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {isDeletingAccount ? 'جاري الحذف...' : 'ط­ط°ظپ ط§ظ„ط­ط³ط§ط¨'}
+                    {isDeletingAccount ? 'جاري الحذف...' : 'حذف الحساب'}
                   </button>
                 </div>
               </div>

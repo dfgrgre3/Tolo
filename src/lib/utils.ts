@@ -16,7 +16,7 @@ export function formatDate(date: Date | string | null | undefined): string {
 
   try {
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    
+
     // Validate date object
     if (isNaN(dateObj.getTime())) {
       return 'تاريخ غير صحيح';
@@ -27,7 +27,7 @@ export function formatDate(date: Date | string | null | undefined): string {
       month: "long",
       day: "numeric",
     });
-  } catch (error) {
+  } catch (_error) {
     return 'تاريخ غير صحيح';
   }
 }
@@ -43,7 +43,7 @@ export function formatDateTime(date: Date | string | null | undefined): string {
 
   try {
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    
+
     // Validate date object
     if (isNaN(dateObj.getTime())) {
       return 'تاريخ غير صحيح';
@@ -56,7 +56,7 @@ export function formatDateTime(date: Date | string | null | undefined): string {
       hour: "2-digit",
       minute: "2-digit",
     });
-  } catch (error) {
+  } catch (_error) {
     return 'تاريخ غير صحيح';
   }
 }
@@ -72,7 +72,7 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
 
   try {
     const dateObj = typeof date === "string" ? new Date(date) : date;
-    
+
     // Validate date object
     if (isNaN(dateObj.getTime())) {
       return 'تاريخ غير صحيح';
@@ -80,7 +80,7 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
 
     const now = new Date();
     const diffInSeconds = Math.floor((now.getTime() - dateObj.getTime()) / 1000);
-    
+
     // Handle future dates
     if (diffInSeconds < 0) {
       const futureDiffInSeconds = Math.abs(diffInSeconds);
@@ -93,39 +93,39 @@ export function formatRelativeTime(date: Date | string | null | undefined): stri
       }
       return "في المستقبل";
     }
-    
+
     if (diffInSeconds < 60) {
       return "الآن";
     }
-    
+
     const diffInMinutes = Math.floor(diffInSeconds / 60);
     if (diffInMinutes < 60) {
       return `منذ ${diffInMinutes} دقيقة`;
     }
-    
+
     const diffInHours = Math.floor(diffInMinutes / 60);
     if (diffInHours < 24) {
       return `منذ ${diffInHours} ساعة`;
     }
-    
+
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) {
       return `منذ ${diffInDays} يوم`;
     }
-    
+
     const diffInWeeks = Math.floor(diffInDays / 7);
     if (diffInWeeks < 4) {
       return `منذ ${diffInWeeks} أسبوع`;
     }
-    
+
     const diffInMonths = Math.floor(diffInDays / 30);
     if (diffInMonths < 12) {
       return `منذ ${diffInMonths} شهر`;
     }
-    
+
     const diffInYears = Math.floor(diffInDays / 365);
     return `منذ ${diffInYears} سنة`;
-  } catch (error) {
+  } catch (_error) {
     return 'تاريخ غير صحيح';
   }
 }
@@ -147,15 +147,15 @@ export function truncateText(text: string | null | undefined, maxLength: number)
   if (text.length <= maxLength) {
     return text;
   }
-  
+
   // Ensure we don't cut in the middle of a word if possible
   const truncated = text.slice(0, maxLength);
   const lastSpace = truncated.lastIndexOf(' ');
-  
+
   if (lastSpace > maxLength * 0.7) {
     return truncated.slice(0, lastSpace) + "...";
   }
-  
+
   return truncated + "...";
 }
 
@@ -167,7 +167,7 @@ export function generateId(): string {
     const part1 = Math.random().toString(36).substring(2, 15);
     const part2 = Math.random().toString(36).substring(2, 15);
     return part1 + part2;
-  } catch (error) {
+  } catch (_error) {
     // Fallback to timestamp-based ID if Math.random fails
     return `id-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   }

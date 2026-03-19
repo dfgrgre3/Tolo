@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -63,9 +63,10 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
     }, 30000); // Check every 30 seconds
     
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, filter]);
 
-  const loadSecurityEvents = async () => {
+  const loadSecurityEvents = useCallback(async () => {
     try {
       setLoading(true);
       // Token is in httpOnly cookie - no need to send Authorization header
@@ -91,9 +92,9 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filter]);
 
-  const checkForNewAlerts = async () => {
+  const checkForNewAlerts = useCallback(async () => {
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security-logs?eventType=SECURITY_ALERT&limit=1', {
@@ -122,7 +123,7 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
     } catch (error) {
       logger.error('Error checking for alerts:', error);
     }
-  };
+  }, []);
 
   const requestNotificationPermission = async () => {
     if ('Notification' in window && Notification.permission === 'default') {

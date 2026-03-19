@@ -100,7 +100,3 @@ _override.tf.json
 *.tmp
 *.temp
 lighthouse-results.json
-db-errors.txt
-db-errors-utf8.txt
-duplicate-report.json
-duplicate-pages.txt

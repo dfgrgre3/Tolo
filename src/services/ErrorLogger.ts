@@ -63,7 +63,7 @@ class ErrorLogger {
    */
   private getOrCreateSessionId(): string {
     const { safeGetItem, safeSetItem } = require('@/lib/safe-client-utils');
-    
+
     let sessionId = safeGetItem('errorLoggerSessionId', { storageType: 'session', fallback: null });
     if (!sessionId) {
       sessionId = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -77,9 +77,9 @@ class ErrorLogger {
    */
   private loadLogsFromStorage(): void {
     if (!this.config.enableLocalStorage) return;
-    
+
     const { safeGetItem } = require('@/lib/safe-client-utils');
-    
+
     try {
       const storedLogs = safeGetItem('errorLogs', { fallback: null });
       if (storedLogs) {
@@ -101,9 +101,9 @@ class ErrorLogger {
    */
   private saveLogsToStorage(): void {
     if (!this.config.enableLocalStorage) return;
-    
+
     const { safeSetItem } = require('@/lib/safe-client-utils');
-    
+
     // Use safe wrapper that handles errors automatically
     safeSetItem('errorLogs', this.logs);
   }
@@ -122,7 +122,7 @@ class ErrorLogger {
           const filename = event.filename || '';
           const errorStack = event.error?.stack || '';
           const errorMessage = event.message || '';
-          
+
           // Check filename first
           if (filename && (
             filename.includes('next-devtools') ||
@@ -183,19 +183,19 @@ class ErrorLogger {
           if (event.reason instanceof Error && event.reason.stack) {
             const stack = event.reason.stack;
             if (stack.includes('next-devtools') ||
-                stack.includes('console-error.ts') ||
-                stack.includes('intercept-console-error') ||
-                stack.includes('createConsoleError') ||
-                stack.includes('handleConsoleError') ||
-                stack.includes('ErrorLogger.logError')) {
+              stack.includes('console-error.ts') ||
+              stack.includes('intercept-console-error') ||
+              stack.includes('createConsoleError') ||
+              stack.includes('handleConsoleError') ||
+              stack.includes('ErrorLogger.logError')) {
               return;
             }
           }
 
           // Skip if error message is from ErrorLogger to prevent recursion
           if (event.reason instanceof Error && event.reason.message) {
-            if (event.reason.message.includes('ErrorLogger') || 
-                event.reason.message.includes('Error logged: {}')) {
+            if (event.reason.message.includes('ErrorLogger') ||
+              event.reason.message.includes('Error logged: {}')) {
               return;
             }
           }
@@ -219,7 +219,7 @@ class ErrorLogger {
    */
   public logError(error: Error | string, context: Record<string, any> = {}): string {
     let logEntry: ErrorLogEntry;
-    
+
     try {
       // Extract error message with proper fallbacks
       let errorMessage: string;
@@ -287,10 +287,10 @@ class ErrorLogger {
           // Skip logging if this is from Next.js devtools console interception to prevent infinite loops
           const stackTrace = error instanceof Error ? error.stack : '';
           const errorMessageStr = error instanceof Error ? error.message : String(error || '');
-          
+
           // Check if error is from Next.js devtools or is an empty/meaningless error
           if (stackTrace && (
-            stackTrace.includes('next-devtools') || 
+            stackTrace.includes('next-devtools') ||
             stackTrace.includes('intercept-console-error') ||
             stackTrace.includes('console-error.ts') ||
             stackTrace.includes('createConsoleError') ||
@@ -299,7 +299,7 @@ class ErrorLogger {
             // Silently skip to prevent infinite loops from console.error interception
             return logEntry.id;
           }
-          
+
           // Skip if error message is empty or just an empty object representation
           if (!errorMessageStr || errorMessageStr.trim() === '' || errorMessageStr.trim() === '{}') {
             return logEntry.id;
@@ -312,7 +312,7 @@ class ErrorLogger {
 
           // Build console log data with guaranteed values
           const consoleLogData: Record<string, any> = {};
-          
+
           // Always include message (guaranteed to exist from earlier validation)
           const safeMessage = String(logEntry.message || errorMessage || 'Unknown error').trim();
           if (!safeMessage || safeMessage === 'Unknown error') {
@@ -320,13 +320,13 @@ class ErrorLogger {
             return logEntry.id;
           }
           consoleLogData.message = safeMessage;
-          
+
           // Always include source
           const safeSource = String(logEntry.source || context?.source || 'Unknown').trim();
           if (safeSource && safeSource !== 'Unknown') {
             consoleLogData.source = safeSource;
           }
-          
+
           // Always include severity
           const safeSeverity = String(logEntry.severity || context?.severity || 'medium').trim();
           if (safeSeverity) {
@@ -348,12 +348,12 @@ class ErrorLogger {
             // Filter out Next.js devtools from stack to prevent recursion
             const cleanStack = logEntry.stack
               .split('\n')
-              .filter(line => !line.includes('next-devtools') && 
-                           !line.includes('intercept-console-error') &&
-                           !line.includes('console-error.ts') &&
-                           !line.includes('createConsoleError'))
+              .filter(line => !line.includes('next-devtools') &&
+                !line.includes('intercept-console-error') &&
+                !line.includes('console-error.ts') &&
+                !line.includes('createConsoleError'))
               .join('\n');
-            
+
             if (cleanStack.trim()) {
               consoleLogData.stack = cleanStack.substring(0, 500); // Limit stack length
             }
@@ -379,35 +379,35 @@ class ErrorLogger {
                   }
                 }
               });
-              
+
               if (Object.keys(cleanAdditionalData).length > 0) {
                 consoleLogData.additionalData = cleanAdditionalData;
               }
-            } catch (additionalDataError) {
+            } catch (_additionalDataError) {
               // Skip additional data if it causes issues
             }
           }
 
           // Final validation: ensure we have meaningful data before logging
           // Must have at least a message and one other property
-          const hasValidMessage = consoleLogData.message && 
-            consoleLogData.message.trim() !== '' && 
+          const hasValidMessage = consoleLogData.message &&
+            consoleLogData.message.trim() !== '' &&
             consoleLogData.message !== 'Unknown error';
           const hasOtherData = Object.keys(consoleLogData).length > 1; // More than just message
           const hasValidData = hasValidMessage && hasOtherData;
-          
+
           // Additional check: Skip if error message is just "Unauthorized" and we're in development
           // This prevents logging expected 401 errors that Next.js devtools might intercept
-          const isUnauthorizedOnly = hasValidMessage && 
-            (consoleLogData.message === 'Unauthorized' || 
-             consoleLogData.message.trim() === 'Unauthorized' ||
-             consoleLogData.message.includes('Unauthorized') && consoleLogData.message.length < 50);
-          
+          const isUnauthorizedOnly = hasValidMessage &&
+            (consoleLogData.message === 'Unauthorized' ||
+              consoleLogData.message.trim() === 'Unauthorized' ||
+              consoleLogData.message.includes('Unauthorized') && consoleLogData.message.length < 50);
+
           // Skip logging if it's a minimal "Unauthorized" error in development to prevent devtools interception
           if (isUnauthorizedOnly && process.env.NODE_ENV === 'development') {
             return logEntry.id;
           }
-          
+
           if (hasValidData) {
             // Check if we're being called from Next.js devtools to prevent recursion
             // Skip stack check for "Unauthorized" errors in development to prevent devtools interception
@@ -415,26 +415,26 @@ class ErrorLogger {
             if (!isUnauthorizedOnly || process.env.NODE_ENV !== 'development') {
               try {
                 currentStack = new Error().stack || '';
-              } catch (e) {
+              } catch (_e) {
                 // Silently ignore stack creation errors
                 currentStack = '';
               }
             }
-            if (currentStack && (currentStack.includes('next-devtools') || 
-                currentStack.includes('intercept-console-error') ||
-                currentStack.includes('console-error.ts') ||
-                currentStack.includes('createConsoleError') ||
-                currentStack.includes('handleConsoleError'))) {
+            if (currentStack && (currentStack.includes('next-devtools') ||
+              currentStack.includes('intercept-console-error') ||
+              currentStack.includes('console-error.ts') ||
+              currentStack.includes('createConsoleError') ||
+              currentStack.includes('handleConsoleError'))) {
               // Silently skip to prevent infinite loops
               return logEntry.id;
             }
-            
+
             // Use a different console method or format to avoid Next.js interception
             // in development, or use a more structured log
             const logMessage = `[${consoleLogData.severity || 'MEDIUM'}] ${consoleLogData.message}`;
             const logDetails = { ...consoleLogData };
             delete logDetails.message; // Already in the message
-            
+
             // Ensure logDetails is not empty before including it
             if (Object.keys(logDetails).length > 0) {
               // Use console directly to avoid circular dependency
@@ -445,7 +445,7 @@ class ErrorLogger {
                 } else {
                   logger.error(logMessage, logDetails);
                 }
-              } catch (e) {
+              } catch (_e) {
                 // If console itself throws, skip silently
                 return logEntry.id;
               }
@@ -457,7 +457,7 @@ class ErrorLogger {
                 } else {
                   logger.error(logMessage);
                 }
-              } catch (e) {
+              } catch (_e) {
                 // If console itself throws, skip silently
                 return logEntry.id;
               }
@@ -466,7 +466,7 @@ class ErrorLogger {
             // If we don't have valid data, skip logging entirely to prevent empty object logs
             return logEntry.id;
           }
-        } catch (consoleError) {
+        } catch (_consoleError) {
           // If console logging fails completely, just return the log entry ID
           // Don't try to log the error as that could cause recursion
           return logEntry.id;

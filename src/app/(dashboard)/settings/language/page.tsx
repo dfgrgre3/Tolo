@@ -1,16 +1,16 @@
 'use client';
 
 /**
- * ًںŒچ طµظپط­ط© ط§ظ„ظ„ط؛ط© ظˆط§ظ„ظ…ظ†ط·ظ‚ط© - Language & Region Settings
+ * 🌍 صفحة اللغة والمنطقة - Language & Region Settings
  * 
- * ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ„ط؛ط© ظˆط§ظ„ظ…ظ†ط·ظ‚ط© ظ…ط¹:
- * - ط§ط®طھظٹط§ط± ط§ظ„ظ„ط؛ط©
- * - ط§ظ„ظ…ظ†ط·ظ‚ط© ط§ظ„ط²ظ…ظ†ظٹط©
- * - طھظ†ط³ظٹظ‚ ط§ظ„طھط§ط±ظٹط® ظˆط§ظ„ظˆظ‚طھ
- * - طھظ†ط³ظٹظ‚ ط§ظ„ط£ط±ظ‚ط§ظ…
+ * إعدادات اللغة والمنطقة مع:
+ * - اختيار اللغة
+ * - المنطقة الزمنية
+ * - تنسيق التاريخ والوقت
+ * - تنسيق الأرقام
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import {
   Globe,
@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { useSettingsSync } from '@/hooks/useSettingsSync';
 import {
   DEFAULT_LANGUAGE_SETTINGS,
   type LanguageSettingsPreference,
@@ -34,20 +35,20 @@ import {
 } from '@/app/(dashboard)/settings/preferences-client';
 
 const languages = [
-  { code: 'ar', name: 'ط§ظ„ط¹ط±ط¨ظٹط©', flag: 'ًں‡¸ًں‡¦', direction: 'rtl' },
-  { code: 'en', name: 'English', flag: 'ًں‡؛ًں‡¸', direction: 'ltr' },
-  { code: 'fr', name: 'Franأ§ais', flag: 'ًں‡«ًں‡·', direction: 'ltr' },
-  { code: 'ur', name: 'ط§ط±ط¯ظˆ', flag: 'ًں‡µًں‡°', direction: 'rtl' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦', direction: 'rtl' },
+  { code: 'en', name: 'English', flag: '🇺🇸', direction: 'ltr' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷', direction: 'ltr' },
+  { code: 'ur', name: 'اردو', flag: '🇵🇰', direction: 'rtl' },
 ];
 
 const timezones = [
-  { value: 'Asia/Riyadh', label: 'طھظˆظ‚ظٹطھ ط§ظ„ط±ظٹط§ط¶ (GMT+3)', region: 'ط§ظ„ط³ط¹ظˆط¯ظٹط©' },
-  { value: 'Africa/Cairo', label: 'طھظˆظ‚ظٹطھ ط§ظ„ظ‚ط§ظ‡ط±ط© (GMT+2)', region: 'ظ…طµط±' },
-  { value: 'Asia/Dubai', label: 'طھظˆظ‚ظٹطھ ط¯ط¨ظٹ (GMT+4)', region: 'ط§ظ„ط¥ظ…ط§ط±ط§طھ' },
-  { value: 'Asia/Kuwait', label: 'طھظˆظ‚ظٹطھ ط§ظ„ظƒظˆظٹطھ (GMT+3)', region: 'ط§ظ„ظƒظˆظٹطھ' },
-  { value: 'Asia/Amman', label: 'طھظˆظ‚ظٹطھ ط¹ظ…ط§ظ† (GMT+3)', region: 'ط§ظ„ط£ط±ط¯ظ†' },
-  { value: 'Europe/London', label: 'طھظˆظ‚ظٹطھ ظ„ظ†ط¯ظ† (GMT+0)', region: 'ط¨ط±ظٹط·ط§ظ†ظٹط§' },
-  { value: 'America/New_York', label: 'طھظˆظ‚ظٹطھ ظ†ظٹظˆظٹظˆط±ظƒ (GMT-5)', region: 'ط£ظ…ط±ظٹظƒط§' },
+  { value: 'Asia/Riyadh', label: 'توقيت الرياض (GMT+3)', region: 'السعودية' },
+  { value: 'Africa/Cairo', label: 'توقيت القاهرة (GMT+2)', region: 'مصر' },
+  { value: 'Asia/Dubai', label: 'توقيت دبي (GMT+4)', region: 'الإمارات' },
+  { value: 'Asia/Kuwait', label: 'توقيت الكويت (GMT+3)', region: 'الكويت' },
+  { value: 'Asia/Amman', label: 'توقيت عمان (GMT+3)', region: 'الأردن' },
+  { value: 'Europe/London', label: 'توقيت لندن (GMT+0)', region: 'بريطانيا' },
+  { value: 'America/New_York', label: 'توقيت نيويورك (GMT-5)', region: 'أمريكا' },
 ];
 
 const dateFormats = [
@@ -58,15 +59,16 @@ const dateFormats = [
 ];
 
 const currencies = [
-  { code: 'SAR', name: 'ط±ظٹط§ظ„ ط³ط¹ظˆط¯ظٹ', symbol: 'ï·¼' },
-  { code: 'EGP', name: 'ط¬ظ†ظٹظ‡ ظ…طµط±ظٹ', symbol: 'ط¬.ظ…' },
-  { code: 'AED', name: 'ط¯ط±ظ‡ظ… ط¥ظ…ط§ط±ط§طھظٹ', symbol: 'ط¯.ط¥' },
-  { code: 'KWD', name: 'ط¯ظٹظ†ط§ط± ظƒظˆظٹطھظٹ', symbol: 'ط¯.ظƒ' },
-  { code: 'USD', name: 'ط¯ظˆظ„ط§ط± ط£ظ…ط±ظٹظƒظٹ', symbol: '$' },
-  { code: 'EUR', name: 'ظٹظˆط±ظˆ', symbol: 'â‚¬' },
+  { code: 'SAR', name: 'ريال سعودي', symbol: '﷼' },
+  { code: 'EGP', name: 'جنيه مصري', symbol: 'ج.م' },
+  { code: 'AED', name: 'درهم إماراتي', symbol: 'د.إ' },
+  { code: 'KWD', name: 'دينار كويتي', symbol: 'د.ك' },
+  { code: 'USD', name: 'دولار أمريكي', symbol: '$' },
+  { code: 'EUR', name: 'يورو', symbol: '€' },
 ];
 
 export default function LanguageSettingsPage() {
+  const { syncFromLocalStorage, applySettingsFromPreferences } = useSettingsSync();
   const [settings, setSettings] = useState<LanguageSettingsPreference>({ ...DEFAULT_LANGUAGE_SETTINGS });
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -79,13 +81,25 @@ export default function LanguageSettingsPage() {
     const loadSettings = async () => {
       setIsLoading(true);
       try {
-        const preferences = await fetchSettingsPreferences();
+        // First sync from localStorage to get any local changes
+        const syncedPreferences = await syncFromLocalStorage();
         if (!mounted) return;
-        setSettings(preferences.language);
+        
+        if (syncedPreferences) {
+          setSettings(syncedPreferences.language);
+          // Apply all settings for immediate visual feedback
+          applySettingsFromPreferences(syncedPreferences);
+        } else {
+          // Fallback to regular fetch
+          const preferences = await fetchSettingsPreferences();
+          if (!mounted) return;
+          setSettings(preferences.language);
+          applySettingsFromPreferences(preferences);
+        }
       } catch {
         if (!mounted) return;
         setSettings({ ...DEFAULT_LANGUAGE_SETTINGS });
-        toast.error('ظپط´ظ„ طھط­ظ…ظٹظ„ ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ„ط؛ط©');
+        toast.error('فشل تحميل إعدادات اللغة');
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -98,7 +112,39 @@ export default function LanguageSettingsPage() {
     return () => {
       mounted = false;
     };
+  }, [syncFromLocalStorage, applySettingsFromPreferences]);
+
+  // Apply language direction (RTL/LTR)
+  const applyLanguageDirection = useCallback((language: string) => {
+    const selectedLang = languages.find(l => l.code === language);
+    if (selectedLang) {
+      document.documentElement.dir = selectedLang.direction;
+      document.documentElement.lang = language;
+      // Store in localStorage for persistence
+      localStorage.setItem('language', language);
+      localStorage.setItem('direction', selectedLang.direction);
+    }
   }, []);
+
+  // Apply number format
+  const applyNumberFormat = useCallback((numberFormat: 'arabic' | 'english') => {
+    document.documentElement.classList.toggle('arabic-numbers', numberFormat === 'arabic');
+    localStorage.setItem('numberFormat', numberFormat);
+  }, []);
+
+  // Apply timezone
+  const applyTimezone = useCallback((timezone: string) => {
+    localStorage.setItem('timezone', timezone);
+  }, []);
+
+  // Apply all language settings on initial load
+  useEffect(() => {
+    if (!isLoading && settings) {
+      applyLanguageDirection(settings.language);
+      applyNumberFormat(settings.numberFormat);
+      applyTimezone(settings.timezone);
+    }
+  }, [isLoading, settings, applyLanguageDirection, applyNumberFormat, applyTimezone]);
 
   // Update current time every second
   useEffect(() => {
@@ -114,6 +160,15 @@ export default function LanguageSettingsPage() {
   ) => {
     setSettings(prev => ({ ...prev, [key]: value }));
     setHasChanges(true);
+
+    // Apply changes immediately for visual feedback
+    if (key === 'language') {
+      applyLanguageDirection(value as string);
+    } else if (key === 'numberFormat') {
+      applyNumberFormat(value as 'arabic' | 'english');
+    } else if (key === 'timezone') {
+      applyTimezone(value as string);
+    }
   };
 
   const handleSave = async () => {
@@ -173,10 +228,10 @@ export default function LanguageSettingsPage() {
         <div>
           <h1 className="text-2xl font-bold text-white flex items-center gap-3">
             <Globe className="h-7 w-7 text-indigo-400" />
-            ط§ظ„ظ„ط؛ط© ظˆط§ظ„ظ…ظ†ط·ظ‚ط©
+            اللغة والمنطقة
           </h1>
           <p className="text-sm text-slate-400 mt-1">
-            طھط®طµظٹطµ ط§ظ„ظ„ط؛ط© ظˆط§ظ„طھظˆظ‚ظٹطھ ظˆطھظ†ط³ظٹظ‚ ط§ظ„طھط§ط±ظٹط®
+            تخصيص اللغة والتوقيت وتنسيق التاريخ
           </p>
         </div>
         
@@ -195,7 +250,7 @@ export default function LanguageSettingsPage() {
             ) : (
               <Check className="h-4 w-4" />
             )}
-            ط­ظپط¸ ط§ظ„طھط؛ظٹظٹط±ط§طھ
+            حفظ التغييرات
           </motion.button>
         )}
       </div>
@@ -208,13 +263,13 @@ export default function LanguageSettingsPage() {
       >
         <div className="grid sm:grid-cols-2 gap-6">
           <div className="text-center sm:text-right">
-            <p className="text-sm text-slate-400 mb-2">ط§ظ„ظˆظ‚طھ ط§ظ„ط­ط§ظ„ظٹ</p>
+            <p className="text-sm text-slate-400 mb-2">الوقت الحالي</p>
             <p className="text-4xl font-bold text-white font-mono">
               {formatTime(currentTime)}
             </p>
           </div>
           <div className="text-center sm:text-right">
-            <p className="text-sm text-slate-400 mb-2">ط§ظ„طھط§ط±ظٹط®</p>
+            <p className="text-sm text-slate-400 mb-2">التاريخ</p>
             <p className="text-xl font-medium text-white">
               {formatDate(currentTime)}
             </p>
@@ -232,9 +287,9 @@ export default function LanguageSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Languages className="h-5 w-5 text-indigo-400" />
-            ط§ظ„ظ„ط؛ط©
+            اللغة
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ظ„ط؛ط© ط¹ط±ط¶ ط§ظ„طھط·ط¨ظٹظ‚</p>
+          <p className="text-xs text-slate-400 mt-1">لغة عرض التطبيق</p>
         </div>
         
         <div className="p-6">
@@ -282,9 +337,9 @@ export default function LanguageSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Clock className="h-5 w-5 text-indigo-400" />
-            ط§ظ„ظ…ظ†ط·ظ‚ط© ط§ظ„ط²ظ…ظ†ظٹط©
+            المنطقة الزمنية
           </h3>
-          <p className="text-xs text-slate-400 mt-1">ط§ط®طھط± ظ…ظ†ط·ظ‚طھظƒ ط§ظ„ط²ظ…ظ†ظٹط©</p>
+          <p className="text-xs text-slate-400 mt-1">اختر منطقتك الزمنية</p>
         </div>
         
         <div className="p-6">
@@ -338,20 +393,20 @@ export default function LanguageSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Calendar className="h-5 w-5 text-indigo-400" />
-            طھظ†ط³ظٹظ‚ ط§ظ„طھط§ط±ظٹط® ظˆط§ظ„ظˆظ‚طھ
+            تنسيق التاريخ والوقت
           </h3>
-          <p className="text-xs text-slate-400 mt-1">طھط®طµظٹطµ ط·ط±ظٹظ‚ط© ط¹ط±ط¶ ط§ظ„طھط§ط±ظٹط® ظˆط§ظ„ظˆظ‚طھ</p>
+          <p className="text-xs text-slate-400 mt-1">تخصيص طريقة عرض التاريخ والوقت</p>
         </div>
         
         <div className="p-6 space-y-6">
           {/* Calendar Type */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">ظ†ظˆط¹ ط§ظ„طھظ‚ظˆظٹظ…</label>
+            <label className="text-sm font-medium text-white mb-4 block">نوع التقويم</label>
             <div className="grid grid-cols-3 gap-4">
               {[
-                { value: 'gregorian', label: 'ظ…ظٹظ„ط§ط¯ظٹ', example: '2025' },
-                { value: 'hijri', label: 'ظ‡ط¬ط±ظٹ', example: '1446' },
-                { value: 'both', label: 'ظƒظ„ط§ظ‡ظ…ط§', example: '2025 / 1446' },
+                { value: 'gregorian', label: 'ميلادي', example: '2025' },
+                { value: 'hijri', label: 'هجري', example: '1446' },
+                { value: 'both', label: 'كلاهما', example: '2025 / 1446' },
               ].map((cal) => {
                 const isSelected = settings.calendar === cal.value;
                 
@@ -381,7 +436,7 @@ export default function LanguageSettingsPage() {
           
           {/* Date Format */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">طھظ†ط³ظٹظ‚ ط§ظ„طھط§ط±ظٹط®</label>
+            <label className="text-sm font-medium text-white mb-4 block">تنسيق التاريخ</label>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
               {dateFormats.map((format) => {
                 const isSelected = settings.dateFormat === format.value;
@@ -411,11 +466,11 @@ export default function LanguageSettingsPage() {
           
           {/* Time Format */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">طھظ†ط³ظٹظ‚ ط§ظ„ظˆظ‚طھ</label>
+            <label className="text-sm font-medium text-white mb-4 block">تنسيق الوقت</label>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { value: '12h', label: '12 ط³ط§ط¹ط©', example: '2:30 ظ…' },
-                { value: '24h', label: '24 ط³ط§ط¹ط©', example: '14:30' },
+                { value: '12h', label: '12 ساعة', example: '2:30 م' },
+                { value: '24h', label: '24 ساعة', example: '14:30' },
               ].map((format) => {
                 const isSelected = settings.timeFormat === format.value;
                 
@@ -444,12 +499,12 @@ export default function LanguageSettingsPage() {
           
           {/* First Day of Week */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">ط¨ط¯ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹</label>
+            <label className="text-sm font-medium text-white mb-4 block">بداية الأسبوع</label>
             <div className="grid grid-cols-3 gap-4">
               {[
-                { value: 'saturday', label: 'ط§ظ„ط³ط¨طھ' },
-                { value: 'sunday', label: 'ط§ظ„ط£ط­ط¯' },
-                { value: 'monday', label: 'ط§ظ„ط¥ط«ظ†ظٹظ†' },
+                { value: 'saturday', label: 'السبت' },
+                { value: 'sunday', label: 'الأحد' },
+                { value: 'monday', label: 'الإثنين' },
               ].map((day) => {
                 const isSelected = settings.firstDayOfWeek === day.value;
                 
@@ -485,19 +540,19 @@ export default function LanguageSettingsPage() {
         <div className="p-4 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <Hash className="h-5 w-5 text-indigo-400" />
-            ط§ظ„ط£ط±ظ‚ط§ظ… ظˆط§ظ„ط¹ظ…ظ„ط©
+            الأرقام والعملة
           </h3>
-          <p className="text-xs text-slate-400 mt-1">طھظ†ط³ظٹظ‚ ط§ظ„ط£ط±ظ‚ط§ظ… ظˆط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©</p>
+          <p className="text-xs text-slate-400 mt-1">تنسيق الأرقام والعملة الافتراضية</p>
         </div>
         
         <div className="p-6 space-y-6">
           {/* Number Format */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">طھظ†ط³ظٹظ‚ ط§ظ„ط£ط±ظ‚ط§ظ…</label>
+            <label className="text-sm font-medium text-white mb-4 block">تنسيق الأرقام</label>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { value: 'arabic', label: 'ط£ط±ظ‚ط§ظ… ط¹ط±ط¨ظٹط©', example: 'ظ،ظ¢ظ£ظ¤ظ¥' },
-                { value: 'english', label: 'ط£ط±ظ‚ط§ظ… ط¥ظ†ط¬ظ„ظٹط²ظٹط©', example: '12345' },
+                { value: 'arabic', label: 'أرقام عربية', example: '١٢٣٤٥' },
+                { value: 'english', label: 'أرقام إنجليزية', example: '12345' },
               ].map((format) => {
                 const isSelected = settings.numberFormat === format.value;
                 
@@ -526,7 +581,7 @@ export default function LanguageSettingsPage() {
           
           {/* Currency */}
           <div>
-            <label className="text-sm font-medium text-white mb-4 block">ط§ظ„ط¹ظ…ظ„ط© ط§ظ„ط§ظپطھط±ط§ط¶ظٹط©</label>
+            <label className="text-sm font-medium text-white mb-4 block">العملة الافتراضية</label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {currencies.map((currency) => {
                 const isSelected = settings.currency === currency.code;

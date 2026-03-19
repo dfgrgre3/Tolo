@@ -24,7 +24,7 @@ interface IPWhitelistEntry {
   createdAt: string;
 }
 
-export default function AdvancedProtection({ userId }: AdvancedProtectionProps) {
+export default function AdvancedProtection({ userId: _userId }: AdvancedProtectionProps) {
   const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
   const [geographicSecurityEnabled, setGeographicSecurityEnabled] = useState(false);
   const [suspiciousActivityDetection, setSuspiciousActivityDetection] = useState(true);
@@ -38,7 +38,7 @@ export default function AdvancedProtection({ userId }: AdvancedProtectionProps) 
     loadProtectionSettings();
     loadIPWhitelist();
     detectCurrentLocation();
-  }, [userId]);
+  }, [_userId]);
 
   const loadProtectionSettings = async () => {
     try {
