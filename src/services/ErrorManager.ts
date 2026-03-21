@@ -6,6 +6,7 @@
 // Use console internally to avoid circular dependencies with the unified logger
 const logger = console;
 import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
+import { toast } from 'sonner';
 
 export interface ErrorLogEntry {
   id: string;
@@ -40,7 +41,6 @@ export interface ErrorDisplayOptions {
 }
 
 class ErrorManager {
-  private toastCallback: ((options: ErrorDisplayOptions & { variant: 'destructive' | 'warning' | 'info' }) => void) | null = null;
   private boundaryCallback: ((error: Error, errorId: string) => void) | null = null;
   private logs: ErrorLogEntry[] = [];
   private sessionId: string;
@@ -65,20 +65,26 @@ class ErrorManager {
     try {
       window.addEventListener('error', (event) => {
         if (event.filename && event.filename.includes('next-devtools')) return;
+        
+        const errorAsAny = event.error as any;
+        if (errorAsAny && typeof errorAsAny.stack === 'string' && errorAsAny.stack.includes('next-devtools')) return;
+        
         this.logError(event.error || new Error(event.message || 'Unknown error'), { source: 'Global Error Handler' });
       });
 
       window.addEventListener('unhandledrejection', (event) => {
         if (!event.reason) return;
-        this.logError(event.reason instanceof Error ? event.reason : new Error(String(event.reason)), { source: 'Unhandled Promise Rejection' });
+        
+        const reasonAsAny = event.reason as any;
+        if (reasonAsAny && typeof reasonAsAny.stack === 'string' && reasonAsAny.stack.includes('next-devtools')) {
+          return;
+        }
+
+        this.logError((reasonAsAny && (typeof reasonAsAny.stack === 'string' || typeof reasonAsAny.message === 'string')) ? reasonAsAny : new Error(String(event.reason)), { source: 'Unhandled Promise Rejection' });
       });
     } catch (e) {
       logger.warn('Failed to setup global error handlers', e);
     }
-  }
-
-  public registerToastCallback(callback: (options: ErrorDisplayOptions & { variant: 'destructive' | 'warning' | 'info' }) => void) {
-    this.toastCallback = callback;
   }
 
   public registerBoundaryCallback(callback: (error: Error, errorId: string) => void) {
@@ -137,16 +143,20 @@ class ErrorManager {
       });
     }
 
-    if (finalConfig.showToast && this.toastCallback) {
+    if (finalConfig.showToast) {
       const variant = finalConfig.severity === 'critical' || finalConfig.severity === 'high' ? 'destructive' :
-        finalConfig.severity === 'medium' ? 'warning' : 'info';
+        finalConfig.severity === 'medium' ? 'warning' : 'default';
 
-      this.toastCallback({
-        title: displayOptions.title,
+      const toastMethod = variant === 'destructive' ? toast.error : 
+                        variant === 'warning' ? toast.warning : toast.info;
+
+      toastMethod(displayOptions.title || (variant === 'destructive' ? 'خطأ' : 'تنبيه'), {
         description: displayOptions.description || errorObj.message,
-        action: displayOptions.action,
-        duration: displayOptions.duration,
-        variant,
+        duration: displayOptions.duration || 5000,
+        action: displayOptions.action ? {
+          label: displayOptions.action.label,
+          onClick: displayOptions.action.onClick
+        } : undefined,
       });
     }
 

@@ -6,7 +6,7 @@
  * when optional OpenTelemetry packages are not installed.
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 
 // Server-side only guard
 const isServer = typeof window === 'undefined';

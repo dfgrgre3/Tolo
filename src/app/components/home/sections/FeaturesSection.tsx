@@ -6,14 +6,11 @@ import { memo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-// import removed
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Crown, Globe, Users, BarChart3, Play } from 'lucide-react';
 import { rpgCommonStyles, FEATURES_LIST } from "../constants";
 import FeatureCard from "../FeatureCard";
 
 export const FeaturesSection = memo(function FeaturesSection() {
-  const user: any = null;
 
   return (
     <section aria-labelledby="features-heading" className="max-w-7xl mx-auto px-4 !pt-0">
@@ -94,20 +91,6 @@ export const FeaturesSection = memo(function FeaturesSection() {
                 </div>
               </div>
               <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto items-center">
-                {user ? (
-                  <Link href="/profile" className="flex items-center gap-4 px-6 py-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors backdrop-blur-md w-full sm:w-auto">
-                    <Avatar className="h-12 w-12 border-2 border-primary ring-2 ring-primary/20">
-                      <AvatarImage src={user.avatar || undefined} alt={user.name || "User"} />
-                      <AvatarFallback className="bg-primary text-primary-foreground font-bold">
-                        {user.name && user.name.length > 0 ? user.name[0].toUpperCase() : "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-right">
-                        <span className="block text-sm text-gray-400">القائد الحالي</span>
-                        <span className="text-base font-bold text-white">{user.name || user.email}</span>
-                    </div>
-                  </Link>
-                ) : null}
                 <Link href="/demo" className="w-full sm:w-auto">
                   <Button size="lg" className="w-full px-10 py-7 text-lg bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-bold shadow-[0_0_20px_rgba(245,158,11,0.4)] border-0">
                     <Play className="ml-2 h-5 w-5 fill-black" />
@@ -125,3 +108,5 @@ export const FeaturesSection = memo(function FeaturesSection() {
 
 FeaturesSection.displayName = "FeaturesSection";
 export default FeaturesSection;
+
+

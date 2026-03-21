@@ -1,5 +1,5 @@
 import { logger } from '@/lib/logger';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 
 export class DataPartitioningService {
     static async getPartitionHealthReport() {

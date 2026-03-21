@@ -1,5 +1,5 @@
-ï»¿import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { CacheService } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       } = await req.json();
 
       if (!title || !content || !priority) {
-        return badRequestResponse("Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙŠØ¬Ø¨ Ù…Ù„Ø¤Ù‡Ø§");
+        return badRequestResponse("ÌãíÚ ÇáÍŞæá ÇáãØáæÈÉ íÌÈ ãáÄåÇ");
       }
 
       const newAnnouncement = await prisma.announcement.create({

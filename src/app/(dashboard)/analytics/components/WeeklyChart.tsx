@@ -47,16 +47,16 @@ export default function WeeklyChart({ weekly }: WeeklyChartProps) {
 	const chartData = useMemo(() => {
 		if (!weekly) return null;
 
-		const subjectLabels = Object.keys(weekly.bySubject);
-		const subjectData = Object.values(weekly.bySubject);
+		const subjectLabels = Object.keys(weekly.bySubject || {});
+		const subjectData = Object.values(weekly.bySubject || {});
 		
 		// استخدام تنسيق آمن للتاريخ - نفس التنسيق على الخادم والعميل لتجنب مشاكل Hydration
-		const dayLabels = weekly.byDay.map((d) => {
+		const dayLabels = (weekly.byDay || []).map((d) => {
 			const date = new Date(d.date);
 			// استخدام نفس التنسيق دائماً لضمان التوافق
 			return format(date, 'EEEE', { locale: ar });
 		});
-		const dayData = weekly.byDay.map((d) => d.minutes);
+		const dayData = (weekly.byDay || []).map((d) => d.minutes);
 
 		return {
 			subjects: {

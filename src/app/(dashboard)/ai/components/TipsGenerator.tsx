@@ -4,7 +4,8 @@
 import React, { useState } from 'react';
 import { Lightbulb, BookOpen, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw, Zap } from 'lucide-react';
 import { getGeminiInfo } from '@/lib/ai-config';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Tip {
   category: 'استراتيجيات الدراسة' | 'التغلب على التحديات' | 'المصادر التعليمية' | 'الخطة الدراسية' | 'تحسين الأداء';

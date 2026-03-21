@@ -37,11 +37,11 @@ export default function SubjectDistribution({ weekly }: SubjectDistributionProps
 	const subjectData = useMemo(() => {
 		if (!weekly || !weekly.bySubject) return null;
 
-		const subjects = Object.entries(weekly.bySubject)
+		const subjects = Object.entries(weekly.bySubject || {})
 			.map(([name, minutes]) => ({
 				name,
-				minutes,
-				hours: minutes / 60,
+				minutes: minutes || 0,
+				hours: (minutes || 0) / 60,
 				percentage: 0
 			}))
 			.sort((a, b) => b.minutes - a.minutes);

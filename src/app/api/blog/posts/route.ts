@@ -1,5 +1,5 @@
-ï»¿import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         const { title, excerpt, content, categoryId } = await req.json();
 
         if (!title || !excerpt || !content || !categoryId) {
-          return badRequestResponse("Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙŠØ¬Ø¨ Ù…Ù„Ø¤Ù‡Ø§");
+          return badRequestResponse("ÌãíÚ ÇáÍŞæá ÇáãØáæÈÉ íÌÈ ãáÄåÇ");
         }
 
         // Check if user exists
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!user) {
-          return badRequestResponse("Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯");
+          return badRequestResponse("ÇáãÓÊÎÏã ÛíÑ ãæÌæÏ");
         }
 
         // Check if category exists
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!category) {
-          return badRequestResponse("Ø§Ù„ØªØµÙ†ÙŠÙ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯");
+          return badRequestResponse("ÇáÊÕäíİ ÛíÑ ãæÌæÏ");
         }
 
         // Generate slug from title

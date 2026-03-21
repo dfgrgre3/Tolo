@@ -1,5 +1,5 @@
-﻿import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from "@/lib/logger";
 import { TEACHER_ROLES, UserRole } from '@/lib/constants';
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 				if (teacher.subjectEnrollments && teacher.subjectEnrollments.length > 0) {
 					return teacher.subjectEnrollments.map((enrollment: any) => ({
 						id: teacher.id,
-						name: teacher.name || teacher.email || "ظ…ط¹ظ„ظ…",
+						name: teacher.name || teacher.email || "8&7?88&",
 						subject: enrollment.subject.name,
 						onlineUrl: null
 					}));
@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 				// If no subjects, return one entry with empty subject
 				return [{
 					id: teacher.id,
-					name: teacher.name || teacher.email || "ظ…ط¹ظ„ظ…",
+					name: teacher.name || teacher.email || "8&7?88&",
 					subject: "",
 					onlineUrl: null
 				}];

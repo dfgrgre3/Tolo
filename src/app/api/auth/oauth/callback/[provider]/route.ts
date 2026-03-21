@@ -47,7 +47,7 @@ export async function GET(
     const response = NextResponse.redirect(new URL('/dashboard', request.url));
     const cookieStore = await cookies();
 
-    cookieStore.set('refreshToken', result.refreshToken, {
+    cookieStore.set('refresh_token', result.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
@@ -56,7 +56,7 @@ export async function GET(
     });
 
     if (result.accessToken) {
-        cookieStore.set('accessToken', result.accessToken, {
+        cookieStore.set('access_token', result.accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             sameSite: 'lax',

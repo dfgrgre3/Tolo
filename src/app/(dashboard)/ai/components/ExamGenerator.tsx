@@ -34,7 +34,7 @@ export default function ExamGenerator({
   const [selectedSubject, setSelectedSubject] = useState('');
   const [selectedYear, setSelectedYear] = useState('');
   const [lesson, setLesson] = useState('');
-  const [difficulty, setDifficulty] = useState('');
+  const [difficulty, setDifficulty] = useState('none');
   const [questionCount, setQuestionCount] = useState(10);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -66,7 +66,8 @@ export default function ExamGenerator({
       return;
     }
 
-    if (!difficulty && difficulty !== '') {
+    // difficulty is optional, no error for 'none' or ''
+    if (!difficulty) {
       setError('الرجاء اختيار مستوى الصعوبة');
       return;
     }
@@ -89,7 +90,7 @@ export default function ExamGenerator({
             subject: selectedSubject,
             year: selectedYear,
             lesson: lesson.trim(),
-            difficulty: difficulty || undefined,
+            difficulty: (difficulty && difficulty !== 'none') ? difficulty : undefined,
             questionCount: Math.min(Math.max(1, questionCount), 50),
             provider: 'gemini'
           }),
@@ -291,7 +292,7 @@ export default function ExamGenerator({
                   <SelectValue placeholder="اختر مستوى الصعوبة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">اختر مستوى الصعوبة</SelectItem>
+                  <SelectItem value="none">اختر مستوى الصعوبة</SelectItem>
                   <SelectItem value="سهل">سهل</SelectItem>
                   <SelectItem value="متوسط">متوسط</SelectItem>
                   <SelectItem value="صعب">صعب</SelectItem>

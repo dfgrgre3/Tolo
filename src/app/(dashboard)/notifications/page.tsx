@@ -42,22 +42,33 @@ export default function NotificationsPage() {
         credentials: 'include',
       });
 
+      if (response.status === 401 || response.status === 403) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setHasMore(false);
+        return;
+      }
+
       if (!response.ok) throw new Error('Failed to fetch notifications');
 
       const data = await response.json();
+      const payload = data?.data ?? data;
+      const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : [];
+      const nextUnreadCount = typeof payload?.unreadCount === 'number' ? payload.unreadCount : 0;
+      const nextHasMore = typeof payload?.hasMore === 'boolean' ? payload.hasMore : nextNotifications.length === limit;
 
       if (reset) {
-        setNotifications(data.notifications);
+        setNotifications(nextNotifications);
         setOffset(0);
       } else {
-        setNotifications((prev) => [...prev, ...data.notifications]);
+        setNotifications((prev) => [...prev, ...nextNotifications]);
         setOffset(currentOffset + limit);
       }
 
-      setUnreadCount(data.unreadCount);
-      setHasMore(data.hasMore);
+      setUnreadCount(nextUnreadCount);
+      setHasMore(nextHasMore);
     } catch (error) {
-      logger.error('Error fetching notifications:', error);
+      logger.warn('Error fetching notifications:', error);
     } finally {
       setIsLoading(false);
     }

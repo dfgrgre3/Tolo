@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 import { ERROR_CODES } from '@/lib/error-codes';

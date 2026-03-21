@@ -6,24 +6,65 @@ import { ProgressSummary } from '@/lib/server-data-fetch';
 import { User } from '@/types/user';
 import { PerformanceMetric } from './types';
 import { rpgCommonStyles } from './constants';
+import dynamic from 'next/dynamic';
 import { Sparkles, Crown } from 'lucide-react';
 
-// --- Sections Imports ---
-import { PerformanceDashboardSection } from './sections/PerformanceDashboardSection';
-import { ExamsSection } from './sections/ExamsSection';
-import { AchievementsSection } from './sections/AchievementsSection';
-import { LevelProgressSection } from './sections/LevelProgressSection';
+// --- Preload skeleton for dynamic imports ---
+import { Skeleton } from '@/components/ui/skeleton';
+
+const LoadingFallback = () => (
+  <div className="w-full h-48 bg-card/20 animate-pulse rounded-[2rem] border border-white/5" />
+);
+
+// --- Sections Imports (Optimized with Dynamic Loading) ---
+const LevelProgressSection = dynamic(
+  () => import('./sections/LevelProgressSection').then((mod) => mod.LevelProgressSection),
+  { loading: () => <LoadingFallback /> }
+);
+const PerformanceDashboardSection = dynamic(
+  () => import('./sections/PerformanceDashboardSection').then((mod) => mod.PerformanceDashboardSection),
+  { loading: () => <LoadingFallback /> }
+);
+const ExamsSection = dynamic(
+  () => import('./sections/ExamsSection').then((mod) => mod.ExamsSection),
+  { loading: () => <LoadingFallback /> }
+);
+const AchievementsSection = dynamic(
+  () => import('./sections/AchievementsSection').then((mod) => mod.AchievementsSection),
+  { loading: () => <LoadingFallback /> }
+);
 import { UserHomeSkeleton } from './sections/UserHomeSkeleton';
 import { SectionDivider } from './sections/SectionDivider';
 
-// --- Legacy Sections (To be refactored later, keeping ensuring no break) ---
-import { QuickLinksSectionEnhanced } from './sections/QuickLinksSectionEnhanced';
-import { AnalyticsSection } from './sections/AnalyticsSection';
-import { IntelligentRecommendationsSection } from './sections/IntelligentRecommendationsSection';
-import { LiveActivityFeedSection } from './sections/LiveActivityFeedSection';
-import { ProgressPredictionsSection } from './sections/ProgressPredictionsSection';
-import { TipsSection } from './sections/TipsSection';
-import { SocialFeaturesSection } from './sections/SocialFeaturesSection';
+// --- Legacy Sections (Dynamic) ---
+const QuickLinksSectionEnhanced = dynamic(
+  () => import('./sections/QuickLinksSectionEnhanced').then((mod) => mod.QuickLinksSectionEnhanced),
+  { loading: () => <LoadingFallback /> }
+);
+const AnalyticsSection = dynamic(
+  () => import('./sections/AnalyticsSection').then((mod) => mod.AnalyticsSection),
+  { loading: () => <LoadingFallback /> }
+);
+const IntelligentRecommendationsSection = dynamic(
+  () => import('./sections/IntelligentRecommendationsSection').then((mod) => mod.IntelligentRecommendationsSection),
+  { loading: () => <LoadingFallback /> }
+);
+const LiveActivityFeedSection = dynamic(
+  () => import('./sections/LiveActivityFeedSection').then((mod) => mod.LiveActivityFeedSection),
+  { loading: () => <LoadingFallback /> }
+);
+const ProgressPredictionsSection = dynamic(
+  () => import('./sections/ProgressPredictionsSection').then((mod) => mod.ProgressPredictionsSection),
+  { loading: () => <LoadingFallback /> }
+);
+const TipsSection = dynamic(
+  () => import('./sections/TipsSection').then((mod) => mod.TipsSection),
+  { loading: () => <LoadingFallback /> }
+);
+const SocialFeaturesSection = dynamic(
+  () => import('./sections/SocialFeaturesSection').then((mod) => mod.SocialFeaturesSection),
+  { loading: () => <LoadingFallback /> }
+);
 
 interface UserHomeProps {
   user: User;
@@ -70,7 +111,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
       dir="rtl"
     >
       {/* --- Premium Ambient Background --- */}
-      <div className="fixed inset-0 pointer-events-none -z-10 bg-[#0A0A0F] overflow-hidden">
+      <div className="fixed inset-0 pointer-events-none -z-10 bg-background overflow-hidden">
         {/* Dynamic Gradient Mesh */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(120,0,255,0.15),transparent_70%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_80%,rgba(0,255,128,0.08),transparent_50%)]" />
@@ -99,7 +140,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
 
       {/* --- Premium Hero Header --- */}
       <motion.header variants={itemVariants} className="relative z-10">
-        <div className="relative overflow-hidden rounded-[3rem] bg-black/40 border border-white/10 p-10 md:p-16 shadow-2xl backdrop-blur-2xl mb-12 ring-1 ring-white/5">
+        <div className="relative overflow-hidden rounded-[3rem] bg-card/40 border border-border p-10 md:p-16 shadow-2xl backdrop-blur-2xl mb-12 ring-1 ring-border/5">
            {/* Inner glass reflection and decorations */}
            <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-50 pointer-events-none" />
            <div className="absolute -top-32 -right-32 w-64 h-64 bg-primary/30 rounded-full blur-[60px] pointer-events-none" />
@@ -125,7 +166,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
                       <Crown className="w-8 h-8 text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.6)]" />
                       <span className="text-amber-400 text-sm font-black uppercase tracking-widest">رتبة المحارب</span>
                    </div>
-                   <h1 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-[1.1]">
+                   <h1 className="text-5xl md:text-8xl font-black text-foreground tracking-tighter leading-[1.1]">
                      مرحباً يا بطل، <br/>
                      <span className={`${rpgCommonStyles.neonText} drop-shadow-[0_0_35px_rgba(168,85,247,0.6)]`}>
                        {firstName}

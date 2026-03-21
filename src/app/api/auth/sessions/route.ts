@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SessionService } from '@/lib/auth/session-service';
 import { SecurityLogger, SecurityEventType } from '@/lib/auth/security-logger';
 import { withAuth, extractClientInfo, handleApiError } from '@/lib/api-utils';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 
 /**
  * GET /api/auth/sessions

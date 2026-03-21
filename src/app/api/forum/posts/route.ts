@@ -1,8 +1,8 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
 
 // GET all forum posts
 export async function GET(request: NextRequest) {
@@ -54,53 +54,55 @@ export async function GET(request: NextRequest) {
 
 // POST create a new forum post
 export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
-    try {
-      const { userId, title, content, categoryId } = await req.json();
+  return opsWrapper(request, async (req: NextRequest) => {
+    return withAuth(req, async ({ userId }) => {
+      try {
+        const { title, content, categoryId } = await req.json();
 
-      if (!userId || !title || !content || !categoryId) {
-        return badRequestResponse("جميع الحقول مطلوبة");
-      }
-
-      // Check if user exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true }
-      });
-
-      if (!user) {
-        return badRequestResponse("المستخدم غير موجود", "USER_NOT_FOUND");
-      }
-
-      // Check if category exists
-      const category = await prisma.category.findUnique({
-        where: { id: categoryId }
-      });
-
-      if (!category) {
-        return badRequestResponse("التصنيف غير موجود", "CATEGORY_NOT_FOUND");
-      }
-
-      const newPost = await prisma.forumPost.create({
-        data: {
-          title,
-          content,
-          authorId: userId,
-          categoryId
-        },
-        include: {
-          author: {
-            select: { name: true }
-          },
-          category: {
-            select: { name: true }
-          }
+        if (!title || !content || !categoryId) {
+          return badRequestResponse("جميع الحقول مطلوبة");
         }
-      });
 
-      return successResponse(newPost, undefined, 201);
-    } catch (error: unknown) {
-      return handleApiError(error);
-    }
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true }
+        });
+
+        if (!user) {
+          return badRequestResponse("المستخدم غير موجود", "USER_NOT_FOUND");
+        }
+
+        // Check if category exists
+        const category = await prisma.category.findUnique({
+          where: { id: categoryId }
+        });
+
+        if (!category) {
+          return badRequestResponse("التصنيف غير موجود", "CATEGORY_NOT_FOUND");
+        }
+
+        const newPost = await prisma.forumPost.create({
+          data: {
+            title,
+            content,
+            authorId: userId,
+            categoryId
+          },
+          include: {
+            author: {
+              select: { name: true }
+            },
+            category: {
+              select: { name: true }
+            }
+          }
+        });
+
+        return successResponse(newPost, undefined, 201);
+      } catch (error: unknown) {
+        return handleApiError(error);
+      }
+    });
   });
 }

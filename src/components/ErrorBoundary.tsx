@@ -1,8 +1,7 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
-import { AlertTriangle, RefreshCw, Home, MessageCircle } from 'lucide-react';
+import React, { Component, ErrorInfo, ReactNode, useState, useCallback } from 'react';
+import { AlertTriangle, RefreshCw, Home, MessageCircle, AlertCircle } from 'lucide-react';
 import errorManager from '../services/ErrorManager';
 import ErrorPage, { ErrorType } from './ErrorPages';
-
 import { logger } from '@/lib/logger';
 
 /**
@@ -21,6 +20,12 @@ interface Props {
   showErrorPage?: boolean;
   /** هل يتم عرض تفاصيل الخطأ؟ */
   showDetails?: boolean;
+  /** تمكين إعادة المحاولة التلقائية */
+  enableRetry?: boolean;
+  /** أقصى عدد لمحاولات إعادة المحاولة */
+  maxRetries?: number;
+  /** فئة CSS إضافية */
+  className?: string;
 }
 
 /**
@@ -35,9 +40,19 @@ interface State {
   errorInfo: ErrorInfo | null;
   /** معرف فريد للخطأ */
   errorId: string | null;
+  /** عدد محاولات إعادة المحاولة */
+  retryCount: number;
+  /** هل تم ترطيب المكون (Hydrated)؟ */
+  isHydrated: boolean;
 }
 
+/**
+ * ErrorBoundary - مكون معالجة الأخطاء الموحد
+ * يوفر واجهة مستخدم غنية، معالجة أخطاء الترطيب (Hydration)، ومنطق إعادة المحاولة.
+ */
 class ErrorBoundary extends Component<Props, State> {
+  private retryTimeoutId: NodeJS.Timeout | null = null;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -45,17 +60,26 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       errorId: null,
+      retryCount: 0,
+      isHydrated: false,
     };
   }
 
   componentDidMount() {
     // Register this boundary with the error manager
     errorManager.registerBoundaryCallback(this.handleBoundaryError);
+    
+    // Set hydrated state on client
+    this.setState({ isHydrated: true });
   }
 
   componentWillUnmount() {
     // Unregister when unmounting
     errorManager.registerBoundaryCallback(() => {});
+    
+    if (this.retryTimeoutId) {
+      clearTimeout(this.retryTimeoutId);
+    }
   }
 
   handleBoundaryError = (error: Error, errorId: string) => {
@@ -67,25 +91,35 @@ class ErrorBoundary extends Component<Props, State> {
     });
   };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     // Generate unique error ID for tracking
     const errorId = `err-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
     return {
       hasError: true,
       error,
-      errorInfo: null,
       errorId,
     };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Check if this is a hydration mismatch
+    const isHydrationError = error.message.toLowerCase().includes('hydration') ||
+                           error.message.toLowerCase().includes('server') ||
+                           error.message.toLowerCase().includes('client');
+
     // Log error to console
-    logger.error('Error caught by ErrorBoundary:', error, errorInfo);
+    if (isHydrationError) {
+      logger.warn('Hydration mismatch detected by ErrorBoundary:', error.message);
+    } else {
+      logger.error('Error caught by ErrorBoundary:', error, errorInfo);
+    }
 
     // Update state with error info
     this.setState({
       errorInfo,
+      // If it's a hydration error, we might not be fully hydrated
+      isHydrated: !isHydrationError
     });
 
     // Call custom error handler if provided
@@ -93,8 +127,17 @@ class ErrorBoundary extends Component<Props, State> {
       this.props.onError(error, errorInfo);
     }
 
-    // Log error to service (you can integrate with services like Sentry, LogRocket, etc.)
-    this.logErrorToService(error, errorInfo);
+    // Log to ErrorManager unless it's a simple hydration mismatch we can recover from
+    if (!isHydrationError || this.state.retryCount > 0) {
+      this.logErrorToService(error, errorInfo);
+    }
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    // Reset error state when children change (useful for route changes)
+    if (prevProps.children !== this.props.children && this.state.hasError) {
+      this.handleReset();
+    }
   }
 
   logErrorToService = (error: Error, errorInfo: ErrorInfo) => {
@@ -104,12 +147,32 @@ class ErrorBoundary extends Component<Props, State> {
         severity: 'high',
         componentStack: errorInfo.componentStack,
         errorBoundaryId: this.state.errorId,
+        retryCount: this.state.retryCount,
       });
 
       this.setState({ errorId });
-      logger.info('Error logged to ErrorManager with ID:', errorId);
     } catch (e) {
       logger.error('Failed to log error to ErrorManager:', e);
+    }
+  };
+
+  handleRetry = () => {
+    const { maxRetries = 3 } = this.props;
+
+    if (this.state.retryCount < maxRetries) {
+      this.setState(prevState => ({
+        hasError: false,
+        error: null,
+        errorInfo: null,
+        retryCount: prevState.retryCount + 1
+      }));
+
+      if (this.retryTimeoutId) {
+        clearTimeout(this.retryTimeoutId);
+      }
+    } else {
+      // If max retries reached, just reload effectively
+      this.handleReload();
     }
   };
 
@@ -119,6 +182,7 @@ class ErrorBoundary extends Component<Props, State> {
       error: null,
       errorInfo: null,
       errorId: null,
+      retryCount: 0,
     });
   };
 
@@ -131,7 +195,6 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   handleReportError = () => {
-    // In a real app, this could open a support ticket or contact form
     const errorDetails = {
       message: this.state.error?.message,
       stack: this.state.error?.stack,
@@ -139,51 +202,63 @@ class ErrorBoundary extends Component<Props, State> {
       errorId: this.state.errorId,
     };
 
-    // Create mailto link with error details
     const subject = `Error Report: ${this.state.errorId}`;
     const body = `Error ID: ${this.state.errorId}\n\nError Message: ${errorDetails.message}\n\nStack Trace:\n${errorDetails.stack}\n\nComponent Stack:\n${errorDetails.componentStack}`;
     window.open(`mailto:support@example.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`);
   };
 
   render() {
-    if (this.state.hasError) {
+    const { hasError, error, errorId, retryCount } = this.state;
+    const { children, fallback, showErrorPage, errorType, showDetails, className = "" } = this.props;
+
+    if (hasError) {
       // If custom fallback is provided, use it
-      if (this.props.fallback) {
-        return this.props.fallback;
+      if (fallback) {
+        return fallback;
       }
 
       // Use custom error page if enabled
-      if (this.props.showErrorPage) {
+      if (showErrorPage) {
         return (
           <ErrorPage
-            type={this.props.errorType || 'generic'}
-            errorId={this.state.errorId || undefined}
-            error={this.state.error || undefined}
-            showDetails={this.props.showDetails}
-            onRetry={this.handleReload}
+            type={errorType || 'generic'}
+            errorId={errorId || undefined}
+            error={error || undefined}
+            showDetails={showDetails}
+            onRetry={this.handleRetry}
             onGoHome={this.handleGoHome}
           />
         );
       }
 
-      // Default error UI (legacy)
+      const isHydrationError = error?.message.toLowerCase().includes('hydration') ||
+                             error?.message.toLowerCase().includes('server') ||
+                             error?.message.toLowerCase().includes('client');
+
+      // Default high-quality error UI
       return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8" dir="rtl">
+        <div className={`min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 ${className}`} dir="rtl">
           <div className="sm:mx-auto sm:w-full sm:max-w-md">
             <div className="flex justify-center">
-              <div className="flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
-                <AlertTriangle className="h-8 w-8 text-red-600" aria-hidden="true" />
+              <div className={`flex items-center justify-center h-16 w-16 rounded-full ${isHydrationError ? 'bg-yellow-100' : 'bg-red-100'}`}>
+                {isHydrationError ? (
+                  <RefreshCw className="h-8 w-8 text-yellow-600 animate-spin-slow" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle className="h-8 w-8 text-red-600" aria-hidden="true" />
+                )}
               </div>
             </div>
             <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              حدث خطأ غير متوقع
+              {isHydrationError ? 'خطأ في مزامنة البيانات' : 'حدث خطأ غير متوقع'}
             </h2>
             <p className="mt-2 text-center text-sm text-gray-600">
-              نعتذر عن هذا الإزعاج. فريقنا يعمل على حل المشكلة.
+              {isHydrationError 
+                ? 'فشل التطبيق في المزامنة بين الخادم والمتصفح. جاري محاولة الإصلاح...'
+                : 'نعتذر عن هذا الإزعاج. فريقنا يعمل على حل المشكلة.'}
             </p>
-            {this.state.errorId && (
+            {errorId && (
               <p className="mt-1 text-center text-xs text-gray-500">
-                رمز الخطأ: {this.state.errorId}
+                رمز الخطأ: {errorId}
               </p>
             )}
           </div>
@@ -191,22 +266,13 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
             <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
               <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900">ماذا يمكنك فعله؟</h3>
-                  <div className="mt-2 space-y-2">
-                    <p className="text-sm text-gray-600">
-                      يمكنك محاولة إعادة تحميل الصفحة أو العودة إلى الصفحة الرئيسية.
-                    </p>
-                  </div>
-                </div>
-
                 <div className="flex flex-col space-y-3">
                   <button
-                    onClick={this.handleReload}
+                    onClick={this.handleRetry}
                     className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                   >
-                    <RefreshCw className="ml-2 h-4 w-4" />
-                    إعادة تحميل الصفحة
+                    <RefreshCw className={`ml-2 h-4 w-4 ${retryCount > 0 ? 'animate-spin' : ''}`} />
+                    إعادة المحاولة {retryCount > 0 && `(${retryCount})`}
                   </button>
 
                   <button
@@ -217,13 +283,15 @@ class ErrorBoundary extends Component<Props, State> {
                     العودة للصفحة الرئيسية
                   </button>
 
-                  <button
-                    onClick={this.handleReportError}
-                    className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                  >
-                    <MessageCircle className="ml-2 h-4 w-4" />
-                    إبلاغ عن المشكلة
-                  </button>
+                  {!isHydrationError && (
+                    <button
+                      onClick={this.handleReportError}
+                      className="w-full flex justify-center items-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                    >
+                      <MessageCircle className="ml-2 h-4 w-4" />
+                      إبلاغ عن المشكلة
+                    </button>
+                  )}
                 </div>
 
                 <details className="mt-4">
@@ -231,8 +299,8 @@ class ErrorBoundary extends Component<Props, State> {
                     تفاصيل الخطأ (للمطورين)
                   </summary>
                   <div className="mt-2 p-3 bg-gray-100 rounded-md text-xs text-gray-800 overflow-auto max-h-40">
-                    <p className="font-semibold">{this.state.error?.toString()}</p>
-                    <pre className="whitespace-pre-wrap mt-2">{this.state.error?.stack}</pre>
+                    <p className="font-semibold">{error?.toString()}</p>
+                    <pre className="whitespace-pre-wrap mt-2">{error?.stack}</pre>
                     {this.state.errorInfo && (
                       <pre className="whitespace-pre-wrap mt-2">{this.state.errorInfo.componentStack}</pre>
                     )}
@@ -245,8 +313,50 @@ class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return children;
   }
+}
+
+/**
+ * useErrorBoundary - هوك لاستخدام ErrorBoundary في المكونات الوظيفية
+ */
+export function useErrorBoundary() {
+  const [error, setError] = useState<Error | null>(null);
+  const [hasError, setHasError] = useState(false);
+
+  const resetError = useCallback(() => {
+    setError(null);
+    setHasError(false);
+  }, []);
+
+  const captureError = useCallback((err: Error) => {
+    setError(err);
+    setHasError(true);
+  }, []);
+
+  return {
+    error,
+    hasError,
+    resetError,
+    captureError
+  };
+}
+
+/**
+ * withErrorBoundary - HOC لتغليف المكونات بـ ErrorBoundary
+ */
+export function withErrorBoundary<P extends object>(
+  Component: React.ComponentType<P>,
+  errorBoundaryProps?: Omit<Props, 'children'>
+) {
+  const WrappedComponent = (props: P) => (
+    <ErrorBoundary {...errorBoundaryProps}>
+      <Component {...props} />
+    </ErrorBoundary>
+  );
+
+  WrappedComponent.displayName = `withErrorBoundary(${Component.displayName || Component.name})`;
+  return WrappedComponent;
 }
 
 export default ErrorBoundary;

@@ -43,8 +43,8 @@ export default function OverviewStats({ summary, weekly }: OverviewStatsProps) {
 	};
 
 	const calculateDailyAverage = () => {
-		if (!summary || !weekly) return 0;
-		const days = weekly.byDay.filter(d => {
+		if (!summary || !weekly?.byDay) return 0;
+		const days = (weekly.byDay || []).filter(d => {
 			const date = new Date(d.date);
 			return date <= new Date();
 		}).length || 7;
@@ -52,8 +52,8 @@ export default function OverviewStats({ summary, weekly }: OverviewStatsProps) {
 	};
 
 	const totalStudyHours = summary ? summary.totalMinutes / 60 : 0;
-	const weeklyTotal = weekly 
-		? Object.values(weekly.bySubject).reduce((a, b) => a + b, 0) / 60 
+	const weeklyTotal = weekly?.bySubject 
+		? Object.values(weekly.bySubject).reduce((a, b) => a + (b || 0), 0) / 60 
 		: 0;
 	const improvement = calculateImprovement();
 	const dailyAverage = calculateDailyAverage();

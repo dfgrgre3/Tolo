@@ -61,8 +61,8 @@ export default function StudyPatterns({ weekly }: StudyPatternsProps) {
 			const dayOfWeek = day.date.getDay();
 			dayOfWeekStats[dayOfWeek] = (dayOfWeekStats[dayOfWeek] || 0) + day.minutes;
 		});
-		const bestDayOfWeek = Object.entries(dayOfWeekStats)
-			.sort(([, a], [, b]) => b - a)[0]?.[0];
+		const bestDayOfWeek = Object.entries(dayOfWeekStats || {})
+			.sort(([, a], [, b]) => (b || 0) - (a || 0))[0]?.[0];
 		const bestDayName = bestDayOfWeek !== undefined 
 			? format(new Date(2024, 0, parseInt(bestDayOfWeek) + 1), 'EEEE', { locale: ar })
 			: 'غير محدد';

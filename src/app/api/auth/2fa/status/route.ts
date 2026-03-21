@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-utils';
-import prisma from '@/lib/db';
+import prisma from '@/lib/db-unified';
 
 /**
  * GET /api/auth/2fa/status

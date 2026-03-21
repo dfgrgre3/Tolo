@@ -1,5 +1,5 @@
-ï»¿import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error("Error fetching blog categories:", error);
       return NextResponse.json(
-        { error: "Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ Ø¬Ù„Ø¨ Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª" },
+        { error: "ÍÏË ÎØÃ İí ÌáÈ ÇáÊÕäíİÇÊ" },
         { status: 500 }
       );
     }
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
       if (!name || !description) {
         return NextResponse.json(
-          { error: "Ø§Ù„Ø§Ø³Ù… ÙˆØ§Ù„ÙˆØµÙ Ù…Ø·Ù„ÙˆØ¨Ø§Ù†" },
+          { error: "ÇáÇÓã æÇáæÕİ ãØáæÈÇä" },
           { status: 400 }
         );
       }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
           name,
           slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
           description,
-          icon: icon || "ğŸ“Œ",
+          icon: icon || "??",
           type: "BLOG"
         }
       });
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.error("Error creating blog category:", error);
       return NextResponse.json(
-        { error: "Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªØµÙ†ÙŠÙ" },
+        { error: "ÍÏË ÎØÃ İí ÅäÔÇÁ ÇáÊÕäíİ" },
         { status: 500 }
       );
     }

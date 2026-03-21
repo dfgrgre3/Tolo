@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { gamificationService } from '@/lib/services/gamification-service';
 import { startOfWeek, endOfWeek, subDays, startOfDay, differenceInDays } from 'date-fns';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -30,40 +30,62 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Fetch user's actual data
+      // Fetch user's actual data with optimized queries
       const [
         user,
         studySessions,
         tasks,
         examResults,
-        userGrades,
         progress
       ] = await Promise.all([
         prisma.user.findUnique({ where: { id: userId } }),
         prisma.studySession.findMany({
           where: { userId },
           orderBy: { startTime: 'desc' },
-          take: 50
+          take: 50,
+          select: {
+            id: true,
+            subjectId: true,
+            startTime: true,
+            endTime: true,
+            durationMin: true,
+            focusScore: true,
+          }
         }),
         prisma.task.findMany({
           where: { userId },
           orderBy: { createdAt: 'desc' },
-          take: 50
+          take: 50,
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            dueAt: true,
+            priority: true,
+            subjectId: true,
+          }
         }),
         prisma.examResult.findMany({
           where: { userId },
-          include: { exam: true },
-          orderBy: { takenAt: 'desc' },
-          take: 20
-        }),
-        prisma.examResult.findMany({
-          where: { userId },
-          include: { exam: true },
+          select: {
+            id: true,
+            score: true,
+            takenAt: true,
+            exam: {
+              select: {
+                title: true,
+                subjectId: true,
+              }
+            }
+          },
           orderBy: { takenAt: 'desc' },
           take: 20
         }),
         gamificationService.getUserProgress(userId).catch(() => null)
       ]);
+
+      // Use examResults for both variables (was duplicated before)
+      const userGrades = examResults;
 
       if (!user) {
         return NextResponse.json(
@@ -101,11 +123,11 @@ export async function GET(request: NextRequest) {
 }
 
 interface RecommendationData {
-  user: Prisma.UserGetPayload<{ select: { id: true; email: true; name: true } }>;
-  studySessions: Prisma.StudySessionGetPayload<{}>[];
-  tasks: Prisma.TaskGetPayload<{}>[];
-  examResults: Prisma.ExamResultGetPayload<{}>[];
-  userGrades: Prisma.ExamResultGetPayload<{ include: { exam: true } }>[];
+  user: Prisma.UserGetPayload<{ select: { id: true; email: true; name: true } }> | null;
+  studySessions: { id: string; subjectId: string | null; startTime: Date; endTime: Date; durationMin: number; focusScore: number }[];
+  tasks: { id: string; title: string; status: TaskStatus; dueAt: Date | null; priority: number; subjectId: string | null }[];
+  examResults: { id: string; score: number; takenAt: Date; exam: { title: string; subjectId: string } | null }[];
+  userGrades: { id: string; score: number; takenAt: Date; exam: { title: string; subjectId: string } | null }[];
   progress: { totalStudyMinutes: number; averageFocusScore: number; currentStreak?: number } | null;
 }
 

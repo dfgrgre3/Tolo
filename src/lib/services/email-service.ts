@@ -72,7 +72,7 @@ class EmailService {
     try {
       const info = await withRetry(async () => {
         return this.transporter!.sendMail({
-          from: process.env.SMTP_FROM || '"Thanawy App" <noreply@thanawy.com>',
+          from: process.env.SMTP_FROM || '"Tolo App" <noreply@tolo.com>',
           to,
           subject,
           text,
@@ -101,11 +101,11 @@ class EmailService {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const verificationLink = `${baseUrl}/verify-email?token=${token}`;
 
-    const subject = 'تفعيل حسابك في منصة ثانوية';
+    const subject = 'تفعيل حسابك في منصة تولو';
     const text = `مرحباً،\n\nيرجى النقر على الرابط التالي لتفعيل حسابك:\n${verificationLink}\n\nإذا لم تقم بإنشاء هذا الحساب، يرجى تجاهل هذه الرسالة.`;
     const html = `
       <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2>مرحباً بك في منصة ثانوية</h2>
+        <h2>مرحباً بك في منصة تولو</h2>
         <p>شكراً لتسجيلك معنا. يرجى النقر على الزر أدناه لتفعيل حسابك:</p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="${verificationLink}" style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">تفعيل الحساب</a>
@@ -147,7 +147,7 @@ class EmailService {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const resetLink = `${baseUrl}/reset-password?token=${token}`;
 
-    const subject = 'إعادة تعيين كلمة المرور - منصة ثانوية';
+    const subject = 'إعادة تعيين كلمة المرور - منصة تولو';
     const text = `مرحباً،\n\nلقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك. يرجى النقر على الرابط التالي للتعيين:\n${resetLink}\n\nصلاحية الرابط ساعة واحدة.`;
     const html = `
       <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -173,7 +173,7 @@ class EmailService {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const magicLink = `${baseUrl}/api/auth/magic-link/verify?token=${token}`;
 
-    const subject = 'رابط الدخول السريع - منصة ثانوية';
+    const subject = 'رابط الدخول السريع - منصة تولو';
     const text = `مرحباً،\n\nاستخدم الرابط التالي لتسجيل الدخول مباشرة إلى حسابك:\n${magicLink}\n\nصلاحية الرابط 15 دقيقة فقط.`;
     const html = `
       <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
@@ -200,7 +200,7 @@ class EmailService {
       const html = `
         <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
           <h2 style="color: #e11d48;">تنبيه أمني جديد</h2>
-          <p>تم تسجيل دخول جديد إلى حسابك في منصة ثانوية.</p>
+          <p>تم تسجيل دخول جديد إلى حسابك في منصة تولو.</p>
           <div style="background: #f4f4f5; padding: 15px; border-radius: 8px; margin: 20px 0;">
             <p><strong>الجهاز:</strong> ${details.device}</p>
             <p><strong>العنوان (IP):</strong> ${details.ip}</p>

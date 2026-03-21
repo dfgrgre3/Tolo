@@ -24,13 +24,22 @@ import {
 	ArrowDown
 } from 'lucide-react';
 import { ensureUser } from "@/lib/user-utils";
-import OverviewStats from "./components/OverviewStats";
-import WeeklyChart from "./components/WeeklyChart";
-import PerformanceMetrics from "./components/PerformanceMetrics";
-import PredictionsSection from "./components/PredictionsSection";
-import SubjectDistribution from "./components/SubjectDistribution";
-import TimeTrends from "./components/TimeTrends";
-import StudyPatterns from "./components/StudyPatterns";
+import dynamic from 'next/dynamic';
+import { Skeleton } from "@/components/ui/skeleton";
+
+const LoadingFallback = () => (
+  <div className="w-full h-64 bg-card/20 animate-pulse rounded-[2rem] border border-white/5 flex items-center justify-center">
+    <RefreshCw className="h-8 w-8 animate-spin text-primary/40" />
+  </div>
+);
+
+const OverviewStats = dynamic(() => import("./components/OverviewStats"), { loading: () => <LoadingFallback /> });
+const WeeklyChart = dynamic(() => import("./components/WeeklyChart"), { loading: () => <LoadingFallback /> });
+const PerformanceMetrics = dynamic(() => import("./components/PerformanceMetrics"), { loading: () => <LoadingFallback /> });
+const PredictionsSection = dynamic(() => import("./components/PredictionsSection"), { loading: () => <LoadingFallback /> });
+const SubjectDistribution = dynamic(() => import("./components/SubjectDistribution"), { loading: () => <LoadingFallback /> });
+const TimeTrends = dynamic(() => import("./components/TimeTrends"), { loading: () => <LoadingFallback /> });
+const StudyPatterns = dynamic(() => import("./components/StudyPatterns"), { loading: () => <LoadingFallback /> });
 
 import { logger } from '@/lib/logger';
 

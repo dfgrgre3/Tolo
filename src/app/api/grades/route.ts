@@ -1,121 +1,112 @@
-﻿
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse, notFoundResponse } from '@/lib/api-utils';
+import { z } from "zod";
+
+const gradeSchema = z.object({
+  subject: z.string().min(1, "اسم المادة مطلوب"),
+  grade: z.number().min(0, "الدرجة لا يمكن أن تكون أقل من 0"),
+  maxGrade: z.number().default(100),
+  date: z.string().or(z.date()).optional(),
+  notes: z.string().optional(),
+  isOnline: z.boolean().default(false),
+  teacherId: z.string().optional(),
+  assignmentType: z.string().optional(),
+});
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      const { searchParams } = new URL(req.url);
-      const userId = searchParams.get('userId');
+    return withAuth(req, async (authUser) => {
+      try {
+        const { searchParams } = new URL(req.url);
+        const userId = searchParams.get('userId');
 
-      if (!userId) {
-        return NextResponse.json(
-          { error: "معرف المستخدم مطلوب" },
-          { status: 400 }
-        );
-      }
+        // If userId is provided, it must match authenticated user
+        if (userId && userId !== authUser.userId) {
+          return forbiddenResponse("لا يمكنك الوصول إلى درجات مستخدم آخر");
+        }
 
-      // الحصول على جميع الدرجات المسجلة للمستخدم
-      const userGrades = await prisma.userGrade.findMany({
-        where: { userId },
-        include: {
-          subject: {
-            select: { nameAr: true, name: true }
+        const targetUserId = authUser.userId;
+
+        // Fetch all grades for user
+        const userGrades = await prisma.userGrade.findMany({
+          where: { userId: targetUserId },
+          include: {
+            subject: {
+              select: { nameAr: true, name: true }
+            }
+          },
+          orderBy: {
+            date: 'desc'
           }
-        },
-        orderBy: {
-          date: 'desc'
-        }
-      });
+        });
 
-      // حساب المتوسط العام لكل مادة
-      const subjectAverages = await prisma.userGrade.groupBy({
-        by: ['subjectId'],
-        where: { userId },
-        _avg: {
-          grade: true
-        }
-      });
+        // Calculate average per subject
+        const subjectAverages = await prisma.userGrade.groupBy({
+          by: ['subjectId'],
+          where: { userId: targetUserId },
+          _avg: {
+            grade: true
+          }
+        });
 
-      return NextResponse.json({
-        grades: userGrades,
-        averages: subjectAverages
-      });
+        return successResponse({
+          grades: userGrades,
+          averages: subjectAverages
+        });
 
-    } catch (error) {
-      logger.error("Error fetching grades:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في جلب البيانات" },
-        { status: 500 }
-      );
-    }
+      } catch (error) {
+        return handleApiError(error);
+      }
+    });
   });
 }
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    try {
-      const {
-        userId,
-        subject,
-        grade,
-        maxGrade = 100,
-        date,
-        notes,
-        isOnline = false,
-        teacherId,
-        assignmentType
-      } = await req.json();
+    return withAuth(req, async (authUser) => {
+      try {
+        const body = await req.json();
+        const validation = gradeSchema.safeParse(body);
 
-      if (!userId || !subject || grade === undefined) {
-        return NextResponse.json(
-          { error: "البيانات المطلوبة غير مكتملة" },
-          { status: 400 }
-        );
-      }
-
-      // البحث عن المادة في قاعدة البيانات
-      const dbSubject = await prisma.subject.findFirst({
-        where: {
-          OR: [
-            { name: { equals: subject, mode: 'insensitive' } },
-            { nameAr: { equals: subject, mode: 'insensitive' } }
-          ]
+        if (!validation.success) {
+          return badRequestResponse(validation.error.errors[0].message);
         }
-      });
 
-      if (!dbSubject) {
-        return NextResponse.json(
-          { error: `المادة ${subject} غير موجودة` },
-          { status: 404 }
-        );
-      }
+        const { subject, grade, maxGrade, date, assignmentType } = validation.data;
 
-      // تسجيل الدرجة الجديدة
-      const newGrade = await prisma.userGrade.create({
-        data: {
-          userId,
-          subjectId: dbSubject.id,
-          grade: Number(grade),
-          maxGrade: Number(maxGrade),
-          date: date ? new Date(date) : new Date(),
-          examName: assignmentType
+        // Search for subject
+        const dbSubject = await prisma.subject.findFirst({
+          where: {
+            OR: [
+              { name: { equals: subject, mode: 'insensitive' } },
+              { nameAr: { equals: subject, mode: 'insensitive' } }
+            ]
+          }
+        });
+
+        if (!dbSubject) {
+          return notFoundResponse(`المادة ${subject} غير موجودة`);
         }
-      });
 
+        // Create grade
+        const newGrade = await prisma.userGrade.create({
+          data: {
+            userId: authUser.userId,
+            subjectId: dbSubject.id,
+            grade: Number(grade),
+            maxGrade: Number(maxGrade),
+            date: date ? new Date(date) : new Date(),
+            examName: assignmentType
+          }
+        });
 
-      return NextResponse.json({
-        success: true,
-        grade: newGrade
-      });
-    } catch (error) {
-      logger.error("Error saving grade:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ في حفظ البيانات" },
-        { status: 500 }
-      );
-    }
+        return successResponse(newGrade, "تم تسجيل الدرجة بنجاح", 201);
+      } catch (error) {
+        return handleApiError(error);
+      }
+    });
   });
 }
+

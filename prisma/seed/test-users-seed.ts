@@ -71,6 +71,7 @@ async function seedTestUsers() {
           pomodoroSessions: 20,
           deepWorkSessions: 5,
           focusStrategy: 'POMODORO',
+          role: userData.role === 'admin' ? 'ADMIN' : 'USER',
         },
       });
 

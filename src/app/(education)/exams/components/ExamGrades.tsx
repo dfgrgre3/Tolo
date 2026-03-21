@@ -22,6 +22,10 @@ interface Exam {
   type?: string;
 }
 
+interface ExamsResponse {
+  exams: Exam[];
+}
+
 interface ExamResult {
   id: string;
   exam: Exam;
@@ -132,10 +136,10 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
           undefined,
           { grades: [], averages: [] }
         ),
-        safeFetch<Exam[]>(
+        safeFetch<ExamsResponse>(
           "/api/exams",
           undefined,
-          []
+          { exams: [] }
         )
       ]);
 
@@ -173,7 +177,7 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
 
       // معالجة قائمة الامتحانات المتاحة
       if (examsListResponse.status === 'fulfilled' && !examsListResponse.value.error) {
-        setAvailableExams(examsListResponse.value.data || []);
+        setAvailableExams(Array.isArray(examsListResponse.value.data?.exams) ? examsListResponse.value.data.exams : []);
       } else {
         logger.warn('Error fetching available exams:', examsListResponse.status === 'rejected' ? examsListResponse.reason : examsListResponse.value.error);
       }

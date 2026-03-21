@@ -1,28 +1,21 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
   TrendingUp, 
-  Target, 
-  Calendar, 
   Clock, 
-  Flame, 
-  Trophy,
-  Zap,
   BookOpen,
   BarChart3,
   Activity,
   Brain,
-  Target as TargetIcon,
-  Award as AwardIcon,
-  Flame as FlameIcon
+  Flame
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import type { Task, StudySession, Reminder } from '../types';
-import { format, isSameDay, subDays } from 'date-fns';
+import { format } from 'date-fns';
 import { ar } from 'date-fns/locale';
 
 interface TimeAnalyticsProps {
@@ -31,89 +24,94 @@ interface TimeAnalyticsProps {
   reminders: Reminder[];
 }
 
-const TimeAnalytics = ({ tasks, studySessions, reminders }: TimeAnalyticsProps) => {
-  // Prepare data for the charts
-  const prepareWeeklyData = () => {
+const TimeAnalytics = ({ tasks, studySessions, reminders: _reminders }: TimeAnalyticsProps) => {
+  const analyticsData = useMemo(() => {
     const now = new Date();
-    const data = [];
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(now.getDate() - i);
-      const dateStr = date.toLocaleDateString('ar-SA');
-      
-      const daySessions = studySessions.filter(session => 
-        isSameDay(new Date(session.startTime), date)
-      );
-      
-      const dayTasks = tasks.filter(task => 
-        task.completedAt && 
-        isSameDay(new Date(task.completedAt), date)
-      );
-      
-      data.push({
-        name: format(date, 'EEEE', { locale: ar }).slice(0, 2),
-        studyHours: Math.round(daySessions.reduce((sum, s) => sum + s.durationMin, 0) / 60 * 10) / 10,
-        completedTasks: dayTasks.length,
-        date: dateStr
-      });
-    }
-    
-    return data;
-  };
+    const sessionMinutesByDay = new Map<string, number>();
+    const pomodoroCountByDay = new Map<string, number>();
+    const completedTasksByDay = new Map<string, number>();
 
-  const prepareProductivityData = () => {
-    // Calculate productivity metrics over time
-    const now = new Date();
-    const data = [];
-    
+    for (const session of studySessions) {
+      const sessionDate = new Date(session.startTime);
+      const dayKey = format(sessionDate, 'yyyy-MM-dd');
+      sessionMinutesByDay.set(dayKey, (sessionMinutesByDay.get(dayKey) || 0) + session.durationMin);
+
+      if (session.durationMin >= 20 && session.durationMin <= 30) {
+        pomodoroCountByDay.set(dayKey, (pomodoroCountByDay.get(dayKey) || 0) + 1);
+      }
+    }
+
+    for (const task of tasks) {
+      if (!task.completedAt) continue;
+      const dayKey = format(new Date(task.completedAt), 'yyyy-MM-dd');
+      completedTasksByDay.set(dayKey, (completedTasksByDay.get(dayKey) || 0) + 1);
+    }
+
+    const weeklyData = [];
+    const productivityData = [];
+
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(now.getDate() - i);
-      
-      const daySessions = studySessions.filter(session => 
-        isSameDay(new Date(session.startTime), date)
-      );
-      
-      const dayTasks = tasks.filter(task => 
-        task.completedAt && 
-        isSameDay(new Date(task.completedAt), date)
-      );
-      
-      // Calculate productivity score for the day
-      const studyHours = daySessions.reduce((sum, s) => sum + s.durationMin, 0) / 60;
-      const completedTasks = dayTasks.length;
-      const pomodoroSessions = daySessions.filter(s => s.durationMin >= 20 && s.durationMin <= 30).length;
-      
-      // Productivity score formula: weighted combination of study hours, completed tasks, and focused sessions
+      const dayKey = format(date, 'yyyy-MM-dd');
+      const studyMinutes = sessionMinutesByDay.get(dayKey) || 0;
+      const studyHours = Math.round((studyMinutes / 60) * 10) / 10;
+      const completedTasks = completedTasksByDay.get(dayKey) || 0;
+      const pomodoroSessions = pomodoroCountByDay.get(dayKey) || 0;
       const productivityScore = Math.min(100, Math.round(
-        (studyHours / 8) * 40 +  // Up to 40% for study hours (max 8 hours = 100%)
-        (completedTasks / 10) * 40 +  // Up to 40% for completed tasks (max 10 tasks = 100%)
-        (pomodoroSessions / 5) * 20  // Up to 20% for focused sessions (max 5 sessions = 100%)
+        (studyHours / 8) * 40 +
+        (completedTasks / 10) * 40 +
+        (pomodoroSessions / 5) * 20
       ));
-      
-      data.push({
+
+      weeklyData.push({
+        name: format(date, 'EEEE', { locale: ar }).slice(0, 2),
+        studyHours,
+        completedTasks,
+        date: date.toLocaleDateString('ar-SA')
+      });
+
+      productivityData.push({
         name: format(date, 'EEEE', { locale: ar }).slice(0, 2),
         productivity: productivityScore,
-        studyHours: Math.round(studyHours * 10) / 10,
+        studyHours,
         pomodoroSessions,
         date: date.toDateString()
       });
     }
-    
-    return data;
-  };
 
-  const weeklyData = prepareWeeklyData();
-  const productivityData = prepareProductivityData();
+    const totalStudyMinutes = studySessions.reduce((sum, session) => sum + session.durationMin, 0);
+    const totalStudyHours = totalStudyMinutes / 60;
+    const totalPomodoroSessions = studySessions.reduce((sum, session) => (
+      sum + (session.durationMin >= 20 && session.durationMin <= 30 ? 1 : 0)
+    ), 0);
+    const averageProductivityScore = Math.round(
+      productivityData.reduce((sum, day) => sum + day.productivity, 0) / productivityData.length
+    );
+    const streak = calculateStreak(studySessions);
 
-  // Calculate additional metrics
-  const totalStudyHours = studySessions.reduce((sum, session) => sum + session.durationMin, 0) / 60;
-  const avgStudyHours = totalStudyHours / 7;
-  const totalPomodoroSessions = studySessions.filter(session => 
-    session.durationMin >= 20 && session.durationMin <= 30
-  ).length;
-  const avgPomodoroPerDay = totalPomodoroSessions / 7;
+    return {
+      weeklyData,
+      productivityData,
+      totalStudyHours,
+      avgStudyHours: totalStudyHours / 7,
+      totalPomodoroSessions,
+      avgPomodoroPerDay: totalPomodoroSessions / 7,
+      averageProductivityScore,
+      streak
+    };
+  }, [studySessions, tasks]);
+
+  const {
+    weeklyData,
+    productivityData,
+    totalStudyHours,
+    avgStudyHours,
+    totalPomodoroSessions,
+    avgPomodoroPerDay,
+    averageProductivityScore,
+    streak
+  } = analyticsData;
 
   return (
     <div className="space-y-6">
@@ -265,9 +263,9 @@ const TimeAnalytics = ({ tasks, studySessions, reminders }: TimeAnalyticsProps) 
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-0">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">نقطة التركيز</CardTitle>
-            <div className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-purple-500" />
-              <span className="text-2xl font-bold">{Math.round(productivityData.reduce((sum, d) => sum + d.productivity, 0) / 7)}</span>
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-purple-500" />
+              <span className="text-2xl font-bold">{averageProductivityScore}</span>
             </div>
           </CardHeader>
           <CardContent>
@@ -275,7 +273,7 @@ const TimeAnalytics = ({ tasks, studySessions, reminders }: TimeAnalyticsProps) 
               متوسط الأسبوع
             </p>
             <Progress 
-              value={Math.round(productivityData.reduce((sum, d) => sum + d.productivity, 0) / 7)} 
+              value={averageProductivityScore} 
               className="mt-2 h-1.5 bg-purple-300" 
             />
           </CardContent>
@@ -285,8 +283,8 @@ const TimeAnalytics = ({ tasks, studySessions, reminders }: TimeAnalyticsProps) 
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">الانضباط</CardTitle>
             <div className="flex items-center gap-2">
-              <FlameIcon className="h-5 w-5 text-emerald-500" />
-              <span className="text-2xl font-bold">{calculateStreak(studySessions)}</span>
+              <Flame className="h-5 w-5 text-emerald-500" />
+              <span className="text-2xl font-bold">{streak}</span>
             </div>
           </CardHeader>
           <CardContent>
@@ -294,7 +292,7 @@ const TimeAnalytics = ({ tasks, studySessions, reminders }: TimeAnalyticsProps) 
               أيام متتالية
             </p>
             <Progress 
-              value={Math.min(100, calculateStreak(studySessions) * 10)} 
+              value={Math.min(100, streak * 10)} 
               className="mt-2 h-1.5 bg-emerald-300" 
             />
           </CardContent>

@@ -2,15 +2,15 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
 	title: {
-		template: '%s | ثانوية بذكاء',
-		default: "ثانوية بذكاء - تنظيم وقت ونصائح"
+		template: '%s | Tolo',
+		default: "Tolo - ثورة في عالم التعلم"
 	},
-	description: "منصة شاملة لتنظيم الوقت، تتبع التقدم، الموارد، والامتحانات لثالثة ثانوي.",
-	applicationName: "ThanaWy Smart",
-	authors: [{ name: "ThanaWy Team" }],
-	keywords: ["تعليم", "ثانوية", "تنظيم الوقت", "امتحانات", "مصر"],
-	creator: "ThanaWy Team",
-	publisher: "ThanaWy",
+	description: "منصة شاملة لتحديد الأهداف، تتبع التقدم، والارتقاء بمستواك التعليمي.",
+	applicationName: "Tolo",
+	authors: [{ name: "Tolo Team" }],
+	keywords: ["Tolo", "تعليم", "تطوير", "نجاح"],
+	creator: "Tolo Team",
+	publisher: "Tolo",
 	formatDetection: {
 		email: false,
 		address: false,

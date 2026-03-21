@@ -1,4 +1,4 @@
-import prisma from '@/lib/db';
+import prisma from '@/lib/db-unified';
 import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
 import { logger } from '@/lib/logger';

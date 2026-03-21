@@ -10,7 +10,7 @@
 
 export const authService = {
   // Old tests mock this method.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   verifyTokenFromRequest: async (_req: unknown) => ({ isValid: false }),
 };
 

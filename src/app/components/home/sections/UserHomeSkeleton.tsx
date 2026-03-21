@@ -2,7 +2,7 @@ import React from "react";
 
 export const UserHomeSkeleton = () => {
   return (
-    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 animate-pulse bg-[#0A0A0F] min-h-screen" dir="rtl">
+    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12 animate-pulse bg-background min-h-screen" dir="rtl">
       {/* Hero Skeleton */}
       <div className="h-[500px] w-full rounded-[2.5rem] bg-white/5 border border-white/10 p-8">
         <div className="flex flex-col items-center gap-8 mb-12">

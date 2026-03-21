@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { traceAsync, extractContext, injectContext, getTracer } from '@/lib/tracing/jaeger-tracer';
+import { traceAsync, extractContext, injectContext } from '@/lib/tracing/jaeger-tracer';
 
 export async function tracingMiddleware(
   request: NextRequest,
@@ -14,14 +14,14 @@ export async function tracingMiddleware(
   const method = request.method;
   const url = new URL(request.url);
   const route = url.pathname;
-  
+
   // استخراج context من headers
   const headers: Record<string, string> = {};
   request.headers.forEach((value, key) => {
     headers[key] = value;
   });
-  
-  const parentContext = extractContext(headers);
+
+  const _parentContext = extractContext(headers);
 
   // إنشاء span للطلب
   return traceAsync(
@@ -37,7 +37,7 @@ export async function tracingMiddleware(
       try {
         // تنفيذ الـ handler
         const response = await handler(request);
-        
+
         const statusCode = response.status;
         span.setAttribute('http.status_code', statusCode);
         span.setAttribute('http.status_text', response.statusText);

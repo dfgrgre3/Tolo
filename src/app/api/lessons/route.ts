@@ -1,77 +1,78 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
+import { z } from "zod";
 
+const lessonSchema = z.object({
+  teacherId: z.string().min(1, "معرف المعلم مطلوب"),
+  title: z.string().min(1, "عنوان الدرس مطلوب"),
+  location: z.string().min(1, "المكان مطلوب"),
+  startTime: z.string().or(z.date()),
+  endTime: z.string().or(z.date()),
+  subjectId: z.string().min(1, "معرف المادة مطلوب"),
+});
 
 export async function GET(req: NextRequest) {
-	try {
-		// Authenticate user check via middleware
-		const authUserId = req.headers.get("x-user-id");
-		if (!authUserId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
-		const authUser = { userId: authUserId };
+  return opsWrapper(req, async (request) => {
+    return withAuth(request, async (authUser) => {
+      try {
+        const { searchParams } = new URL(request.url);
+        const userId = searchParams.get("userId");
 
-		const { searchParams } = new URL(req.url);
-		const userId = searchParams.get("userId");
+        // If userId is provided in query, ensure it matches the authenticated user
+        if (userId && userId !== authUser.userId) {
+          return forbiddenResponse("لا يمكنك الوصول إلى دروس مستخدم آخر");
+        }
 
-		// If userId is provided in query, ensure it matches the authenticated user
-		if (userId && userId !== authUser.userId) {
-			return NextResponse.json({ error: "Forbidden: Can only access your own lessons" }, { status: 403 });
-		}
+        // Use authenticated user's ID if no userId provided in query
+        const targetUserId = userId || authUser.userId;
 
-		// Use authenticated user's ID if no userId provided in query
-		const targetUserId = userId || authUser.userId;
+        const lessons = await prisma.offlineLesson.findMany({
+          where: { userId: targetUserId },
+          include: { subject: true },
+          orderBy: { startTime: "asc" }
+        });
 
-		const lessons = await prisma.offlineLesson.findMany({
-			where: { userId: targetUserId },
-			include: { subject: true },
-			orderBy: { startTime: "asc" }
-		});
-		return NextResponse.json(lessons);
-	} catch (e: unknown) {
-		const errorMessage = e instanceof Error ? e.message : "Server error";
-		return NextResponse.json({ error: errorMessage }, { status: 500 });
-	}
+        return successResponse(lessons);
+      } catch (e: unknown) {
+        return handleApiError(e);
+      }
+    });
+  });
 }
 
 export async function POST(req: NextRequest) {
-	try {
-		// Authenticate user check via middleware
-		const authUserId = req.headers.get("x-user-id");
-		if (!authUserId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
-		const authUser = { userId: authUserId };
+  return opsWrapper(req, async (request) => {
+    return withAuth(request, async (authUser) => {
+      try {
+        const body = await request.json();
+        const validation = lessonSchema.safeParse(body);
 
-		const body = await req.json();
-		const { userId, teacherId, title, location, startTime, endTime, subject, subjectId } = body;
+        if (!validation.success) {
+          return badRequestResponse(validation.error.errors[0].message);
+        }
 
-		// If userId is provided in body, ensure it matches the authenticated user
-		if (userId && userId !== authUser.userId) {
-			return NextResponse.json({ error: "Forbidden: Can only create lessons for yourself" }, { status: 403 });
-		}
+        const { teacherId, title, location, startTime, endTime, subjectId } = validation.data;
 
-		// Use authenticated user's ID if no userId provided in body
-		const targetUserId = userId || authUser.userId;
+        const lesson = await prisma.offlineLesson.create({
+          data: {
+            userId: authUser.userId,
+            teacherId,
+            title,
+            subjectId,
+            location,
+            startTime: new Date(startTime),
+            endTime: new Date(endTime)
+          },
+        });
 
-		if (!teacherId || !title || !location || !startTime || !endTime || !subject) {
-			return NextResponse.json({ error: "missing fields" }, { status: 400 });
-		}
-
-		const lesson = await prisma.offlineLesson.create({
-			data: {
-				userId: targetUserId,
-				teacherId,
-				title,
-				subjectId: subjectId || subject,
-				location,
-				startTime: new Date(startTime),
-				endTime: new Date(endTime)
-			},
-		});
-		return NextResponse.json(lesson);
-	} catch (e: unknown) {
-		const errorMessage = e instanceof Error ? e.message : "Server error";
-		return NextResponse.json({ error: errorMessage }, { status: 500 });
-	}
+        return successResponse(lesson, "تم إنشاء الدرس بنجاح", 201);
+      } catch (e: unknown) {
+        return handleApiError(e);
+      }
+    });
+  });
 }
+
+

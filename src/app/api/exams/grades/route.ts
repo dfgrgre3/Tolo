@@ -1,30 +1,41 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { gamificationService } from "@/lib/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
-import { logger } from '@/lib/logger';
+import { z } from "zod";
+
+const gradeSubmitSchema = z.object({
+  examId: z.string().min(1, "معرف الامتحان مطلوب"),
+  score: z.number().min(0, "الدرجة لا يمكن أن تكون أقل من صفر"),
+  teacherId: z.string().optional(),
+  isOnline: z.boolean().default(true),
+  notes: z.string().optional(),
+});
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    return withAuth(req, async ({ userId }) => {
+    return withAuth(req, async (authUser) => {
       try {
-        // الحصول على جميع الامتحانات التي أخذها المستخدم
+        const userId = authUser.userId;
+        // Get all exams taken by user
         const userExams = await prisma.examResult.findMany({
           where: { userId },
           include: {
-            exam: true
+            exam: {
+              include: { subject: { select: { nameAr: true, name: true } } }
+            }
           },
           orderBy: {
             takenAt: 'desc'
           }
         });
 
-        // الحصول على جميع الدرجات المسجلة للمستخدم
+        // Get all registered grades for user
         const userGrades = await prisma.userGrade.findMany({
           where: { userId },
           include: {
-            subject: true
+            subject: { select: { nameAr: true, name: true, color: true } }
           },
           orderBy: {
             date: 'desc'
@@ -36,7 +47,6 @@ export async function GET(request: NextRequest) {
           grades: userGrades
         });
       } catch (error) {
-        logger.error("Error fetching exam grades:", error);
         return handleApiError(error);
       }
     });
@@ -45,15 +55,19 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    return withAuth(req, async ({ userId }) => {
+    return withAuth(req, async (authUser) => {
       try {
-        const { examId, score, teacherId, isOnline, notes } = await req.json();
+        const userId = authUser.userId;
+        const body = await req.json();
+        const validation = gradeSubmitSchema.safeParse(body);
 
-        if (!examId || score === undefined) {
-          return badRequestResponse("البيانات المطلوبة غير مكتملة");
+        if (!validation.success) {
+          return badRequestResponse(validation.error.errors[0].message);
         }
 
-        // التحقق من وجود الامتحان
+        const { examId, score, teacherId, notes } = validation.data;
+
+        // Check if exam exists
         const exam = await prisma.exam.findUnique({
           where: { id: examId }
         });
@@ -62,7 +76,7 @@ export async function POST(request: NextRequest) {
           return notFoundResponse("الامتحان غير موجود");
         }
 
-        // تسجيل نتيجة الامتحان
+        // Create exam result
         const examResult = await prisma.examResult.create({
           data: {
             userId,
@@ -73,8 +87,8 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        // إذا كانت هناك ملاحظات، قم بحفظها كدرجة منفصلة
-        if (notes) {
+        // If notes or teacher result, also save as a general grade
+        if (notes || teacherId) {
           await prisma.userGrade.create({
             data: {
               userId,
@@ -90,18 +104,17 @@ export async function POST(request: NextRequest) {
         try {
           await gamificationService.updateUserProgress(userId, 'exam_completed', { score });
         } catch (gamificationError) {
-          logger.error('Error updating gamification for exam:', gamificationError);
-          // Don't fail the request if gamification fails
+          console.error('Gamification update failed:', gamificationError);
         }
 
         return successResponse({
           success: true,
           examResult
-        });
+        }, "تم حفظ الدرجة بنجاح", 201);
       } catch (error) {
-        logger.error("Error saving exam grade:", error);
         return handleApiError(error);
       }
     });
   });
 }
+

@@ -1,5 +1,5 @@
-﻿import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { handleApiError, successResponse, badRequestResponse, withAuth, notFoundResponse } from '@/lib/api-utils';
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
 // POST create a new contest
 export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
+  return opsWrapper(request, async (req: NextRequest) => {
     return withAuth(req, async ({ userId }) => {
       try {
         const {

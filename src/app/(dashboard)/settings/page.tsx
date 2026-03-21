@@ -1,9 +1,10 @@
 'use client';
 
 /**
- * 👤 صفحة الملف الشخصي - Profile Settings
- * 
+ * 👤 صفحة الملف الشخصي - Profile Settings (متطورة ومتكاملة)
+ *
  * الصفحة الرئيسية للإعدادات مع تحديث شامل للبيانات الشخصية والدراسية والمهنية.
+ * مرتبطة بالكامل مع API وبيانات المستخدم الحقيقية.
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
@@ -29,14 +30,25 @@ import {
   BookOpen,
   CheckCircle,
   Hash,
+  Star,
+  Flame,
+  Trophy,
+  Clock,
+  Shield,
+  AlertCircle,
+  ChevronRight,
+  RefreshCw,
+  AtSign,
+  MapPin,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { SettingsHeader, SettingsInput, SettingsCard } from './components';
+import { SettingsCard } from './components';
 
 interface ProfileData {
   firstName: string;
   lastName: string;
+  username: string;
   email: string;
   phone: string;
   alternativePhone: string;
@@ -51,7 +63,6 @@ interface ProfileData {
   studyGoal: string;
   bio: string;
   avatar: string;
-  // Teacher specific
   subjectsTaught: string[];
   experienceYears: string;
 }
@@ -61,6 +72,7 @@ const educationTypes = [
   { value: 'STEM', label: 'ثانوية STEM' },
   { value: 'AZHAR', label: 'ثانوية أزهرية' },
   { value: 'TECHNICAL', label: 'ثانوية فنية' },
+  { value: 'INTERNATIONAL', label: 'دولي / IG' },
 ];
 
 const sections = [
@@ -71,14 +83,24 @@ const sections = [
 ];
 
 const gradeLevels = [
+  { value: '1_PREP', label: 'الصف الأول الإعدادي' },
+  { value: '2_PREP', label: 'الصف الثاني الإعدادي' },
+  { value: '3_PREP', label: 'الصف الثالث الإعدادي' },
   { value: '1_SEC', label: 'الصف الأول الثانوي' },
   { value: '2_SEC', label: 'الصف الثاني الثانوي' },
   { value: '3_SEC', label: 'الصف الثالث الثانوي' },
 ];
 
+const countries = [
+  'مصر', 'السعودية', 'الإمارات', 'الكويت', 'قطر', 'البحرين', 'عُمان',
+  'الأردن', 'لبنان', 'سوريا', 'العراق', 'اليمن', 'ليبيا', 'تونس',
+  'الجزائر', 'المغرب', 'السودان', 'غيرها'
+];
+
 const initialProfile: ProfileData = {
   firstName: '',
   lastName: '',
+  username: '',
   email: '',
   phone: '',
   alternativePhone: '',
@@ -97,46 +119,195 @@ const initialProfile: ProfileData = {
   experienceYears: '',
 };
 
+// منطقة عدادات الإحصائيات
+function StatBadge({
+  icon: Icon,
+  value,
+  label,
+  color,
+}: {
+  icon: any;
+  value: string | number;
+  label: string;
+  color: string;
+}) {
+  return (
+    <motion.div
+      whileHover={{ scale: 1.05 }}
+      className="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors cursor-default"
+    >
+      <div className={cn('flex items-center justify-center gap-1.5', color)}>
+        <Icon className="h-4 w-4" />
+        <span className="text-lg font-black">{value}</span>
+      </div>
+      <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">{label}</span>
+    </motion.div>
+  );
+}
+
+// حقل مدخل مخصص
+function ProfileInput({
+  id,
+  label,
+  icon: Icon,
+  value,
+  onChange,
+  disabled,
+  type = 'text',
+  placeholder,
+  hint,
+  required,
+}: {
+  id: string;
+  label: string;
+  icon?: any;
+  value: string;
+  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  disabled?: boolean;
+  type?: string;
+  placeholder?: string;
+  hint?: string;
+  required?: boolean;
+}) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="flex items-center gap-1.5 text-sm font-semibold text-slate-300">
+        {required && <span className="text-red-400 text-xs">*</span>}
+        {label}
+      </label>
+      <div className="relative group">
+        {Icon && (
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+            <Icon className={cn(
+              'h-4 w-4 transition-colors',
+              disabled ? 'text-slate-600' : 'text-slate-500 group-focus-within:text-indigo-400'
+            )} />
+          </div>
+        )}
+        <input
+          id={id}
+          type={type}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          placeholder={placeholder}
+          className={cn(
+            'w-full py-3.5 rounded-2xl bg-slate-800/50 border border-white/10 text-white',
+            'placeholder:text-slate-600 transition-all duration-200',
+            'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50',
+            'disabled:opacity-60 disabled:cursor-not-allowed',
+            Icon ? 'pr-11 pl-4' : 'px-4',
+          )}
+        />
+      </div>
+      {hint && (
+        <p className="text-xs text-slate-500 flex items-start gap-1.5">
+          <span className="mt-0.5 h-1 w-1 rounded-full bg-slate-600 shrink-0" />
+          {hint}
+        </p>
+      )}
+    </div>
+  );
+}
+
+// حقل اختيار مخصص
+function ProfileSelect({
+  id,
+  label,
+  icon: Icon,
+  value,
+  onChange,
+  disabled,
+  options,
+}: {
+  id: string;
+  label: string;
+  icon?: any;
+  value: string;
+  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  disabled?: boolean;
+  options: { value: string; label: string }[];
+}) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="text-sm font-semibold text-slate-300">{label}</label>
+      <div className="relative group">
+        {Icon && (
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+            <Icon className={cn(
+              'h-4 w-4 transition-colors',
+              disabled ? 'text-slate-600' : 'text-slate-500 group-focus-within:text-indigo-400'
+            )} />
+          </div>
+        )}
+        <select
+          id={id}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          className={cn(
+            'w-full py-3.5 rounded-2xl bg-slate-800/50 border border-white/10 text-white appearance-none',
+            'transition-all duration-200 cursor-pointer',
+            'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50',
+            'disabled:opacity-60 disabled:cursor-not-allowed',
+            Icon ? 'pr-11 pl-4' : 'px-4',
+          )}
+        >
+          {options.map((option) => (
+            <option key={option.value} value={option.value} className="bg-slate-800">
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 export default function ProfileSettingsPage() {
-  const { user, isLoading, refreshUser, fetchWithAuth } = useAuth();
+  const { user, isLoading, refreshUser } = useAuth();
   const [profile, setProfile] = useState<ProfileData>(initialProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync profile state with user data
+  // مزامنة بيانات المستخدم
   useEffect(() => {
     if (user) {
+      const dateOfBirth = user.dateOfBirth || user.birthDate;
       setProfile({
         firstName: user.name?.split(' ')[0] || '',
         lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        username: user.username || '',
         email: user.email || '',
         phone: user.phone || '',
-        alternativePhone: (user as any).alternativePhone || '',
-        birthDate: user.birthDate ? new Date(user.birthDate).toISOString().split('T')[0] : '',
+        alternativePhone: user.alternativePhone || '',
+        birthDate: dateOfBirth ? new Date(dateOfBirth).toISOString().split('T')[0] : '',
         gender: user.gender || 'male',
-        country: (user as any).country || 'مصر',
-        city: (user as any).city || '',
-        school: (user as any).school || '',
-        gradeLevel: (user as any).gradeLevel || '3_SEC',
-        educationType: (user as any).educationType || 'GENERAL',
-        section: (user as any).section || 'SCIENCE_BIO',
-        studyGoal: (user as any).studyGoal || '',
-        bio: (user as any).bio || '',
+        country: user.country || 'مصر',
+        city: user.city || '',
+        school: user.school || '',
+        gradeLevel: user.gradeLevel || '3_SEC',
+        educationType: user.educationType || 'GENERAL',
+        section: user.section || 'SCIENCE_BIO',
+        studyGoal: user.studyGoal || '',
+        bio: user.bio || '',
         avatar: user.avatar || '',
-        subjectsTaught: (user as any).subjectsTaught || [],
-        experienceYears: (user as any).experienceYears || '',
+        subjectsTaught: user.subjectsTaught || [],
+        experienceYears: user.experienceYears || '',
       });
     }
   }, [user]);
 
-  const handleInputChange = (field: keyof ProfileData, value: any) => {
-    setProfile(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = <K extends keyof ProfileData>(field: K, value: ProfileData[K]) => {
+    setProfile((prev) => ({ ...prev, [field]: value }));
+    setHasChanges(true);
   };
 
   const handleAvatarClick = () => {
-    fileInputRef.current?.click();
+    if (isEditing) fileInputRef.current?.click();
   };
 
   const handleAvatarChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,7 +315,7 @@ export default function ProfileSettingsPage() {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('يرجى اختيار ملف صورة');
+      toast.error('يرجى اختيار ملف صورة صحيح');
       return;
     }
 
@@ -154,24 +325,26 @@ export default function ProfileSettingsPage() {
     }
 
     setIsUploadingAvatar(true);
-    
+
     try {
       const reader = new FileReader();
       reader.onload = (event) => {
-        setProfile(prev => ({ ...prev, avatar: event.target?.result as string }));
+        setProfile((prev) => ({ ...prev, avatar: event.target?.result as string }));
+        setHasChanges(true);
         setIsUploadingAvatar(false);
-        toast.success('تمت معاينة الصورة بنجاح (احفظ التغييرات لاعتمادها)');
+        toast.success('تمت معاينة الصورة (احفظ التغييرات لاعتمادها)');
       };
       reader.readAsDataURL(file);
-    } catch (err) {
+    } catch {
       setIsUploadingAvatar(false);
       toast.error('فشل تحميل الصورة');
     }
   }, []);
 
   const handleSave = async () => {
+    if (!hasChanges) return;
     setIsSaving(true);
-    
+
     try {
       const response = await fetch('/api/user/profile', {
         method: 'PATCH',
@@ -179,11 +352,13 @@ export default function ProfileSettingsPage() {
         credentials: 'include',
         body: JSON.stringify({
           name: `${profile.firstName} ${profile.lastName}`.trim(),
+          username: profile.username,
           phone: profile.phone,
           alternativePhone: profile.alternativePhone,
           birthDate: profile.birthDate,
           gender: profile.gender,
           country: profile.country,
+          city: profile.city,
           school: profile.school,
           gradeLevel: profile.gradeLevel,
           educationType: profile.educationType,
@@ -198,10 +373,11 @@ export default function ProfileSettingsPage() {
         const error = await response.json();
         throw new Error(error.message || 'فشل حفظ التغييرات');
       }
-      
+
       await refreshUser();
-      toast.success('تم حفظ التغييرات بنجاح');
+      toast.success('تم حفظ التغييرات بنجاح ✓');
       setIsEditing(false);
+      setHasChanges(false);
     } catch (error: any) {
       toast.error(error.message || 'حدث خطأ أثناء الحفظ');
     } finally {
@@ -209,10 +385,43 @@ export default function ProfileSettingsPage() {
     }
   };
 
+  const handleCancel = () => {
+    // إعادة تعيين البيانات للحالة الأصلية
+    if (user) {
+      const dateOfBirth = user.dateOfBirth || user.birthDate;
+      setProfile({
+        firstName: user.name?.split(' ')[0] || '',
+        lastName: user.name?.split(' ').slice(1).join(' ') || '',
+        username: user.username || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        alternativePhone: user.alternativePhone || '',
+        birthDate: dateOfBirth ? new Date(dateOfBirth).toISOString().split('T')[0] : '',
+        gender: user.gender || 'male',
+        country: user.country || 'مصر',
+        city: user.city || '',
+        school: user.school || '',
+        gradeLevel: user.gradeLevel || '3_SEC',
+        educationType: user.educationType || 'GENERAL',
+        section: user.section || 'SCIENCE_BIO',
+        studyGoal: user.studyGoal || '',
+        bio: user.bio || '',
+        avatar: user.avatar || '',
+        subjectsTaught: user.subjectsTaught || [],
+        experienceYears: user.experienceYears || '',
+      });
+    }
+    setIsEditing(false);
+    setHasChanges(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 text-indigo-400 animate-spin" />
+          <p className="text-sm text-slate-400">جاري تحميل بياناتك...</p>
+        </div>
       </div>
     );
   }
@@ -220,45 +429,79 @@ export default function ProfileSettingsPage() {
   if (!user) return null;
 
   const isTeacher = user.role === 'TEACHER';
+  const userInitial = user.name
+    ? user.name.charAt(0).toUpperCase()
+    : user.email.charAt(0).toUpperCase();
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-10">
-      {/* Header */}
-      <SettingsHeader
-        icon={User}
-        title="الملف الشخصي"
-        description="إدارة معلوماتك الشخصية وتحديث بياناتك"
-        actionButton={
-          !isEditing
-            ? {
-                label: 'تعديل الملف',
-                onClick: () => setIsEditing(true),
-                variant: 'primary',
-                icon: Edit3,
-              }
-            : {
-                label: 'حفظ التغييرات',
-                onClick: handleSave,
-                loading: isSaving,
-                variant: 'primary',
-                icon: Save,
-              }
-        }
-      />
-      
-      {isEditing && (
+    <div className="max-w-4xl mx-auto space-y-6 pb-10">
+      {/* Page Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20">
+              <User className="h-5 w-5 text-indigo-400" />
+            </div>
+            الملف الشخصي
+          </h1>
+          <p className="text-sm text-slate-400 mt-1 mr-14">إدارة معلوماتك الشخصية وتحديث بياناتك</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {isEditing ? (
+            <>
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-slate-300 font-medium hover:bg-white/10 hover:text-white transition-all border border-white/10"
+              >
+                <X className="h-4 w-4" />
+                إلغاء
+              </motion.button>
+              <motion.button
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={handleSave}
+                disabled={isSaving || !hasChanges}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-all disabled:opacity-50 shadow-lg shadow-green-500/20"
+              >
+                {isSaving ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+              </motion.button>
+            </>
+          ) : (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-medium hover:bg-indigo-500/30 transition-all"
+            >
+              <Edit3 className="h-4 w-4" />
+              تعديل الملف
+            </motion.button>
+          )}
+        </div>
+      </div>
+
+      {/* Email verification warning */}
+      {!user.emailVerified && (
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="flex justify-end"
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-3 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20"
         >
-          <button
-            onClick={() => setIsEditing(false)}
-            className="flex items-center gap-2 px-6 py-2 rounded-xl bg-white/5 text-slate-300 font-medium hover:bg-white/10 hover:text-white transition-all border border-white/10"
-          >
-            <X className="h-4 w-4" />
-            إلغاء التعديل
-          </button>
+          <AlertCircle className="h-5 w-5 text-orange-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-orange-300">البريد الإلكتروني غير مفعّل</p>
+            <p className="text-xs text-orange-400/70 mt-1">
+              لم يتم تفعيل بريدك الإلكتروني. تحقق من بريدك الوارد للعثور على رابط التفعيل.
+            </p>
+          </div>
         </motion.div>
       )}
 
@@ -266,17 +509,18 @@ export default function ProfileSettingsPage() {
       <SettingsCard gradient delay={0}>
         <div className="p-8">
           <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Avatar */}
             <div className="relative group">
-              <div className="h-32 w-32 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-lg shadow-indigo-500/20">
+              <div className="h-28 w-28 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-xl shadow-indigo-500/30">
                 <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden border-2 border-slate-900/50">
                   {profile.avatar ? (
                     <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" />
                   ) : (
-                    <User className="h-16 w-16 text-slate-600" />
+                    <span className="text-4xl font-black text-white">{userInitial}</span>
                   )}
                 </div>
               </div>
-              
+
               {isEditing && (
                 <button
                   onClick={handleAvatarClick}
@@ -288,12 +532,12 @@ export default function ProfileSettingsPage() {
                   ) : (
                     <div className="flex flex-col items-center gap-1">
                       <Camera className="h-6 w-6 text-white" />
-                      <span className="text-[10px] text-white font-medium">تغيير الصورة</span>
+                      <span className="text-[10px] text-white font-bold">تغيير</span>
                     </div>
                   )}
                 </button>
               )}
-              
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -303,59 +547,75 @@ export default function ProfileSettingsPage() {
               />
             </div>
 
+            {/* User Info */}
             <div className="text-center md:text-right flex-1 space-y-2">
               <div className="flex flex-col md:flex-row md:items-center gap-3">
-                <h2 className="text-3xl font-bold text-white tracking-tight">
-                  {profile.firstName} {profile.lastName}
+                <h2 className="text-3xl font-black text-white tracking-tight">
+                  {profile.firstName || profile.lastName
+                    ? `${profile.firstName} ${profile.lastName}`.trim()
+                    : user.username || 'المستخدم'}
                 </h2>
-                <span className={cn(
-                  "inline-flex w-fit mx-auto md:mx-0 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                  isTeacher ? "bg-purple-500/20 text-purple-400 border border-purple-500/30" : "bg-indigo-500/20 text-indigo-400 border border-indigo-500/30"
-                )}>
-                  {isTeacher ? 'مدرس' : 'طالب'}
+                <span
+                  className={cn(
+                    'inline-flex w-fit mx-auto md:mx-0 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider',
+                    isTeacher
+                      ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
+                      : 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                  )}
+                >
+                  {isTeacher ? '🎓 مدرس' : '📚 طالب'}
                 </span>
               </div>
-              <p className="text-slate-400 font-medium">{profile.email}</p>
-              
-              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
-                  <GraduationCap className="h-3.5 w-3.5 text-indigo-400" />
-                  <span>{gradeLevels.find(g => g.value === profile.gradeLevel)?.label || 'غير محدد'}</span>
-                </div>
+
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-slate-400">
+                {profile.email && (
+                  <span className="flex items-center gap-1">
+                    <Mail className="h-3.5 w-3.5" />
+                    {profile.email}
+                  </span>
+                )}
+                {profile.phone && (
+                  <span className="flex items-center gap-1">
+                    <Phone className="h-3.5 w-3.5" />
+                    {profile.phone}
+                  </span>
+                )}
               </div>
+
+              {profile.bio && (
+                <p className="text-sm text-slate-400 max-w-lg leading-relaxed">{profile.bio}</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-3 gap-6 pt-4 md:pt-0 border-t md:border-t-0 md:border-r border-white/10 md:pr-8">
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-white group-hover:text-indigo-400 transition-colors">{user.totalXP || 0}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">نقطة خبرة</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-white group-hover:text-purple-400 transition-colors">{user.level || 1}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">المستوى</div>
-              </div>
-              <div className="text-center group">
-                <div className="text-2xl font-bold text-orange-400 group-hover:scale-110 transition-transform">{user.currentStreak || 0}</div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">أيام متتالية</div>
-              </div>
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <StatBadge icon={Star} value={user.totalXP || 0} label="نقطة XP" color="text-yellow-400" />
+              <StatBadge icon={Trophy} value={user.level || 1} label="مستوى" color="text-indigo-400" />
+              <StatBadge icon={Flame} value={user.currentStreak || 0} label="تسلسل" color="text-orange-400" />
             </div>
           </div>
         </div>
       </SettingsCard>
 
-      {/* Main Info */}
+      {/* Main Personal Info */}
       <SettingsCard delay={0.1}>
         <div className="p-5 border-b border-white/10 flex items-center justify-between">
           <h3 className="font-semibold text-white flex items-center gap-2">
             <User className="h-5 w-5 text-indigo-400" />
             المعلومات الأساسية
           </h3>
-          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">المعلومات الشخصية</p>
+          {isEditing && hasChanges && (
+            <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
+              <RefreshCw className="h-3 w-3" />
+              يوجد تغييرات غير محفوظة
+            </span>
+          )}
         </div>
-        
-        <div className="p-8 space-y-8">
-          <div className="grid sm:grid-cols-2 gap-8">
-            <SettingsInput
+
+        <div className="p-6 space-y-6">
+          {/* Name */}
+          <div className="grid sm:grid-cols-2 gap-6">
+            <ProfileInput
               id="firstName"
               label="الاسم الأول"
               icon={User}
@@ -363,8 +623,9 @@ export default function ProfileSettingsPage() {
               onChange={(e) => handleInputChange('firstName', e.target.value)}
               disabled={!isEditing}
               placeholder="مثال: أحمد"
+              required
             />
-            <SettingsInput
+            <ProfileInput
               id="lastName"
               label="الاسم الأخير"
               icon={User}
@@ -374,9 +635,22 @@ export default function ProfileSettingsPage() {
               placeholder="مثال: محمد"
             />
           </div>
-          
-          <div className="grid sm:grid-cols-2 gap-8">
-            <SettingsInput
+
+          {/* Username */}
+          <ProfileInput
+            id="username"
+            label="اسم المستخدم"
+            icon={AtSign}
+            value={profile.username}
+            onChange={(e) => handleInputChange('username', e.target.value)}
+            disabled={!isEditing}
+            placeholder="اسم_المستخدم"
+            hint="يظهر في ملفك الشخصي العام ولا يمكن أن يحتوي على مسافات"
+          />
+
+          {/* Email & Phone */}
+          <div className="grid sm:grid-cols-2 gap-6">
+            <ProfileInput
               id="email"
               label="البريد الإلكتروني"
               icon={Mail}
@@ -385,7 +659,7 @@ export default function ProfileSettingsPage() {
               disabled={true}
               hint="لا يمكن تعديل البريد الإلكتروني الأساسي"
             />
-            <SettingsInput
+            <ProfileInput
               id="phone"
               label="رقم الهاتف الأساسي"
               icon={Phone}
@@ -397,10 +671,11 @@ export default function ProfileSettingsPage() {
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-8">
-            <SettingsInput
+          {/* Alt Phone & Birthdate */}
+          <div className="grid sm:grid-cols-2 gap-6">
+            <ProfileInput
               id="alternativePhone"
-              label="رقم هاتف الطوارئ"
+              label="هاتف الطوارئ / ولي الأمر"
               icon={Phone}
               type="tel"
               value={profile.alternativePhone}
@@ -409,7 +684,7 @@ export default function ProfileSettingsPage() {
               placeholder="01xxxxxxxxx"
               hint="رقم هاتف لولي الأمر أو للطوارئ"
             />
-            <SettingsInput
+            <ProfileInput
               id="birthDate"
               label="تاريخ الميلاد"
               icon={Calendar}
@@ -420,44 +695,54 @@ export default function ProfileSettingsPage() {
             />
           </div>
 
-          <div className="grid sm:grid-cols-2 gap-8">
-            <div className="space-y-3">
-              <label className="text-sm font-semibold text-slate-300">الجنس</label>
-              <div className="flex gap-4">
-                {['male', 'female'].map((g) => (
-                  <button
-                    key={g}
-                    type="button"
-                    disabled={!isEditing}
-                    onClick={() => handleInputChange('gender', g)}
-                    className={cn(
-                      'flex-1 flex items-center justify-center gap-3 p-3.5 rounded-2xl border transition-all duration-300 font-medium capitalize',
-                      profile.gender === g
-                        ? g === 'male' 
-                          ? 'bg-indigo-500/20 border-indigo-500/50 text-indigo-300 shadow-inner shadow-indigo-500/10'
-                          : 'bg-pink-500/20 border-pink-500/50 text-pink-300 shadow-inner shadow-pink-500/10'
-                        : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10',
-                      !isEditing && 'opacity-60 cursor-not-allowed'
-                    )}
-                  >
-                    <CheckCircle className={cn("h-4 w-4", profile.gender === g ? "opacity-100" : "opacity-0")} />
-                    {g === 'male' ? 'ذكر' : 'أنثى'}
-                  </button>
-                ))}
-              </div>
+          {/* Gender */}
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-slate-300">الجنس</label>
+            <div className="flex gap-3">
+              {[
+                { value: 'male', label: '👨 ذكر', activeColor: 'bg-blue-500/20 border-blue-500/50 text-blue-300' },
+                { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' },
+              ].map((g) => (
+                <button
+                  key={g.value}
+                  type="button"
+                  disabled={!isEditing}
+                  onClick={() => handleInputChange('gender', g.value)}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-2 p-3.5 rounded-2xl border transition-all font-semibold',
+                    profile.gender === g.value
+                      ? g.activeColor
+                      : 'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10',
+                    !isEditing && 'opacity-60 cursor-not-allowed'
+                  )}
+                >
+                  {profile.gender === g.value && <CheckCircle className="h-4 w-4" />}
+                  {g.label}
+                </button>
+              ))}
             </div>
+          </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <SettingsInput
-                id="country"
-                label="الدولة"
-                icon={Globe}
-                value={profile.country}
-                onChange={(e) => handleInputChange('country', e.target.value)}
-                disabled={!isEditing}
-                placeholder="مصر"
-              />
-            </div>
+          {/* Country & City */}
+          <div className="grid sm:grid-cols-2 gap-6">
+            <ProfileSelect
+              id="country"
+              label="الدولة"
+              icon={Globe}
+              value={profile.country}
+              onChange={(e) => handleInputChange('country', e.target.value)}
+              disabled={!isEditing}
+              options={countries.map((c) => ({ value: c, label: c }))}
+            />
+            <ProfileInput
+              id="city"
+              label="المدينة"
+              icon={MapPin}
+              value={profile.city}
+              onChange={(e) => handleInputChange('city', e.target.value)}
+              disabled={!isEditing}
+              placeholder="مثال: القاهرة"
+            />
           </div>
         </div>
       </SettingsCard>
@@ -466,79 +751,61 @@ export default function ProfileSettingsPage() {
       <SettingsCard delay={0.2}>
         <div className="p-5 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
-            {isTeacher ? <Briefcase className="h-5 w-5 text-indigo-400" /> : <GraduationCap className="h-5 w-5 text-indigo-400" />}
+            {isTeacher ? (
+              <Briefcase className="h-5 w-5 text-indigo-400" />
+            ) : (
+              <GraduationCap className="h-5 w-5 text-indigo-400" />
+            )}
             {isTeacher ? 'المعلومات المهنية' : 'المعلومات الدراسية'}
           </h3>
         </div>
-        
-        <div className="p-8 space-y-8">
+
+        <div className="p-6 space-y-6">
           {!isTeacher ? (
             <>
-              <div className="grid sm:grid-cols-2 gap-8">
-                <SettingsInput
-                  id="school"
-                  label="المدرسة / المعهد"
-                  icon={Building2}
-                  value={profile.school}
-                  onChange={(e) => handleInputChange('school', e.target.value)}
+              {/* School */}
+              <ProfileInput
+                id="school"
+                label="المدرسة / المعهد"
+                icon={Building2}
+                value={profile.school}
+                onChange={(e) => handleInputChange('school', e.target.value)}
+                disabled={!isEditing}
+                placeholder="اسم مدرستك الحالية"
+              />
+
+              <div className="grid sm:grid-cols-2 gap-6">
+                <ProfileSelect
+                  id="gradeLevel"
+                  label="الصف الدراسي"
+                  icon={GraduationCap}
+                  value={profile.gradeLevel}
+                  onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
                   disabled={!isEditing}
-                  placeholder="اسم مدرستك الحالية"
+                  options={gradeLevels}
                 />
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-slate-300">الصف الدراسي</label>
-                  <select
-                    value={profile.gradeLevel}
-                    onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
-                    disabled={!isEditing}
-                    className={cn(
-                      'w-full p-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white shadow-lg',
-                      'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all',
-                      'disabled:opacity-60 disabled:cursor-not-allowed'
-                    )}
-                  >
-                    {gradeLevels.map(grade => (
-                      <option key={grade.value} value={grade.value}>{grade.label}</option>
-                    ))}
-                  </select>
-                </div>
+                <ProfileSelect
+                  id="educationType"
+                  label="نوع التعليم"
+                  icon={BookOpen}
+                  value={profile.educationType}
+                  onChange={(e) => handleInputChange('educationType', e.target.value)}
+                  disabled={!isEditing}
+                  options={educationTypes}
+                />
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-slate-300">نوع التعليم</label>
-                  <select
-                    value={profile.educationType}
-                    onChange={(e) => handleInputChange('educationType', e.target.value)}
-                    disabled={!isEditing}
-                    className={cn(
-                      'w-full p-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white',
-                      'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-60'
-                    )}
-                  >
-                    {educationTypes.map(type => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-slate-300">الشعبة / التخصص</label>
-                  <select
-                    value={profile.section}
-                    onChange={(e) => handleInputChange('section', e.target.value)}
-                    disabled={!isEditing}
-                    className={cn(
-                      'w-full p-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white',
-                      'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 transition-all disabled:opacity-60'
-                    )}
-                  >
-                    {sections.map(sec => (
-                      <option key={sec.value} value={sec.value}>{sec.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <ProfileSelect
+                id="section"
+                label="الشعبة / التخصص"
+                icon={BookOpen}
+                value={profile.section}
+                onChange={(e) => handleInputChange('section', e.target.value)}
+                disabled={!isEditing}
+                options={sections}
+              />
 
-              <SettingsInput
+              <ProfileInput
                 id="studyGoal"
                 label="هدفك الدراسي"
                 icon={Award}
@@ -551,30 +818,32 @@ export default function ProfileSettingsPage() {
             </>
           ) : (
             <>
-              <div className="grid sm:grid-cols-2 gap-8">
-                <div className="space-y-3">
-                  <label className="text-sm font-semibold text-slate-300">المواد التي تدرسها</label>
-                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-indigo-300 text-sm font-medium flex flex-wrap gap-2 min-h-[58px]">
-                    {profile.subjectsTaught.length > 0 ? (
-                      profile.subjectsTaught.map((sub, i) => (
-                        <span key={i} className="bg-indigo-500/20 px-2 py-1 rounded-md border border-indigo-500/30">
-                          {sub}
-                        </span>
-                      ))
-                    ) : (
-                      <span className="text-slate-500 italic">لم يتم تحديد مواد</span>
-                    )}
-                  </div>
+              <ProfileInput
+                id="experienceYears"
+                label="سنوات الخبرة"
+                icon={Hash}
+                value={profile.experienceYears}
+                onChange={(e) => handleInputChange('experienceYears', e.target.value)}
+                disabled={!isEditing}
+                placeholder="مثال: 10 سنوات"
+              />
+
+              <div className="space-y-2">
+                <label className="text-sm font-semibold text-slate-300">المواد التي تدرّسها</label>
+                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 min-h-[60px] flex flex-wrap gap-2">
+                  {profile.subjectsTaught.length > 0 ? (
+                    profile.subjectsTaught.map((sub, i) => (
+                      <span
+                        key={i}
+                        className="bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/30 text-sm text-indigo-300 font-medium"
+                      >
+                        {sub}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-slate-500 italic text-sm">لم يتم تحديد مواد بعد</span>
+                  )}
                 </div>
-                <SettingsInput
-                  id="experienceYears"
-                  label="سنوات الخبرة"
-                  icon={Hash}
-                  value={profile.experienceYears}
-                  onChange={(e) => handleInputChange('experienceYears', e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="مثال: 10 سنوات"
-                />
               </div>
             </>
           )}
@@ -589,46 +858,90 @@ export default function ProfileSettingsPage() {
             نبذة تعريفية
           </h3>
         </div>
-        
-        <div className="p-8">
+
+        <div className="p-6">
           <div className="relative">
             <textarea
               id="bio"
               value={profile.bio}
               onChange={(e) => handleInputChange('bio', e.target.value.slice(0, 500))}
               disabled={!isEditing}
-              placeholder="اكتب نبذة عن اهتماماتك أو أهدافك..."
+              placeholder="اكتب نبذة عن نفسك، اهتماماتك أو أهدافك..."
               rows={4}
               className={cn(
-                'w-full p-5 rounded-2xl bg-slate-800/50 border border-white/10 text-white placeholder:text-slate-600 resize-none font-medium leading-relaxed shadow-lg',
+                'w-full p-4 rounded-2xl bg-slate-800/50 border border-white/10 text-white',
+                'placeholder:text-slate-600 resize-none font-medium leading-relaxed',
                 'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all',
                 'disabled:opacity-60 disabled:cursor-not-allowed'
               )}
             />
             <div className="absolute bottom-4 left-4">
-              <span className={cn(
-                "text-xs font-bold font-mono px-2 py-1 rounded-md",
-                profile.bio.length >= 450 ? "bg-red-500/20 text-red-400" : "bg-white/5 text-slate-500"
-              )}>
+              <span
+                className={cn(
+                  'text-xs font-bold font-mono px-2 py-1 rounded-md',
+                  profile.bio.length >= 450
+                    ? 'bg-red-500/20 text-red-400'
+                    : 'bg-white/5 text-slate-500'
+                )}
+              >
                 {profile.bio.length} / 500
               </span>
             </div>
           </div>
-          <p className="text-xs text-slate-500 mt-4 leading-relaxed font-medium">
+          <p className="text-xs text-slate-500 mt-3 leading-relaxed">
             ستظهر هذه النبذة في ملفك الشخصي العام وفي مجتمعات النقاش الخاصة بالمناهج.
           </p>
         </div>
       </SettingsCard>
 
-      {/* Help Panel */}
-      <div className="p-6 rounded-2xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 flex flex-col md:flex-row items-center gap-6">
-        <div className="bg-indigo-500/20 p-4 rounded-xl">
-          <Building2 className="h-8 w-8 text-indigo-400" />
+      {/* Quick Links */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Link
+          href="/settings/security"
+          className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
+              <Shield className="h-5 w-5 text-red-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-white text-sm">إعدادات الأمان</p>
+              <p className="text-xs text-slate-500">كلمة المرور والتحقق بخطوتين</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-white transition-colors" />
+        </Link>
+
+        <Link
+          href="/settings/privacy"
+          className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
+              <Globe className="h-5 w-5 text-indigo-400" />
+            </div>
+            <div>
+              <p className="font-semibold text-white text-sm">إعدادات الخصوصية</p>
+              <p className="text-xs text-slate-500">التحكم في ظهور بياناتك</p>
+            </div>
+          </div>
+          <ChevronRight className="h-5 w-5 text-slate-500 group-hover:text-white transition-colors" />
+        </Link>
+      </div>
+
+      {/* Info Panel */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-600/10 to-purple-600/10 border border-indigo-500/20 flex flex-col md:flex-row items-start gap-4">
+        <div className="bg-indigo-500/20 p-3 rounded-xl shrink-0">
+          <Shield className="h-6 w-6 text-indigo-400" />
         </div>
-        <div className="flex-1 text-right">
-          <h4 className="text-white font-bold text-lg mb-1">خصوصية بياناتك</h4>
-          <p className="text-slate-400 text-sm leading-relaxed max-w-2xl">
-            نحن نهتم بخصوصيتك. البيانات الأكاديمية مثل المدرسة والشعبة تستخدم فقط لتحسين تجربتك التعليمية وتوفير الدروس المناسبة لمنهجك. يمكنك إدارة ظهور هذه البيانات من صفحة <Link href="/settings/privacy" className="text-indigo-400 hover:underline">الخصوصية</Link>.
+        <div className="flex-1">
+          <h4 className="text-white font-bold mb-1">خصوصية بياناتك محمية</h4>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            نحن نهتم بخصوصيتك. البيانات الأكاديمية مثل المدرسة والشعبة تستخدم فقط لتحسين تجربتك
+            التعليمية. يمكنك إدارة ظهور هذه البيانات من{' '}
+            <Link href="/settings/privacy" className="text-indigo-400 hover:text-indigo-300 transition-colors underline">
+              صفحة الخصوصية
+            </Link>.
           </p>
         </div>
       </div>

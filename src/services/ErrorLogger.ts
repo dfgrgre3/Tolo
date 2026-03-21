@@ -180,8 +180,9 @@ class ErrorLogger {
           }
 
           // Check stack trace for devtools
-          if (event.reason instanceof Error && event.reason.stack) {
-            const stack = event.reason.stack;
+          const reasonAsAny = event.reason as any;
+          if (reasonAsAny && typeof reasonAsAny.stack === 'string') {
+            const stack = reasonAsAny.stack;
             if (stack.includes('next-devtools') ||
               stack.includes('console-error.ts') ||
               stack.includes('intercept-console-error') ||
@@ -193,14 +194,14 @@ class ErrorLogger {
           }
 
           // Skip if error message is from ErrorLogger to prevent recursion
-          if (event.reason instanceof Error && event.reason.message) {
-            if (event.reason.message.includes('ErrorLogger') ||
-              event.reason.message.includes('Error logged: {}')) {
-              return;
+            if (reasonAsAny && typeof reasonAsAny.message === 'string') {
+              if (reasonAsAny.message.includes('ErrorLogger') ||
+                reasonAsAny.message.includes('Error logged: {}')) {
+                return;
+              }
             }
-          }
 
-          this.logError(event.reason instanceof Error ? event.reason : new Error(reasonString), {
+          this.logError((reasonAsAny && (typeof reasonAsAny.stack === 'string' || typeof reasonAsAny.message === 'string')) ? reasonAsAny : new Error(reasonString), {
             source: 'Unhandled Promise Rejection',
           });
         });
@@ -223,8 +224,9 @@ class ErrorLogger {
     try {
       // Extract error message with proper fallbacks
       let errorMessage: string;
-      if (error instanceof Error) {
-        errorMessage = error.message || error.name || 'Unknown error';
+      const errorAsAny = error as any;
+      if (errorAsAny && typeof errorAsAny.message === 'string') {
+        errorMessage = errorAsAny.message || errorAsAny.name || 'Unknown error';
       } else if (typeof error === 'string') {
         errorMessage = error.trim() || 'Unknown error';
       } else {
@@ -236,7 +238,7 @@ class ErrorLogger {
         errorMessage = 'Unknown error';
       }
 
-      const errorStack = error instanceof Error ? error.stack : undefined;
+      const errorStack = errorAsAny && typeof errorAsAny.stack === 'string' ? errorAsAny.stack : undefined;
 
       // Clean context data to remove undefined/null values and ensure serializability
       const cleanContext: Record<string, any> = {};
@@ -285,8 +287,8 @@ class ErrorLogger {
       if (this.config.enableConsoleLog) {
         try {
           // Skip logging if this is from Next.js devtools console interception to prevent infinite loops
-          const stackTrace = error instanceof Error ? error.stack : '';
-          const errorMessageStr = error instanceof Error ? error.message : String(error || '');
+          const stackTrace = errorAsAny && typeof errorAsAny.stack === 'string' ? errorAsAny.stack : '';
+          const errorMessageStr = errorAsAny && typeof errorAsAny.message === 'string' ? errorAsAny.message : String(error || '');
 
           // Check if error is from Next.js devtools or is an empty/meaningless error
           if (stackTrace && (

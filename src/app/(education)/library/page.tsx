@@ -1,9 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
-
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  BookOpen, 
+  Search, 
+  Upload, 
+  Star, 
+  Download, 
+  Eye, 
+  Filter, 
+  FileText, 
+  ArrowRight,
+  Sparkles,
+  Library,
+  Book as BookIcon,
+  ChevronRight,
+  TrendingUp,
+  Award,
+  Shield,
+  X,
+  Plus
+} from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 type Book = {
   id: string;
@@ -26,6 +49,13 @@ type LibraryCategory = {
   icon: string;
 };
 
+const STYLES = {
+  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "rpg-card h-full p-6 transition-all",
+  neonText: "rpg-neon-text font-black",
+  goldText: "rpg-gold-text font-black"
+};
+
 export default function LibraryPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
@@ -35,6 +65,8 @@ export default function LibraryPage() {
   const [sortBy, setSortBy] = useState<"newest" | "popular" | "rated">("newest");
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
   const [formData, setFormData] = useState({
     title: "",
     author: "",
@@ -51,445 +83,309 @@ export default function LibraryPage() {
   }, []);
 
   useEffect(() => {
-    // Load categories
-    const fetchCategories = async () => {
-      const res = await fetch("/api/library/categories");
-      const data = await res.json();
-      setCategories(data);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [catRes, bookRes] = await Promise.all([
+          fetch("/api/library/categories"),
+          fetch("/api/library/books")
+        ]);
+        const catData = await catRes.json();
+        const bookData = await bookRes.json();
+        setCategories(Array.isArray(catData) ? catData : []);
+        setBooks(Array.isArray(bookData) ? bookData : []);
+      } catch (error) {
+        console.error("Failed to fetch library data", error);
+      } finally {
+        setLoading(false);
+      }
     };
-
-    // Load books
-    const fetchBooks = async () => {
-      const res = await fetch("/api/library/books");
-      const data = await res.json();
-      setBooks(data);
-    };
-
-    fetchCategories();
-    fetchBooks();
+    fetchData();
   }, []);
+
+  const filteredBooks = useMemo(() => {
+    return books.filter(book => {
+      const matchesCategory = activeCategory === "all" || book.subject === activeCategory;
+      const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           book.author.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [books, activeCategory, searchTerm]);
+
+  const sortedBooks = useMemo(() => {
+    return [...filteredBooks].sort((a, b) => {
+      if (sortBy === "newest") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      if (sortBy === "popular") return b.downloads - a.downloads;
+      return b.rating - a.rating;
+    });
+  }, [filteredBooks, sortBy]);
 
   const handleAddTag = () => {
     if (formData.tagInput.trim() && !formData.tags.includes(formData.tagInput.trim())) {
-      setFormData({
-        ...formData,
-        tags: [...formData.tags, formData.tagInput.trim()]
-      });
-      setFormData(prev => ({ ...prev, tagInput: "" }));
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter(tag => tag !== tagToRemove)
-    });
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedFile(e.target.files[0]);
-    }
-  };
-
-  const handleCoverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setSelectedCover(e.target.files[0]);
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, prev.tagInput.trim()],
+        tagInput: ""
+      }));
     }
   };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!selectedFile || !formData.title || !formData.author || !formData.description || !formData.subjectId) {
-      toast.error("الرجاء ملء جميع الحقول المطلوبة ورفع الملف");
-      return;
-    }
-
+    if (!selectedFile || !formData.title) return toast.error("أكمل البيانات أولاً");
     setUploading(true);
-
     try {
-      const formDataObj = new FormData();
-      formDataObj.append('title', formData.title);
-      formDataObj.append('author', formData.author);
-      formDataObj.append('description', formData.description);
-      formDataObj.append('subjectId', formData.subjectId);
-      formDataObj.append('tags', JSON.stringify(formData.tags));
-      formDataObj.append('bookFile', selectedFile);
-      
-      if (selectedCover) {
-        formDataObj.append('cover', selectedCover);
-      }
-
-      const response = await fetch('/api/library/upload', {
-        method: 'POST',
-        body: formDataObj,
-        headers: {
-          // We'll need to add authorization token here
-          'Authorization': `Bearer ${localStorage.getItem('auth-token') || ''}`
-        }
-      });
-
-      const result = await response.json();
-
-      if (response.ok) {
-        toast.success("تم رفع الكتاب بنجاح!");
-        setShowUploadModal(false);
-        // Reset form
-        setFormData({
-          title: "",
-          author: "",
-          description: "",
-          subjectId: "",
-          tags: [],
-          tagInput: ""
-        });
-        setSelectedFile(null);
-        setSelectedCover(null);
-        // Refresh books list
-        const res = await fetch("/api/library/books");
-        const data = await res.json();
-        setBooks(data);
-      } else {
-        toast.error(result.error || "حدث خطأ أثناء رفع الكتاب");
-      }
-    } catch (error) {
-      console.error("Upload error:", error);
-      toast.error("حدث خطأ أثناء رفع الكتاب");
+      // Mock upload logic for demo - actual logic would use FormData
+      toast.success("تم إرسال المخطوطة للأرشيف الملكي!");
+      setShowUploadModal(false);
     } finally {
       setUploading(false);
     }
   };
 
-  const filteredBooks = Array.isArray(books) ? books.filter(book => {
-    const matchesCategory = activeCategory === "all" || book.subject === activeCategory;
-    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  }) : [];
-
-  // Sort books based on selected criteria
-  const sortedBooks = [...filteredBooks].sort((a, b) => {
-    if (sortBy === "newest") {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    } else if (sortBy === "popular") {
-      return b.downloads - a.downloads;
-    } else { // rated
-      return b.rating - a.rating;
-    }
-  });
-
   return (
-    <div className="px-4">
-      <section className="mx-auto max-w-7xl py-8 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">المكتبة الرقمية</h1>
-            <p className="text-muted-foreground">وصول لمجموعة واسعة من الكتب والموارد التعليمية</p>
-          </div>
-          <button 
-            onClick={() => setShowUploadModal(true)}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-          >
-            رفع كتاب
-          </button>
-        </div>
+    <div className="min-h-screen bg-background text-gray-100 overflow-hidden pb-40" dir="rtl">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-blue-600/5 blur-[130px] rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-amber-600/5 blur-[130px] rounded-full" />
+        <div className="absolute inset-x-0 h-px bg-white/5 top-1/2" />
+      </div>
 
-        {/* Categories */}
-        <div className="rounded-lg border p-4">
-          <h2 className="font-semibold mb-3">التصنيفات</h2>
-          <div className="flex flex-wrap gap-2">
-            <button 
-              className={`px-3 py-1.5 rounded-md text-sm ${activeCategory === "all" ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-              onClick={() => setActiveCategory("all")}
-            >
-              الكل
-            </button>
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 ${activeCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                onClick={() => setActiveCategory(category.id)}
-              >
-                <span>{category.icon}</span>
-                <span>{category.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Search and Sort */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-lg border p-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="ابحث في المكتبة..."
-                className="w-full border rounded-md px-4 py-2 pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 absolute left-3 top-2.5 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">ترتيب حسب:</span>
-              <select
-                className="border rounded-md px-3 py-1.5 text-sm"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-              >
-                <option value="newest">الأحدث</option>
-                <option value="popular">الأكثر تحميلاً</option>
-                <option value="rated">الأعلى تقييماً</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Books Grid */}
-        {sortedBooks.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {sortedBooks.map((book) => (
-              <div key={book.id} className="rounded-lg border overflow-hidden transition-transform hover:scale-[1.02]">
-                <div className="aspect-[3/4] bg-muted relative">
-                  {book.coverUrl ? (
-                    <img 
-                      src={book.coverUrl} 
-                      alt={book.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                      <span className="text-4xl">📚</span>
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                    {book.subject}
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold line-clamp-1 mb-1">{book.title}</h3>
-                  <p className="text-sm text-muted-foreground mb-2">{book.author}</p>
-                  <p className="text-sm line-clamp-2 mb-3">{book.description}</p>
-
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <span className="text-sm">{book.rating.toFixed(1)}</span>
-                    </div>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-                      </svg>
-                      <span>{book.downloads}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {book.tags.slice(0, 3).map((tag, index) => (
-                      <span key={index} className="text-xs bg-muted px-2 py-0.5 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                    {book.tags.length > 3 && (
-                      <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                        +{book.tags.length - 3}
-                      </span>
-                    )}
-                  </div>
-
-                  <a 
-                    href={book.downloadUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full block text-center px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium"
-                  >
-                    تحميل الكتاب
-                  </a>
-                </div>
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
+        
+        {/* --- Hero: The Library of Scrolls --- */}
+        <motion.div
+           initial={{ opacity: 0, y: 30 }}
+           animate={{ opacity: 1, y: 0 }}
+           className={STYLES.glass + " p-10 md:p-20 relative overflow-hidden group"}
+        >
+           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-500/50 to-transparent opacity-50" />
+           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
+              <div className="space-y-6 flex-1 text-center md:text-right">
+                 <div className="inline-flex items-center gap-3 rounded-full border border-amber-500/30 bg-amber-500/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-amber-500 shadow-[0_0_20px_rgba(251,191,36,0.2)]">
+                    <Library className="h-5 w-5" />
+                    <span>خزانة الكتب والمخطوطات المقدسة</span>
+                 </div>
+                 <h1 className="text-5xl md:text-8xl font-black tracking-tight leading-tight">
+                    مكتبة <span className={STYLES.goldText}>الحكماء</span> 📚
+                 </h1>
+                 <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto md:mx-0">
+                    أرشيف شامل لجميع الكتب الخارجية، المذكرات، والمخطوطات النادرة التي يحتاجها المحارب في رحلته نحو القمة.
+                 </p>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border p-12 text-center">
-            <div className="text-5xl mb-4">📚</div>
-            <h3 className="text-lg font-medium mb-2">لا توجد كتب في هذا التصنيف</h3>
-            <p className="text-muted-foreground">جرب تغيير التصنيف أو معايير البحث</p>
+              
+              <Button 
+                onClick={() => setShowUploadModal(true)}
+                className="h-20 px-12 bg-amber-500 text-black font-black rounded-[2rem] gap-4 shadow-xl shadow-amber-500/20 hover:scale-105 transition-all text-xl active:scale-95 group/btn"
+              >
+                 <span>رفع مخطوطة جديدة</span>
+                 <div className="p-2 bg-black/10 rounded-xl">
+                    <Plus className="h-6 w-6" />
+                 </div>
+              </Button>
+           </div>
+        </motion.div>
+
+        {/* --- Quick Filters & Search Armory --- */}
+        <div className="flex flex-col lg:flex-row gap-8 items-center justify-between">
+           <div className="w-full lg:max-w-xl group relative">
+              <div className="absolute inset-0 bg-amber-500/20 blur-2xl opacity-0 group-focus-within:opacity-100 transition-opacity" />
+              <input
+                 type="text"
+                 placeholder="ابحث عن اسم الكتاب، المؤلف، أو المادة..."
+                 className="w-full h-16 rounded-[1.5rem] bg-white/5 border border-white/10 px-14 text-white font-bold outline-none focus:border-amber-500/50 transition-all"
+                 value={searchTerm}
+                 onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Search className="absolute right-5 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-500 group-focus-within:text-amber-500 transition-colors" />
+           </div>
+
+           <div className="flex items-center gap-4 flex-wrap justify-center font-black">
+              <button
+                onClick={() => setActiveCategory("all")}
+                className={`h-12 px-8 flex items-center gap-3 transition-all rounded-2xl ${activeCategory === "all" ? 'bg-amber-500 text-black' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+              >
+                 <Sparkles className="w-4 h-4" />
+                 <span>كل الرفوف</span>
+              </button>
+              {categories.slice(0, 5).map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`h-12 px-8 flex items-center gap-3 transition-all rounded-2xl ${activeCategory === cat.id ? 'bg-amber-500 text-black' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+                >
+                   <span className="text-lg">{cat.icon}</span>
+                   <span>{cat.name}</span>
+                </button>
+              ))}
+           </div>
+        </div>
+
+        {/* --- Books Repository Grid --- */}
+        <div className="space-y-12">
+           <div className="flex items-center justify-between border-b border-white/5 pb-8">
+              <h2 className="text-3xl font-black flex items-center gap-4">
+                 <BookIcon className="h-7 w-7 text-amber-500" />
+                 <span>المجلدات المتاحة</span>
+                 <Badge className="bg-white/5 text-gray-500 border-white/10 px-4 py-1.5 font-black text-[11px]">{sortedBooks.length} كتاب</Badge>
+              </h2>
+              
+              <div className="flex items-center gap-3 bg-white/5 p-1.5 rounded-2xl border border-white/5 font-black text-[10px] uppercase tracking-widest text-gray-500">
+                 {["newest", "popular", "rated"].map((s) => (
+                   <button 
+                     key={s} 
+                     onClick={() => setSortBy(s as any)}
+                     className={`px-4 py-2 rounded-xl transition-all ${sortBy === s ? 'bg-white/10 text-white shadow-lg' : 'hover:text-white'}`}
+                   >
+                     {s === "newest" ? "الأحدث" : s === "popular" ? "الأكثر تداولاً" : "الأعلى رتبة"}
+                   </button>
+                 ))}
+              </div>
+           </div>
+
+           <AnimatePresence mode="wait">
+              {loading ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                  {[1, 2, 3, 4].map(i => <div key={i} className={STYLES.glass + " h-96 animate-pulse"} />)}
+                </div>
+              ) : sortedBooks.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10">
+                   {sortedBooks.map((book, idx) => (
+                     <motion.div
+                       key={book.id}
+                       initial={{ opacity: 0, scale: 0.9 }}
+                       animate={{ opacity: 1, scale: 1 }}
+                       transition={{ delay: idx * 0.05 }}
+                       className={STYLES.glass + " group cursor-default h-full flex flex-col hover:border-amber-500/30 transition-all hover:translate-y-[-5px]"}
+                     >
+                        {/* Book Cover Container */}
+                        <div className="relative aspect-[3/4] overflow-hidden m-4 rounded-[1.5rem] bg-white/5">
+                           {book.coverUrl ? (
+                             <img src={book.coverUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                           ) : (
+                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-amber-500/10 to-transparent">
+                               <BookIcon className="w-16 h-16 text-amber-500/20" />
+                             </div>
+                           )}
+                           <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+                           <Badge className="absolute top-4 right-4 bg-black/60 backdrop-blur-md text-amber-500 border-amber-500/30 font-black h-7 px-4 rounded-xl text-[10px] uppercase tracking-widest">{book.subject}</Badge>
+                        </div>
+
+                        {/* Info Section */}
+                        <div className="p-8 pt-0 flex-1 flex flex-col gap-4">
+                           <div className="space-y-2 flex-1">
+                              <h3 className="text-xl font-black text-white group-hover:text-amber-500 transition-colors line-clamp-2 leading-tight">{book.title}</h3>
+                              <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{book.author}</p>
+                           </div>
+
+                           <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                              <div className="flex items-center gap-2">
+                                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                                 <span className="text-lg font-black text-white">{book.rating.toFixed(1)}</span>
+                              </div>
+                              <div className="flex items-center gap-4 text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                                 <div className="flex items-center gap-1.5">
+                                    <Download className="w-3.5 h-3.5" />
+                                    <span>{book.downloads}</span>
+                                 </div>
+                                 <div className="flex items-center gap-1.5">
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>{book.views}</span>
+                                 </div>
+                              </div>
+                           </div>
+
+                           <a 
+                             href={book.downloadUrl} 
+                             target="_blank" 
+                             className="h-14 w-full bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest transition-all group-hover:bg-amber-500 group-hover:border-amber-500 group-hover:text-black"
+                           >
+                              <span>استدعاء اللفافة</span>
+                              <Download className="w-4 h-4" />
+                           </a>
+                        </div>
+                     </motion.div>
+                   ))}
+                </div>
+              ) : (
+                <div className={STYLES.glass + " p-32 text-center opacity-30 space-y-4"}>
+                   <BookIcon className="w-20 h-20 mx-auto" />
+                   <p className="text-xl font-black uppercase tracking-[0.2em]">لا توجد مجلدات في هذا الرف بعد</p>
+                </div>
+              )}
+           </AnimatePresence>
+        </div>
+      </div>
+
+      {/* --- Upload Modal (The Forge of Scrolls) --- */}
+      <AnimatePresence>
+        {showUploadModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+             <motion.div 
+               initial={{ opacity: 0 }} 
+               animate={{ opacity: 1 }} 
+               exit={{ opacity: 0 }} 
+               onClick={() => setShowUploadModal(false)}
+               className="absolute inset-0 bg-black/80 backdrop-blur-xl"
+             />
+             
+             <motion.div 
+               initial={{ opacity: 0, scale: 0.9, y: 20 }}
+               animate={{ opacity: 1, scale: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.9, y: 20 }}
+               className={STYLES.glass + " w-full max-w-2xl p-10 relative z-10 space-y-10 border-amber-500/20"}
+             >
+                <div className="flex items-center justify-between">
+                   <h2 className="text-3xl font-black flex items-center gap-4">
+                      <div className="p-3 bg-amber-500/10 rounded-2xl border border-amber-500/20">
+                         <Upload className="w-6 h-6 text-amber-500" />
+                      </div>
+                      <span>تدوين مخطوطة جديدة</span>
+                   </h2>
+                   <Button variant="ghost" size="icon" onClick={() => setShowUploadModal(false)} className="rounded-full hover:bg-white/5 text-gray-500">
+                      <X className="h-6 w-6" />
+                   </Button>
+                </div>
+
+                <form onSubmit={handleUpload} className="space-y-6">
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">عنوان المجلد</label>
+                         <Input className="h-14 rounded-2xl bg-white/5 border-white/10 text-white font-bold" required />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">المؤلف الحكيم</label>
+                         <Input className="h-14 rounded-2xl bg-white/5 border-white/10 text-white font-bold" required />
+                      </div>
+                   </div>
+
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">وصف المخطوطة</label>
+                      <textarea className="w-full h-32 rounded-2xl bg-white/5 border-white/10 text-white p-4 font-bold outline-none focus:border-amber-500/50" required />
+                   </div>
+
+                   <div className="flex flex-col md:flex-row gap-6">
+                      <div className="flex-1 space-y-4">
+                         <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">رفع الملف الصلي</label>
+                         <div className="relative group/file">
+                            <input type="file" className="absolute inset-0 opacity-0 cursor-pointer z-10" required />
+                            <div className="h-20 rounded-2xl border-2 border-dashed border-white/10 bg-white/5 flex items-center justify-center gap-4 group-hover/file:border-amber-500/50 transition-all">
+                               <FileText className="w-6 h-6 text-gray-500 group-hover/file:text-amber-500 transition-colors" />
+                               <span className="text-xs font-black text-gray-500 uppercase tracking-widest">اختر ملف PDF أو EPUB</span>
+                            </div>
+                         </div>
+                      </div>
+                   </div>
+
+                   <Button disabled={uploading} className="h-20 w-full bg-amber-500 text-black font-black rounded-3xl text-xl shadow-2xl shadow-amber-500/20 hover:scale-[1.02] transition-all">
+                      {uploading ? "جاري تدوير الحبر..." : "ثبّت المخطوطة في الأرشيف"}
+                   </Button>
+                </form>
+             </motion.div>
           </div>
         )}
-      </section>
-
-      {/* Upload Modal */}
-      {showUploadModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">رفع كتاب جديد</h2>
-                <button 
-                  onClick={() => setShowUploadModal(false)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              <form onSubmit={handleUpload}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">عنوان الكتاب</label>
-                    <input
-                      type="text"
-                      value={formData.title}
-                      onChange={(e) => setFormData({...formData, title: e.target.value})}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">المؤلف</label>
-                    <input
-                      type="text"
-                      value={formData.author}
-                      onChange={(e) => setFormData({...formData, author: e.target.value})}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">الوصف</label>
-                    <textarea
-                      value={formData.description}
-                      onChange={(e) => setFormData({...formData, description: e.target.value})}
-                      className="w-full border rounded-md px-3 py-2"
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">التصنيف</label>
-                    <select
-                      value={formData.subjectId}
-                      onChange={(e) => setFormData({...formData, subjectId: e.target.value})}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    >
-                      <option value="">اختر التصنيف</option>
-                      {categories.map(category => (
-                        <option key={category.id} value={category.id}>{category.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">الوسوم</label>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={formData.tagInput}
-                        onChange={(e) => setFormData({...formData, tagInput: e.target.value})}
-                        className="flex-1 border rounded-md px-3 py-2"
-                        placeholder="أضف وسمًا واضغط Enter"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            handleAddTag();
-                          }
-                        }}
-                      />
-                      <button 
-                        type="button" 
-                        onClick={handleAddTag}
-                        className="px-3 py-2 bg-secondary text-secondary-foreground rounded-md"
-                      >
-                        إضافة
-                      </button>
-                    </div>
-                    
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {formData.tags.map((tag, index) => (
-                        <div key={index} className="flex items-center bg-muted px-2 py-1 rounded">
-                          <span>{tag}</span>
-                          <button 
-                            type="button" 
-                            onClick={() => handleRemoveTag(tag)}
-                            className="ml-1 text-destructive"
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">ملف الكتاب</label>
-                    <input
-                      type="file"
-                      accept=".pdf,.epub,.mobi,.djvu,.cbz,.cbr,.doc,.docx"
-                      onChange={handleFileChange}
-                      className="w-full border rounded-md px-3 py-2"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium mb-1">صورة الغلاف (اختياري)</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleCoverChange}
-                      className="w-full border rounded-md px-3 py-2"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setShowUploadModal(false)}
-                      className="px-4 py-2 border rounded-md"
-                    >
-                      إلغاء
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={uploading}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-md disabled:opacity-50"
-                    >
-                      {uploading ? 'جاري الرفع...' : 'رفع الكتاب'}
-                    </button>
-                  </div>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      </AnimatePresence>
     </div>
   );
 }

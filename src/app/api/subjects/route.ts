@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { withCache } from "@/lib/cache-middleware";
 import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
@@ -18,21 +18,34 @@ async function handleGetRequest(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("userId");
 
-    // Validate userId parameter
+    // If userId is not provided, return all available subjects for the catalog
     if (!userId || userId === 'undefined' || userId.trim() === '') {
-      return badRequestResponse("userId required");
+      const allSubjects = await getOrSetEnhanced(
+        'subjects:catalog:all',
+        async () => {
+          return await prisma.subject.findMany({
+            where: { isActive: true },
+            orderBy: { name: 'asc' }
+          });
+        },
+        3600 // 1 hour catalog cache
+      );
+      return successResponse(allSubjects);
     }
 
-    // Use enhanced caching for frequently accessed subjects
-    const cacheKey = `subjects:${userId}`;
+    // Return enrolled subjects for this specific user
+    const cacheKey = `subjects:enrollments:${userId}`;
     const subjects = await getOrSetEnhanced(
       cacheKey,
       async () => {
         return await prisma.subjectEnrollment.findMany({
-          where: { userId }
+          where: { userId },
+          include: {
+            subject: true
+          }
         });
       },
-      600 // 10 minutes TTL
+      600 // 10 minutes session cache
     );
 
     return successResponse(subjects);

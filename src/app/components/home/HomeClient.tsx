@@ -5,10 +5,12 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { ProgressSummary } from "@/lib/server-data-fetch";
 import { UserHome } from "@/app/components/home/UserHome";
+import LandingPage from "@/app/components/home/LandingPage";
 import { User as ApiUser } from "@/types/user";
 import { UserRole } from "@/types/enums";
 import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface HomeClientProps {
   summary: ProgressSummary | null;
@@ -19,12 +21,6 @@ export function HomeClient({ summary }: HomeClientProps) {
   const router = useRouter();
   const [performanceMetrics, setPerformanceMetrics] = useState<PerformanceMetric[]>([]);
   const [metricsLoading, setMetricsLoading] = useState(true);
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.replace('/login?redirect=%2F');
-    }
-  }, [isLoading, isAuthenticated, router]);
 
   // --- Data Fetching Logic for Performance ---
   useEffect(() => {
@@ -43,7 +39,6 @@ export function HomeClient({ summary }: HomeClientProps) {
     async function fetchPerformance() {
       try {
         setMetricsLoading(true);
-        // Using existing endpoint
         const { data } = await safeFetch<{ metrics: any }>(
           "/api/analytics/performance",
           undefined,
@@ -89,81 +84,79 @@ export function HomeClient({ summary }: HomeClientProps) {
     };
   }, [isLoading, isAuthenticated]);
 
-  if (isLoading || !isAuthenticated || !authUser) {
-    return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+         <motion.div 
+           animate={{ rotate: 360 }}
+           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+           className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)]"
+         />
+      </div>
+    );
   }
 
-  // --- Build user object: prefer authenticated user, fallback to guest ---
-  const displayUser: ApiUser = isAuthenticated && authUser
-    ? {
-        id: authUser.id,
-        email: authUser.email,
-        name: authUser.name || authUser.username || null,
-        username: authUser.username || null,
-        avatar: authUser.avatar || null,
-        role: (authUser.role as UserRole) || UserRole.USER,
-        phone: authUser.phone || null,
-        phoneVerified: false,
-        emailVerified: authUser.emailVerified ?? false,
-        createdAt: authUser.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        twoFactorEnabled: false,
-        biometricEnabled: false,
-        lastLogin: authUser.lastLogin || null,
-        totalXP: authUser.totalXP ?? 0,
-        level: authUser.level ?? 1,
-        currentStreak: authUser.currentStreak ?? 0,
-        longestStreak: 0,
-        totalStudyTime: 0,
-        tasksCompleted: 0,
-        examsPassed: 0,
-        pomodoroSessions: 0,
-        deepWorkSessions: 0,
-        studyXP: 0,
-        taskXP: 0,
-        examXP: 0,
-        challengeXP: 0,
-        questXP: 0,
-        seasonXP: 0,
-      }
-    : {
-        id: 'guest',
-        email: '',
-        name: 'زائر',
-        username: 'guest',
-        avatar: null,
-        role: UserRole.USER,
-        phone: null,
-        phoneVerified: false,
-        emailVerified: false,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        twoFactorEnabled: false,
-        biometricEnabled: false,
-        lastLogin: null,
-        totalXP: 0,
-        level: 1,
-        currentStreak: 0,
-        longestStreak: 0,
-        totalStudyTime: 0,
-        tasksCompleted: 0,
-        examsPassed: 0,
-        pomodoroSessions: 0,
-        deepWorkSessions: 0,
-        studyXP: 0,
-        taskXP: 0,
-        examXP: 0,
-        challengeXP: 0,
-        questXP: 0,
-        seasonXP: 0,
-      };
+  if (!isAuthenticated || !authUser) {
+    return (
+      <AnimatePresence mode="wait">
+        <motion.div
+           key="landing"
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           exit={{ opacity: 0 }}
+        >
+          <LandingPage />
+        </motion.div>
+      </AnimatePresence>
+    );
+  }
+
+  const displayUser: ApiUser = {
+      id: authUser.id,
+      email: authUser.email,
+      name: authUser.name || authUser.username || null,
+      username: authUser.username || null,
+      avatar: authUser.avatar || null,
+      role: (authUser.role as UserRole) || UserRole.USER,
+      phone: authUser.phone || null,
+      phoneVerified: false,
+      emailVerified: authUser.emailVerified ?? false,
+      createdAt: authUser.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      twoFactorEnabled: false,
+      biometricEnabled: false,
+      lastLogin: authUser.lastLogin || null,
+      totalXP: authUser.totalXP ?? 0,
+      level: authUser.level ?? 1,
+      currentStreak: authUser.currentStreak ?? 0,
+      longestStreak: 0,
+      totalStudyTime: 0,
+      tasksCompleted: 0,
+      examsPassed: 0,
+      pomodoroSessions: 0,
+      deepWorkSessions: 0,
+      studyXP: 0,
+      taskXP: 0,
+      examXP: 0,
+      challengeXP: 0,
+      questXP: 0,
+      seasonXP: 0,
+  };
 
   return (
-    <UserHome 
-      user={displayUser} 
-      summary={summary} 
-      performanceMetrics={performanceMetrics}
-      metricsLoading={metricsLoading}
-    />
+    <AnimatePresence mode="wait">
+      <motion.div
+         key="home"
+         initial={{ opacity: 0, y: 20 }}
+         animate={{ opacity: 1, y: 0 }}
+      >
+        <UserHome 
+          user={displayUser} 
+          summary={summary} 
+          performanceMetrics={performanceMetrics}
+          metricsLoading={metricsLoading}
+        />
+      </motion.div>
+    </AnimatePresence>
   );
 }

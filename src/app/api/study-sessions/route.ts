@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';
@@ -11,7 +11,7 @@ import { successResponse, unauthorizedResponse, badRequestResponse, withAuth, ha
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    return withAuth(request, async (authUser) => {
+    return withAuth(req, async (authUser) => {
       try {
         const { searchParams } = new URL(req.url);
         const limit = searchParams.get('limit') || '10';
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    return withAuth(request, async (authUser) => {
+    return withAuth(req, async (authUser) => {
       try {
         const body = await request.json();
 

@@ -1,12 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Calendar, 
+  MapPin, 
+  Users, 
+  Search, 
+  Plus, 
+  ChevronLeft, 
+  Clock, 
+  Shield, 
+  Sword, 
+  Zap, 
+  Sparkles, 
+  Crown, 
+  Star, 
+  LayoutGrid,
+  Map,
+  Flame,
+  Info
+} from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
-
 import { logger } from '@/lib/logger';
 import { safeFetch } from "@/lib/safe-client-utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 type Event = {
   id: string;
@@ -25,264 +46,254 @@ type Event = {
   tags: string[];
 };
 
+const STYLES = {
+  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "rpg-card h-full p-8 transition-all",
+  neonText: "rpg-neon-text font-black",
+  goldText: "rpg-gold-text font-black"
+};
+
 export default function EventsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<Event[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"newest" | "soonest">("newest");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const controller = new AbortController();
     ensureUser(controller.signal).then(setUserId);
+    const fetchEvents = async () => {
+      setLoading(true);
+      const { data } = await safeFetch<Event[]>("/api/events", { signal: controller.signal });
+      if (data) setEvents(data);
+      setLoading(false);
+    };
+    fetchEvents();
     return () => controller.abort();
   }, []);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    
-    const fetchEvents = async () => {
-      const { data, error } = await safeFetch<Event[]>("/api/events", {
-        signal: controller.signal
-      });
-      
-      if (data) {
-        setEvents(data);
-      } else if (error && error.name !== 'AbortError') {
-        logger.error("Error fetching events:", error, {
-          source: 'EventsPage',
-          severity: 'medium'
-        });
-      }
-    };
-
-    fetchEvents();
-    
-    return () => {
-      controller.abort();
-    };
-  }, []);
-
-  useEffect(() => {
-    let result = events;
-
-    // Filter by category
-    if (activeCategory !== "all") {
-      result = result.filter(event => event.category === activeCategory);
-    }
-
-    // Filter by search term
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(event => 
-        event.title.toLowerCase().includes(term) || 
-        event.description.toLowerCase().includes(term) ||
-        event.location?.toLowerCase().includes(term) ||
-        event.tags.some(tag => tag.toLowerCase().includes(term))
-      );
-    }
-
-    // Sort
-    if (sortBy === "newest") {
-      result = [...result].sort((a, b) => 
-        new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
-      );
-    } else { // soonest
-      result = [...result].sort((a, b) => 
-        new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-      );
-    }
-
-    setFilteredEvents(result);
+  const filteredEvents = useMemo(() => {
+    return events.filter(event => {
+      const matchesCategory = activeCategory === "all" || event.category === activeCategory;
+      const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           event.description.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    }).sort((a, b) => {
+      if (sortBy === "newest") return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+    });
   }, [events, activeCategory, searchTerm, sortBy]);
 
+  const categories = [
+    { id: "all", name: "كل التجمعات", icon: Calendar },
+    { id: "academic", name: "ندوات الحكماء", icon: Crown },
+    { id: "social", name: "لقاءات الفرسان", icon: Users },
+    { id: "sports", name: "منافسات بدنية", icon: Flame },
+    { id: "cultural", name: "فنون المملكة", icon: Sparkles },
+    { id: "workshop", name: "ورش الحدادة العلمية", icon: Sword },
+  ];
+
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "long",
+    return new Date(dateString).toLocaleDateString("ar-SA", {
+      weekday: "long",
       day: "numeric",
+      month: "long",
       hour: "2-digit",
       minute: "2-digit"
     });
   };
 
-  const categories = [
-    { id: "all", name: "الكل", icon: "📅" },
-    { id: "academic", name: "أكاديمي", icon: "🎓" },
-    { id: "social", name: "اجتماعي", icon: "👥" },
-    { id: "sports", name: "رياضي", icon: "⚽" },
-    { id: "cultural", name: "ثقافي", icon: "🎭" },
-    { id: "workshop", name: "ورشة عمل", icon: "🛠️" },
-  ];
-
   return (
-          <div className="px-4">
-        <section className="mx-auto max-w-7xl py-8 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">الإعلانات والمناسبات</h1>
-            <p className="text-muted-foreground">استكشف الفعاليات والمناسبات القادمة</p>
-          </div>
-          {userId && (
-            <Link href="/events/new" className="px-4 py-2 bg-primary text-primary-foreground rounded-md">
-              إنشاء مناسبة جديدة
-            </Link>
-          )}
-        </div>
-
-        {/* Categories */}
-        <div className="rounded-lg border p-4">
-          <h2 className="font-semibold mb-3">التصنيفات</h2>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => (
-              <button
-                key={category.id}
-                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 ${activeCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                onClick={() => setActiveCategory(category.id)}
-              >
-                <span>{category.icon}</span>
-                <span>{category.name}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Search and Sort */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-lg border p-4">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="ابحث في المناسبات..."
-                className="w-full border rounded-md px-4 py-2 pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 absolute left-3 top-2.5 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </div>
-
-          <div className="rounded-lg border p-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium">ترتيب حسب:</span>
-              <select
-                className="border rounded-md px-3 py-1.5 text-sm"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as "newest" | "soonest")}
-              >
-                <option value="newest">الأحدث</option>
-                <option value="soonest">الأقرب</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Events Grid */}
-        {filteredEvents.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event) => (
-              <div key={event.id} className="rounded-lg border overflow-hidden transition-transform hover:scale-[1.02]">
-                <div className="aspect-video bg-muted relative">
-                  {event.imageUrl ? (
-                    <img 
-                      src={event.imageUrl} 
-                      alt={event.title} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                      <span className="text-4xl">📅</span>
-                    </div>
-                  )}
-                  <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
-                    {categories.find(c => c.id === event.category)?.name || event.category}
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold line-clamp-2 mb-2">{event.title}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-3 mb-3">{event.description}</p>
-
-                  <div className="space-y-2 mb-3">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <span>{formatDate(event.startDate)}</span>
-                    </div>
-
-                    {event.location && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <span>{event.location}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                      <span>المنظم: {event.organizerName}</span>
-                    </div>
-
-                    {event.maxAttendees && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span>{event.currentAttendees} من {event.maxAttendees} مشارك</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex flex-wrap gap-1 mb-3">
-                    {event.tags.slice(0, 3).map((tag, index) => (
-                      <span key={index} className="text-xs bg-muted px-2 py-0.5 rounded">
-                        {tag}
-                      </span>
-                    ))}
-                    {event.tags.length > 3 && (
-                      <span className="text-xs bg-muted px-2 py-0.5 rounded">
-                        +{event.tags.length - 3}
-                      </span>
-                    )}
-                  </div>
-
-                  <Link 
-                    href={`/events/${event.id}`} 
-                    className="block text-center px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium"
-                  >
-                    عرض التفاصيل
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-lg border p-12 text-center">
-            <div className="text-5xl mb-4">📅</div>
-            <h3 className="text-lg font-medium mb-2">لا توجد مناسبات في هذا التصنيف</h3>
-            <p className="text-muted-foreground">جرب تغيير التصنيف أو معايير البحث</p>
-          </div>
-        )}
-        </section>
+    <div className="min-h-screen bg-background text-gray-100 overflow-hidden pb-40" dir="rtl">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-primary/10 blur-[130px] rounded-full opacity-30 -translate-x-1/2 -translate-y-1/2" />
+        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/5 blur-[150px] rounded-full opacity-20 translate-x-1/2 translate-y-1/2" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1.5px,transparent_1.5px),linear-gradient(90deg,rgba(255,255,255,0.01)_1.5px,transparent_1.5px)] bg-[size:80px_80px]" />
       </div>
-      );
+
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-16">
+        
+        {/* --- Hero: Kingdom Gatherings --- */}
+        <motion.div 
+           initial={{ opacity: 0, y: 30 }}
+           animate={{ opacity: 1, y: 0 }}
+           className={cn(STYLES.glass, "p-12 md:p-24 relative group overflow-hidden")}
+        >
+           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-16">
+              <div className="space-y-8 flex-1 text-center lg:text-right">
+                 <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+                    <Calendar className="h-5 w-5" />
+                    <span>احتفالات وتجمعات المملكة</span>
+                 </div>
+                 <h1 className="text-5xl md:text-8xl font-black tracking-tight leading-tight">
+                    ساحة <span className={STYLES.neonText}>المناسبات</span> <br /> الكبرى
+                 </h1>
+                 <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                    هنا يلتقي الفرسان، وتُعقد المحاضرات التاريخية. لا تدع فرصة حضور هذه التجمعات العظمى تفوتك، ففيها تُبنى التحالفات وتُتبادل الخبرات.
+                 </p>
+                 <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-6">
+                    {userId && (
+                      <Link href="/events/new">
+                         <Button className="h-14 px-10 bg-white text-black font-black rounded-2xl gap-3 hover:scale-105 transition-all shadow-xl">
+                            <Plus className="w-5 h-5" />
+                            <span>الإعلان عن تجمع جديد</span>
+                         </Button>
+                      </Link>
+                    )}
+                    <Button variant="ghost" className="h-14 px-8 border border-white/10 bg-white/5 font-black rounded-2xl gap-3 hover:bg-white/10 transition-all">
+                       <span>عرض خريطة الفعاليات</span>
+                    </Button>
+                 </div>
+              </div>
+
+              <div className="relative w-80 h-80 hidden lg:block">
+                 <div className="absolute inset-0 bg-primary/20 blur-[80px] rounded-full animate-pulse" />
+                 <motion.div 
+                   animate={{ rotate: 360 }}
+                   transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                   className="absolute inset-0 border border-dotted border-primary/30 rounded-full"
+                 />
+                 <div className="absolute inset-8 border border-white/5 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-3xl shadow-2xl">
+                    <MapPin className="w-40 h-40 text-primary opacity-40 translate-y-[-10px]" />
+                 </div>
+              </div>
+           </div>
+        </motion.div>
+
+        {/* --- Tools of Discovery --- */}
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+           <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar w-full lg:w-auto">
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={cn(
+                    "h-12 px-8 flex items-center gap-3 transition-all rounded-2xl font-black text-[11px] uppercase tracking-widest whitespace-nowrap",
+                    activeCategory === cat.id ? "bg-white text-black" : "bg-white/5 text-gray-500 border border-white/5 hover:bg-white/10"
+                  )}
+                >
+                   <cat.icon className="w-4 h-4" />
+                   <span>{cat.name}</span>
+                </button>
+              ))}
+           </div>
+
+           <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-max">
+              <div className="relative flex-1 sm:w-80 group">
+                 <input 
+                   type="text" 
+                   placeholder="ابحث عن مناسبة..." 
+                   className="w-full h-14 bg-white/5 border border-white/10 rounded-2xl px-12 text-white font-bold outline-none focus:border-primary/50 transition-all"
+                   value={searchTerm}
+                   onChange={e => setSearchTerm(e.target.value)}
+                 />
+                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 group-focus-within:text-primary transition-colors" />
+              </div>
+
+              <select 
+                 className="h-14 px-6 bg-white/5 border border-white/10 rounded-2xl text-[10px] font-black uppercase text-gray-400 outline-none cursor-pointer"
+                 value={sortBy}
+                 onChange={e => setSortBy(e.target.value as "newest" | "soonest")}
+              >
+                 <option value="newest" className="bg-background">المضافة حديثاً</option>
+                 <option value="soonest" className="bg-background">الأقرب زمنياً</option>
+              </select>
+           </div>
+        </div>
+
+        {/* --- Events Grid --- */}
+        <AnimatePresence mode="wait">
+           {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                {[1,2,3].map(i => <div key={i} className="h-96 bg-white/5 rounded-[2.5rem] animate-pulse" />)}
+             </div>
+           ) : filteredEvents.length > 0 ? (
+             <motion.div 
+               key="events"
+               initial={{ opacity: 0 }}
+               animate={{ opacity: 1 }}
+               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10"
+             >
+                {filteredEvents.map((event, idx) => (
+                  <motion.div
+                    key={event.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className={cn(STYLES.glass, "group flex flex-col hover:border-primary/30 transition-all duration-500")}
+                  >
+                     <div className="relative aspect-video overflow-hidden">
+                        {event.imageUrl ? (
+                          <img src={event.imageUrl} className="w-full h-full object-cover transition-all duration-700 group-hover:scale-110" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-primary/10 via-black to-black flex items-center justify-center">
+                             <Calendar className="w-16 h-16 text-primary/10 group-hover:scale-110 transition-transform" />
+                          </div>
+                         )}
+                        <div className="absolute top-4 right-4">
+                           <Badge className="bg-black/60 backdrop-blur-md text-white font-black text-[9px] uppercase tracking-widest px-4 h-7 border border-white/10">
+                              {categories.find(c => c.id === event.category)?.name || event.category}
+                           </Badge>
+                        </div>
+                     </div>
+
+                     <div className="p-10 flex-1 flex flex-col gap-6">
+                        <div className="space-y-4 flex-1">
+                           <div className="flex items-center gap-2 text-[9px] font-black uppercase text-primary tracking-widest">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>{formatDate(event.startDate)}</span>
+                           </div>
+                           <h3 className="text-2xl font-black text-white leading-tight group-hover:text-primary transition-colors">{event.title}</h3>
+                           <p className="text-sm text-gray-500 font-medium leading-relaxed line-clamp-2">{event.description}</p>
+                           
+                           <div className="space-y-3 pt-2">
+                              {event.location && (
+                                <div className="flex items-center gap-3 text-xs font-black text-gray-400 uppercase tracking-widest">
+                                   <MapPin className="w-4 h-4 text-primary" />
+                                   <span>{event.location}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-3 text-xs font-black text-gray-400 uppercase tracking-widest">
+                                 <Users className="w-4 h-4 text-primary" />
+                                 <span>المنظم: {event.organizerName}</span>
+                              </div>
+                              {event.maxAttendees && (
+                                <div className="flex items-center gap-3 text-xs font-black text-primary uppercase tracking-widest bg-primary/5 p-3 rounded-xl border border-primary/10">
+                                   <Sparkles className="w-4 h-4" />
+                                   <span>{event.currentAttendees} / {event.maxAttendees} فـارس</span>
+                                </div>
+                              )}
+                           </div>
+                        </div>
+
+                        <Link href={`/events/${event.id}`}>
+                           <Button className="w-full h-16 bg-white/5 border border-white/5 rounded-2xl group-hover:bg-primary group-hover:text-black font-black uppercase tracking-widest text-[11px] gap-3 transition-all">
+                              <span>مشاهدة تفاصيل التجمع</span>
+                              <ChevronLeft className="w-4 h-4" />
+                           </Button>
+                        </Link>
+                     </div>
+                  </motion.div>
+                ))}
+             </motion.div>
+           ) : (
+             <div className="py-40 text-center space-y-8 animate-in fade-in zoom-in">
+                <div className="p-8 bg-white/5 rounded-full w-max mx-auto border border-dashed border-white/10 text-gray-700">
+                   <Info className="w-20 h-20" />
+                </div>
+                <div className="space-y-2">
+                   <h3 className="text-4xl font-black text-white">لا توجد احتفالات حالياً</h3>
+                   <p className="text-gray-500 font-medium max-w-lg mx-auto">المملكة هادئة الآن، لكن التجمعات الكبرى قادمة قريباً. ابقَ متيقظاً للبلاغات الملكية.</p>
+                </div>
+                <Button onClick={() => { setSearchTerm(""); setActiveCategory("all"); }} className="h-14 px-10 bg-primary/10 text-primary border border-primary/30 rounded-2xl font-black">إعادة تصفير الساحة</Button>
+             </div>
+           )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
 }

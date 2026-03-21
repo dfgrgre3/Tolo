@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import html2canvas from 'html2canvas';
 
 /**
  * بيانات نقطة في الرسم البياني
@@ -73,6 +72,7 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
   const exportChart = async (): Promise<void> => {
     if (chartRef.current) {
       try {
+        const html2canvas = (await import('html2canvas')).default;
         const canvas = await html2canvas(chartRef.current);
         const link = document.createElement('a');
         link.download = 'progress-chart.png';

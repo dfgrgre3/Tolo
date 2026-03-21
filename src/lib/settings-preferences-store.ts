@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { logger } from '@/lib/logger';
 import type {
   SettingsPreferences,
@@ -36,19 +36,24 @@ function createDefaultPreferences(): SettingsPreferences {
 async function ensurePreferencesTable(): Promise<void> {
   if (tableReady) return;
 
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "user_preferences" (
-      "userId" TEXT PRIMARY KEY REFERENCES "User"("id") ON DELETE CASCADE,
-      "appearance" TEXT NOT NULL DEFAULT '{}',
-      "language" TEXT NOT NULL DEFAULT '{}',
-      "privacy" TEXT NOT NULL DEFAULT '{}',
-      "notifications" TEXT NOT NULL DEFAULT '{}',
-      "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    );
-  `);
-
-  tableReady = true;
+  try {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "user_preferences" (
+        "userId" TEXT PRIMARY KEY REFERENCES "User"("id") ON DELETE CASCADE,
+        "appearance" TEXT NOT NULL DEFAULT '{}',
+        "language" TEXT NOT NULL DEFAULT '{}',
+        "privacy" TEXT NOT NULL DEFAULT '{}',
+        "notifications" TEXT NOT NULL DEFAULT '{}',
+        "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    tableReady = true;
+  } catch (error) {
+    logger.error('[ENSURE_PREFERENCES_TABLE_FAILED]', error);
+    // Don't throw here to allow subsequent queries to fail with more descriptive errors
+    // if the table actually doesn't exist.
+  }
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -96,7 +101,7 @@ export async function getSettingsPreferences(userId: string): Promise<SettingsPr
   const defaults = createDefaultPreferences();
 
   const rows = await prisma.$queryRaw<RawPreferencesRow[]>`
-    SELECT appearance, language, privacy, notifications
+    SELECT "appearance", "language", "privacy", "notifications"
     FROM "user_preferences"
     WHERE "userId" = ${userId}
     LIMIT 1
@@ -128,10 +133,10 @@ export async function upsertSettingsPreferences(
     await prisma.$executeRaw`
       INSERT INTO "user_preferences" (
         "userId",
-        appearance,
-        language,
-        privacy,
-        notifications,
+        "appearance",
+        "language",
+        "privacy",
+        "notifications",
         "createdAt",
         "updatedAt"
       )
@@ -141,16 +146,16 @@ export async function upsertSettingsPreferences(
         ${JSON.stringify(merged.language)},
         ${JSON.stringify(merged.privacy)},
         ${JSON.stringify(merged.notifications)},
-        NOW(),
-        NOW()
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
       )
       ON CONFLICT ("userId")
       DO UPDATE SET
-        appearance = EXCLUDED.appearance,
-        language = EXCLUDED.language,
-        privacy = EXCLUDED.privacy,
-        notifications = EXCLUDED.notifications,
-        "updatedAt" = NOW()
+        "appearance" = EXCLUDED."appearance",
+        "language" = EXCLUDED."language",
+        "privacy" = EXCLUDED."privacy",
+        "notifications" = EXCLUDED."notifications",
+        "updatedAt" = CURRENT_TIMESTAMP
     `;
 
     return merged;

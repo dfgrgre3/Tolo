@@ -43,7 +43,7 @@ export default function PerformanceMetrics({
 
 		// Productivity Score (0-100)
 		const totalHours = summary.totalMinutes / 60;
-		const weeklyHours = Object.values(weekly.bySubject).reduce((a, b) => a + b, 0) / 60;
+		const weeklyHours = (weekly?.bySubject ? Object.values(weekly.bySubject) : []).reduce((a, b) => a + (b || 0), 0) / 60;
 		const productivityScore = Math.min(100, Math.round(
 			(totalHours / 20 * 30) + // 30% weight for total hours
 			(weeklyHours / 20 * 30) + // 30% weight for weekly hours
@@ -51,7 +51,7 @@ export default function PerformanceMetrics({
 		));
 
 		// Consistency Score (0-100)
-		const dailyMinutes = weekly.byDay.map(d => d.minutes);
+		const dailyMinutes = (weekly?.byDay || []).map(d => d.minutes || 0);
 		const activeDays = dailyMinutes.filter(m => m > 0).length;
 		const consistencyScore = Math.round((activeDays / 7) * 100);
 

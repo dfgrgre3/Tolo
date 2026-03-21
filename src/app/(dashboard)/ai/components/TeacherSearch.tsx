@@ -4,7 +4,8 @@
 import React, { useState } from 'react';
 import { Search, User, Star, ExternalLink, Youtube, Loader2, BookOpen, Zap } from 'lucide-react';
 import { getGeminiInfo } from '@/lib/ai-config';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Teacher {
   name: string;

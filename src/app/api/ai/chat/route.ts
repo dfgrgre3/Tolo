@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { analyzeSentiment } from "@/lib/ai/sentiment-analysis";
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { logger } from '@/lib/logger';
 import {
   parseRequestBody,
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
       // إضافة رسالة النظام لتعريف شخصية المساعد مع تحليل المشاعر
       const systemMessage = {
         role: "system",
-        content: `${sentimentAwareContext}أنت مساعد ذكاء اصطناعي متخصص في التعليم والإرشاد الأكاديمي لمنصة ثناوي. مهمتك هي مساعدة الطلاب في دراستهم والإجابة على أسئلتهم بطريقة واضحة ومفيدة. يجب أن تكون إجاباتك دقيقة ومتناسبة مع المستوى التعليمي للطالب. إذا لم تكن متأكداً من إجابة سؤال ما، فمن الأفضل أن تعترف بذلك بدلاً من تقديم معلومات خاطئة. كن دائماً داعماً ومشجعاً، خاصة إذا كان المستخدم يبدو محبطاً أو متعباً.`
+        content: `${sentimentAwareContext}أنت مساعد ذكاء اصطناعي متخصص في التعليم والإرشاد الأكاديمي لمنصة تولو. مهمتك هي مساعدة الطلاب في دراستهم والإجابة على أسئلتهم بطريقة واضحة ومفيدة. يجب أن تكون إجاباتك دقيقة ومتناسبة مع المستوى التعليمي للطالب. إذا لم تكن متأكداً من إجابة سؤال ما، فمن الأفضل أن تعترف بذلك بدلاً من تقديم معلومات خاطئة. كن دائماً داعماً ومشجعاً، خاصة إذا كان المستخدم يبدو محبطاً أو متعباً.`
       };
 
       let aiMessage = "";

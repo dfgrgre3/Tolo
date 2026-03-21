@@ -1,18 +1,34 @@
-'use client';
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, Lock, Loader2, AlertCircle, ArrowRight, Eye, EyeOff, Github, Chrome, Wand2 } from 'lucide-react';
+import { 
+  Mail, 
+  Lock, 
+  Loader2, 
+  AlertCircle, 
+  ArrowRight, 
+  Eye, 
+  EyeOff, 
+  Github, 
+  Chrome, 
+  Wand2,
+  Shield,
+  Zap,
+  Bot
+} from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
+import { Button } from '@/components/ui/button';
 import {
   DEFAULT_AUTHENTICATED_ROUTE,
   sanitizeRedirectPath,
 } from '@/lib/auth/navigation';
+import { Suspense } from 'react';
 
 const loginSchema = z.object({
   email: z.string().trim().email('يرجى إدخال بريد إلكتروني صحيح'),
@@ -22,7 +38,7 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isAuthenticated, isLoading: isAuthLoading } = useAuth();
@@ -106,257 +122,211 @@ export default function LoginPage() {
     }
   };
 
-  const handleSocialLogin = (provider: string) => {
-    window.location.href = `/api/auth/oauth/${provider}`;
-  };
-
-  const handleMagicLinkRequest = async () => {
-    const email = getValues('email');
-    if (!email || !email.includes('@')) {
-      setErrorStatus('يرجى إدخال بريد إلكتروني صحيح أولاً');
-      return;
-    }
-
-    setIsSubmitting(true);
-    setErrorStatus(null);
-    try {
-      const response = await fetch('/api/auth/magic-link/request', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await response.json();
-      
-      if (response.ok) {
-        alert('تفقد بريدك الإلكتروني! أرسلنا لك رابط الدخول السحري.');
-      } else {
-        setErrorStatus(data.error || 'فشل إرسال الرابط');
-      }
-    } catch (error) {
-      setErrorStatus('خطأ في الاتصال بالخادم');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   if (isAuthLoading || isAuthenticated) {
     return (
       <div className="flex min-h-[400px] flex-col items-center justify-center space-y-4 text-center">
-        <div className="relative">
-          <div className="h-16 w-16 animate-spin rounded-full border-4 border-blue-500/20 border-t-blue-500"></div>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="h-8 w-8 animate-pulse rounded-full bg-blue-500/20"></div>
+        <div className="relative h-20 w-20">
+          <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
+          <div className="flex h-full w-full animate-pulse items-center justify-center rounded-full bg-primary/10">
+             <Bot className="h-10 w-10 text-primary" />
           </div>
         </div>
-        <p className="animate-pulse text-sm font-medium text-blue-400">جاري التحقق من جلستك...</p>
+        <p className="animate-pulse text-sm font-black uppercase tracking-widest text-primary">التحقق من هوية المحارب...</p>
       </div>
     );
   }
 
   return (
-    <div className="relative w-full max-w-md mx-auto">
-      {/* Decorative background elements */}
-      <div className="absolute -top-24 -left-20 h-64 w-64 rounded-full bg-blue-600/10 blur-3xl" />
-      <div className="absolute -bottom-24 -right-20 h-64 w-64 rounded-full bg-indigo-600/10 blur-3xl" />
+    <div className="relative w-full max-w-lg mx-auto" dir="rtl">
+      {/* Cinematic Aura */}
+      <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-primary/10 blur-[130px] rounded-full -translate-y-1/2 translate-x-1/2" />
+      <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-blue-600/10 blur-[130px] rounded-full translate-y-1/2 -translate-x-1/2" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative overflow-hidden rounded-3xl border border-white/10 bg-gray-950/40 p-8 backdrop-blur-xl shadow-2xl"
+        initial={{ opacity: 0, scale: 0.9, y: 30 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-black/40 p-12 backdrop-blur-3xl shadow-[0_0_50px_rgba(0,0,0,0.5)] ring-1 ring-white/5"
       >
-        <div className="mb-8 text-right">
-          <h2 className="text-3xl font-bold tracking-tight text-white mb-2">مرحباً بك مجدداً</h2>
-          <p className="text-gray-400">سجل دخولك لتكمل رحلتك التعليمية</p>
+        <div className="mb-10 text-center space-y-4">
+           <div className="mx-auto w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-6 transform hover:rotate-6 transition-transform">
+              <Shield className="w-8 h-8 text-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
+           </div>
+           <h2 className="text-4xl font-black text-white tracking-tight">دُخول <span className="rpg-neon-text">المملكة</span> ⚔️</h2>
+           <p className="text-gray-500 font-medium">سجل دخولك لتواصل مسيرتك نحو القمة</p>
         </div>
 
-        {/* Social Logins */}
-        <div className="mb-8 grid grid-cols-2 gap-4">
+        {/* Social Entrance */}
+        <div className="mb-10 grid grid-cols-2 gap-4">
           <button
-            onClick={() => handleSocialLogin('google')}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-white/5 bg-white/5 py-3 transition-all hover:bg-white/10 hover:border-white/10 active:scale-95"
+            onClick={() => { window.location.href = `/api/auth/oauth/google`; }}
+            className="flex items-center justify-center gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 h-14 transition-all hover:bg-white/10 hover:border-primary/50 group"
           >
-            <Chrome className="h-5 w-5 text-red-400" />
-            <span className="text-sm font-medium text-white">Google</span>
+            <Chrome className="h-5 w-5 text-red-500 group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-black uppercase tracking-widest text-white">Google</span>
           </button>
           <button
-            onClick={() => handleSocialLogin('github')}
-            className="flex items-center justify-center gap-2 rounded-2xl border border-white/5 bg-white/5 py-3 transition-all hover:bg-white/10 hover:border-white/10 active:scale-95"
+            onClick={() => { window.location.href = `/api/auth/oauth/github`; }}
+            className="flex items-center justify-center gap-3 rounded-[1.5rem] border border-white/10 bg-white/5 h-14 transition-all hover:bg-white/10 hover:border-primary/50 group"
           >
-            <Github className="h-5 w-5 text-white" />
-            <span className="text-sm font-medium text-white">Github</span>
+            <Github className="h-5 w-5 text-white group-hover:scale-110 transition-transform" />
+            <span className="text-xs font-black uppercase tracking-widest text-white">Github</span>
           </button>
         </div>
 
-        <div className="relative mb-8 flex items-center justify-center">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/5"></div>
-          </div>
-          <span className="relative bg-gray-950 px-4 text-xs font-medium uppercase tracking-wider text-gray-500">أو عبر البريد</span>
+        <div className="relative mb-10 flex items-center justify-center">
+          <div className="absolute inset-x-0 h-px bg-white/5" />
+          <span className="relative bg-background px-6 text-[10px] font-black uppercase tracking-[0.2em] text-gray-600">أو عبر اللفائف التقليدية</span>
         </div>
 
         <AnimatePresence mode="wait">
           {errorStatus && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.95, x: 0 }}
-              animate={{ opacity: 1, scale: 1, x: [0, -10, 10, -10, 10, 0] }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.4 }}
-              className="mb-6 flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-500"
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0, x: [0, -5, 5, -5, 5, 0] }}
+              exit={{ opacity: 0 }}
+              className="mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-black flex items-center gap-3"
             >
-              <AlertCircle className="h-5 w-5 flex-shrink-0" />
-              <p className="text-sm font-medium">{errorStatus}</p>
+              <AlertCircle className="h-5 w-5" />
+              <p>{errorStatus}</p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <div className="space-y-6">
+        <div className="space-y-8">
           {!requires2FA ? (
-            <>
-              <div className="space-y-2">
-                <label className="mr-1 text-sm font-medium text-gray-300">البريد الإلكتروني</label>
+            <form onSubmit={loginMode === 'password' ? handleSubmit(onSubmit) : (e) => { e.preventDefault(); }} className="space-y-8">
+              <div className="space-y-3">
+                <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest mr-1">معرف المحارب (البريد)</label>
                 <div className="group relative">
-                  <input
-                    {...register('email')}
-                    type="email"
-                    className="w-full rounded-2xl border border-white/5 bg-white/5 py-3.5 pr-11 pl-4 text-white outline-none transition-all placeholder:text-gray-600 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
-                    placeholder="name@example.com"
-                    dir="rtl"
-                  />
-                  <Mail className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 transition-colors group-focus-within:text-blue-500" />
+                   <input
+                     {...register('email')}
+                     type="email"
+                     className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pr-12 pl-6 text-white text-sm font-bold outline-none ring-primary/20 transition-all focus:border-primary focus:ring-4"
+                     placeholder="warrior@realm.com"
+                     dir="rtl"
+                   />
+                   <Mail className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
                 </div>
-                {errors.email && <p className="mr-1 mt-1 text-xs font-medium text-red-400">{errors.email.message}</p>}
+                {errors.email && <p className="mr-1 text-[10px] font-bold text-red-500 uppercase">{errors.email.message}</p>}
               </div>
 
-              <AnimatePresence>
-                {loginMode === 'password' && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="space-y-2"
-                  >
-                    <div className="mr-1 flex items-center justify-between">
-                      <label className="text-sm font-medium text-gray-300">كلمة المرور</label>
-                      <Link href="/forgot-password" className="text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors">نسيت كلمة المرور؟</Link>
-                    </div>
-                    <div className="group relative">
+              {loginMode === 'password' && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-3">
+                  <div className="mr-1 flex items-center justify-between">
+                    <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">شيفرة الدخول</label>
+                    <Link href="/forgot-password" title="نسيت كلمة المرور؟" className="text-[10px] font-black text-primary/70 hover:text-primary transition-colors uppercase tracking-widest">تذكر؟</Link>
+                  </div>
+                  <div className="group relative">
+                    <input
+                      {...register('password')}
+                      type={showPassword ? 'text' : 'password'}
+                      className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pr-12 pl-12 text-white text-sm font-bold outline-none ring-primary/20 transition-all focus:border-primary focus:ring-4"
+                      placeholder="••••••••"
+                      dir="rtl"
+                    />
+                    <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600 group-focus-within:text-primary transition-colors" />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-white transition-colors p-1"
+                    >
+                      {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="mr-1 text-[10px] font-bold text-red-500 uppercase">{errors.password.message}</p>}
+                </motion.div>
+              )}
+
+              <div className="flex items-center justify-between px-1">
+                 <div className="flex items-center gap-3 cursor-pointer group">
+                   <div className="relative flex items-center h-4">
                       <input
-                        {...register('password')}
-                        type={showPassword ? 'text' : 'password'}
-                        className="w-full rounded-2xl border border-white/5 bg-white/5 py-3.5 pr-11 pl-12 text-white outline-none transition-all placeholder:text-gray-600 focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10 disabled:opacity-50"
-                        placeholder="••••••••"
-                        dir="rtl"
+                        {...register('rememberMe')}
+                        type="checkbox"
+                        id="rememberMe"
+                        className="h-4 w-4 rounded-md border-white/10 bg-white/5 text-primary focus:ring-primary/20"
                       />
-                      <Lock className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 transition-colors group-focus-within:text-blue-500" />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-                      >
-                        {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                      </button>
-                    </div>
-                    {errors.password && <p className="mr-1 mt-1 text-xs font-medium text-red-400">{errors.password.message}</p>}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="flex items-center justify-between mr-1">
-                <div className="flex items-center gap-2 cursor-pointer group">
-                  <input
-                    {...register('rememberMe')}
-                    type="checkbox"
-                    id="rememberMe"
-                    className="h-4 w-4 rounded border-white/10 bg-white/5 text-blue-500 focus:ring-blue-500/20"
-                  />
-                  <label htmlFor="rememberMe" className="text-xs text-gray-400 group-hover:text-gray-300 transition-colors cursor-pointer">تذكرني لمدة 7 أيام</label>
-                </div>
-                
-                <button
-                  type="button"
-                  onClick={() => setLoginMode(loginMode === 'password' ? 'magic-link' : 'password')}
-                  className="flex items-center gap-1.5 text-xs font-medium text-blue-400 transition-colors hover:text-blue-300"
-                >
-                  <Wand2 className="h-3.5 w-3.5" />
-                  {loginMode === 'password' ? 'الدخول السحري' : 'الدخول بكلمة السر'}
-                </button>
+                   </div>
+                   <label htmlFor="rememberMe" className="text-[10px] font-bold text-gray-500 group-hover:text-gray-300 transition-colors cursor-pointer uppercase tracking-widest">تذكير (7 أيام)</label>
+                 </div>
+                 
+                 <button
+                   type="button"
+                   onClick={() => setLoginMode(loginMode === 'password' ? 'magic-link' : 'password')}
+                   className="flex items-center gap-2 text-[10px] font-black text-primary/70 hover:text-primary transition-all uppercase tracking-widest"
+                 >
+                   <Wand2 className="h-4 w-4" />
+                   {loginMode === 'password' ? 'الدخول السحري' : 'الدخول بالشيفرة'}
+                 </button>
               </div>
 
-              <button
-                onClick={loginMode === 'password' ? handleSubmit(onSubmit) : handleMagicLinkRequest}
+              <Button
+                type="submit"
                 disabled={isSubmitting}
-                className="relative w-full overflow-hidden rounded-2xl bg-blue-600 px-4 py-4 font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-70"
+                className="h-16 w-full rounded-2xl bg-primary text-black font-black text-lg overflow-hidden group shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 transition-all"
               >
                 {isSubmitting ? (
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+                  <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                 ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <span>{loginMode === 'password' ? 'تسجيل الدخول' : 'إرسال رابط الدخول'}</span>
-                    <ArrowRight className="h-5 w-5 rotate-180" />
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="uppercase tracking-widest">تفعيل الهوية والدخول</span>
+                    <ArrowRight className="h-6 w-6 rotate-180 group-hover:-translate-x-2 transition-transform" />
                   </div>
                 )}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full hover:animate-[shimmer_1.5s_infinite]" />
-              </button>
-            </>
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full duration-1000 transition-transform" />
+              </Button>
+            </form>
           ) : (
             <motion.form
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               onSubmit={onVerify2FA}
-              className="space-y-6"
+              className="space-y-8"
             >
-              <div className="text-center mb-4">
-                <div className="inline-flex items-center justify-center p-3 rounded-full bg-blue-500/10 mb-4">
-                  <AlertCircle className="h-8 w-8 text-blue-500" />
-                </div>
-                <h3 className="text-lg font-bold text-white">التحقق بخطوتين</h3>
-                <p className="text-sm text-gray-400 mt-1">أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة الخاص بك</p>
+              <div className="text-center space-y-4">
+                 <div className="mx-auto h-20 w-20 rounded-3xl bg-primary/10 border-2 border-primary/30 flex items-center justify-center animate-bounce">
+                    <Zap className="h-10 w-10 text-primary" />
+                 </div>
+                 <h3 className="text-2xl font-black text-white uppercase tracking-tight">التحقق المزدوج</h3>
+                 <p className="text-sm text-gray-500 font-medium">أدخل رمز الحماية من تطبيق المصادقة الخاص بك</p>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <input
                   type="text"
                   maxLength={6}
                   value={twoFactorCode}
                   onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full text-center tracking-[1em] text-2xl font-bold rounded-2xl border border-white/5 bg-white/5 py-4 text-white outline-none transition-all focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/10"
+                  className="w-full h-20 text-center text-4xl font-black tracking-[0.8em] rounded-3xl bg-white/5 border-2 border-white/10 text-primary shadow-inner outline-none transition-all focus:border-primary/50"
                   placeholder="000000"
                   autoFocus
                 />
               </div>
 
-              <button
+              <Button
                 type="submit"
                 disabled={isSubmitting || twoFactorCode.length < 6}
-                className="relative w-full overflow-hidden rounded-2xl bg-blue-600 px-4 py-4 font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500 active:scale-[0.98] disabled:opacity-70"
+                className="h-16 w-full rounded-2xl bg-primary text-black font-black text-lg group shadow-xl shadow-primary/20 transition-all"
               >
-                {isSubmitting ? (
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                ) : (
-                  <div className="flex items-center justify-center gap-2">
-                    <span>تحقق ودخول</span>
-                    <ArrowRight className="h-5 w-5 rotate-180" />
-                  </div>
-                )}
-              </button>
+                {isSubmitting ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "تحقق واختراق الأبواب"}
+              </Button>
 
               <button
                 type="button"
                 onClick={() => setRequires2FA(false)}
-                className="w-full text-sm text-gray-500 hover:text-white transition-colors"
+                className="w-full text-xs font-black text-gray-500 hover:text-white uppercase tracking-widest"
               >
-                العودة لتسجيل الدخول
+                العودة للساحة السابقة
               </button>
             </motion.form>
           )}
         </div>
 
-        <div className="mt-8 text-center">
-          <p className="text-sm text-gray-500">
-            ليس لديك حساب؟{' '}
-            <Link href="/register" className="font-bold text-white transition-colors hover:text-blue-400 underline-offset-4 hover:underline">
-              أنشئ حسابك الآن
+        <div className="mt-12 text-center">
+          <p className="text-xs font-bold text-gray-600 uppercase tracking-[0.1em]">
+            لا تمتلك هوية مسجلة؟{' '}
+            <Link href="/register" className="font-black text-white hover:text-primary transition-colors decoration-primary underline-offset-8 underline decoration-2">
+              سجل بطولتك الآن
             </Link>
           </p>
         </div>
@@ -365,3 +335,10 @@ export default function LoginPage() {
   );
 }
 
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background" />}>
+      <LoginForm />
+    </Suspense>
+  );
+}

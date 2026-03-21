@@ -1,5 +1,5 @@
-ï»¿import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 import { ERROR_CODES } from '@/lib/error-codes';
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       const finalSubjectId = subjectId || subject;
 
       if (!title || !author || !description || !finalSubjectId || !downloadUrl) {
-        return badRequestResponse("Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙŠØ¬Ø¨ Ù…Ù„Ø¤Ù‡Ø§", ERROR_CODES.MISSING_PARAMETER);
+        return badRequestResponse("ÌãíÚ ÇáÍÞæá ÇáãØáæÈÉ íÌÈ ãáÄåÇ", ERROR_CODES.MISSING_PARAMETER);
       }
 
       const newBook = await prisma.book.create({

@@ -1,21 +1,41 @@
-'use client';
+"use client";
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Plus, Trash2, Edit, Filter, Search, Calendar, Clock, Tag, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import { 
+  Plus, 
+  Trash2, 
+  Edit, 
+  Filter, 
+  Search, 
+  Calendar, 
+  Clock, 
+  Tag, 
+  CheckCircle2, 
+  Circle, 
+  AlertCircle, 
+  Sword, 
+  Shield, 
+  Target, 
+  Sparkles,
+  Scroll,
+  Zap,
+  Flame
+} from 'lucide-react';
 import { Task, TaskStatus, SubjectType } from '@/types/tasks';
 import { TaskForm, TaskAnalytics, TaskList } from '@/app/(dashboard)/tasks/components';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -24,6 +44,13 @@ const taskSchema = z.object({
   dueAt: z.string().optional(),
   priority: z.number().int().min(0).max(2).optional(),
 });
+
+const STYLES = {
+  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "rpg-card h-full",
+  neonText: "rpg-neon-text font-black",
+  goldText: "rpg-gold-text font-black"
+};
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -73,7 +100,6 @@ export default function TasksPage() {
   const filteredAndSortedTasks = useMemo(() => {
     let result = [...tasks];
     
-    // Apply status filter based on active tab
     if (activeTab === 'pending') {
       result = result.filter(task => task.status === 'PENDING');
     } else if (activeTab === 'inProgress') {
@@ -84,7 +110,6 @@ export default function TasksPage() {
       result = result.filter(task => task.status === statusFilter);
     }
 
-    // Apply search term filter
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(task =>
@@ -94,7 +119,6 @@ export default function TasksPage() {
       );
     }
 
-    // Apply sorting
     result.sort((a, b) => {
       if (sortBy === 'priority') {
         return b.priority - a.priority;
@@ -209,24 +233,24 @@ export default function TasksPage() {
   const getPriorityBadge = (priority: number) => {
     switch (priority) {
       case 2:
-        return <Badge className="bg-red-500 hover:bg-red-600">عالية</Badge>;
+        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 font-black">أهمية ملحمية</Badge>;
       case 1:
-        return <Badge className="bg-yellow-500 hover:bg-yellow-600">متوسطة</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black">مهمة قتالية</Badge>;
       default:
-        return <Badge className="bg-green-500 hover:bg-green-600">منخفضة</Badge>;
+        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-black">مهمة جانبية</Badge>;
     }
   };
 
   const getStatusIcon = (status: TaskStatus) => {
     switch (status) {
       case 'COMPLETED':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
+        return <CheckCircle2 className="h-5 w-5 text-emerald-500" />;
       case 'IN_PROGRESS':
-        return <Clock className="h-5 w-5 text-blue-500" />;
+        return <Clock className="h-5 w-5 text-blue-500 animate-pulse" />;
       case 'PENDING':
-        return <Circle className="h-5 w-5 text-gray-400" />;
+        return <Circle className="h-5 w-5 text-gray-600" />;
       default:
-        return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+        return <AlertCircle className="h-5 w-5 text-amber-500" />;
     }
   };
 
@@ -235,142 +259,192 @@ export default function TasksPage() {
     return new Date(dueAt) < new Date();
   };
 
-	if (loading) {
-		return <div className="flex justify-center items-center h-screen">جاري التحميل...</div>;
-	}
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+         <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
+      </div>
+    );
+  }
 
-	return (
-					<div className="container mx-auto px-4 sm:px-6 md:px-8 py-6 sm:py-8 md:py-10 max-w-7xl font-sans">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">مركز المهام</h1>
-        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => reset()}>
-              <Plus className="mr-2 h-4 w-4" />
-              إضافة مهمة جديدة
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>إضافة مهمة</DialogTitle>
-              <DialogDescription>
-                أضف مهمة جديدة إلى قائمة مهامك. املأ الحقول أدناه للمتابعة.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(handleAddTaskSubmit)} className="grid gap-4 py-4">
-              <TaskForm control={control} register={register} errors={errors} />
-              <DialogFooter>
-                <Button type="submit">إضافة</Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+  return (
+    <div className="min-h-screen bg-background text-gray-100 selection:bg-primary/30 selection:text-white" dir="rtl">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full opacity-50" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:50px_50px]" />
       </div>
 
-      <div className="mb-6">
-        <TaskAnalytics tasks={tasks} />
-      </div>
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
+        
+        {/* --- Header Section --- */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row justify-between items-center gap-6"
+        >
+          <div className="space-y-4 text-center md:text-right">
+             <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-500">
+                <Scroll className="w-4 h-4" />
+                <span>سجل المهام النشط (Quest Log)</span>
+             </div>
+             <h1 className="text-4xl md:text-5xl font-black tracking-tight">
+               قائمة <span className={STYLES.neonText}>المخاطر والمهام</span>
+             </h1>
+             <p className="text-gray-400 font-medium max-w-xl text-lg">
+                أكمل مهامك لربح رصيد XP ورفع مستواك. تذكر، كل مهمة تقربك خطوة من النصر!
+             </p>
+          </div>
+          
+          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => reset()} className="h-14 px-8 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-[0_10px_30px_rgba(var(--primary),0.3)] gap-3 border-2 border-white/10 group transition-all hover:scale-105 active:scale-95">
+                <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform" />
+                <span>إضافة مهمة ملحمية</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px] bg-background border-white/10 text-gray-100">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black">إصدار أمر مهمة</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  حدد تفاصيل المهمة والقائد المسؤول.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit(handleAddTaskSubmit)} className="grid gap-4 py-4">
+                <TaskForm control={control} register={register} errors={errors} />
+                <DialogFooter>
+                  <Button type="submit" className="w-full bg-primary font-black">تثبيت المهمة</Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </motion.div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full mb-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="all">الكل</TabsTrigger>
-          <TabsTrigger value="pending">قيد الانتظار</TabsTrigger>
-          <TabsTrigger value="inProgress">قيد التنفيذ</TabsTrigger>
-          <TabsTrigger value="completed">مكتملة</TabsTrigger>
-        </TabsList>
-        <TabsContent value="all" className="mt-4">
-          <TaskList 
-            tasks={filteredAndSortedTasks} 
-            onStatusChange={handleStatusChange}
-            onEdit={openEditDialog}
-            onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
-          />
-        </TabsContent>
-        <TabsContent value="pending" className="mt-4">
-          <TaskList 
-            tasks={filteredAndSortedTasks} 
-            onStatusChange={handleStatusChange}
-            onEdit={openEditDialog}
-            onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
-          />
-        </TabsContent>
-        <TabsContent value="inProgress" className="mt-4">
-          <TaskList 
-            tasks={filteredAndSortedTasks} 
-            onStatusChange={handleStatusChange}
-            onEdit={openEditDialog}
-            onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
-          />
-        </TabsContent>
-        <TabsContent value="completed" className="mt-4">
-          <TaskList 
-            tasks={filteredAndSortedTasks} 
-            onStatusChange={handleStatusChange}
-            onEdit={openEditDialog}
-            onDelete={handleDeleteTask}
-            getPriorityBadge={getPriorityBadge}
-            getStatusIcon={getStatusIcon}
-            isOverdue={isOverdue}
-          />
-        </TabsContent>
-      </Tabs>
-
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-2">
-            <Search className="h-5 w-5"/>
-            <Input 
-                placeholder="بحث في المهام..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-64"
-            />
+        {/* --- Analytics Row --- */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+           <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-primary/50 transition-all cursor-default"}>
+              <Flame className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
+              <p className="text-xs text-gray-500 font-bold uppercase">المهام النشطة</p>
+              <p className="text-3xl font-black">{tasks.filter(t => t.status !== 'COMPLETED').length}</p>
+           </div>
+           <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-emerald-500/50 transition-all cursor-default"}>
+              <Zap className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform" />
+              <p className="text-xs text-gray-500 font-bold uppercase">المهام المنجزة</p>
+              <p className="text-3xl font-black">{tasks.filter(t => t.status === 'COMPLETED').length}</p>
+           </div>
+           <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-red-500/50 transition-all cursor-default"}>
+              <AlertCircle className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
+              <p className="text-xs text-gray-500 font-bold uppercase">مهام متأخرة</p>
+              <p className="text-3xl font-black text-red-500">{tasks.filter(t => isOverdue(t.dueAt) && t.status !== 'COMPLETED').length}</p>
+           </div>
+           <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-amber-500/50 transition-all cursor-default"}>
+              <Sparkles className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform" />
+              <p className="text-xs text-gray-500 font-bold uppercase">XP المكتسب</p>
+              <p className="text-3xl font-black text-amber-400">+{tasks.filter(t => t.status === 'COMPLETED').length * 100}</p>
+           </div>
         </div>
-        <div className="flex items-center gap-2">
-            <Filter className="h-5 w-5"/>
-            <Button variant={statusFilter === 'ALL' ? 'default' : 'outline'} onClick={() => setStatusFilter('ALL')}>الكل</Button>
-            <Button variant={statusFilter === TaskStatus.PENDING ? 'default' : 'outline'} onClick={() => setStatusFilter(TaskStatus.PENDING)}>قيد الانتظار</Button>
-            <Button variant={statusFilter === TaskStatus.IN_PROGRESS ? 'default' : 'outline'} onClick={() => setStatusFilter(TaskStatus.IN_PROGRESS)}>قيد التنفيذ</Button>
-            <Button variant={statusFilter === TaskStatus.COMPLETED ? 'default' : 'outline'} onClick={() => setStatusFilter(TaskStatus.COMPLETED)}>مكتملة</Button>
-        </div>
-        <Select value={sortBy} onValueChange={(value: 'dueAt' | 'priority') => setSortBy(value)}>
-            <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="فرز حسب" />
-            </SelectTrigger>
-            <SelectContent>
-                <SelectItem value="priority">الأولوية</SelectItem>
-                <SelectItem value="dueAt">تاريخ الاستحقاق</SelectItem>
-            </SelectContent>
-        </Select>
-      </div>
 
-      {/* Edit Task Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>تعديل المهمة</DialogTitle>
-              <DialogDescription>
-                قم بتعديل تفاصيل المهمة أدناه. انقر على حفظ عند الانتهاء.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit(handleEditTaskSubmit)} className="grid gap-4 py-4">
-               <TaskForm control={control} register={register} errors={errors} />
-               <DialogFooter>
-                 <Button type="submit">حفظ التغييرات</Button>
-               </DialogFooter>
-            </form>
-          </DialogContent>
+        {/* --- Main Tasks Container --- */}
+        <div className={STYLES.glass + " p-1 sm:p-2 md:p-8"}>
+          
+          {/* Filters & Tabs Bar */}
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-10 p-4 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-3xl">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full lg:w-auto">
+              <TabsList className="bg-white/5 border border-white/5 p-1 h-12 rounded-xl gap-1">
+                <TabsTrigger value="all" className="rounded-lg font-bold data-[state=active]:bg-primary">الكل</TabsTrigger>
+                <TabsTrigger value="pending" className="rounded-lg font-bold data-[state=active]:bg-primary">المعلقة</TabsTrigger>
+                <TabsTrigger value="inProgress" className="rounded-lg font-bold data-[state=active]:bg-primary">الجاري تنفيذها</TabsTrigger>
+                <TabsTrigger value="completed" className="rounded-lg font-bold data-[state=active]:bg-primary">المنتهية</TabsTrigger>
+              </TabsList>
+            </Tabs>
+
+            <div className="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
+               <div className="relative group flex-1 min-w-[200px]">
+                  <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
+                  <Input 
+                    placeholder="بحث في أرشيف المهام..." 
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="h-12 pr-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary focus:border-primary shadow-inner"
+                  />
+               </div>
+               
+               <Select value={sortBy} onValueChange={(value: 'dueAt' | 'priority') => setSortBy(value)}>
+                  <SelectTrigger className="w-[180px] h-12 bg-white/5 border-white/10 rounded-xl font-bold">
+                      <SelectValue placeholder="فرز المحاربين" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-background border-white/10 text-gray-100">
+                      <SelectItem value="priority">حسب الأهمية</SelectItem>
+                      <SelectItem value="dueAt">حسب الوقت</SelectItem>
+                  </SelectContent>
+               </Select>
+            </div>
+          </div>
+
+          {/* Task List Component */}
+          <div className="min-h-[400px]">
+            <AnimatePresence mode="wait">
+              {loading ? (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="flex items-center justify-center h-[400px]"
+                >
+                  <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                >
+                   <TaskList 
+                      tasks={filteredAndSortedTasks} 
+                      onStatusChange={handleStatusChange}
+                      onEdit={openEditDialog}
+                      onDelete={handleDeleteTask}
+                      getPriorityBadge={getPriorityBadge}
+                      getStatusIcon={getStatusIcon}
+                      isOverdue={isOverdue}
+                    />
+                    {filteredAndSortedTasks.length === 0 && (
+                      <div className="text-center py-20 space-y-4">
+                         <div className="mx-auto w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
+                            <Sword className="w-10 h-10 text-gray-600" />
+                         </div>
+                         <div className="space-y-1">
+                            <p className="text-xl font-black">لا توجد مهمات مسجلة</p>
+                            <p className="text-gray-500">منطقتك آمنة تماماً، القائد مرتاح.</p>
+                         </div>
+                      </div>
+                    )}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+
+        {/* --- Edit Task Dialog --- */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="sm:max-w-[425px] bg-background border-white/10 text-gray-100">
+              <DialogHeader>
+                <DialogTitle className="text-2xl font-black">تعديل الأوامر</DialogTitle>
+                <DialogDescription className="text-gray-400">
+                  قم بتعديل تفاصيل المهمة الحالية.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit(handleEditTaskSubmit)} className="grid gap-4 py-4">
+                 <TaskForm control={control} register={register} errors={errors} />
+                 <DialogFooter>
+                   <Button type="submit" className="w-full bg-primary font-black">تحديث المهمة</Button>
+                 </DialogFooter>
+              </form>
+            </DialogContent>
         </Dialog>
 
-      {/* هذا القسم تم استبداله بمكون Tabs و TaskList في الأعلى */}
-			</div>
-		  );
+      </div>
+    </div>
+  );
 }

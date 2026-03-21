@@ -193,7 +193,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                 ) : (
                   leaderboard.map((entry, index) => (
                     <motion.div
-                      key={entry.rank}
+                      key={`${entry.rank}-${index}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}
@@ -262,7 +262,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                 ) : (
                   recentAchievements.map((achievement, index) => (
                     <motion.div
-                      key={achievement.id}
+                      key={`${achievement.id}-${index}`}
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.1 }}

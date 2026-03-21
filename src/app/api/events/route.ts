@@ -1,5 +1,5 @@
-﻿import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { EventBus } from '@/lib/event-bus';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
@@ -50,83 +50,84 @@ export async function GET(request: NextRequest) {
 
 // POST create a new event
 export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
-    try {
-      const eventBus = new EventBus();
-      const {
-        userId,
-        title,
-        description,
-        location,
-        startDate,
-        endDate,
-        imageUrl,
-        category,
-        isPublic,
-        maxAttendees,
-        tags
-      } = await req.json();
-
-      if (!userId || !title || !description || !startDate || !endDate || !category) {
-        return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها", ERROR_CODES.MISSING_PARAMETER);
-      }
-
-      // Check if user exists
-      const user = await prisma.user.findUnique({
-        where: { id: userId }
-      });
-
-      if (!user) {
-        return badRequestResponse("المستخدم غير موجود", ERROR_CODES.NOT_FOUND);
-      }
-
-      const newEvent = await prisma.event.create({
-        data: {
+  return opsWrapper(request, async (req: NextRequest) => {
+    return withAuth(req, async ({ userId }) => {
+      try {
+        const eventBus = new EventBus();
+        const {
           title,
           description,
           location,
-          startDate: new Date(startDate),
-          endDate: new Date(endDate),
+          startDate,
+          endDate,
           imageUrl,
-          organizerId: userId,
           category,
           isPublic,
           maxAttendees,
-          tags: tags || []
-        },
-        include: {
-          organizer: {
-            select: { name: true }
-          },
-          _count: {
-            select: { attendees: true }
-          }
+          tags
+        } = await req.json();
+
+        if (!title || !description || !startDate || !endDate || !category) {
+          return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها", ERROR_CODES.MISSING_PARAMETER);
         }
-      });
 
-      // Transform the data to match the frontend structure
-      const transformedEvent = {
-        id: newEvent.id,
-        title: newEvent.title,
-        description: newEvent.description,
-        location: newEvent.location,
-        startDate: newEvent.startDate.toISOString(),
-        endDate: newEvent.endDate.toISOString(),
-        imageUrl: newEvent.imageUrl,
-        organizerId: newEvent.organizerId,
-        organizerName: newEvent.organizer.name,
-        category: newEvent.category,
-        isPublic: newEvent.isPublic,
-        maxAttendees: newEvent.maxAttendees,
-        currentAttendees: newEvent._count.attendees,
-        tags: newEvent.tags
-      };
+        // Check if user exists
+        const user = await prisma.user.findUnique({
+          where: { id: userId }
+        });
 
-      await eventBus.publish('event.created', transformedEvent);
+        if (!user) {
+          return badRequestResponse("المستخدم غير موجود", ERROR_CODES.NOT_FOUND);
+        }
 
-      return successResponse(transformedEvent, undefined, 201);
-    } catch (error: unknown) {
-      return handleApiError(error);
-    }
+        const newEvent = await prisma.event.create({
+          data: {
+            title,
+            description,
+            location,
+            startDate: new Date(startDate),
+            endDate: new Date(endDate),
+            imageUrl,
+            organizerId: userId,
+            category,
+            isPublic,
+            maxAttendees,
+            tags: tags || []
+          },
+          include: {
+            organizer: {
+              select: { name: true }
+            },
+            _count: {
+              select: { attendees: true }
+            }
+          }
+        });
+
+        // Transform the data to match the frontend structure
+        const transformedEvent = {
+          id: newEvent.id,
+          title: newEvent.title,
+          description: newEvent.description,
+          location: newEvent.location,
+          startDate: newEvent.startDate.toISOString(),
+          endDate: newEvent.endDate.toISOString(),
+          imageUrl: newEvent.imageUrl,
+          organizerId: newEvent.organizerId,
+          organizerName: newEvent.organizer.name,
+          category: newEvent.category,
+          isPublic: newEvent.isPublic,
+          maxAttendees: newEvent.maxAttendees,
+          currentAttendees: newEvent._count.attendees,
+          tags: newEvent.tags
+        };
+
+        await eventBus.publish('event.created', transformedEvent);
+
+        return successResponse(transformedEvent, undefined, 201);
+      } catch (error: unknown) {
+        return handleApiError(error);
+      }
+    });
   });
 }

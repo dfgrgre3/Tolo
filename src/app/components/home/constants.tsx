@@ -6,7 +6,7 @@ import {
 import { FeatureItem } from "./types";
 
 // --- Animations ---
-export const scrollVariants = {
+export const scrollVariants: any = {
   fadeUp: {
     initial: { opacity: 0, y: 30 },
     whileInView: {
@@ -35,7 +35,7 @@ export const scrollVariants = {
     viewport: { once: true, margin: "-50px" }
   },
   scaleUp: {
-    initial: { opacity: 0, scale: 0.9 },
+    initial: { opacity: 0, scale: 0.8 },
     whileInView: {
       opacity: 1,
       scale: 1,

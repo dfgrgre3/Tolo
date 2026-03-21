@@ -2,12 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 import { ensureUser } from '@/lib/user-utils';
 import { Achievement, UserProgress, AchievementFilters, AchievementRarity } from '../types';
 import { filterAchievements, calculateStats, getRarityByXP } from '../utils';
+import apiClient from '@/lib/api/api-client';
 
 import { logger } from '@/lib/logger';
 
 interface AchievementsApiResponse {
-	achievements?: unknown[];
-	userProgress?: UserProgress | null;
+	data: {
+		achievements?: unknown[];
+		userProgress?: UserProgress | null;
+	};
 	error?: string;
 }
 
@@ -44,63 +47,35 @@ export function useAchievements(): UseAchievementsReturn {
 			setError(null);
 
 			const userId = await ensureUser();
-			
+
 			// If no userId, try to continue with empty data
 			if (!userId || userId.trim() === '') {
 				logger.warn('No user ID available, loading achievements without user progress');
 			}
 
-			const url = new URL('/api/gamification/achievements', window.location.origin);
+			// Build query parameters
+			const params = new URLSearchParams();
 			if (userId && userId.trim() !== '') {
-				url.searchParams.set('userId', userId);
+				params.set('userId', userId);
 			}
-
-			// Add filters to API call if needed
 			if (filters.category !== 'all') {
-				url.searchParams.set('category', filters.category);
+				params.set('category', filters.category);
 			}
 			if (filters.difficulty !== 'all') {
-				url.searchParams.set('difficulty', filters.difficulty);
+				params.set('difficulty', filters.difficulty);
 			}
 
-			const res = await fetch(url.toString());
+			const endpoint = `/gamification/achievements${params.toString() ? `?${params.toString()}` : ''}`;
 
-			// Even if response is not ok, try to parse it for fallback data
-			let data: AchievementsApiResponse | null = null;
-			if (!res.ok) {
-				try {
-					data = await res.json() as AchievementsApiResponse;
-					// If API returned fallback data, use it
-					if (data.achievements && Array.isArray(data.achievements)) {
-						const fetchedAchievements: Achievement[] = data.achievements.map(
-							(ach: unknown) => {
-								const achievement = ach as Partial<Achievement> & { xpReward?: number };
-								return {
-									...achievement,
-									rarity: (achievement.rarity || getRarityByXP(achievement.xpReward || 0)) as AchievementRarity,
-								} as Achievement;
-							}
-						);
-						setAchievements(fetchedAchievements);
-						setUserProgress(data.userProgress || null);
-						// Show warning but don't set as error
-						setError(null);
-						return;
-					}
-				} catch (parseError: unknown) {
-					// If we can't parse the error response, throw original error
-				}
-				throw new Error(data?.error || `فشل في تحميل الإنجازات (${res.status})`);
-			}
-
-			data = await res.json() as AchievementsApiResponse;
+			// Use apiClient which handles authentication properly
+			const data = await apiClient.get<AchievementsApiResponse>(endpoint);
 
 			// Validate response structure
-			if (!data || !Array.isArray(data.achievements)) {
+			if (!data || !data.data || !Array.isArray(data.data.achievements)) {
 				throw new Error('استجابة غير صحيحة من الخادم');
 			}
 
-			const fetchedAchievements: Achievement[] = data.achievements.map(
+			const fetchedAchievements: Achievement[] = data.data.achievements.map(
 				(ach: unknown) => {
 					const achievement = ach as Partial<Achievement> & { xpReward?: number };
 					return {
@@ -111,7 +86,7 @@ export function useAchievements(): UseAchievementsReturn {
 			);
 
 			setAchievements(fetchedAchievements);
-			setUserProgress(data.userProgress || null);
+			setUserProgress(data.data.userProgress || null);
 			setError(null);
 		} catch (err: unknown) {
 			logger.error('Error fetching achievements:', err);

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -128,7 +128,6 @@ const _CHART_TYPES = [
 ];
 
 export default function StudySessionsHistory({ sessions, subjects }: StudySessionsHistoryProps) {
-  const [filteredSessions, setFilteredSessions] = useState<StudySession[]>(sessions);
   const [timePeriod, setTimePeriod] = useState('month');
   const [selectedSubject, setSelectedSubject] = useState('all');
   const [selectedMood, setSelectedMood] = useState('all');
@@ -151,6 +150,88 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     start: '',
     end: ''
   });
+
+  // Filter sessions based on criteria
+  const filteredSessions = useMemo(() => {
+    let filtered = [...sessions];
+
+    const now = new Date();
+    let startDate: Date;
+
+    switch (timePeriod) {
+      case 'week':
+        startDate = startOfWeek(now, { weekStartsOn: 0 });
+        break;
+      case 'month':
+        startDate = startOfMonth(now);
+        break;
+      case 'quarter':
+        startDate = subMonths(startOfMonth(now), 3);
+        break;
+      case 'year':
+        startDate = new Date(now.getFullYear(), 0, 1);
+        break;
+      case 'all':
+      default:
+        startDate = new Date(0);
+        break;
+    }
+
+    if (customDateRange.start && customDateRange.end) {
+      const customStart = new Date(customDateRange.start);
+      const customEnd = new Date(customDateRange.end);
+      filtered = filtered.filter(session => {
+        const sessionDate = new Date(session.createdAt);
+        return sessionDate >= customStart && sessionDate <= customEnd;
+      });
+    } else if (timePeriod !== 'all') {
+      filtered = filtered.filter(session => new Date(session.createdAt) >= startDate);
+    }
+
+    if (selectedSubject !== 'all') {
+      filtered = filtered.filter(session => session.subject === selectedSubject);
+    }
+
+    if (selectedMood !== 'all') {
+      filtered = filtered.filter(session => session.mood === selectedMood);
+    }
+
+    if (searchQuery) {
+      filtered = filtered.filter(session => {
+        const subjectName = typeof session.subject === 'string' ? session.subject : session.subject?.name;
+        return (
+          session.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          session.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+      });
+    }
+
+    filtered.sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortBy) {
+        case 'date':
+          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+          break;
+        case 'duration':
+          comparison = a.durationMin - b.durationMin;
+          break;
+        case 'productivity':
+          comparison = (a.productivity || 0) - (b.productivity || 0);
+          break;
+        case 'mood': {
+          const moodValues = { 'EXCELLENT': 4, 'GOOD': 3, 'AVERAGE': 2, 'POOR': 1 };
+          comparison = (moodValues[a.mood || 'AVERAGE'] || 2) - (moodValues[b.mood || 'AVERAGE'] || 2);
+          break;
+        }
+      }
+
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [sessions, timePeriod, selectedSubject, selectedMood, searchQuery, sortBy, sortOrder, customDateRange]);
 
   // Handler for session toggle in bulk select mode
   const updateSelectedSessions = useCallback((sessionId: string, isChecked: boolean) => {
@@ -373,94 +454,6 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
     
     return Object.values(data).sort((a, b) => a.date.localeCompare(b.date));
   }, [filteredSessions]);
-
-  // Filter sessions based on criteria
-  useEffect(() => {
-    let filtered = [...sessions];
-    
-    // Time period filter
-    const now = new Date();
-    let startDate: Date;
-    
-    switch (timePeriod) {
-      case 'week':
-        startDate = startOfWeek(now, { weekStartsOn: 0 });
-        break;
-      case 'month':
-        startDate = startOfMonth(now);
-        break;
-      case 'quarter':
-        startDate = subMonths(startOfMonth(now), 3);
-        break;
-      case 'year':
-        startDate = new Date(now.getFullYear(), 0, 1);
-        break;
-      case 'all':
-      default:
-        startDate = new Date(0);
-        break;
-    }
-    
-    if (customDateRange.start && customDateRange.end) {
-      const customStart = new Date(customDateRange.start);
-      const customEnd = new Date(customDateRange.end);
-      filtered = filtered.filter(session => {
-        const sessionDate = new Date(session.createdAt);
-        return sessionDate >= customStart && sessionDate <= customEnd;
-      });
-    } else if (timePeriod !== 'all') {
-      filtered = filtered.filter(session => new Date(session.createdAt) >= startDate);
-    }
-    
-    // Subject filter
-    if (selectedSubject !== 'all') {
-      filtered = filtered.filter(session => session.subject === selectedSubject);
-    }
-    
-    // Mood filter
-    if (selectedMood !== 'all') {
-      filtered = filtered.filter(session => session.mood === selectedMood);
-    }
-    
-    // Search filter
-    if (searchQuery) {
-      filtered = filtered.filter(session => {
-        const subjectName = typeof session.subject === 'string' ? session.subject : session.subject?.name;
-        return (
-          session.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          subjectName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          session.tags?.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase()))
-        );
-      });
-    }
-    
-    // Sort sessions
-    filtered.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (sortBy) {
-        case 'date':
-          comparison = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-          break;
-        case 'duration':
-          comparison = a.durationMin - b.durationMin;
-          break;
-        case 'productivity':
-          comparison = (a.productivity || 0) - (b.productivity || 0);
-          break;
-        case 'mood': {
-          const moodValues = { 'EXCELLENT': 4, 'GOOD': 3, 'AVERAGE': 2, 'POOR': 1 };
-          comparison = (moodValues[a.mood || 'AVERAGE'] || 2) - (moodValues[b.mood || 'AVERAGE'] || 2);
-          break;
-        }
-      }
-      
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-    
-    setFilteredSessions(filtered);
-    setCurrentPage(1); // Reset pagination
-  }, [sessions, timePeriod, selectedSubject, selectedMood, searchQuery, sortBy, sortOrder, customDateRange]);
 
   // Pagination
   const totalPages = Math.ceil(filteredSessions.length / itemsPerPage);

@@ -120,7 +120,7 @@ export const DEFAULT_LANGUAGE_SETTINGS: LanguageSettingsPreference = {
 };
 
 export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettingsPreference = {
-  theme: 'dark',
+  theme: 'light',
   primaryColor: '#6366f1',
   accentColor: '#8b5cf6',
   fontSize: 'medium',

@@ -23,7 +23,7 @@ export interface FirestoreLeaderboardEntry {
 }
 
 export const firestoreService = {
-  async updateUserProgress(userId: string, progress: any) {
+  async updateUserProgress(userId: string, _progress: any) {
     logger.info(`Firestore: Updating progress for user ${userId}`);
     return true;
   },
@@ -38,19 +38,19 @@ export const firestoreService = {
     return true;
   },
 
-  async subscribeToUserProgress(userId: string, callback: (progress: FirestoreUserProgress) => void) {
+  async subscribeToUserProgress(_userId: string, _callback: (progress: FirestoreUserProgress) => void) {
     return () => { };
   },
 
-  async subscribeToLeaderboard(type: string, limit: number, callback: (entries: FirestoreLeaderboardEntry[]) => void) {
+  async subscribeToLeaderboard(_type: string, _limit: number, _callback: (entries: FirestoreLeaderboardEntry[]) => void) {
     return () => { };
   },
 
-  async subscribeToAchievementNotifications(userId: string, callback: (entry: any) => void) {
+  async subscribeToAchievementNotifications(_userId: string, _callback: (entry: any) => void) {
     return () => { };
   },
 
-  cleanupListener(id: string) { }
+  cleanupListener(_id: string) { }
 };
 
 export default firestoreService;

@@ -1,6 +1,6 @@
 generator client {
-  provider        = "prisma-client-js"
-  engineType      = "library"
+  provider   = "prisma-client-js"
+  engineType = "library"
 }
 
 datasource db {
@@ -9,109 +9,117 @@ datasource db {
 }
 
 model User {
-  id                            String                @id @default(cuid())
-  email                         String                @unique
+  id                            String    @id @default(cuid())
+  email                         String    @unique
   name                          String?
   username                      String?
   avatar                        String?
   passwordHash                  String
-  createdAt                     DateTime              @default(now())
-  updatedAt                     DateTime              @updatedAt
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
   wakeUpTime                    String?
   sleepTime                     String?
-  focusStrategy                 String?               @default("POMODORO")
-  emailNotifications            Boolean?              @default(true)
+  focusStrategy                 String?   @default("POMODORO")
+  emailNotifications            Boolean?  @default(true)
   emailVerificationToken        String?
   emailVerificationExpires      DateTime?
-  emailVerified                 Boolean?              @default(false)
+  emailVerified                 Boolean?  @default(false)
   lastLogin                     DateTime?
   phone                         String?
-  phoneVerified                 Boolean?              @default(false)
+  phoneVerified                 Boolean?  @default(false)
   phoneVerificationOTP          String?
   phoneVerificationExpires      DateTime?
-  phoneVerificationAttempts     Int                   @default(0)
+  phoneVerificationAttempts     Int       @default(0)
   phoneVerificationLastSent     DateTime?
   resetToken                    String?
   resetTokenExpires             DateTime?
-  twoFactorEnabled              Boolean               @default(false)
+  twoFactorEnabled              Boolean   @default(false)
   twoFactorSecret               String?
   recoveryCodes                 String?
-  smsNotifications              Boolean?              @default(false)
-  biometricEnabled              Boolean               @default(false)
+  smsNotifications              Boolean?  @default(false)
+  biometricEnabled              Boolean   @default(false)
   magicLinkToken                String?
   magicLinkExpires              DateTime?
-  googleId                      String?               @unique
-  githubId                      String?               @unique
+  googleId                      String?   @unique
+  githubId                      String?   @unique
   passwordChangedAt             DateTime?
   passwordExpiresAt             DateTime?
-  passwordExpirationWarningSent Boolean               @default(false)
-  totalXP                       Int                   @default(0)
-  level                         Int                   @default(1)
-  currentStreak                 Int                   @default(0)
-  longestStreak                 Int                   @default(0)
-  totalStudyTime                Int                   @default(0)
-  tasksCompleted                Int                   @default(0)
-  examsPassed                   Int                   @default(0)
-  pomodoroSessions              Int                   @default(0)
-  deepWorkSessions              Int                   @default(0)
-  studyXP                       Int                   @default(0)
-  taskXP                        Int                   @default(0)
-  examXP                        Int                   @default(0)
-  challengeXP                   Int                   @default(0)
-  questXP                       Int                   @default(0)
-  seasonXP                      Int                   @default(0)
-  role                          UserRole              @default(STUDENT)
-  
-  country                       String?
-  dateOfBirth                   DateTime?
-  gender                        String?
-  alternativePhone              String?
-  
-  gradeLevel                    String?
-  educationType                 String?
-  section                       String?
-  interestedSubjects            String[]              @default([])
-  studyGoal                     String?
-  bio                           String?               @db.Text
-  school                        String?
-  
-  subjectsTaught                String[]              @default([])
-  classesTaught                 String[]              @default([])
-  experienceYears               String?
+  passwordExpirationWarningSent Boolean   @default(false)
+  totalXP                       Int       @default(0)
+  level                         Int       @default(1)
+  currentStreak                 Int       @default(0)
+  longestStreak                 Int       @default(0)
+  totalStudyTime                Int       @default(0)
+  tasksCompleted                Int       @default(0)
+  examsPassed                   Int       @default(0)
+  pomodoroSessions              Int       @default(0)
+  deepWorkSessions              Int       @default(0)
+  studyXP                       Int       @default(0)
+  taskXP                        Int       @default(0)
+  examXP                        Int       @default(0)
+  challengeXP                   Int       @default(0)
+  questXP                       Int       @default(0)
+  seasonXP                      Int       @default(0)
+  role                          UserRole  @default(STUDENT)
+  permissions                   String[]  @default([])
 
-  aiChatMessages                AiChatMessage[]
-  aiGeneratedContent            AiGeneratedContent[]
-  aiGeneratedExams              AiGeneratedExam[]
-  biometricCredentials          BiometricCredential[]
-  blogPosts                     BlogPost[]            @relation("BlogPostAuthor")
-  challengeCompletions          ChallengeCompletion[]
-  contentPreferences            ContentPreference[]
-  customGoals                   CustomGoal[]
-  organizedEvents               Event[]               @relation("EventOrganizer")
-  examResults                   ExamResult[]
-  forumPosts                    ForumPost[]           @relation("ForumPostAuthor")
-  forumReplies                  ForumReply[]          @relation("ForumReplyAuthor")
-  leaderboardEntries            LeaderboardEntry[]
-  mlRecommendations             MlRecommendation[]
-  notifications                 Notification[]
-  offlineLessons                OfflineLesson[]
-  passwordHistory               PasswordHistory[]
-  progressSnapshots             ProgressSnapshot[]
-  questProgresses               QuestProgress[]
-  reminders                     Reminder[]
-  schedules                     Schedule[]
-  seasonParticipations          SeasonParticipation[]
-  securityLogs                  SecurityLog[]
-  securityQuestions             SecurityQuestion[]
-  sentimentAnalyses             SentimentAnalysis[]
-  sessions                      Session[]
-  studySessions                 StudySession[]
-  subjectEnrollments            SubjectEnrollment[]
-  tasks                         Task[]
-  achievements                  UserAchievement[]
-  userGrades                    UserGrade[]
-  userInteractions              UserInteraction[]
-  userRewards                   UserReward[]
+  country          String?
+  dateOfBirth      DateTime?
+  gender           String?
+  alternativePhone String?
+
+  gradeLevel         String?
+  educationType      String?
+  section            String?
+  interestedSubjects String[] @default([])
+  studyGoal          String?
+  bio                String?  @db.Text
+  school             String?
+
+  subjectsTaught  String[] @default([])
+  classesTaught   String[] @default([])
+  experienceYears String?
+
+  aiChatMessages       AiChatMessage[]
+  aiGeneratedContent   AiGeneratedContent[]
+  aiGeneratedExams     AiGeneratedExam[]
+  biometricCredentials BiometricCredential[]
+  blogPosts            BlogPost[]            @relation("BlogPostAuthor")
+  challengeCompletions ChallengeCompletion[]
+  contentPreferences   ContentPreference[]
+  customGoals          CustomGoal[]
+  organizedEvents      Event[]               @relation("EventOrganizer")
+  examResults          ExamResult[]
+  forumPosts           ForumPost[]           @relation("ForumPostAuthor")
+  forumReplies         ForumReply[]          @relation("ForumReplyAuthor")
+  leaderboardEntries   LeaderboardEntry[]
+  mlRecommendations    MlRecommendation[]
+  notifications        Notification[]
+  offlineLessons       OfflineLesson[]
+  passwordHistory      PasswordHistory[]
+  progressSnapshots    ProgressSnapshot[]
+  questProgresses      QuestProgress[]
+  reminders            Reminder[]
+  schedules            Schedule[]
+  seasonParticipations SeasonParticipation[]
+  securityLogs         SecurityLog[]
+  securityQuestions    SecurityQuestion[]
+  sentimentAnalyses    SentimentAnalysis[]
+  sessions             Session[]
+  studySessions        StudySession[]
+  subjectEnrollments   SubjectEnrollment[]
+  tasks                Task[]
+  achievements         UserAchievement[]
+  userGrades           UserGrade[]
+  userInteractions     UserInteraction[]
+  userRewards          UserReward[]
+  automationLogs       AutomationLog[]
+
+  @@index([role])
+  @@index([totalXP(sort: Desc)])
+  @@index([level])
+  @@index([lastLogin])
+  @@index([emailVerified])
 }
 
 model SubjectEnrollment {
@@ -147,8 +155,10 @@ model StudySession {
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, subjectId])
+  @@index([userId, startTime(sort: Desc)])
   @@index([subjectId])
   @@index([taskId])
+  @@index([startTime(sort: Desc)])
 }
 
 model Task {
@@ -169,6 +179,9 @@ model Task {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, subjectId])
+  @@index([userId, status])
+  @@index([status, dueAt])
+  @@index([dueAt])
 }
 
 model Reminder {
@@ -391,6 +404,8 @@ model Notification {
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt(sort: Desc)])
 }
 
 model Season {
@@ -814,6 +829,8 @@ model BlogPost {
 
   @@index([categoryId])
   @@index([authorId])
+  @@index([isPublished, publishedAt(sort: Desc)])
+  @@index([publishedAt(sort: Desc)])
 }
 
 model ForumPost {
@@ -833,6 +850,8 @@ model ForumPost {
 
   @@index([categoryId])
   @@index([authorId])
+  @@index([createdAt(sort: Desc)])
+  @@index([isPinned, createdAt(sort: Desc)])
 }
 
 model ForumReply {
@@ -1122,4 +1141,32 @@ enum NotificationType {
   SUCCESS
   WARNING
   ERROR
+}
+
+model AutomationRule {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  triggerType String
+  conditions  String
+  actionType  String
+  actionData  String
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  logs        AutomationLog[]
+}
+
+model AutomationLog {
+  id          String         @id @default(cuid())
+  ruleId      String
+  userId      String
+  actionTaken String
+  metadata    String?
+  createdAt   DateTime       @default(now())
+  rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([userId])
 }

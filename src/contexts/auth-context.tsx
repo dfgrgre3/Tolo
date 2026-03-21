@@ -26,18 +26,28 @@ export interface AuthUser {
     role: string;
     emailVerified: boolean | null;
     phone?: string | null;
-    birthDate?: string | null;
+    alternativePhone?: string | null;
+    birthDate?: string | null; // alias for dateOfBirth
+    dateOfBirth?: string | null;
     gender?: string | null;
     city?: string | null;
+    country?: string | null;
     school?: string | null;
     grade?: string | null;
+    gradeLevel?: string | null;
+    educationType?: string | null;
+    section?: string | null;
+    studyGoal?: string | null;
     bio?: string | null;
+    subjectsTaught?: string[];
+    experienceYears?: string | null;
     createdAt?: string;
 
     lastLogin?: string;
     totalXP?: number;
     level?: number;
     currentStreak?: number;
+    permissions: string[];
 }
 
 interface AuthContextType {
@@ -263,6 +273,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     avatar: data.user.avatar ?? null,
                     role: data.user.role ?? 'USER',
                     emailVerified: data.user.emailVerified ?? null,
+                    permissions: data.user.permissions ?? [],
                 });
             }
 
@@ -321,6 +332,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     avatar: data.user.avatar ?? null,
                     role: data.user.role ?? 'USER',
                     emailVerified: data.user.emailVerified ?? null,
+                    permissions: data.user.permissions ?? [],
                 });
             }
 
@@ -385,6 +397,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         avatar: data.user.avatar ?? null,
                         role: data.user.role ?? 'USER',
                         emailVerified: data.user.emailVerified ?? null,
+                        permissions: data.user.permissions ?? [],
                     });
                 }
 

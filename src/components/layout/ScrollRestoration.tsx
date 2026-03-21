@@ -3,7 +3,8 @@
 import { useEffect, useMemo } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { safeGetItem, safeSetItem, isBrowser, safeWindow, safeDocument } from "@/lib/safe-client-utils";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 type ScrollPosition = {
 	x: number;

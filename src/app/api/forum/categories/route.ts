@@ -1,5 +1,5 @@
-ï»¿import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       const { name, description, icon } = await req.json();
 
       if (!name || !description) {
-        return badRequestResponse("Ø§Ù„Ø§Ø³Ù… ÙˆØ§Ù„ÙˆØµÙ Ù…Ø·Ù„ÙˆØ¨Ø§Ù†");
+        return badRequestResponse("ÇáÇÓã æÇáæÕİ ãØáæÈÇä");
       }
 
       const newCategory = await prisma.category.create({
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
           name,
           description,
           slug: name.toLowerCase().replace(/\s+/g, '-') + '-' + Date.now(),
-          icon: icon || "ğŸ“Œ",
+          icon: icon || "??",
           type: "FORUM"
         }
       });

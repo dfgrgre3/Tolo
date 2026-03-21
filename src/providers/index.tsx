@@ -1,18 +1,28 @@
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { Suspense } from 'react';
 import { AuthProvider } from '@/contexts/auth-context';
-import { ToastProvider } from '@/contexts/toast-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@/components/ui/tooltip';
+import GlobalSettingsApplier from '@/components/layout/GlobalSettingsApplier';
 
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 30, // 30 minutes (formerly cacheTime)
       retry: 1,
+      refetchOnWindowFocus: false, // Disable refetch on window focus
+      refetchOnReconnect: true, // Refetch when reconnecting
+      refetchOnMount: true, // Refetch when mounting
+      networkMode: 'online', // Only fetch when online
+    },
+    mutations: {
+      retry: 1,
+      networkMode: 'online',
     },
   },
 });
@@ -32,16 +42,7 @@ type GlobalProvidersProps = {
  * 5. WebSocketProvider - Real-time features (needs auth state)
  */
 export function GlobalProviders({ children }: GlobalProvidersProps) {
-  const [mounted, setMounted] = useState(false);
-  const [isReady, setIsReady] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-    const timer = setTimeout(() => {
-      setIsReady(true);
-    }, 0);
-    return () => clearTimeout(timer);
-  }, []);
+
   
   return (
     <>
@@ -50,20 +51,18 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
           <QueryClientProvider client={queryClient}>
             <ThemeProvider
               attribute="class"
-              defaultTheme="system"
-              enableSystem
+              defaultTheme="light"
+              enableSystem={false}
               disableTransitionOnChange
             >
               <AuthProvider>
-                <ToastProvider>
-                  {mounted && isReady ? (
-                    <WebSocketProvider>
+                <GlobalSettingsApplier>
+                  <WebSocketProvider>
+                    <TooltipProvider>
                       {children}
-                    </WebSocketProvider>
-                  ) : (
-                    <>{children}</>
-                  )}
-                </ToastProvider>
+                    </TooltipProvider>
+                  </WebSocketProvider>
+                </GlobalSettingsApplier>
               </AuthProvider>
             </ThemeProvider>
           </QueryClientProvider>

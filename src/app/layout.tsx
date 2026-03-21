@@ -1,67 +1,36 @@
-import { Inter } from "next/font/google";
-import "./globals.css";
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
-import { GlobalProviders } from "@/providers/index";
-import NotificationsClient from "@/components/NotificationsClient";
-import AppClientRoot from "@/components/layout/AppClientRoot";
+import type { Metadata } from 'next';
+import { Alexandria } from 'next/font/google';
+import { GlobalProviders } from '@/providers';
+import './globals.css';
 
-const inter = Inter({
-	subsets: ["latin"],
-	variable: "--font-inter",
-	display: "swap",
+const alexandria = Alexandria({
+  subsets: ['arabic', 'latin'],
+  variable: '--font-alexandria',
+  display: 'swap',
+  preload: true,
+  weight: ['400', '500', '600', '700', '800'],
 });
 
+export const metadata: Metadata = {
+  title: 'Tolo',
+  description: 'منصة تعليمية تفاعلية',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+};
 
 export default function RootLayout({
-	children,
-}: {
-	children: React.ReactNode;
-}) {
-	const defaultLang = 'ar';
-	const defaultDir = 'rtl';
-	const devServiceWorkerCleanupScript = `
-		(function () {
-			if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
-			navigator.serviceWorker.getRegistrations()
-				.then(function (registrations) {
-					registrations.forEach(function (registration) {
-						registration.unregister();
-					});
-				})
-				.catch(function () {});
-			if (!("caches" in window)) return;
-			caches.keys()
-				.then(function (cacheNames) {
-					cacheNames
-						.filter(function (name) { return name.indexOf("thanawy-search") === 0; })
-						.forEach(function (name) { caches.delete(name); });
-				})
-				.catch(function () {});
-		})();
-	`;
-
-	return (
-		<html lang={defaultLang} dir={defaultDir} suppressHydrationWarning>
-			<head>
-				{process.env.NODE_ENV !== 'production' ? (
-					<script
-						dangerouslySetInnerHTML={{ __html: devServiceWorkerCleanupScript }}
-					/>
-				) : null}
-			</head>
-			<body className={`${inter.variable} font-sans antialiased`}>
-				<AppClientRoot>
-					<GlobalProviders>
-						<div className="min-h-screen flex flex-col">
-							<Header />
-							<NotificationsClient />
-							<main className="flex-1">{children}</main>
-							<Footer />
-						</div>
-					</GlobalProviders>
-				</AppClientRoot>
-			</body>
-		</html>
-	);
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <body className={alexandria.variable}>
+        <GlobalProviders>{children}</GlobalProviders>
+      </body>
+    </html>
+  );
 }

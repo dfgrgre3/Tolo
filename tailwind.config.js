@@ -10,7 +10,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
+        sans: ['var(--font-alexandria)', 'var(--font-sans)', 'system-ui', 'sans-serif'],
+        alexandria: ['var(--font-alexandria)', 'sans-serif'],
+        jakarta: ['var(--font-sans)', 'sans-serif'],
       },
       colors: {
         border: 'hsl(var(--border) / <alpha-value>)',

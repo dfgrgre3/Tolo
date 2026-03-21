@@ -152,19 +152,6 @@ export default function Reminders({
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>('default');
   const [activeReminders, setActiveReminders] = useState<string[]>([]);
   
-  // Statistics
-  const [stats, setStats] = useState({
-    total: 0,
-    upcoming: 0,
-    overdue: 0,
-    completed: 0,
-    snoozed: 0,
-    todayReminders: 0,
-    weekReminders: 0,
-    mostUsedType: '',
-    averageCompletionTime: 0
-  });
-
   useEffect(() => {
     setReminders(initialReminders);
   }, [initialReminders]);
@@ -242,14 +229,9 @@ export default function Reminders({
     };
   }, []);
 
-  // Memoize stats calculation
-  const statsMemo = useMemo(() => {
+  const stats = useMemo(() => {
     return calculateStatsInternal(reminders);
   }, [reminders, calculateStatsInternal]);
-
-  useEffect(() => {
-    setStats(statsMemo);
-  }, [statsMemo]);
 
   // Show reminder notification function
   const showReminderNotification = useCallback((reminder: Reminder) => {
@@ -406,15 +388,15 @@ export default function Reminders({
     }
   }, [sortBy]);
 
-  const getFilteredAndSortedReminders = useCallback(() => {
-    const filteredReminders = reminders.filter(matchesAllFilters);
-    
-    filteredReminders.sort((a, b) => {
+  const filteredReminders = useMemo(() => {
+    const nextReminders = reminders.filter(matchesAllFilters);
+
+    nextReminders.sort((a, b) => {
       const comparison = getSortComparison(a, b);
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-    return filteredReminders;
+    return nextReminders;
   }, [reminders, matchesAllFilters, getSortComparison, sortOrder]);
 
   const handleFormSubmit = useCallback(async (e: React.FormEvent) => {
@@ -716,8 +698,6 @@ export default function Reminders({
       return { text: format(remindTime, 'dd/MM/yyyy', { locale: ar }), color: 'text-gray-600', urgent: false };
     }
   };
-
-  const filteredReminders = getFilteredAndSortedReminders();
 
   return (
     <div className="space-y-6">

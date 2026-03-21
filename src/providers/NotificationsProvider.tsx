@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Check, CheckCheck, Trash2, MoreHorizontal } from 'lucide-react';
+import { Bell, CheckCheck } from 'lucide-react';
 import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { Button } from '@/components/ui/button';
 // تم إزالة نظام تسجيل الدخول
@@ -12,9 +12,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-  DropdownMenuSub,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -60,22 +57,33 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         credentials: 'include',
       });
 
+      if (response.status === 401 || response.status === 403) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setHasMore(false);
+        return;
+      }
+
       if (!response.ok) throw new Error('Failed to fetch notifications');
 
       const data = await response.json();
+      const payload = data?.data ?? data;
+      const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : [];
+      const nextUnreadCount = typeof payload?.unreadCount === 'number' ? payload.unreadCount : 0;
+      const nextHasMore = typeof payload?.hasMore === 'boolean' ? payload.hasMore : nextNotifications.length === limit;
 
       if (reset) {
-        setNotifications(data.notifications);
+        setNotifications(nextNotifications);
         setOffset(0);
       } else {
-        setNotifications(prev => [...prev, ...data.notifications]);
+        setNotifications(prev => [...prev, ...nextNotifications]);
         setOffset(currentOffset + limit);
       }
 
-      setUnreadCount(data.unreadCount);
-      setHasMore(data.hasMore);
+      setUnreadCount(nextUnreadCount);
+      setHasMore(nextHasMore);
     } catch (error) {
-      logger.error('Error fetching notifications:', error);
+      logger.warn('Error fetching notifications:', error);
     } finally {
       setIsLoading(false);
     }
@@ -85,6 +93,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   useEffect(() => {
     fetchNotifications(true);
     scheduleNotificationChecks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Mark notifications as read

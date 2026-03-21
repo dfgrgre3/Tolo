@@ -2,7 +2,7 @@
 
 import React, { useRef } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sparkles, Star, Zap } from "lucide-react";
 import { CourseCard, CourseCardProps } from "./CourseCard";
 
 interface FeaturedCoursesProps {
@@ -11,6 +11,13 @@ interface FeaturedCoursesProps {
   onUnenroll: (courseId: string) => void;
   enrollingId?: string | null;
 }
+
+const STYLES = {
+  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "rpg-card h-full p-6",
+  neonText: "rpg-neon-text font-black",
+  goldText: "rpg-gold-text font-black"
+};
 
 export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
   courses,
@@ -33,67 +40,63 @@ export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
   if (courses.length === 0) return null;
 
   return (
-    <section className="mb-12">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <motion.div
-            animate={{ 
-              rotate: [0, 10, -10, 0],
-              scale: [1, 1.1, 1]
-            }}
-            transition={{ 
-              duration: 3, 
-              repeat: Infinity 
-            }}
-            className="h-10 w-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/30"
-          >
-            <Sparkles className="h-5 w-5 text-white" />
-          </motion.div>
-          <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ظ…ظ…ظٹط²ط©
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              ط£ظپط¶ظ„ ط§ظ„ط¯ظˆط±ط§طھ ط§ظ„ظ…ط®طھط§ط±ط© ظ„ظƒ
-            </p>
-          </div>
+    <section className="mb-20 space-y-8">
+      {/* --- Section Header --- */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4">
+        <div className="flex items-center gap-4 text-center md:text-right">
+           <motion.div
+              animate={{ rotate: [0, 5, -5, 0], scale: [1, 1.05, 1] }}
+              transition={{ duration: 4, repeat: Infinity }}
+              className="h-14 w-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-[0_0_30px_rgba(245,158,11,0.3)] border-2 border-white/20"
+           >
+              <Star className="h-8 w-8 text-black fill-black" />
+           </motion.div>
+           <div className="space-y-1">
+              <h2 className="text-3xl font-black text-white">المخطوطات الأسطورية</h2>
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">أفضل العلوم المختارة بمعايير ملكية</p>
+           </div>
         </div>
 
-        {/* Navigation buttons */}
-        <div className="flex gap-2">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => scroll("right")}
-            className="h-10 w-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:border-blue-300 hover:text-blue-500 transition-colors"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => scroll("left")}
-            className="h-10 w-10 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-600 dark:text-slate-300 hover:border-blue-300 hover:text-blue-500 transition-colors"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </motion.button>
+        {/* Custom Navigation */}
+        <div className="flex items-center gap-3">
+           <motion.button
+              whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => scroll("right")}
+              className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white transition-all shadow-xl backdrop-blur-3xl"
+           >
+              <ChevronRight className="h-6 w-6" />
+           </motion.button>
+           <motion.button
+              whileHover={{ scale: 1.1, backgroundColor: 'rgba(255,255,255,0.1)' }}
+              whileTap={{ scale: 0.9 }}
+              onClick={() => scroll("left")}
+              className="h-12 w-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white transition-all shadow-xl backdrop-blur-3xl"
+           >
+              <ChevronLeft className="h-6 w-6" />
+           </motion.button>
         </div>
       </div>
 
-      {/* Horizontal scroll container */}
-      <div className="relative">
-        {/* Gradient fades */}
-        <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-transparent to-background z-10 pointer-events-none" />
-        <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-transparent to-background z-10 pointer-events-none" />
+      {/* --- Carousel Container --- */}
+      <div className="relative group/carousel">
+        {/* Magic Fades at edges */}
+        <div className="absolute right-0 top-0 bottom-0 w-32 bg-gradient-to-l from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
+        <div className="absolute left-0 top-0 bottom-0 w-32 bg-gradient-to-r from-[#0A0A0F] to-transparent z-10 pointer-events-none" />
         
         <div
           ref={scrollRef}
-          className="flex gap-6 overflow-x-auto pb-4 scrollbar-hide scroll-smooth"
+          className="flex gap-8 overflow-x-auto px-12 py-8 scrollbar-hide scroll-smooth"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {courses.map((course, index) => (
-            <div key={course.id} className="min-w-[340px] max-w-[340px]">
+            <motion.div 
+              key={course.id} 
+              className="min-w-[400px] max-w-[400px]"
+              initial={{ opacity: 0, scale: 0.9 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              viewport={{ once: true }}
+            >
               <CourseCard
                 {...course}
                 featured={true}
@@ -102,9 +105,12 @@ export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
                 onEnroll={() => onEnroll(course.id)}
                 onUnenroll={() => onUnenroll(course.id)}
               />
-            </div>
+            </motion.div>
           ))}
         </div>
+        
+        {/* Floating background spark */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-1/2 bg-blue-600/5 blur-[120px] rounded-full pointer-events-none -z-10" />
       </div>
     </section>
   );

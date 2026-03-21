@@ -38,7 +38,7 @@ export async function loggingMiddleware(
     try {
       const body = await request.clone().json();
       requestLog.body = body;
-    } catch (error) {
+    } catch (_error) {
       // Body might not be JSON
     }
   }
@@ -60,7 +60,7 @@ export async function loggingMiddleware(
       try {
         const responseBody = await response.clone().json();
         responseLog.body = responseBody;
-      } catch (error) {
+      } catch (_error) {
         // Response might not be JSON
       }
     }

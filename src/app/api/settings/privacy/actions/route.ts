@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { badRequestResponse, handleApiError, withAuth } from '@/lib/api-utils';
 import { getSettingsPreferences } from '@/lib/settings-preferences-store';
 import { SessionService } from '@/lib/auth/session-service';

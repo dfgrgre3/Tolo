@@ -106,7 +106,7 @@ export async function sendBulkNotifications(
 
   // Validate each notification
   const invalidNotifications = notifications.filter(
-    (notif, index) =>
+    (notif, _index) =>
       !notif.title ||
       typeof notif.title !== 'string' ||
       notif.title.trim().length === 0 ||
@@ -274,7 +274,7 @@ export const notificationTemplates = {
     title: 'متابع جديد',
     message: `${followerName} يتابعك الآن`,
     type: 'info' as NotificationType,
-    actionUrl: '/profile',
+    actionUrl: '/settings',
     icon: '👤',
   }),
 
@@ -371,3 +371,4 @@ export const notificationService = {
   sendTemplatedNotification,
   notificationTemplates,
 };
+

@@ -4,7 +4,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, Bot, User, Zap } from 'lucide-react';
 import { getGeminiInfo } from '@/lib/ai-config';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Message {
   role: 'user' | 'assistant';

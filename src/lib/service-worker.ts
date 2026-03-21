@@ -8,7 +8,7 @@ import { logger } from '@/lib/logger';
 
 const SW_PATH = "/sw.js";
 const SW_SCOPE = "/";
-const SW_CACHE_PREFIX = "thanawy-search";
+const SW_CACHE_PREFIX = "tolo-search";
 
 async function cleanupServiceWorkerArtifacts(): Promise<void> {
 	try {

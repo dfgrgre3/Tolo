@@ -183,7 +183,7 @@ export function useTimeData(): UseTimeDataReturn {
         if (id && id.trim() !== '' && id !== 'undefined') {
           setUserId(id);
         } else {
-          logger.warn('Failed to get valid userId');
+          logger.debug('Failed to get valid userId');
           setIsLoading(false);
         }
       } catch (error) {

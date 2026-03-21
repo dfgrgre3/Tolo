@@ -88,6 +88,17 @@ export function sanitizeUrl(url: string | undefined | null, fallback: string = '
 export function safeNavigate(url: string | undefined | null, fallback: string = '/'): void {
   const safeUrl = sanitizeUrl(url, fallback);
   if (typeof window !== 'undefined') {
+    try {
+      const current = new URL(window.location.href);
+      const target = new URL(safeUrl, current.origin);
+      if (target.origin === current.origin) {
+        window.history.pushState({}, '', target.pathname + target.search + target.hash);
+        return;
+      }
+    } catch {
+      // fall through to location assignment
+    }
+
     window.location.href = safeUrl;
   }
 }

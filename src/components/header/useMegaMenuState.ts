@@ -21,7 +21,10 @@ export function useMegaMenuState() {
 
 	// إغلاق القائمة عند تغيير المسار
 	useEffect(() => {
-		setOpenMegaMenu(null);
+		const frame = requestAnimationFrame(() => {
+			setOpenMegaMenu(null);
+		});
+		return () => cancelAnimationFrame(frame);
 	}, [pathname]);
 
 	// إغلاق القائمة عند النقر خارجها

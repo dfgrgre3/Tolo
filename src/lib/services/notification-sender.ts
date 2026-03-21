@@ -4,7 +4,7 @@
  * (بريد إلكتروني، رسائل نصية، إشعارات داخل التطبيق)
  */
 
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { logger } from '@/lib/logger';

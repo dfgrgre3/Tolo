@@ -10,6 +10,10 @@ import { rpgCommonStyles, SUBJECT_EMOJIS } from "../constants";
 import type { Exam, SubjectWithExams } from "../types";
 import StatCard from "../StatCard";
 
+type ExamsResponse = {
+    exams: Exam[];
+};
+
 // --- Skeleton Components ---
 const SubjectCardSkeleton = () => (
     <div className="bg-white/5 border border-white/10 rounded-2xl p-6 text-center animate-pulse h-[180px] w-full" />
@@ -141,10 +145,10 @@ const ExamsSectionComponent = () => {
             
             try {
                 // TODO: Replace with actual stricter typed response if available
-                const { data: examsData, error: examsError } = await safeFetch<Exam[]>(
+                const { data: examsData, error: examsError } = await safeFetch<ExamsResponse>(
                     "/api/exams",
                     { signal: abortControllerRef.current.signal, cache: 'no-store' },
-                    []
+                    { exams: [] }
                 );
 
                 if (examsError) {
@@ -152,7 +156,9 @@ const ExamsSectionComponent = () => {
                     throw new Error(examsError.message || "Failed to fetch exams");
                 }
 
-                if (!examsData || !Array.isArray(examsData)) {
+                const exams = Array.isArray(examsData?.exams) ? examsData.exams : [];
+
+                if (exams.length === 0) {
                      // Empty state handling or throw error
                      setSubjects([]);
                      setStats([]);
@@ -161,7 +167,7 @@ const ExamsSectionComponent = () => {
 
                 const subjectMap = new Map<string, SubjectWithExams>();
                 
-                examsData.forEach((exam: Exam) => {
+                exams.forEach((exam: Exam) => {
                     const subjectName = exam.subject || "عام";
                     if (!subjectMap.has(subjectName)) {
                         subjectMap.set(subjectName, {
@@ -186,8 +192,8 @@ const ExamsSectionComponent = () => {
 
                 setSubjects(Array.from(subjectMap.values()));
 
-                const totalExams = examsData.length;
-                const totalQuestions = examsData.reduce((sum, exam) => sum + (exam.questionCount || 0), 0);
+                const totalExams = exams.length;
+                const totalQuestions = exams.reduce((sum, exam) => sum + (exam.questionCount || 0), 0);
                 
                 setStats([
                     { icon: <Scroll />, value: `${totalExams}+`, label: "مهمة متاحة", color: "from-blue-500 to-cyan-500" },

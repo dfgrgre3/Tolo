@@ -14,6 +14,10 @@ if (Test-Path "node_modules\.prisma") {
     Remove-Item "node_modules\.prisma" -Recurse -Force -ErrorAction SilentlyContinue
 }
 
+if (Test-Path ".next") {
+    Remove-Item ".next" -Recurse -Force -ErrorAction SilentlyContinue
+}
+
 # Generate and build
 Write-Host "`n[3/3] Generating Prisma and building..." -ForegroundColor Yellow
 npx prisma generate
@@ -22,7 +26,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-npx next build
+npx next build --webpack
 if ($LASTEXITCODE -ne 0) {
     Write-Host "Build failed!" -ForegroundColor Red
     exit 1

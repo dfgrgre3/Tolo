@@ -1,5 +1,5 @@
-﻿import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
-import { prisma } from '@/lib/db';
+import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
+import { prisma } from '@/lib/db-unified';
 
 import { logger } from '@/lib/logger';
 
@@ -23,22 +23,22 @@ export async function generateSummary(
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
 
-  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ظ…ظ„ط®طµ ط´ط§ظ…ظ„ ظˆظ…ظپظٹط¯ ظ„ظ„ظ†طµ ط§ظ„طھط§ظ„ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط©. ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط§ظ„ظ…ظ„ط®طµ:
-- ظˆط§ط¶ط­ ظˆظ…ط®طھطµط± (ط¨ط­ط¯ ط£ظ‚طµظ‰ ${maxLength} ظƒظ„ظ…ط©)
-- ظٹط­طھظˆظٹ ط¹ظ„ظ‰ ط§ظ„ظ†ظ‚ط§ط· ط§ظ„ط±ط¦ظٹط³ظٹط©
-- ظ…ظ†ط§ط³ط¨ ظ„ظ„ط·ظ„ط§ط¨
-- ظ…ظ†ط¸ظ… ظپظٹ ظ†ظ‚ط§ط· ط£ظˆ ظپظ‚ط±ط§طھ ظ‚طµظٹط±ط©
+  const prompt = `88& 7?7?8 7?7?7 8&87?7? 7?7?8&8 8?8&8~8y7? 888 7? 7?87?7?88y 7?7?87?7?7?8y7?. 8y7?7? 7?8  8y8?8?8  7?88&87?7?:
+- 8?7?7?7? 8?8&7?7?7?7? (7?7?7? 7?87?80 ${maxLength} 8?88&7?)
+- 8y7?7?8?8y 7?880 7?88 87?7? 7?87?7?8y7?8y7?
+- 8&8 7?7?7? 887?87?7?
+- 8&8 7?8& 8~8y 8 87?7? 7?8? 8~87?7?7? 87?8y7?7?
 
-ط§ظ„ظ†طµ:
+7?88 7?:
 ${text}
 
-ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
+7?7?7? 7?7?8y77? JSON:
 {
-  "title": "ط¹ظ†ظˆط§ظ† ط§ظ„ظ…ظ„ط®طµ",
-  "summary": "ط§ظ„ظ…ظ„ط®طµ ظ‡ظ†ط§",
-  "keyPoints": ["ظ†ظ‚ط·ط© 1", "ظ†ظ‚ط·ط© 2", "ظ†ظ‚ط·ط© 3"],
+  "title": "7?8 8?7?8  7?88&87?7?",
+  "summary": "7?88&87?7? 8!8 7?",
+  "keyPoints": ["8 87?7? 1", "8 87?7? 2", "8 87?7? 3"],
   "difficulty": "easy|medium|hard",
-  "estimatedReadTime": "ط¹ط¯ط¯ ط§ظ„ط¯ظ‚ط§ط¦ظ‚"
+  "estimatedReadTime": "7?7?7? 7?87?87?7?8"
 }`;
 
   const content = await callAI(prompt, provider);
@@ -52,7 +52,7 @@ ${text}
     data: {
       userId,
       type: 'summary',
-      title: summary.title || 'ظ…ظ„ط®طµ طھظ„ظ‚ط§ط¦ظٹ',
+      title: summary.title || '8&87?7? 7?887?7?8y',
       content: JSON.stringify(summary),
       // subject: subject || null,
       metadata: JSON.stringify({
@@ -66,7 +66,7 @@ ${text}
   return {
     id: saved.id,
     type: 'summary',
-    title: summary.title || 'ظ…ظ„ط®طµ طھظ„ظ‚ط§ط¦ظٹ',
+    title: summary.title || '8&87?7? 7?887?7?8y',
     content: summary,
     subject,
     metadata: saved.metadata as any
@@ -84,22 +84,22 @@ export async function generateFlashcards(
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
 
-  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ${count} ط¨ط·ط§ظ‚ط© طھط¹ظ„ظٹظ…ظٹط© (Flashcard) ظ…ظ† ط§ظ„ظ†طµ ط§ظ„طھط§ظ„ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط©. ظƒظ„ ط¨ط·ط§ظ‚ط© ظٹط¬ط¨ ط£ظ† طھط­طھظˆظٹ ط¹ظ„ظ‰:
-- ط³ط¤ط§ظ„ ط£ظˆ ظ…ظپظ‡ظˆظ… ظ…ظ† ط§ظ„ط¬ط§ظ†ط¨ ط§ظ„ط£ظ…ط§ظ…ظٹ
-- ط¥ط¬ط§ط¨ط© ط£ظˆ ط´ط±ط­ ظ…ظ† ط§ظ„ط¬ط§ظ†ط¨ ط§ظ„ط®ظ„ظپظٹ
-- ظ…ظˆط¶ظˆط¹ ط£ظˆ ظپط¦ط© (ط§ط®طھظٹط§ط±ظٹ)
+  const prompt = `88& 7?7?8 7?7?7 ${count} 7?7?7?87? 7?7?88y8&8y7? (Flashcard) 8&8  7?88 7? 7?87?7?88y 7?7?87?7?7?8y7?. 8?8 7?7?7?87? 8y7?7? 7?8  7?7?7?8?8y 7?880:
+- 7?7?7?8 7?8? 8&8~8!8?8& 8&8  7?87?7?8 7? 7?87?8&7?8&8y
+- 7?7?7?7?7? 7?8? 7?7?7? 8&8  7?87?7?8 7? 7?87?88~8y
+- 8&8?7?8?7? 7?8? 8~7?7? (7?7?7?8y7?7?8y)
 
-ط§ظ„ظ†طµ:
+7?88 7?:
 ${text}
 
-ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
+7?7?7? 7?7?8y77? JSON:
 {
-  "title": "ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©",
+  "title": "7?7?7?87?7? 7?7?88y8&8y7?",
   "flashcards": [
     {
-      "front": "ط§ظ„ط³ط¤ط§ظ„ ط£ظˆ ط§ظ„ظ…ظپظ‡ظˆظ…",
-      "back": "ط§ظ„ط¥ط¬ط§ط¨ط© ط£ظˆ ط§ظ„ط´ط±ط­",
-      "category": "ط§ظ„ظپط¦ط©"
+      "front": "7?87?7?7?8 7?8? 7?88&8~8!8?8&",
+      "back": "7?87?7?7?7?7? 7?8? 7?87?7?7?",
+      "category": "7?88~7?7?"
     }
   ]
 }`;
@@ -115,7 +115,7 @@ ${text}
     data: {
       userId,
       type: 'flashcard',
-      title: flashcards.title || 'ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©',
+      title: flashcards.title || '7?7?7?87?7? 7?7?88y8&8y7?',
       content: JSON.stringify(flashcards),
       // subject: subject || null,
       metadata: JSON.stringify({
@@ -127,7 +127,7 @@ ${text}
   return {
     id: saved.id,
     type: 'flashcard',
-    title: flashcards.title || 'ط¨ط·ط§ظ‚ط§طھ طھط¹ظ„ظٹظ…ظٹط©',
+    title: flashcards.title || '7?7?7?87?7? 7?7?88y8&8y7?',
     content: flashcards,
     subject,
     metadata: saved.metadata as any
@@ -158,36 +158,36 @@ export async function generateStudyPlan(
     date: s.startTime
   }));
 
-  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ط®ط·ط© ط¯ط±ط§ط³ظٹط© ظ…ظپطµظ„ط© ط¨ط§ظ„ط¹ط±ط¨ظٹط© ظ„ظ…ط¯ط© ${duration} ط£ظٹط§ظ… ط¨ظ…ط¹ط¯ظ„ ${hoursPerDay} ط³ط§ط¹ط© ظٹظˆظ…ظٹط§ظ‹.
+  const prompt = `88& 7?7?8 7?7?7 7?7?7? 7?7?7?7?8y7? 8&8~7?87? 7?7?87?7?7?8y7? 88&7?7? ${duration} 7?8y7?8& 7?8&7?7?8 ${hoursPerDay} 7?7?7?7? 8y8?8&8y7?89.
 
-ط§ظ„ظ…ظˆط§ط¯ ط§ظ„ط¯ط±ط§ط³ظٹط©:
+7?88&8?7?7? 7?87?7?7?7?8y7?:
 ${subjects.join(', ')}
 
-ط³ط¬ظ„ ط§ظ„ط¯ط±ط§ط³ط© ط§ظ„ط³ط§ط¨ظ‚:
+7?7?8 7?87?7?7?7?7? 7?87?7?7?8:
 ${JSON.stringify(studyHistory, null, 2)}
 
-ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
+7?7?7? 7?7?8y77? JSON:
 {
-  "title": "ط®ط·ط© ط¯ط±ط§ط³ظٹط©",
+  "title": "7?7?7? 7?7?7?7?8y7?",
   "duration": ${duration},
   "totalHours": ${duration * hoursPerDay},
   "dailySchedule": [
     {
-      "day": "ط§ظ„ظٹظˆظ… 1",
+      "day": "7?88y8?8& 1",
       "date": "2024-01-01",
       "subjects": [
         {
-          "subject": "ط§ط³ظ… ط§ظ„ظ…ط§ط¯ط©",
-          "duration": "ط³ط§ط¹ط©",
-          "topics": ["ظ…ظˆط¶ظˆط¹ 1", "ظ…ظˆط¶ظˆط¹ 2"],
-          "activities": ["ظ‚ط±ط§ط،ط©", "ط­ظ„ طھظ…ط§ط±ظٹظ†"]
+          "subject": "7?7?8& 7?88&7?7?7?",
+          "duration": "7?7?7?7?",
+          "topics": ["8&8?7?8?7? 1", "8&8?7?8?7? 2"],
+          "activities": ["87?7?77?", "7?8 7?8&7?7?8y8 "]
         }
       ],
       "totalHours": ${hoursPerDay}
     }
   ],
-  "tips": ["ظ†طµظٹط­ط© 1", "ظ†طµظٹط­ط© 2"],
-  "goals": ["ظ‡ط¯ظپ 1", "ظ‡ط¯ظپ 2"]
+  "tips": ["8 7?8y7?7? 1", "8 7?8y7?7? 2"],
+  "goals": ["8!7?8~ 1", "8!7?8~ 2"]
 }`;
 
   const content = await callAI(prompt, provider);
@@ -201,7 +201,7 @@ ${JSON.stringify(studyHistory, null, 2)}
     data: {
       userId,
       type: 'study_plan',
-      title: studyPlan.title || 'ط®ط·ط© ط¯ط±ط§ط³ظٹط©',
+      title: studyPlan.title || '7?7?7? 7?7?7?7?8y7?',
       content: JSON.stringify(studyPlan),
       metadata: JSON.stringify({
         duration,
@@ -214,7 +214,7 @@ ${JSON.stringify(studyHistory, null, 2)}
   return {
     id: saved.id,
     type: 'study_plan',
-    title: studyPlan.title || 'ط®ط·ط© ط¯ط±ط§ط³ظٹط©',
+    title: studyPlan.title || '7?7?7? 7?7?7?7?8y7?',
     content: studyPlan,
     metadata: saved.metadata as any
   };
@@ -232,29 +232,29 @@ export async function generatePracticeQuestions(
 ): Promise<GeneratedContent> {
   const provider = getDefaultProvider();
 
-  const prompt = `ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ${count} ط³ط¤ط§ظ„ طھط¯ط±ظٹط¨ظٹ ط¨ط§ظ„ط¹ط±ط¨ظٹط© ط­ظˆظ„ ط§ظ„ظ…ظˆط¶ظˆط¹ ط§ظ„طھط§ظ„ظٹ ط¨ظ…ط³طھظˆظ‰ طµط¹ظˆط¨ط© ${difficulty}.
+  const prompt = `88& 7?7?8 7?7?7 ${count} 7?7?7?8 7?7?7?8y7?8y 7?7?87?7?7?8y7? 7?8?8 7?88&8?7?8?7? 7?87?7?88y 7?8&7?7?8?80 7?7?8?7?7? ${difficulty}.
 
-ط§ظ„ظ…ظˆط¶ظˆط¹: ${topic}
+7?88&8?7?8?7?: ${topic}
 
-ظƒظ„ ط³ط¤ط§ظ„ ظٹط¬ط¨ ط£ظ† ظٹط­طھظˆظٹ ط¹ظ„ظ‰:
-- ظ†طµ ط§ظ„ط³ط¤ط§ظ„
-- ظ†ظˆط¹ ط§ظ„ط³ط¤ط§ظ„ (ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯طŒ طµط­/ط®ط·ط£طŒ ط¥ط¬ط§ط¨ط© ظ‚طµظٹط±ط©)
-- ط§ظ„ط®ظٹط§ط±ط§طھ (ط¥ظ† ظƒط§ظ† ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯)
-- ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط©
-- ط´ط±ط­ ط§ظ„ط¥ط¬ط§ط¨ط© (ط§ط®طھظٹط§ط±ظٹ)
+8?8 7?7?7?8 8y7?7? 7?8  8y7?7?8?8y 7?880:
+- 8 7? 7?87?7?7?8
+- 8 8?7? 7?87?7?7?8 (7?7?7?8y7?7? 8&8  8&7?7?7?7?7R 7?7?/7?7?7?7R 7?7?7?7?7? 87?8y7?7?)
+- 7?87?8y7?7?7?7? (7?8  8?7?8  7?7?7?8y7?7? 8&8  8&7?7?7?7?)
+- 7?87?7?7?7?7? 7?87?7?8y7?7?
+- 7?7?7? 7?87?7?7?7?7? (7?7?7?8y7?7?8y)
 
-ط£ط¬ط¨ ط¨طµظٹط؛ط© JSON:
+7?7?7? 7?7?8y77? JSON:
 {
-  "title": "ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©",
+  "title": "7?7?7?87? 7?7?7?8y7?8y7?",
   "topic": "${topic}",
   "difficulty": "${difficulty}",
   "questions": [
     {
-      "question": "ظ†طµ ط§ظ„ط³ط¤ط§ظ„",
+      "question": "8 7? 7?87?7?7?8",
       "type": "multiple_choice|true_false|short_answer",
-      "options": ["ط®ظٹط§ط± 1", "ط®ظٹط§ط± 2", "ط®ظٹط§ط± 3", "ط®ظٹط§ط± 4"],
-      "correctAnswer": "ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط©",
-      "explanation": "ط´ط±ط­ ط§ظ„ط¥ط¬ط§ط¨ط©"
+      "options": ["7?8y7?7? 1", "7?8y7?7? 2", "7?8y7?7? 3", "7?8y7?7? 4"],
+      "correctAnswer": "7?87?7?7?7?7? 7?87?7?8y7?7?",
+      "explanation": "7?7?7? 7?87?7?7?7?7?"
     }
   ]
 }`;
@@ -270,7 +270,7 @@ export async function generatePracticeQuestions(
     data: {
       userId,
       type: 'practice_question',
-      title: questions.title || 'ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©',
+      title: questions.title || '7?7?7?87? 7?7?7?8y7?8y7?',
       content: JSON.stringify(questions),
       // subject: subject || null,
       metadata: JSON.stringify({
@@ -284,7 +284,7 @@ export async function generatePracticeQuestions(
   return {
     id: saved.id,
     type: 'practice_question',
-    title: questions.title || 'ط£ط³ط¦ظ„ط© طھط¯ط±ظٹط¨ظٹط©',
+    title: questions.title || '7?7?7?87? 7?7?7?8y7?8y7?',
     content: questions,
     subject,
     metadata: saved.metadata as any
@@ -307,7 +307,7 @@ async function callAI(prompt: string, provider: typeof AI_PROVIDERS.OPENAI | typ
         messages: [
           {
             role: 'system',
-            content: 'ط£ظ†طھ ظ…ط³ط§ط¹ط¯ ط°ظƒط§ط، ط§طµط·ظ†ط§ط¹ظٹ ظ…طھط®طµطµ ظپظٹ ط§ظ„طھط¹ظ„ظٹظ…. ظٹط¬ط¨ ط£ظ† طھط¬ظٹط¨ ط¨طµظٹط؛ط© JSON ظپظ‚ط·.'
+            content: '7?8 7? 8&7?7?7?7? 7?8?7?7 7?7?7?8 7?7?8y 8&7?7?7?7? 8~8y 7?87?7?88y8&. 8y7?7? 7?8  7?7?8y7? 7?7?8y77? JSON 8~87?.'
           },
           {
             role: 'user',
@@ -369,7 +369,7 @@ function parseJSONResponse(text: string): any {
     logger.error('Error parsing JSON response:', error);
     // Return a fallback structure
     return {
-      title: 'ظ…ط­طھظˆظ‰ ظ…ظ†ط´ط£',
+      title: '8&7?7?8?80 8&8 7?7?',
       content: text
     };
   }
@@ -416,10 +416,10 @@ export async function generateChatResponse(
 ): Promise<string> {
   const provider = getDefaultProvider();
 
-  const prompt = `ط£ظ†طھ ظ…ط³ط§ط¹ط¯ طھط¹ظ„ظٹظ…ظٹ ط°ظƒظٹ ظ„ظ„ط·ظ„ط§ط¨. ط£ط¬ط¨ ط¹ظ„ظ‰ ط³ط¤ط§ظ„ ط§ظ„ط·ط§ظ„ط¨ ط§ظ„طھط§ظ„ظٹ:
+  const prompt = `7?8 7? 8&7?7?7?7? 7?7?88y8&8y 7?8?8y 887?87?7?. 7?7?7? 7?880 7?7?7?8 7?87?7?87? 7?87?7?88y:
 ${message}
 
-طھط§ط±ظٹط® ط§ظ„ظ…ط­ط§ط¯ط«ط©:
+7?7?7?8y7? 7?88&7?7?7?7?7?:
 ${history.map(m => `${m.role}: ${m.content}`).join('\n')}
 `;
 

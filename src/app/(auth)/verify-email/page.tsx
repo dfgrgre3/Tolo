@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -10,14 +10,18 @@ function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get('token');
+  const initialState = useMemo(() => {
+    if (!token) {
+      return { status: 'error' as const, message: 'Missing verification token.' };
+    }
+    return { status: 'loading' as const, message: '' };
+  }, [token]);
   
-  const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('');
+  const [status, setStatus] = useState<'loading' | 'success' | 'error'>(initialState.status);
+  const [message, setMessage] = useState(initialState.message);
 
   useEffect(() => {
     if (!token) {
-      setStatus('error');
-      setMessage('Missing verification token.');
       return;
     }
 

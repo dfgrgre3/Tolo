@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";

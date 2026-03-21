@@ -2,6 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { 
   Clock, 
@@ -12,8 +13,14 @@ import {
   ChevronLeft,
   Bookmark,
   GraduationCap,
-  Loader2
+  Loader2,
+  Zap,
+  Sword,
+  Shield,
+  Sparkles
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export interface CourseCardProps {
   id: string;
@@ -38,49 +45,21 @@ export interface CourseCardProps {
   index?: number;
 }
 
-const levelConfig: Record<string, { label: string; bg: string; text: string; border: string }> = {
-  BEGINNER: {
-    label: "مبتدئ",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/20"
-  },
-  EASY: {
-    label: "سهل",
-    bg: "bg-emerald-500/10",
-    text: "text-emerald-600 dark:text-emerald-400",
-    border: "border-emerald-500/20"
-  },
-  INTERMEDIATE: {
-    label: "متوسط",
-    bg: "bg-amber-500/10",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/20"
-  },
-  MEDIUM: {
-    label: "متوسط",
-    bg: "bg-amber-500/10",
-    text: "text-amber-600 dark:text-amber-400",
-    border: "border-amber-500/20"
-  },
-  ADVANCED: {
-    label: "متقدم",
-    bg: "bg-rose-500/10",
-    text: "text-rose-600 dark:text-rose-400",
-    border: "border-rose-500/20"
-  },
-  HARD: {
-    label: "صعب",
-    bg: "bg-rose-500/10",
-    text: "text-rose-600 dark:text-rose-400",
-    border: "border-rose-500/20"
-  },
-  EXPERT: {
-    label: "خبير",
-    bg: "bg-purple-500/10",
-    text: "text-purple-600 dark:text-purple-400",
-    border: "border-purple-500/20"
-  }
+const levelConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  BEGINNER: { label: "مبتدئ", color: "text-emerald-400", bgColor: "bg-emerald-400/10" },
+  EASY: { label: "سهل", color: "text-emerald-400", bgColor: "bg-emerald-400/10" },
+  INTERMEDIATE: { label: "متوسط", color: "text-amber-400", bgColor: "bg-amber-400/10" },
+  MEDIUM: { label: "متوسط", color: "text-amber-400", bgColor: "bg-amber-400/10" },
+  ADVANCED: { label: "متقدم", color: "text-rose-400", bgColor: "bg-rose-400/10" },
+  HARD: { label: "صعب", color: "text-rose-400", bgColor: "bg-rose-400/10" },
+  EXPERT: { label: "أستاذ", color: "text-purple-400", bgColor: "bg-purple-400/10" }
+};
+
+const STYLES = {
+  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "rpg-card h-full flex flex-col group",
+  neonText: "rpg-neon-text font-black",
+  goldText: "rpg-gold-text font-black"
 };
 
 export const CourseCard: React.FC<CourseCardProps> = ({
@@ -105,246 +84,160 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   featured = false,
   index = 0
 }) => {
-  const levelInfo = levelConfig[level];
+  const levelInfo = levelConfig[level] || levelConfig.INTERMEDIATE;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ 
-        delay: index * 0.1, 
-        duration: 0.5,
-        type: "spring",
-        stiffness: 100
-      }}
-      whileHover={{ y: -8, scale: 1.02 }}
-      className={`group relative flex flex-col rounded-3xl overflow-hidden border ${
-        featured 
-          ? "border-blue-300/50 shadow-xl shadow-blue-500/10" 
-          : "border-slate-200/80 dark:border-slate-700/50"
-      } bg-white/90 dark:bg-slate-800/90 backdrop-blur-xl transition-all duration-500 hover:shadow-2xl hover:border-blue-300/60`}
+      transition={{ delay: index * 0.05 }}
+      whileHover={{ y: -10 }}
+      className={STYLES.card + (featured ? " ring-2 ring-primary/40 shadow-[0_0_30px_rgba(var(--primary),0.2)]" : "")}
     >
-      {/* Glowing effect on hover */}
-      <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-400/0 via-purple-400/0 to-pink-400/0 opacity-0 group-hover:opacity-10 transition-opacity duration-500" />
-      
-      {/* Featured badge */}
-      {featured && (
-        <div className="absolute top-4 right-4 z-20">
-          <motion.div 
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold shadow-lg"
-          >
-            <Star className="h-3 w-3 fill-current" />
-            <span>مميز</span>
-          </motion.div>
-        </div>
-      )}
-
-      {/* Thumbnail */}
-      <div className="relative h-48 overflow-hidden">
+      {/* Thumbnail Area */}
+      <div className="relative h-56 overflow-hidden">
         {thumbnailUrl ? (
-          <motion.img
-            src={thumbnailUrl}
-            alt={title}
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          <Image 
+            src={thumbnailUrl} 
+            alt={title} 
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-110" 
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 flex items-center justify-center">
-            <motion.div
-              animate={{ 
-                rotate: [0, 10, -10, 0],
-                scale: [1, 1.1, 1]
-              }}
-              transition={{ 
-                duration: 4, 
-                repeat: Infinity, 
-                repeatType: "reverse" 
-              }}
-            >
-              <GraduationCap className="h-20 w-20 text-blue-400/60" />
-            </motion.div>
+          <div className="w-full h-full bg-gradient-to-tr from-black via-[#0f172a] to-[#1e1b4b] flex items-center justify-center">
+             <BookOpen className="w-20 h-20 text-white/10 group-hover:scale-110 transition-transform duration-700" />
           </div>
         )}
         
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {/* Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
         
-        {/* Subject badge */}
-        <div className="absolute bottom-3 right-3">
-          <span className="px-3 py-1.5 rounded-full bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-xs font-medium text-slate-700 dark:text-slate-200 shadow-lg">
-            {subject}
-          </span>
-        </div>
-        
-        {/* Level badge */}
-        <div className="absolute bottom-3 left-3">
-          <span className={`px-3 py-1.5 rounded-full ${levelInfo.bg} ${levelInfo.text} ${levelInfo.border} border text-xs font-medium backdrop-blur-sm`}>
-            {levelInfo.label}
-          </span>
+        {/* Badges */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
+           {featured && (
+             <Badge className="bg-amber-500 text-black font-black px-3 py-1 border-2 border-black/20 shadow-lg flex items-center gap-1">
+                <Star className="w-3 h-3 fill-current" />
+                <span>مخطوطة ممتازة</span>
+             </Badge>
+           )}
+           <Badge className="bg-white/10 backdrop-blur-xl border border-white/10 text-white font-bold py-1 px-3">
+              {subject}
+           </Badge>
         </div>
 
-        {/* Play button overlay */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-          <motion.div
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className="h-16 w-16 rounded-full bg-white/95 shadow-xl flex items-center justify-center cursor-pointer"
-          >
-            <PlayCircle className="h-8 w-8 text-blue-600" />
-          </motion.div>
+        <div className="absolute bottom-4 right-4">
+           <Badge className={`${levelInfo.bgColor} ${levelInfo.color} border border-white/5 font-black px-3 py-1 uppercase tracking-widest text-[10px]`}>
+              {levelInfo.label}
+           </Badge>
+        </div>
+
+        {/* Play Icon on Hover */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-50 group-hover:scale-100">
+           <div className="h-16 w-16 rounded-full bg-primary/20 backdrop-blur-3xl border border-primary/50 flex items-center justify-center">
+              <PlayCircle className="w-10 h-10 text-primary fill-primary/20" />
+           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="relative flex flex-col flex-grow p-5">
-        {/* Progress bar for enrolled courses */}
+      {/* Content Area */}
+      <div className="p-6 flex flex-col flex-grow gap-4 text-right" dir="rtl">
+        
+        {/* Progress for enrolled */}
         {enrolled && progress !== undefined && (
-          <div className="mb-4">
-            <div className="flex justify-between text-xs mb-1.5">
-              <span className="text-muted-foreground">التقدم</span>
-              <span className="font-semibold text-blue-600">{progress}%</span>
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
+               <span className="text-gray-500">معدل التزامن</span>
+               <span className="text-primary">{progress}%</span>
             </div>
-            <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 1, delay: index * 0.1 + 0.3 }}
-                className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"
-              />
+            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+               <motion.div 
+                 initial={{ width: 0 }}
+                 animate={{ width: `${progress}%` }}
+                 className="h-full bg-gradient-to-r from-primary to-purple-600"
+               />
             </div>
           </div>
         )}
 
-        {/* Title */}
-        <Link href={`/courses/${id}`}>
-          <h3 className="font-bold text-lg text-slate-900 dark:text-white line-clamp-2 mb-2 group-hover:text-blue-600 transition-colors duration-300">
-            {title}
-          </h3>
-        </Link>
-
-        {/* Instructor */}
-        <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1.5">
-          <span className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-xs font-bold">
-            {instructor.charAt(0)}
-          </span>
-          {instructor}
-        </p>
-
-        {/* Description */}
-        <p className="text-sm text-slate-600 dark:text-slate-400 line-clamp-2 mb-4 flex-grow">
-          {description}
-        </p>
-
-        {/* Stats */}
-        <div className="flex items-center justify-between mb-4 text-sm">
-          <div className="flex items-center gap-4">
-            {/* Rating */}
-            <div className="flex items-center gap-1">
-              <Star className="h-4 w-4 text-amber-400 fill-amber-400" />
-              <span className="font-semibold text-slate-700 dark:text-slate-200">{rating.toFixed(1)}</span>
-            </div>
-            
-            {/* Students */}
-            <div className="flex items-center gap-1 text-muted-foreground">
-              <Users className="h-4 w-4" />
-              <span>{enrolledCount.toLocaleString()}</span>
-            </div>
-          </div>
-          
-          {/* Duration and lessons */}
-          <div className="flex items-center gap-3 text-muted-foreground">
-            <div className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span>{duration} ساعة</span>
-            </div>
-            {typeof lessonsCount === "number" && lessonsCount > 0 && (
-              <div className="flex items-center gap-1">
-                <BookOpen className="h-4 w-4" />
-                <span>{lessonsCount}</span>
-              </div>
-            )}
-          </div>
+        <div className="space-y-2">
+           <Link href={`/courses/${id}`}>
+              <h3 className="text-xl font-black text-white leading-snug group-hover:text-primary transition-colors line-clamp-2">
+                {title}
+              </h3>
+           </Link>
+           <div className="flex items-center gap-2 text-xs text-gray-500 font-bold uppercase">
+              <span className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-[10px]">
+                 {instructor.charAt(0)}
+              </span>
+              <span>بواسطة: {instructor}</span>
+           </div>
         </div>
 
-        {/* Tags */}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {tags.slice(0, 3).map((tag, i) => (
-              <span
-                key={i}
-                className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-xs text-slate-600 dark:text-slate-300"
-              >
-                {tag}
-              </span>
-            ))}
-            {tags.length > 3 && (
-              <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-xs text-slate-500">
-                +{tags.length - 3}
-              </span>
-            )}
-          </div>
-        )}
+        <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
+           {description}
+        </p>
 
-        {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t border-slate-100 dark:border-slate-700">
-          {/* Price */}
-          <div className="flex items-center gap-2">
-            {price === 0 ? (
-              <span className="text-lg font-bold bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">
-                مجاني
-              </span>
-            ) : (
-              <span className="text-lg font-bold text-slate-900 dark:text-white">
-                {price} <span className="text-sm font-normal text-muted-foreground">ريال</span>
-              </span>
-            )}
-          </div>
+        <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
+           <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                 <span className="text-sm font-black text-white">{rating.toFixed(1)}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                 <Users className="w-4 h-4 text-gray-500" />
+                 <span className="text-sm font-bold text-gray-400">{enrolledCount.toLocaleString()}</span>
+              </div>
+           </div>
+           
+           <div className="flex items-center gap-1.5 text-gray-400">
+              <Clock className="w-4 h-4" />
+              <span className="text-xs font-bold">{duration} ساعة</span>
+           </div>
+        </div>
 
-          {/* Action button */}
-          {enrolled ? (
-            <div className="flex items-center gap-2">
-              <Link href={`/courses/${id}`}>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-shadow duration-300"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  <span>متابعة</span>
-                </motion.button>
-              </Link>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={onUnenroll}
-                disabled={isProcessing}
-                className="p-2 rounded-xl border border-slate-200 dark:border-slate-600 text-slate-500 hover:text-rose-500 hover:border-rose-300 transition-colors duration-300 disabled:cursor-not-allowed disabled:opacity-70"
-              >
-                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Bookmark className="h-4 w-4 fill-current" />}
-              </motion.button>
-            </div>
-          ) : (
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onEnroll}
-              disabled={isProcessing}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white text-sm font-medium shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-75"
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>جاري التنفيذ...</span>
-                </>
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between gap-3 pt-2">
+           <div className="text-2xl font-black">
+              {price === 0 ? (
+                <span className={STYLES.neonText + " text-emerald-500"}>مجاني</span>
               ) : (
-                <>
-                  <span>{price === 0 ? "سجل مجاناً" : "سجل الآن"}</span>
-                  <ChevronLeft className="h-4 w-4" />
-                </>
+                <div className="flex items-baseline gap-1">
+                   <span className="text-white">{price}</span>
+                   <span className="text-xs text-gray-500 font-bold">نقود</span>
+                </div>
               )}
-            </motion.button>
-          )}
+           </div>
+
+           <div className="flex gap-2">
+              {enrolled ? (
+                <Link href={`/courses/${id}`} className="flex-1">
+                   <Button className="w-full bg-white/10 hover:bg-white/20 text-white font-black rounded-xl border border-white/10 h-10 gap-2">
+                      <Zap className="w-4 h-4 fill-primary text-primary" />
+                      <span>دخول</span>
+                   </Button>
+                </Link>
+              ) : (
+                <Button 
+                   onClick={onEnroll}
+                   disabled={isProcessing}
+                   className="bg-primary hover:bg-primary/90 text-white font-black rounded-xl h-10 px-6 shadow-lg shadow-primary/20 gap-2"
+                >
+                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
+                   <span>سجل الآن</span>
+                </Button>
+              )}
+              {enrolled && (
+                <Button 
+                   variant="ghost" 
+                   size="icon" 
+                   onClick={onUnenroll}
+                   className="h-10 w-10 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-colors"
+                >
+                   <Bookmark className="w-4 h-4 fill-current" />
+                </Button>
+              )}
+           </div>
         </div>
       </div>
     </motion.div>
@@ -352,4 +245,3 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 };
 
 export default CourseCard;
-

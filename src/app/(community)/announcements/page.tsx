@@ -2,10 +2,33 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Megaphone, 
+  Trophy, 
+  Search, 
+  Filter, 
+  Calendar, 
+  User, 
+  Clock, 
+  Shield, 
+  Sword, 
+  Info,
+  ChevronRight,
+  ArrowRight,
+  Zap,
+  Sparkles,
+  Crown,
+  Map,
+  Users,
+  Eye,
+  Plus
+} from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
-
 import { logger } from '@/lib/logger';
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 type Announcement = {
   id: string;
@@ -35,507 +58,302 @@ type Contest = {
   participantsCount: number;
 };
 
+const STYLES = {
+  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "rpg-card h-full p-6 transition-all",
+  neonText: "rpg-neon-text font-black",
+  goldText: "rpg-gold-text font-black"
+};
+
 export default function AnnouncementsPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
   const [activeTab, setActiveTab] = useState<"announcements" | "contests">("announcements");
-  const [filteredAnnouncements, setFilteredAnnouncements] = useState<Announcement[]>([]);
-  const [filteredContests, setFilteredContests] = useState<Contest[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
     ensureUser().then(setUserId);
   }, []);
 
   useEffect(() => {
-    const fetchAnnouncementsAndContests = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      setError(null);
-      
       try {
-        const [announcementsRes, contestsRes] = await Promise.allSettled([
+        const [annRes, conRes] = await Promise.all([
           fetch("/api/announcements"),
           fetch("/api/contests")
         ]);
-        
-        if (announcementsRes.status === 'fulfilled' && announcementsRes.value.ok) {
-          const announcementsData = await announcementsRes.value.json();
-          setAnnouncements(announcementsData as Announcement[]);
-        } else {
-          logger.error("Error fetching announcements:", announcementsRes.status === 'rejected' ? announcementsRes.reason : 'API error');
-        }
-        
-        if (contestsRes.status === 'fulfilled' && contestsRes.value.ok) {
-          const contestsData = await contestsRes.value.json();
-          setContests(contestsData as Contest[]);
-        } else {
-          logger.error("Error fetching contests:", contestsRes.status === 'rejected' ? contestsRes.reason : 'API error');
-        }
+        if (annRes.ok) setAnnouncements(await annRes.json());
+        if (conRes.ok) setContests(await conRes.json());
       } catch (err) {
-        logger.error("Unexpected error during fetch:", err);
-        setError('حدث خطأ أثناء تحميل البيانات');
+        logger.error("Failed to fetch community data", err);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchAnnouncementsAndContests();
+    fetchData();
   }, []);
 
-  useEffect(() => {
-    // Filter announcements
-    let result = announcements;
-
-    if (activeCategory !== "all") {
-      result = result.filter(item => item.category === activeCategory);
-    }
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(item => 
-        item.title.toLowerCase().includes(term) || 
-        item.content.toLowerCase().includes(term) ||
-        item.tags.some(tag => tag.toLowerCase().includes(term)) ||
-        item.authorName.toLowerCase().includes(term)
-      );
-    }
-
-    // Sort by priority and date
-    const priorityOrder = { urgent: 4, high: 3, medium: 2, low: 1 };
-    result = [...result].sort((a, b) => {
-      if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
-        return priorityOrder[b.priority] - priorityOrder[a.priority];
-      }
-      return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-    });
-
-    setFilteredAnnouncements(result);
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter(item => {
+      const matchesCategory = activeCategory === "all" || item.category === activeCategory;
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                           item.content.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    }).sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   }, [announcements, activeCategory, searchTerm]);
 
-  useEffect(() => {
-    // Filter contests
-    let result = contests;
-
-    if (activeCategory !== "all") {
-      result = result.filter(item => item.category === activeCategory);
-    }
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(item => 
-        item.title.toLowerCase().includes(term) || 
-        item.description.toLowerCase().includes(term) ||
-        item.tags.some(tag => tag.toLowerCase().includes(term)) ||
-        item.organizerName.toLowerCase().includes(term)
-      );
-    }
-
-    // Sort by date (upcoming first)
-    result = [...result].sort((a, b) => 
-      new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
-    );
-
-    setFilteredContests(result);
+  const filteredContests = useMemo(() => {
+    return contests.filter(item => {
+      const matchesCategory = activeCategory === "all" || item.category === activeCategory;
+      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesCategory && matchesSearch;
+    }).sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime());
   }, [contests, activeCategory, searchTerm]);
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("ar-SA", {
-      year: "numeric",
-      month: "long",
-      day: "numeric"
-    });
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case "urgent": return "bg-red-500 text-white";
-      case "high": return "bg-orange-500 text-white";
-      case "medium": return "bg-yellow-500 text-white";
-      case "low": return "bg-green-500 text-white";
-      default: return "bg-gray-500 text-white";
-    }
-  };
-
-  const getPriorityText = (priority: string) => {
-    switch (priority) {
-      case "urgent": return "عاجل";
-      case "high": return "عالي";
-      case "medium": return "متوسط";
-      case "low": return "منخفض";
-      default: return priority;
-    }
-  };
-
   const categories = [
-    { id: "all", name: "الكل", icon: "📢" },
-    { id: "academic", name: "أكاديمي", icon: "🎓" },
-    { id: "administrative", name: "إداري", icon: "🏢" },
-    { id: "events", name: "فعاليات", icon: "🎉" },
-    { id: "competitions", name: "مسابقات", icon: "🏆" },
+    { id: "all", name: "كل البلاغات", icon: Megaphone },
+    { id: "academic", name: "شؤون العلم", icon: Crown },
+    { id: "administrative", name: "إدارة المملكة", icon: Shield },
+    { id: "events", name: "الاحتفالات", icon: Sparkles },
+    { id: "competitions", name: "تحديات الفرسان", icon: Sword },
   ];
 
-  // Calculate stats for display
-  const announcementStats = useMemo(() => ({
-    total: announcements.length,
-    urgent: announcements.filter(a => a.priority === 'urgent').length,
-    expired: announcements.filter(a => a.expiresAt && new Date(a.expiresAt) < new Date()).length
-  }), [announcements]);
-
-  const contestStats = useMemo(() => ({
-    total: contests.length,
-    upcoming: contests.filter(c => new Date(c.startDate) > new Date()).length,
-    ongoing: contests.filter(c => new Date(c.startDate) <= new Date() && new Date(c.endDate) >= new Date()).length
-  }), [contests]);
-
-  if (error) {
-    return (
-      <div className="px-4 py-8 flex flex-col items-center justify-center text-center min-h-[60vh]">
-        <div className="text-6xl mb-4">⚠️</div>
-        <h2 className="text-xl font-bold mb-2">خطأ في تحميل البيانات</h2>
-        <p className="text-muted-foreground mb-6">{error}</p>
-        <button 
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md"
-          onClick={() => window.location.reload()}
-        >
-          إعادة المحاولة
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="px-4">
-      <section className="mx-auto max-w-7xl py-8 space-y-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-bold">الإعلانات والمسابقات</h1>
-            <p className="text-muted-foreground">استكشف آخر الإعلانات والمسابقات المتاحة</p>
-          </div>
-          {userId && (
-            <div className="flex gap-2 flex-wrap justify-center">
-              <Link href="/announcements/new" className="px-4 py-2 bg-primary text-primary-foreground rounded-md whitespace-nowrap">
-                إضافة إعلان
-              </Link>
-              <Link href="/contests/new" className="px-4 py-2 bg-secondary text-secondary-foreground rounded-md whitespace-nowrap">
-                إضافة مسابقة
-              </Link>
-            </div>
-          )}
-        </div>
+    <div className="min-h-screen bg-background text-gray-100 overflow-hidden pb-40" dir="rtl">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full opacity-30" />
+        <div className="absolute bottom-[20%] left-[5%] w-[500px] h-[500px] bg-purple-600/5 blur-[130px] rounded-full" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="rounded-lg border p-4 bg-blue-50 dark:bg-blue-950/20">
-            <p className="text-sm text-muted-foreground">إجمالي الإعلانات</p>
-            <p className="text-2xl font-bold">{announcementStats.total}</p>
-          </div>
-          <div className="rounded-lg border p-4 bg-red-50 dark:bg-red-950/20">
-            <p className="text-sm text-muted-foreground">العاجلة</p>
-            <p className="text-2xl font-bold">{announcementStats.urgent}</p>
-          </div>
-          <div className="rounded-lg border p-4 bg-purple-50 dark:bg-purple-950/20">
-            <p className="text-sm text-muted-foreground">إجمالي المسابقات</p>
-            <p className="text-2xl font-bold">{contestStats.total}</p>
-          </div>
-          <div className="rounded-lg border p-4 bg-green-50 dark:bg-green-950/20">
-            <p className="text-sm text-muted-foreground">المستمرة</p>
-            <p className="text-2xl font-bold">{contestStats.ongoing}</p>
-          </div>
-        </div>
+      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
+        
+        {/* --- Hero Section: The Royal Square --- */}
+        <motion.div 
+           initial={{ opacity: 0, y: 30 }}
+           animate={{ opacity: 1, y: 0 }}
+           className={STYLES.glass + " p-12 md:p-24 relative group overflow-hidden"}
+        >
+           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent opacity-50" />
+           <div className="relative z-10 flex flex-col lg:flex-row items-center justify-between gap-16">
+              <div className="space-y-8 flex-1 text-center lg:text-right">
+                 <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+                    <Megaphone className="h-5 w-5" />
+                    <span>منشورات البلاط الملكي</span>
+                 </div>
+                 <h1 className="text-5xl md:text-8xl font-black tracking-tight leading-tight">
+                    ساحة <span className={STYLES.neonText}>الإعلانات</span> <br /> والمسابقات
+                 </h1>
+                 <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                    هنا تصدر المراسيم الملكية، وتُعلن تحديات المملكة الكبرى. ابقَ متيقظاً لكل جديد في رحلتك نحو السيادة.
+                 </p>
+                 <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-6">
+                    <Link href="/announcements/new">
+                       <Button className="h-14 px-8 bg-white text-black font-black rounded-2xl gap-3 hover:scale-105 transition-all">
+                          <Plus className="w-5 h-5" />
+                          <span>إضافة بلاغ جديد</span>
+                       </Button>
+                    </Link>
+                    <Link href="/contests/new">
+                       <Button variant="outline" className="h-14 px-8 border-white/10 bg-white/5 font-black rounded-2xl gap-3 hover:bg-white/10 transition-all">
+                          <span>إنشاء تحدي (مسابقة)</span>
+                       </Button>
+                    </Link>
+                 </div>
+              </div>
 
-        {/* Tabs */}
-        <div className="rounded-lg border p-1 flex flex-wrap">
-          <button
-            className={`flex-1 py-2 px-4 rounded-md text-center ${activeTab === "announcements" ? "bg-primary text-primary-foreground" : ""}`}
-            onClick={() => setActiveTab("announcements")}
-            aria-selected={activeTab === "announcements"}
-            role="tab"
-          >
-            الإعلانات ({filteredAnnouncements.length})
-          </button>
-          <button
-            className={`flex-1 py-2 px-4 rounded-md text-center ${activeTab === "contests" ? "bg-primary text-primary-foreground" : ""}`}
-            onClick={() => setActiveTab("contests")}
-            aria-selected={activeTab === "contests"}
-            role="tab"
-          >
-            المسابقات ({filteredContests.length})
-          </button>
-        </div>
+              <div className="relative w-72 h-72 hidden lg:block">
+                 <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full animate-pulse" />
+                 <motion.div 
+                   animate={{ rotate: 360 }}
+                   transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                   className="absolute inset-0 border border-dashed border-primary/20 rounded-full"
+                 />
+                 <div className="absolute inset-6 border border-white/5 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-3xl shadow-2xl">
+                    <Map className="w-32 h-32 text-primary opacity-50" />
+                 </div>
+              </div>
+           </div>
+        </motion.div>
 
-        {/* Mobile Filters Toggle */}
-        <div className="md:hidden flex justify-center pt-2">
-          <button
-            className="flex items-center gap-2 px-4 py-2 border rounded-md"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <span>الفلاتر</span>
-            <svg 
-              xmlns="http://www.w3.org/2000/svg" 
-              className={`h-5 w-5 transform transition-transform ${showFilters ? 'rotate-180' : ''}`} 
-              fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
+        {/* --- Switcher & Search Armory --- */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+           <div className="flex p-2 bg-white/5 border border-white/10 rounded-[2rem] w-full md:w-auto font-black text-xs uppercase tracking-widest">
+              <button 
+                onClick={() => setActiveTab("announcements")}
+                className={cn("px-10 py-4 rounded-[1.5rem] transition-all", activeTab === "announcements" ? "bg-primary text-black shadow-lg shadow-primary/20" : "text-gray-500 hover:text-white")}
+              >
+                البلاغات الملكية
+              </button>
+              <button 
+                onClick={() => setActiveTab("contests")}
+                className={cn("px-10 py-4 rounded-[1.5rem] transition-all", activeTab === "contests" ? "bg-primary text-black shadow-lg shadow-primary/20" : "text-gray-500 hover:text-white")}
+              >
+                تحديات المملكة
+              </button>
+           </div>
 
-        {/* Filters - Hidden on mobile unless toggled */}
-        <div className={`${showFilters || window.innerWidth >= 768 ? 'block' : 'hidden'} space-y-4`}>
-          {/* Categories */}
-          <div className="rounded-lg border p-4" aria-label="أقسام التصفية">
-            <h2 className="font-semibold mb-3">التصنيفات</h2>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <button
-                  key={category.id}
-                  className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 ${activeCategory === category.id ? "bg-primary text-primary-foreground" : "bg-muted"}`}
-                  onClick={() => setActiveCategory(category.id)}
-                  aria-pressed={activeCategory === category.id}
-                >
-                  <span>{category.icon}</span>
-                  <span>{category.name}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Search */}
-          <div className="rounded-lg border p-4" aria-label="بحث">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder={`ابحث في ${activeTab === "announcements" ? "الإعلانات" : "المسابقات"}...`}
-                className="w-full border rounded-md px-4 py-2 pl-10"
+           <div className="relative w-full md:max-w-md group">
+              <input 
+                type="text" 
+                placeholder="ابحث في الأخبار والتحديات..." 
+                className="w-full h-16 rounded-[1.5rem] bg-white/5 border border-white/10 px-14 text-white font-bold outline-none focus:border-primary/50 transition-all"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                aria-label={`حقل البحث ل${activeTab === "announcements" ? "الإعلانات" : "المسابقات"}`}
               />
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-5 w-5 absolute left-3 top-2.5 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                aria-hidden="true"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </div>
-          </div>
+              <Search className="absolute right-5 top-1/2 -translate-y-1/2 h-6 w-6 text-gray-500 group-focus-within:text-primary transition-colors" />
+           </div>
         </div>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="flex justify-center items-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          </div>
-        )}
+        {/* --- Categories Scroll --- */}
+        <div className="flex items-center gap-4 overflow-x-auto pb-4 no-scrollbar">
+           {categories.map((cat) => (
+             <button
+               key={cat.id}
+               onClick={() => setActiveCategory(cat.id)}
+               className={cn(
+                 "h-12 px-8 flex items-center gap-3 transition-all rounded-2xl font-black text-[11px] uppercase tracking-widest whitespace-nowrap whitespace-nowrap",
+                 activeCategory === cat.id ? "bg-white text-black" : "bg-white/5 text-gray-500 border border-white/5 hover:bg-white/10"
+               )}
+             >
+                <cat.icon className="w-4 h-4" />
+                <span>{cat.name}</span>
+             </button>
+           ))}
+        </div>
 
-        {/* Content */}
-        {!loading && (activeTab === "announcements" ? (
-          // Announcements Grid
-          filteredAnnouncements.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-live="polite">
-              {filteredAnnouncements.map((announcement) => (
-                <div key={announcement.id} className="rounded-lg border overflow-hidden transition-transform hover:scale-[1.02] flex flex-col h-full">
-                  <div className="aspect-video bg-muted relative">
-                    {announcement.imageUrl ? (
-                      <img 
-                        src={announcement.imageUrl} 
-                        alt={announcement.title} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null;
-                          target.parentElement!.innerHTML = `
-                            <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                              <span class="text-4xl">📢</span>
-                            </div>
-                          `;
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-primary/5">
-                        <span className="text-4xl">📢</span>
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2 flex gap-2 flex-wrap justify-end">
-                      <span className={`text-xs px-2 py-1 rounded ${getPriorityColor(announcement.priority)}`}>
-                        {getPriorityText(announcement.priority)}
-                      </span>
-                      <span className="bg-black/70 text-white text-xs px-2 py-1 rounded">
-                        {categories.find(c => c.id === announcement.category)?.name || announcement.category}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="p-4 flex-grow flex flex-col">
-                    <h3 className="font-semibold line-clamp-2 mb-2">{announcement.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-3 flex-grow">{announcement.content}</p>
-
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs text-muted-foreground">بواسطة: {announcement.authorName}</span>
-                      <span className="text-xs text-muted-foreground">{formatDate(announcement.publishedAt)}</span>
-                    </div>
-
-                    {announcement.expiresAt && (
-                      <div className={`text-xs mb-3 ${
-                        new Date(announcement.expiresAt) < new Date() 
-                          ? 'text-red-500' 
-                          : new Date(announcement.expiresAt) < new Date(Date.now() + 7*24*60*60*1000) 
-                            ? 'text-orange-500' 
-                            : 'text-muted-foreground'
-                      }`}>
-                        ينتهي في: {formatDate(announcement.expiresAt)}
-                        {new Date(announcement.expiresAt) < new Date() && " (منتهي)"}
-                        {new Date(announcement.expiresAt) >= new Date() && new Date(announcement.expiresAt) < new Date(Date.now() + 7*24*60*60*1000) && " (قريباً)"}
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {announcement.tags.slice(0, 3).map((tag, index) => (
-                        <span key={index} className="text-xs bg-muted px-2 py-0.5 rounded" aria-label={`وسم: ${tag}`}>
-                          {tag}
-                        </span>
-                      ))}
-                      {announcement.tags.length > 3 && (
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded" aria-label={`و ${(announcement.tags.length - 3)} أوسمة أخرى`}>
-                          +{announcement.tags.length - 3}
-                        </span>
-                      )}
-                    </div>
-
-                    <Link 
-                      href={`/announcements/${announcement.id}`} 
-                      className="block text-center px-3 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium mt-auto"
-                      prefetch={false}
-                    >
-                      عرض التفاصيل
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-lg border p-12 text-center" role="status">
-              <div className="text-5xl mb-4">📢</div>
-              <h3 className="text-lg font-medium mb-2">لا توجد إعلانات في هذا التصنيف</h3>
-              <p className="text-muted-foreground">جرب تغيير التصنيف أو معايير البحث</p>
-            </div>
-          )
-        ) : (
-          // Contests Grid
-          filteredContests.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" role="region" aria-live="polite">
-              {filteredContests.map((contest) => (
-                <div key={contest.id} className="rounded-lg border overflow-hidden transition-transform hover:scale-[1.02] flex flex-col h-full">
-                  <div className="aspect-video bg-muted relative">
-                    {contest.imageUrl ? (
-                      <img 
-                        src={contest.imageUrl} 
-                        alt={contest.title} 
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const target = e.target as HTMLImageElement;
-                          target.onerror = null;
-                          target.parentElement!.innerHTML = `
-                            <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary/20 to-secondary/5">
-                              <span class="text-4xl">🏆</span>
-                            </div>
-                          `;
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary/20 to-secondary/5">
-                        <span className="text-4xl">🏆</span>
-                      </div>
-                    )}
-                    <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded" aria-label={`تصنيف: ${contest.category}`}>
-                      {categories.find(c => c.id === contest.category)?.name || contest.category}
-                    </div>
-                  </div>
-                  <div className="p-4 flex-grow flex-col flex">
-                    <h3 className="font-semibold line-clamp-2 mb-2">{contest.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-3 mb-3 flex-grow">{contest.description}</p>
-
-                    <div className="space-y-2 mb-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>من: {formatDate(contest.startDate)}</span>
-                      </div>
-
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                        <span>إلى: {formatDate(contest.endDate)}</span>
-                      </div>
-
-                      {contest.prize && (
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                          <span>الجائزة: {contest.prize}</span>
+        {/* --- Main Content Grid --- */}
+        <AnimatePresence mode="wait">
+           {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                {[1, 2, 3].map(i => <div key={i} className={STYLES.glass + " h-96 animate-pulse"} />)}
+             </div>
+           ) : activeTab === "announcements" ? (
+             <motion.div 
+               key="announcements"
+               initial={{ opacity: 0, x: -20 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: 20 }}
+               className="grid grid-cols-1 md:grid-cols-3 gap-10"
+             >
+                {filteredAnnouncements.map((item, idx) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className={STYLES.glass + " group cursor-default hover:border-primary/40 transition-all flex flex-col"}
+                  >
+                     <div className="relative aspect-video overflow-hidden">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-transparent to-transparent flex items-center justify-center">
+                             <Megaphone className="w-16 h-16 text-primary/10" />
+                          </div>
+                        )}
+                        <div className="absolute top-4 right-4 flex gap-2">
+                           <Badge className={cn("font-black text-[9px] uppercase tracking-widest px-3 h-6 border-none", item.priority === 'urgent' ? 'bg-red-500 text-white animate-pulse' : 'bg-black/60 text-white')}>
+                              {item.priority === 'urgent' ? 'عاجل جداً' : item.priority}
+                           </Badge>
                         </div>
-                      )}
+                     </div>
 
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        <span>{contest.participantsCount} مشارك</span>
-                      </div>
-                    </div>
+                     <div className="p-8 flex-1 flex flex-col gap-6">
+                        <div className="space-y-3 flex-1">
+                           <h3 className="text-xl font-black text-white group-hover:text-primary transition-colors leading-tight line-clamp-2">{item.title}</h3>
+                           <p className="text-sm text-gray-500 font-medium line-clamp-3 leading-relaxed">{item.content}</p>
+                        </div>
 
-                    <div className="flex flex-wrap gap-1 mb-3">
-                      {contest.tags.slice(0, 3).map((tag, index) => (
-                        <span key={index} className="text-xs bg-muted px-2 py-0.5 rounded" aria-label={`وسم: ${tag}`}>
-                          {tag}
-                        </span>
-                      ))}
-                      {contest.tags.length > 3 && (
-                        <span className="text-xs bg-muted px-2 py-0.5 rounded" aria-label={`و ${(contest.tags.length - 3)} أوسمة أخرى`} >
-                          +{contest.tags.length - 3}
-                        </span>
-                      )}
-                    </div>
+                        <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                           <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+                                 <User className="w-4 h-4 text-primary" />
+                              </div>
+                              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.authorName}</span>
+                           </div>
+                           <div className="flex items-center gap-2 text-[10px] font-black text-gray-600 uppercase tracking-widest">
+                              <Clock className="w-3.5 h-3.5" />
+                              <span>{new Date(item.publishedAt).toLocaleDateString('ar-EG')}</span>
+                           </div>
+                        </div>
 
-                    <Link 
-                      href={`/contests/${contest.id}`} 
-                      className="block text-center px-3 py-2 bg-secondary text-secondary-foreground rounded-md text-sm font-medium mt-auto"
-                      prefetch={false}
-                    >
-                      عرض التفاصيل
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-lg border p-12 text-center" role="status">
-              <div className="text-5xl mb-4">🏆</div>
-              <h3 className="text-lg font-medium mb-2">لا توجد مسابقات في هذا التصنيف</h3>
-              <p className="text-muted-foreground">جرب تغيير التصنيف أو معايير البحث</p>
-            </div>
-          )
-        ))}
-      </section>
+                        <Link href={`/announcements/${item.id}`}>
+                           <Button variant="ghost" className="w-full h-14 rounded-2xl border border-white/5 group-hover:bg-primary group-hover:text-black font-black uppercase tracking-widest text-[10px] gap-3">
+                              <span>مشاهدة المرسوم</span>
+                              <ChevronRight className="w-4 h-4" />
+                           </Button>
+                        </Link>
+                     </div>
+                  </motion.div>
+                ))}
+             </motion.div>
+           ) : (
+             <motion.div 
+               key="contests"
+               initial={{ opacity: 0, x: 20 }}
+               animate={{ opacity: 1, x: 0 }}
+               exit={{ opacity: 0, x: -20 }}
+               className="grid grid-cols-1 md:grid-cols-3 gap-10"
+             >
+                {filteredContests.map((item, idx) => (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className={STYLES.glass + " border-amber-500/10 group cursor-default hover:border-amber-500/40 transition-all flex flex-col"}
+                  >
+                     <div className="relative aspect-video bg-amber-500/5 group-hover:bg-amber-500/10 transition-colors">
+                        <div className="absolute inset-0 flex items-center justify-center">
+                           <Trophy className="w-20 h-20 text-amber-500/20 group-hover:scale-110 group-hover:text-amber-500/40 transition-all" />
+                        </div>
+                        <div className="absolute bottom-4 right-4">
+                           <Badge className="bg-amber-500 text-black font-black text-[9px] uppercase tracking-widest px-4 h-7 rounded-lg">{item.participantsCount} محارب</Badge>
+                        </div>
+                     </div>
+
+                     <div className="p-8 flex-1 flex flex-col gap-6">
+                        <div className="space-y-4 flex-1">
+                           <div className="flex items-center gap-2 text-[9px] font-black uppercase text-amber-500 tracking-[0.2em] mb-1">
+                              <Zap className="h-3.5 w-3.5" />
+                              <span>تحدي ملكي نشط</span>
+                           </div>
+                           <h3 className="text-2xl font-black text-white group-hover:rpg-gold-text transition-all leading-tight">{item.title}</h3>
+                           <p className="text-sm text-gray-500 font-medium line-clamp-2 leading-relaxed">{item.description}</p>
+                           
+                           <div className="space-y-3 pt-2">
+                              {item.prize && (
+                                <div className="flex items-center gap-3 text-xs font-black text-emerald-400 uppercase tracking-widest bg-emerald-500/5 p-3 rounded-xl border border-emerald-500/10">
+                                   <Crown className="w-4 h-4" />
+                                   <span>الجائزة: {item.prize}</span>
+                                </div>
+                              )}
+                              <div className="flex items-center gap-3 text-xs font-black text-amber-500/70 uppercase tracking-widest p-3 rounded-xl bg-amber-500/5">
+                                 <Calendar className="w-4 h-4" />
+                                 <span>ينتهي في: {new Date(item.endDate).toLocaleDateString('ar-EG')}</span>
+                              </div>
+                           </div>
+                        </div>
+
+                        <Link href={`/contests/${item.id}`}>
+                           <Button className="w-full h-16 rounded-2xl bg-amber-500 text-black font-black uppercase tracking-widest text-xs gap-3 shadow-xl shadow-amber-500/20 hover:scale-[1.03] transition-all">
+                              <span>خوض التحدي الآن</span>
+                              <Sword className="w-5 h-5" />
+                           </Button>
+                        </Link>
+                     </div>
+                  </motion.div>
+                ))}
+             </motion.div>
+           )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

@@ -191,7 +191,7 @@ export class GamificationService {
   }
 
   async getUserProgress(userId: string): Promise<UserProgress> {
-    const user = await prisma.user.findUnique({
+    let user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
         achievements: true,
@@ -199,7 +199,30 @@ export class GamificationService {
       }
     });
 
-    if (!user) throw new Error('User not found');
+    // If user doesn't exist, create a default user progress for guest users
+    if (!user) {
+      logger.info(`User ${userId} not found, creating default progress`);
+      return {
+        userId,
+        totalXP: 0,
+        level: 1,
+        nextLevelXP: this.getXPForLevel(2),
+        progressToNextLevel: 0,
+        achievements: [],
+        currentStreak: 0,
+        longestStreak: 0,
+        studyXP: 0,
+        taskXP: 0,
+        examXP: 0,
+        challengeXP: 0,
+        questXP: 0,
+        seasonXP: 0,
+        totalStudyTime: 0,
+        tasksCompleted: 0,
+        examsPassed: 0,
+        customGoals: []
+      };
+    }
 
     const totalXP = user.totalXP || 0;
     const level = this.calculateLevel(totalXP);
@@ -557,7 +580,137 @@ export class GamificationService {
       return false;
     }
   }
+
+  // ===== Rewards Management =====
+
+  async getAvailableRewards(limit: number = 20): Promise<Reward[]> {
+    try {
+      const rewards = await prisma.reward.findMany({
+        where: { isActive: true },
+        take: limit,
+        orderBy: { rarity: 'desc' }
+      });
+
+      return rewards.map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        description: r.description || '',
+        type: r.type as any,
+        rarity: r.rarity as any,
+        imageUrl: r.imageUrl || undefined,
+        metadata: r.metadata || undefined
+      }));
+    } catch (error) {
+      logger.error('Failed to get available rewards', error);
+      throw error;
+    }
+  }
+
+  async claimReward(userId: string, rewardId: string): Promise<boolean> {
+    try {
+      const reward = await prisma.reward.findUnique({
+        where: { id: rewardId }
+      });
+
+      if (!reward || !reward.isActive) throw new Error('Reward not found or inactive');
+
+      // Check if user already has this reward
+      const existing = await prisma.userReward.findUnique({
+        where: {
+          userId_rewardId: { userId, rewardId }
+        }
+      });
+
+      if (existing) throw new Error('Reward already claimed');
+
+      await prisma.userReward.create({
+        data: {
+          userId,
+          rewardId,
+          earnedAt: new Date(),
+          source: 'manual_claim'
+        }
+      });
+
+      return true;
+    } catch (error) {
+      logger.error(`Error claiming reward ${rewardId} for user ${userId}`, error);
+      throw error;
+    }
+  }
+
+  // ===== Quest Progress =====
+
+  async startQuestProgress(userId: string, questId: string): Promise<any> {
+    try {
+      const quest = await prisma.quest.findUnique({
+        where: { id: questId },
+        select: { chainId: true }
+      });
+
+      if (!quest) throw new Error('Quest not found');
+
+      const existing = await prisma.questProgress.findUnique({
+        where: {
+          userId_questId: { userId, questId }
+        }
+      });
+
+      if (existing) return existing;
+
+      return await prisma.questProgress.create({
+        data: {
+          userId,
+          questId,
+          chainId: quest.chainId,
+          startedAt: new Date(),
+          progress: 0,
+          isCompleted: false
+        }
+      });
+    } catch (error) {
+      logger.error(`Error starting quest ${questId} for user ${userId}`, error);
+      throw error;
+    }
+  }
+
+  async updateQuestProgress(userId: string, questId: string, progress: number): Promise<any> {
+    try {
+      const questsProgress = await prisma.questProgress.findUnique({
+        where: { userId_questId: { userId, questId } },
+        include: { quest: true }
+      });
+
+      if (!questsProgress) {
+        return this.startQuestProgress(userId, questId);
+      }
+
+      if (questsProgress.isCompleted) return questsProgress;
+
+      const isCompleted = progress >= 100;
+      const completedAt = isCompleted ? new Date() : null;
+
+      const updated = await prisma.questProgress.update({
+        where: { id: questsProgress.id },
+        data: {
+          progress: Math.min(progress, 100),
+          isCompleted,
+          completedAt
+        }
+      });
+
+      if (isCompleted) {
+        await this.addXP(userId, questsProgress.quest.xpReward, 'quest');
+      }
+
+      return updated;
+    } catch (error) {
+      logger.error(`Error updating quest progress ${questId} for user ${userId}`, error);
+      throw error;
+    }
+  }
 }
 
 export const gamificationService = GamificationService.getInstance();
+
 export default gamificationService;

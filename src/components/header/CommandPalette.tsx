@@ -12,7 +12,6 @@ import {
 	FileText,
 	Calendar,
 	Settings,
-	User,
 	Bell,
 	TrendingUp,
 	HelpCircle,
@@ -224,16 +223,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
 		if (user) {
 			baseCommands.push(
-				{
-					id: "profile",
-					label: "الملف الشخصي",
-					description: "عرض وتعديل ملفك الشخصي",
-					icon: <User className="h-4 w-4" />,
-					action: () => router.push("/profile"),
-					keywords: ["profile", "ملف", "شخصي"],
-					category: "حساب",
-					popular: true,
-				},
 				{
 					id: "settings",
 					label: "الإعدادات",
@@ -524,4 +513,5 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 		</Dialog>
 	);
 }
+
 

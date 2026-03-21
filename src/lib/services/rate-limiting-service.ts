@@ -1,4 +1,3 @@
-import { RedisClientType } from 'redis';
 import { redis, RedisClient } from '../redis';
 
 import { logger } from '@/lib/logger';
@@ -181,7 +180,7 @@ export class RateLimitingService implements RateLimitService {
           }
         })
         .catch(() => { });
-    } catch (error) {
+    } catch (_error) {
       // Silent fail for recording attempts
     }
   }
@@ -221,7 +220,7 @@ export class RateLimitingService implements RateLimitService {
       });
 
       await Promise.race([delPromise, timeoutPromise]);
-    } catch (error) {
+    } catch (_error) {
       // Silent fail
     }
   }

@@ -1,6 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/auth/auth-service';
 import { withAuth, handleApiError } from '@/lib/api-utils';
+import { AuthService } from '@/lib/auth/auth-service';
+import { prisma } from '@/lib/db-unified';
+
+/**
+ * GET /api/user/profile
+ * 
+ * Retrieves the currently authenticated user's profile information.
+ */
+export async function GET(req: NextRequest) {
+    return withAuth(req, async ({ userId }) => {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    username: true,
+                    avatar: true,
+                    role: true,
+                    phone: true,
+                    createdAt: true,
+                    totalXP: true,
+                    level: true,
+                    currentStreak: true,
+                    _count: {
+                        select: {
+                            tasks: true,
+                            studySessions: true,
+                            achievements: true,
+                        },
+                    },
+                },
+            });
+
+            if (!user) {
+                return NextResponse.json({ error: 'User not found' }, { status: 404 });
+            }
+
+            return NextResponse.json({ success: true, user }, { status: 200 });
+        } catch (error) {
+            return handleApiError(error);
+        }
+    });
+}
 
 /**
  * PATCH /api/user/profile

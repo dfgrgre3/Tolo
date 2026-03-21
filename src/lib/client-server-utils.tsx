@@ -61,7 +61,7 @@ async function getLogger(): Promise<Logger> {
           }
         },
       };
-    } catch (error) {
+    } catch (_error) {
       // Fallback to console if logger fails to load
       loggerInstance = {
         info: (message: string) => console.info(message),
@@ -170,6 +170,7 @@ export function useHydrationSafeState<T>(
     }, 0);
 
     return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const setHydrationSafeState: React.Dispatch<React.SetStateAction<T>> = useCallback(
@@ -432,10 +433,14 @@ export function useHydrationStatus() {
   const [hydrationTime, setHydrationTime] = useState<number | null>(null);
 
   useEffect(() => {
-    const startTime = performance.now();
-    setIsHydrated(true);
-    setHydrationTime(performance.now() - startTime);
-     
+    // Use setTimeout to avoid synchronous setState during hydration
+    const timeoutId = setTimeout(() => {
+      const startTime = performance.now();
+      setIsHydrated(true);
+      setHydrationTime(performance.now() - startTime);
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return { isHydrated, hydrationTime };
@@ -455,7 +460,9 @@ export function createSSRSafeComponent<P extends object>(
     const [isClient, setIsClient] = useState(false);
 
     useEffect(() => {
-      setIsClient(true);
+      // Use setTimeout to avoid synchronous setState during hydration
+      const timer = setTimeout(() => setIsClient(true), 0);
+      return () => clearTimeout(timer);
     }, []);
 
     // Force server-side rendering if specified

@@ -26,10 +26,8 @@ export * as Dashboard from './dashboard';
 // ============================================
 // مكونات معالجة الأخطاء (Error Handling)
 // ============================================
-export { default as ErrorBoundary } from './ErrorBoundary';
+export { default as ErrorBoundary, useErrorBoundary, withErrorBoundary } from './ErrorBoundary';
 export { default as ErrorPages } from './ErrorPages';
-export { default as ErrorToast } from './ErrorToast';
-export { default as ErrorToastContainer } from './ErrorToastContainer';
 
 // ============================================
 // مكونات الإشعارات (Notifications)

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/db-unified';
 import { Prisma } from '@prisma/client';
 
 import { OpenAI } from 'openai';
@@ -121,10 +121,10 @@ export async function POST(request: NextRequest) {
             data: {
               examId: newExam.id,
               question: q.question,
-              options: q.options ? q.options : Prisma.JsonNull,
-              correctAnswer: q.correctAnswer,
-              explanation: q.explanation,
-              points: q.points || 1
+              options: Array.isArray(q.options) ? q.options : [],
+              correctAnswer: String(q.correctAnswer),
+              explanation: q.explanation || null,
+              points: Number(q.points || 1),
             }
           });
         }

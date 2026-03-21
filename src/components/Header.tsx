@@ -1,11 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useMemo, useRef, memo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, memo, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -53,11 +53,6 @@ const SmartNavigationSuggestions = dynamic(
   { ssr: false, loading: () => null }
 );
 
-const LanguageSwitch = dynamic(
-  () => import("./header/LanguageSwitch").then((mod) => ({ default: mod.LanguageSwitch })).catch(() => ({ default: () => null })),
-  { ssr: false, loading: () => null }
-);
-
 // Enhanced mobile menu
 const HeaderMobileMenuEnhanced = dynamic(
   () => import("./header/HeaderMobileMenuEnhanced").then((mod) => ({ default: mod.HeaderMobileMenuEnhanced })).catch(() => ({ default: () => null })),
@@ -79,14 +74,28 @@ const MemoizedHeaderBreadcrumbs = memo(HeaderBreadcrumbs);
 export default function Header() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const reduceMotion = useReducedMotion();
-  const [isMounted, setIsMounted] = useState(false);
-  const shouldReduceMotion = isMounted ? reduceMotion : false;
+  const isMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const [shouldReduceMotion, setShouldReduceMotion] = useState(false);
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const mql = window.matchMedia('(prefers-reduced-motion: reduce)');
+      setShouldReduceMotion(mql.matches);
+      const handler = (e: MediaQueryListEvent) => setShouldReduceMotion(e.matches);
+      mql.addEventListener('change', handler);
+      return () => mql.removeEventListener('change', handler);
+    }
+  }, []);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   
   // Enhanced sticky header with shrink animation
-  const { isScrolled, isShrunk, isHidden, scrollProgress, headerClasses } = useStickyHeader({
+  const { isScrolled, isShrunk, isHidden } = useStickyHeader({
     shrinkThreshold: 80,
     hideThreshold: 300,
     showOnScrollUp: true,
@@ -137,23 +146,12 @@ export default function Header() {
     showActivity: true,
   };
 
-  // Ensure component is mounted
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   // Keyboard shortcuts
   useKeyboardShortcuts({
     mounted,
     isMobileMenuOpen,
     setIsMobileMenuOpen,
   });
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-    setOpenMegaMenu(null);
-  }, [pathname, setOpenMegaMenu]);
 
   // Toggle mobile menu
   const toggleMobileMenu = useCallback(() => {
@@ -178,7 +176,6 @@ export default function Header() {
     );
     return base;
   }, [
-    shouldReduceMotion,
     isScrolled,
     isShrunk,
     isHidden,
@@ -186,6 +183,7 @@ export default function Header() {
     user,
     headerPreferences.compactMode,
     focusVisibility.headerVisible,
+    openMegaMenu,
   ]);
 
   // Container height based on shrink state
@@ -226,8 +224,8 @@ export default function Header() {
         role="banner"
         aria-label="رأس الصفحة الرئيسي"
       >
-        <div className="container mx-auto px-4">
-          <div className={cn("flex items-center justify-between gap-4 transition-all", containerHeight)}>
+        <div className="container mx-auto px-2 sm:px-4">
+          <div className={cn("flex items-center justify-between gap-1.5 sm:gap-2 md:gap-4 transition-all", containerHeight)}>
             {/* Logo */}
             <MemoizedHeaderLogo />
 
@@ -243,7 +241,7 @@ export default function Header() {
             )}
 
             {/* Right Side Actions */}
-            <div className="flex items-center gap-0.5 md:gap-1" role="toolbar" aria-label="أدوات الرأس">
+            <div className="flex items-center gap-1 sm:gap-1.5 md:gap-2" role="toolbar" aria-label="أدوات الرأس">
               {/* Progress Indicator (compact) */}
               {headerPreferences.showProgress && isShrunk && (
                 <AnimatePresence>
@@ -338,7 +336,7 @@ export default function Header() {
               <Button
                 variant="ghost"
                 size="icon"
-                className="lg:hidden relative overflow-hidden hover:bg-primary/10 dark:hover:bg-primary/15"
+                className="lg:hidden relative overflow-hidden hover:bg-primary/10 dark:hover:bg-primary/15 h-9 w-9 sm:h-10 sm:w-10"
                 onClick={toggleMobileMenu}
                 aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
                 aria-expanded={isMobileMenuOpen}
@@ -378,6 +376,7 @@ export default function Header() {
 
         {/* Mobile Menu */}
         <HeaderMobileMenuEnhanced
+          key={pathname || "root"}
           isMobileMenuOpen={isMobileMenuOpen}
           setIsMobileMenuOpen={setIsMobileMenuOpen}
           isActiveRoute={isActiveRoute}

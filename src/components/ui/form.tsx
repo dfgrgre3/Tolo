@@ -14,18 +14,22 @@ export function FormField<
   return <Controller {...props} />;
 }
 
-export function FormItem({ children }: { children: React.ReactNode }) {
-  return <div className="space-y-2">{children}</div>;
+export function FormItem({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={className || "space-y-2"} {...props}>{children}</div>;
 }
 
-export function FormLabel({ children }: { children: React.ReactNode }) {
-  return <label className="font-medium">{children}</label>;
+export function FormLabel({ children, className, ...props }: React.LabelHTMLAttributes<HTMLLabelElement>) {
+  return <label className={`${className || "font-medium"}`} {...props}>{children}</label>;
 }
 
-export function FormControl({ children }: { children: React.ReactNode }) {
-  return <div>{children}</div>;
+export function FormControl({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={className} {...props}>{children}</div>;
 }
 
-export function FormMessage({ children }: { children?: React.ReactNode }) {
-  return children ? <p className="text-red-500 text-sm">{children}</p> : null;
+export function FormMessage({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return children ? <p className={`${className || "text-red-500 text-sm"}`} {...props}>{children}</p> : null;
+}
+
+export function FormDescription({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
+  return children ? <p className={`${className || "text-muted-foreground text-sm"}`} {...props}>{children}</p> : null;
 }

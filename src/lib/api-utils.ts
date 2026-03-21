@@ -254,6 +254,19 @@ export function notFoundResponse(message = 'Resource not found'): NextResponse<A
   );
 }
 
+// Forbidden error helper
+export function forbiddenResponse(message = 'Forbidden'): NextResponse<APIError> {
+  return NextResponse.json(
+    {
+      error: message,
+      code: ERROR_CODES.FORBIDDEN || 'FORBIDDEN',
+      status: 403
+    },
+    { status: 403 }
+  );
+}
+
+
 // Helper function to validate request body against a Zod schema
 export async function validateRequestBody<T>(
   request: NextRequest,
@@ -500,6 +513,7 @@ export interface AuthContextUser {
   userId: string;
   userRole: string;
   role: string;
+  permissions: string[];
   sessionId?: string;
 }
 
@@ -513,15 +527,18 @@ async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser
         type?: string;
         userId?: string;
         role?: string;
+        permissions?: string[];
         sessionId?: string;
       }>(accessToken);
 
       if (accessPayload?.type === 'access' && typeof accessPayload.userId === 'string') {
         const role = typeof accessPayload.role === 'string' ? accessPayload.role : 'USER';
+        const permissions = Array.isArray(accessPayload.permissions) ? accessPayload.permissions : [];
         return {
           userId: accessPayload.userId,
           userRole: role,
           role,
+          permissions,
           sessionId: typeof accessPayload.sessionId === 'string' ? accessPayload.sessionId : undefined,
         };
       }
@@ -571,14 +588,19 @@ async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser
 
     const refreshHash = SessionService.hashRefreshToken(refreshToken);
     if (!session.refreshToken || session.refreshToken !== refreshHash) {
-      return null;
+      const recentlyRotated = await SessionService.isRecentlyRotated(refreshHash, session.id);
+      if (!recentlyRotated) {
+        return null;
+      }
     }
 
     const role = session.user?.role ?? 'USER';
+    const permissions = (session.user as any)?.permissions ?? [];
     return {
       userId: session.userId,
       userRole: role,
       role,
+      permissions,
       sessionId: session.id,
     };
   } catch (error) {
@@ -601,15 +623,18 @@ async function resolveAuthFromAuthorization(req: NextRequest): Promise<AuthConte
       type?: string;
       userId?: string;
       role?: string;
+      permissions?: string[];
       sessionId?: string;
     }>(token);
 
     if (accessPayload?.type === 'access' && typeof accessPayload.userId === 'string') {
       const role = typeof accessPayload.role === 'string' ? accessPayload.role : 'USER';
+      const permissions = Array.isArray(accessPayload.permissions) ? accessPayload.permissions : [];
       return {
         userId: accessPayload.userId,
         userRole: role,
         role,
+        permissions,
         sessionId: typeof accessPayload.sessionId === 'string' ? accessPayload.sessionId : undefined,
       };
     }
@@ -631,6 +656,8 @@ export async function withAuth(
 ): Promise<NextResponse> {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role") || "USER";
+  const permissionsHeader = req.headers.get("x-user-permissions") || "";
+  const permissions = permissionsHeader ? permissionsHeader.split(",") : [];
   const sessionId = req.headers.get("x-session-id") || undefined;
 
   if (userId) {
@@ -638,6 +665,7 @@ export async function withAuth(
       userId,
       userRole,
       role: userRole,
+      permissions,
       sessionId,
     });
   }
@@ -653,4 +681,33 @@ export async function withAuth(
   }
 
   return handler(fallbackAuth);
+}
+/**
+ * Authentication and Authorization wrapper for ADMIN only routes.
+ */
+export async function withAdmin(
+  req: NextRequest,
+  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
+): Promise<NextResponse> {
+  return withAuth(req, async (user) => {
+    if (user.role !== 'ADMIN') {
+      return forbiddenResponse("غير مسموح لك بالوصول إلى هذه الصفحة. يتطلب صلاحيات مدير");
+    }
+    return handler(user);
+  });
+}
+
+/**
+ * Authentication and Authorization wrapper for TEACHER and ADMIN routes.
+ */
+export async function withTeacher(
+  req: NextRequest,
+  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
+): Promise<NextResponse> {
+  return withAuth(req, async (user) => {
+    if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
+      return forbiddenResponse("غير مسموح لك بالوصول إلى هذه الصفحة. يتطلب صلاحيات معلم");
+    }
+    return handler(user);
+  });
 }

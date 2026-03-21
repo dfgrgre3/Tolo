@@ -1,12 +1,8 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import WeeklySchedule from "@/app/(dashboard)/time/components/WeeklySchedule";
-import TaskManagement from "@/app/(dashboard)/time/components/TaskManagement";
-import StudySessionsHistory from "@/app/(dashboard)/time/components/StudySessionsHistory";
-import Reminders from "@/app/(dashboard)/time/components/Reminders";
-import TimeTracker from "@/app/(dashboard)/time/components/TimeTracker";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Settings, Filter, Search, BarChart3, Play, Pause } from 'lucide-react';
 import { Input } from "@/components/ui/input";
@@ -15,10 +11,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // Components
 import TimeManagementHeader from './components/TimeManagementHeader';
 import DashboardTab from './components/DashboardTab';
-import TimeAnalytics from './components/TimeAnalytics';
-import ProductivityInsights from './components/ProductivityInsights';
-import ExportDialog from './components/ExportDialog';
-import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 import TimeErrorBoundary from './components/TimeErrorBoundary';
 
 // Hooks
@@ -26,17 +18,26 @@ import { useTimeData } from './hooks/useTimeData';
 import { useTimeStats } from './hooks/useTimeStats';
 import { useTimeFilters } from './hooks/useTimeFilters';
 import { useOverdueNotifications } from './hooks/useOverdueNotifications';
-import { useToast } from '@/contexts/toast-context';
+import { toast } from 'sonner';
 
 // Types
 import type { Task, StudySession, Reminder, Schedule, TimeTrackerTask } from './types';
 
 import { logger } from '@/lib/logger';
 
+const LazyWeeklySchedule = dynamic(() => import("@/app/(dashboard)/time/components/WeeklySchedule"));
+const LazyTaskManagement = dynamic(() => import("@/app/(dashboard)/time/components/TaskManagement"));
+const LazyStudySessionsHistory = dynamic(() => import("@/app/(dashboard)/time/components/StudySessionsHistory"));
+const LazyReminders = dynamic(() => import("@/app/(dashboard)/time/components/Reminders"));
+const LazyTimeTracker = dynamic(() => import("@/app/(dashboard)/time/components/TimeTracker"));
+const LazyTimeAnalytics = dynamic(() => import('./components/TimeAnalytics'));
+const LazyProductivityInsights = dynamic(() => import('./components/ProductivityInsights'));
+const LazyExportDialog = dynamic(() => import('./components/ExportDialog'));
+const LazyKeyboardShortcutsHelp = dynamic(() => import('./components/KeyboardShortcutsHelp'));
+
 export default function TimeManagementPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
   
   // Search and filter states
   const [taskSearch, setTaskSearch] = useState("");
@@ -48,10 +49,6 @@ export default function TimeManagementPage() {
   const [showCompletedTasks, setShowCompletedTasks] = useState(true);
   const [showUpcomingRemindersOnly, setShowUpcomingRemindersOnly] = useState(true);
   const [showAnalytics, setShowAnalytics] = useState(false);
-  const [showInsights, setShowInsights] = useState(false);
-
-  // Toast notifications
-  const { showToast } = useToast();
 
   // Custom hooks
   const { 
@@ -103,11 +100,8 @@ export default function TimeManagementPage() {
   const handleTaskCreate = useCallback((newTask: Task) => {
     setTasks(prev => [newTask, ...prev]);
     updateStatsOnTaskCreate(newTask);
-    showToast({
-      message: `تم إنشاء المهمة "${newTask.title}" بنجاح`,
-      type: 'success'
-    });
-  }, [setTasks, updateStatsOnTaskCreate, showToast]);
+    toast.success(`تم إنشاء المهمة "${newTask.title}" بنجاح`);
+  }, [setTasks, updateStatsOnTaskCreate]);
 
   // Handle task deletion
   const handleTaskDelete = useCallback((taskId: string) => {
@@ -115,21 +109,15 @@ export default function TimeManagementPage() {
     if (!task) return;
     setTasks(prev => prev.filter(t => t.id !== taskId));
     updateStatsOnTaskDelete(task);
-    showToast({
-      message: `تم حذف المهمة "${task.title}"`,
-      type: 'warning'
-    });
-  }, [tasks, setTasks, updateStatsOnTaskDelete, showToast]);
+    toast.warning(`تم حذف المهمة "${task.title}"`);
+  }, [tasks, setTasks, updateStatsOnTaskDelete]);
 
   // Handle new study session
   const handleStudySessionCreate = useCallback((newSession: StudySession) => {
     setStudySessions(prev => [newSession, ...prev]);
     updateStatsOnSessionCreate(newSession);
-    showToast({
-      message: `تم تسجيل ${newSession.durationMin} دقيقة من المذاكرة`,
-      type: 'success'
-    });
-  }, [setStudySessions, updateStatsOnSessionCreate, showToast]);
+    toast.success(`تم تسجيل ${newSession.durationMin} دقيقة من المذاكرة`);
+  }, [setStudySessions, updateStatsOnSessionCreate]);
 
   // Handle reminder updates
   const handleReminderUpdate = useCallback((updatedReminder: Reminder) => {
@@ -140,11 +128,8 @@ export default function TimeManagementPage() {
   const handleReminderCreate = useCallback((newReminder: Reminder) => {
     setReminders(prev => [newReminder, ...prev]);
     updateStatsOnReminderCreate(newReminder);
-    showToast({
-      message: `تم إضافة تذكير "${newReminder.title}"`,
-      type: 'success'
-    });
-  }, [setReminders, updateStatsOnReminderCreate, showToast]);
+    toast.success(`تم إضافة تذكير "${newReminder.title}"`);
+  }, [setReminders, updateStatsOnReminderCreate]);
 
   // Handle reminder deletion
   const handleReminderDelete = useCallback((reminderId: string) => {
@@ -152,11 +137,8 @@ export default function TimeManagementPage() {
     if (!reminder) return;
     setReminders(prev => prev.filter(r => r.id !== reminderId));
     updateStatsOnReminderDelete(reminder);
-    showToast({
-      message: `تم حذف تذكير "${reminder.title}"`,
-      type: 'warning'
-    });
-  }, [reminders, setReminders, updateStatsOnReminderDelete, showToast]);
+    toast.warning(`تم حذف تذكير "${reminder.title}"`);
+  }, [reminders, setReminders, updateStatsOnReminderDelete]);
 
   // Handle schedule updates
   const handleScheduleUpdate = useCallback((updatedSchedule: Schedule) => {
@@ -166,11 +148,9 @@ export default function TimeManagementPage() {
   // Handle notifications with toast
   const handleNotification = useCallback((message: string, type: 'warning' | 'error') => {
     logger.info(`[${type.toUpperCase()}] ${message}`);
-    showToast({
-      message: type === 'error' ? `تنبيه مهم: ${message}` : message,
-      type: type === 'error' ? 'error' : 'warning'
-    });
-  }, [showToast]);
+    const toastMethod = type === 'error' ? toast.error : toast.warning;
+    toastMethod(type === 'error' ? `تنبيه مهم: ${message}` : message);
+  }, []);
 
   // Overdue notifications
   useOverdueNotifications({
@@ -179,11 +159,8 @@ export default function TimeManagementPage() {
   });
 
   // Handle timer start/stop
-  const handleTimerToggle = useCallback((taskId?: string) => {
+  const handleTimerToggle = useCallback((_taskId?: string) => {
     setIsTimerRunning(prev => !prev);
-    if (taskId) {
-      setCurrentTaskId(taskId);
-    }
     // Switch to tracker tab when timer starts
     if (!isTimerRunning) {
       setActiveTab("tracker");
@@ -202,8 +179,6 @@ export default function TimeManagementPage() {
   // Calculate quick stats for header
   const quickStats = useMemo(() => {
     const today = new Date();
-    const todayString = today.toISOString().split('T')[0];
-    
     return {
       todayTasks: tasks.filter(t => 
         t.dueAt && new Date(t.dueAt).toDateString() === today.toDateString()
@@ -292,9 +267,9 @@ export default function TimeManagementPage() {
 
         <TabsContent value="dashboard" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="flex justify-between items-center mb-4 gap-2">
-            <KeyboardShortcutsHelp />
+            <LazyKeyboardShortcutsHelp />
             <div className="flex gap-2">
-              <ExportDialog 
+              <LazyExportDialog 
                 tasks={tasks}
                 studySessions={studySessions}
                 reminders={reminders}
@@ -325,14 +300,14 @@ export default function TimeManagementPage() {
             onTimerToggle={handleTimerToggle}
           />
 
-          {showAnalytics && (
+          {showAnalytics && activeTab === "dashboard" && (
             <div className="space-y-6">
-              <TimeAnalytics
+              <LazyTimeAnalytics
                 tasks={tasks}
                 studySessions={studySessions}
                 reminders={reminders}
               />
-              <ProductivityInsights
+              <LazyProductivityInsights
                 tasks={tasks}
                 studySessions={studySessions}
               />
@@ -353,9 +328,9 @@ export default function TimeManagementPage() {
               </Button>
             </div>
           </div>
-          {userId && (
+          {userId && activeTab === "schedule" && (
             <div className="animate-in fade-in duration-700">
-              <WeeklySchedule schedule={schedule} subjects={subjects} userId={userId} onScheduleUpdate={handleScheduleUpdate} />
+              <LazyWeeklySchedule schedule={schedule} subjects={subjects} userId={userId} onScheduleUpdate={handleScheduleUpdate} />
             </div>
           )}
         </TabsContent>
@@ -393,9 +368,9 @@ export default function TimeManagementPage() {
               </Button>
             </div>
           </div>
-          {userId && (
+          {userId && activeTab === "tasks" && (
             <div className="animate-in fade-in duration-700">
-              <TaskManagement 
+              <LazyTaskManagement 
                 initialTasks={filteredTasks} 
                 userId={userId} 
                 subjects={subjects}
@@ -436,9 +411,9 @@ export default function TimeManagementPage() {
               </Button>
             </div>
           </div>
-          {userId && (
+          {userId && activeTab === "tracker" && (
             <div className="animate-in fade-in duration-700">
-              <TimeTracker 
+              <LazyTimeTracker 
                 userId={userId}
                 tasks={mapTasksForTimeTracker}
                 subjects={subjects.map(String)}
@@ -472,12 +447,14 @@ export default function TimeManagementPage() {
               </Button>
             </div>
           </div>
-          <div className="animate-in fade-in duration-700">
-            <StudySessionsHistory 
-              sessions={filteredSessions.length > 0 ? filteredSessions : studySessions} 
-              subjects={subjects.map(String)}
-            />
-          </div>
+          {activeTab === "history" && (
+            <div className="animate-in fade-in duration-700">
+              <LazyStudySessionsHistory 
+                sessions={filteredSessions.length > 0 ? filteredSessions : studySessions} 
+                subjects={subjects.map(String)}
+              />
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="reminders" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -502,9 +479,9 @@ export default function TimeManagementPage() {
               </Button>
             </div>
           </div>
-          {userId && (
+          {userId && activeTab === "reminders" && (
             <div className="animate-in fade-in duration-700">
-              <Reminders 
+              <LazyReminders 
                 initialReminders={filteredReminders.length > 0 ? filteredReminders : reminders} 
                 userId={userId}
                 onReminderUpdate={handleReminderUpdate}

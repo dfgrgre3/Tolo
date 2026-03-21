@@ -10,6 +10,17 @@ export class EventBus {
       this.handlers.set(event, []);
     }
     this.handlers.get(event)?.push(handler);
+    
+    // Return unsubscribe function
+    return () => {
+      this.unsubscribe(event, handler);
+    };
+  }
+
+  unsubscribe(event: string, handler: EventHandler) {
+    const handlers = this.handlers.get(event);
+    if (!handlers) return;
+    this.handlers.set(event, handlers.filter(h => h !== handler));
   }
 
   async publish(event: string, payload: unknown) {

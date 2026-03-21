@@ -94,7 +94,7 @@ function ProgressIndicator() {
 	// Show only on certain pages
 	const shouldShow = useMemo(() => {
 		if (!mounted) return false;
-		const showPages = ["/", "/courses", "/profile", "/analytics", "/achievements"];
+		const showPages = ["/", "/courses", "/analytics", "/achievements"];
 		return showPages.some((page) => pathname?.startsWith(page));
 	}, [pathname, mounted]);
 

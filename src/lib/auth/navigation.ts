@@ -2,6 +2,7 @@ export const DEFAULT_AUTHENTICATED_ROUTE = '/dashboard';
 
 export const AUTH_PUBLIC_ROUTES = [
   '/login',
+  '/admin-login',
   '/register',
   '/forgot-password',
   '/reset-password',

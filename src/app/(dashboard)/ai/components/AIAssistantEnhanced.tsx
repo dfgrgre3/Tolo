@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, MessageSquare, Bot, User, Zap, Mic, MicOff, AlertCircle, Heart } from 'lucide-react';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Message {
   role: 'user' | 'assistant';

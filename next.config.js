@@ -2,7 +2,7 @@
 const nextConfig = {
   // Enable React strict mode for better performance
   reactStrictMode: true,
-  transpilePackages: ['framer-motion'],
+  transpilePackages: ['framer-motion', 'three'],
 
   // Skip type checking during build (run separately in CI)
   typescript: {
@@ -20,9 +20,25 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'i.ytimg.com',
       },
+      {
+        protocol: 'https',
+        hostname: '*.ytimg.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.imgur.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+      },
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   // Enable compression
@@ -53,9 +69,14 @@ const nextConfig = {
     '@opentelemetry/resources',
     '@opentelemetry/semantic-conventions',
     '@opentelemetry/api',
+    'bcrypt',
+    'ioredis',
+    'nodemailer',
+    'openai',
+    'twilio',
   ],
 
-  // Optimize package imports
+  // Optimize package imports - reduces bundle size significantly
   experimental: {
     optimizePackageImports: [
       'lucide-react',
@@ -63,8 +84,22 @@ const nextConfig = {
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
       '@radix-ui/react-tabs',
+      '@radix-ui/react-select',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-navigation-menu',
+      '@radix-ui/react-progress',
+      '@radix-ui/react-radio-group',
+      '@radix-ui/react-separator',
+      '@radix-ui/react-switch',
+      '@radix-ui/react-tooltip',
       'chart.js',
-      'react-chartjs-2'
+      'react-chartjs-2',
+      'recharts',
+      'date-fns',
+      'zod',
+      '@tanstack/react-table',
     ],
   },
 
@@ -112,20 +147,42 @@ const nextConfig = {
     return config;
   },
 
-  // Configure headers for better caching
+  // Configure headers for better caching (production only to avoid dev issues)
   async headers() {
-    const isProd = process.env.NODE_ENV === 'production';
-    const staticCacheHeader = isProd
-      ? 'public, max-age=31536000, immutable'
-      : 'no-store, no-cache, must-revalidate';
+    // Only apply custom headers in production to avoid breaking dev mode
+    if (process.env.NODE_ENV !== 'production') {
+      return [];
+    }
 
     return [
       {
-        source: '/_next/static/(.*)',
+        source: '/_next/static/:path*',
         headers: [
           {
             key: 'Cache-Control',
-            value: staticCacheHeader,
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/fonts/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
+      {
+        source: '/images/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
         ],
       },
@@ -143,6 +200,18 @@ const nextConfig = {
           {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin',
+          },
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on',
+          },
+          {
+            key: 'Content-Type',
+            value: 'text/html; charset=utf-8',
+          },
+          {
+            key: 'Charset',
+            value: 'utf-8',
           },
         ],
       },

@@ -2,11 +2,27 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { BookCheck, BookOpen, Star } from "lucide-react";
+import { 
+  BookCheck, 
+  BookOpen, 
+  Star, 
+  Sparkles, 
+  Sword, 
+  Shield, 
+  Map, 
+  Target, 
+  Flame, 
+  LayoutGrid, 
+  ListFilter, 
+  Users,
+  Search,
+  Zap
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { logger } from "@/lib/logger";
+import { Button } from "@/components/ui/button";
 import {
   CourseCard,
   CoursesEmptyState,
@@ -39,6 +55,13 @@ type CoursesApiResponse = {
   courses?: Course[];
   subjects?: Course[];
   categories?: CourseCategory[];
+};
+
+const STYLES = {
+  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "rpg-card h-full p-6 transition-all",
+  neonText: "rpg-neon-text font-black",
+  goldText: "rpg-gold-text font-black"
 };
 
 function normalizeLevel(level: Course["level"]): Exclude<CourseLevelFilter, "all"> {
@@ -99,9 +122,7 @@ export default function CoursesPage() {
     showEnrolledOnly;
 
   useEffect(() => {
-    if (authLoading) {
-      return;
-    }
+    if (authLoading) return;
 
     const controller = new AbortController();
 
@@ -115,9 +136,7 @@ export default function CoursesPage() {
           signal: controller.signal,
         });
 
-        if (!response.ok) {
-          throw new Error(`Failed to fetch courses (${response.status})`);
-        }
+        if (!response.ok) throw new Error(`Failed to fetch courses (${response.status})`);
 
         const data = (await response.json()) as CoursesApiResponse;
         const fetchedCourses = Array.isArray(data.courses)
@@ -130,36 +149,26 @@ export default function CoursesPage() {
         setCourses(fetchedCourses);
         setCategories(fetchedCategories);
       } catch (error) {
-        if (controller.signal.aborted) {
-          return;
-        }
-
+        if (controller.signal.aborted) return;
         logger.error("Error fetching courses:", error);
         setCourses([]);
         setCategories([]);
-        setFetchError("تعذر تحميل الدورات حالياً. حاول مرة أخرى.");
-        toast.error("تعذر تحميل الدورات حالياً");
+        setFetchError("تعذر الاتصال بالمكتبة حالياً.");
+        toast.error("تعذر تحميل الأرشيف حالياً");
       } finally {
-        if (!controller.signal.aborted) {
-          setLoading(false);
-        }
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
 
     void fetchCourses();
-
-    return () => {
-      controller.abort();
-    };
+    return () => controller.abort();
   }, [authLoading, refreshKey, user?.id]);
 
   const filteredCourses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
 
     return courses.filter((course) => {
-      if (showEnrolledOnly && !course.enrolled) {
-        return false;
-      }
+      if (showEnrolledOnly && !course.enrolled) return false;
 
       const matchesCategory =
         activeCategory === "all" ||
@@ -168,15 +177,12 @@ export default function CoursesPage() {
 
       const matchesLevel = levelFilter === "all" || normalizeLevel(course.level) === levelFilter;
 
-      if (!normalizedSearch) {
-        return matchesCategory && matchesLevel;
-      }
+      if (!normalizedSearch) return matchesCategory && matchesLevel;
 
       const matchesSearch =
         course.title.toLowerCase().includes(normalizedSearch) ||
         course.instructor.toLowerCase().includes(normalizedSearch) ||
-        course.description.toLowerCase().includes(normalizedSearch) ||
-        course.tags.some((tag) => tag.toLowerCase().includes(normalizedSearch));
+        course.description.toLowerCase().includes(normalizedSearch);
 
       return matchesCategory && matchesSearch && matchesLevel;
     });
@@ -188,13 +194,13 @@ export default function CoursesPage() {
         case "newest":
           return toTimestamp(right.createdAt) - toTimestamp(left.createdAt);
         case "popular":
-          return right.enrolledCount - left.enrolledCount;
+          return (right.enrolledCount || 0) - (left.enrolledCount || 0);
         case "rated":
-          return right.rating - left.rating;
+          return (right.rating || 0) - (left.rating || 0);
         case "price-low":
-          return left.price - right.price;
+          return (left.price || 0) - (right.price || 0);
         case "price-high":
-          return right.price - left.price;
+          return (right.price || 0) - (left.price || 0);
         default:
           return 0;
       }
@@ -203,316 +209,191 @@ export default function CoursesPage() {
 
   const featuredCourses = useMemo(() => {
     const source = showEnrolledOnly ? courses.filter((course) => course.enrolled) : courses;
-
     return [...source]
-      .sort((left, right) => {
-        if (right.rating === left.rating) {
-          return right.enrolledCount - left.enrolledCount;
-        }
-        return right.rating - left.rating;
-      })
+      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
       .slice(0, 5);
   }, [courses, showEnrolledOnly]);
 
   const stats = useMemo(() => {
     const enrolledCoursesCount = courses.filter((course) => course.enrolled).length;
-    const freeCoursesCount = courses.filter((course) => course.price === 0).length;
-    const averageRating =
-      courses.length > 0
-        ? Number((courses.reduce((sum, course) => sum + course.rating, 0) / courses.length).toFixed(1))
-        : 0;
-
+    const freeCoursesCount = courses.filter((course) => (course.price || 0) === 0).length;
     return {
       totalCourses: courses.length,
-      totalStudents: courses.reduce((accumulator, course) => accumulator + course.enrolledCount, 0),
-      totalInstructors: Math.max(1, new Set(courses.map((course) => course.instructor)).size),
+      totalStudents: courses.reduce((acc, course) => acc + (course.enrolledCount || 0), 0),
       enrolledCoursesCount,
       freeCoursesCount,
-      averageRating,
+      totalInstructors: new Set(courses.map(c => c.instructor)).size,
     };
   }, [courses]);
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [activeCategory, searchTerm, sortBy, levelFilter, showEnrolledOnly, courses.length]);
-
   const handleEnroll = async (courseId: string) => {
     if (!user) {
-      toast.error("يرجى تسجيل الدخول للتسجيل في الدورة");
+      toast.error("يرجى تسجيل الدخول أولاً");
       router.push("/login?redirect=/courses");
       return;
     }
-
     setEnrollingId(courseId);
-
     try {
-      const response = await fetch(`/api/courses/${courseId}/enroll`, {
-        method: "POST",
-      });
-
-      if (response.ok) {
-        toast.success("تم التسجيل في الدورة بنجاح");
-        setCourses((previousCourses) =>
-          previousCourses.map((course) =>
-            course.id === courseId
-              ? {
-                  ...course,
-                  enrolled: true,
-                  progress: 0,
-                  enrolledCount: course.enrolled ? course.enrolledCount : course.enrolledCount + 1,
-                }
-              : course
-          )
-        );
+      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "POST" });
+      if (res.ok) {
+        toast.success("تم الانضمام للرحلة بنجاح");
+        setRefreshKey(k => k + 1);
       } else {
-        const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || "حدث خطأ أثناء التسجيل في الدورة");
+        toast.error("فشل الانضمام");
       }
-    } catch (error) {
-      logger.error("Error enrolling in course:", error);
-      toast.error("حدث خطأ أثناء التسجيل في الدورة");
     } finally {
       setEnrollingId(null);
     }
   };
 
   const handleUnenroll = async (courseId: string) => {
-    if (!user) {
-      return;
-    }
-
     setEnrollingId(courseId);
-
     try {
-      const response = await fetch(`/api/courses/${courseId}/enroll`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        toast.success("تم إلغاء التسجيل من الدورة");
-        setCourses((previousCourses) =>
-          previousCourses.map((course) =>
-            course.id === courseId
-              ? {
-                  ...course,
-                  enrolled: false,
-                  progress: undefined,
-                  enrolledCount: Math.max(0, course.enrolledCount - 1),
-                }
-              : course
-          )
-        );
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        toast.error(errorData.error || "حدث خطأ أثناء إلغاء التسجيل");
+      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("تم فك الارتباط");
+        setRefreshKey(k => k + 1);
       }
-    } catch (error) {
-      logger.error("Error unenrolling from course:", error);
-      toast.error("حدث خطأ أثناء إلغاء التسجيل");
     } finally {
       setEnrollingId(null);
     }
   };
 
-  const resetFilters = () => {
-    setActiveCategory("all");
-    setSearchTerm("");
-    setLevelFilter("all");
-    setSortBy("newest");
-    setShowEnrolledOnly(false);
-    setVisibleCount(PAGE_SIZE);
-  };
-
-  const activeFilters = useMemo(() => {
-    const labels: string[] = [];
-
-    if (showEnrolledOnly) {
-      labels.push("المسجل بها فقط");
-    }
-
-    if (activeCategory !== "all") {
-      const categoryName = categories.find((category) => category.id === activeCategory)?.name ?? activeCategory;
-      labels.push(`التصنيف: ${categoryName}`);
-    }
-
-    if (levelFilter !== "all") {
-      labels.push(`المستوى: ${levelLabel(levelFilter)}`);
-    }
-
-    if (searchTerm.trim() !== "") {
-      labels.push(`بحث: ${searchTerm.trim()}`);
-    }
-
-    return labels;
-  }, [activeCategory, categories, levelFilter, searchTerm, showEnrolledOnly]);
-
   const visibleCourses = sortedCourses.slice(0, visibleCount);
   const canLoadMore = visibleCount < sortedCourses.length;
-  const remainingCourses = sortedCourses.length - visibleCount;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-      <div className="px-4 md:px-6 lg:px-8">
-        <section className="mx-auto max-w-7xl space-y-8 py-8">
-          <CoursesHero
-            totalCourses={stats.totalCourses}
-            totalStudents={stats.totalStudents}
-            totalInstructors={stats.totalInstructors}
+    <div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">
+      {/* --- Ambient Background --- */}
+      <div className="fixed inset-0 pointer-events-none -z-10">
+        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-blue-600/5 blur-[120px] rounded-full" />
+        <div className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] bg-purple-600/5 blur-[120px] rounded-full" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:60px_60px]" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
+        
+        <CoursesHero
+          totalCourses={stats.totalCourses}
+          totalStudents={stats.totalStudents}
+          totalInstructors={stats.totalInstructors}
+        />
+
+        {/* --- Stats Dashboard --- */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+           {[
+             { label: "مخطوطة متاحة", val: stats.totalCourses, icon: BookOpen, color: "text-blue-400" },
+             { label: "محارب مسجل", val: stats.totalStudents, icon: Users, color: "text-purple-400" },
+             { label: "مخطوطاتك النشطة", val: stats.enrolledCoursesCount, icon: BookCheck, color: "text-emerald-400" },
+             { label: "معرفة مجانية", val: stats.freeCoursesCount, icon: Sparkles, color: "text-amber-400" },
+           ].map((stat, i) => (
+             <motion.div
+               key={i}
+               initial={{ opacity: 0, y: 20 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: i * 0.1 }}
+               className={STYLES.glass + " p-6 group cursor-default"}
+             >
+                <div className="flex items-start justify-between">
+                   <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 ${stat.color} group-hover:scale-110 transition-transform`}>
+                      <stat.icon className="h-6 w-6" />
+                   </div>
+                   <span className="text-white/5 font-black text-4xl">0{i+1}</span>
+                </div>
+                <div className="mt-8 space-y-1">
+                   <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{stat.label}</p>
+                   <p className="text-3xl font-black">{stat.val.toLocaleString()}</p>
+                </div>
+             </motion.div>
+           ))}
+        </div>
+
+        {/* --- Featured Highlights --- */}
+        {!loading && featuredCourses.length > 0 && (
+          <FeaturedCourses
+            courses={featuredCourses}
+            onEnroll={handleEnroll}
+            onUnenroll={handleUnenroll}
+            enrollingId={enrollingId}
           />
+        ) || loading && <CoursesLoadingSkeleton />}
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-              <div className="mb-2 flex items-center gap-2 text-slate-500 dark:text-slate-300">
-                <BookCheck className="h-4 w-4 text-blue-500" />
-                <p className="text-sm font-medium">الدورات المسجّل بها</p>
+        {/* --- Main Repository --- */}
+        <div className="space-y-10">
+           <div className="flex flex-col md:flex-row items-center justify-between gap-8 border-b border-white/5 pb-8">
+              <div className="flex items-center gap-6">
+                 <button
+                   onClick={() => setShowEnrolledOnly(false)}
+                   className={`relative h-14 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${!showEnrolledOnly ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+                 >
+                    <LayoutGrid className="h-5 w-5" />
+                    <span>جميع العوالم</span>
+                 </button>
+                 <button
+                   onClick={() => setShowEnrolledOnly(true)}
+                   className={`relative h-14 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${showEnrolledOnly ? 'bg-primary text-white shadow-lg' : 'bg-white/5 text-gray-500 hover:bg-white/10'}`}
+                 >
+                    <BookCheck className="h-5 w-5" />
+                    <span>عوالمي الخاصة</span>
+                 </button>
               </div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.enrolledCoursesCount}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-              <div className="mb-2 flex items-center gap-2 text-slate-500 dark:text-slate-300">
-                <BookOpen className="h-4 w-4 text-emerald-500" />
-                <p className="text-sm font-medium">الدورات المجانية</p>
-              </div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.freeCoursesCount}</p>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/80">
-              <div className="mb-2 flex items-center gap-2 text-slate-500 dark:text-slate-300">
-                <Star className="h-4 w-4 text-amber-500" />
-                <p className="text-sm font-medium">متوسط التقييم</p>
-              </div>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.averageRating.toFixed(1)}</p>
-            </div>
-          </div>
+           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setShowEnrolledOnly(false)}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                !showEnrolledOnly
-                  ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
-                  : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              }`}
-            >
-              كل الدورات ({courses.length})
-            </button>
-            <button
-              onClick={() => setShowEnrolledOnly(true)}
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition-all ${
-                showEnrolledOnly
-                  ? "bg-blue-500 text-white shadow-lg shadow-blue-500/20"
-                  : "border border-slate-200 bg-white text-slate-700 hover:border-blue-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              }`}
-            >
-              المسجّل بها فقط ({stats.enrolledCoursesCount})
-            </button>
-          </div>
+           <CoursesFilter
+             categories={categories}
+             activeCategory={activeCategory}
+             setActiveCategory={setActiveCategory}
+             searchTerm={searchTerm}
+             setSearchTerm={setSearchTerm}
+             sortBy={sortBy}
+             setSortBy={setSortBy}
+             levelFilter={levelFilter}
+             setLevelFilter={setLevelFilter}
+             resultsCount={sortedCourses.length}
+             hasActiveFilters={hasActiveFilters}
+             onResetFilters={() => setRefreshKey(k => k + 1)}
+           />
 
-          {!loading && featuredCourses.length > 0 && (
-            <FeaturedCourses
-              courses={featuredCourses}
-              onEnroll={handleEnroll}
-              onUnenroll={handleUnenroll}
-              enrollingId={enrollingId}
-            />
-          )}
+           <div className="min-h-[600px]">
+              <AnimatePresence mode="wait">
+                 {loading ? (
+                    <CoursesLoadingSkeleton key="load" />
+                 ) : sortedCourses.length > 0 ? (
+                    <motion.div
+                      key="list"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
+                    >
+                       {visibleCourses.map((course, index) => (
+                         <CourseCard
+                           key={course.id}
+                           {...course}
+                           index={index}
+                           isProcessing={enrollingId === course.id}
+                           onEnroll={() => handleEnroll(course.id)}
+                           onUnenroll={() => handleUnenroll(course.id)}
+                         />
+                       ))}
+                    </motion.div>
+                 ) : (
+                    <CoursesEmptyState key="empty" onAction={() => setRefreshKey(k => k + 1)} />
+                 )}
+              </AnimatePresence>
+           </div>
 
-          <CoursesFilter
-            categories={categories}
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            levelFilter={levelFilter}
-            setLevelFilter={setLevelFilter}
-            resultsCount={sortedCourses.length}
-            hasActiveFilters={hasActiveFilters}
-            onResetFilters={resetFilters}
-          />
-
-          {hasActiveFilters && activeFilters.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 bg-white/80 p-3 dark:border-slate-700 dark:bg-slate-800/70">
-              {activeFilters.map((filter) => (
-                <span
-                  key={filter}
-                  className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-200"
+           {canLoadMore && (
+             <div className="flex justify-center pt-8">
+                <Button 
+                   onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                   className="h-16 px-16 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black rounded-2xl gap-3 transition-all active:scale-95"
                 >
-                  {filter}
-                </span>
-              ))}
-              <button
-                onClick={resetFilters}
-                className="rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 transition-colors hover:border-blue-300 hover:text-blue-600 dark:border-slate-600 dark:text-slate-200"
-              >
-                مسح الفلاتر
-              </button>
-            </div>
-          )}
-
-          <AnimatePresence mode="wait">
-            {loading ? (
-              <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <CoursesLoadingSkeleton />
-              </motion.div>
-            ) : fetchError && courses.length === 0 ? (
-              <motion.div key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <CoursesEmptyState
-                  title="تعذر تحميل الدورات"
-                  description={fetchError}
-                  showAction={true}
-                  onAction={() => setRefreshKey((prev) => prev + 1)}
-                  actionLabel="إعادة المحاولة"
-                />
-              </motion.div>
-            ) : sortedCourses.length > 0 ? (
-              <motion.div
-                key="courses"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-              >
-                {visibleCourses.map((course, index) => (
-                  <CourseCard
-                    key={course.id}
-                    {...course}
-                    index={index}
-                    isProcessing={enrollingId === course.id}
-                    onEnroll={() => handleEnroll(course.id)}
-                    onUnenroll={() => handleUnenroll(course.id)}
-                  />
-                ))}
-              </motion.div>
-            ) : (
-              <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <CoursesEmptyState
-                  title={showEnrolledOnly ? "لا توجد دورات مسجّل بها" : "لا توجد دورات مطابقة"}
-                  description={
-                    showEnrolledOnly
-                      ? "لم تقم بالتسجيل في أي دورة بعد. استعرض الدورات المتاحة وابدأ بالتعلم الآن."
-                      : "لم نتمكن من العثور على دورات تطابق معايير البحث. غيّر الفلاتر أو جرّب كلمات مختلفة."
-                  }
-                  showAction={hasActiveFilters}
-                  onAction={resetFilters}
-                />
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {!loading && canLoadMore && (
-            <div className="flex justify-center pt-4">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => setVisibleCount((previous) => Math.min(previous + PAGE_SIZE, sortedCourses.length))}
-                className="rounded-2xl border border-slate-200 bg-white px-8 py-3 font-medium text-slate-700 shadow-lg transition-all duration-300 hover:border-blue-300 hover:shadow-xl dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              >
-                {`عرض المزيد من الدورات (${Math.min(PAGE_SIZE, remainingCourses)})`}
-              </motion.button>
-            </div>
-          )}
-        </section>
+                   <span>استكشاف المزيد من العوالم</span>
+                   <Sparkles className="h-5 w-5 text-primary" />
+                </Button>
+             </div>
+           )}
+        </div>
       </div>
     </div>
   );

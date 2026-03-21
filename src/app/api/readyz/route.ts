@@ -1,5 +1,5 @@
-﻿import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db-unified';
 import redisService from '@/lib/redis';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -9,10 +9,10 @@ import 'server-only';
 /**
  * GET /api/readyz
  * 
- * Readiness check endpoint ظ„ظ„ظ€ Kubernetes readiness probe
- * ظٹطھط­ظ‚ظ‚ ظ…ظ† ط£ظ† ط§ظ„طھط·ط¨ظٹظ‚ ط¬ط§ظ‡ط² ظ„طھظ„ظ‚ظٹ ط§ظ„ط·ظ„ط¨ط§طھ
+ * Readiness check endpoint 888? Kubernetes readiness probe
+ * 8y7?7?88 8&8  7?8  7?87?7?7?8y8 7?7?8!7? 87?888y 7?87?87?7?7?
  * 
- * ظ‡ط°ط§ endpoint ظٹطھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ظˆ Redis
+ * 8!7?7? endpoint 8y7?7?88 8&8  7?87?7?7?7?8 7?87?7?7?7? 7?87?8y7?8 7?7? 8? Redis
  */
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async () => {
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    // ظپط­طµ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
+    // 8~7?7? 87?7?7?7? 7?87?8y7?8 7?7?
     try {
       await prisma.$queryRaw`SELECT 1`;
       checks.database = true;
@@ -31,13 +31,13 @@ export async function GET(request: NextRequest) {
       checks.database = false;
     }
 
-    // ظپط­طµ Redis
+    // 8~7?7? Redis
     try {
       const client = redisService.getClient();
       if (client && typeof client.ping === 'function') {
         await client.ping();
       } else if (redisService.isConnected()) {
-        // ط¥ط°ط§ ظƒط§ظ† client ظ…طھطµظ„طŒ ظ†ط¹طھط¨ط±ظ‡ ط¬ط§ظ‡ط²
+        // 7?7?7? 8?7?8  client 8&7?7?87R 8 7?7?7?7?8! 7?7?8!7?
         checks.redis = true;
       } else {
         checks.redis = false;

@@ -1,11 +1,11 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from '@/lib/db-unified';
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 import { logger } from '@/lib/logger';
 
-// ظˆط§ط¬ظ‡ط© ط¨ط±ظ…ط¬ط© طھط·ط¨ظٹظ‚ط§طھ ط§ظ„ظٹظˆطھظٹط¨ ظ„ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ‚ظ†ظˆط§طھ ط§ظ„طھط¹ظ„ظٹظ…ظٹط©
+// 8?7?7?8!7? 7?7?8&7?7? 7?7?7?8y87?7? 7?88y8?7?8y7? 887?7?7? 7?8  7?888 8?7?7? 7?87?7?88y8&8y7?
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const YOUTUBE_SEARCH_URL = "https://www.googleapis.com/youtube/v3/search";
 
@@ -16,33 +16,33 @@ export async function POST(request: NextRequest) {
 
       if (!subject) {
         return NextResponse.json(
-          { error: "ط§ظ„ط±ط¬ط§ط، طھظˆظپظٹط± ط§ظ„ظ…ط§ط¯ط© ط§ظ„ط¯ط±ط§ط³ظٹط©" },
+          { error: "7?87?7?7?7 7?8?8~8y7? 7?88&7?7?7? 7?87?7?7?7?8y7?" },
           { status: 400 }
         );
       }
 
-      // طھط­ط¯ظٹط¯ ظ…ظ‚ط¯ظ… ط§ظ„ط®ط¯ظ…ط©
+      // 7?7?7?8y7? 8&87?8& 7?87?7?8&7?
       const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
 
-      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ…ظپطھط§ط­ API
+      // 7?87?7?88 8&8  8&8~7?7?7? API
       if (!validateApiKey(selectedProvider === AI_PROVIDERS.OPENAI ? 'OPENAI' : 'GEMINI')) {
         logger.error(`API key for ${selectedProvider.name} is not configured`);
         return NextResponse.json(
-          { error: `ظ…ظپطھط§ط­ API ظ„ظ€ ${selectedProvider.name} ط؛ظٹط± ظ…ظ‡ظٹط£. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ… ظ„ط¥ط¶ط§ظپط© ظ…ظپطھط§ط­ API طµط§ظ„ط­.` },
+          { error: `8&8~7?7?7? API 88? ${selectedProvider.name} 78y7? 8&8!8y7?. 8y7?7?80 7?87?8?7?7?8 8&7? 8~7?8y8 7?87?7?8& 87?7?7?8~7? 8&8~7?7?7? API 7?7?87?.` },
           { status: 500 }
         );
       }
 
-      // ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ…ظپطھط§ط­ YouTube API ط¥ط°ط§ ظƒط§ظ† ظ…ط·ظ„ظˆط¨ظ‹ط§
-      if ((!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("ظٹظˆطھظٹظˆط¨")) && !YOUTUBE_API_KEY) {
+      // 7?87?7?88 8&8  8&8~7?7?7? YouTube API 7?7?7? 8?7?8  8&7?88?7?897?
+      if ((!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("يوتيوب")) && !YOUTUBE_API_KEY) {
         logger.error("YouTube API key is not configured");
         return NextResponse.json(
-          { error: "ظ…ظپطھط§ط­ YouTube API ط؛ظٹط± ظ…ظ‡ظٹط£. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ…." },
+          { error: "8&8~7?7?7? YouTube API 78y7? 8&8!8y7?. 8y7?7?80 7?87?8?7?7?8 8&7? 8~7?8y8 7?87?7?8&." },
           { status: 500 }
         );
       }
 
-      // ط§ظ„ط¨ط­ط« ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط­ظ„ظٹط© ط£ظˆظ„ط§ظ‹
+      // 7?87?7?7? 8~8y 87?7?7?7? 7?87?8y7?8 7?7? 7?88&7?88y7? 7?8?87?89
       let localTeachers: unknown[] = [];
       try {
         localTeachers = await prisma.teacher.findMany({
@@ -55,30 +55,30 @@ export async function POST(request: NextRequest) {
         });
       } catch (dbError) {
         logger.error("Error fetching teachers from database:", dbError);
-        // ط§ط³طھظ…ط± ط­طھظ‰ ظ„ظˆ ظپط´ظ„ ط§ظ„ط¨ط­ط« ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
+        // 7?7?7?8&7? 7?7?80 88? 8~7?8 7?87?7?7? 8~8y 87?7?7?7? 7?87?8y7?8 7?7?
       }
 
-      // ط¥ظ†ط´ط§ط، ط±ط³ط§ظ„ط© ط§ظ„ظ†ط¸ط§ظ… ظ„طھظˆط¬ظٹظ‡ ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ ظ„ظ„ط¨ط­ط« ط¹ظ† ظ…ط¯ط±ط³ظٹظ†
-      const systemPrompt = `ط£ظ†طھ ظ…ط³ط§ط¹ط¯ ط°ظƒط§ط، ط§طµط·ظ†ط§ط¹ظٹ ظ…طھط®طµطµ ظپظٹ ط§ظ„ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ط¯ط±ط³ظٹظ† ظˆط§ظ„ظ…ط­طھظˆظ‰ ط§ظ„طھط¹ظ„ظٹظ…ظٹ ط§ظ„ظ…طµط±ظٹ ظ„ظ…ظ†طµط© ط«ظ†ط§ظˆظٹ.
-    ظ…ظ‡ظ…طھظƒ ظ‡ظٹ ط§ظ„ط¨ط­ط« ط¹ظ† ط£ظپط¶ظ„ ظ…ط¯ط±ط³ظٹظ† ظˆظ…طµط§ط¯ط± طھط¹ظ„ظٹظ…ظٹط© ظ„ظ…ط§ط¯ط© ${subject} ${keywords ? `ظ…ط¹ ط§ظ„طھط±ظƒظٹط² ط¹ظ„ظ‰: ${keywords}` : ''}.
-    ${platform ? `ظ…ط¹ ط§ظ„طھط±ظƒظٹط² ط¹ظ„ظ‰ ظ…ظ†طµط©: ${platform}` : ''}
+      // 7?8 7?7?7 7?7?7?87? 7?88 7?7?8& 87?8?7?8y8! 7?87?8?7?7 7?87?7?7?8 7?7?8y 887?7?7? 7?8  8&7?7?7?8y8 
+      const systemPrompt = `7?8 7? 8&7?7?7?7? 7?8?7?7 7?7?7?8 7?7?8y 8&7?7?7?7? 8~8y 7?87?7?7? 7?8  7?88&7?7?7?8y8  8?7?88&7?7?8?80 7?87?7?88y8&8y 7?88&7?7?8y 88&8 7?7? 7?8 7?8?8y.
+    8&8!8&7?8? 8!8y 7?87?7?7? 7?8  7?8~7?8 8&7?7?7?8y8  8?8&7?7?7?7? 7?7?88y8&8y7? 88&7?7?7? ${subject} ${keywords ? `8&7? 7?87?7?8?8y7? 7?880: ${keywords}` : ''}.
+    ${platform ? `8&7? 7?87?7?8?8y7? 7?880 8&8 7?7?: ${platform}` : ''}
 
-    ظ‚ظ… ط¨طھظˆظپظٹط± ظ‚ط§ط¦ظ…ط© ظ…ظ† 5-10 ظ…ط¯ط±ط³ظٹظ† ط£ظˆ ظ‚ظ†ظˆط§طھ طھط¹ظ„ظٹظ…ظٹط© ظ…طµط±ظٹط© ظ…ط¹ظ„ظˆظ…ط§طھظ‡ظ… ظƒط§ظ„طھط§ظ„ظٹ:
-    1. ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³ ط£ظˆ ط§ظ„ظ‚ظ†ط§ط©
-    2. ط§ظ„ظ…ط§ط¯ط© ط§ظ„طھظٹ ظٹط¯ط±ط³ظ‡ط§
-    3. ط±ط§ط¨ط· ط§ظ„ظ‚ظ†ط§ط© ط£ظˆ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ
-    4. ظˆطµظپ ظ…ظˆط¬ط² ظ„ط£ط³ظ„ظˆط¨ ط§ظ„طھط¯ط±ظٹط³ ظˆط§ظ„ظ…ط­طھظˆظ‰
-    5. طھظ‚ظٹظٹظ… طھظ‚ط±ظٹط¨ظٹ (ظ…ظ† 1 ط¥ظ„ظ‰ 5)
+    88& 7?7?8?8~8y7? 87?7?8&7? 8&8  5-10 8&7?7?7?8y8  7?8? 88 8?7?7? 7?7?88y8&8y7? 8&7?7?8y7? 8&7?88?8&7?7?8!8& 8?7?87?7?88y:
+    1. 7?7?8& 7?88&7?7?7? 7?8? 7?888 7?7?
+    2. 7?88&7?7?7? 7?87?8y 8y7?7?7?8!7?
+    3. 7?7?7?7? 7?888 7?7? 7?8? 7?88&88~ 7?87?7?7?8y
+    4. 8?7?8~ 8&8?7?7? 87?7?88?7? 7?87?7?7?8y7? 8?7?88&7?7?8?80
+    5. 7?88y8y8& 7?87?8y7?8y (8&8  1 7?880 5)
 
-    ظٹط¬ط¨ ط£ظ† طھظƒظˆظ† ط¬ظ…ظٹط¹ ط§ظ„ط±ظˆط§ط¨ط· ظ„ظ…طµط§ط¯ط± ظ…طµط±ظٹط© ط­ظ‚ظٹظ‚ظٹط© ظˆظ…ظˆط«ظˆظ‚ط©.
-    ظ‚ظ… ط¨طھظ†ط³ظٹظ‚ ط§ظ„ط¥ط¬ط§ط¨ط© ظƒظ€ JSON ظ…ط¹ ط§ظ„ظ…طµظپظˆظپط§طھ ط§ظ„طھط§ظ„ظٹط©:
+    8y7?7? 7?8  7?8?8?8  7?8&8y7? 7?87?8?7?7?7? 88&7?7?7?7? 8&7?7?8y7? 7?88y88y7? 8?8&8?7?8?87?.
+    88& 7?7?8 7?8y8 7?87?7?7?7?7? 8?8? JSON 8&7? 7?88&7?8~8?8~7?7? 7?87?7?88y7?:
     {
       "teachers": [
         {
-          "name": "ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³ ط£ظˆ ط§ظ„ظ‚ظ†ط§ط©",
-          "subject": "ط§ظ„ظ…ط§ط¯ط©",
-          "url": "ط±ط§ط¨ط· ط§ظ„ظ‚ظ†ط§ط© ط£ظˆ ط§ظ„ظ…ظ„ظپ ط§ظ„ط´ط®طµظٹ",
-          "description": "ظˆطµظپ ظ…ظˆط¬ط²",
+          "name": "7?7?8& 7?88&7?7?7? 7?8? 7?888 7?7?",
+          "subject": "7?88&7?7?7?",
+          "url": "7?7?7?7? 7?888 7?7? 7?8? 7?88&88~ 7?87?7?7?8y",
+          "description": "8?7?8~ 8&8?7?7?",
           "rating": 4.5
         }
       ]
@@ -87,9 +87,9 @@ export async function POST(request: NextRequest) {
       let aiTeachers: any[] = [];
       let youtubeResults: any[] = [];
 
-      // ط¥ط°ط§ ظƒط§ظ† ط·ظ„ط¨ ط§ظ„ط¨ط­ط« ظٹط´ظ…ظ„ ط§ظ„ظٹظˆطھظٹط¨طŒ ظ‚ظ… ط¨ط§ظ„ط¨ط­ط« ظ‡ظ†ط§ظƒ ط£ظٹط¶ط§ظ‹
-      if (!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("ظٹظˆطھظٹظˆط¨")) {
-        const searchQuery = `${subject} ظ…ط¯ط±ط³ ظ…طµط±ظٹ ${keywords || ""}`;
+      // 7?7?7? 8?7?8  7?87? 7?87?7?7? 8y7?8&8 7?88y8?7?8y7?7R 88& 7?7?87?7?7? 8!8 7?8? 7?8y7?7?89
+      if (!platform || platform.toLowerCase().includes("youtube") || platform.toLowerCase().includes("يوتيوب")) {
+        const searchQuery = `${subject} 8&7?7?7? 8&7?7?8y ${keywords || ""}`;
 
         try {
           const youtubeResponse = await fetch(
@@ -112,10 +112,10 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // ظ…ط¹ط§ظ„ط¬ط© ط§ط³طھط¬ط§ط¨ط© ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ
+      // 8&7?7?87?7? 7?7?7?7?7?7?7? 7?87?8?7?7 7?87?7?7?8 7?7?8y
       try {
         if (selectedProvider === AI_PROVIDERS.OPENAI) {
-          // ط§ط³طھط®ط¯ط§ظ… OpenAI API
+          // 7?7?7?7?7?7?8& OpenAI API
           const response = await fetch(selectedProvider.baseUrl, {
             method: "POST",
             headers: {
@@ -138,12 +138,12 @@ export async function POST(request: NextRequest) {
               const teachersData = JSON.parse(teachersContent);
               aiTeachers = teachersData.teachers || [];
 
-              // ط­ظپط¸ ط§ظ„ظ…ط¯ط±ط³ظٹظ† ط§ظ„ط¬ط¯ط¯ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
+              // 7?8~7? 7?88&7?7?7?8y8  7?87?7?7? 8~8y 87?7?7?7? 7?87?8y7?8 7?7?
               for (const teacher of aiTeachers) {
                 try {
                   await prisma.teacher.upsert({
                     where: {
-                      // ط§ط³طھط®ط¯ط§ظ… ط§ط³ظ… ط§ظ„ظ…ط¯ط±ط³ ظˆط§ظ„ظ…ط§ط¯ط© ظƒظ…ظپطھط§ط­ ظپط±ظٹط¯
+                      // 7?7?7?7?7?7?8& 7?7?8& 7?88&7?7?7? 8?7?88&7?7?7? 8?8&8~7?7?7? 8~7?8y7?
                       name_subject: {
                         name: teacher.name,
                         subjectId: teacher.subjectId || teacher.subject
@@ -173,30 +173,30 @@ export async function POST(request: NextRequest) {
         }
       } catch (aiError) {
         logger.error("Error with AI provider:", aiError);
-        // ط§ط³طھظ…ط± ط­طھظ‰ ظ„ظˆ ظپط´ظ„ ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ
+        // 7?7?7?8&7? 7?7?80 88? 8~7?8 7?87?8?7?7 7?87?7?7?8 7?7?8y
       }
 
-      // ط¯ظ…ط¬ ط§ظ„ظ†طھط§ط¦ط¬ ظ…ظ† ط§ظ„ظ…طµط§ط¯ط± ط§ظ„ظ…ط®طھظ„ظپط©
-      // ط§ظ„طھط£ظƒط¯ ظ…ظ† ط£ظ† ط¬ظ…ظٹط¹ ط§ظ„ظ…طµظپظˆظپط§طھ ظ…ظˆط¬ظˆط¯ط©
+      // 7?8&7? 7?88 7?7?7?7? 8&8  7?88&7?7?7?7? 7?88&7?7?88~7?
+      // 7?87?7?8?7? 8&8  7?8  7?8&8y7? 7?88&7?8~8?8~7?7? 8&8?7?8?7?7?
       const result = {
         localTeachers: localTeachers || [],
         aiTeachers: aiTeachers || [],
         youtubeResults: youtubeResults || [],
-        message: "طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ‚ط§ط¦ظ…ط© ط§ظ„ظ…ط¯ط±ط³ظٹظ† ط¨ظ†ط¬ط§ط­",
+        message: "7?8& 7?87?7?8?7? 7?880 87?7?8&7? 7?88&7?7?7?8y8  7?8 7?7?7?",
         provider: selectedProvider.name
       };
 
       return NextResponse.json(result);
     } catch (error) {
       logger.error("Error in AI teachers search API:", error);
-      let errorMessage = "ط­ط¯ط« ط®ط·ط£ ظپظٹ ظ…ط¹ط§ظ„ط¬ط© ط·ظ„ط¨ظƒ";
+      let errorMessage = "7?7?7? 7?7?7? 8~8y 8&7?7?87?7? 7?87?8?";
 
-      // طھط­ط¯ظٹط¯ ط±ط³ط§ظ„ط© ط§ظ„ط®ط·ط£ ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ظ†ظˆط¹ ط§ظ„ط®ط·ط£
+      // 7?7?7?8y7? 7?7?7?87? 7?87?7?7? 7?8 7?789 7?880 8 8?7? 7?87?7?7?
       if (error instanceof Error) {
         if (error.message.includes("API key")) {
-          errorMessage = "ظ…ظپطھط§ط­ API ظ„ظ€ Google Gemini ط؛ظٹط± ظ…ظ‡ظٹط£. ظٹط±ط¬ظ‰ ط§ظ„طھظˆط§طµظ„ ظ…ط¹ ظپط±ظٹظ‚ ط§ظ„ط¯ط¹ظ….";
+          errorMessage = "8&8~7?7?7? API 88? Google Gemini 78y7? 8&8!8y7?. 8y7?7?80 7?87?8?7?7?8 8&7? 8~7?8y8 7?87?7?8&.";
         } else if (error.message.includes("fetch")) {
-          errorMessage = "ظپط´ظ„ ط§ظ„ط§طھطµط§ظ„ ط¨ط®ط¯ظ…ط© ط§ظ„ط°ظƒط§ط، ط§ظ„ط§طµط·ظ†ط§ط¹ظٹ. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰ ظ„ط§ط­ظ‚ط§ظ‹.";
+          errorMessage = "8~7?8 7?87?7?7?7?8 7?7?7?8&7? 7?87?8?7?7 7?87?7?7?8 7?7?8y. 8y7?7?80 7?88&7?7?8?87? 8&7?7? 7?7?7?80 87?7?87?89.";
         }
       }
 

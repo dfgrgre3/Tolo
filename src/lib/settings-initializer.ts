@@ -23,13 +23,18 @@ class SettingsInitializer {
     try {
       // Get server settings
       const serverPreferences = await fetchSettingsPreferences();
-      
+
       // Apply all settings to ensure consistency
       this.applyLanguageSettings(serverPreferences.language);
       this.applyAppearanceSettings(serverPreferences.appearance);
-      
+
       this.initialized = true;
     } catch (error) {
+      if (error instanceof Error && error.message === 'Unauthorized') {
+        // User not authenticated, skip initialization silently
+        this.initialized = true;
+        return;
+      }
       console.error('Settings initialization failed:', error);
       // Still mark as initialized to prevent repeated failures
       this.initialized = true;
@@ -49,15 +54,15 @@ class SettingsInitializer {
     // Apply language and direction
     document.documentElement.lang = language.language;
     document.documentElement.dir = langMap[language.language] || 'ltr';
-    
+
     // Store in localStorage for persistence
     localStorage.setItem('language', language.language);
     localStorage.setItem('direction', langMap[language.language] || 'ltr');
-    
+
     // Apply number format
     document.documentElement.classList.toggle('arabic-numbers', language.numberFormat === 'arabic');
     localStorage.setItem('numberFormat', language.numberFormat);
-    
+
     // Apply timezone
     localStorage.setItem('timezone', language.timezone);
   }
@@ -68,7 +73,7 @@ class SettingsInitializer {
     // Apply theme
     document.documentElement.classList.toggle('dark', appearance.theme === 'dark');
     localStorage.setItem('theme', appearance.theme);
-    
+
     // Apply font size
     const fontSizeMap = {
       'small': '14px',
