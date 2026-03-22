@@ -11,7 +11,7 @@ Get-Process | Where-Object { $_.ProcessName -like "*node*" -and $_.CommandLine -
 if (Test-Path .next) {
     Write-Host "Removing .next directory..." -ForegroundColor Yellow
     Remove-Item -Recurse -Force .next
-    Write-Host "✓ .next directory cleared" -ForegroundColor Green
+    Write-Host "Successfully .next directory cleared" -ForegroundColor Green
 } else {
     Write-Host "✓ .next directory doesn't exist" -ForegroundColor Green
 }
@@ -23,32 +23,14 @@ if (Test-Path "node_modules\.cache") {
     Write-Host "✓ node_modules/.cache cleared" -ForegroundColor Green
 }
 
-# Clear Turbopack cache
-$turbopackCache = "$env:TEMP\.turbo"
-if (Test-Path $turbopackCache) {
-    Write-Host "Removing Turbopack cache..." -ForegroundColor Yellow
-    Remove-Item -Recurse -Force $turbopackCache -ErrorAction SilentlyContinue
-    Write-Host "✓ Turbopack cache cleared" -ForegroundColor Green
-}
-
-# Clear webpack cache
-if (Test-Path ".next\cache\webpack") {
-    Write-Host "Removing webpack cache..." -ForegroundColor Yellow
-    Remove-Item -Recurse -Force ".next\cache\webpack" -ErrorAction SilentlyContinue
-    Write-Host "✓ Webpack cache cleared" -ForegroundColor Green
-}
-
-# Clear Next.js cache directory
+# Clear Next.js cache directory (specifically)
 if (Test-Path ".next\cache") {
     Write-Host "Removing Next.js cache..." -ForegroundColor Yellow
     Remove-Item -Recurse -Force ".next\cache" -ErrorAction SilentlyContinue
-    Write-Host "✓ Next.js cache cleared" -ForegroundColor Green
 }
 
-# Clear browser cache suggestion
+# End of script
 Write-Host "`n✓ Cache cleared successfully!" -ForegroundColor Green
-Write-Host "`nNext steps:" -ForegroundColor Cyan
-Write-Host "1. Clear your browser cache (Ctrl+Shift+Delete)" -ForegroundColor White
+Write-Host "Next steps:" -ForegroundColor Cyan
+Write-Host "1. Clear your browser cache" -ForegroundColor White
 Write-Host "2. Restart the dev server: npm run dev" -ForegroundColor White
-Write-Host "3. If the issue persists, try: npm run dev:no-turbo" -ForegroundColor White
-
