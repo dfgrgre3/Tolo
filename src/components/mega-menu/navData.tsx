@@ -10,6 +10,7 @@ import {
   CheckCircle,
   ClipboardList,
   Clock,
+  CreditCard,
   Download,
   FileText,
   FolderOpen,
@@ -173,6 +174,7 @@ export const moreMegaMenu: MegaMenuCategory[] = [
   {
     title: "الحساب والأمان",
     items: [
+      { href: "/subscription", label: "الاشتراكات والفواتير", icon: CreditCard, description: "إدارة اشتراكك وعرض الفواتير" },
       { href: "/settings", label: "الإعدادات العامة", icon: Settings, description: "خصص تجربتك في المنصة" },
       { href: "/notifications", label: "الإشعارات", icon: Bell, description: "تحكم في طريقة تلقيك للإشعارات" },
       { href: "/settings/security", label: "الأمان", icon: Shield, description: "حماية الحساب وكلمة المرور" },
