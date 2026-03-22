@@ -205,10 +205,18 @@ export async function runNotificationChecks() {
 }
 
 // دالة لجدولة الفحوصص لتعمل بشكل دوري
-export function scheduleNotificationChecks() {
+export function scheduleNotificationChecks(): () => void {
   // تشغيل الفحوصص عند تحميل الصفحة
   runNotificationChecks();
 
   // تشغيل الفحوصص كل 30 دقيقة
-  setInterval(runNotificationChecks, 30 * 60 * 1000);
+  const interval = setInterval(runNotificationChecks, 30 * 60 * 1000);
+  
+  // Return cleanup function
+  return () => {
+    if (interval) {
+      clearInterval(interval);
+    }
+  };
 }
+

@@ -26,6 +26,8 @@ interface Props {
   maxRetries?: number;
   /** فئة CSS إضافية */
   className?: string;
+  /** نوع العرض: 'global' للخطأ الكامل في الصفحة، أو 'component' للخطأ المحلي في المكون */
+  variant?: 'global' | 'component';
 }
 
 /**
@@ -209,12 +211,51 @@ class ErrorBoundary extends Component<Props, State> {
 
   render() {
     const { hasError, error, errorId, retryCount } = this.state;
-    const { children, fallback, showErrorPage, errorType, showDetails, className = "" } = this.props;
+    const { children, fallback, showErrorPage, errorType, showDetails, className = "", variant = "global" } = this.props;
 
     if (hasError) {
       // If custom fallback is provided, use it
       if (fallback) {
         return fallback;
+      }
+
+      // If variant is 'component' or it's localized
+      if (variant === 'component') {
+        return (
+          <div className={`flex flex-col items-center justify-center p-6 border-2 border-dashed border-red-200 dark:border-red-900/30 rounded-xl bg-red-50/50 dark:bg-red-950/20 text-center animate-in fade-in zoom-in duration-300 ${className}`} dir="rtl">
+            <div className="relative mb-4">
+              <div className="absolute inset-0 bg-red-500/10 rounded-full blur-lg animate-pulse"></div>
+              <AlertTriangle className="relative h-10 w-10 text-red-500" />
+            </div>
+            
+            <h3 className="text-lg font-bold mb-1">حدث خطأ في هذا الجزء</h3>
+            <p className="text-xs text-muted-foreground mb-4 max-w-xs">
+              واجهنا مشكلة في تحميل هذا المكون. يمكنك محاولة إعادة التحميل.
+            </p>
+            
+            <div className="flex gap-2">
+              <button
+                onClick={this.handleRetry}
+                className="flex items-center gap-2 px-3 py-1.5 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 rounded-lg text-xs font-semibold hover:bg-red-200 transition-colors"
+                disabled={retryCount >= (this.props.maxRetries || 3)}
+              >
+                <RefreshCw className={`h-3 w-3 ${retryCount > 0 ? 'animate-spin' : ''}`} />
+                {retryCount > 0 ? `محاولة (${retryCount})` : 'إعادة المحاولة'}
+              </button>
+              
+              {showDetails && (
+                <details className="mt-2 text-right">
+                  <summary className="cursor-pointer text-[10px] text-muted-foreground hover:text-red-500 underline">
+                    التفاصيل
+                  </summary>
+                  <div className="mt-2 p-2 bg-background border rounded text-[10px] text-red-600 font-mono overflow-auto max-w-[250px]">
+                    {error?.message}
+                  </div>
+                </details>
+              )}
+            </div>
+          </div>
+        );
       }
 
       // Use custom error page if enabled
@@ -235,7 +276,7 @@ class ErrorBoundary extends Component<Props, State> {
                              error?.message.toLowerCase().includes('server') ||
                              error?.message.toLowerCase().includes('client');
 
-      // Default high-quality error UI
+      // Default high-quality error UI (Global Variant)
       return (
         <div className={`min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 ${className}`} dir="rtl">
           <div className="sm:mx-auto sm:w-full sm:max-w-md">

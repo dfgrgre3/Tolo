@@ -2,7 +2,7 @@ import React from "react";
 import { Clock, Info, CheckCircle, AlertCircle, XCircle, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { type Notification } from "./types";
+import { type Notification } from "@/types/notification";
 
 const notificationIcons = {
 	info: Info,

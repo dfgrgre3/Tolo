@@ -326,7 +326,6 @@ export default function SchedulePage() {
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:50px_50px]" />
       </div>
 
-      <WebSocketProvider userId={userId || ""}>
         <DndProvider backend={HTML5Backend}>
           <div className="mx-auto w-full max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
             
@@ -532,7 +531,6 @@ export default function SchedulePage() {
             )}
           </div>
         </DndProvider>
-      </WebSocketProvider>
     </div>
 	);
 }

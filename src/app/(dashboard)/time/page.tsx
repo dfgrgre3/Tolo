@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // Components
 import TimeManagementHeader from './components/TimeManagementHeader';
 import DashboardTab from './components/DashboardTab';
-import TimeErrorBoundary from './components/TimeErrorBoundary';
+import { ComponentErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 // Hooks
 import { useTimeData } from './hooks/useTimeData';
@@ -211,7 +211,7 @@ export default function TimeManagementPage() {
   }
 
   return (
-    <TimeErrorBoundary onReset={fetchData}>
+    <ComponentErrorBoundary onError={fetchData}>
       <div className="container mx-auto p-4 rtl" dir="rtl">
       <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
         <TimeManagementHeader
@@ -494,6 +494,6 @@ export default function TimeManagementPage() {
 
       </Tabs>
       </div>
-    </TimeErrorBoundary>
+    </ComponentErrorBoundary>
   );
 }

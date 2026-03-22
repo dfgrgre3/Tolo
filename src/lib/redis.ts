@@ -1,5 +1,5 @@
 // This file is now a unified wrapper around ioredis to prevent dependency redundancy
-import { redisClient as ioredis, CacheService as UnifiedCache } from './cache-service-unified';
+import { redisClient as ioredis, CacheService as UnifiedCache } from './cache';
 import { logger } from '@/lib/logger';
 
 // Re-export the raw client for advanced usage (e.g. rate limiting)

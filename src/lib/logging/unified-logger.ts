@@ -124,13 +124,13 @@ class UnifiedLogger {
         }
       }
 
-      // Initialize Error Logger (client-side)
+      // Initialize Error Service (client-side)
       if (this.config.enableErrorLogger && !isServer) {
         try {
-          const errorManagerModule = await import('@/services/ErrorManager');
-          this.errorLogger = errorManagerModule.default;
+          const { errorService } = await import('./error-service');
+          this.errorLogger = errorService;
         } catch (error) {
-          // Error manager initialization failed, continue without it
+          // Error service initialization failed, continue without it
           this.config.enableErrorLogger = false;
         }
       }

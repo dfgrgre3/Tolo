@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
 	Bell,
@@ -24,28 +24,45 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { type User } from "@/types/user";
-import { useNotifications } from "./useNotifications";
+import { useNotificationsContext } from "@/providers/NotificationsProvider";
 import { NotificationItem } from "./NotificationItem";
+import { type Notification } from "@/types/notification";
 
 interface HeaderNotificationsProps {
 	user: User | null;
 	mounted: boolean;
 }
 
-export function EnhancedNotifications({ user, mounted }: HeaderNotificationsProps) {
+export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps) {
 	const [isNotificationOpen, setIsNotificationOpen] = useState(false);
 	const notificationRef = useRef<HTMLDivElement>(null);
 
 	const {
-		notificationCount,
-		filteredNotifications,
-		filter,
-		setFilter,
+		unreadCount: notificationCount,
+		notifications,
+		isLoading,
+		hasMore,
+		markAsRead,
+		markAsRead: markAllAsRead, // Using plural markAsRead(undefined, true) for all
 		soundEnabled,
 		toggleSound,
-		markAsRead,
-		markAllAsRead
-	} = useNotifications(user, mounted);
+		loadMore
+	} = useNotificationsContext();
+
+	const [filter, setFilter] = useState<"all" | "unread">("all");
+
+	const filteredNotifications = useMemo(() => {
+		if (filter === "unread") return notifications.filter(n => !n.isRead);
+		return notifications;
+	}, [notifications, filter]);
+
+	const handleMarkAllRead = async () => {
+		await markAsRead(undefined, true);
+	};
+
+	const handleMarkAsRead = async (id: string) => {
+		await markAsRead([id]);
+	};
 
 	// Close dropdown when clicking outside
 	useEffect(() => {
@@ -134,7 +151,7 @@ export function EnhancedNotifications({ user, mounted }: HeaderNotificationsProp
 										</Button>
 									</DropdownMenuTrigger>
 									<DropdownMenuContent align="end">
-										<DropdownMenuItem onClick={markAllAsRead}>
+										<DropdownMenuItem onClick={handleMarkAllRead}>
 											<Check className="h-4 w-4 mr-2" />
 											تحديد الكل كمقروء
 										</DropdownMenuItem>
@@ -183,12 +200,12 @@ export function EnhancedNotifications({ user, mounted }: HeaderNotificationsProp
 									items={filteredNotifications}
 									itemHeight={100}
 									containerHeight={384}
-									keyExtractor={(item) => item.id}
+									keyExtractor={(item) => (item as Notification).id}
 									renderItem={(notification) => (
 										<NotificationItem
-											key={notification.id}
-											notification={notification}
-											markAsRead={markAsRead}
+											key={(notification as Notification).id}
+											notification={notification as Notification}
+											markAsRead={handleMarkAsRead}
 										/>
 									)}
 									overscan={2}

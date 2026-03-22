@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import type { ErrorInfo } from 'react';
 import { logger } from '@/lib/logger';
+import { useAuth } from './auth-context';
+
 
 type WebSocketContextType = {
   socket: WebSocket | null;
@@ -49,27 +51,20 @@ class WebSocketErrorBoundary extends React.Component<
 const WEBSOCKET_ENABLED = false;
 
 export function WebSocketProvider({ children, userId }: { children: React.ReactNode, userId?: string }) {
+  const { user } = useAuth();
+  const currentUserId = userId || user?.id;
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     // CRITICAL: WebSocket is disabled - exit immediately before any operations
-    // This prevents any WebSocket connection attempts or error events
-    if (!WEBSOCKET_ENABLED) {
-      // Explicitly set state to ensure no WebSocket is used
+    if (!WEBSOCKET_ENABLED || !currentUserId) {
       setSocket(null);
       setIsConnected(false);
-      // Return early with empty cleanup function to prevent any errors
-      return () => {
-        // No-op cleanup when WebSocket is disabled
-      };
+      return;
     }
     
-    // The code below will never execute while WEBSOCKET_ENABLED is false
-    // WebSocket is currently disabled as it requires edge runtime (Cloudflare Workers)
-    // The app works fine without it - it's only for real-time notifications
-
-    // WebSocket implementation (currently disabled)
+    // ... rest of the connection logic ...
     const isWebSocketSupported = typeof window !== 'undefined' && 'WebSocket' in window;
     
     if (!isWebSocketSupported) {
@@ -82,45 +77,22 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
 
     const connect = () => {
-      // Double check WebSocket is still enabled
-      if (!WEBSOCKET_ENABLED) {
-        return;
-      }
-
-      // Validate userId if provided
-      if (userId && (typeof userId !== 'string' || userId.trim().length === 0)) {
-        logger.warn('Invalid userId provided to WebSocket connection');
-        return;
-      }
+      if (!WEBSOCKET_ENABLED || !currentUserId) return;
 
       try {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const trimmedUserId = userId?.trim();
-        const wsUrl = trimmedUserId 
-          ? `${wsProtocol}//${window.location.host}/api/ws?userId=${encodeURIComponent(trimmedUserId)}`
-          : `${wsProtocol}//${window.location.host}/api/ws`;
+        const wsUrl = `${wsProtocol}//${window.location.host}/api/ws?userId=${encodeURIComponent(currentUserId)}`;
         
-        // Validate URL before creating WebSocket
-        try {
-          new URL(wsUrl);
-        } catch (urlError) {
-          logger.error('Invalid WebSocket URL:', urlError);
-          return;
-        }
-
         ws = new WebSocket(wsUrl);
 
-        // Set connection timeout (30 seconds)
         const connectionTimeout = setTimeout(() => {
           if (ws && ws.readyState === WebSocket.CONNECTING) {
-            logger.warn('WebSocket connection timeout');
             ws.close();
           }
         }, 30000);
 
         ws.onopen = () => {
           clearTimeout(connectionTimeout);
-          
           if (!WEBSOCKET_ENABLED) {
             ws?.close();
             return;
@@ -132,107 +104,50 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
 
         ws.onmessage = (event) => {
           if (!WEBSOCKET_ENABLED) return;
-          
-          // Validate message data
-          if (!event || !event.data) {
-            logger.warn('Received empty WebSocket message');
-            return;
-          }
-
           try {
-            // Validate data size (prevent DoS)
-            if (typeof event.data === 'string' && event.data.length > 10000) {
-              logger.warn('WebSocket message too large, ignoring');
-              return;
-            }
-
             const data = JSON.parse(event.data);
-            
-            // Validate data structure
-            if (!data || typeof data !== 'object') {
-              logger.warn('Invalid WebSocket message format');
-              return;
-            }
-
             if (data.type === 'notification') {
               logger.info('WebSocket notification:', data.message);
-            } else if (data.type === 'SCHEDULE_CONFLICT') {
-              logger.info('WebSocket: Schedule conflict detected');
             }
-          } catch (error) {
-            // Only log if WebSocket is enabled
-            if (WEBSOCKET_ENABLED) {
-              logger.warn('Error parsing WebSocket message:', error);
-            }
-          }
+          } catch (error) {}
         };
 
         ws.onclose = (event) => {
           clearTimeout(connectionTimeout);
           setIsConnected(false);
           setSocket(null);
-          
-          // Only attempt reconnect if WebSocket is still enabled and not a normal closure
           if (WEBSOCKET_ENABLED && reconnectAttempts < maxReconnectAttempts && event.code !== 1000) {
             reconnectAttempts++;
-            // Exponential backoff with jitter
-            const baseDelay = Math.min(3000 * Math.pow(2, reconnectAttempts - 1), 15000);
-            const jitter = Math.random() * 0.3 * baseDelay;
-            const delay = baseDelay + jitter;
+            const delay = Math.min(3000 * Math.pow(2, reconnectAttempts - 1), 15000);
             reconnectTimeout = setTimeout(connect, delay);
           }
         };
 
-        ws.onerror = (error) => {
+        ws.onerror = () => {
           clearTimeout(connectionTimeout);
-          
-          // Completely suppress WebSocket errors when disabled
-          // Do not log anything to prevent console errors
-          // Silently handle - do not propagate errors
-          // Prevent default error behavior
           if (ws) {
-            try {
-              ws.close();
-            } catch {
-              // Ignore any errors during cleanup
-            }
+            try { ws.close(); } catch {}
           }
         };
-      } catch (error) {
-        // Completely suppress errors when WebSocket is disabled
-        // Do not log anything to prevent console errors
-        // Silently ignore all connection errors
-        if (WEBSOCKET_ENABLED && process.env.NODE_ENV === 'development') {
-          logger.debug('WebSocket connection error (suppressed):', error);
-        }
-      }
+      } catch (error) {}
     };
 
     connect();
 
     return () => {
-      if (reconnectTimeout) {
-        clearTimeout(reconnectTimeout);
-        reconnectTimeout = null;
-      }
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
       if (ws) {
-        try {
-          ws.onerror = null; // Remove error handler before closing
-          ws.onopen = null;
-          ws.onmessage = null;
-          ws.onclose = null;
-          ws.close();
-        } catch (e) {
-          // Silently ignore cleanup errors
-        }
-        ws = null;
+        ws.onerror = null;
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onclose = null;
+        try { ws.close(); } catch {}
       }
       setSocket(null);
       setIsConnected(false);
     };
-    // Always use consistent dependency array - include userId to avoid React warnings
-    // The early exit check inside handles when WebSocket is disabled
-  }, [userId]); // Fixed: use consistent dependency array
+  }, [currentUserId]); // Use currentUserId as dependency
+ // Fixed: use consistent dependency array
 
   // Always provide safe default values
   const contextValue = {

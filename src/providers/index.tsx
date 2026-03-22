@@ -4,9 +4,11 @@ import React, { Suspense } from 'react';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
+import { NotificationsProvider } from '@/providers/NotificationsProvider';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { HydrationFix } from '@/components/utils/HydrationFix';
 import GlobalSettingsApplier from '@/components/layout/GlobalSettingsApplier';
 
 const queryClient = new QueryClient({
@@ -48,6 +50,7 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
     <>
       <Suspense fallback={null}>
         <ClientLayoutProvider>
+          <HydrationFix />
           <QueryClientProvider client={queryClient}>
             <ThemeProvider
               attribute="class"
@@ -58,9 +61,11 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
               <AuthProvider>
                 <GlobalSettingsApplier>
                   <WebSocketProvider>
-                    <TooltipProvider>
-                      {children}
-                    </TooltipProvider>
+                    <NotificationsProvider>
+                      <TooltipProvider>
+                        {children}
+                      </TooltipProvider>
+                    </NotificationsProvider>
                   </WebSocketProvider>
                 </GlobalSettingsApplier>
               </AuthProvider>

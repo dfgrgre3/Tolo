@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema } from 'zod';
-import { redis } from '@/lib/redis';
+import { redis } from '@/lib/cache';
 
 import { logger } from '@/lib/logger';
 import { ERROR_CODES } from '@/lib/error-codes';
@@ -558,11 +558,10 @@ async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser
       return null;
     }
 
-    const [{ SessionService }, dbModule] = await Promise.all([
+    const [{ SessionService }, { prisma }] = await Promise.all([
       import('@/lib/auth/session-service'),
       import('@/lib/db'),
     ]);
-    const prisma = dbModule.default ?? dbModule.prisma;
 
     const session = await prisma.session.findFirst({
       where: {

@@ -1,8 +1,8 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/db-unified';
-import { CacheService } from '@/lib/redis';
+import { prisma } from '@/lib/db';
+import { CacheService } from '@/lib/cache';
 import { logger } from '@/lib/logger';
 
 export interface ProgressSummary {

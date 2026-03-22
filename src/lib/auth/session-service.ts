@@ -1,8 +1,8 @@
-import prisma from '@/lib/db-unified';
+import prisma from '@/lib/db';
 import { TokenService } from './token-service';
 import { logger } from '@/lib/logger';
 import { createHash } from 'crypto';
-import { CacheService } from '@/lib/cache-service-unified';
+import { CacheService } from '@/lib/cache';
 
 /**
  * SessionService - Centralized session lifecycle management.

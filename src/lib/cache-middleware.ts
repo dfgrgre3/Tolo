@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { CacheService } from './cache-service-unified';
+import { CacheService } from './cache';
 
 
 import { logger } from '@/lib/logger';

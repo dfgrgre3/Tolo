@@ -12,7 +12,7 @@ import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { HeaderLogo } from "./header/HeaderLogo";
 import { HeaderSearch } from "./header/HeaderSearch";
 import { HeaderNavigation } from "./header/HeaderNavigation";
-import { EnhancedNotifications } from "./header/EnhancedNotifications";
+import { HeaderNotifications } from "./header/HeaderNotifications";
 // import removed
 
 import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
@@ -294,7 +294,7 @@ export default function Header() {
 
               {/* Notifications */}
               {isMounted && focusVisibility.showNotifications && (
-                <EnhancedNotifications user={user as any} mounted={mounted} />
+                  <HeaderNotifications user={user as any} mounted={mounted} />
               )}
 
               {/* User Menu & Auth Buttons */}
