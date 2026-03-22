@@ -19,13 +19,12 @@ import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
 // import removed
 import { useMegaMenuState } from "./header/useMegaMenuState";
 import ProgressIndicator from "./header/ProgressIndicator";
-import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
-
-import { useStickyHeader } from "./header/hooks/useStickyHeader";
+import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
+import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { useAuth } from "@/contexts/auth-context";
 import { UserMenu } from "./header/UserMenu";
 import { LogIn, UserPlus } from "lucide-react";
-import { buildLoginUrl } from "@/lib/auth/navigation";
+import { buildLoginUrl } from "@/services/auth/navigation";
 
 // Dynamic imports for better performance
 const CommandPalette = dynamic(
@@ -147,7 +146,7 @@ export default function Header() {
   };
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
+  useHeaderKeyboardShortcuts({
     mounted,
     isMobileMenuOpen,
     setIsMobileMenuOpen,

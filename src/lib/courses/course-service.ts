@@ -1,4 +1,4 @@
-๏ปฟimport { prisma } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 
 export const COURSE_LEVELS = ["BEGINNER", "INTERMEDIATE", "ADVANCED"] as const;
 
@@ -51,50 +51,50 @@ type SubjectWithStats = {
 };
 
 const CATEGORY_NAMES: Record<string, string> = {
-  MATH: "ุงูุฑูุงุถูุงุช",
-  PHYSICS: "ุงูููุฒูุงุก",
-  CHEMISTRY: "ุงูููู…ูุงุก",
-  BIOLOGY: "ุงูุฃุญูุงุก",
-  ARABIC: "ุงููุบุฉ ุงูุนุฑุจูุฉ",
-  ENGLISH: "ุงููุบุฉ ุงูุฅูุฌููุฒูุฉ",
-  HISTORY: "ุงูุชุงุฑูุฎ",
-  GEOGRAPHY: "ุงูุฌุบุฑุงููุง",
-  PHILOSOPHY: "ุงูููุณูุฉ",
-  RELIGION: "ุงูุชุฑุจูุฉ ุงูุฏูููุฉ",
-  PROGRAMMING: "ุงูุจุฑู…ุฌุฉ",
-  COMPUTER_SCIENCE: "ุนููู… ุงูุญุงุณุจ",
-  GENERAL: "ุนุงู…",
+  MATH: "วแัํวึํวส",
+  PHYSICS: "วแÝําํวม",
+  CHEMISTRY: "วแ฿ํใํวม",
+  BIOLOGY: "วแรอํวม",
+  ARABIC: "วแแÛษ วแฺัศํษ",
+  ENGLISH: "วแแÛษ วแลไฬแําํษ",
+  HISTORY: "วแสวัํฮ",
+  GEOGRAPHY: "วแฬÛัวÝํว",
+  PHILOSOPHY: "วแÝแำÝษ",
+  RELIGION: "วแสัศํษ วแฯํไํษ",
+  PROGRAMMING: "วแศัใฬษ",
+  COMPUTER_SCIENCE: "ฺแๆใ วแอวำศ",
+  GENERAL: "ฺวใ",
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-  MATH: "๐”ข",
-  PHYSICS: "โ๏ธ",
-  CHEMISTRY: "๐งช",
-  BIOLOGY: "๐งฌ",
-  ARABIC: "๐“",
-  ENGLISH: "๐”ค",
-  HISTORY: "๐๏ธ",
-  GEOGRAPHY: "๐",
-  PHILOSOPHY: "๐’ญ",
-  RELIGION: "๐•",
-  PROGRAMMING: "๐’ป",
-  COMPUTER_SCIENCE: "๐–ฅ๏ธ",
-  GENERAL: "๐“",
+  MATH: "??",
+  PHYSICS: "??",
+  CHEMISTRY: "??",
+  BIOLOGY: "??",
+  ARABIC: "??",
+  ENGLISH: "??",
+  HISTORY: "???",
+  GEOGRAPHY: "??",
+  PHILOSOPHY: "??",
+  RELIGION: "??",
+  PROGRAMMING: "??",
+  COMPUTER_SCIENCE: "???",
+  GENERAL: "??",
 };
 
 const CATEGORY_KEYWORDS: Array<{ id: string; keywords: string[] }> = [
-  { id: "MATH", keywords: ["math", "ุฑูุงุถ", "algebra", "geometry"] },
-  { id: "PHYSICS", keywords: ["physics", "ููุฒูุงุก"] },
-  { id: "CHEMISTRY", keywords: ["chem", "ููู…ูุงุก"] },
-  { id: "BIOLOGY", keywords: ["bio", "ุฃุญูุงุก", "ุงุญูุงุก"] },
-  { id: "ARABIC", keywords: ["arabic", "ูุบุฉ ุนุฑุจูุฉ", "ุนุฑุจู"] },
-  { id: "ENGLISH", keywords: ["english", "ูุบุฉ ุงูุฌููุฒูุฉ", "ุฅูุฌููุฒู", "ุงูุฌููุฒู"] },
-  { id: "HISTORY", keywords: ["history", "ุชุงุฑูุฎ"] },
-  { id: "GEOGRAPHY", keywords: ["geo", "ุฌุบุฑุงููุง"] },
-  { id: "PHILOSOPHY", keywords: ["philosophy", "ููุณูุฉ"] },
-  { id: "RELIGION", keywords: ["religion", "ุฏูู", "ุงุณูุงู…", "ุฅุณูุงู…"] },
-  { id: "PROGRAMMING", keywords: ["program", "ุจุฑู…ุฌุฉ", "coding", "code"] },
-  { id: "COMPUTER_SCIENCE", keywords: ["computer", "ุญุงุณุจ", "cs", "ุนููู…"] },
+  { id: "MATH", keywords: ["math", "ัํวึ", "algebra", "geometry"] },
+  { id: "PHYSICS", keywords: ["physics", "Ýําํวม"] },
+  { id: "CHEMISTRY", keywords: ["chem", "฿ํใํวม"] },
+  { id: "BIOLOGY", keywords: ["bio", "รอํวม", "วอํวม"] },
+  { id: "ARABIC", keywords: ["arabic", "แÛษ ฺัศํษ", "ฺัศํ"] },
+  { id: "ENGLISH", keywords: ["english", "แÛษ วไฬแําํษ", "ลไฬแําํ", "วไฬแําํ"] },
+  { id: "HISTORY", keywords: ["history", "สวัํฮ"] },
+  { id: "GEOGRAPHY", keywords: ["geo", "ฬÛัวÝํว"] },
+  { id: "PHILOSOPHY", keywords: ["philosophy", "ÝแำÝษ"] },
+  { id: "RELIGION", keywords: ["religion", "ฯํไ", "วำแวใ", "ลำแวใ"] },
+  { id: "PROGRAMMING", keywords: ["program", "ศัใฬษ", "coding", "code"] },
+  { id: "COMPUTER_SCIENCE", keywords: ["computer", "อวำศ", "cs", "ฺแๆใ"] },
 ];
 
 function normalizeSpaces(value: string): string {
@@ -336,7 +336,7 @@ function resolveInstructor(subject: SubjectWithStats): string {
     return subject.teachers[0].name;
   }
 
-  return "ูุฑูู ุซุงููู";
+  return "ÝัํÞ หวไๆํ";
 }
 
 export function mapSubjectToCourse(
@@ -354,7 +354,7 @@ export function mapSubjectToCourse(
   return {
     id: subject.id,
     title: subject.nameAr || subject.name,
-    description: subject.description || "ูุง ููุฌุฏ ูุตู ู…ุชุงุญ ููุฐู ุงูุฏูุฑุฉ ุญุงููุงู.",
+    description: subject.description || "แว ํๆฬฯ ๆีÝ ใสวอ แๅะๅ วแฯๆัษ อวแํว๐.",
     instructor: resolveInstructor(subject),
     subject: categoryName,
     categoryId,

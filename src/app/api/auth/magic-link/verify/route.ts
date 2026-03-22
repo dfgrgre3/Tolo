@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/auth/auth-service';
+import { AuthService } from '@/services/auth/auth-service';
 import { cookies } from 'next/headers';
 import { extractClientInfo } from '@/lib/api-utils';
 

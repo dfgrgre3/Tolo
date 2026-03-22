@@ -198,7 +198,7 @@ export function useWindow() {
  * Hook that provides a safe way to access localStorage
  * Returns null during SSR and the actual localStorage on client
  */
-export function useLocalStorage() {
+export function useRawLocalStorage() {
   const [storage, setStorage] = useState<Storage | null>(null);
 
   useClientEffect(() => {

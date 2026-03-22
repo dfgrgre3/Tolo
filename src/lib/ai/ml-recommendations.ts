@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 
 export interface Recommendation {
   itemId: string;

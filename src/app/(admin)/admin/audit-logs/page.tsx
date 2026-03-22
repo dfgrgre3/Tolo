@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ColumnDef } from "@tanstack/react-table";
-import { Calendar, Filter, Search, Shield, User, Monitor, AlertTriangle, Info } from "lucide-react";
+import { Search, Filter, Calendar, Shield, User, Globe, Activity, Terminal, AlertTriangle, Monitor, Info } from "lucide-react";
 
 interface AuditLog {
   id: string;

@@ -109,7 +109,9 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
             if (data.type === 'notification') {
               logger.info('WebSocket notification:', data.message);
             }
-          } catch (error) {}
+          } catch (error) {
+            logger.debug('Failed to parse WebSocket message', error);
+          }
         };
 
         ws.onclose = (event) => {
@@ -126,10 +128,14 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
         ws.onerror = () => {
           clearTimeout(connectionTimeout);
           if (ws) {
-            try { ws.close(); } catch {}
+            try { ws.close(); } catch {
+              return;
+            }
           }
         };
-      } catch (error) {}
+      } catch (error) {
+        logger.debug('WebSocket connection attempt failed', error);
+      }
     };
 
     connect();
@@ -141,7 +147,9 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
         ws.onopen = null;
         ws.onmessage = null;
         ws.onclose = null;
-        try { ws.close(); } catch {}
+        try { ws.close(); } catch {
+          return;
+        }
       }
       setSocket(null);
       setIsConnected(false);

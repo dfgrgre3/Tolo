@@ -1,4 +1,4 @@
-import prisma from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { TokenService } from './token-service';
 import { logger } from '@/lib/logger';
 import { createHash } from 'crypto';

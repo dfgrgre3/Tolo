@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import prisma from '@/lib/db-unified';
-import { TokenService, TokenPayload } from '@/lib/auth/token-service';
-import { SecurityLogger, SecurityEventType } from '@/lib/auth/security-logger';
-import { SessionService } from '@/lib/auth/session-service';
+import prisma from '@/lib/prisma';
+import { TokenService, TokenPayload } from '@/services/auth/token-service';
+import { SecurityLogger, SecurityEventType } from '@/services/auth/security-logger';
+import { SessionService } from '@/services/auth/session-service';
 import { extractClientInfo, handleApiError } from '@/lib/api-utils';
 
 /**

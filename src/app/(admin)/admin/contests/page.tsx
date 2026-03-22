@@ -4,10 +4,8 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton, IconButton } from "@/components/admin/ui/admin-button";
-import { StatusBadge } from "@/components/admin/ui/admin-badge";
 import {
   Gamepad2,
-  Trophy,
   Play,
   Users,
   Timer,
@@ -15,7 +13,6 @@ import {
   Plus,
   Rocket,
   Settings2,
-  Crown,
   StopCircle,
   QrCode
 } from "lucide-react";

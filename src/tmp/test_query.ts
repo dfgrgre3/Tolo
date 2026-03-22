@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 
 async function test() {
   try {

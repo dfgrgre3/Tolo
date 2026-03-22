@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { MoreHorizontal, Plus, Edit, Trash2, Bell, Eye } from "lucide-react";
+import { MoreHorizontal, Plus, Edit, Trash2, Megaphone, Bell, Calendar, Eye } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

@@ -60,3 +60,12 @@ export enum ExamType {
   PRACTICE = 'PRACTICE',
   OTHER = 'OTHER'
 }
+
+// Map SubjectType to actual database IDs
+export const SUBJECT_ID_MAP: Record<string, string> = {
+  [SubjectType.MATH]: 'math-course',
+  [SubjectType.PHYSICS]: 'physics-course',
+  [SubjectType.CHEMISTRY]: 'chemistry-course',
+  [SubjectType.ARABIC]: 'arabic-course',
+  [SubjectType.ENGLISH]: 'english-course',
+};

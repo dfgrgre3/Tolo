@@ -1,7 +1,7 @@
 'use server';
 
 import { cookies } from 'next/headers';
-import { prisma } from '@/lib/db';
+import { prisma } from '@/lib/prisma';
 import { CacheService } from '@/lib/cache';
 import { logger } from '@/lib/logger';
 
@@ -12,7 +12,7 @@ export interface ProgressSummary {
   streakDays: number;
 }
 
-import { TokenService, TokenPayload } from '@/lib/auth/token-service';
+import { TokenService, TokenPayload } from '@/services/auth/token-service';
 
 /**
  * Get user ID from server-side (cookies or session)

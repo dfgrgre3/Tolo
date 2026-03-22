@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { log, colors, removeDir, killProcess, runCommand } from './lib/script-utils';
+import { log, colors, killProcess, runCommand } from './lib/script-utils';
 
 async function main() {
     const args = process.argv.slice(2);
@@ -33,7 +33,7 @@ async function main() {
                 fs.rmSync(prismaCache, { recursive: true, force: true });
                 success = true;
                 log('   Prisma cache cleaned successfully', colors.green);
-            } catch (error) {
+            } catch (_error) {
                 attempts++;
                 log(`   Attempt ${attempts} failed, waiting...`, colors.yellow);
                 await new Promise(resolve => setTimeout(resolve, 2000));
@@ -52,7 +52,7 @@ async function main() {
         try {
             fs.rmSync(prismaClientCache, { recursive: true, force: true });
             log('   Prisma client cache cleaned', colors.green);
-        } catch (error) {
+        } catch (_error) {
             log('   Warning: Could not clean Prisma client cache', colors.yellow);
         }
     }

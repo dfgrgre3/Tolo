@@ -5,7 +5,7 @@
  */
 
 import { execSync } from 'child_process';
-import { readFileSync, readdirSync, statSync, existsSync } from 'fs';
+import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, extname } from 'path';
 
 interface ErrorReport {
@@ -213,13 +213,13 @@ function scanFiles(dir: string, extensions: string[] = ['.ts', '.tsx']): void {
             checkAnyUsage(relativePath, content);
             checkConsoleUsage(relativePath, content);
             checkMissingImports(relativePath, content);
-          } catch (error) {
+          } catch (_error) {
             // Skip files that can't be read
           }
         }
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Skip directories that can't be read
   }
 }

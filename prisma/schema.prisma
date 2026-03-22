@@ -220,6 +220,7 @@ model Resource {
   description String?
   url         String
   free        Boolean  @default(true)
+  price       Float?   @default(0)
   type        String
   source      String?
   createdAt   DateTime @default(now())
@@ -240,6 +241,7 @@ model Book {
   rating      Float    @default(0)
   views       Int      @default(0)
   downloads   Int      @default(0)
+  price       Float?   @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   tags        String[] @default([])
@@ -710,6 +712,13 @@ model Subject {
   color              String?
   type               String?
   isActive           Boolean              @default(true)
+  price             Float?               @default(0)
+  instructorName    String?
+  rating            Float?               @default(0)
+  durationHours     Int?                 @default(0)
+  thumbnailUrl      String?
+  enrolledCount     Int?                 @default(0)
+  level             Difficulty           @default(MEDIUM)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   aiContent          AiGeneratedContent[]

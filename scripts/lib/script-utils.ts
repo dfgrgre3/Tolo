@@ -1,6 +1,5 @@
-import { execSync, exec } from 'child_process';
+import { execSync } from 'child_process';
 import fs from 'fs';
-import path from 'path';
 import os from 'os';
 import net from 'net';
 
@@ -45,7 +44,7 @@ export async function killProcess(processName: string): Promise<void> {
             execSync(`pkill -f ${processName}`, { stdio: 'ignore' });
         }
         log(`✓ Stopped ${processName}`, colors.green);
-    } catch (error) {
+    } catch (_error) {
         // Ignore errors if process wasn't running
         // log(`No running ${processName} processes found or could not stop them.`, colors.gray);
     }
@@ -75,7 +74,7 @@ export function runCommand(command: string, cwd: string = process.cwd()): boolea
     try {
         execSync(command, { stdio: 'inherit', cwd });
         return true;
-    } catch (error) {
+    } catch (_error) {
         return false;
     }
 }

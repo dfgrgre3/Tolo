@@ -3,7 +3,7 @@
 import React, { memo, useMemo } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { useStickyHeader } from "./hooks/useStickyHeader";
+import { useStickyHeader } from "@/hooks/use-sticky-header";
 
 interface ReadingProgressBarProps {
   className?: string;

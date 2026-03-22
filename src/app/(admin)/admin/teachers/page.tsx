@@ -212,9 +212,9 @@ export default function AdminTeachersPage() {
             variant="outline" 
             className="font-bold border-2" 
             style={{ 
-              borderColor: `${subject.color}40` || "#3b82f640", 
+              borderColor: subject.color ? `${subject.color}40` : "#3b82f640",
               color: subject.color || "#3b82f6",
-              backgroundColor: `${subject.color}10` || "#3b82f610"
+              backgroundColor: subject.color ? `${subject.color}10` : "#3b82f610"
             }}
           >
             {subject.nameAr || subject.name}

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users, BookOpen, FileText, Trophy, Clock, Target, Activity, Zap, BarChart3, RefreshCw, Download, Filter, Move, Settings, Search, ArrowRight, MousePointerClick, TrendingUp, DollarSign, Wallet, Percent, PieChart, AlertTriangle
+  Users, BookOpen, FileText, Trophy, Clock, Target, Activity, Zap, BarChart3, RefreshCw, Download, Move, Settings, Search, ArrowRight, MousePointerClick, TrendingUp, DollarSign, Wallet, Percent, PieChart, AlertTriangle
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { AnalyticsSkeleton } from "@/components/admin/ui/loading-skeleton";

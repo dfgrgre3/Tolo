@@ -24,6 +24,11 @@ export function AchievementToast({
 }: AchievementToastProps) {
   const [isVisible, setIsVisible] = useState(false);
 
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 300);
+  };
+
   useEffect(() => {
     if (achievement) {
       setIsVisible(true);
@@ -36,12 +41,7 @@ export function AchievementToast({
         return () => clearTimeout(timer);
       }
     }
-  }, [achievement, autoClose, duration]);
-
-  const handleClose = () => {
-    setIsVisible(false);
-    setTimeout(onClose, 300); // Wait for animation to complete
-  };
+  }, [achievement, autoClose, duration, handleClose]);
 
   if (!achievement) return null;
 

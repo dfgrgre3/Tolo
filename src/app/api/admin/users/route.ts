@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { UserRole } from "@prisma/client";
 import { withAdmin, handleApiError, successResponse, badRequestResponse, notFoundResponse } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { PasswordService } from "@/lib/auth/password-service";
+import { PasswordService } from "@/services/auth/password-service";
 
 // GET /api/admin/users - Get all users with pagination and filters
 export async function GET(request: NextRequest) {

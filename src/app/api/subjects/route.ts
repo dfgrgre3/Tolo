@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { withCache } from "@/lib/cache-middleware";
 import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';

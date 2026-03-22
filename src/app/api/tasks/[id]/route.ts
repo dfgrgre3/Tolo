@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
-import { prisma } from "@/lib/db";
-import { gamificationService } from "@/lib/services/gamification-service";
+import { prisma } from "@/lib/prisma";
+import { gamificationService } from "@/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { TaskStatus } from '@/lib/constants';
+import { TaskStatus, SUBJECT_ID_MAP } from '@/lib/constants';
 import { successResponse, badRequestResponse, notFoundResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -59,6 +59,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
               updates[field] = new Date();
             } else if (field === 'completedAt' && data[field] === false) {
               updates[field] = null;
+            } else if (field === 'priority' && typeof data[field] === 'number') {
+              updates[field] = data[field] + 1;
             } else if (field === 'description' && data[field] === '') {
               updates[field] = null;
             } else {
@@ -67,7 +69,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           }
         }
 
-        if ('subject' in data) updates.subjectId = data.subject || null;
+        if ('subject' in data) updates.subjectId = data.subject ? SUBJECT_ID_MAP[data.subject] || data.subject : null;
 
         // Prevent changing userId through mass assignment
         if ('userId' in data) {

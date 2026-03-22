@@ -39,7 +39,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { MoreHorizontal, Plus, Edit, Trash2, Trophy, Download, Upload, RefreshCw } from "lucide-react";
+import { MoreHorizontal, Plus, Edit, Trash2, Trophy, Download, Upload, Target } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

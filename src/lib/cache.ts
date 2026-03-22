@@ -220,14 +220,39 @@ export const EducationalCache = {
     return CacheService.getOrSet(`${CachePrefixes.EDUCATIONAL_CONTENT}:${key}`, fetchFn, ttl);
   },
 
+  async get<T>(key: string): Promise<T | null> {
+    return CacheService.get<T>(`${CachePrefixes.EDUCATIONAL_CONTENT}:${key}`);
+  },
+
+  async set<T>(key: string, data: T, ttl: number = 3600): Promise<void> {
+    await CacheService.set(`${CachePrefixes.EDUCATIONAL_CONTENT}:${key}`, data, ttl);
+  },
+
+  async getOrSetSubject(subjectId: string, fetchFn: () => Promise<unknown>): Promise<unknown> {
+    return this.getOrSet(`subject:${subjectId}`, fetchFn, 600);
+  },
+
+  async getOrSetCourse(courseId: string, fetchFn: () => Promise<unknown>): Promise<unknown> {
+    return this.getOrSet(`course:${courseId}`, fetchFn, 600);
+  },
+
+  async getOrSetLesson(lessonId: string, fetchFn: () => Promise<unknown>): Promise<unknown> {
+    return this.getOrSet(`lesson:${lessonId}`, fetchFn, 600);
+  },
+
   async invalidate(key: string): Promise<void> {
     await CacheService.del(`${CachePrefixes.EDUCATIONAL_CONTENT}:${key}`);
   },
 
   async invalidatePattern(pattern: string): Promise<void> {
     await CacheService.invalidatePattern(`${CachePrefixes.EDUCATIONAL_CONTENT}:${pattern}`);
+  },
+
+  async batchGetOrSet<T>(items: { key: string; fetchFn: () => Promise<T>; ttl?: number }[]): Promise<T[]> {
+    return Promise.all(items.map(item => this.getOrSet(item.key, item.fetchFn, item.ttl || 3600)));
   }
 };
+
 
 // --- Invalidation Helpers ---
 

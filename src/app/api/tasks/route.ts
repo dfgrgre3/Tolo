@@ -1,32 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { withAuthCache } from '@/lib/cache-middleware';
 import { invalidateUserCache } from '@/lib/cache-invalidation-service';
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
-import { gamificationService } from '@/lib/services/gamification-service';
-import { firestoreService } from '@/lib/services/firestore-service';
+import { gamificationService } from '@/services/gamification-service';
+import { firestoreService } from '@/services/firestore-service';
 import { rateLimit, handleApiError, badRequestResponse, unauthorizedResponse, successResponse, withAuth } from '@/lib/api-utils';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { TaskStatus, TASK_STATUS_VALUES, TASK_PRIORITY, TASK_PRIORITY_VALUES, TASK_PRIORITY_MAP, TASK_DEFAULTS, type TaskPriority } from '@/lib/constants';
+import { TaskStatus, TASK_STATUS_VALUES, TASK_PRIORITY, TASK_PRIORITY_VALUES, TASK_PRIORITY_MAP, SUBJECT_ID_MAP, TASK_DEFAULTS, type TaskPriority } from '@/lib/constants';
 
 // Validation schemas
 const TaskCreateSchema = z.object({
   title: z.string().min(1, "Title is required").max(200, "Title is too long"),
   description: z.string().max(1000, "Description is too long").optional(),
   dueDate: z.string().datetime().optional().nullable(),
-  priority: z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]).optional(),
+  dueAt: z.string().optional().nullable(), // For backward compatibility
+  priority: z.union([
+    z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]),
+    z.number().int().min(0).max(2)
+  ]).optional(),
   subjectId: z.string().optional().nullable(),
   subject: z.string().optional().nullable(), // For backward compatibility
   status: z.enum([TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED] as [string, ...string[]]).optional(),
 });
 
 const TaskUpdateSchema = z.object({
-  id: z.string().min(1, "Task ID is required"),
+  id: z.string().min(1, "Task ID is required").optional(), // ID can be in URL
   title: z.string().min(1, "Title is required").max(200, "Title is too long").optional(),
   description: z.string().max(1000, "Description is too long").optional(),
   dueDate: z.string().datetime().optional().nullable(),
-  priority: z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]).optional(),
+  dueAt: z.string().optional().nullable(), // For backward compatibility
+  priority: z.union([
+    z.enum([TASK_PRIORITY.LOW, TASK_PRIORITY.MEDIUM, TASK_PRIORITY.HIGH] as [string, ...string[]]),
+    z.number().int().min(0).max(2)
+  ]).optional(),
   subjectId: z.string().optional().nullable(),
   subject: z.string().optional().nullable(), // For backward compatibility
   status: z.enum([TaskStatus.PENDING, TaskStatus.IN_PROGRESS, TaskStatus.COMPLETED] as [string, ...string[]]).optional(),
@@ -170,33 +178,39 @@ export async function POST(request: NextRequest) {
           return badRequestResponse(`Invalid request body: ${errorMessage}`, 'VALIDATION_ERROR');
         }
 
-        const { title, description, dueDate, priority, subjectId, subject, status } = parsedBody.data;
+        const { title, description, dueDate, dueAt, priority, subjectId, subject, status } = parsedBody.data;
 
-        // Validate dueDate if provided
-        if (dueDate) {
-          const dueDateObj = new Date(dueDate);
+        // Normalize dueDate/dueAt
+        const finalDueDate = (dueDate && dueDate.trim() !== '') ? dueDate : ((dueAt && dueAt.trim() !== '') ? dueAt : undefined);
+        if (finalDueDate) {
+          const dueDateObj = new Date(finalDueDate);
           if (isNaN(dueDateObj.getTime())) {
             return badRequestResponse('Invalid dueDate format. Must be a valid ISO 8601 datetime string.', 'INVALID_DATE');
           }
-          if (dueDateObj < new Date()) {
-            return badRequestResponse('Due date cannot be in the past', 'INVALID_DATE');
-          }
         }
 
-        // Convert priority string to number using constants
-        const priorityNumber = priority
-          ? TASK_PRIORITY_MAP[priority as TaskPriority] || TASK_DEFAULTS.PRIORITY_NUMBER
-          : TASK_DEFAULTS.PRIORITY_NUMBER;
+        // Convert priority to number using constants
+        let priorityNumber: number;
+        if (typeof priority === 'number') {
+          // Frontend numbers: 0=Low, 1=Medium, 2=High
+          // Map to database numbers (e.g., 1, 2, 3) or keep as 0, 1, 2 if that's what Prisma expects
+          // Based on TASK_PRIORITY_MAP: LOW=1, MEDIUM=2, HIGH=3
+          priorityNumber = priority + 1;
+        } else if (priority) {
+          priorityNumber = TASK_PRIORITY_MAP[priority as TaskPriority] || TASK_DEFAULTS.PRIORITY_NUMBER;
+        } else {
+          priorityNumber = TASK_DEFAULTS.PRIORITY_NUMBER;
+        }
 
         const createPromise = prisma.task.create({
           data: {
             title: title.trim(),
             description: description?.trim() || null,
-            dueAt: dueDate ? new Date(dueDate) : null,
+            dueAt: finalDueDate ? new Date(finalDueDate) : null,
             priority: priorityNumber,
             status: status || TASK_DEFAULTS.STATUS,
             user: { connect: { id: userId } },
-            subjectId: subjectId || subject || null,
+            subjectId: subjectId || (subject ? SUBJECT_ID_MAP[subject] || subject : null),
           } as any,
         });
 
@@ -261,17 +275,18 @@ export async function PUT(request: NextRequest) {
         return badRequestResponse(`Invalid request body: ${errorMessage}`, 'VALIDATION_ERROR');
       }
 
-      const { id, title, description, dueDate, priority, subjectId, subject, status } = parsedBody.data;
+      const { id, title, description, dueDate, dueAt, priority, subjectId, subject, status } = parsedBody.data;
 
       // Validate task ID
-      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+      const taskId = id || (req.url.split('/').pop() !== 'tasks' ? req.url.split('/').pop() : undefined);
+      if (!taskId || typeof taskId !== 'string' || taskId.trim().length === 0) {
         return badRequestResponse('Task ID is required and must be a non-empty string', 'INVALID_TASK_ID');
       }
 
       // Check if task belongs to user with timeout protection
       const findPromise = prisma.task.findUnique({
         where: {
-          id: id.trim(),
+          id: taskId.trim(),
         },
       });
 
@@ -289,32 +304,35 @@ export async function PUT(request: NextRequest) {
         return unauthorizedResponse('You do not have permission to update this task');
       }
 
-      // Validate dueDate if provided
-      if (dueDate !== undefined && dueDate !== null) {
-        const dueDateObj = new Date(dueDate);
+      // Normalize dueDate/dueAt
+      const finalDueDate = (dueDate && dueDate.trim() !== '') ? dueDate : ((dueAt && dueAt.trim() !== '') ? dueAt : undefined);
+      if (finalDueDate !== undefined && finalDueDate !== null) {
+        const dueDateObj = new Date(finalDueDate);
         if (isNaN(dueDateObj.getTime())) {
           return badRequestResponse('Invalid dueDate format. Must be a valid ISO 8601 datetime string.', 'INVALID_DATE');
         }
-        if (dueDateObj < new Date()) {
-          return badRequestResponse('Due date cannot be in the past', 'INVALID_DATE');
-        }
       }
 
-      // Convert priority string to number if provided using constants
-      const priorityNumber = priority ? TASK_PRIORITY_MAP[priority as TaskPriority] : undefined;
+      // Convert priority to number if provided
+      let priorityNumber: number | undefined;
+      if (typeof priority === 'number') {
+        priorityNumber = priority + 1;
+      } else if (priority) {
+        priorityNumber = TASK_PRIORITY_MAP[priority as TaskPriority] || TASK_DEFAULTS.PRIORITY_NUMBER;
+      }
 
       // Update task in database with timeout protection
       const updatePromise = prisma.task.update({
         where: {
-          id: id.trim(),
+          id: taskId.trim(),
         },
         data: {
           ...(title !== undefined && { title: title.trim() }),
           ...(description !== undefined && { description: description?.trim() || null }),
-          ...(dueDate !== undefined && { dueAt: dueDate ? new Date(dueDate) : null }),
+          ...(finalDueDate !== undefined && { dueAt: finalDueDate ? new Date(finalDueDate) : null }),
           ...(priorityNumber !== undefined && { priority: priorityNumber }),
           ...(status !== undefined && { status }),
-          ...(subjectId !== undefined || subject !== undefined ? { subjectId: subjectId || subject || null } : undefined),
+          ...(subjectId !== undefined || subject !== undefined ? { subjectId: subjectId || (subject ? SUBJECT_ID_MAP[subject] || subject : null) } : undefined),
         } as any,
       });
 

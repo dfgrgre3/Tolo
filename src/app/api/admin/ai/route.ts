@@ -547,7 +547,9 @@ async function getReviewQueue(limit = 8) {
         try {
           const metadata = JSON.parse(item.metadata) as { generatedPreview?: string };
           generatedPreview = metadata.generatedPreview || "";
-        } catch {}
+        } catch {
+          generatedPreview = "";
+        }
       }
       if (generatedPreview) {
         return generatedPreview.slice(0, 240);

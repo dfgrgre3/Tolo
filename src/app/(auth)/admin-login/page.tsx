@@ -11,7 +11,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
 import {
   sanitizeRedirectPath,
-} from '@/lib/auth/navigation';
+} from '@/services/auth/navigation';
 
 const loginSchema = z.object({
   email: z.string().trim().email('يرجى إدخال بريد إلكتروني صحيح'),

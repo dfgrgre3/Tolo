@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db-unified';
-import { gamificationService } from "@/lib/services/gamification-service";
+import { prisma } from '@/lib/prisma';
+import { gamificationService } from "@/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { z } from "zod";

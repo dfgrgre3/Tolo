@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { SessionService } from '@/lib/auth/session-service';
-import { SecurityLogger } from '@/lib/auth/security-logger';
-import { TokenService, TokenPayload } from '@/lib/auth/token-service';
+import { SessionService } from '@/services/auth/session-service';
+import { SecurityLogger } from '@/services/auth/security-logger';
+import { TokenService, TokenPayload } from '@/services/auth/token-service';
 import { extractClientInfo, handleApiError } from '@/lib/api-utils';
 
 /**

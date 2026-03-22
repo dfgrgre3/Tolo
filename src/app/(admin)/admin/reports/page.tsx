@@ -5,19 +5,17 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import {
-  FileText,
   FileDown,
   Columns,
   Coins,
   TrendingUp,
   TrendingDown,
-  Users,
   WalletCards,
   CalendarCheck,
   CheckCircle2,
   TableProperties
 } from "lucide-react";
-import { motion, Reorder } from "framer-motion";
+import { motion } from "framer-motion";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import {
@@ -27,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 
 type Column = {
   id: string;

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { AI_PROVIDERS, getDefaultProvider } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleApiError, successResponse, createErrorResponse } from '@/lib/api-utils';

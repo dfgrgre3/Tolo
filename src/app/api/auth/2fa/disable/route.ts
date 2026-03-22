@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, handleApiError } from '@/lib/api-utils';
-import { TwoFactorService } from '@/lib/auth/two-factor-service';
+import { TwoFactorService } from '@/services/auth/two-factor-service';
 
 /**
  * POST /api/auth/2fa/disable

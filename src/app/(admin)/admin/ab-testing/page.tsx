@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { StatusBadge } from "@/components/admin/ui/admin-badge";
-import { Split, BarChart3, TrendingUp, Search, Plus, Play, Pause, Activity } from "lucide-react";
+import { Split, BarChart3, TrendingUp, Search, Pause, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 
 // Types

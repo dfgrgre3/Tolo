@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SessionService } from '@/lib/auth/session-service';
-import { SecurityLogger, SecurityEventType } from '@/lib/auth/security-logger';
+import { SessionService } from '@/services/auth/session-service';
+import { SecurityLogger, SecurityEventType } from '@/services/auth/security-logger';
 import { withAuth, extractClientInfo, handleApiError } from '@/lib/api-utils';
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/auth/sessions

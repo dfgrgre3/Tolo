@@ -1,4 +1,4 @@
-import { sendTemplatedNotification } from '@/lib/services/notification-service';
+import { sendTemplatedNotification } from '@/services/notification-service';
 // تم إزالة نظام تسجيل الدخول
 
 import { logger } from '@/lib/logger';

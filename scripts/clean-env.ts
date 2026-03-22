@@ -11,9 +11,7 @@ async function main() {
     }
 
     log('\n=== Cleaning .env file from NextAuth variables ===\n', colors.cyan);
-
     const lines = fs.readFileSync(envPath, 'utf-8').split(/\r?\n/);
-    const originalLineCount = lines.length;
 
     const filteredLines: string[] = [];
     const removedVariables: string[] = [];

@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Check, X, Eye, FileText, Target, BookOpen, Clock, Bot, Cpu, AlertTriangle, TrendingDown, ArrowUpRight, GraduationCap } from "lucide-react";
+import { Check, X, Eye, FileText, Target, BookOpen, Clock, Bot, Cpu, AlertTriangle, TrendingDown, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -46,11 +46,13 @@ interface AiResponseData {
   publishedDetail?: any;
 }
 
+import { GraduationCap } from "lucide-react";
+
 const TYPE_ICONS: Record<string, React.ElementType> = {
   exam_blueprint: Target,
   curriculum_outline: BookOpen,
   article: FileText,
-  update_suggestion: Sparkles,
+  update_suggestion: Target,
   lesson_summary: AlignLeftIcon,
   learning_path: GraduationCap
 };
@@ -78,8 +80,7 @@ export default function AdminAIPage() {
   const [contentType, setContentType] = React.useState<string>("exam_blueprint");
   const [title, setTitle] = React.useState("");
   const [prompt, setPrompt] = React.useState("");
-  const [subjectId, setSubjectId] = React.useState("general");
-  const highlightedItemId = searchParams.get("item");
+  const [subjectId, setSubjectId] = React.useState(searchParams.get("subjectId") || "general");
 
   const { data, isLoading } = useQuery<AiResponseData>({
     queryKey: ["admin", "ai_state"],

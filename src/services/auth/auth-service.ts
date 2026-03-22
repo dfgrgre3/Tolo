@@ -1,11 +1,11 @@
-import prisma from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { PasswordService } from './password-service';
 import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
 import { TwoFactorService } from './two-factor-service';
 import { logger } from '@/lib/logger';
 import { randomBytes, createHash } from 'crypto';
-import { emailService } from '@/lib/services/email-service';
+import { emailService } from '@/services/email-service';
 
 /**
  * AuthService - Central authentication business logic layer.

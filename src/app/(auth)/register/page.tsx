@@ -9,7 +9,7 @@ import { User, Mail, Lock, Loader2, ArrowLeft, Eye, EyeOff, Check, Phone, Calend
 import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
-import { DEFAULT_AUTHENTICATED_ROUTE, sanitizeRedirectPath } from '@/lib/auth/navigation';
+import { DEFAULT_AUTHENTICATED_ROUTE, sanitizeRedirectPath } from '@/services/auth/navigation';
 import { Label } from '@/components/ui/label';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { AuthField } from '@/components/auth/AuthField';

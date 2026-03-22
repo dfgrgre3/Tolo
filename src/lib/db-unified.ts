@@ -1,2 +1,2 @@
-export * from './db';
-export { default } from './db';
+export * from './prisma';
+export { default } from './prisma';

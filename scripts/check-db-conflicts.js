@@ -45,26 +45,6 @@ function removeComments(content) {
   return content;
 }
 
-// Helper function to check if a line is in a comment
-function isInComment(content, index) {
-  const before = content.substring(0, index);
-  const singleLineCommentIndex = before.lastIndexOf('//');
-  const multiLineCommentStart = before.lastIndexOf('/*');
-  const multiLineCommentEnd = before.lastIndexOf('*/');
-  
-  // Check if we're in a single-line comment
-  const lineStart = before.lastIndexOf('\n');
-  if (singleLineCommentIndex > lineStart && singleLineCommentIndex > multiLineCommentStart) {
-    return true;
-  }
-  
-  // Check if we're in a multi-line comment
-  if (multiLineCommentStart > multiLineCommentEnd) {
-    return true;
-  }
-  
-  return false;
-}
 
 // 1. Check for direct PrismaClient instantiation
 console.log('1️⃣ Checking for direct PrismaClient instantiation...');
@@ -186,7 +166,7 @@ try {
     const backupExtensions = ['.bak', '.old', '.backup'];
     const tsFiles = findTsFiles(srcDir);
     const backupFiles = tsFiles.filter(filePath => {
-      const ext = path.extname(filePath);
+      path.extname(filePath);
       return backupExtensions.some(backupExt => filePath.includes(backupExt));
     });
     

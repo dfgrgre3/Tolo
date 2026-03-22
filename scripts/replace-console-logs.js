@@ -5,7 +5,6 @@
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 // Patterns to match console.* calls
 const consolePatterns = [

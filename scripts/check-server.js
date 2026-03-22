@@ -7,7 +7,7 @@ const retryDelay = 1000;
 
 function checkServer() {
   return new Promise((resolve, reject) => {
-    const req = http.get(url, (res) => {
+    const req = http.get(url, (_res) => {
       resolve(true);
     });
 
@@ -28,7 +28,7 @@ async function waitForServer() {
       await checkServer();
       console.log(`✓ Server is running on ${url}`);
       return true;
-    } catch (err) {
+    } catch (_err) {
       if (i < maxRetries - 1) {
         process.stdout.write(`Waiting for server... (${i + 1}/${maxRetries})\r`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));

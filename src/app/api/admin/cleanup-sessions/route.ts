@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SessionService } from '@/lib/auth/session-service';
+import { SessionService } from '@/services/auth/session-service';
 import { withAuth, handleApiError } from '@/lib/api-utils';
 
 /**

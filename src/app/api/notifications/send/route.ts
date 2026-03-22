@@ -1,6 +1,6 @@
 
 import { NextRequest } from 'next/server';
-import { sendMultiChannelNotification } from '@/lib/services/notification-sender';
+import { sendMultiChannelNotification } from '@/services/notification-sender';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { withAuth, successResponse, badRequestResponse, handleApiError, unauthorizedResponse, notFoundResponse } from '@/lib/api-utils';
 

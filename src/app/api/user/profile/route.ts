@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, handleApiError } from '@/lib/api-utils';
-import { AuthService } from '@/lib/auth/auth-service';
-import { prisma } from '@/lib/db-unified';
+import { AuthService } from '@/services/auth/auth-service';
+import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/user/profile

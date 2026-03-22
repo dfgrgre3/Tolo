@@ -1,4 +1,4 @@
-import { redis, RedisClient } from '../redis';
+import { redis, RedisClient } from '@/lib/redis';
 
 import { logger } from '@/lib/logger';
 import { RateLimitConfig, RateLimitResult, RateLimitService } from '@/types/services';

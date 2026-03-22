@@ -14,7 +14,7 @@ import {
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { useFocusMode } from "./hooks/useFocusMode";
+import { useFocusMode } from "@/hooks/use-focus-mode";
 
 interface FocusModeToggleProps {
   className?: string;

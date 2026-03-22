@@ -1,11 +1,21 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { TokenService, TokenPayload } from '@/services/auth/token-service';
 import {
   DEFAULT_AUTHENTICATED_ROUTE,
   isAuthPublicRoute,
   sanitizeRedirectPath,
-} from '@/lib/auth/navigation';
+} from '@/services/auth/navigation';
+
+/**
+ * proxy.ts - Global Next.js Proxy/Middleware for professional authentication and security.
+ * 
+ * Design Goals:
+ * 1. API Protection: Intercepts all private routes and validates JWT via TokenService.
+ * 2. Role-based Access Control (RBAC): Redirects Unauthorized/Forbidden access.
+ * 3. Header Injection: Passes userId, role, and permissions to downstream Route Handlers.
+ * 4. Security: Injects curated security headers (CSP, HSTS, etc.) on all responses.
+ */
 
 const PROTECTED_PREFIXES = ['/dashboard', '/user', '/settings', '/api/protected'];
 const ADMIN_ROUTES = ['/admin', '/api/admin'];
@@ -21,21 +31,22 @@ const PUBLIC_AUTH_API_ROUTES = [
   '/api/auth/logout',
 ];
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || 'super_secret_fallback_key_production_ready'
-);
-
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicAuthRoute = isAuthPublicRoute(pathname);
 
+  // Default response with security headers
   const passthroughResponse = NextResponse.next();
   addSecurityHeaders(passthroughResponse);
 
+  // Skip logic for static assets and public auth endpoints
   const isPublicAuthApiRoute = PUBLIC_AUTH_API_ROUTES.includes(pathname);
   const isStaticAsset =
     pathname.includes('/_next/') ||
-    pathname === '/favicon.ico';
+    pathname.startsWith('/static') ||
+    pathname.startsWith('/public') ||
+    pathname === '/favicon.ico' ||
+    pathname.includes('.');
 
   if (isStaticAsset || isPublicAuthApiRoute) {
     return passthroughResponse;
@@ -55,7 +66,7 @@ export default async function proxy(request: NextRequest) {
       return passthroughResponse;
     }
 
-    // If refresh token exists, let client restore session without forcing a login redirect.
+    // Allow page requests to pass if refresh token exists, so client-side can attempt refresh
     if (hasRefreshToken && requiresAuth && isPageRequest) {
       return passthroughResponse;
     }
@@ -63,18 +74,22 @@ export default async function proxy(request: NextRequest) {
     return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
   }
 
-  try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+  // Verification phase using Unified TokenService
+  const payload = await TokenService.verifyToken<TokenPayload>(token);
 
+  if (payload) {
+    // -- User is AUTHENTICATED --
+
+    // If on a public auth route (login/register), redirect to authenticated home
     if (isPublicAuthRoute) {
       const requestedRedirect = sanitizeRedirectPath(
         request.nextUrl.searchParams.get('redirect'),
         DEFAULT_AUTHENTICATED_ROUTE
       );
-
       return withSecurityHeaders(NextResponse.redirect(new URL(requestedRedirect, request.url)));
     }
 
+    // RBAC: Check for roles
     if (isAdminRoute && payload.role !== 'ADMIN') {
       return handleForbidden(request, pathname);
     }
@@ -83,16 +98,17 @@ export default async function proxy(request: NextRequest) {
       return handleForbidden(request, pathname);
     }
 
+    // Header Injection: Prepare request headers for Route Handlers
     const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('X-User-ID', payload.userId as string);
-    requestHeaders.set('X-User-Role', payload.role as string);
+    requestHeaders.set('X-User-ID', payload.userId);
+    requestHeaders.set('X-User-Role', payload.role);
     
     if (payload.permissions && Array.isArray(payload.permissions)) {
       requestHeaders.set('X-User-Permissions', payload.permissions.join(','));
     }
 
     if (payload.sessionId) {
-      requestHeaders.set('X-Session-ID', payload.sessionId as string);
+      requestHeaders.set('X-Session-ID', payload.sessionId);
     }
 
     const authenticatedResponse = NextResponse.next({
@@ -103,19 +119,20 @@ export default async function proxy(request: NextRequest) {
 
     addSecurityHeaders(authenticatedResponse);
     return authenticatedResponse;
-  } catch {
-    if (isPublicAuthRoute) {
-      return passthroughResponse;
-    }
-
-    // Expired/invalid access token with refresh token available:
-    // allow protected page requests to pass so client can refresh tokens in background.
-    if (hasRefreshToken && requiresAuth && isPageRequest) {
-      return passthroughResponse;
-    }
-
-    return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
   }
+
+  // -- User Token is INVALID or EXPIRED --
+
+  if (isPublicAuthRoute) {
+    return passthroughResponse;
+  }
+
+  // Permit page navigation if refresh token exists (for client-side silent refresh)
+  if (hasRefreshToken && requiresAuth && isPageRequest) {
+    return passthroughResponse;
+  }
+
+  return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
 }
 
 function handleUnauthorized(request: NextRequest, pathname: string) {

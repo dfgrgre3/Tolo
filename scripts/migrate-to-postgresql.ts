@@ -145,7 +145,7 @@ function checkPrismaClient(): boolean {
       log('   قم بتشغيل: npx prisma generate', 'blue');
       return false;
     }
-  } catch (error) {
+  } catch (_error) {
     log('⚠️  خطأ في فحص Prisma Client', 'yellow');
     return false;
   }

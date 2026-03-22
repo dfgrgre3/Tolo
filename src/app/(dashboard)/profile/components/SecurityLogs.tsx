@@ -52,19 +52,7 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [hasNotifications, setHasNotifications] = useState(false);
 
-  useEffect(() => {
-    loadSecurityEvents();
-    checkForNewAlerts();
-    
-    // Setup polling for new security alerts
-    const interval = setInterval(() => {
-      checkForNewAlerts();
-      loadSecurityEvents();
-    }, 30000); // Check every 30 seconds
-    
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId, filter]);
+
 
   const loadSecurityEvents = useCallback(async () => {
     try {
@@ -124,6 +112,20 @@ export default function SecurityLogs({ userId }: SecurityLogsProps) {
       logger.error('Error checking for alerts:', error);
     }
   }, []);
+
+  useEffect(() => {
+    loadSecurityEvents();
+    checkForNewAlerts();
+    
+    // Setup polling for new security alerts
+    const interval = setInterval(() => {
+      checkForNewAlerts();
+      loadSecurityEvents();
+    }, 30000); // Check every 30 seconds
+    
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, filter]);
 
   const requestNotificationPermission = async () => {
     if ('Notification' in window && Notification.permission === 'default') {

@@ -41,17 +41,16 @@ export function UserMenu() {
   const { theme, setTheme } = useTheme();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  if (!user) return null;
-
   const initials = useMemo(
     () =>
-      user.name
+      user?.name
         ? user.name.split(" ").map((n) => n[0]).join("").toUpperCase()
-        : user.email[0].toUpperCase(),
-    [user.name, user.email]
+        : user?.email?.[0]?.toUpperCase() ?? "",
+    [user?.name, user?.email]
   );
 
   const handleLogout = useCallback(async () => {
+    if (!user) return;
     if (isLoggingOut) return;
     setIsLoggingOut(true);
     try {
@@ -66,6 +65,8 @@ export function UserMenu() {
   const toggleTheme = useCallback(() => {
     setTheme(theme === "dark" ? "light" : "dark");
   }, [theme, setTheme]);
+
+  if (!user) return null;
 
   return (
     <DropdownMenu>

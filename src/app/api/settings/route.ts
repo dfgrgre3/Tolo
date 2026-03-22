@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { SubjectType, FocusStrategy } from "@/types/settings";
 import { SettingsUpdateRequest } from "@/types/settings";
 import { randomUUID } from "crypto";

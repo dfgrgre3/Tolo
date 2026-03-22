@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { firestoreService, FirestoreUserProgress, FirestoreLeaderboardEntry } from '@/lib/services/firestore-service';
+import { firestoreService, FirestoreUserProgress, FirestoreLeaderboardEntry } from '@/services/firestore-service';
 import { logger } from '@/lib/logger';
-import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/lib/services/gamification-service';
+import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/services/gamification-service';
 export type { CustomGoal };
 import * as gamificationApi from '@/lib/api/gamification-client';
 

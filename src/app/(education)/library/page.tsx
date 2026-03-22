@@ -299,6 +299,7 @@ export default function LibraryPage() {
                            <a 
                              href={book.downloadUrl} 
                              target="_blank" 
+                             rel="noreferrer"
                              className="h-14 w-full bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center gap-3 font-black text-xs uppercase tracking-widest transition-all group-hover:bg-amber-500 group-hover:border-amber-500 group-hover:text-black"
                            >
                               <span>استدعاء اللفافة</span>

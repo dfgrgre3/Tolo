@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   ArrowRight, 
   BarChart3, 
@@ -18,16 +18,15 @@ import {
   Clock, 
   Play, 
   BookOpen,
-  TrendingUp,
   Star,
   Target,
   Flame,
   LayoutDashboard
 } from "lucide-react";
 import { useAuth } from "@/contexts/auth-context";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+
 import { Badge } from "@/components/ui/badge";
 
 // --- RPG Style Constants (Synced with globals.css) ---
@@ -228,7 +227,7 @@ export default function DashboardPage() {
               <span>البوابات الحيوية</span>
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {quickLinks.map((link, index) => {
+              {quickLinks.map((link) => {
                 const Icon = link.icon;
                 return (
                   <motion.div

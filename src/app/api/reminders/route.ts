@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { handleApiError, badRequestResponse, successResponse } from "@/lib/api-utils";
 
 // Validation schemas

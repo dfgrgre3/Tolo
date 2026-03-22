@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma } from "@/lib/prisma";
 import { handleApiError, withAdmin } from "@/lib/api-utils";
 
 export async function GET(req: NextRequest) {

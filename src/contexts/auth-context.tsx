@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
-import { sanitizeRedirectPath } from '@/lib/auth/navigation';
+import { sanitizeRedirectPath } from '@/services/auth/navigation';
 
 /**
  * AuthContext - Client-side authentication state management.

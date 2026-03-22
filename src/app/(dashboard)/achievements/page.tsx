@@ -1,18 +1,17 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAchievements } from './hooks/useAchievements';
 import { AchievementStats } from './components/AchievementStats';
 import { AchievementFilters } from './components/AchievementFilters';
 import { AchievementCard } from './components/AchievementCard';
-import { EmptyState } from './components/EmptyState';
 import { LoadingState } from './components/LoadingState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Trophy, Sparkles, Info, Clock, BookOpen, Lock, Star, Target, Zap, Search, Shield, Sword, LayoutDashboard, Scroll } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { Sparkles, Info, Clock, BookOpen, Star, Target, Zap, Search, Sword, Scroll } from 'lucide-react';
+
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -34,21 +33,27 @@ export default function AchievementsPage() {
 		refetch,
 	} = useAchievements();
 
-	const [recentAchievements, setRecentAchievements] = useState<string[]>([]);
 	const [showCelebration, setShowCelebration] = useState(false);
 
-	useEffect(() => {
-		if (achievements.length > 0) {
-			const earned = achievements.filter((a) => a.isEarned && a.earnedAt);
-			const sorted = earned.sort((a,b) => new Date(b.earnedAt || 0).getTime() - new Date(a.earnedAt || 0).getTime());
-			const recentIds = sorted.slice(0, 3).map((a) => a.id);
-			setRecentAchievements(recentIds);
-			
-			const twentyFourHours = 24 * 60 * 60 * 1000;
-			const hasRecent = sorted.some(a => new Date().getTime() - new Date(a.earnedAt || 0).getTime() < twentyFourHours);
-			if (hasRecent) setShowCelebration(true);
-		}
+	const recentAchievements = useMemo(() => {
+		if (achievements.length === 0) return [];
+		const earned = achievements.filter((a) => a.isEarned && a.earnedAt);
+		const sorted = [...earned].sort((a,b) => new Date(b.earnedAt || 0).getTime() - new Date(a.earnedAt || 0).getTime());
+		return sorted.slice(0, 3).map((a) => a.id);
 	}, [achievements]);
+
+	const hasRecentEarning = useMemo(() => {
+		if (achievements.length === 0) return false;
+		const twentyFourHours = 24 * 60 * 60 * 1000;
+		const now = new Date().getTime();
+		return achievements.some(a => a.isEarned && a.earnedAt && (now - new Date(a.earnedAt).getTime() < twentyFourHours));
+	}, [achievements]);
+
+	useEffect(() => {
+		if (hasRecentEarning) {
+			setShowCelebration(true);
+		}
+	}, [hasRecentEarning]);
 
 	return (
 		<div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">

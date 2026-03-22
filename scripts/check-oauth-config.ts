@@ -13,7 +13,6 @@
  *        tsx scripts/check-oauth-config.ts
  */
 
-import * as fs from 'fs';
 import * as path from 'path';
 import { config } from 'dotenv';
 
@@ -21,7 +20,6 @@ import { config } from 'dotenv';
 config({ path: path.join(__dirname, '..', '.env.local') });
 config({ path: path.join(__dirname, '..', '.env') });
 
-const PROJECT_ROOT = path.join(__dirname, '..');
 
 interface OAuthReport {
   google: {

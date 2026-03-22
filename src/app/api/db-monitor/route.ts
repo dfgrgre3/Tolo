@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbMonitor } from '@/lib/db-monitor';
+import { dbMonitor } from '@/lib/prisma-monitor';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 

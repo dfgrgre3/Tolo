@@ -362,7 +362,7 @@ export default function AdminResourcesPage() {
                       toast.success("تم حذف الموارد بنجاح");
                       fetchResources();
                     }
-                  } catch (err) {
+                  } catch (_err) {
                     toast.error("حدث خطأ أثناء الحذف");
                   }
                 }
@@ -383,7 +383,7 @@ export default function AdminResourcesPage() {
                     toast.success("تم تحديث الموارد بنجاح");
                     fetchResources();
                   }
-                } catch (err) {
+                } catch (_err) {
                   toast.error("حدث خطأ أثناء التحديث");
                 }
               }
@@ -403,7 +403,7 @@ export default function AdminResourcesPage() {
                     toast.success("تم تحديث الموارد بنجاح");
                     fetchResources();
                   }
-                } catch (err) {
+                } catch (_err) {
                   toast.error("حدث خطأ أثناء التحديث");
                 }
               }

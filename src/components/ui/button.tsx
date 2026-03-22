@@ -8,16 +8,15 @@ const Slot = React.forwardRef<HTMLElement, React.HTMLAttributes<HTMLElement> & {
   ({ children, ...props }, ref) => {
     if (React.isValidElement(children)) {
       const child = children as React.ReactElement<any>;
+      const childRef = (child as any).ref;
       return React.cloneElement(child, {
         ...props,
         ...child.props,
         ref: (node: any) => {
           if (typeof ref === 'function') ref(node)
-          else if (ref) (ref as any).current = node
+          else if (ref && "current" in ref) (ref as React.MutableRefObject<any>).current = node
 
-          const childRef = (child as any).ref
           if (typeof childRef === 'function') childRef(node)
-          else if (childRef) childRef.current = node
         },
         style: {
           ...props.style,

@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { SearchInput } from "@/components/admin/ui/admin-input";
-import { Plus, Trash2, Zap, Save, RefreshCw } from "lucide-react";
+import { Cpu, Zap, Bell, Mail, MoreHorizontal, Plus, Edit, Trash2, Play, Pause, Save, History, Timer, RefreshCw } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { motion, AnimatePresence } from "framer-motion";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";

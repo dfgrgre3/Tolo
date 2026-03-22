@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';
-import { gamificationService } from '@/lib/services/gamification-service';
-import { firestoreService } from '@/lib/services/firestore-service';
+import { gamificationService } from '@/services/gamification-service';
+import { firestoreService } from '@/services/firestore-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { successResponse, unauthorizedResponse, badRequestResponse, withAuth, handleApiError } from '@/lib/api-utils';

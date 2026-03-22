@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import {
   DEFAULT_AUTHENTICATED_ROUTE,
   sanitizeRedirectPath,
-} from '@/lib/auth/navigation';
+} from '@/services/auth/navigation';
 import { Suspense } from 'react';
 
 const loginSchema = z.object({

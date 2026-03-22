@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { OAuthService, OAuthUser } from '@/lib/auth/oauth-service';
+import { OAuthService, OAuthUser } from '@/services/auth/oauth-service';
 import { cookies } from 'next/headers';
 import { extractClientInfo } from '@/lib/api-utils';
 

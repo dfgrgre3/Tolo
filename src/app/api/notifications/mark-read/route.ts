@@ -1,6 +1,6 @@
 
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';

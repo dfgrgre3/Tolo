@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, UserPlus, LogOut } from "lucide-react";
-import { buildLoginUrl } from "@/lib/auth/navigation";
+import { buildLoginUrl } from "@/services/auth/navigation";
 
 interface HeaderMobileMenuEnhancedProps {
   isMobileMenuOpen: boolean;

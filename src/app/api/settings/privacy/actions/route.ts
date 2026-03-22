@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { badRequestResponse, handleApiError, withAuth } from '@/lib/api-utils';
 import { getSettingsPreferences } from '@/lib/settings-preferences-store';
-import { SessionService } from '@/lib/auth/session-service';
+import { SessionService } from '@/services/auth/session-service';
 
 type PrivacyAction = 'export-data' | 'clear-history';
 

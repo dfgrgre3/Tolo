@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/auth/auth-service';
+import { AuthService } from '@/services/auth/auth-service';
 import { handleApiError } from '@/lib/api-utils';
 import { cookies } from 'next/headers';
-import { TokenService, TokenPayload } from '@/lib/auth/token-service';
-import { SessionService } from '@/lib/auth/session-service';
-import prisma from '@/lib/db-unified';
+import { TokenService, TokenPayload } from '@/services/auth/token-service';
+import { SessionService } from '@/services/auth/session-service';
+import prisma from '@/lib/prisma';
 
 /**
  * GET /api/auth/me

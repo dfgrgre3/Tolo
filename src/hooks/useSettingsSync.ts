@@ -12,6 +12,23 @@ import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/sett
 export function useSettingsSync() {
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingChangesRef = useRef<SettingsPreferencesPatch | null>(null);
+  const queueAutoSave = useCallback(() => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      if (pendingChangesRef.current) {
+        try {
+          await saveSettingsPreferences(pendingChangesRef.current);
+          pendingChangesRef.current = null;
+        } catch (error) {
+          console.error('Auto-save failed:', error);
+          toast.error('ظپط´ظ„ ط­ظپط¸ ط§ظ„ط¥ط¹ط¯ط§ط¯ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹');
+        }
+      }
+    }, 2000);
+  }, []);
 
   const syncFromLocalStorage = useCallback(async () => {
     try {
@@ -84,7 +101,7 @@ export function useSettingsSync() {
         // Auto-save local changes to server
         if (Object.keys(patch).length > 0) {
           pendingChangesRef.current = patch;
-          scheduleAutoSave();
+          queueAutoSave();
         }
 
         return {
@@ -98,7 +115,7 @@ export function useSettingsSync() {
       console.error('Settings sync error:', error);
       return null;
     }
-  }, []);
+  }, [queueAutoSave]);
 
   const scheduleAutoSave = useCallback(() => {
     // Clear existing timeout

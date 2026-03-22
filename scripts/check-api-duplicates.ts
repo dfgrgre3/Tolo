@@ -44,8 +44,6 @@ const SUSPICIOUS_PATTERNS = [
   /\.old\.tsx?$/i,
 ];
 
-// أسماء الملفات المسموحة في Next.js App Router
-const ALLOWED_ROUTE_FILES = ['route.ts', 'route.tsx', 'page.ts', 'page.tsx', 'layout.ts', 'layout.tsx'];
 
 /**
  * البحث عن جميع ملفات route في مجلد API

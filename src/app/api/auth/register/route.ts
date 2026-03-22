@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/auth/auth-service';
+import { AuthService } from '@/services/auth/auth-service';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import {
@@ -7,7 +7,7 @@ import {
     RateLimiter,
     handleApiError,
 } from '@/lib/api-utils';
-import { SecurityLogger } from '@/lib/auth/security-logger';
+import { SecurityLogger } from '@/services/auth/security-logger';
 
 /**
  * Registration Schema with strong password policy.

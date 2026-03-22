@@ -50,6 +50,40 @@ export function ActivityWidget() {
 	const [mounted, setMounted] = useState(false);
 	const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
+	const getIcon = (type: string) => {
+		switch (type) {
+			case "notification":
+				return <Bell className="h-4 w-4" />;
+			case "message":
+				return <MessageSquare className="h-4 w-4" />;
+			case "like":
+				return <Heart className="h-4 w-4" />;
+			case "achievement":
+				return <Star className="h-4 w-4" />;
+			case "progress":
+				return <TrendingUp className="h-4 w-4" />;
+			default:
+				return <Activity className="h-4 w-4" />;
+		}
+	};
+
+	const getColor = (type: string) => {
+		switch (type) {
+			case "notification":
+				return "bg-blue-500";
+			case "message":
+				return "bg-green-500";
+			case "like":
+				return "bg-red-500";
+			case "achievement":
+				return "bg-yellow-500";
+			case "progress":
+				return "bg-purple-500";
+			default:
+				return "bg-gray-500";
+		}
+	};
+
 	useEffect(() => {
 		setMounted(true);
 	}, []);
@@ -95,40 +129,6 @@ export function ActivityWidget() {
 		};
 	}, [mounted, user]);
 
-	const getIcon = (type: string) => {
-		switch (type) {
-			case "notification":
-				return <Bell className="h-4 w-4" />;
-			case "message":
-				return <MessageSquare className="h-4 w-4" />;
-			case "like":
-				return <Heart className="h-4 w-4" />;
-			case "achievement":
-				return <Star className="h-4 w-4" />;
-			case "progress":
-				return <TrendingUp className="h-4 w-4" />;
-			default:
-				return <Activity className="h-4 w-4" />;
-		}
-	};
-
-	const getColor = (type: string) => {
-		switch (type) {
-			case "notification":
-				return "bg-blue-500";
-			case "message":
-				return "bg-green-500";
-			case "like":
-				return "bg-red-500";
-			case "achievement":
-				return "bg-yellow-500";
-			case "progress":
-				return "bg-purple-500";
-			default:
-				return "bg-gray-500";
-		}
-	};
-
 	const markAsRead = async (id: string) => {
 		try {
 			await fetch(`/api/activities/${id}/read`, { method: "POST" });
@@ -155,7 +155,6 @@ export function ActivityWidget() {
 		return null;
 	}
 
-	const unreadActivities = activities.filter((item) => !item.read);
 	const recentActivities = activities.slice(0, 5);
 
 	return (

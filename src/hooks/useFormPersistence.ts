@@ -33,7 +33,9 @@ export function useFormPersistence<T extends Record<string, any>>(
     setState(values);
     try {
       localStorage.setItem(storageKey, JSON.stringify(values));
-    } catch {}
+    } catch {
+      return;
+    }
   }, [storageKey]);
 
   const saveField = useCallback((field: keyof T, value: T[keyof T]) => {
@@ -41,7 +43,9 @@ export function useFormPersistence<T extends Record<string, any>>(
       const next = { ...current, [field]: value };
       try {
         localStorage.setItem(storageKey, JSON.stringify(next));
-      } catch {}
+      } catch {
+        return next;
+      }
       return next;
     });
   }, [storageKey]);
@@ -52,7 +56,9 @@ export function useFormPersistence<T extends Record<string, any>>(
     setState(initialFormValues);
     try {
       localStorage.removeItem(storageKey);
-    } catch {}
+    } catch {
+      return;
+    }
   }, [initialFormValues, storageKey]);
 
   return useMemo(() => ({

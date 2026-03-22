@@ -1,8 +1,8 @@
-import prisma from '@/lib/db';
+import prisma from '@/lib/prisma';
 import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
 import { logger } from '@/lib/logger';
-import { emailService } from '@/lib/services/email-service';
+import { emailService } from '@/services/email-service';
 
 export interface OAuthUser {
     id: string;

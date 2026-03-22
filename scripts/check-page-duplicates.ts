@@ -53,8 +53,6 @@ const SUSPICIOUS_PATTERNS = [
   /\.old\.tsx?$/i,
 ];
 
-// أسماء الملفات القياسية في Next.js App Router
-const STANDARD_PAGE_FILES = ['page.ts', 'page.tsx', 'layout.ts', 'layout.tsx'];
 
 /**
  * البحث عن الملفات المشبوهة في مجلد app

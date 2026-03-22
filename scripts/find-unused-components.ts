@@ -20,7 +20,6 @@ async function findUnusedComponents() {
         const componentName = path.basename(file, '.tsx');
         // Simple check: search for the component name in src/app
         // This is not perfect (could be commented out, or aliased), but a good start.
-        const command = `grep -r "${componentName}" "${APP_DIR}"`;
 
         // We'll use a simpler approach: read all files in src/app and check for the string
         // Actually, let's just use grep via child_process if available, or just scan files.

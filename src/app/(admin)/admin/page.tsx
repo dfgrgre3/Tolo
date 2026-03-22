@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { PageHeader } from "@/components/admin/ui/page-header";
 import { DashboardSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { AdminButton } from "@/components/admin/ui/admin-button";
@@ -11,12 +10,11 @@ import {
 } from "@/components/admin/dashboard/enhanced-stats-cards";
 import {
   ActivityFeed,
-  QuickActions,
   UpcomingEvents,
   ProgressOverview,
 } from "@/components/admin/dashboard/widgets";
 import dynamic from "next/dynamic";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const UserGrowthChart = dynamic(() => import("@/components/admin/dashboard/user-growth-chart").then(mod => mod.UserGrowthChart), {
   ssr: false,
@@ -31,10 +29,6 @@ const ActivityHeatmap = dynamic(() => import("@/components/admin/dashboard/activ
   loading: () => <div className="h-[300px] w-full animate-pulse bg-white/5 rounded-[2rem] border border-white/10" />
 });
 const DistributionChart = dynamic(() => import("@/components/admin/dashboard/distribution-chart").then(mod => mod.DistributionChart), {
-  ssr: false,
-  loading: () => <div className="h-[300px] w-full animate-pulse bg-white/5 rounded-[2rem] border border-white/10" />
-});
-const TimeComparisonChart = dynamic(() => import("@/components/admin/dashboard/time-comparison-chart").then(mod => mod.TimeComparisonChart), {
   ssr: false,
   loading: () => <div className="h-[300px] w-full animate-pulse bg-white/5 rounded-[2rem] border border-white/10" />
 });
@@ -176,6 +170,12 @@ export default function AdminDashboardPage() {
       URL.revokeObjectURL(url);
     }
   };
+
+  const notifications = React.useMemo(() => [
+    { id: "1", type: "user" as const, title: "محارب جديد", description: "انضم أحمد محمد إلى المملكة", timestamp: new Date(), read: false },
+    { id: "2", type: "activity" as const, title: "حملة مكثفة", description: "تم استرداد 50 مخطوطة اليوم", timestamp: new Date(Date.now() - 3600000), read: false },
+    { id: "3", type: "achievement" as const, title: "ترقية رتبة", description: "تم منح 10 أوسمة بسالة", timestamp: new Date(Date.now() - 7200000), read: true },
+  ], []);
 
   if (loading && !data) {
     return <DashboardSkeleton />;
@@ -373,11 +373,7 @@ export default function AdminDashboardPage() {
          {/* Side Widgets */}
          <div className="space-y-8">
             <RealtimeNotifications
-              notifications={[
-                { id: "1", type: "user", title: "محارب جديد", description: "انضم أحمد محمد إلى المملكة", timestamp: new Date(), read: false },
-                { id: "2", type: "activity", title: "حملة مكثفة", description: "تم استرداد 50 مخطوطة اليوم", timestamp: new Date(Date.now() - 3600000), read: false },
-                { id: "3", type: "achievement", title: "ترقية رتبة", description: "تم منح 10 أوسمة بسالة", timestamp: new Date(Date.now() - 7200000), read: true },
-              ]}
+              notifications={notifications}
               isConnected={true}
             />
 

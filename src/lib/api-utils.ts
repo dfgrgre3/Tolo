@@ -41,7 +41,7 @@ export class RateLimiter {
    * @returns Rate limit check result
    */
   async checkRateLimit(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<RateLimitResult> {
-    const { rateLimitingService } = await import('@/lib/services/rate-limiting-service');
+    const { rateLimitingService } = await import('@/services/rate-limiting-service');
     return rateLimitingService.checkRateLimit(clientId, config);
   }
 
@@ -51,7 +51,7 @@ export class RateLimiter {
    * @param config Rate limiting configuration
    */
   async incrementAttempts(clientId: string, config: RateLimitConfig = this.defaultConfig): Promise<void> {
-    const { rateLimitingService } = await import('@/lib/services/rate-limiting-service');
+    const { rateLimitingService } = await import('@/services/rate-limiting-service');
     return rateLimitingService.recordFailedAttempt(clientId, config);
   }
 
@@ -60,7 +60,7 @@ export class RateLimiter {
    * @param clientId Unique identifier for the client
    */
   async resetAttempts(clientId: string): Promise<void> {
-    const { rateLimitingService } = await import('@/lib/services/rate-limiting-service');
+    const { rateLimitingService } = await import('@/services/rate-limiting-service');
     return rateLimitingService.resetAttempts(clientId);
   }
 }
@@ -519,7 +519,7 @@ export interface AuthContextUser {
 
 async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser | null> {
   try {
-    const { TokenService } = await import('@/lib/auth/token-service');
+    const { TokenService } = await import('@/services/auth/token-service');
     const accessToken = req.cookies.get('access_token')?.value;
 
     if (accessToken) {
@@ -559,8 +559,8 @@ async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser
     }
 
     const [{ SessionService }, { prisma }] = await Promise.all([
-      import('@/lib/auth/session-service'),
-      import('@/lib/db'),
+      import('@/services/auth/session-service'),
+      import('@/lib/prisma'),
     ]);
 
     const session = await prisma.session.findFirst({
@@ -610,7 +610,7 @@ async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser
 
 async function resolveAuthFromAuthorization(req: NextRequest): Promise<AuthContextUser | null> {
   try {
-    const { TokenService } = await import('@/lib/auth/token-service');
+    const { TokenService } = await import('@/services/auth/token-service');
     const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || '';
     const trimmed = authHeader.trim();
     if (!/^bearer\s+/i.test(trimmed)) return null;
@@ -706,6 +706,21 @@ export async function withTeacher(
   return withAuth(req, async (user) => {
     if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
       return forbiddenResponse("غير مسموح لك بالوصول إلى هذه الصفحة. يتطلب صلاحيات معلم");
+    }
+    return handler(user);
+  });
+}
+
+/**
+ * Authentication and Authorization wrapper for STUDENT only routes.
+ */
+export async function withStudent(
+  req: NextRequest,
+  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
+): Promise<NextResponse> {
+  return withAuth(req, async (user) => {
+    if (user.role !== 'STUDENT' && user.role !== 'ADMIN') {
+      return forbiddenResponse("غير مسموح لك بالوصول إلى هذه الصفحة. يتطلب حساب طالب");
     }
     return handler(user);
   });

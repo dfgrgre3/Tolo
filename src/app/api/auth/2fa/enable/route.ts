@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth, handleApiError } from '@/lib/api-utils';
-import { TwoFactorService } from '@/lib/auth/two-factor-service';
-import { SecurityLogger } from '@/lib/auth/security-logger';
+import { TwoFactorService } from '@/services/auth/two-factor-service';
+import { SecurityLogger } from '@/services/auth/security-logger';
 import { extractClientInfo } from '@/lib/api-utils';
 
 /**

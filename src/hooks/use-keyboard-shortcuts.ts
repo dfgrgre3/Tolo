@@ -6,7 +6,7 @@ interface UseKeyboardShortcutsOptions {
     setIsMobileMenuOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
 }
 
-export function useKeyboardShortcuts({
+export function useHeaderKeyboardShortcuts({
     mounted,
     isMobileMenuOpen,
     setIsMobileMenuOpen,

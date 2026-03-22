@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { PasswordService } from "@/lib/auth/password-service";
+import { PasswordService } from "@/services/auth/password-service";
 
 // POST /api/admin/setup - Create admin user
 export async function POST(request: NextRequest) {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { AuthService } from '@/lib/auth/auth-service';
-import { SecurityLogger } from '@/lib/auth/security-logger';
+import { AuthService } from '@/services/auth/auth-service';
+import { SecurityLogger } from '@/services/auth/security-logger';
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import {

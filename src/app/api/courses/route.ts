@@ -1,5 +1,5 @@
-ï»¿import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 import { logger } from "@/lib/logger";
 import { withAuth } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
       logger.error("Failed to fetch courses", error);
       return NextResponse.json(
         {
-          error: "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¬Ù„Ø¨ Ø§Ù„Ø¯ÙˆØ±Ø§Øª.",
+          error: "ÍÏË ÎØÃ ÃËäÇÁ ÌáÈ ÇáÏæÑÇÊ.",
         },
         { status: 500 }
       );
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
         if (userRole !== "ADMIN" && userRole !== "TEACHER") {
           return NextResponse.json(
             {
-              error: "Ù„Ø§ ØªÙ…Ù„Ùƒ ØµÙ„Ø§Ø­ÙŠØ© Ø¥Ù†Ø´Ø§Ø¡ Ø¯ÙˆØ±Ø© Ø¬Ø¯ÙŠØ¯Ø©.",
+              error: "áÇ Êãáß ÕáÇÍíÉ ÅäÔÇÁ ÏæÑÉ ÌÏíÏÉ.",
             },
             { status: 403 }
           );
@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
         if (!name) {
           return NextResponse.json(
             {
-              error: "Ø§Ø³Ù… Ø§Ù„Ø¯ÙˆØ±Ø© Ù…Ø·Ù„ÙˆØ¨.",
+              error: "ÇÓã ÇáÏæÑÉ ãØáæÈ.",
             },
             { status: 400 }
           );
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
         if (duplicateSubject) {
           return NextResponse.json(
             {
-              error: "ØªÙˆØ¬Ø¯ Ø¯ÙˆØ±Ø© Ø¨Ù†ÙØ³ Ø§Ù„Ø§Ø³Ù… Ø£Ùˆ Ø§Ù„Ø±Ù…Ø² Ø¨Ø§Ù„ÙØ¹Ù„.",
+              error: "ÊæÌÏ ÏæÑÉ ÈäİÓ ÇáÇÓã Ãæ ÇáÑãÒ ÈÇáİÚá.",
             },
             { status: 409 }
           );
@@ -294,7 +294,7 @@ export async function POST(request: NextRequest) {
         logger.error("Failed to create course", error);
         return NextResponse.json(
           {
-            error: "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø¯ÙˆØ±Ø©.",
+            error: "ÍÏË ÎØÃ ÃËäÇÁ ÅäÔÇÁ ÇáÏæÑÉ.",
           },
           { status: 500 }
         );

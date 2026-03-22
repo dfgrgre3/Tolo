@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { TokenService } from "@/lib/auth/token-service";
+import { TokenService } from "@/services/auth/token-service";
 import { cookies } from "next/headers";
 
 export async function POST(req: NextRequest) {

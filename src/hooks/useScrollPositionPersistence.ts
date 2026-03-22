@@ -6,7 +6,9 @@ export function useScrollPositionPersistence() {
   const saveScrollPosition = useCallback((key: string, position: number) => {
     try {
       localStorage.setItem(`scroll:${key}`, String(position));
-    } catch {}
+    } catch {
+      return;
+    }
   }, []);
 
   const restoreScrollPosition = useCallback((key: string) => {

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { gamificationService } from '@/lib/services/gamification-service';
+import { gamificationService } from '@/services/gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
 import { ensureUser } from '@/lib/user-utils';
@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       } else if (authHeader) {
         // Try to validate the token and get user ID
         try {
-          const { TokenService } = await import('@/lib/auth/token-service');
+          const { TokenService } = await import('@/services/auth/token-service');
           const token = authHeader.replace('Bearer ', '').trim();
           const payload = await TokenService.verifyToken<{ userId?: string }>(token);
           if (payload?.userId) {

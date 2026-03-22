@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { Shield, MapPin, AlertTriangle, CheckCircle2, X, Plus, Trash2, Globe, Lock } from "lucide-react";
+import { Shield, MapPin, AlertTriangle, X, Plus, Trash2, Globe, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 import { logger } from '@/lib/logger';
@@ -33,12 +33,6 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
   const [newIp, setNewIp] = useState('');
   const [newIpLabel, setNewIpLabel] = useState('');
   const [currentLocation, setCurrentLocation] = useState<string>('');
-
-  useEffect(() => {
-    loadProtectionSettings();
-    loadIPWhitelist();
-    detectCurrentLocation();
-  }, [_userId]);
 
   const loadProtectionSettings = async () => {
     try {
@@ -87,6 +81,13 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
       logger.error('Error detecting location:', error);
     }
   };
+
+  useEffect(() => {
+    loadProtectionSettings();
+    loadIPWhitelist();
+    detectCurrentLocation();
+  }, [_userId]);
+
 
   const handleSaveProtectionSettings = async () => {
     try {

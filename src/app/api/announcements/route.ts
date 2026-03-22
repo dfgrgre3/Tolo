@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db-unified';
+import { prisma } from '@/lib/prisma';
 import { CacheService } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';

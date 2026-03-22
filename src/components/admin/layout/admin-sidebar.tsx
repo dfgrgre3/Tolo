@@ -88,6 +88,19 @@ interface BookmarkItem {
   icon: React.ElementType;
 }
 
+interface SidebarNavLinkProps {
+  item: SidebarNavItem;
+  pathname: string | null;
+  collapsed: boolean;
+}
+
+interface SidebarNavSectionProps {
+  title: string;
+  items: SidebarNavItem[];
+  pathname: string | null;
+  collapsed: boolean;
+}
+
 const mainNavItems: SidebarNavItem[] = [
   {
     title: "لوحة المعلومات",
@@ -269,6 +282,95 @@ const communityNavItems: SidebarNavItem[] = [
   },
 ];
 
+function SidebarNavLink({ item, pathname, collapsed }: SidebarNavLinkProps) {
+  const isActive = pathname === item.href;
+  const Icon = item.icon;
+
+  const linkContent = (
+    <Link
+      href={item.href}
+      className={cn(
+        "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
+        isActive
+          ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+      )}
+    >
+      {isActive && (
+        <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-1 h-6 rounded-l-full bg-primary" />
+      )}
+
+      <div
+        className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 flex-shrink-0",
+          isActive
+            ? "bg-white/20"
+            : "bg-muted/50 group-hover:bg-gradient-to-br group-hover:text-white",
+          !isActive && item.color && `group-hover:${item.color}`
+        )}
+      >
+        <Icon
+          className={cn(
+            "h-4.5 w-4.5 transition-transform duration-200",
+            "group-hover:scale-110"
+          )}
+        />
+      </div>
+
+      {!collapsed && <span className="truncate">{item.title}</span>}
+
+      {!collapsed && item.badge && (
+        <span className="mr-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1">
+          {item.badge}
+        </span>
+      )}
+    </Link>
+  );
+
+  if (collapsed) {
+    return (
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
+          <TooltipContent side="left" className="font-medium">
+            {item.title}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return linkContent;
+}
+
+function SidebarNavSection({
+  title,
+  items,
+  pathname,
+  collapsed,
+}: SidebarNavSectionProps) {
+  return (
+    <div className="space-y-1">
+      {!collapsed && (
+        <h3 className="px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">
+          {title}
+        </h3>
+      )}
+      {collapsed && <div className="mx-3 my-2 h-px bg-border/50" />}
+      <nav className="space-y-0.5">
+        {items.map((item) => (
+          <SidebarNavLink
+            key={item.href}
+            item={item}
+            pathname={pathname}
+            collapsed={collapsed}
+          />
+        ))}
+      </nav>
+    </div>
+  );
+}
+
 export function AdminSidebar() {
   const pathname = usePathname();
   const { user } = useAuth();
@@ -320,90 +422,6 @@ export function AdminSidebar() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  const NavItem = ({ item }: { item: SidebarNavItem }) => {
-    const isActive = pathname === item.href;
-    const Icon = item.icon;
-
-    const linkContent = (
-      <Link
-        href={item.href}
-        className={cn(
-          "group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
-          isActive
-            ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-            : "text-muted-foreground hover:bg-accent hover:text-foreground"
-        )}
-      >
-        {/* Active indicator */}
-        {isActive && (
-          <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-1 h-6 rounded-l-full bg-primary" />
-        )}
-        
-        <div
-          className={cn(
-            "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 flex-shrink-0",
-            isActive
-              ? "bg-white/20"
-              : "bg-muted/50 group-hover:bg-gradient-to-br group-hover:text-white",
-            !isActive && item.color && `group-hover:${item.color}`
-          )}
-        >
-          <Icon className={cn(
-            "h-4.5 w-4.5 transition-transform duration-200",
-            "group-hover:scale-110"
-          )} />
-        </div>
-        
-        {!collapsed && (
-          <span className="truncate">{item.title}</span>
-        )}
-        
-        {!collapsed && item.badge && (
-          <span className="mr-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground px-1">
-            {item.badge}
-          </span>
-        )}
-      </Link>
-    );
-
-    if (collapsed) {
-      return (
-        <TooltipProvider delayDuration={0}>
-          <Tooltip>
-            <TooltipTrigger asChild>{linkContent}</TooltipTrigger>
-            <TooltipContent side="left" className="font-medium">
-              {item.title}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      );
-    }
-
-    return linkContent;
-  };
-
-  const NavSection = ({
-    title,
-    items,
-  }: {
-    title: string;
-    items: SidebarNavItem[];
-  }) => (
-    <div className="space-y-1">
-      {!collapsed && (
-        <h3 className="px-3 py-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground/60">
-          {title}
-        </h3>
-      )}
-      {collapsed && <div className="mx-3 my-2 h-px bg-border/50" />}
-      <nav className="space-y-0.5">
-        {items.map((item) => (
-          <NavItem key={item.href} item={item} />
-        ))}
-      </nav>
-    </div>
-  );
 
   return (
     <aside
@@ -458,7 +476,7 @@ export function AdminSidebar() {
             إجراءات سريعة
           </h3>
           <div className="grid grid-cols-2 gap-1 mt-1">
-            {quickActions.map((action) => {
+            {filteredQuickActions.map((action) => {
               const Icon = action.icon;
               return (
                 <Link
@@ -524,15 +542,23 @@ export function AdminSidebar() {
 
       {/* Navigation */}
       <div className="flex-1 overflow-y-auto p-3 space-y-4 scrollbar-thin">
-        {filteredMainNav.length > 0 && <NavSection title="الرئيسية" items={filteredMainNav} />}
-        {filteredContentNav.length > 0 && <NavSection title="المحتوى التعليمي" items={filteredContentNav} />}
-        {filteredGamificationNav.length > 0 && <NavSection title="التحديات والمكافآت" items={filteredGamificationNav} />}
-        {filteredCommunityNav.length > 0 && <NavSection title="المجتمع" items={filteredCommunityNav} />}
+        {filteredMainNav.length > 0 && (
+          <SidebarNavSection title="الرئيسية" items={filteredMainNav} pathname={pathname} collapsed={collapsed} />
+        )}
+        {filteredContentNav.length > 0 && (
+          <SidebarNavSection title="المحتوى التعليمي" items={filteredContentNav} pathname={pathname} collapsed={collapsed} />
+        )}
+        {filteredGamificationNav.length > 0 && (
+          <SidebarNavSection title="التحديات والمكافآت" items={filteredGamificationNav} pathname={pathname} collapsed={collapsed} />
+        )}
+        {filteredCommunityNav.length > 0 && (
+          <SidebarNavSection title="المجتمع" items={filteredCommunityNav} pathname={pathname} collapsed={collapsed} />
+        )}
       </div>
 
       {/* Footer */}
       <div className="border-t p-3 space-y-0.5">
-        <NavItem
+        <SidebarNavLink
           item={{
             title: "سجل النظام",
             href: "/admin/audit-logs",
@@ -540,8 +566,10 @@ export function AdminSidebar() {
             color: "from-slate-500 to-zinc-500",
             permission: "AUDIT_LOGS_VIEW",
           }}
+          pathname={pathname}
+          collapsed={collapsed}
         />
-        <NavItem
+        <SidebarNavLink
           item={{
             title: "الإعدادات",
             href: "/admin/settings",
@@ -549,6 +577,8 @@ export function AdminSidebar() {
             color: "from-gray-500 to-slate-500",
             permission: "SETTINGS_MANAGE",
           }}
+          pathname={pathname}
+          collapsed={collapsed}
         />
         
         {/* Keyboard Shortcuts Button */}
