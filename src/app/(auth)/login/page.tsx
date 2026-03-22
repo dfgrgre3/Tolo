@@ -186,8 +186,39 @@ function LoginForm() {
               exit={{ opacity: 0 }}
               className="mb-8 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-black flex items-center gap-3"
             >
-              <AlertCircle className="h-5 w-5" />
-              <p>{errorStatus}</p>
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <p>{errorStatus}</p>
+                </div>
+                {errorStatus.includes('تفعيل') && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const email = getValues('email');
+                      if (!email) return;
+                      try {
+                        const res = await fetch('/api/auth/resend-verification', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ email }),
+                        });
+                        const data = await res.json();
+                        if (res.ok) {
+                          setErrorStatus('تم إعادة إرسال رابط التفعيل بنجاح. يرجى مراجعة بريدك.');
+                        } else {
+                          setErrorStatus(data.error || 'فشل إعادة الإرسال.');
+                        }
+                      } catch (_err) {
+                        setErrorStatus('خطأ في الشبكة.');
+                      }
+                    }}
+                    className="mr-8 text-[10px] font-black underline uppercase tracking-widest text-primary/80 hover:text-primary text-right"
+                  >
+                    إعادة إرسال الرابط
+                  </button>
+                )}
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

@@ -24,13 +24,21 @@ export const CachePrefixes = {
 
 const memoryCache = new Map<string, { value: string; expires: number }>();
 
-export const redisClient = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
+
+// Create the client with lazyConnect to prevent immediate connection attempts
+export const redisClient = new Redis(redisUrl, {
   maxRetriesPerRequest: 1,
-  connectTimeout: 5000,
-  reconnectOnError: () => true,
+  connectTimeout: 2000,
+  reconnectOnError: () => false,
   enableOfflineQueue: false,
   keepAlive: 1,
   lazyConnect: true,
+  retryStrategy: (times) => {
+    if (isRedisDisabled || times > 1) return null; // Stop retrying
+    return 2000;
+  }
 });
 
 export const redis = redisClient;
@@ -38,23 +46,33 @@ export const redis = redisClient;
 let isRedisAvailable = false;
 let redisErrorCount = 0;
 
-redisClient.on('connect', () => {
-  redisErrorCount = 0;
-  isRedisAvailable = true;
-  logger.info('Connected to Redis');
-});
+if (!isRedisDisabled) {
+  redisClient.on('connect', () => {
+    redisErrorCount = 0;
+    isRedisAvailable = true;
+    logger.info('Connected to Redis');
+  });
 
-redisClient.on('ready', () => {
-  isRedisAvailable = true;
-});
+  redisClient.on('ready', () => {
+    isRedisAvailable = true;
+  });
 
-redisClient.on('error', (err: unknown) => {
-  redisErrorCount++;
+  redisClient.on('error', (err: any) => {
+    redisErrorCount++;
+    isRedisAvailable = false;
+    
+    // Only log the first error unless it's not a connection error
+    if (redisErrorCount === 1) {
+      if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+        logger.warn('Redis is not available. Falling back to memory cache.');
+      } else {
+        logger.error('Redis error:', err);
+      }
+    }
+  });
+} else {
   isRedisAvailable = false;
-  if (redisErrorCount <= 3) {
-    logger.error('Redis error:', err);
-  }
-});
+}
 
 // --- Core Cache Service ---
 

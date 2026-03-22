@@ -32,6 +32,10 @@ const PUBLIC_AUTH_API_ROUTES = [
 ];
 
 export default async function proxy(request: NextRequest) {
+  return await middleware(request);
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isPublicAuthRoute = isAuthPublicRoute(pathname);
 

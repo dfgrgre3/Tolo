@@ -25,7 +25,7 @@ interface TaskListProps {
   onDelete: (id: string) => void;
   getPriorityBadge: (priority: number) => React.ReactNode;
   getStatusIcon: (status: TaskStatus) => React.ReactNode;
-  isOverdue: (dueAt: string | undefined) => boolean;
+  isOverdue: (dueAt: string | null | undefined) => boolean;
 }
 
 const STYLES = {

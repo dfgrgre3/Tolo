@@ -18,16 +18,11 @@ export async function GET(req: NextRequest) {
     return withAuth(request, async (authUser) => {
       try {
         const { searchParams } = new URL(request.url);
-        const userId = searchParams.get("userId");
-
-        // Validate userId parameter
-        if (!userId || userId === 'undefined' || userId.trim() === '') {
-          return badRequestResponse('userId parameter is required', 'MISSING_USER_ID');
-        }
+        const userId = searchParams.get("userId") || authUser.userId;
 
         // For security, we should only allow fetching the authenticated user's schedule
         // unless there's a specific admin requirement
-        if (userId !== authUser.userId) {
+        if (userId !== authUser.userId && authUser.role !== 'ADMIN') {
           return badRequestResponse('Invalid userId parameter', 'INVALID_PARAMETER');
         }
 

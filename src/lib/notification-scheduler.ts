@@ -15,12 +15,15 @@ export async function checkUpcomingTasks() {
       credentials: 'include',
     });
 
-    if (!response.ok) return;
+    const result = await response.json();
+    const tasks = result.data?.tasks || result.tasks || [];
 
-    const tasks = await response.json();
+    if (!Array.isArray(tasks)) return;
 
     // إرسال إشعارات للمهام القريبة الموعد
     for (const task of tasks) {
+      if (!task.dueAt) continue;
+      
       const dueDate = new Date(task.dueAt);
       const now = new Date();
       const hoursUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -60,12 +63,15 @@ export async function checkUpcomingTests() {
       credentials: 'include',
     });
 
-    if (!response.ok) return;
+    const result = await response.json();
+    const tests = result.data?.tests || result.tests || [];
 
-    const tests = await response.json();
+    if (!Array.isArray(tests)) return;
 
     // إرسال إشعارات للاختبارات القريبة
     for (const test of tests) {
+      if (!test.date) continue;
+      
       const testDate = new Date(test.date);
       const now = new Date();
       const hoursUntilTest = (testDate.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -73,7 +79,7 @@ export async function checkUpcomingTests() {
       // إرسال إشعار إذا كان الاختبار خلال 24 ساعة
       if (hoursUntilTest <= 24 && hoursUntilTest > 0) {
         const formattedTime = `${Math.floor(hoursUntilTest)} ساعة`;
-        sendTemplatedNotification('testReminder', test.subject, formattedTime);
+        sendTemplatedNotification('testReminder', test.subject || test.title, formattedTime);
       }
     }
   } catch (error) {
@@ -94,12 +100,25 @@ export async function checkSchedule() {
       credentials: 'include',
     });
 
-    if (!response.ok) return;
-
-    const schedule = await response.json();
+    const result = await response.json();
+    const scheduleData = result.data || result;
+    
+    if (!scheduleData || !scheduleData.planJson) return;
+    
+    let plan;
+    try {
+      plan = typeof scheduleData.planJson === 'string' ? JSON.parse(scheduleData.planJson) : scheduleData.planJson;
+    } catch (e) {
+      return;
+    }
+    
+    const dayItems = plan[today] || [];
+    if (!Array.isArray(dayItems)) return;
 
     // إرسال إشعارات للحصص القريبة
-    for (const item of schedule) {
+    for (const item of dayItems) {
+      if (!item.startTime) continue;
+      
       const classTime = new Date(`${today}T${item.startTime}`);
       const now = new Date();
       const hoursUntilClass = (classTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -110,7 +129,7 @@ export async function checkSchedule() {
           hour: '2-digit',
           minute: '2-digit',
         });
-        sendTemplatedNotification('classReminder', item.subject, formattedTime);
+        sendTemplatedNotification('classReminder', item.subject || item.title, formattedTime);
       }
     }
   } catch (error) {
@@ -130,9 +149,10 @@ export async function checkProgressMilestones() {
       credentials: 'include',
     });
 
-    if (!response.ok) return;
+    const result = await response.json();
+    const progress = result.data || result;
 
-    const progress = await response.json();
+    if (!progress) return;
 
     // إرسال إشعار عند تحقيق إنجاز (مثال: 7 أيام متتالية من الدراسة)
     if (progress.streakDays >= 7 && progress.streakDays % 7 === 0) {
@@ -140,10 +160,10 @@ export async function checkProgressMilestones() {
     }
 
     // إرسال إشعار عند تحقيق هدف
-    if (progress.recentGoals && progress.recentGoals.length > 0) {
+    if (progress.recentGoals && Array.isArray(progress.recentGoals) && progress.recentGoals.length > 0) {
       for (const goal of progress.recentGoals) {
         if (goal.achieved && !goal.notified) {
-          sendTemplatedNotification('goalAchieved', goal.name);
+          sendTemplatedNotification('goalAchieved', goal.name || goal.title);
 
           // تحديث الهدف لتمييزه بأنه تم إرسال إشعار له
           // Token is in httpOnly cookie - no need to send Authorization header
@@ -174,12 +194,15 @@ export async function checkUpcomingEvents() {
       credentials: 'include',
     });
 
-    if (!response.ok) return;
+    const result = await response.json();
+    const events = result.data?.events || result.events || [];
 
-    const events = await response.json();
+    if (!Array.isArray(events)) return;
 
     // إرسال إشعارات للمناسبات القريبة
     for (const event of events) {
+      if (!event.startDate) continue;
+      
       const eventDate = new Date(event.startDate);
       const now = new Date();
       const hoursUntilEvent = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);

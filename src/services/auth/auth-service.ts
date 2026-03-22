@@ -163,15 +163,14 @@ export class AuthService {
                 };
             }
 
-            // 4. Optional: Check email verification
-            // Uncomment for production when email service is ready
-            // if (!user.emailVerified) {
-            //     return {
-            //         success: false,
-            //         error: 'Please verify your email address before logging in.',
-            //         statusCode: 403,
-            //     };
-            // }
+            // 4. Check email verification
+            if (!user.emailVerified) {
+                return {
+                    success: false,
+                    error: 'يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول. تم إرسال رابط التفعيل عند التسجيل.',
+                    statusCode: 403,
+                };
+            }
 
             // 5. Create session and generate tokens
             const { session, accessToken, refreshToken } = await SessionService.createSession(

@@ -39,7 +39,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { safeFetch } from '@/lib/safe-client-utils';
 
 const taskSchema = z.object({
-  title: z.string().min(1, { message: 'ط§ظ„ط¹ظ†ظˆط§ظ† ظ…ط·ظ„ظˆط¨' }),
+  title: z.string().min(1, { message: 'العنوان مطلوب' }),
   description: z.string().optional(),
   subject: z.nativeEnum(SubjectType).optional(),
   dueAt: z.string().optional(),
@@ -265,11 +265,11 @@ export default function TasksPage() {
   const getPriorityBadge = (priority: number) => {
     switch (priority) {
       case 2:
-        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 font-black">ط£ظ‡ظ…ظٹط© ظ…ظ„ط­ظ…ظٹط©</Badge>;
+        return <Badge className="bg-red-500/10 text-red-500 border-red-500/20 font-black">أهمية ملحمية</Badge>;
       case 1:
-        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black">ظ…ظ‡ظ…ط© ظ‚طھط§ظ„ظٹط©</Badge>;
+        return <Badge className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black">مهمة قتالية</Badge>;
       default:
-        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-black">ظ…ظ‡ظ…ط© ط¬ط§ظ†ط¨ظٹط©</Badge>;
+        return <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 font-black">مهمة جانبية</Badge>;
     }
   };
 
@@ -318,13 +318,13 @@ export default function TasksPage() {
           <div className="space-y-4 text-center md:text-right">
              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-500">
                 <Scroll className="w-4 h-4" />
-                <span>ط³ط¬ظ„ ط§ظ„ظ…ظ‡ط§ظ… ط§ظ„ظ†ط´ط· (Quest Log)</span>
+                <span>سجل المهام النشط (Quest Log)</span>
              </div>
              <h1 className="text-4xl md:text-5xl font-black tracking-tight">
-               ظ‚ط§ط¦ظ…ط© <span className={STYLES.neonText}>ط§ظ„ظ…ط®ط§ط·ط± ظˆط§ظ„ظ…ظ‡ط§ظ…</span>
+               قائمة <span className={STYLES.neonText}>المخاطر والمهام</span>
              </h1>
              <p className="text-gray-400 font-medium max-w-xl text-lg">
-                ط£ظƒظ…ظ„ ظ…ظ‡ط§ظ…ظƒ ظ„ط±ط¨ط­ ط±طµظٹط¯ XP ظˆط±ظپط¹ ظ…ط³طھظˆط§ظƒ. طھط°ظƒط±طŒ ظƒظ„ ظ…ظ‡ظ…ط© طھظ‚ط±ط¨ظƒ ط®ط·ظˆط© ظ…ظ† ط§ظ„ظ†طµط±!
+                أكمل مهامك لربح رصيد XP ورفع مستواك. تذكر، كل مهمة تقربك خطوة من النصر!
              </p>
           </div>
           
@@ -332,20 +332,20 @@ export default function TasksPage() {
             <DialogTrigger asChild>
               <Button onClick={() => reset()} className="h-14 px-8 bg-primary hover:bg-primary/90 text-white font-black rounded-2xl shadow-[0_10px_30px_rgba(var(--primary),0.3)] gap-3 border-2 border-white/10 group transition-all hover:scale-105 active:scale-95">
                 <Plus className="h-6 w-6 group-hover:rotate-90 transition-transform" />
-                <span>ط¥ط¶ط§ظپط© ظ…ظ‡ظ…ط© ظ…ظ„ط­ظ…ظٹط©</span>
+                <span>إضافة مهمة ملحمية</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] bg-background border-white/10 text-gray-100">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-black">ط¥طµط¯ط§ط± ط£ظ…ط± ظ…ظ‡ظ…ط©</DialogTitle>
+                <DialogTitle className="text-2xl font-black">إصدار أمر مهمة</DialogTitle>
                 <DialogDescription className="text-gray-400">
-                  ط­ط¯ط¯ طھظپط§طµظٹظ„ ط§ظ„ظ…ظ‡ظ…ط© ظˆط§ظ„ظ‚ط§ط¦ط¯ ط§ظ„ظ…ط³ط¤ظˆظ„.
+                  حدد تفاصيل المهمة والقائد المسؤول.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit(handleAddTaskSubmit)} className="grid gap-4 py-4">
                 <TaskForm control={control} register={register} errors={errors} />
                 <DialogFooter>
-                  <Button type="submit" className="w-full bg-primary font-black">طھط«ط¨ظٹطھ ط§ظ„ظ…ظ‡ظ…ط©</Button>
+                  <Button type="submit" className="w-full bg-primary font-black">تثبيت المهمة</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
@@ -356,22 +356,22 @@ export default function TasksPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-primary/50 transition-all cursor-default"}>
               <Flame className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
-              <p className="text-xs text-gray-500 font-bold uppercase">ط§ظ„ظ…ظ‡ط§ظ… ط§ظ„ظ†ط´ط·ط©</p>
+              <p className="text-xs text-gray-500 font-bold uppercase">المهام النشطة</p>
               <p className="text-3xl font-black">{tasks.filter(t => t.status !== 'COMPLETED').length}</p>
            </div>
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-emerald-500/50 transition-all cursor-default"}>
               <Zap className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform" />
-              <p className="text-xs text-gray-500 font-bold uppercase">ط§ظ„ظ…ظ‡ط§ظ… ط§ظ„ظ…ظ†ط¬ط²ط©</p>
+              <p className="text-xs text-gray-500 font-bold uppercase">المهام المنجزة</p>
               <p className="text-3xl font-black">{tasks.filter(t => t.status === 'COMPLETED').length}</p>
            </div>
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-red-500/50 transition-all cursor-default"}>
               <AlertCircle className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
-              <p className="text-xs text-gray-500 font-bold uppercase">ظ…ظ‡ط§ظ… ظ…طھط£ط®ط±ط©</p>
+              <p className="text-xs text-gray-500 font-bold uppercase">مهام متأخرة</p>
               <p className="text-3xl font-black text-red-500">{tasks.filter(t => isOverdue(t.dueAt) && t.status !== 'COMPLETED').length}</p>
            </div>
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-amber-500/50 transition-all cursor-default"}>
               <Sparkles className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform" />
-              <p className="text-xs text-gray-500 font-bold uppercase">XP ط§ظ„ظ…ظƒطھط³ط¨</p>
+              <p className="text-xs text-gray-500 font-bold uppercase">XP المكتسب</p>
               <p className="text-3xl font-black text-amber-400">+{tasks.filter(t => t.status === 'COMPLETED').length * 100}</p>
            </div>
         </div>
@@ -383,10 +383,10 @@ export default function TasksPage() {
           <div className="flex flex-col lg:flex-row items-center justify-between gap-6 mb-10 p-4 rounded-3xl bg-white/[0.02] border border-white/5 backdrop-blur-3xl">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full lg:w-auto">
               <TabsList className="bg-white/5 border border-white/5 p-1 h-12 rounded-xl gap-1">
-                <TabsTrigger value="all" className="rounded-lg font-bold data-[state=active]:bg-primary">ط§ظ„ظƒظ„</TabsTrigger>
-                <TabsTrigger value="pending" className="rounded-lg font-bold data-[state=active]:bg-primary">ط§ظ„ظ…ط¹ظ„ظ‚ط©</TabsTrigger>
-                <TabsTrigger value="inProgress" className="rounded-lg font-bold data-[state=active]:bg-primary">ط§ظ„ط¬ط§ط±ظٹ طھظ†ظپظٹط°ظ‡ط§</TabsTrigger>
-                <TabsTrigger value="completed" className="rounded-lg font-bold data-[state=active]:bg-primary">ط§ظ„ظ…ظ†طھظ‡ظٹط©</TabsTrigger>
+                <TabsTrigger value="all" className="rounded-lg font-bold data-[state=active]:bg-primary">الكل</TabsTrigger>
+                <TabsTrigger value="pending" className="rounded-lg font-bold data-[state=active]:bg-primary">المعلقة</TabsTrigger>
+                <TabsTrigger value="inProgress" className="rounded-lg font-bold data-[state=active]:bg-primary">الجاري تنفيذها</TabsTrigger>
+                <TabsTrigger value="completed" className="rounded-lg font-bold data-[state=active]:bg-primary">المنتهية</TabsTrigger>
               </TabsList>
             </Tabs>
 
@@ -394,7 +394,7 @@ export default function TasksPage() {
                <div className="relative group flex-1 min-w-[200px]">
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
                   <Input 
-                    placeholder="ط¨ط­ط« ظپظٹ ط£ط±ط´ظٹظپ ط§ظ„ظ…ظ‡ط§ظ…..." 
+                    placeholder="بحث في أرشيف المهام..." 
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="h-12 pr-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary focus:border-primary shadow-inner"
@@ -403,11 +403,11 @@ export default function TasksPage() {
                
                <Select value={sortBy} onValueChange={(value: 'dueAt' | 'priority') => setSortBy(value)}>
                   <SelectTrigger className="w-[180px] h-12 bg-white/5 border-white/10 rounded-xl font-bold">
-                      <SelectValue placeholder="ظپط±ط² ط§ظ„ظ…ط­ط§ط±ط¨ظٹظ†" />
+                      <SelectValue placeholder="فرز المحاربين" />
                   </SelectTrigger>
                   <SelectContent className="bg-background border-white/10 text-gray-100">
-                      <SelectItem value="priority">ط­ط³ط¨ ط§ظ„ط£ظ‡ظ…ظٹط©</SelectItem>
-                      <SelectItem value="dueAt">ط­ط³ط¨ ط§ظ„ظˆظ‚طھ</SelectItem>
+                      <SelectItem value="priority">حسب الأهمية</SelectItem>
+                      <SelectItem value="dueAt">حسب الوقت</SelectItem>
                   </SelectContent>
                </Select>
             </div>
@@ -447,8 +447,8 @@ export default function TasksPage() {
                             <Sword className="w-10 h-10 text-gray-600" />
                          </div>
                          <div className="space-y-1">
-                            <p className="text-xl font-black">ظ„ط§ طھظˆط¬ط¯ ظ…ظ‡ظ…ط§طھ ظ…ط³ط¬ظ„ط©</p>
-                            <p className="text-gray-500">ظ…ظ†ط·ظ‚طھظƒ ط¢ظ…ظ†ط© طھظ…ط§ظ…ط§ظ‹طŒ ط§ظ„ظ‚ط§ط¦ط¯ ظ…ط±طھط§ط­.</p>
+                            <p className="text-xl font-black">لا توجد مهام مسجلة</p>
+                            <p className="text-gray-500">منطقتك آمنة تماماً، القائد مرتاح.</p>
                          </div>
                       </div>
                     )}
@@ -462,15 +462,15 @@ export default function TasksPage() {
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
             <DialogContent className="sm:max-w-[425px] bg-background border-white/10 text-gray-100">
               <DialogHeader>
-                <DialogTitle className="text-2xl font-black">طھط¹ط¯ظٹظ„ ط§ظ„ط£ظˆط§ظ…ط±</DialogTitle>
+                <DialogTitle className="text-2xl font-black">تعديل الأوامر</DialogTitle>
                 <DialogDescription className="text-gray-400">
-                  ظ‚ظ… ط¨طھط¹ط¯ظٹظ„ طھظپط§طµظٹظ„ ط§ظ„ظ…ظ‡ظ…ط© ط§ظ„ط­ط§ظ„ظٹط©.
+                  قم بتعديل تفاصيل المهمة الحالية.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit(handleEditTaskSubmit)} className="grid gap-4 py-4">
                  <TaskForm control={control} register={register} errors={errors} />
                  <DialogFooter>
-                   <Button type="submit" className="w-full bg-primary font-black">طھط­ط¯ظٹط« ط§ظ„ظ…ظ‡ظ…ط©</Button>
+                   <Button type="submit" className="w-full bg-primary font-black">تحديث المهمة</Button>
                  </DialogFooter>
               </form>
             </DialogContent>
