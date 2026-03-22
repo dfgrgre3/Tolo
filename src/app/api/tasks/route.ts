@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
 import { TaskStatus, SUBJECT_ID_MAP } from '@/lib/constants';
 import { successResponse, badRequestResponse, withAuth, handleApiError } from '@/lib/api-utils';

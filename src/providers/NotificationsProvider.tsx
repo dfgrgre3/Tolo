@@ -1,9 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { type Notification, type NotificationType } from '@/types/notification';
 import { logger } from '@/lib/logger';
 import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
+import { toast } from 'sonner';
 
 interface NotificationsContextType {
   notifications: Notification[];
@@ -38,6 +39,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   const [hasMore, setHasMore] = useState(true);
   const [offset, setOffset] = useState(0);
   const [soundEnabled, setSoundEnabled] = useState(true);
+  const lastNotifiedId = useRef<string | null>(null);
+  const isFirstFetch = useRef(true);
   const limit = 20;
 
   const fetchNotifications = useCallback(async (reset = false) => {
@@ -73,6 +76,19 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       if (reset) {
         setNotifications(nextNotifications);
         setOffset(limit);
+        
+        // Show toast for new notifications if not the first fetch
+        if (!isFirstFetch.current && nextNotifications.length > 0) {
+          const newest = nextNotifications[0];
+          if (!newest.isRead && newest.id !== lastNotifiedId.current) {
+            toast(newest.title, {
+              description: newest.message,
+              icon: newest.icon || '🔔',
+            });
+            lastNotifiedId.current = newest.id;
+          }
+        }
+        isFirstFetch.current = false;
       } else {
         setNotifications(prev => [...prev, ...nextNotifications]);
         setOffset(currentOffset + nextNotifications.length);

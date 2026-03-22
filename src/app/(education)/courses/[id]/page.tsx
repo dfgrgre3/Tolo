@@ -6,7 +6,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
-import CourseVideoPlayer from "@/components/video/CourseVideoPlayer";
+import { CourseVideoPlayer } from "@/components/video/CourseVideoPlayer";
 import {
   BookOpen,
   Clock,
@@ -93,6 +93,8 @@ export default function CourseDetailPage() {
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
 
   useEffect(() => {
     ensureUser().then(setUserId);
@@ -159,9 +161,20 @@ export default function CourseDetailPage() {
       }
     };
 
+    const fetchExtras = async () => {
+      try {
+        const [reviewsRes, leaderboardRes] = await Promise.all([
+          fetch(`/api/courses/${courseId}/reviews`),
+          fetch(`/api/courses/${courseId}/leaderboard`)
+        ]);
+        if (reviewsRes.ok) setReviews((await reviewsRes.json()).data || []);
+        if (leaderboardRes.ok) setLeaderboard((await leaderboardRes.json()).data || []);
+      } catch (err) { logger.error(String(err)); }
+    };
+
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchCourse(), fetchLessons()]);
+      await Promise.all([fetchCourse(), fetchLessons(), fetchExtras()]);
       setLoading(false);
     };
     loadData();
@@ -299,7 +312,7 @@ export default function CourseDetailPage() {
                          <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">
                             <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
                             <span>{stat.label}</span>
-                         </div>
+                          </div>
                          <p className="text-2xl font-black text-white">{stat.val}</p>
                       </div>
                     ))}
@@ -312,13 +325,20 @@ export default function CourseDetailPage() {
                             <span className="text-gray-400">تقدمك العسكري</span>
                             <span className="text-primary">{course.progress}%</span>
                          </div>
-                         <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                         <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-6">
                             <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${course.progress}%` }}
-                              className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]"
+                               initial={{ width: 0 }}
+                               animate={{ width: `${course.progress}%` }}
+                               className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]"
                             />
                          </div>
+                         <Button 
+                           onClick={() => router.push(`/learning/${courseId}`)}
+                           className="w-full h-14 bg-primary text-black font-black rounded-xl hover:scale-[1.03] transition-all gap-3"
+                         >
+                            <Play className="w-5 h-5 fill-current" />
+                            استكمال المغامرة التعليمية
+                         </Button>
                       </div>
                     ) : (
                       <Button 
@@ -392,12 +412,12 @@ export default function CourseDetailPage() {
                       <div className={STYLES.glass + " p-0 group"}>
                          {activeLessonData.videoUrl && course.enrolled ? (
                            <CourseVideoPlayer
-                              courseId={course.id}
-                              lessonId={activeLessonData.id}
-                              lessonTitle={activeLessonData.title}
-                              videoUrl={activeLessonData.videoUrl}
-                              alreadyCompleted={activeLessonData.completed}
-                              onLessonAutoComplete={() => void handleLessonComplete(activeLessonData.id)}
+                               courseId={course.id}
+                               lessonId={activeLessonData.id}
+                               lessonTitle={activeLessonData.title}
+                               videoUrl={activeLessonData.videoUrl}
+                               alreadyCompleted={activeLessonData.completed}
+                               onLessonAutoComplete={() => void handleLessonComplete(activeLessonData.id)}
                            />
                          ) : (
                            <div className="aspect-video bg-black flex flex-col items-center justify-center p-12 text-center group">
@@ -448,8 +468,8 @@ export default function CourseDetailPage() {
                            variant="ghost"
                            className="h-14 px-8 rounded-2xl border border-white/5 flex gap-3 text-gray-400 hover:text-white font-black uppercase tracking-widest text-[10px]"
                            onClick={() => {
-                              const idx = lessons.findIndex(l => l.id === activeLesson);
-                              if (idx > 0) setActiveLesson(lessons[idx-1].id);
+                               const idx = lessons.findIndex(l => l.id === activeLesson);
+                               if (idx > 0) setActiveLesson(lessons[idx-1].id);
                            }}
                          >
                             <ChevronRight className="w-4 h-4" />
@@ -459,8 +479,8 @@ export default function CourseDetailPage() {
                          <Button 
                            className="h-14 px-10 rounded-2xl bg-white/5 border border-white/10 flex gap-3 text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10"
                            onClick={() => {
-                              const idx = lessons.findIndex(l => l.id === activeLesson);
-                              if (idx < lessons.length - 1) setActiveLesson(lessons[idx+1].id);
+                               const idx = lessons.findIndex(l => l.id === activeLesson);
+                               if (idx < lessons.length - 1) setActiveLesson(lessons[idx+1].id);
                            }}
                          >
                             <span>المهمة التالية</span>

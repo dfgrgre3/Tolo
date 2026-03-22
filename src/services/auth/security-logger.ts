@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import { logger } from '@/lib/logger';
 
 /**
@@ -26,6 +26,8 @@ export enum SecurityEventType {
     ACCOUNT_LOCKED = 'ACCOUNT_LOCKED',
     MAGIC_LINK_REQUESTED = 'MAGIC_LINK_REQUESTED',
     DEVICE_TRUST_CHANGE = 'DEVICE_TRUST_CHANGE',
+    PHONE_VERIFICATION_REQUESTED = 'PHONE_VERIFICATION_REQUESTED',
+    PHONE_VERIFIED = 'PHONE_VERIFIED',
 }
 
 interface SecurityLogInput {

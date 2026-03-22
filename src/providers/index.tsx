@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { HydrationFix } from '@/components/utils/HydrationFix';
 import GlobalSettingsApplier from '@/components/layout/GlobalSettingsApplier';
+import { Toaster } from 'sonner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,7 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
                     <NotificationsProvider>
                       <TooltipProvider>
                         {children}
+                        <Toaster richColors closeButton position="top-center" />
                       </TooltipProvider>
                     </NotificationsProvider>
                   </WebSocketProvider>

@@ -26,6 +26,7 @@ export interface AuthUser {
     role: string;
     emailVerified: boolean | null;
     phone?: string | null;
+    phoneVerified: boolean | null;
     alternativePhone?: string | null;
     birthDate?: string | null; // alias for dateOfBirth
     dateOfBirth?: string | null;
@@ -273,6 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     avatar: data.user.avatar ?? null,
                     role: data.user.role ?? 'USER',
                     emailVerified: data.user.emailVerified ?? null,
+                    phoneVerified: data.user.phoneVerified ?? null,
                     permissions: data.user.permissions ?? [],
                 });
             }
@@ -332,6 +334,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                     avatar: data.user.avatar ?? null,
                     role: data.user.role ?? 'USER',
                     emailVerified: data.user.emailVerified ?? null,
+                    phoneVerified: data.user.phoneVerified ?? null,
                     permissions: data.user.permissions ?? [],
                 });
             }
@@ -397,6 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                         avatar: data.user.avatar ?? null,
                         role: data.user.role ?? 'USER',
                         emailVerified: data.user.emailVerified ?? null,
+                        phoneVerified: data.user.phoneVerified ?? null,
                         permissions: data.user.permissions ?? [],
                     });
                 }

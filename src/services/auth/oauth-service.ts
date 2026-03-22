@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
 import { logger } from '@/lib/logger';
@@ -70,7 +70,7 @@ export class OAuthService {
             if (!tokens.access_token) return null;
 
             const userResponse = await fetch(`https://www.googleapis.com/oauth2/v1/userinfo?alt=json&access_token=${tokens.access_token}`, {
-                headers: { Authorization: `Bearer ${tokens.id_token}` },
+                headers: { Authorization: `Bearer ${tokens.access_token}` },
             });
 
             const user = await userResponse.json();
@@ -164,7 +164,7 @@ export class OAuthService {
                         [provider === 'google' ? 'googleId' : 'githubId']: socialUser.id,
                         emailVerified: true,
                         passwordHash: 'OAUTH_USER_' + Math.random().toString(36), // Dummy password
-                        role: 'USER',
+                        role: 'STUDENT',
                     }
                 });
             } else {

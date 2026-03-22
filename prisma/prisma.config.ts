@@ -10,7 +10,7 @@ const prismaConfig = {
   datasource: {
     // Use DIRECT_DATABASE_URL for migrations (bypasses connection pooling)
     // This is equivalent to the old directUrl in schema.prisma
-    url: process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL || 'file:./dev.db',
+    url: process.env.DIRECT_DATABASE_URL || process.env.DATABASE_URL || '',
   },
 }
 

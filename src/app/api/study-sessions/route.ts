@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async (authUser) => {
       try {
-        const body = await request.json();
+        const body = await req.json();
 
         const now = new Date();
         const startTime = body.startTime ? new Date(body.startTime) : new Date(now.getTime() - (body.durationMin ?? 0) * 60000);
@@ -107,62 +107,69 @@ export async function POST(request: NextRequest) {
           });
 
           // Send achievement notifications if any were unlocked
-          // Check for newly unlocked achievements by comparing current achievements with previous user state
           if (updatedProgress.achievements && Array.isArray(updatedProgress.achievements)) {
             try {
-              // Get user's previous achievements from database to compare
               const user = await prisma.user.findUnique({
                 where: { id: authUser.userId },
                 select: { achievements: { select: { achievementKey: true } } }
               });
 
-              const previousAchievementKeys = new Set(
-                user?.achievements?.map(ua => ua.achievementKey) || []
-              );
+              if (user) {
+                const previousAchievementKeys = new Set(
+                  (user.achievements || []).map((ua: { achievementKey: string }) => ua.achievementKey)
+                );
 
-              const newAchievementKeys = updatedProgress.achievements.filter(
-                (achievementKey: string) => !previousAchievementKeys.has(achievementKey)
-              );
+                const newAchievementKeys = updatedProgress.achievements.filter(
+                  (achievementKey: string) => !previousAchievementKeys.has(achievementKey)
+                );
 
-              for (const achievementKey of newAchievementKeys) {
-                const achievement = await prisma.achievement.findUnique({
-                  where: { key: achievementKey }
-                });
+                for (const achievementKey of newAchievementKeys) {
+                  const achievement = await prisma.achievement.findUnique({
+                    where: { key: achievementKey }
+                  });
 
-                if (achievement) {
-                  await firestoreService.sendAchievementNotification(
-                    authUser.userId,
-                    {
-                      key: achievement.key,
-                      title: achievement.title,
-                      description: achievement.description,
-                      icon: achievement.icon,
-                      xpReward: achievement.xpReward
-                    }
-                  );
+                  if (achievement) {
+                    await firestoreService.sendAchievementNotification(
+                      authUser.userId,
+                      {
+                        key: achievement.key,
+                        title: achievement.title,
+                        description: achievement.description,
+                        icon: achievement.icon,
+                        xpReward: achievement.xpReward
+                      }
+                    );
+                  }
                 }
               }
             } catch (notificationError) {
               logger.error('Error sending achievement notifications:', notificationError);
-              // Don't fail the request if notification sending fails
             }
           }
         } catch (gamificationError) {
           logger.error('Error updating gamification:', gamificationError);
-          // Don't fail the request if gamification fails
         }
 
-        // Invalidate user's study sessions cache
+        // Send study session finished notification
+        try {
+          const { sendMultiChannelNotification } = await import('@/services/notification-sender');
+          await sendMultiChannelNotification({
+            userId: authUser.userId,
+            title: 'انتهت جلسة المذاكرة',
+            message: `لقد أتممت ${body.durationMin || 0} دقيقة من المذاكرة المركزة. تابع التقدم!`,
+            type: 'success',
+            icon: '⌛',
+            channels: ['app']
+          });
+        } catch (notificationError) {
+          logger.error('Failed to send study session notification:', notificationError);
+        }
+
+        // Invalidate caches
         await LegacyCacheService.invalidatePattern(`study_sessions_${authUser.userId}*`);
-
-        // Invalidate user's analytics cache
         const weekStart = startOfWeek(new Date(), { weekStartsOn: 6 });
-        const analyticsCacheKey = `analytics:weekly:${authUser.userId}:${weekStart.toISOString()}`;
-        await CacheService.del(analyticsCacheKey);
-
-        // Invalidate user's progress cache
-        const progressCacheKey = `progress:${authUser.userId}`;
-        await CacheService.del(progressCacheKey);
+        await CacheService.del(`analytics:weekly:${authUser.userId}:${weekStart.toISOString()}`);
+        await CacheService.del(`progress:${authUser.userId}`);
 
         return successResponse(session);
       } catch (error) {

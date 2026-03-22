@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { startOfWeek, endOfWeek, eachDayOfInterval, subDays, startOfDay } from "date-fns";
 import { CacheService } from "@/lib/redis";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";

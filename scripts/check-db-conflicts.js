@@ -61,8 +61,8 @@ try {
       const content = fs.readFileSync(filePath, 'utf-8');
       const fileName = path.basename(filePath);
       
-      // Skip db-unified.ts (which is allowed to create PrismaClient)
-      if (fileName === 'db-unified.ts') {
+      // Skip db.ts (which is now the allowed place to create PrismaClient)
+      if (fileName === 'db.ts' && filePath.includes(path.join('src', 'lib'))) {
         return;
       }
       
@@ -87,7 +87,7 @@ try {
     });
     
     if (problematicFiles.length > 0) {
-      console.log('❌ Found direct PrismaClient instantiation outside db-unified.ts:');
+      console.log('❌ Found direct PrismaClient instantiation outside src/lib/db.ts:');
       problematicFiles.forEach(({ file, line }) => {
         console.log(`   ${file}:${line}`);
       });
@@ -115,8 +115,8 @@ try {
       const relativePath = path.relative(process.cwd(), filePath);
       
       // Allowed files
-      if (fileName === 'db-unified.ts') {
-        return; // db-unified.ts is allowed to import PrismaClient
+      if (fileName === 'db.ts' && filePath.includes(path.join('src', 'lib'))) {
+        return; // src/lib/db.ts is now allowed to import PrismaClient
       }
       
       if (fileName === 'auth-service.ts') {
@@ -132,18 +132,18 @@ try {
       
       if (matches && matches.length > 0) {
         // Check if it's a type-only import
-        const isTypeOnly = matches.some(match => match.includes('import type'));
+        const isTypeOnly = matches.every(match => match.includes('import type'));
         if (!isTypeOnly) {
           problematicFiles.push({
             file: relativePath,
-            matches: matches
+            matches: matches.filter(match => !match.includes('import type'))
           });
         }
       }
     });
     
     if (problematicFiles.length > 0) {
-      console.log('❌ Found direct PrismaClient imports (should use @/lib/prisma or @/lib/db instead):');
+      console.log('❌ Found direct PrismaClient imports (should use @/lib/db instead):');
       problematicFiles.forEach(({ file, matches }) => {
         console.log(`   ${file}`);
         matches.forEach(match => console.log(`      ${match.trim()}`));
@@ -166,7 +166,6 @@ try {
     const backupExtensions = ['.bak', '.old', '.backup'];
     const tsFiles = findTsFiles(srcDir);
     const backupFiles = tsFiles.filter(filePath => {
-      path.extname(filePath);
       return backupExtensions.some(backupExt => filePath.includes(backupExt));
     });
     
@@ -185,62 +184,34 @@ try {
   hasWarnings = true;
 }
 
-// 4. Verify that db.ts and prisma.ts only re-export
-console.log('\n4️⃣ Verifying that db.ts and prisma.ts only re-export...');
+// 4. Verify that db.ts handles the database connection
+console.log('\n4️⃣ Verifying that db.ts correctly handles the database connection...');
 const dbPath = path.join(process.cwd(), 'src/lib/db.ts');
-const prismaPath = path.join(process.cwd(), 'src/lib/prisma.ts');
 
-[dbPath, prismaPath].forEach(filePath => {
-  if (fs.existsSync(filePath)) {
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const fileName = path.basename(filePath);
-    
-    // Remove comments and check for "new PrismaClient" in actual code
-    const codeWithoutComments = removeComments(content);
-    
-    // Check if file contains "new PrismaClient" in actual code (not comments)
-    const hasNewPrismaClient = /new\s+PrismaClient\s*\(/.test(codeWithoutComments);
-    
-    if (hasNewPrismaClient) {
-      // Double-check it's not in a string
-      const regex = /new\s+PrismaClient\s*\(/g;
-      let foundInCode = false;
-      let match;
-      while ((match = regex.exec(codeWithoutComments)) !== null) {
-        const beforeMatch = codeWithoutComments.substring(0, match.index);
-        const stringMatches = (beforeMatch.match(/['"`]/g) || []).length;
-        if (stringMatches % 2 === 0) {
-          foundInCode = true;
-          break;
-        }
-      }
-      
-      if (foundInCode) {
-        console.log(`❌ ${fileName} contains "new PrismaClient" in code - should only re-export!`);
-        hasErrors = true;
-      } else {
-        // It's in a string or comment, which is OK
-        if (codeWithoutComments.includes("from './db-unified'") || codeWithoutComments.includes('from "./db-unified"')) {
-          console.log(`✅ ${fileName} correctly re-exports from db-unified.ts`);
-        } else {
-          console.log(`⚠️  ${fileName} might not be re-exporting from db-unified.ts`);
-          hasWarnings = true;
-        }
-      }
-    } else {
-      // Check if it re-exports from db-unified
-      if (content.includes("from './db-unified'") || content.includes('from "./db-unified"')) {
-        console.log(`✅ ${fileName} correctly re-exports from db-unified.ts`);
-      } else {
-        console.log(`⚠️  ${fileName} might not be re-exporting from db-unified.ts`);
-        hasWarnings = true;
-      }
-    }
+if (fs.existsSync(dbPath)) {
+  const content = fs.readFileSync(dbPath, 'utf-8');
+  
+  // Remove comments and check for "new PrismaClient" in actual code
+  const codeWithoutComments = removeComments(content);
+  
+  // Check if file contains "new PrismaClient" in actual code (not comments)
+  const hasNewPrismaClient = /new\s+PrismaClient\s*\(/.test(codeWithoutComments);
+  const exportsPrisma = content.includes('export const prisma') || content.includes('export default prisma');
+  
+  if (hasNewPrismaClient && exportsPrisma) {
+    console.log('✅ src/lib/db.ts is correctly configured as the database entry point.');
+  } else if (!hasNewPrismaClient) {
+    console.log('❌ src/lib/db.ts missing instantiation "new PrismaClient()"');
+    hasErrors = true;
   } else {
-    console.log(`⚠️  ${path.basename(filePath)} not found`);
+    console.log('⚠️  src/lib/db.ts might not be exporting the prisma client correctly');
     hasWarnings = true;
   }
-});
+} else {
+  console.log('❌ src/lib/db.ts not found! This is now required as the unified entry point.');
+  hasErrors = true;
+}
+
 
 // Summary
 console.log('\n' + '='.repeat(50));

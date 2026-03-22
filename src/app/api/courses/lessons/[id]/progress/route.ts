@@ -46,42 +46,60 @@ export async function POST(
           }
         });
 
-        // If marking as completed, update enrollment progress
+        // If marking as completed, update enrollment progress and award XP
         if (completed) {
-          // Get all lessons for this subject
-          const subjectData = await prisma.subject.findFirst({
-            where: { name: subject }
+          // Award XP (10 XP per lesson)
+          await prisma.user.update({
+            where: { id: userId },
+            data: { totalXP: { increment: 10 } }
           });
 
-          if (subjectData) {
-            const subjectTopics = await prisma.topic.findMany({
-              where: { subjectId: subjectData.id },
-              include: { subTopics: true }
+          // Get the subject (course) for this lesson
+          const subTopic = await prisma.subTopic.findUnique({
+            where: { id },
+            include: { topic: { include: { subject: true } } }
+          });
+
+          if (subTopic?.topic?.subject) {
+            const subjectId = subTopic.topic.subject.id;
+
+            // Recalculate progress
+            const allSubTopics = await prisma.subTopic.findMany({
+              where: { topic: { subjectId } },
+              select: { id: true }
             });
-
-            const allSubTopics = subjectTopics.flatMap((topic) => topic.subTopics);
-            const subTopicIds = allSubTopics.map((st) => st.id);
-
-            // Get user progress for all subtopics in this subject
+            
+            const subTopicIds = allSubTopics.map(st => st.id);
             const userProgress = await prisma.topicProgress.findMany({
-              where: {
-                userId,
-                subTopicId: { in: subTopicIds }
-              }
+              where: { userId, subTopicId: { in: subTopicIds }, completed: true }
             });
 
-            const completedCount = userProgress.filter((p) => p.completed).length;
-            const totalCount = subTopicIds.length;
-            const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+            const progressPercentage = Math.round((userProgress.length / subTopicIds.length) * 100);
 
-            // Update subject enrollment with progress - skipped as field doesn't exist
-            // await prisma.subjectEnrollment.updateMany({ ... });
+            // Update Subject Enrollment progress
+            await prisma.subjectEnrollment.update({
+              where: { userId_subjectId: { userId, subjectId } },
+              data: { progress: progressPercentage }
+            });
+
+            // Generate Certificate if 100%
+            if (progressPercentage === 100) {
+               await prisma.subjectCertificate.upsert({
+                 where: { subjectId_userId: { subjectId, userId } },
+                 update: {},
+                 create: {
+                   subjectId,
+                   userId,
+                   certUrl: `/certificates/${userId}_${subjectId}.pdf` 
+                 }
+               });
+            }
           }
         }
 
         return successResponse(progressRecord);
       } catch (error) {
-        logger.error("Error updating lesson progress:", error);
+        logger.error("Error updating lesson progress:", error instanceof Error ? error.message : String(error));
         return handleApiError(error);
       }
     });

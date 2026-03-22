@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { DataTable } from "@/components/admin/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -84,6 +85,7 @@ interface ApiResponse<T> {
 }
 
 export default function AdminSubjectsPage() {
+  const router = useRouter();
   const [subjects, setSubjects] = React.useState<Subject[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
@@ -292,6 +294,10 @@ export default function AdminSubjectsPage() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => router.push(`/admin/subjects/${subject.id}/curriculum`)}>
+                <List className="ml-2 h-4 w-4" />
+                إدارة المنهج
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleOpenDialog(subject)}>
                 <Edit className="ml-2 h-4 w-4" />
                 تعديل
@@ -340,6 +346,10 @@ export default function AdminSubjectsPage() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => router.push(`/admin/subjects/${subject.id}/curriculum`)}>
+                <List className="ml-2 h-4 w-4" />
+                إدارة المنهج
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleOpenDialog(subject)}>
                 <Edit className="ml-2 h-4 w-4" />
                 تعديل
@@ -597,8 +607,8 @@ export default function AdminSubjectsPage() {
                       <FormLabel>نشط</FormLabel>
                       <FormControl>
                         <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
+                           checked={field.value}
+                           onCheckedChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />

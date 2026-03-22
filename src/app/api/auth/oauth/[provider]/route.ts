@@ -7,7 +7,7 @@ export async function GET(
 ) {
     const { provider } = await params;
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-    const redirectUri = `${baseUrl}/api/auth/oauth/callback/${provider}`;
+    const redirectUri = `${baseUrl}/api/auth/callback/${provider}`;
 
     let url = '';
 

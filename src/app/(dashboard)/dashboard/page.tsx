@@ -21,8 +21,11 @@ import {
   Star,
   Target,
   Flame,
-  LayoutDashboard
+  LayoutDashboard,
+  AlertCircle,
+  Smartphone
 } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -217,6 +220,46 @@ export default function DashboardPage() {
              </div>
           </div>
         </motion.div>
+        
+        {/* --- Verification Alerts --- */}
+        <AnimatePresence>
+          {mounted && (!user?.emailVerified || !user?.phoneVerified) && (
+            <motion.div
+              initial={{ height: 0, opacity: 0, y: -20 }}
+              animate={{ height: "auto", opacity: 1, y: 0 }}
+              className="space-y-4"
+            >
+              {!user?.emailVerified && (
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-xl backdrop-blur-xl group">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 group-hover:scale-110 transition-transform">
+                    <AlertCircle className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-right">
+                    <p className="font-black text-lg">تفعيل البريد الإلكتروني مطلوب!</p>
+                    <p className="text-sm text-amber-500/80">يرجى التحقق من بريدك الإلكتروني والضغط على رابط التفعيل لتأمين حسابك وضمان وصول الإشعارات الأساسية.</p>
+                  </div>
+                  <Button variant="outline" className="w-full sm:w-auto border-amber-500/30 hover:bg-amber-500/20 text-amber-500 font-black rounded-2xl h-12 px-8" asChild>
+                    <Link href="/settings/security">تفعيل بريدي الآن</Link>
+                  </Button>
+                </div>
+              )}
+              {!user?.phoneVerified && (
+                <div className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xl backdrop-blur-xl group">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 group-hover:scale-110 transition-transform">
+                    <Smartphone className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1 text-center sm:text-right">
+                    <p className="font-black text-lg">تفعيل رقم الهاتف!</p>
+                    <p className="text-sm text-indigo-400/80">تفعيل رقم الهاتف ضروري لاستلام رسائل المهام العاجلة (Quest Alerts) عبر WhatsApp/SMS ولزيادة أمان المحفظة الأكاديمية.</p>
+                  </div>
+                  <Button variant="outline" className="w-full sm:w-auto border-indigo-500/30 hover:bg-indigo-500/20 text-indigo-400 font-black rounded-2xl h-12 px-8" asChild>
+                    <Link href="/settings/security">تفعيل هاتفي الآن</Link>
+                  </Button>
+                </div>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           

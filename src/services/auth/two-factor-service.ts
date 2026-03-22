@@ -1,6 +1,6 @@
 import { OTP } from 'otplib';
 import QRCode from 'qrcode';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 
 /**
  * Service for handling Two-Factor Authentication (TOTP).

@@ -114,6 +114,14 @@ model User {
   userInteractions     UserInteraction[]
   userRewards          UserReward[]
   automationLogs       AutomationLog[]
+  lessonNotes          LessonNote[]
+  lessonQuestions      LessonQuestion[]
+  lessonAnswers        LessonAnswer[]
+  reviews              SubjectReview[]
+  certificates         SubjectCertificate[]
+  uploadedBooks        Book[]                @relation("BookUploader")
+  bookReviews          BookReview[]
+  bookProgresses       BookProgress[]
 
   @@index([role])
   @@index([totalXP(sort: Desc)])
@@ -126,6 +134,7 @@ model SubjectEnrollment {
   id                String   @id @default(cuid())
   userId            String
   subjectId         String
+  progress          Int      @default(0)
   targetWeeklyHours Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
@@ -231,23 +240,63 @@ model Resource {
 }
 
 model Book {
-  id          String   @id @default(cuid())
+  id          String         @id @default(cuid())
   title       String
   author      String
   description String
   subjectId   String
   coverUrl    String?
   downloadUrl String
-  rating      Float    @default(0)
-  views       Int      @default(0)
-  downloads   Int      @default(0)
-  price       Float?   @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  tags        String[] @default([])
-  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  rating      Float          @default(0)
+  views       Int            @default(0)
+  downloads   Int            @default(0)
+  price       Float?         @default(0)
+  uploaderId  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  tags        String[]       @default([])
+  subject     Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  uploader    User?          @relation("BookUploader", fields: [uploaderId], references: [id])
+  reviews     BookReview[]
+  progresses  BookProgress[]
 
   @@index([subjectId])
+  @@index([uploaderId])
+}
+
+model BookReview {
+  id        String   @id @default(cuid())
+  bookId    String
+  userId    String
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([bookId, userId])
+  @@index([bookId])
+  @@index([userId])
+}
+
+model BookProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  bookId      String
+  progress    Float    @default(0)
+  lastReadAt  DateTime @default(now())
+  isCompleted Boolean  @default(false)
+  currentPage Int      @default(0)
+  totalPages  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, bookId])
+  @@index([userId])
+  @@index([bookId])
 }
 
 model Exam {
@@ -712,13 +761,19 @@ model Subject {
   color              String?
   type               String?
   isActive           Boolean              @default(true)
-  price             Float?               @default(0)
-  instructorName    String?
-  rating            Float?               @default(0)
-  durationHours     Int?                 @default(0)
-  thumbnailUrl      String?
-  enrolledCount     Int?                 @default(0)
-  level             Difficulty           @default(MEDIUM)
+  isPublished        Boolean              @default(false)
+  price              Float?               @default(0)
+  instructorName     String?
+  instructorId       String?
+  rating             Float?               @default(0)
+  durationHours      Int?                 @default(0)
+  thumbnailUrl       String?
+  trailerUrl         String?
+  enrolledCount      Int?                 @default(0)
+  level              Difficulty           @default(MEDIUM)
+  learningObjectives String?              @db.Text
+  requirements       String?              @db.Text
+  categoryId         String?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
   aiContent          AiGeneratedContent[]
@@ -736,6 +791,14 @@ model Subject {
   teachers           Teacher[]
   topics             Topic[]
   userGrades         UserGrade[]
+  reviews            SubjectReview[]
+  certificates       SubjectCertificate[]
+
+  @@index([categoryId])
+  @@index([isActive, createdAt(sort: Desc)])
+  @@index([instructorName])
+  @@index([enrolledCount(sort: Desc)])
+  @@index([rating(sort: Desc)])
 }
 
 model Topic {
@@ -753,19 +816,69 @@ model Topic {
 }
 
 model SubTopic {
-  id          String          @id @default(cuid())
+  id          String             @id @default(cuid())
   topicId     String
   name        String
   description String?
-  content     String?
+  content     String?            @db.Text
   videoUrl    String?
-  order       Int             @default(0)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  topic       Topic           @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  duration    Int                @default(0) // in seconds
+  type        LessonType         @default(VIDEO)
+  order       Int                @default(0)
+  isFree      Boolean            @default(false)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  topic       Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
   progresses  TopicProgress[]
+  attachments LessonAttachment[]
+  notes       LessonNote[]
+  questions   LessonQuestion[]
 
   @@index([topicId])
+}
+
+model LessonAttachment {
+  id         String   @id @default(cuid())
+  subTopicId String
+  title      String
+  fileUrl    String
+  fileType   String?
+  fileSize   Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  subTopic   SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+
+  @@index([subTopicId])
+}
+
+model SubjectReview {
+  id        String   @id @default(cuid())
+  subjectId String
+  userId    String
+  rating    Int
+  comment   String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, userId])
+  @@index([subjectId])
+  @@index([userId])
+}
+
+model SubjectCertificate {
+  id        String   @id @default(cuid())
+  subjectId String
+  userId    String
+  issuedAt  DateTime @default(now())
+  certUrl   String?
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([subjectId, userId])
+  @@index([subjectId])
+  @@index([userId])
 }
 
 model TopicProgress {
@@ -1128,6 +1241,15 @@ enum TaskStatus {
 enum CategoryType {
   BLOG
   FORUM
+  COURSE
+}
+
+enum LessonType {
+  VIDEO
+  ARTICLE
+  QUIZ
+  FILE
+  ASSIGNMENT
 }
 
 enum AchievementCategory {
@@ -1177,5 +1299,50 @@ model AutomationLog {
   user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([ruleId])
+  @@index([userId])
+}
+
+model LessonNote {
+  id         String   @id @default(cuid())
+  userId     String
+  subTopicId String
+  content    String   @db.Text
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subTopic   SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subTopicId])
+  @@index([userId])
+  @@index([subTopicId])
+}
+
+model LessonQuestion {
+  id         String         @id @default(cuid())
+  userId     String
+  subTopicId String
+  content    String         @db.Text
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subTopic   SubTopic       @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+  answers    LessonAnswer[]
+
+  @@index([userId])
+  @@index([subTopicId])
+}
+
+model LessonAnswer {
+  id         String         @id @default(cuid())
+  questionId String
+  userId     String
+  content    String         @db.Text
+  isTeacher  Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  question   LessonQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
   @@index([userId])
 }

@@ -17,7 +17,12 @@ import {
  * 4. Security: Injects curated security headers (CSP, HSTS, etc.) on all responses.
  */
 
-const PROTECTED_PREFIXES = ['/dashboard', '/user', '/settings', '/api/protected'];
+const PROTECTED_PREFIXES = [
+  '/dashboard',
+  '/user',
+  '/settings',
+  '/api/',
+];
 const ADMIN_ROUTES = ['/admin', '/api/admin'];
 const TEACHER_ROUTES = ['/teacher'];
 const PUBLIC_AUTH_API_ROUTES = [
@@ -29,19 +34,37 @@ const PUBLIC_AUTH_API_ROUTES = [
   '/api/auth/resend-verification',
   '/api/auth/refresh',
   '/api/auth/logout',
+  '/api/auth/oauth',
+  '/api/auth/callback',
+  '/api/auth/csrf',
+  '/api/users/guest',
+  '/api/healthz',
+  '/api/readyz',
 ];
 
 export default async function proxy(request: NextRequest) {
-  return await middleware(request);
-}
-
-export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  
+  // 1. Traceability: Generate or propagate Request ID
+  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-request-id', requestId);
+
+  // Helper to add trace + security headers
+  const decorateResponse = (res: NextResponse) => {
+    res.headers.set('x-request-id', requestId);
+    addSecurityHeaders(res);
+    return res;
+  };
+
   const isPublicAuthRoute = isAuthPublicRoute(pathname);
 
-  // Default response with security headers
-  const passthroughResponse = NextResponse.next();
-  addSecurityHeaders(passthroughResponse);
+  // Default response with headers
+  const passthroughResponse = decorateResponse(NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  }));
 
   // Skip logic for static assets and public auth endpoints
   const isPublicAuthApiRoute = PUBLIC_AUTH_API_ROUTES.includes(pathname);
@@ -63,15 +86,14 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get('access_token')?.value;
   const hasRefreshToken = Boolean(request.cookies.get('refresh_token')?.value);
-  const isPageRequest = !pathname.startsWith('/api/');
 
   if (!token) {
     if (isPublicAuthRoute) {
       return passthroughResponse;
     }
 
-    // Allow page requests to pass if refresh token exists, so client-side can attempt refresh
-    if (hasRefreshToken && requiresAuth && isPageRequest) {
+    // Allow requests to pass if refresh token exists, so handler can attempt silent refresh
+    if (hasRefreshToken && requiresAuth) {
       return passthroughResponse;
     }
 
@@ -115,13 +137,12 @@ export async function middleware(request: NextRequest) {
       requestHeaders.set('X-Session-ID', payload.sessionId);
     }
 
-    const authenticatedResponse = NextResponse.next({
+    const authenticatedResponse = decorateResponse(NextResponse.next({
       request: {
         headers: requestHeaders,
       },
-    });
+    }));
 
-    addSecurityHeaders(authenticatedResponse);
     return authenticatedResponse;
   }
 
@@ -131,8 +152,8 @@ export async function middleware(request: NextRequest) {
     return passthroughResponse;
   }
 
-  // Permit page navigation if refresh token exists (for client-side silent refresh)
-  if (hasRefreshToken && requiresAuth && isPageRequest) {
+  // Permit navigation if refresh token exists (for silent refresh fallback in handlers)
+  if (hasRefreshToken && requiresAuth) {
     return passthroughResponse;
   }
 

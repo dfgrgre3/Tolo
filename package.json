@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --turbo",
     "dev:no-turbo": "next dev --no-turbo",
     "clear-cache": "powershell -ExecutionPolicy Bypass -File ./scripts/clear-cache.ps1",
     "build": "powershell -ExecutionPolicy Bypass -File ./scripts/build-safe.ps1",

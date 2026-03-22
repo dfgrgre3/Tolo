@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { PasswordService } from "@/services/auth/password-service";
 
 // POST /api/admin/setup - Create admin user

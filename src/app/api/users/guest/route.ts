@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { successResponse, handleApiError } from '@/lib/api-utils';
 
 // Create a lightweight guest user and return its id for local usage

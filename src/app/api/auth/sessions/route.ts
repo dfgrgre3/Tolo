@@ -1,135 +1,102 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SessionService } from '@/services/auth/session-service';
+import { handleApiError, extractClientInfo } from '@/lib/api-utils';
 import { SecurityLogger, SecurityEventType } from '@/services/auth/security-logger';
-import { withAuth, extractClientInfo, handleApiError } from '@/lib/api-utils';
-import { prisma } from '@/lib/prisma';
 
 /**
  * GET /api/auth/sessions
- * 
  * Returns all active sessions for the current user.
- * Used in the session management UI to show connected devices.
  */
 export async function GET(req: NextRequest) {
-    return withAuth(req, async ({ userId }) => {
-        try {
-            const sessions = await SessionService.getActiveSessions(userId);
-
-            // Mark the current session
-            const currentSessionId = req.cookies.get('session_id')?.value;
-
-            const sessionsWithCurrent = sessions.map(session => ({
-                ...session,
-                isCurrent: session.id === currentSessionId,
-            }));
-
-            return NextResponse.json(
-                { sessions: sessionsWithCurrent },
-                { status: 200 }
-            );
-        } catch (error) {
-            return handleApiError(error);
+    try {
+        const userId = req.headers.get('x-user-id');
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
-    });
+
+        const sessions = await SessionService.getActiveSessions(userId);
+        
+        // Parse deviceInfo if it's stored as JSON string
+        const parsedSessions = sessions.map(session => ({
+            ...session,
+            deviceInfo: session.deviceInfo ? JSON.parse(session.deviceInfo) : null,
+            isCurrent: session.id === (req.cookies.get('session_id')?.value || '')
+        }));
+
+        return NextResponse.json({ sessions: parsedSessions }, { status: 200 });
+    } catch (error) {
+        return handleApiError(error);
+    }
 }
 
 /**
  * DELETE /api/auth/sessions
+ * Revokes a session or all sessions.
  * 
- * Revoke a specific session by ID.
- * Body: { sessionId: string }
- * 
- * Allows users to remotely log out other devices.
+ * Query params:
+ * - id: specific session ID to revoke
+ * - all: if true, revoke ALL sessions EXCEPT current one
  */
 export async function DELETE(req: NextRequest) {
-    return withAuth(req, async ({ userId }) => {
+    try {
+        const userId = req.headers.get('x-user-id');
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const { searchParams } = new URL(req.url);
+        let sessionIdToRevoke = searchParams.get('id');
+        let revokeAll = searchParams.get('all') === 'true';
+
+        // Support JSON body for session revocation (common in frontend frameworks)
         try {
             const body = await req.json();
-            const { sessionId } = body;
+            if (body.sessionId) sessionIdToRevoke = body.sessionId;
+            if (body.all !== undefined) revokeAll = body.all;
+        } catch (e) {
+            // Ignore if body is empty or invalid JSON
+        }
 
-            if (!sessionId) {
-                return NextResponse.json(
-                    { error: 'Session ID is required' },
-                    { status: 400 }
-                );
-            }
+        const currentSessionId = req.cookies.get('session_id')?.value;
+        const { ip, userAgent } = extractClientInfo(req);
 
-            const session = await prisma.session.findUnique({
-                where: { id: sessionId },
-                select: {
-                    id: true,
-                    userId: true,
-                },
-            });
-
-            if (!session) {
-                return NextResponse.json(
-                    { error: 'Session not found' },
-                    { status: 404 }
-                );
-            }
-
-            if (session.userId !== userId) {
-                return NextResponse.json(
-                    { error: 'Forbidden' },
-                    { status: 403 }
-                );
-            }
-
-            const { ip, userAgent } = extractClientInfo(req);
-
-            // Revoke the specified session
-            await SessionService.revokeSession(sessionId);
-
-            // Log the event
+        if (revokeAll) {
+            // Logout from all devices except current one
+            await SessionService.revokeAllSessions(userId, currentSessionId);
             await SecurityLogger.log({
                 userId,
-                eventType: SecurityEventType.SESSION_REVOKED,
+                eventType: SecurityEventType.LOGOUT_ALL_DEVICES,
                 ip,
                 userAgent,
-                metadata: { revokedSessionId: sessionId },
+                metadata: { currentSessionId }
             });
-
-            return NextResponse.json(
-                { message: 'Session revoked successfully' },
-                { status: 200 }
-            );
-        } catch (error) {
-            return handleApiError(error);
+            return NextResponse.json({ success: true, message: 'Logged out from all other devices' });
         }
-    });
-}
 
-/**
- * PATCH /api/auth/sessions
- * 
- * Toggle trust status of a session.
- */
-export async function PATCH(req: NextRequest) {
-    return withAuth(req, async ({ userId }) => {
-        try {
-            const { ip, userAgent } = extractClientInfo(req);
-            const body = await req.json();
-            const { sessionId, isTrusted } = body;
-
-            if (!sessionId) {
-                return NextResponse.json({ error: 'Session ID is required' }, { status: 400 });
-            }
-
-            if (typeof isTrusted !== 'boolean') {
-                return NextResponse.json({ error: 'isTrusted must be a boolean' }, { status: 400 });
-            }
-
-            const updated = await SessionService.toggleSessionTrust(sessionId, userId, isTrusted);
-            if (!updated) {
-                return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-            }
-
-            await SecurityLogger.logTrustChange(userId, ip, userAgent, sessionId, isTrusted);
-
-            return NextResponse.json({ success: true });
-        } catch (error) {
-            return handleApiError(error);
+        if (!sessionIdToRevoke) {
+            return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
         }
-    });
+
+        // Verify the session belongs to the user
+        const sessions = await SessionService.getActiveSessions(userId);
+        const sessionExists = sessions.find(s => s.id === sessionIdToRevoke);
+
+        if (!sessionExists) {
+            return NextResponse.json({ error: 'Session not found or already revoked' }, { status: 404 });
+        }
+
+        await SessionService.revokeSession(sessionIdToRevoke);
+        
+        await SecurityLogger.log({
+            userId,
+            eventType: SecurityEventType.SESSION_REVOKED,
+            ip,
+            userAgent,
+            metadata: { revokedSessionId: sessionIdToRevoke }
+        });
+
+        return NextResponse.json({ success: true, message: 'Session revoked successfully' });
+    } catch (error) {
+        return handleApiError(error);
+    }
 }

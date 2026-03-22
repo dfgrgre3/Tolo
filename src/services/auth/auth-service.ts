@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 import { PasswordService } from './password-service';
 import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
@@ -62,6 +62,7 @@ export interface AuthResult {
         role: string;
         avatar: string | null;
         emailVerified: boolean | null;
+        phoneVerified: boolean | null;
         twoFactorEnabled?: boolean;
     };
     accessToken?: string;
@@ -112,6 +113,7 @@ export class AuthService {
                     role: true,
                     avatar: true,
                     emailVerified: true,
+                    phoneVerified: true,
                     twoFactorEnabled: true,
                 },
             });
@@ -158,6 +160,7 @@ export class AuthService {
                         role: user.role,
                         avatar: user.avatar,
                         emailVerified: user.emailVerified,
+                        phoneVerified: user.phoneVerified,
                         twoFactorEnabled: user.twoFactorEnabled,
                     }
                 };
@@ -201,6 +204,7 @@ export class AuthService {
                     role: user.role,
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
+                    phoneVerified: user.phoneVerified,
                 },
                 accessToken,
                 refreshToken,
@@ -231,6 +235,7 @@ export class AuthService {
                     role: true,
                     avatar: true,
                     emailVerified: true,
+                    phoneVerified: true,
                     twoFactorSecret: true,
                 },
             });
@@ -272,6 +277,7 @@ export class AuthService {
                     role: user.role,
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
+                    phoneVerified: user.phoneVerified,
                 },
                 accessToken,
                 refreshToken,
@@ -371,6 +377,7 @@ export class AuthService {
                     role: user.role,
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
+                    phoneVerified: user.phoneVerified,
                 },
                 statusCode: 201,
             };
@@ -574,6 +581,7 @@ export class AuthService {
                 role: true,
                 emailVerified: true,
                 phone: true,
+                phoneVerified: true,
                 createdAt: true,
                 lastLogin: true,
                 totalXP: true,
@@ -773,6 +781,7 @@ export class AuthService {
                     role: true,
                     avatar: true,
                     emailVerified: true,
+                    phoneVerified: true,
                 }
             });
 
@@ -814,4 +823,116 @@ export class AuthService {
             return { success: false, error: 'حدث خطأ أثناء تسجيل الدخول', statusCode: 500 };
         }
     }
+
+    /**
+     * Send a 6-digit verification code to the user's phone.
+     */
+    static async sendPhoneVerification(userId: string, phone: string, ip: string, userAgent: string): Promise<{ success: boolean; error?: string; statusCode?: number }> {
+        try {
+            // 1. Generate 6-digit numeric OTP
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const otpHash = createHash('sha256').update(otp).digest('hex');
+            const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+            // 2. Update user with OTP info
+            await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    phone,
+                    phoneVerificationOTP: otpHash,
+                    phoneVerificationExpires: expires,
+                    phoneVerificationAttempts: 0,
+                    phoneVerificationLastSent: new Date(),
+                }
+            });
+
+            // 3. Send SMS via SMSService
+            const { smsService } = await import('@/services/sms-service');
+            const result = await smsService.sendVerificationCode(phone, otp);
+
+            if (!result.success) {
+                return { success: false, error: result.error || 'فشل إرسال الرسالة النصية', statusCode: 424 };
+            }
+
+            await SecurityLogger.log({
+                userId,
+                eventType: SecurityEventType.PHONE_VERIFICATION_REQUESTED,
+                ip,
+                userAgent,
+                metadata: { phone: phone.substring(0, 6) + '***' }
+            });
+
+            return { success: true };
+        } catch (error) {
+            logger.error('[AUTH_SEND_PHONE_VERIFY_ERROR]', { error });
+            return { success: false, error: 'Internal server error', statusCode: 500 };
+        }
+    }
+
+    /**
+     * Verify the 6-digit phone verification code.
+     */
+    static async verifyPhone(userId: string, code: string, ip: string, userAgent: string): Promise<{ success: boolean; error?: string; statusCode?: number }> {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: {
+                    phoneVerificationOTP: true,
+                    phoneVerificationExpires: true,
+                    phoneVerificationAttempts: true,
+                }
+            });
+
+            if (!user || !user.phoneVerificationOTP) {
+                return { success: false, error: 'لم يتم طلب رمز تحقق لهذا الرقم', statusCode: 400 };
+            }
+
+            // 1. Check attempts for brute force protection
+            if (user.phoneVerificationAttempts >= 5) {
+                return { success: false, error: 'تجاوزت الحد الأقصى للمحاولات. يرجى طلب رمز جديد.', statusCode: 429 };
+            }
+
+            // 2. Hash and compare
+            const codeHash = createHash('sha256').update(code).digest('hex');
+            const isValid = codeHash === user.phoneVerificationOTP;
+            const isExpired = user.phoneVerificationExpires ? user.phoneVerificationExpires < new Date() : true;
+
+            if (!isValid || isExpired) {
+                // Increment attempts
+                await prisma.user.update({
+                    where: { id: userId },
+                    data: { phoneVerificationAttempts: { increment: 1 } }
+                });
+
+                return {
+                    success: false,
+                    error: isExpired ? 'انتهت صلاحية الرمز' : 'كود التحقق غير صحيح',
+                    statusCode: 400
+                };
+            }
+
+            // 3. Success - Update phoneVerified
+            await prisma.user.update({
+                where: { id: userId },
+                data: {
+                    phoneVerified: true,
+                    phoneVerificationOTP: null,
+                    phoneVerificationExpires: null,
+                }
+            });
+
+            await SecurityLogger.log({
+                userId,
+                eventType: SecurityEventType.PHONE_VERIFIED,
+                ip,
+                userAgent
+            });
+
+            return { success: true };
+        } catch (error) {
+            logger.error('[AUTH_VERIFY_PHONE_ERROR]', { error });
+            return { success: false, error: 'Internal server error', statusCode: 500 };
+        }
+    }
 }
+

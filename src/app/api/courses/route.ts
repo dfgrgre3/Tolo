@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
 import { withAuth } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { CacheService, CachePrefixes } from "@/lib/cache";
 import {
   buildCategoriesFromCourses,
   getSubjectLessonCounts,
@@ -90,30 +91,34 @@ export async function GET(request: NextRequest) {
 
       const authenticatedUserId = req.headers.get("x-user-id")?.trim() || null;
 
-      const subjects = await prisma.subject.findMany({
-        where: {
-          isActive: true,
-        },
-        include: {
-          teachers: {
-            select: {
-              name: true,
-              rating: true,
+      // Use cache for basic subject list
+      const subjectsKey = `courses:public:list`;
+      const subjects = await CacheService.getOrSet(subjectsKey, async () => {
+        return prisma.subject.findMany({
+          where: {
+            isActive: true,
+          },
+          include: {
+            teachers: {
+              select: {
+                name: true,
+                rating: true,
+              },
+              orderBy: {
+                rating: "desc",
+              },
             },
-            orderBy: {
-              rating: "desc",
+            _count: {
+              select: {
+                enrollments: true,
+              },
             },
           },
-          _count: {
-            select: {
-              enrollments: true,
-            },
+          orderBy: {
+            createdAt: "desc",
           },
-        },
-        orderBy: {
-          createdAt: "desc",
-        },
-      });
+        });
+      }, 300) as any[];
 
       const subjectIds = subjects.map((subject) => subject.id);
       const lessonCounts = await getSubjectLessonCounts(subjectIds);
@@ -183,7 +188,7 @@ export async function GET(request: NextRequest) {
       logger.error("Failed to fetch courses", error);
       return NextResponse.json(
         {
-          error: "ÕœÀ Œÿ√ √À‰«¡ Ã·» «·œÊ—« .",
+          error: "An error occurred while fetching courses.",
         },
         { status: 500 }
       );
@@ -198,7 +203,7 @@ export async function POST(request: NextRequest) {
         if (userRole !== "ADMIN" && userRole !== "TEACHER") {
           return NextResponse.json(
             {
-              error: "·«  „·ﬂ ’·«ÕÌ… ≈‰‘«¡ œÊ—… ÃœÌœ….",
+              error: "You do not have permission to create a new course.",
             },
             { status: 403 }
           );
@@ -222,7 +227,7 @@ export async function POST(request: NextRequest) {
         if (!name) {
           return NextResponse.json(
             {
-              error: "«”„ «·œÊ—… „ÿ·Ê».",
+              error: "Course name is required.",
             },
             { status: 400 }
           );
@@ -230,10 +235,7 @@ export async function POST(request: NextRequest) {
 
         const duplicateSubject = await prisma.subject.findFirst({
           where: {
-            OR: [
-              { name },
-              ...(code ? [{ code }] : []),
-            ],
+            OR: [{ name }, ...(code ? [{ code }] : [])],
           },
           select: {
             id: true,
@@ -243,7 +245,7 @@ export async function POST(request: NextRequest) {
         if (duplicateSubject) {
           return NextResponse.json(
             {
-              error: " ÊÃœ œÊ—… »‰›” «·«”„ √Ê «·—„“ »«·›⁄·.",
+              error: "A course with the same name or code already exists.",
             },
             { status: 409 }
           );
@@ -294,7 +296,7 @@ export async function POST(request: NextRequest) {
         logger.error("Failed to create course", error);
         return NextResponse.json(
           {
-            error: "ÕœÀ Œÿ√ √À‰«¡ ≈‰‘«¡ «·œÊ—….",
+            error: "An error occurred while creating the course.",
           },
           { status: 500 }
         );

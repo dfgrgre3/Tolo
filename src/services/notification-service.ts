@@ -310,6 +310,39 @@ export const notificationTemplates = {
     actionUrl: '/resources',
     icon: '👍',
   }),
+
+  // إشعارات الكتب
+  welcome: (name: string) => ({
+    title: 'أهلاً بك في تولو!',
+    message: `مرحباً ${name}! يسعدنا انضمامك إلينا. ابدأ رحلتك التعليمية الآن.`,
+    type: 'success' as NotificationType,
+    actionUrl: '/dashboard',
+    icon: '👋',
+  }),
+
+  bookUploaded: (bookTitle: string) => ({
+    title: 'تم رفع الكتاب بنجاح',
+    message: `لقد تم رفع كتاب "${bookTitle}" إلى المكتبة الرقمية.`,
+    type: 'success' as NotificationType,
+    actionUrl: '/library',
+    icon: '📚',
+  }),
+
+  bookRated: (bookTitle: string, rating: number) => ({
+    title: 'تقييم جديد لكتابك',
+    message: `حصل كتابك "${bookTitle}" على تقييم ${rating} نجوم.`,
+    type: 'info' as NotificationType,
+    actionUrl: '/library',
+    icon: '⭐',
+  }),
+
+  studySessionFinished: (duration: number) => ({
+    title: 'انتهت جلسة المذاكرة',
+    message: `لقد أتممت ${duration} دقيقة من المذاكرة المركزة. تابع التقدم!`,
+    type: 'success' as NotificationType,
+    actionUrl: '/time',
+    icon: '⌛',
+  }),
 };
 
 // Whitelist of allowed template keys for security
@@ -331,6 +364,10 @@ const ALLOWED_TEMPLATE_KEYS: ReadonlySet<keyof typeof notificationTemplates> = n
   'securityAlert',
   'newContent',
   'contentRecommendation',
+  'welcome',
+  'bookUploaded',
+  'bookRated',
+  'studySessionFinished',
 ] as const);
 
 // دالة لإرسال إشعار باستخدام القوالب

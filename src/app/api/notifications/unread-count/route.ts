@@ -1,7 +1,7 @@
 
 import { NextRequest } from 'next/server';
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import {

@@ -10,6 +10,8 @@
  * - تسجيل أحداث المصادقة
  */
 
+import { getRequestContext } from './correlation';
+
 // Types
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogContext = Record<string, any>;
@@ -63,8 +65,17 @@ async function getWinstonLogger() {
           winston.format.errors({ stack: true }),
           winston.format.colorize(),
           winston.format.printf(({ timestamp, level, message, ...meta }: any) => {
-            const metaString = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
-            return `${timestamp} [${level}]: ${message}${metaString ? '\n' + metaString : ''}`;
+            const rid = meta.requestId || meta.context?.requestId || '';
+            const ridStr = rid ? ` [RID:${rid.substring(0, 8)}]` : '';
+            const metaToLink = { ...meta };
+            delete metaToLink.requestId;
+            if (metaToLink.context?.requestId) delete metaToLink.context.requestId;
+            
+            const metaString = Object.keys(metaToLink).length && JSON.stringify(metaToLink) !== "{}" 
+                ? `\n${JSON.stringify(metaToLink, null, 2)}` 
+                : '';
+            
+            return `${timestamp} ${level}${ridStr}: ${message}${metaString}`;
           })
         ),
         transports: [
@@ -159,11 +170,16 @@ class UnifiedLogger {
     error?: Error | unknown,
     context?: LogContext
   ): LogEntry {
+    const contextStore = getRequestContext();
+    
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
       message,
-      context,
+      context: {
+        ...context,
+        requestId: context?.requestId || contextStore?.requestId,
+      },
     };
 
     if (error !== undefined) {
@@ -444,6 +460,18 @@ class UnifiedLogger {
   }
 
   /**
+   * Audit log for security-critical actions
+   */
+  audit(action: string, actor: string, details: LogContext): void {
+    this.info(`AUDIT: ${action}`, {
+      type: 'audit',
+      action,
+      actor,
+      ...details,
+    });
+  }
+
+  /**
    * Database query log
    */
   db(query: {
@@ -454,11 +482,11 @@ class UnifiedLogger {
     error?: string;
   }): void {
     const level = query.success ? 'info' : 'error';
-    this.log(level, 'Database Query', query.error ? new Error(query.error) : undefined, {
+    this.log(level, `DB [${query.operation}] ${query.table || ''}`, query.error ? new Error(query.error) : undefined, {
       type: 'database',
       operation: query.operation,
       table: query.table,
-      duration: query.duration,
+      duration: `${query.duration}ms`,
       success: query.success,
     }).catch(() => {
       // Silently handle async errors

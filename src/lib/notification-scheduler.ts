@@ -232,8 +232,8 @@ export function scheduleNotificationChecks(): () => void {
   // تشغيل الفحوصص عند تحميل الصفحة
   runNotificationChecks();
 
-  // تشغيل الفحوصص كل 30 دقيقة
-  const interval = setInterval(runNotificationChecks, 30 * 60 * 1000);
+  // تشغيل الفحوصص كل دقيقتين بدلاً من 30 دقيقة لتجربة أفضل
+  const interval = setInterval(runNotificationChecks, 2 * 60 * 1000);
   
   // Return cleanup function
   return () => {

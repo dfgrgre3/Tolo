@@ -143,6 +143,21 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        // Send welcome notification
+        try {
+            const { sendMultiChannelNotification } = await import('@/services/notification-sender');
+            await sendMultiChannelNotification({
+                userId: result.user?.id as string,
+                title: 'أهلاً بك في تولو!',
+                message: `مرحباً ${username || email}! يسعدنا انضمامك إلينا.`,
+                type: 'success',
+                icon: '👋',
+                channels: ['app', 'email']
+            });
+        } catch (notificationError) {
+            console.error('Failed to send welcome notification:', notificationError);
+        }
+
         // Increment rate limiter
         await registerRateLimiter.incrementAttempts(`register:${clientId}`);
 

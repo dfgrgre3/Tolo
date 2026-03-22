@@ -114,6 +114,8 @@ const nextConfig = {
         'node:path': false,
         'node:util': false,
         'node:fs': false,
+        'async_hooks': false,
+        'node:async_hooks': false,
         '@elastic/elasticsearch': false,
         'winston': false,
         'winston-elasticsearch': false,

@@ -25,17 +25,18 @@ import {
   Loader2,
   Settings,
   ShieldCheck,
-  ShieldX
+  ShieldX,
+  Smartphone
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
-import { DeleteAccountDialog, TwoFactorSetupModal } from '../components';
+import { DeleteAccountDialog, TwoFactorSetupModal, PhoneVerificationModal } from '../components';
 import { useRouter } from 'next/navigation';
 
 export default function SecurityPage() {
-  const { logout, user } = useAuth();
+  const { logout, user, refreshUser } = useAuth();
   const router = useRouter();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -50,6 +51,9 @@ export default function SecurityPage() {
   const [isLoading2FA, setIsLoading2FA] = useState(true);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [isDisabling2FA, setIsDisabling2FA] = useState(false);
+  
+  // Phone Verification State
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   
   // Security Logs State
@@ -342,6 +346,51 @@ export default function SecurityPage() {
           </div>
         )}
       </section>
+      {/* Phone Verification */}
+      <section className="rounded-2xl bg-white/5 border border-white/10 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center",
+              user?.phoneVerified ? "bg-indigo-500/10" : "bg-yellow-500/10"
+            )}>
+              {user?.phoneVerified ? (
+                <Smartphone className="h-6 w-6 text-indigo-400" />
+              ) : (
+                <Smartphone className="h-6 w-6 text-yellow-400" />
+              )}
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">تحقق رقم الهاتف</h3>
+              <p className="text-sm text-slate-400">
+                {user?.phoneVerified ? `مفعل: ${user?.phone}` : 'لم يتم التحقق من رقم الهاتف بعد'}
+              </p>
+            </div>
+          </div>
+          {!user?.phoneVerified && (
+            <button 
+              onClick={() => setShowPhoneModal(true)}
+              className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white transition-colors text-sm font-medium"
+            >
+              تحقق الآن
+            </button>
+          )}
+          {user?.phoneVerified && (
+            <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
+              <CheckCircle2 className="h-4 w-4" />
+              تم التحقق
+            </div>
+          )}
+        </div>
+        {!user?.phoneVerified && (
+          <div className="mt-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
+            <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
+            <p className="text-xs text-yellow-500/80">
+              التحقق من رقم الهاتف يحمي حسابك ويسمح لنا بالتواصل معك بخصوص الدروس والمهام الهامة.
+            </p>
+          </div>
+        )}
+      </section>
 
       
       {/* Security Log Summary */}
@@ -410,6 +459,16 @@ export default function SecurityPage() {
         isOpen={show2FAModal}
         onClose={() => setShow2FAModal(false)}
         onSuccess={handle2FASuccess}
+      />
+      {/* Phone Verification Modal */}
+      <PhoneVerificationModal
+        isOpen={showPhoneModal}
+        onClose={() => setShowPhoneModal(false)}
+        onSuccess={() => {
+          setShowPhoneModal(false);
+          refreshUser();
+        }}
+        initialPhone={user?.phone || ''}
       />
     </div>
   );

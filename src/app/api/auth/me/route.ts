@@ -4,7 +4,7 @@ import { handleApiError } from '@/lib/api-utils';
 import { cookies } from 'next/headers';
 import { TokenService, TokenPayload } from '@/services/auth/token-service';
 import { SessionService } from '@/services/auth/session-service';
-import prisma from '@/lib/prisma';
+import prisma from '@/lib/db';
 
 /**
  * GET /api/auth/me

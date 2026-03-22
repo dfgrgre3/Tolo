@@ -9,6 +9,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { metricsMiddleware } from './metrics-middleware';
 import { loggingMiddleware } from './logging-middleware';
 import { tracingMiddleware } from './tracing-middleware';
+import { initRequestContext, runWithContext } from '../logging/correlation';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Middleware موحد يجمع جميع خدمات Ops
@@ -26,17 +28,26 @@ export async function opsMiddleware(
   // 2. Logging (للتسجيل مع context)
   // 3. Metrics (لتتبع المقاييس)
   
-  return tracingMiddleware(
-    request,
-    async (req) => {
-      return loggingMiddleware(
-        req,
-        async (r) => {
-          return metricsMiddleware(r, handler);
-        }
-      );
-    }
-  );
+  const requestId = request.headers.get('x-request-id') || uuidv4();
+  
+  const context = initRequestContext({
+    requestId,
+    userAgent: request.headers.get('user-agent') || undefined,
+  });
+
+  return runWithContext(context, async () => {
+    return tracingMiddleware(
+      request,
+      async (req) => {
+        return loggingMiddleware(
+          req,
+          async (r) => {
+            return metricsMiddleware(r, handler);
+          }
+        );
+      }
+    );
+  });
 }
 
 /**

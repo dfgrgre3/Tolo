@@ -1,7 +1,7 @@
 
 import { NextRequest } from 'next/server';
 
-import { prisma } from '@/lib/prisma';
+import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import {
@@ -126,37 +126,32 @@ export async function POST(request: NextRequest) {
 
         // Validate type if provided
         const validTypes = ['info', 'success', 'warning', 'error'];
-        const notificationType = type || 'info';
+        const notificationType = (type?.toLowerCase() || 'info') as 'info' | 'success' | 'warning' | 'error';
         if (!validTypes.includes(notificationType)) {
           return addSecurityHeaders(badRequestResponse(`Invalid type. Must be one of: ${validTypes.join(', ')}`, ERROR_CODES.INVALID_PARAMETER));
         }
 
-        // Create notification with timeout protection
-        const createPromise = prisma.notification.create({
-          data: {
-            userId,
-            title: title.trim(),
-            message: message.trim(),
-            type: notificationType.toUpperCase() as any,
-            actionUrl: actionUrl && typeof actionUrl === 'string' ? actionUrl.trim() : null,
-            icon: icon && typeof icon === 'string' ? icon.trim() : null,
-            isRead: false
-          }
+        // Use the unified notification service
+        const { sendMultiChannelNotification } = await import('@/services/notification-sender');
+        const results = await sendMultiChannelNotification({
+          userId,
+          title: title.trim(),
+          message: message.trim(),
+          type: notificationType,
+          actionUrl: actionUrl && typeof actionUrl === 'string' ? actionUrl.trim() : undefined,
+          icon: icon && typeof icon === 'string' ? icon.trim() : undefined,
+          channels: ['app'] // Standard API only does app notification by default
         });
-
-        const createTimeoutPromise = new Promise<never>((resolve, reject) => {
-          setTimeout(() => reject(new Error('Database operation timeout')), 10000);
-        });
-
-        const notification = await Promise.race([createPromise, createTimeoutPromise]);
 
         // Publish to real-time stream
         const { eventBus } = await import('@/lib/event-bus');
-        eventBus.publish('notification.created', notification).catch(err => 
-            logger.error('Failed to publish notification event:', err)
-        );
+        if (results.app) {
+          eventBus.publish('notification.created', results.app).catch(err => 
+              logger.error('Failed to publish notification event:', err)
+          );
+        }
 
-        return createSuccessResponse({ notification }, undefined, 201);
+        return createSuccessResponse({ notification: results.app }, undefined, 201);
       } catch (error) {
         logger.error('Error creating notification:', error);
         return createStandardErrorResponse(

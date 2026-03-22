@@ -560,7 +560,7 @@ async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser
 
     const [{ SessionService }, { prisma }] = await Promise.all([
       import('@/services/auth/session-service'),
-      import('@/lib/prisma'),
+      import('@/lib/db'),
     ]);
 
     const session = await prisma.session.findFirst({
