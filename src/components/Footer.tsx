@@ -67,6 +67,8 @@ export default function Footer() {
                   src="/logo-tolo.jpg" 
                   alt="TOLO" 
                   fill
+                  priority
+                  sizes="48px"
                   className="object-cover"
                 />
               </div>

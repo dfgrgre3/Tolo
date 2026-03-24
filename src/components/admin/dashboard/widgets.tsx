@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { AdminCard } from "../ui/admin-card";
 import { AdminButton, IconButton } from "../ui/admin-button";
 import { AdminBadge, StatusBadge, CountBadge } from "../ui/admin-badge";
@@ -323,73 +323,82 @@ interface UpcomingEventsProps {
 }
 
 const eventConfig = {
-  exam: { icon: Target, color: "text-red-500", bg: "bg-red-500/10" },
-  event: { icon: Calendar, color: "text-green-500", bg: "bg-green-500/10" },
-  deadline: { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-  meeting: { icon: Users, color: "text-blue-500", bg: "bg-blue-500/10" },
+  exam: { icon: Target, color: "text-red-500", bg: "bg-red-500/10", label: "اختبار ملكي" },
+  event: { icon: Calendar, color: "text-green-500", bg: "bg-green-500/10", label: "احتفالية" },
+  deadline: { icon: Clock, color: "text-yellow-500", bg: "bg-yellow-500/10", label: "موعد نهائي" },
+  meeting: { icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", label: "اجتماع القادة" },
 };
 
 export function UpcomingEvents({
   events,
-  title = "الأحداث القادمة",
+  title = "التقويم الإمبراطوري",
   maxItems = 4,
   className,
 }: UpcomingEventsProps) {
   const displayEvents = events.slice(0, maxItems);
 
   return (
-    <AdminCard className={cn("flex flex-col", className)}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg flex items-center gap-2">
-          <Calendar className="h-5 w-5 text-primary" />
-          {title}
+    <div className={cn("rpg-glass p-8 border-primary/10", className)}>
+      <div className="flex items-center justify-between mb-8">
+        <h3 className="font-black text-xl flex items-center gap-3">
+          <Calendar className="h-6 w-6 text-primary" />
+          <span>{title}</span>
         </h3>
-        <AdminBadge variant="outline" size="sm">
-          {events.length} حدث
-        </AdminBadge>
+        <div className="p-1 px-3 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black tracking-widest text-primary uppercase">
+           {events.length} عمليات
+        </div>
       </div>
 
-      <div className="flex-1 space-y-3">
-        {displayEvents.map((event, index) => {
-          const config = eventConfig[event.type];
-          const Icon = config.icon;
-          const eventDate = new Date(event.date);
-          const isToday = eventDate.toDateString() === new Date().toDateString();
+      <div className="space-y-4">
+        {displayEvents.length === 0 ? (
+          <div className="text-center py-10 text-gray-500 font-bold italic">لا توجد تحركات مرتقبة في الأفق...</div>
+        ) : (
+          displayEvents.map((event, index) => {
+            const config = eventConfig[event.type];
+            const Icon = config.icon;
+            const eventDate = new Date(event.date);
+            const isToday = eventDate.toDateString() === new Date().toDateString();
 
-          return (
-            <div
-              key={event.id}
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border transition-colors hover:bg-muted/50",
-                isToday && "border-primary/50 bg-primary/5"
-              )}
-            >
-              <div className={cn("flex h-10 w-10 items-center justify-center rounded-lg", config.bg)}>
-                <Icon className={cn("h-5 w-5", config.color)} />
+            return (
+              <div
+                key={event.id}
+                className={cn(
+                  "flex items-center gap-4 p-4 rounded-2xl border border-white/5 bg-white/5 transition-all hover:bg-white/10 hover:border-primary/30 group",
+                  isToday && "border-primary/40 bg-primary/5 ring-1 ring-primary/20"
+                )}
+              >
+                <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl shadow-lg transition-transform group-hover:scale-110", config.bg)}>
+                  <Icon className={cn("h-6 w-6", config.color)} />
+                </div>
+
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                     <p className="text-sm font-black truncate">{event.title}</p>
+                     <span className={cn("text-[9px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded bg-muted/50", config.color)}>{config.label}</span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 font-bold flex items-center gap-2">
+                    <span className="text-primary/70">{eventDate.toLocaleDateString("ar-EG", { weekday: "long", day: "numeric" })}</span>
+                    {event.location && (
+                      <>
+                        <span className="opacity-20">•</span>
+                        <span className="flex items-center gap-1 italic"><Target className="w-3 h-3" /> {event.location}</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                {isToday && (
+                  <div className="relative flex h-3 w-3">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                  </div>
+                )}
               </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{event.title}</p>
-                <p className="text-xs text-muted-foreground">
-                  {eventDate.toLocaleDateString("ar-EG", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                  {event.location && ` • ${event.location}`}
-                </p>
-              </div>
-
-              {isToday && (
-                <AdminBadge status="warning" size="sm">
-                  اليوم
-                </AdminBadge>
-              )}
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
-    </AdminCard>
+    </div>
   );
 }
 
@@ -412,59 +421,64 @@ interface TopPerformersProps {
 
 export function TopPerformers({
   performers,
-  title = "أفضل المتفوقين",
+  title = "قاعة المشاهير - Hall of Fame",
   className,
 }: TopPerformersProps) {
   return (
-    <AdminCard className={cn("flex flex-col", className)}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
-          {title}
+    <div className={cn("rpg-glass p-8 border-yellow-500/10", className)}>
+      <div className="flex items-center justify-between mb-8">
+        <h3 className="font-black text-xl flex items-center gap-3">
+          <Trophy className="h-6 w-6 text-yellow-500 animate-bounce" />
+          <span>{title}</span>
         </h3>
       </div>
 
-      <div className="flex-1 space-y-2">
+      <div className="space-y-4">
         {performers.map((performer, index) => (
           <div
             key={performer.id}
             className={cn(
-              "flex items-center gap-3 p-2 rounded-lg transition-colors hover:bg-muted/50",
-              index === 0 && "bg-yellow-500/5 border border-yellow-500/20",
-              index === 1 && "bg-gray-500/5 border border-gray-500/20",
-              index === 2 && "bg-orange-500/5 border border-orange-500/20"
+              "flex items-center gap-4 p-4 rounded-2xl transition-all border border-white/5 bg-white/5 hover:border-yellow-500/30",
+              index === 0 && "bg-yellow-500/10 border-yellow-500/30 ring-1 ring-yellow-500/20",
+              index === 1 && "bg-gray-400/5",
+              index === 2 && "bg-orange-500/5"
             )}
           >
-            <span
+            <div
               className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold",
-                index === 0 && "bg-yellow-500 text-white",
-                index === 1 && "bg-gray-400 text-white",
-                index === 2 && "bg-orange-500 text-white",
-                index > 2 && "bg-muted text-muted-foreground"
+                "flex h-8 w-8 items-center justify-center rounded-full text-xs font-black shadow-lg",
+                index === 0 && "bg-gradient-to-br from-yellow-300 to-amber-600 text-white",
+                index === 1 && "bg-gradient-to-br from-gray-300 to-gray-500 text-white",
+                index === 2 && "bg-gradient-to-br from-orange-300 to-orange-600 text-white",
+                index > 2 && "bg-muted text-gray-500"
               )}
             >
               {performer.rank}
-            </span>
+            </div>
 
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-12 w-12 border-2 border-white/5 shadow-xl">
               <AvatarImage src={performer.avatar} />
-              <AvatarFallback>{performer.name.charAt(0)}</AvatarFallback>
+              <AvatarFallback className="font-black">{performer.name.charAt(0)}</AvatarFallback>
             </Avatar>
 
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{performer.name}</p>
-              <p className="text-xs text-muted-foreground">المستوى {performer.level}</p>
+              <p className="text-sm font-black truncate">{performer.name}</p>
+              <div className="flex items-center gap-2 mt-1">
+                 <span className="text-[10px] font-black text-primary uppercase tracking-widest">Level {performer.level}</span>
+                 <div className="w-12 h-1 bg-white/5 rounded-full overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: '65%' }} />
+                 </div>
+              </div>
             </div>
 
-            <div className="text-left">
-              <p className="text-sm font-bold text-primary">{performer.xp.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">XP</p>
+            <div className="text-left bg-black/20 p-2 px-3 rounded-xl border border-white/5">
+              <p className="text-xs font-black text-yellow-500 font-mono">{formatNumber(performer.xp)}</p>
+              <p className="text-[8px] font-black text-gray-600 uppercase tracking-widest">EXP Points</p>
             </div>
           </div>
         ))}
       </div>
-    </AdminCard>
+    </div>
   );
 }
 
@@ -474,7 +488,7 @@ interface ProgressItem {
   label: string;
   current: number;
   target: number;
-  color?: keyof typeof actionColors;
+  color?: "blue" | "green" | "yellow" | "red" | "purple" | "cyan" | "orange" | "pink";
 }
 
 interface ProgressOverviewProps {
@@ -485,52 +499,66 @@ interface ProgressOverviewProps {
 
 export function ProgressOverview({
   items,
-  title = "نظرة عامة على التقدم",
+  title = "لوحة المهام والتقدم",
   className,
 }: ProgressOverviewProps) {
+  const barColors = {
+    blue: "from-blue-600 to-sky-400 shadow-blue-500/20",
+    green: "from-emerald-600 to-teal-400 shadow-emerald-500/20",
+    yellow: "from-amber-500 to-yellow-300 shadow-amber-500/20",
+    red: "from-rose-600 to-red-400 shadow-red-500/20",
+    purple: "from-purple-600 to-indigo-400 shadow-purple-500/20",
+    cyan: "from-cyan-500 to-sky-300 shadow-cyan-500/20",
+    orange: "from-orange-600 to-amber-400 shadow-orange-500/20",
+    pink: "from-pink-600 to-rose-400 shadow-pink-500/20",
+  };
+
   return (
-    <AdminCard className={cn("flex flex-col", className)}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="font-semibold text-lg flex items-center gap-2">
-          <TrendingUp className="h-5 w-5 text-primary" />
-          {title}
+    <div className={cn("rpg-glass p-8 border-primary/10", className)}>
+      <div className="flex items-center justify-between mb-8">
+        <h3 className="font-black text-xl flex items-center gap-3">
+          <TrendingUp className="h-6 w-6 text-primary" />
+          <span>{title}</span>
         </h3>
       </div>
 
-      <div className="flex-1 space-y-4">
+      <div className="space-y-8">
         {items.map((item, index) => {
           const percentage = Math.min(100, Math.round((item.current / item.target) * 100));
           const color = item.color || "blue";
 
           return (
-            <div key={item.id} className="space-y-2">
+            <div key={item.id} className="space-y-3">
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{item.label}</span>
-                <span className="text-muted-foreground">
-                  {item.current.toLocaleString()} / {item.target.toLocaleString()}
-                </span>
+                <span className="font-black text-gray-300">{item.label}</span>
+                <div className="flex items-center gap-2">
+                   <span className="text-[10px] font-black text-primary font-mono">{formatNumber(item.current)}</span>
+                   <span className="text-[10px] text-gray-600">/</span>
+                   <span className="text-[10px] font-black text-gray-500 font-mono">{formatNumber(item.target)}</span>
+                </div>
               </div>
-              <div className="h-2 bg-muted rounded-full overflow-hidden">
+              
+              <div className="relative h-4 bg-black/40 rounded-full overflow-hidden border border-white/5 p-0.5">
                 <div
                   className={cn(
-                    "h-full rounded-full transition-all duration-500",
-                    color === "blue" && "bg-blue-500",
-                    color === "green" && "bg-green-500",
-                    color === "yellow" && "bg-yellow-500",
-                    color === "red" && "bg-red-500",
-                    color === "purple" && "bg-purple-500",
-                    color === "cyan" && "bg-cyan-500",
-                    color === "orange" && "bg-orange-500",
-                    color === "pink" && "bg-pink-500"
+                    "h-full rounded-full transition-all duration-1000 bg-gradient-to-r shadow-lg relative overflow-hidden",
+                    barColors[color]
                   )}
                   style={{ width: `${percentage}%` }}
-                />
+                >
+                   {/* Animated shine effect */}
+                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                </div>
               </div>
-              <p className="text-xs text-muted-foreground text-left">{percentage}% مكتمل</p>
+              
+              <div className="flex justify-between items-center px-1">
+                 <span className="text-[9px] font-black text-gray-600 uppercase tracking-widest">Progress</span>
+                 <span className="text-[10px] font-black text-gray-400 font-mono">{percentage}%</span>
+              </div>
             </div>
           );
         })}
       </div>
-    </AdminCard>
+    </div>
   );
 }

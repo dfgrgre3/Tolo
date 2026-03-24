@@ -7,14 +7,6 @@
   "regions": [
     "iad1"
   ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "JWT_SECRET": "@jwt_secret",
-    "NEXT_PUBLIC_APP_NAME": "@next_public_app_name",
-    "NEXT_PUBLIC_BASE_URL": "@next_public_base_url",
-    "NEXT_PUBLIC_RP_ID": "@next_public_rp_id",
-    "SKIP_ENV_VALIDATION": "true"
-  },
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 60

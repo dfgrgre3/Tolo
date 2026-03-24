@@ -66,6 +66,11 @@ export async function POST(req: NextRequest) {
 			const body = await request.json();
 			const { name, email, subject, onlineUrl } = body;
 
+			// Validate that name does not contain email addresses
+			if (name && typeof name === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) {
+				return badRequestResponse("Name cannot be an email address");
+			}
+
 			// Validate required fields
 			if (!email) {
 				return badRequestResponse("Email is required");
@@ -80,7 +85,7 @@ export async function POST(req: NextRequest) {
 				},
 				create: {
 					email,
-					name: name || email,
+					name: name || email.split('@')[0], // Using just the local part of email as name instead of full email
 					passwordHash: "", // Password should be set separately
 					role: UserRole.TEACHER
 				}

@@ -4,6 +4,9 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ['framer-motion', 'three'],
 
+  // Turbopack configuration
+  turbopack: {},
+
   // Skip type checking during build (run separately in CI)
   typescript: {
     ignoreBuildErrors: process.env.SKIP_TYPE_CHECK === 'true',
@@ -100,7 +103,12 @@ const nextConfig = {
       'date-fns',
       'zod',
       '@tanstack/react-table',
+      'framer-motion',
+      'three',
+      '@react-three/fiber',
+      '@react-three/drei'
     ],
+    scrollRestoration: true,
   },
 
   // Configure webpack to handle path aliases

@@ -2,51 +2,33 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { DataTable } from "@/components/admin/ui/data-table";
-import { Button } from "@/components/ui/button";
+import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
+import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { MoreHorizontal, Plus, Edit, Trash2, Megaphone, Bell, Calendar, Eye } from "lucide-react";
+import { 
+  Plus, Edit, Trash2, Megaphone, Bell, Calendar, Eye, 
+  AlertTriangle, CheckCircle, Info, ShieldAlert, Zap, Send
+} from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
+import { 
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
+} from "@/components/ui/dialog";
+import { 
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { useQuery } from "@tanstack/react-query";
 
 interface Announcement {
   id: string;
@@ -64,8 +46,8 @@ interface Announcement {
 }
 
 const announcementSchema = z.object({
-  title: z.string().min(1, "العنوان مطلوب"),
-  content: z.string().min(1, "المحتوى مطلوب"),
+  title: z.string().min(1, "عنوان البلاغ مطلوب"),
+  content: z.string().min(1, "محتوى المنشور مطلوب"),
   type: z.string(),
   priority: z.number(),
   isActive: z.boolean(),
@@ -74,13 +56,21 @@ const announcementSchema = z.object({
 type AnnouncementFormValues = z.infer<typeof announcementSchema>;
 
 export default function AdminAnnouncementsPage() {
-  const [announcements, setAnnouncements] = React.useState<Announcement[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [deleteDialog, setDeleteDialog] = React.useState<{
-    open: boolean;
-    id: string | null;
-  }>({ open: false, id: null });
+  const [editingAnnouncement, setEditingAnnouncement] = React.useState<Announcement | null>(null);
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
+    open: false,
+    id: null,
+  });
+
+  const { data: announcements = [], isLoading, refetch } = useQuery({
+    queryKey: ["admin", "announcements"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/announcements");
+      const result = await response.json();
+      return (result.announcements || []) as Announcement[];
+    },
+  });
 
   const form = useForm<AnnouncementFormValues>({
     resolver: zodResolver(announcementSchema),
@@ -93,49 +83,53 @@ export default function AdminAnnouncementsPage() {
     },
   });
 
-  const fetchAnnouncements = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/admin/announcements");
-      const data = await response.json();
-      setAnnouncements(data.announcements);
-    } catch (error) {
-      console.error("Error fetching announcements:", error);
-      toast.error("حدث خطأ أثناء جلب الإعلانات");
-    } finally {
-      setLoading(false);
+  const handleOpenDialog = (announcement?: Announcement) => {
+    if (announcement) {
+      setEditingAnnouncement(announcement);
+      form.reset({
+        title: announcement.title,
+        content: announcement.content,
+        type: announcement.type,
+        priority: announcement.priority,
+        isActive: announcement.isActive,
+      });
+    } else {
+      setEditingAnnouncement(null);
+      form.reset({
+        title: "",
+        content: "",
+        type: "INFO",
+        priority: 0,
+        isActive: true,
+      });
     }
-  }, []);
-
-  React.useEffect(() => {
-    fetchAnnouncements();
-  }, [fetchAnnouncements]);
+    setDialogOpen(true);
+  };
 
   const handleSubmit = async (values: AnnouncementFormValues) => {
     try {
+      const method = editingAnnouncement ? "PATCH" : "POST";
+      const body = editingAnnouncement ? { ...values, id: editingAnnouncement.id } : { ...values, authorId: "admin" };
       const response = await fetch("/api/admin/announcements", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...values, authorId: "admin" }),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        toast.success("تم إنشاء الإعلان بنجاح");
+        toast.success(editingAnnouncement ? "تم تعديل البلاغ الملكي" : "تم نشر البلاغ في أرجاء المملكة");
         setDialogOpen(false);
-        form.reset();
-        fetchAnnouncements();
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حفظ الإعلان");
+        toast.error("فشل في حفظ البلاغ");
       }
     } catch (error) {
-      console.error("Error saving announcement:", error);
-      toast.error("حدث خطأ أثناء حفظ الإعلان");
+      toast.error("خطأ في الاتصال");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
-
     try {
       const response = await fetch("/api/admin/announcements", {
         method: "DELETE",
@@ -144,47 +138,40 @@ export default function AdminAnnouncementsPage() {
       });
 
       if (response.ok) {
-        toast.success("تم حذف الإعلان بنجاح");
-        fetchAnnouncements();
+        toast.success("تم سحب البلاغ وحرقه");
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حذف الإعلان");
+        toast.error("فشل في السحب");
       }
     } catch (error) {
-      console.error("Error deleting announcement:", error);
-      toast.error("حدث خطأ أثناء حذف الإعلان");
+      toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
   };
 
-  const typeColors: Record<string, string> = {
-    INFO: "bg-blue-500",
-    SUCCESS: "bg-green-500",
-    WARNING: "bg-yellow-500",
-    ERROR: "bg-red-500",
-  };
-
-  const typeLabels: Record<string, string> = {
-    INFO: "معلومة",
-    SUCCESS: "نجاح",
-    WARNING: "تحذير",
-    ERROR: "خطأ",
+  const typeConfig: Record<string, { label: string, color: string, icon: any }> = {
+    INFO: { label: "بلاغ عام", color: "blue", icon: Info },
+    SUCCESS: { label: "بشرى سارة", color: "emerald", icon: CheckCircle },
+    WARNING: { label: "تنبيه هام", color: "amber", icon: AlertTriangle },
+    ERROR: { label: "تحذير قصوى", color: "red", icon: ShieldAlert },
   };
 
   const columns: ColumnDef<Announcement>[] = [
     {
       accessorKey: "title",
-      header: "الإعلان",
+      header: "البلاغ المنشور",
       cell: ({ row }) => {
         const announcement = row.original;
+        const config = typeConfig[announcement.type] || typeConfig.INFO;
         return (
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-              <Bell className="h-5 w-5 text-blue-500" />
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-2xl bg-${config.color}-500/10 text-${config.color}-500 shadow-sm border border-${config.color}-500/10`}>
+              <config.icon className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-medium">{announcement.title}</p>
-              <p className="text-sm text-muted-foreground line-clamp-1">
+            <div className="max-w-[300px]">
+              <p className="font-black text-sm tracking-tight">{announcement.title}</p>
+              <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5 font-bold uppercase opacity-60">
                 {announcement.content}
               </p>
             </div>
@@ -194,212 +181,220 @@ export default function AdminAnnouncementsPage() {
     },
     {
       accessorKey: "type",
-      header: "النوع",
+      header: "الرتبة والدلالة",
       cell: ({ row }) => {
-        const type = row.getValue("type") as string;
+        const type = row.original.type;
+        const config = typeConfig[type] || typeConfig.INFO;
         return (
-          <Badge className={`${typeColors[type]} text-white`}>
-            {typeLabels[type] || type}
+          <Badge 
+            variant="outline" 
+            className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 bg-${config.color}-500/5 text-${config.color}-500 border-${config.color}-500/20`}
+          >
+            {config.label}
           </Badge>
         );
       },
     },
     {
-      accessorKey: "priority",
-      header: "الأولوية",
-      cell: ({ row }) => {
-        const priority = row.getValue("priority") as number;
-        return <span>{priority}</span>;
-      },
-    },
-    {
       accessorKey: "isActive",
-      header: "الحالة",
+      header: "الحالة الآن",
       cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
+        const active = row.original.isActive;
         return (
-          <Badge variant={isActive ? "default" : "secondary"}>
-            {isActive ? "نشط" : "معطل"}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
+            <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
+              {active ? "منشور بوضوح" : "مخفي في السجلات"}
+            </span>
+          </div>
         );
       },
     },
     {
       accessorKey: "createdAt",
-      header: "تاريخ النشر",
-      cell: ({ row }) => {
-        const date = row.getValue("createdAt") as string;
-        return new Date(date).toLocaleDateString("ar-EG");
-      },
+      header: "توقيت الإطلاق",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="text-xs font-black">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
+          <span className="text-[10px] font-bold text-muted-foreground uppercase opacity-50">{new Date(row.original.createdAt).toLocaleTimeString("ar-EG", { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      ),
     },
     {
       id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        const announcement = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Eye className="ml-2 h-4 w-4" />
-                عرض
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Edit className="ml-2 h-4 w-4" />
-                تعديل
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => setDeleteDialog({ open: true, id: announcement.id })}
-              >
-                <Trash2 className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
+      header: "التحكم الإمبراطوري",
+      cell: ({ row }) => (
+        <RowActions
+          row={row.original}
+          onEdit={handleOpenDialog}
+          onDelete={(a) => setDeleteDialog({ open: true, id: a.id })}
+          extraActions={[
+            { icon: Send, label: "إعادة إرسال كـ Notification", onClick: (a) => toast.info(`قريباً: دفع البلاغ ${a.title} للأجهزة`) },
+          ]}
+        />
+      ),
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="إدارة الإعلانات"
-        description="عرض وإدارة جميع إعلانات النظام"
+        title="منصة البلاغات الملكية (Herald) 📢"
+        description="إدارة التواصل العام مع المحاربين، نشر الأخبار، التحذيرات، والاحتفالات الكبرى بالمملكة."
       >
-        <Button onClick={() => setDialogOpen(true)}>
-          <Plus className="ml-2 h-4 w-4" />
-          إضافة إعلان
-        </Button>
+        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+          صياغة بلاغ جديد
+        </AdminButton>
       </PageHeader>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={announcements}
-          searchKey="title"
-          searchPlaceholder="البحث عن إعلان..."
-        />
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {[
+          { label: "إجمالي المنشورات", value: announcements.length, icon: Megaphone, color: "blue" },
+          { label: "بلاغات نشطة", value: announcements.filter(a => a.isActive).length, icon: Zap, color: "emerald" },
+          { label: "بلاغات الأسبوع", value: announcements.filter(a => new Date(a.createdAt) > new Date(Date.now() - 7 * 86400000)).length, icon: Calendar, color: "purple" },
+          { label: "تنبيهات عاجلة", value: announcements.filter(a => a.type === "WARNING" || a.type === "ERROR").length, icon: AlertTriangle, color: "red" },
+        ].map((stat, i) => (
+          <AdminCard key={i} variant="glass" className={`p-6 bg-${stat.color}-500/5 border-${stat.color}-500/10`}>
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
+                <stat.icon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black">{stat.value}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+              </div>
+            </div>
+          </AdminCard>
+        ))}
+      </div>
 
-      {/* Add Dialog */}
+      <AdminDataTable
+        columns={columns}
+        data={announcements}
+        loading={isLoading}
+        searchKey="title"
+        searchPlaceholder="ابحث في أرشيف البلاغات..."
+        actions={{ onRefresh: () => refetch() }}
+      />
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>إضافة إعلان جديد</DialogTitle>
-            <DialogDescription>
-              أدخل بيانات الإعلان
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>العنوان *</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المحتوى *</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
+        <DialogContent className="max-w-md bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+          <div className="h-1.5 bg-gradient-to-r from-primary via-blue-500 to-purple-500" />
+          <div className="p-8">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-2xl font-black">
+                {editingAnnouncement ? "تعديل نص البلاغ" : "صياغة بلاغ ملكي جديد"}
+              </DialogTitle>
+              <DialogDescription className="font-bold text-muted-foreground">
+                اختر نبرة الصوت المناسبة (النوع) واكتب النص بعناية لتصل الرسالة للجنود بوضوح.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
-                  name="type"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>النوع</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="INFO">معلومة</SelectItem>
-                          <SelectItem value="SUCCESS">نجاح</SelectItem>
-                          <SelectItem value="WARNING">تحذير</SelectItem>
-                          <SelectItem value="ERROR">خطأ</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مانشيت البلاغ (العنوان)</FormLabel>
+                      <FormControl><Input {...field} placeholder="تنبيه هام بخصوص..." className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
                 <FormField
                   control={form.control}
-                  name="priority"
+                  name="content"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>الأولوية</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تفاصيل المرسوم (المحتوى)</FormLabel>
+                      <FormControl><Textarea {...field} className="rounded-2xl border-white/10 bg-white/5 min-h-[120px] p-6 font-medium" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">نبرة البلاغ</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="rounded-2xl border-white/10 bg-white/5 h-12">
+                              <SelectValue />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="rounded-2xl border-white/10">
+                            <SelectItem value="INFO" className="cursor-pointer py-3 font-bold">بلاغ عام (معلومة)</SelectItem>
+                            <SelectItem value="SUCCESS" className="cursor-pointer py-3 font-bold text-emerald-500">بشرى (نجاح)</SelectItem>
+                            <SelectItem value="WARNING" className="cursor-pointer py-3 font-bold text-amber-500">تنبيه (هام)</SelectItem>
+                            <SelectItem value="ERROR" className="cursor-pointer py-3 font-bold text-red-500">تحذير (قصوى)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="priority"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الظهور</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            className="rounded-2xl border-white/10 bg-white/5 h-12 text-center font-black"
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-2xl border border-white/10 p-4 bg-white/5">
+                      <div>
+                        <FormLabel className="font-black text-xs">نشر فوري؟</FormLabel>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل الظهور في لوحة الطالب الآن</p>
+                      </div>
                       <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                    <FormLabel>نشط</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit">إنشاء</Button>
-              </DialogFooter>
-            </form>
-          </Form>
+
+                <DialogFooter className="pt-4">
+                  <AdminButton type="submit" className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                    {editingAnnouncement ? "تحديث البلاغ" : "إخطار المملكة الآن"}
+                  </AdminButton>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="حذف الإعلان"
-        description="هل أنت متأكد من حذف هذا الإعلان؟"
-        confirmText="حذف"
+        title="حرق البلاغ نهائياً؟"
+        description="أنت على وشك حذف هذا البلاغ الملكي من جميع السجلات العامة والخاصة. هذا القرار لا يمكن الرجوع عنه."
+        confirmText="نعم، احرقه"
         variant="destructive"
         onConfirm={handleDelete}
       />

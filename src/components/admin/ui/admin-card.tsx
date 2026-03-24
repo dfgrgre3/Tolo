@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 
@@ -109,7 +109,7 @@ export function AdminStatsCard({
           <div className="space-y-1">
             <p className="text-sm font-medium text-muted-foreground">{title}</p>
             <p className={cn("text-3xl font-bold tracking-tight", colorClasses[color])}>
-              {typeof value === "number" ? value.toLocaleString() : value}
+              {typeof value === "number" ? formatNumber(value) : value}
             </p>
           </div>
           {Icon && (

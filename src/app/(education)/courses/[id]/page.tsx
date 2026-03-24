@@ -206,7 +206,9 @@ export default function CourseDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: true, subject: course.subject })
       });
-    } catch (err) { logger.error(err); }
+    } catch (err) { 
+      logger.error("Error marking lesson complete:", err); 
+    }
   };
 
   const activeLessonData = useMemo(() => lessons.find(l => l.id === activeLesson), [lessons, activeLesson]);
@@ -410,14 +412,14 @@ export default function CourseDetailPage() {
                      className="space-y-10"
                    >
                       <div className={STYLES.glass + " p-0 group"}>
-                         {activeLessonData.videoUrl && course.enrolled ? (
+                         {activeLessonData.videoUrl ? (
                            <CourseVideoPlayer
                                courseId={course.id}
                                lessonId={activeLessonData.id}
                                lessonTitle={activeLessonData.title}
                                videoUrl={activeLessonData.videoUrl}
                                alreadyCompleted={activeLessonData.completed}
-                               onLessonAutoComplete={() => void handleLessonComplete(activeLessonData.id)}
+                               onLessonAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
                            />
                          ) : (
                            <div className="aspect-video bg-black flex flex-col items-center justify-center p-12 text-center group">

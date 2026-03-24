@@ -43,121 +43,144 @@ const PUBLIC_AUTH_API_ROUTES = [
 ];
 
 export default async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-  
-  // 1. Traceability: Generate or propagate Request ID
-  const requestId = request.headers.get('x-request-id') || crypto.randomUUID();
-  const requestHeaders = new Headers(request.headers);
-  requestHeaders.set('x-request-id', requestId);
-
-  // Helper to add trace + security headers
-  const decorateResponse = (res: NextResponse) => {
-    res.headers.set('x-request-id', requestId);
-    addSecurityHeaders(res);
-    return res;
-  };
-
-  const isPublicAuthRoute = isAuthPublicRoute(pathname);
-
-  // Default response with headers
-  const passthroughResponse = decorateResponse(NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
-  }));
-
-  // Skip logic for static assets and public auth endpoints
-  const isPublicAuthApiRoute = PUBLIC_AUTH_API_ROUTES.includes(pathname);
-  const isStaticAsset =
-    pathname.includes('/_next/') ||
-    pathname.startsWith('/static') ||
-    pathname.startsWith('/public') ||
-    pathname === '/favicon.ico' ||
-    pathname.includes('.');
-
-  if (isStaticAsset || isPublicAuthApiRoute) {
-    return passthroughResponse;
-  }
-
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  const isAdminRoute = ADMIN_ROUTES.some((prefix) => pathname.startsWith(prefix));
-  const isTeacherRoute = TEACHER_ROUTES.some((prefix) => pathname.startsWith(prefix));
-  const requiresAuth = isProtected || isAdminRoute || isTeacherRoute;
-
-  const token = request.cookies.get('access_token')?.value;
-  const hasRefreshToken = Boolean(request.cookies.get('refresh_token')?.value);
-
-  if (!token) {
-    if (isPublicAuthRoute) {
-      return passthroughResponse;
-    }
-
-    // Allow requests to pass if refresh token exists, so handler can attempt silent refresh
-    if (hasRefreshToken && requiresAuth) {
-      return passthroughResponse;
-    }
-
-    return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
-  }
-
-  // Verification phase using Unified TokenService
-  const payload = await TokenService.verifyToken<TokenPayload>(token);
-
-  if (payload) {
-    // -- User is AUTHENTICATED --
-
-    // If on a public auth route (login/register), redirect to authenticated home
-    if (isPublicAuthRoute) {
-      const requestedRedirect = sanitizeRedirectPath(
-        request.nextUrl.searchParams.get('redirect'),
-        DEFAULT_AUTHENTICATED_ROUTE
-      );
-      return withSecurityHeaders(NextResponse.redirect(new URL(requestedRedirect, request.url)));
-    }
-
-    // RBAC: Check for roles
-    if (isAdminRoute && payload.role !== 'ADMIN') {
-      return handleForbidden(request, pathname);
-    }
-
-    if (isTeacherRoute && payload.role !== 'TEACHER' && payload.role !== 'ADMIN') {
-      return handleForbidden(request, pathname);
-    }
-
-    // Header Injection: Prepare request headers for Route Handlers
-    const requestHeaders = new Headers(request.headers);
-    requestHeaders.set('X-User-ID', payload.userId);
-    requestHeaders.set('X-User-Role', payload.role);
+  try {
+    const { pathname } = request.nextUrl;
     
-    if (payload.permissions && Array.isArray(payload.permissions)) {
-      requestHeaders.set('X-User-Permissions', payload.permissions.join(','));
+    // 1. Traceability: Generate or propagate Request ID
+    let requestId = request.headers.get('x-request-id');
+    if (!requestId) {
+      try {
+        requestId = crypto.randomUUID();
+      } catch {
+        requestId = Date.now().toString();
+      }
     }
+    
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-request-id', requestId);
 
-    if (payload.sessionId) {
-      requestHeaders.set('X-Session-ID', payload.sessionId);
-    }
+    // Helper to add trace + security headers
+    const decorateResponse = (res: NextResponse) => {
+      res.headers.set('x-request-id', requestId!);
+      addSecurityHeaders(res);
+      return res;
+    };
 
-    const authenticatedResponse = decorateResponse(NextResponse.next({
+    const isPublicAuthRoute = isAuthPublicRoute(pathname);
+
+    // Default response with headers
+    const passthroughResponse = decorateResponse(NextResponse.next({
       request: {
         headers: requestHeaders,
       },
     }));
 
-    return authenticatedResponse;
+    // Skip logic for static assets and public auth endpoints
+    const isPublicAuthApiRoute = PUBLIC_AUTH_API_ROUTES.includes(pathname);
+    const isStaticAsset =
+      pathname.includes('/_next/') ||
+      pathname.startsWith('/static') ||
+      pathname.startsWith('/public') ||
+      pathname === '/favicon.ico' ||
+      pathname.includes('.');
+
+    if (isStaticAsset || isPublicAuthApiRoute) {
+      return passthroughResponse;
+    }
+
+    const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    const isAdminRoute = ADMIN_ROUTES.some((prefix) => pathname.startsWith(prefix));
+    const isTeacherRoute = TEACHER_ROUTES.some((prefix) => pathname.startsWith(prefix));
+    const requiresAuth = isProtected || isAdminRoute || isTeacherRoute;
+
+    const token = request.cookies.get('access_token')?.value;
+    const hasRefreshToken = Boolean(request.cookies.get('refresh_token')?.value);
+
+    if (!token) {
+      if (isPublicAuthRoute) {
+        return passthroughResponse;
+      }
+
+      // Allow requests to pass if refresh token exists, so handler can attempt silent refresh
+      if (hasRefreshToken && requiresAuth) {
+        return passthroughResponse;
+      }
+
+      return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
+    }
+
+    // Verification phase using Unified TokenService
+    const payload = await TokenService.verifyToken<TokenPayload>(token);
+
+    if (payload) {
+      // -- User is AUTHENTICATED --
+
+      // If on a public auth route (login/register), redirect to authenticated home
+      if (isPublicAuthRoute) {
+        const requestedRedirect = sanitizeRedirectPath(
+          request.nextUrl.searchParams.get('redirect'),
+          DEFAULT_AUTHENTICATED_ROUTE
+        );
+        return withSecurityHeaders(NextResponse.redirect(new URL(requestedRedirect, request.url)));
+      }
+
+      // RBAC: Check for roles
+      if (isAdminRoute && payload.role !== 'ADMIN') {
+        return handleForbidden(request, pathname);
+      }
+
+      if (isTeacherRoute && payload.role !== 'TEACHER' && payload.role !== 'ADMIN') {
+        return handleForbidden(request, pathname);
+      }
+
+      // Header Injection: Prepare request headers for Route Handlers
+      const authHeaders = new Headers(request.headers);
+      authHeaders.set('X-User-ID', payload.userId);
+      authHeaders.set('X-User-Role', payload.role);
+      
+      if (payload.permissions && Array.isArray(payload.permissions)) {
+        authHeaders.set('X-User-Permissions', payload.permissions.join(','));
+      }
+
+      if (payload.sessionId) {
+        authHeaders.set('X-Session-ID', payload.sessionId);
+      }
+
+      const authenticatedResponse = decorateResponse(NextResponse.next({
+        request: {
+          headers: authHeaders,
+        },
+      }));
+
+      return authenticatedResponse;
+    }
+
+    // -- User Token is INVALID or EXPIRED --
+
+    if (isPublicAuthRoute) {
+      return passthroughResponse;
+    }
+
+    // Permit navigation if refresh token exists (for silent refresh fallback in handlers)
+    if (hasRefreshToken && requiresAuth) {
+      return passthroughResponse;
+    }
+
+    return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
+  } catch (error) {
+    console.error('Middleware Error:', error);
+    
+    // Fallback for API routes to always return JSON
+    if (request.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Internal Server Error (Middleware)', code: 'MIDDLEWARE_ERROR' },
+        { status: 500 }
+      );
+    }
+    
+    // Fallback for other routes
+    return NextResponse.next();
   }
-
-  // -- User Token is INVALID or EXPIRED --
-
-  if (isPublicAuthRoute) {
-    return passthroughResponse;
-  }
-
-  // Permit navigation if refresh token exists (for silent refresh fallback in handlers)
-  if (hasRefreshToken && requiresAuth) {
-    return passthroughResponse;
-  }
-
-  return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
 }
 
 function handleUnauthorized(request: NextRequest, pathname: string) {

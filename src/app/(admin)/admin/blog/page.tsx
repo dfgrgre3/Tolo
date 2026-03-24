@@ -2,47 +2,13 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { DataTable } from "@/components/admin/ui/data-table";
-import { Button } from "@/components/ui/button";
+import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
+import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
-import {
-  MoreHorizontal,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  FileText,
-  User,
-  Calendar,
-  Globe,
-  Lock,
+import { 
+  Plus, Edit, Trash2, Eye, FileText, User, Calendar, Globe, 
+  Lock, BookOpen, MessageSquare, TrendingUp, Hash, ArrowUpRight
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -50,7 +16,16 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
+import { 
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
+} from "@/components/ui/dialog";
+import { 
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { useQuery } from "@tanstack/react-query";
 
 interface BlogPost {
   id: string;
@@ -76,9 +51,9 @@ interface BlogPost {
 }
 
 const blogPostSchema = z.object({
-  title: z.string().min(1, "عنوان المقال مطلوب"),
-  slug: z.string().min(1, "الرابط مطلوب"),
-  content: z.string().min(1, "المحتوى مطلوب"),
+  title: z.string().min(1, "عنوان المخطوطة مطلوب"),
+  slug: z.string().min(1, "رمز الاستدعاء (Slug) مطلوب"),
+  content: z.string().min(1, "متن المخطوطة مطلوب"),
   excerpt: z.string().optional(),
   isPublished: z.boolean(),
 });
@@ -86,14 +61,21 @@ const blogPostSchema = z.object({
 type BlogPostFormValues = z.infer<typeof blogPostSchema>;
 
 export default function AdminBlogPage() {
-  const [posts, setPosts] = React.useState<BlogPost[]>([]);
-  const [loading, setLoading] = React.useState(true);
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingPost, setEditingPost] = React.useState<BlogPost | null>(null);
-  const [deleteDialog, setDeleteDialog] = React.useState<{
-    open: boolean;
-    id: string | null;
-  }>({ open: false, id: null });
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
+    open: false,
+    id: null,
+  });
+
+  const { data: posts = [], isLoading, refetch } = useQuery({
+    queryKey: ["admin", "blog-posts"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/blog");
+      const result = await response.json();
+      return (result.posts || []) as BlogPost[];
+    },
+  });
 
   const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(blogPostSchema),
@@ -105,24 +87,6 @@ export default function AdminBlogPage() {
       isPublished: false,
     },
   });
-
-  const fetchPosts = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await fetch("/api/admin/blog");
-      const data = await response.json();
-      setPosts(data.posts || []);
-    } catch (error) {
-      console.error("Error fetching blog posts:", error);
-      toast.error("حدث خطأ أثناء جلب المقالات");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
 
   const handleOpenDialog = (post?: BlogPost) => {
     if (post) {
@@ -149,32 +113,28 @@ export default function AdminBlogPage() {
 
   const handleSubmit = async (values: BlogPostFormValues) => {
     try {
-      const url = "/api/admin/blog";
       const method = editingPost ? "PATCH" : "POST";
       const body = editingPost ? { ...values, id: editingPost.id } : values;
-
-      const response = await fetch(url, {
+      const response = await fetch("/api/admin/blog", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        toast.success(editingPost ? "تم تحديث المقال بنجاح" : "تم إنشاء المقال بنجاح");
+        toast.success(editingPost ? "تم تحديث المخطوطة" : "تم حفظ المخطوطة في المكتبة الملكية");
         setDialogOpen(false);
-        fetchPosts();
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حفظ المقال");
+        toast.error("فشل في حفظ المخطوطة");
       }
     } catch (error) {
-      console.error("Error saving blog post:", error);
-      toast.error("حدث خطأ أثناء حفظ المقال");
+      toast.error("خطأ في الاتصال");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
-
     try {
       const response = await fetch("/api/admin/blog", {
         method: "DELETE",
@@ -183,14 +143,13 @@ export default function AdminBlogPage() {
       });
 
       if (response.ok) {
-        toast.success("تم حذف المقال بنجاح");
-        fetchPosts();
+        toast.success("تم إتلاف المخطوطة بنجاح");
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حذف المقال");
+        toast.error("فشل في الإتلاف");
       }
     } catch (error) {
-      console.error("Error deleting blog post:", error);
-      toast.error("حدث خطأ أثناء حذف المقال");
+      toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -199,218 +158,231 @@ export default function AdminBlogPage() {
   const columns: ColumnDef<BlogPost>[] = [
     {
       accessorKey: "title",
-      header: "المقال",
+      header: "المخطوطة (المقال)",
       cell: ({ row }) => {
         const post = row.original;
         return (
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-              <FileText className="h-5 w-5 text-green-500" />
+          <div className="flex items-center gap-4">
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary shadow-sm border border-primary/10">
+              <FileText className="w-5 h-5" />
             </div>
-            <div>
-              <p className="font-medium">{post.title}</p>
-              <p className="text-sm text-muted-foreground">{post.slug}</p>
+            <div className="max-w-[300px]">
+              <p className="font-black text-sm tracking-tight">{post.title}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Hash className="w-3 h-3 text-muted-foreground" />
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">
+                  {post.slug}
+                </p>
+              </div>
             </div>
           </div>
         );
       },
     },
     {
-      id: "category",
-      header: "القسم",
+      id: "stats",
+      header: "إحصائيات القراء",
       cell: ({ row }) => {
         const post = row.original;
-        return post.category ? (
-          <Badge variant="outline">{post.category.name}</Badge>
-        ) : "-";
+        return (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-[11px] font-black">{post.views}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <MessageSquare className="w-3.5 h-3.5 text-purple-500" />
+              <span className="text-[11px] font-black">{post._count?.comments || 0}</span>
+            </div>
+          </div>
+        );
       },
     },
     {
       accessorKey: "isPublished",
-      header: "الحالة",
+      header: "حالة النشر",
       cell: ({ row }) => {
-        const isPublished = row.getValue("isPublished") as boolean;
+        const published = row.original.isPublished;
         return (
-          <Badge variant={isPublished ? "default" : "secondary"}>
-            {isPublished ? "منشور" : "مسودة"}
+          <Badge 
+            variant="outline" 
+            className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 ${
+              published 
+                ? "bg-emerald-500/5 text-emerald-500 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.1)]" 
+                : "bg-amber-500/5 text-amber-500 border-amber-500/20"
+            }`}
+          >
+            {published ? "منشور للعامة" : "مسودة خاصة"}
           </Badge>
         );
       },
     },
     {
-      accessorKey: "views",
-      header: "المشاهدات",
-      cell: ({ row }) => {
-        const views = row.getValue("views") as number;
-        return <span>{views}</span>;
-      },
-    },
-    {
       accessorKey: "createdAt",
-      header: "تاريخ النشر",
-      cell: ({ row }) => {
-        const date = row.getValue("createdAt") as string;
-        return new Date(date).toLocaleDateString("ar-EG");
-      },
+      header: "تاريخ التدوين",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <Calendar className="w-3.5 h-3.5" />
+          <span className="text-xs font-black">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
+        </div>
+      ),
     },
     {
       id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        const post = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <Eye className="ml-2 h-4 w-4" />
-                عرض
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => handleOpenDialog(post)}>
-                <Edit className="ml-2 h-4 w-4" />
-                تعديل
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => setDeleteDialog({ open: true, id: post.id })}
-              >
-                <Trash2 className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
+      header: "التحكم بالعلم",
+      cell: ({ row }) => (
+        <RowActions
+          row={row.original}
+          onEdit={handleOpenDialog}
+          onDelete={(p) => setDeleteDialog({ open: true, id: p.id })}
+          extraActions={[
+            { icon: ArrowUpRight, label: "معاينة في المدونة", onClick: (p) => window.open(`/blog/${p.slug}`, "_blank") },
+          ]}
+        />
+      ),
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="إدارة المدونة"
-        description="عرض وإدارة مقالات المدونة"
+        title="مكتبة المخطوطات الملكية (Blog) 📚"
+        description="دون المعرفة، شارك القصص، والهم المحاربين بمقالاتك الفريدة في أرجاء المملكة."
       >
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="ml-2 h-4 w-4" />
-          إضافة مقال
-        </Button>
+        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+          تدوين مخطوطة جديدة
+        </AdminButton>
       </PageHeader>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={posts}
-          searchKey="title"
-          searchPlaceholder="البحث عن مقال..."
-        />
-      )}
-
-      {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editingPost ? "تعديل المقال" : "إضافة مقال جديد"}
-            </DialogTitle>
-            <DialogDescription>
-              أدخل بيانات المقال
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>عنوان المقال *</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="slug"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الرابط *</FormLabel>
-                      <FormControl>
-                        <Input {...field} dir="ltr" placeholder="article-title" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {[
+          { label: "إجمالي المخطوطات", value: posts.length, icon: BookOpen, color: "blue" },
+          { label: "مخطوطات منشورة", value: posts.filter(p => p.isPublished).length, icon: Globe, color: "emerald" },
+          { label: "إجمالي القراءات", value: posts.reduce((acc, p) => acc + p.views, 0), icon: TrendingUp, color: "purple" },
+          { label: "مسودات قيد العمل", value: posts.filter(p => !p.isPublished).length, icon: Lock, color: "amber" },
+        ].map((stat, i) => (
+          <AdminCard key={i} variant="glass" className={`p-6 bg-${stat.color}-500/5 border-${stat.color}-500/10`}>
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
+                <stat.icon className="w-6 h-6" />
               </div>
-              <FormField
-                control={form.control}
-                name="excerpt"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>ملخص</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={2} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المحتوى *</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} rows={8} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="isPublished"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                    <FormLabel>منشور</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit">
-                  {editingPost ? "تحديث" : "إنشاء"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+              <div>
+                <p className="text-2xl font-black">{stat.value}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+              </div>
+            </div>
+          </AdminCard>
+        ))}
+      </div>
+
+      <AdminDataTable
+        columns={columns}
+        data={posts}
+        loading={isLoading}
+        searchKey="title"
+        searchPlaceholder="ابحث في سجلات المكتبة..."
+        actions={{ onRefresh: () => refetch() }}
+      />
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+          <div className="h-1.5 bg-gradient-to-r from-primary via-blue-500 to-purple-500" />
+          <div className="p-8">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-2xl font-black">
+                {editingPost ? "تنقيح المخطوطة" : "تدوين علم جديد"}
+              </DialogTitle>
+              <DialogDescription className="font-bold text-muted-foreground">
+                اكتب كلماتك بدقة، فالمعرفة هي أعظم سلاح في مملكتنا.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان المخطوطة</FormLabel>
+                        <FormControl><Input {...field} placeholder="أسرار المحارب القديم..." className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="slug"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">رمز الاستدعاء (Slug)</FormLabel>
+                        <FormControl><Input {...field} dir="ltr" placeholder="secrets-of-warrior" className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 font-bold" /></FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="excerpt"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">موجز قصير (الملخص)</FormLabel>
+                      <FormControl><Textarea {...field} rows={2} className="rounded-2xl border-white/10 bg-white/5 p-4 font-medium" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="content"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">متن العلم (المحتوى)</FormLabel>
+                      <FormControl><Textarea {...field} rows={10} className="rounded-2xl border-white/10 bg-white/5 p-6 font-medium leading-relaxed" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isPublished"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-2xl border border-white/10 p-4 bg-white/5">
+                      <div>
+                        <FormLabel className="font-black text-xs">نشر للعامة؟</FormLabel>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل الظهور في مكتبة المملكة الآن</p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <DialogFooter className="pt-4">
+                  <AdminButton type="submit" className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                    {editingPost ? "تحديث المخطوطة" : "حفظ في المكتبة"}
+                  </AdminButton>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="حذف المقال"
-        description="هل أنت متأكد من حذف هذا المقال؟"
-        confirmText="حذف"
+        title="إتلاف المخطوطة؟"
+        description="هل أنت متأكد من حرق هذه المخطوطة؟ لن يتمكن أي باحث عن العلم من قراءتها مجدداً."
+        confirmText="نعم، احرقها"
         variant="destructive"
         onConfirm={handleDelete}
       />

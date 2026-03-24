@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import { AdminCard } from "../ui/admin-card";
 import { TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
@@ -97,7 +97,7 @@ function AnimatedNumber({ value, className }: { value: number; className?: strin
     return () => clearInterval(timer);
   }, [value]);
 
-  return <span className={className}>{displayValue.toLocaleString()}</span>;
+  return <span className={className}>{formatNumber(displayValue)}</span>;
 }
 
 function StatCard({ stat, animated, index }: { stat: StatItem; animated: boolean; index: number }) {
@@ -133,7 +133,7 @@ function StatCard({ stat, animated, index }: { stat: StatItem; animated: boolean
                 <AnimatedNumber value={stat.value} className={cn("text-3xl font-bold tracking-tight", config.text)} />
               ) : (
                 <p className={cn("text-3xl font-bold tracking-tight", config.text)}>
-                  {typeof stat.value === "number" ? stat.value.toLocaleString() : stat.value}
+                  {typeof stat.value === "number" ? formatNumber(stat.value) : stat.value}
                 </p>
               )}
             </div>
@@ -241,7 +241,7 @@ export function QuickStatsRow({ stats, className }: QuickStatsRowProps) {
             style={{ animationDelay: `${index * 50}ms` }}
           >
             {Icon && <Icon className={cn("h-4 w-4", config.text)} />}
-            <span className="font-semibold">{typeof stat.value === "number" ? stat.value.toLocaleString() : stat.value}</span>
+            <span className="font-semibold">{typeof stat.value === "number" ? formatNumber(stat.value) : stat.value}</span>
             <span className="text-sm text-muted-foreground">{stat.label}</span>
           </div>
         );

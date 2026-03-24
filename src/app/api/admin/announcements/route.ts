@@ -25,6 +25,11 @@ export async function GET(request: NextRequest) {
             skip,
             take: limit,
             orderBy: { createdAt: "desc" },
+            include: {
+              author: {
+                select: { id: true, name: true, avatar: true },
+              },
+            },
           }),
           prisma.announcement.count({ where }),
         ]);
@@ -48,10 +53,10 @@ export async function GET(request: NextRequest) {
 // POST /api/admin/announcements - Create new announcement
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req: NextRequest) => {
-    return withAdmin(req, async () => {
+    return withAdmin(req, async (authUser) => {
       try {
         const body = await req.json();
-        const { title, content, priority, isActive } = body;
+        const { title, content, type, priority, isActive } = body;
 
         if (!title || !content) {
           return NextResponse.json(
@@ -64,8 +69,54 @@ export async function POST(request: NextRequest) {
           data: {
             title,
             content,
-            priority: priority || "normal",
+            type: type || "INFO",
+            priority: Number(priority) || 0,
             isActive: isActive ?? true,
+            authorId: authUser.userId,
+          },
+          include: {
+            author: {
+              select: { id: true, name: true, avatar: true },
+            },
+          },
+        });
+
+        return NextResponse.json(announcement);
+      } catch (error) {
+        return handleApiError(error);
+      }
+    });
+  });
+}
+
+// PATCH /api/admin/announcements - Update announcement
+export async function PATCH(request: NextRequest) {
+  return opsWrapper(request, async (req: NextRequest) => {
+    return withAdmin(req, async () => {
+      try {
+        const body = await req.json();
+        const { id, title, content, type, priority, isActive } = body;
+
+        if (!id) {
+          return NextResponse.json(
+            { error: "معرف الإعلان مطلوب" },
+            { status: 400 }
+          );
+        }
+
+        const announcement = await prisma.announcement.update({
+          where: { id },
+          data: {
+            title,
+            content,
+            type,
+            priority: priority !== undefined ? Number(priority) : undefined,
+            isActive,
+          },
+          include: {
+            author: {
+              select: { id: true, name: true, avatar: true },
+            },
           },
         });
 

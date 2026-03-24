@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse, notFoundResponse } from '@/lib/api-utils';
 import { z } from "zod";
+import { LessonType } from "@prisma/client";
 
 const subTopicSchema = z.object({
   topicId: z.string().min(1, "معرف الموضوع مطلوب"),
@@ -10,6 +11,7 @@ const subTopicSchema = z.object({
   description: z.string().optional(),
   content: z.string().optional(),
   videoUrl: z.string().optional(),
+  type: z.enum(["VIDEO", "ARTICLE", "QUIZ", "FILE", "ASSIGNMENT"]).default("VIDEO"),
   order: z.number().default(0),
 });
 
@@ -60,7 +62,10 @@ export async function POST(request: NextRequest) {
         }
 
         const subTopic = await prisma.subTopic.create({
-          data: validation.data,
+          data: {
+            ...validation.data,
+            type: (validation.data.type || "VIDEO") as LessonType,
+          },
         });
 
         return successResponse(subTopic, "تم إضافة الدرس بنجاح", 201);
@@ -88,7 +93,10 @@ export async function PATCH(request: NextRequest) {
 
         const subTopic = await prisma.subTopic.update({
           where: { id },
-          data,
+          data: {
+            ...data,
+            type: (data.type || "VIDEO") as LessonType,
+          },
         });
 
         return successResponse(subTopic, "تم تحديث الدرس بنجاح");

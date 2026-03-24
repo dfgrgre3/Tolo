@@ -11,6 +11,7 @@ import { TooltipProvider } from '@/components/ui/tooltip';
 import { HydrationFix } from '@/components/utils/HydrationFix';
 import GlobalSettingsApplier from '@/components/layout/GlobalSettingsApplier';
 import { Toaster } from 'sonner';
+import Footer from '@/components/Footer';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -32,6 +33,7 @@ const queryClient = new QueryClient({
 
 type GlobalProvidersProps = {
   children: React.ReactNode;
+  initialAuthHint?: boolean;
 };
 
 /**
@@ -44,7 +46,7 @@ type GlobalProvidersProps = {
  * 4. ToastProvider - Notifications (can be used by auth for error toasts)
  * 5. WebSocketProvider - Real-time features (needs auth state)
  */
-export function GlobalProviders({ children }: GlobalProvidersProps) {
+export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersProps) {
 
   
   return (
@@ -59,12 +61,13 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
               enableSystem={false}
               disableTransitionOnChange
             >
-              <AuthProvider>
+              <AuthProvider initialAuthHint={initialAuthHint}>
                 <GlobalSettingsApplier>
                   <WebSocketProvider>
                     <NotificationsProvider>
                       <TooltipProvider>
                         {children}
+                        <Footer />
                         <Toaster richColors closeButton position="top-center" />
                       </TooltipProvider>
                     </NotificationsProvider>
@@ -82,4 +85,3 @@ export function GlobalProviders({ children }: GlobalProvidersProps) {
 
 // No re-exports here to avoid circular dependencies. 
 // Import contexts directly from '@/contexts/...'
-

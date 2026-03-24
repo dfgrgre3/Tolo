@@ -29,14 +29,30 @@ const registerSchema = z.object({
         .refine((val) => /[0-9]/.test(val), 'Must contain a number')
         .refine((val) => /[!@#$%^&*(),.?":{}|<>]/.test(val), 'Must contain a special character'),
     confirmPassword: z.string().optional(),
-    username: z.string().min(3, 'Username must be at least 3 characters').optional(),
+    username: z.string()
+        .min(3, 'Username must be at least 3 characters')
+        .regex(/^[^\s@]+$/, 'Username cannot contain spaces or @ symbol')
+        .optional(),
     role: z.enum(['STUDENT', 'TEACHER']).default('STUDENT'),
     country: z.string().optional(),
     dateOfBirth: z.string().datetime().optional().nullable(),
     gender: z.string().optional(),
-    phone: z.string().optional(),
-    alternativePhone: z.string().optional(),
+    phone: z.string()
+        .optional()
+        .refine((val) => {
+            if (!val) return true;
+            const egyptianPattern = /^(010|011|012|015)\d{8}$/;
+            return egyptianPattern.test(val);
+        }, 'Phone must be a valid Egyptian phone number (11 digits starting with 010, 011, 012, or 015)'),
+    alternativePhone: z.string()
+        .optional()
+        .refine((val) => {
+            if (!val) return true;
+            const egyptianPattern = /^(010|011|012|015)\d{8}$/;
+            return egyptianPattern.test(val);
+        }, 'Alternative phone must be a valid Egyptian phone number (11 digits starting with 010, 011, 012, or 015)'),
     gradeLevel: z.string().optional(),
+    referredByCode: z.string().optional(),
     educationType: z.string().optional(),
     section: z.string().optional(),
     interestedSubjects: z.array(z.string()).optional(),
@@ -109,7 +125,8 @@ export async function POST(req: NextRequest) {
         const {
             email, password, username, role, country, dateOfBirth, gender,
             phone, alternativePhone, gradeLevel, educationType, section,
-            interestedSubjects, studyGoal, subjectsTaught, classesTaught, experienceYears
+            interestedSubjects, studyGoal, subjectsTaught, classesTaught, experienceYears,
+            referredByCode
         } = validation.data;
 
         // 3. Register via AuthService
@@ -131,6 +148,7 @@ export async function POST(req: NextRequest) {
             subjectsTaught,
             classesTaught,
             experienceYears,
+            referredByCode,
             ip,
             userAgent,
             location,

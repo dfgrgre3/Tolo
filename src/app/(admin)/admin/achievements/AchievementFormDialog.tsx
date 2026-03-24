@@ -27,8 +27,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Button } from "@/components/ui/button";
+import { AdminButton } from "@/components/admin/ui/admin-button";
 import { useForm } from "react-hook-form";
+import { Hammer, Sparkles, Wand2 } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -130,15 +131,17 @@ export function AchievementFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {editingAchievement ? "تعديل الإنجاز" : "إضافة إنجاز جديد"}
-          </DialogTitle>
-          <DialogDescription>
-            أدخل بيانات الإنجاز
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-lg bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+        <div className="h-1.5 bg-gradient-to-r from-yellow-500 via-amber-500 to-orange-500" />
+        <div className="p-8">
+          <DialogHeader className="mb-8">
+            <DialogTitle className="text-2xl font-black">
+              {editingAchievement ? "تنقيح وسام الجدارة" : "صياغة وسام ملكي جديد"}
+            </DialogTitle>
+            <DialogDescription className="font-bold text-muted-foreground">
+              أدخل بيانات الوسام بدقة لتكريم المحاربين المستحقين.
+            </DialogDescription>
+          </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
@@ -147,12 +150,12 @@ export function AchievementFormDialog({
                 name="key"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>المفتاح *</FormLabel>
-                    <FormControl>
-                      <Input {...field} dir="ltr" placeholder="FIRST_STEPS" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مفتاح الاستدعاء (Key)</FormLabel>
+                  <FormControl>
+                    <Input {...field} dir="ltr" placeholder="FIRST_STEPS" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
                 )}
               />
               <FormField
@@ -160,12 +163,12 @@ export function AchievementFormDialog({
                 name="icon"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الأيقونة *</FormLabel>
-                    <FormControl>
-                      <Input {...field} placeholder="trophy" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">أيقونة الوسام</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="trophy" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
                 )}
               />
             </div>
@@ -174,9 +177,9 @@ export function AchievementFormDialog({
               name="title"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>العنوان *</FormLabel>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مانشيت الوسام (العنوان)</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Input {...field} className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -187,9 +190,9 @@ export function AchievementFormDialog({
               name="description"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الوصف *</FormLabel>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف البطولة (المحتوى)</FormLabel>
                   <FormControl>
-                    <Textarea {...field} />
+                    <Textarea {...field} className="rounded-2xl border-white/10 bg-white/5 p-4 font-medium" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -201,10 +204,10 @@ export function AchievementFormDialog({
                 name="rarity"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الندرة *</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الندرة</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
                           <SelectValue placeholder="اختر الندرة" />
                         </SelectTrigger>
                       </FormControl>
@@ -225,11 +228,12 @@ export function AchievementFormDialog({
                 name="xpReward"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>مكافأة XP *</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مكافأة الـ XP</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="number"
+                        className="rounded-xl border-white/10 bg-white/5 h-11 text-center font-black"
                         onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
                       />
                     </FormControl>
@@ -244,10 +248,10 @@ export function AchievementFormDialog({
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الفئة *</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مجال التميز (الفئة)</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
                           <SelectValue placeholder="اختر الفئة" />
                         </SelectTrigger>
                       </FormControl>
@@ -268,10 +272,10 @@ export function AchievementFormDialog({
                 name="difficulty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>الصعوبة *</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">صعوبة المنال</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
                           <SelectValue placeholder="اختر الصعوبة" />
                         </SelectTrigger>
                       </FormControl>
@@ -292,8 +296,11 @@ export function AchievementFormDialog({
               control={form.control}
               name="isSecret"
               render={({ field }) => (
-                <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                  <FormLabel>إنجاز سري</FormLabel>
+                <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
+                  <div className="space-y-0.5">
+                    <FormLabel className="font-black text-xs">وسام سري؟</FormLabel>
+                    <p className="text-[10px] text-muted-foreground font-bold">يظهر للمحاربين كعلامة استفهام؟</p>
+                  </div>
                   <FormControl>
                     <Switch
                       checked={field.value}
@@ -303,13 +310,14 @@ export function AchievementFormDialog({
                 </FormItem>
               )}
             />
-            <DialogFooter>
-              <Button type="submit">
-                {editingAchievement ? "تحديث" : "إنشاء"}
-              </Button>
+            <DialogFooter className="pt-4">
+              <AdminButton type="submit" icon={editingAchievement ? Sparkles : Hammer} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                {editingAchievement ? "تحديث ميزات الوسام" : "صب الوسام في القالب"}
+              </AdminButton>
             </DialogFooter>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

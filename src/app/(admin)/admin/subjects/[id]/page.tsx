@@ -4,7 +4,6 @@ import * as React from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminStatsCard, AdminGridCard } from "@/components/admin/ui/admin-card";
-import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { DataTable } from "@/components/admin/ui/data-table";
 import { Button } from "@/components/ui/button";
@@ -20,15 +19,15 @@ import {
   Users,
   Clock,
   Edit,
-  Trash2,
   Eye,
-  Calendar,
-  GraduationCap,
   BarChart3,
   Play,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { formatNumber } from "@/lib/utils";
+
 
 interface SubjectDetails {
   id: string;
@@ -127,7 +126,7 @@ export default function SubjectDetailPage() {
         const response = await fetch(`/api/admin/subjects/${subjectId}`);
         if (response.ok) {
           const data = await response.json();
-          setSubject(data);
+          setSubject(data.data);
         } else {
           toast.error("المادة غير موجودة");
           router.push("/admin/subjects");
@@ -273,10 +272,16 @@ export default function SubjectDetailPage() {
             <ArrowRight className="ml-2 h-4 w-4" />
             العودة للقائمة
           </Button>
+          <Button variant="outline" asChild>
+            <Link href={`/courses/${subjectId}`}>
+              <ExternalLink className="ml-2 h-4 w-4" />
+              عرض بالموقع
+            </Link>
+          </Button>
           <Button asChild>
-            <Link href={`/admin/subjects/${subjectId}/edit`}>
+            <Link href={`/admin/subjects/${subjectId}/curriculum`}>
               <Edit className="ml-2 h-4 w-4" />
-              تعديل
+              إدارة المنهج
             </Link>
           </Button>
         </div>
@@ -286,25 +291,25 @@ export default function SubjectDetailPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <AdminStatsCard
           title="الكتب"
-          value={subject._count.books.toString()}
+          value={formatNumber(subject._count.books)}
           icon={BookOpen}
           color="blue"
         />
         <AdminStatsCard
           title="الامتحانات"
-          value={subject._count.exams.toString()}
+          value={formatNumber(subject._count.exams)}
           icon={FileText}
           color="purple"
         />
         <AdminStatsCard
           title="المسجلين"
-          value={subject._count.enrollments.toString()}
+          value={formatNumber(subject._count.enrollments)}
           icon={Users}
           color="green"
         />
         <AdminStatsCard
           title="جلسات الدراسة"
-          value={subject._count.studySessions.toString()}
+          value={formatNumber(subject._count.studySessions)}
           icon={Clock}
           color="yellow"
         />
@@ -364,8 +369,12 @@ export default function SubjectDetailPage() {
 
         {/* Tabs Content */}
         <div className="lg:col-span-2">
-          <Tabs defaultValue="books" className="space-y-4">
+          <Tabs defaultValue="curriculum" className="space-y-4">
             <TabsList>
+              <TabsTrigger value="curriculum">
+                <Play className="ml-2 h-4 w-4" />
+                المنهج الدراسي
+              </TabsTrigger>
               <TabsTrigger value="books">
                 <BookOpen className="ml-2 h-4 w-4" />
                 الكتب ({subject._count.books})
@@ -383,6 +392,24 @@ export default function SubjectDetailPage() {
                 النشاط
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="curriculum">
+              <AdminGridCard title="هيكلية المنهج التعليمي">
+                <div className="text-center py-12 space-y-4">
+                  <Play className="h-16 w-16 mx-auto mb-4 text-primary opacity-20" />
+                  <h3 className="text-xl font-bold">إدارة محتوى الدورة</h3>
+                  <p className="text-muted-foreground max-w-md mx-auto">
+                    قم بتنظيم الدروس، إضافة الفيديوهات، وترتيب الفصول الدراسية في بيئة سحب وإفلات متطورة.
+                  </p>
+                  <Button size="lg" className="rounded-xl px-8" asChild>
+                    <Link href={`/admin/subjects/${subjectId}/curriculum`}>
+                      <Edit className="ml-2 h-4 w-4" />
+                      فتح منشئ المنهج
+                    </Link>
+                  </Button>
+                </div>
+              </AdminGridCard>
+            </TabsContent>
 
             <TabsContent value="books">
               <AdminGridCard title="الكتب الدراسية">
@@ -457,7 +484,7 @@ export default function SubjectDetailPage() {
                         </div>
                         <div className="text-left">
                           <p className="font-bold text-primary">
-                            {student.totalXP.toLocaleString()} XP
+                            {formatNumber(student.totalXP)} XP
                           </p>
                         </div>
                       </div>
@@ -508,6 +535,7 @@ export default function SubjectDetailPage() {
                 )}
               </AdminGridCard>
             </TabsContent>
+
           </Tabs>
         </div>
       </div>

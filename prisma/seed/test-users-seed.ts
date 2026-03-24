@@ -59,7 +59,6 @@ async function seedTestUsers() {
           smsNotifications: false,
           twoFactorEnabled: false,
           biometricEnabled: false,
-          biometricCredentials: [],
           // Gamification defaults
           totalXP: 100,
           level: 2,
@@ -86,4 +85,3 @@ async function seedTestUsers() {
 }
 
 export default seedTestUsers;
-

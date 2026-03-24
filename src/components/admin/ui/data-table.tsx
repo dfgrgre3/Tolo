@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Search, SlidersHorizontal, FileX } from "lucide-react";
+import { formatNumber } from "@/lib/utils";
 
 interface BulkAction {
   label: string;
@@ -145,7 +146,7 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center gap-2">
           {/* Row count badge */}
           <div className="hidden sm:flex items-center text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-            <span className="font-semibold text-foreground">{totalRows}</span>
+            <span className="font-semibold text-foreground">{formatNumber(totalRows)}</span>
             <span className="mr-1">عنصر</span>
           </div>
           
@@ -182,7 +183,7 @@ export function DataTable<TData, TValue>({
         <div className="flex items-center justify-between px-4 py-2 border bg-accent/50 rounded-xl animate-in slide-in-from-top-2 duration-300">
           <div className="flex items-center gap-3">
             <span className="text-sm font-semibold">
-              تم تحديد {table.getFilteredSelectedRowModel().rows.length} عنصر
+              تم تحديد {formatNumber(table.getFilteredSelectedRowModel().rows.length)} عنصر
             </span>
             <div className="h-4 w-px bg-border mx-1" />
             <div className="flex items-center gap-2">
@@ -276,9 +277,9 @@ export function DataTable<TData, TValue>({
       {totalRows > 0 && (
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="text-sm text-muted-foreground order-2 sm:order-1">
-            عرض <span className="font-medium text-foreground">{startRow}</span> إلى{" "}
-            <span className="font-medium text-foreground">{endRow}</span> من{" "}
-            <span className="font-medium text-foreground">{totalRows}</span> عنصر
+            عرض <span className="font-medium text-foreground">{formatNumber(startRow)}</span> إلى{" "}
+            <span className="font-medium text-foreground">{formatNumber(endRow)}</span> من{" "}
+            <span className="font-medium text-foreground">{formatNumber(totalRows)}</span> عنصر
           </div>
           <div className="flex items-center gap-2 order-1 sm:order-2">
             {/* Page size selector */}

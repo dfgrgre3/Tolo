@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+ï»¿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
         const { title, excerpt, content, categoryId } = await req.json();
 
         if (!title || !excerpt || !content || !categoryId) {
-          return badRequestResponse("ÌãíÚ ÇáÍŞæá ÇáãØáæÈÉ íÌÈ ãáÄåÇ");
+          return badRequestResponse("Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙŠØ¬Ø¨ Ù…Ù„Ø¤Ù‡Ø§");
         }
 
         // Check if user exists
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!user) {
-          return badRequestResponse("ÇáãÓÊÎÏã ÛíÑ ãæÌæÏ");
+          return badRequestResponse("Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯");
         }
 
         // Check if category exists
@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!category) {
-          return badRequestResponse("ÇáÊÕäíİ ÛíÑ ãæÌæÏ");
+          return badRequestResponse("Ø§Ù„ØªØµÙ†ÙŠÙ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯");
         }
 
         // Generate slug from title
@@ -110,3 +110,4 @@ export async function POST(request: NextRequest) {
     });
   });
 }
+

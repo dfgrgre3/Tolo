@@ -132,7 +132,14 @@ interface SearchInputProps extends Omit<AdminInputProps, "icon" | "iconPosition"
 
 const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
   ({ onSearch, debounce = 300, ...props }, ref) => {
-    const [value, setValue] = React.useState(props.value as string || "");
+    const { defaultValue, value: propsValue, ...rest } = props;
+    const [value, setValue] = React.useState((propsValue ?? defaultValue ?? "") as string);
+
+    React.useEffect(() => {
+      if (propsValue !== undefined) {
+        setValue(propsValue as string);
+      }
+    }, [propsValue]);
 
     React.useEffect(() => {
       const timer = setTimeout(() => {
@@ -151,7 +158,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           setValue("");
           onSearch?.("");
         }}
-        {...props}
+        {...rest}
         value={value}
         onChange={(e) => {
           setValue(e.target.value);

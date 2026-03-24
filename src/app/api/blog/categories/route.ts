@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
       logger.error("Error fetching blog categories:", error);
       return NextResponse.json(
-        { error: "ÍÏË ÎØÃ İí ÌáÈ ÇáÊÕäíİÇÊ" },
+        { error: "Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ Ø¬Ù„Ø¨ Ø§Ù„ØªØµÙ†ÙŠÙØ§Øª" },
         { status: 500 }
       );
     }
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
       if (!name || !description) {
         return NextResponse.json(
-          { error: "ÇáÇÓã æÇáæÕİ ãØáæÈÇä" },
+          { error: "Ø§Ù„Ø§Ø³Ù… ÙˆØ§Ù„ÙˆØµÙ Ù…Ø·Ù„ÙˆØ¨Ø§Ù†" },
           { status: 400 }
         );
       }
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
           name,
           slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
           description,
-          icon: icon || "??",
+          icon: icon || "ğŸ“‚",
           type: "BLOG"
         }
       });
@@ -50,9 +50,10 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       logger.error("Error creating blog category:", error);
       return NextResponse.json(
-        { error: "ÍÏË ÎØÃ İí ÅäÔÇÁ ÇáÊÕäíİ" },
+        { error: "Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ØªØµÙ†ÙŠÙ" },
         { status: 500 }
       );
     }
   });
 }
+

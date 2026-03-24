@@ -6,6 +6,7 @@ import { TwoFactorService } from './two-factor-service';
 import { logger } from '@/lib/logger';
 import { randomBytes, createHash } from 'crypto';
 import { emailService } from '@/services/email-service';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
  * AuthService - Central authentication business logic layer.
@@ -50,6 +51,7 @@ export interface RegisterInput {
     subjectsTaught?: string[];
     classesTaught?: string[];
     experienceYears?: string;
+    referredByCode?: string;
 }
 
 export interface AuthResult {
@@ -211,10 +213,14 @@ export class AuthService {
                 sessionId: session.id,
             };
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('[AUTH_LOGIN_ERROR]', { error });
+            
             return {
                 success: false,
-                error: 'Internal server error',
+                error: process.env.NODE_ENV === 'production' 
+                    ? 'Internal server error' 
+                    : `Internal server error: ${errorMessage}`,
                 statusCode: 500,
             };
         }
@@ -303,7 +309,7 @@ export class AuthService {
             email, username, password, role = 'STUDENT', ip, userAgent, location,
             country, dateOfBirth, gender, phone, alternativePhone,
             gradeLevel, educationType, section, interestedSubjects = [], studyGoal,
-            subjectsTaught = [], classesTaught = [], experienceYears
+            subjectsTaught = [], classesTaught = [], experienceYears, referredByCode
         } = input;
 
         try {
@@ -330,6 +336,19 @@ export class AuthService {
             const verifyTokenHash = createHash('sha256').update(verifyToken).digest('hex');
             const verifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
+            // Find referrer if code is provided
+            let referrerId: string | undefined;
+            if (referredByCode) {
+                const referrer = await prisma.user.findUnique({
+                    where: { referralCode: referredByCode.toUpperCase() },
+                    select: { id: true }
+                });
+                if (referrer) referrerId = referrer.id;
+            }
+
+            // Generate referral code for new user
+            const newReferralCode = uuidv4().split('-')[0].toUpperCase();
+
             // 4. Create user
             const user = await prisma.user.create({
                 data: {
@@ -352,7 +371,9 @@ export class AuthService {
                     studyGoal,
                     subjectsTaught,
                     classesTaught,
-                    experienceYears
+                    experienceYears,
+                    referredById: referrerId,
+                    referralCode: newReferralCode
                 },
             });
 
@@ -382,10 +403,14 @@ export class AuthService {
                 statusCode: 201,
             };
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('[AUTH_REGISTER_ERROR]', { error });
+            
             return {
                 success: false,
-                error: 'Internal server error',
+                error: process.env.NODE_ENV === 'production' 
+                    ? 'Internal server error' 
+                    : `Internal server error: ${errorMessage}`,
                 statusCode: 500,
             };
         }

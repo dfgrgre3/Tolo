@@ -91,9 +91,15 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  * On mount, it checks if the user is authenticated by calling /api/auth/me.
  * If the access token is expired, it automatically tries to refresh it.
  */
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ 
+    children, 
+    initialAuthHint = true 
+}: { 
+    children: React.ReactNode; 
+    initialAuthHint?: boolean;
+}) {
     const [user, setUser] = useState<AuthUser | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(initialAuthHint);
     const router = useRouter();
     const isRefreshing = useRef(false);
     const refreshPromise = useRef<Promise<boolean> | null>(null);

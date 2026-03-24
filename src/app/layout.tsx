@@ -21,15 +21,27 @@ export const viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+import { cookies } from 'next/headers';
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const hasAuthToken = cookieStore.has('refresh_token') || cookieStore.has('session_id');
+
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
+        <meta name="theme-color" content="#f97316" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+      </head>
       <body className={alexandria.variable}>
-        <GlobalProviders>{children}</GlobalProviders>
+        <GlobalProviders initialAuthHint={hasAuthToken}>{children}</GlobalProviders>
       </body>
     </html>
   );

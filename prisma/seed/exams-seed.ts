@@ -99,56 +99,56 @@ const seedExams = [
   // Additional subjects - مواد إضافية
   { 
     id: randomUUID(),
-    subjectId: "اللغة العربية", 
+    subjectId: SubjectType.ARABIC, // Fixed from "اللغة العربية"
     title: "امتحان اللغة العربية - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "اللغة العربية", 
+    subjectId: SubjectType.ARABIC, 
     title: "امتحان اللغة العربية - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "اللغة الإنجليزية", 
+    subjectId: SubjectType.ENGLISH, // Fixed from "اللغة الإنجليزية"
     title: "امتحان اللغة الإنجليزية - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "اللغة الإنجليزية", 
+    subjectId: SubjectType.ENGLISH, 
     title: "امتحان اللغة الإنجليزية - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "العلوم", 
+    subjectId: "SCIENCE", // Fixed from "العلوم"
     title: "امتحان العلوم - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "العلوم", 
+    subjectId: "SCIENCE", 
     title: "امتحان العلوم - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "الدراسات الاجتماعية", 
+    subjectId: "SOCIAL_STUDIES", // Fixed from "الدراسات الاجتماعية"
     title: "امتحان الدراسات الاجتماعية - الفصل الدراسي الأول", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "الدراسات الاجتماعية", 
+    subjectId: "SOCIAL_STUDIES", 
     title: "امتحان الدراسات الاجتماعية - الفصل الدراسي الثاني", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 

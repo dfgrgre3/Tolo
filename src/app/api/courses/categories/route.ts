@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+๏ปฟimport { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -9,27 +9,28 @@ export async function GET(request: NextRequest) {
     try {
     // Define categories for the courses
     const categories = [
-      { id: "MATH", name: "วแัํวึํวส", icon: "??" },
-      { id: "PHYSICS", name: "วแÝําํวม", icon: "??" },
-      { id: "CHEMISTRY", name: "วแ฿ํใํวม", icon: "??" },
-      { id: "BIOLOGY", name: "วแรอํวม", icon: "??" },
-      { id: "ARABIC", name: "วแแÛษ วแฺัศํษ", icon: "??" },
-      { id: "ENGLISH", name: "วแแÛษ วแลไฬแําํษ", icon: "??" },
-      { id: "HISTORY", name: "วแสวัํฮ", icon: "???" },
-      { id: "GEOGRAPHY", name: "วแฬÛัวÝํว", icon: "??" },
-      { id: "PHILOSOPHY", name: "วแÝแำÝษ", icon: "??" },
-      { id: "RELIGION", name: "วแสัศํษ วแฯํไํษ", icon: "??" },
-      { id: "COMPUTER_SCIENCE", name: "ฺแๆใ วแอวำศ", icon: "??" },
-      { id: "PROGRAMMING", name: "วแศัใฬษ", icon: "????" },
+      { id: "MATH", name: "ุงูุฑูุงุถูุงุช", icon: "??" },
+      { id: "PHYSICS", name: "ุงูููุฒูุงุก", icon: "??" },
+      { id: "CHEMISTRY", name: "ุงูููู…ูุงุก", icon: "??" },
+      { id: "BIOLOGY", name: "ุงูุฃุญูุงุก", icon: "??" },
+      { id: "ARABIC", name: "ุงููุบุฉ ุงูุนุฑุจูุฉ", icon: "??" },
+      { id: "ENGLISH", name: "ุงููุบุฉ ุงูุฅูุฌููุฒูุฉ", icon: "??" },
+      { id: "HISTORY", name: "ุงูุชุงุฑูุฎ", icon: "???" },
+      { id: "GEOGRAPHY", name: "ุงูุฌุบุฑุงููุง", icon: "??" },
+      { id: "PHILOSOPHY", name: "ุงูููุณูุฉ", icon: "??" },
+      { id: "RELIGION", name: "ุงูุชุฑุจูุฉ ุงูุฏูููุฉ", icon: "??" },
+      { id: "COMPUTER_SCIENCE", name: "ุนููู… ุงูุญุงุณุจ", icon: "??" },
+      { id: "PROGRAMMING", name: "ุงูุจุฑู…ุฌุฉ", icon: "??โ€??" },
     ];
 
     return NextResponse.json(categories);
   } catch (error) {
     logger.error("Error fetching course categories:", error);
     return NextResponse.json(
-      { error: "อฯห ฮุร Ýํ ฬแศ วแสีไํÝวส" },
+      { error: "ุญุฏุซ ุฎุทุฃ ูู ุฌูุจ ุงูุชุตูููุงุช" },
       { status: 500 }
     );
     }
   });
 }
+

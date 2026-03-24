@@ -75,6 +75,11 @@ export async function PATCH(
 
         const { name, email } = await req.json();
 
+        // Validate that name does not contain email addresses
+        if (name && typeof name === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) {
+          return createErrorResponse("Name cannot be an email address", 400);
+        }
+
         const updatedUser = await prisma.user.update({
           where: { id },
           data: {

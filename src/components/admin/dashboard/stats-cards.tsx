@@ -1,5 +1,6 @@
 import { StatsCard } from "@/components/admin/ui/stats-card";
 import { Users, BookOpen, FileText, Trophy } from "lucide-react";
+import { formatNumber } from "@/lib/utils";
 
 interface StatsCardsProps {
   stats: {
@@ -19,26 +20,26 @@ export function StatsCards({ stats, trends }: StatsCardsProps) {
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatsCard
         title="إجمالي المستخدمين"
-        value={stats.totalUsers.toLocaleString()}
+        value={formatNumber(stats.totalUsers)}
         description={`${stats.newUsersToday} مستخدم جديد اليوم`}
         icon={Users}
         trend={trends.userGrowth !== 0 ? { value: Math.abs(trends.userGrowth), isPositive: trends.userGrowth > 0 } : undefined}
       />
       <StatsCard
         title="المواد الدراسية"
-        value={stats.totalSubjects.toString()}
+        value={formatNumber(stats.totalSubjects)}
         description="مادة متاحة"
         icon={BookOpen}
       />
       <StatsCard
         title="الامتحانات"
-        value={stats.totalExams.toString()}
+        value={formatNumber(stats.totalExams)}
         description="امتحان متاح"
         icon={FileText}
       />
       <StatsCard
         title="التحديات النشطة"
-        value={stats.activeChallenges.toString()}
+        value={formatNumber(stats.activeChallenges)}
         description="تحدي جاري"
         icon={Trophy}
       />

@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { User, Mail, Lock, Loader2, ArrowLeft, Eye, EyeOff, Check, Phone, Calendar, GraduationCap, Briefcase, Target } from 'lucide-react';
+import { User, Mail, Lock, Loader2, ArrowLeft, Eye, EyeOff, Check, Phone, Calendar, GraduationCap, Briefcase, Target, Flag } from 'lucide-react';
 import Link from 'next/link';
 import { AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
@@ -16,8 +16,55 @@ import { AuthField } from '@/components/auth/AuthField';
 import { AuthNotice } from '@/components/auth/AuthNotice';
 import { AuthShell } from '@/components/auth/AuthShell';
 
+// Add this helper function for phone number formatting
+const formatPhoneNumber = (value: string): string => {
+  if (!value) return '';
+  // Remove all non-digit characters
+  const digitsOnly = value.replace(/\D/g, '');
+  
+  // For Egyptian numbers, ensure it starts with the correct prefix
+  if (digitsOnly.length > 0 && !digitsOnly.startsWith('01')) {
+    // If user types something that doesn't start with 01, just take first 11 digits
+    return digitsOnly.substring(0, 11);
+  }
+  
+  return digitsOnly.substring(0, 11);
+};
+
+// Add this function to handle phone input with prevention of non-numeric characters
+const handlePhoneInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Allow: backspace, delete, tab, escape, enter, arrows, home, end
+  if ([46, 8, 9, 27, 13, 37, 38, 39, 40, 35, 36].includes(e.keyCode)) {
+    return;
+  }
+  // Ensure that it is a number and stop the keypress
+  if ((e.shiftKey || (e.keyCode < 48 || e.keyCode > 57)) && (e.keyCode < 96 || e.keyCode > 105)) {
+    e.preventDefault();
+  }
+};
+
+const COUNTRIES = [
+  { code: 'EG', name: 'مصر', phoneCode: '+20' },
+  { code: 'SA', name: 'السعودية', phoneCode: '+966' },
+  { code: 'AE', name: 'الإمارات', phoneCode: '+971' },
+  { code: 'KW', name: 'الكويت', phoneCode: '+965' },
+  { code: 'QA', name: 'قطر', phoneCode: '+974' },
+  { code: 'OM', name: 'عمان', phoneCode: '+968' },
+  { code: 'BH', name: 'البحرين', phoneCode: '+973' },
+  { code: 'JO', name: 'الأردن', phoneCode: '+962' },
+  { code: 'LB', name: 'لبنان', phoneCode: '+961' },
+  { code: 'SY', name: 'سوريا', phoneCode: '+963' },
+  { code: 'IQ', name: 'العراق', phoneCode: '+964' },
+  { code: 'PS', name: 'فلسطين', phoneCode: '+970' },
+  { code: 'SD', name: 'السودان', phoneCode: '+249' },
+  { code: 'LY', name: 'ليبيا', phoneCode: '+218' },
+  { code: 'TN', name: 'تونس', phoneCode: '+216' },
+  { code: 'DZ', name: 'الجزائر', phoneCode: '+213' },
+  { code: 'MA', name: 'المغرب', phoneCode: '+212' },
+];
+
 const registerSchema = z.object({
-  username: z.string().min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل'),
+  username: z.string().min(3, 'الاسم يجب أن يكون 3 أحرف على الأقل').regex(/^[^\s@]+$/, 'اسم المستخدم لا يمكن أن يحتوي على مسافات أو رمز @'),
   email: z.string().email('يرجى إدخال بريد إلكتروني صحيح'),
   password: z.string().min(8, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل')
     .regex(/[A-Z]/, 'يجب أن تحتوي على حرف كبير واحد')
@@ -25,7 +72,20 @@ const registerSchema = z.object({
     .regex(/[0-9]/, 'يجب أن تحتوي على رقم واحد')
     .regex(/[^A-Za-z0-9]/, 'يجب أن تحتوي على رمز خاص واحد'),
   confirmPassword: z.string(),
-  phone: z.string().min(8, 'رقم الهاتف مطلوب'),
+  phone: z.string()
+    .refine((val) => {
+      // Allow empty phone for now, but if provided, validate as Egyptian number
+      if (!val) return true;
+      const egyptianPattern = /^(010|011|012|015)\d{8}$/;
+      return egyptianPattern.test(val);
+    }, 'رقم الهاتف المصري يجب أن يبدأ بـ 010، 011، 012، أو 015 ويتكون من 11 رقمًا'),
+  alternativePhone: z.string()
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+      const egyptianPattern = /^(010|011|012|015)\d{8}$/;
+      return egyptianPattern.test(val);
+    }, 'رقم الهاتف البديل يجب أن يكون رقم هاتف مصري صالح (11 رقمًا يبدأ بـ 010، 011، 012، أو 015)'),
   country: z.string().min(2, 'الدولة مطلوبة'),
   dateOfBirth: z.string().min(1, 'تاريخ الميلاد مطلوب'),
   role: z.enum(['STUDENT', 'TEACHER']),
@@ -39,7 +99,9 @@ const registerSchema = z.object({
   path: ['confirmPassword'],
 });
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type RegisterFormValues = z.infer<typeof registerSchema> & {
+  alternativePhone?: string;
+};
 
 const STUDENT_GRADES = ['أولى إعدادي', 'ثانية إعدادي', 'ثالثة إعدادي', 'أولى ثانوي', 'ثانية ثانوي', 'ثالثة ثانوي'];
 const EDUCATION_TYPES = ['عام', 'أزهري', 'دولي', 'IG', 'American', 'أخرى'];
@@ -54,6 +116,7 @@ function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState('EG');
 
   const redirectUrl = useMemo(
     () => sanitizeRedirectPath(searchParams.get('redirect'), DEFAULT_AUTHENTICATED_ROUTE),
@@ -63,8 +126,30 @@ function RegisterForm() {
 
   const { register, handleSubmit, control, getValues, setValue, trigger, formState: { errors } } = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
-    defaultValues: { role: 'STUDENT', interestedSubjects: [], subjectsTaught: [], acceptTerms: false },
+    defaultValues: { 
+      role: 'STUDENT', 
+      interestedSubjects: [], 
+      subjectsTaught: [], 
+      acceptTerms: false,
+      country: 'مصر' // Default to Egypt
+    },
   });
+
+  // Handle phone input formatting
+  const handlePhoneChange = (field: 'phone' | 'alternativePhone') => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formattedValue = formatPhoneNumber(e.target.value);
+    setValue(field, formattedValue, { shouldValidate: true });
+  };
+
+  // Handle country selection
+  const handleCountryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const countryCode = e.target.value;
+    const country = COUNTRIES.find(c => c.code === countryCode);
+    if (country) {
+      setValue('country', country.name, { shouldValidate: true });
+      setSelectedCountry(countryCode);
+    }
+  };
 
   const roleValue = useWatch({ control, name: 'role' });
   const interestedSubjects = useWatch({ control, name: 'interestedSubjects', defaultValue: [] }) || [];
@@ -111,8 +196,9 @@ function RegisterForm() {
       username: data.username,
       role: data.role,
       country: data.country,
-      dateOfBirth: new Date(data.dateOfBirth).toISOString(),
+      dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth).toISOString() : null,
       phone: data.phone,
+      alternativePhone: data.alternativePhone,
       gradeLevel: data.gradeLevel,
       educationType: data.educationType,
       interestedSubjects: data.interestedSubjects,
@@ -218,8 +304,47 @@ function RegisterForm() {
               <AuthField {...register('email')} type="email" label="البريد الإلكتروني" placeholder="mail@realm.com" icon={<Mail className="h-5 w-5" />} error={errors.email?.message} />
               <AuthField {...register('password')} type={showPassword ? 'text' : 'password'} label="كلمة المرور" placeholder="••••••••" icon={<Lock className="h-5 w-5" />} endAdornment={<button type="button" onClick={() => setShowPassword(v => !v)}>{showPassword ? <EyeOff className="h-4 w-4 text-gray-500" /> : <Eye className="h-4 w-4 text-gray-500" />}</button>} error={errors.password?.message} />
               <AuthField {...register('confirmPassword')} type={showConfirmPassword ? 'text' : 'password'} label="تأكيد كلمة المرور" placeholder="••••••••" icon={<Lock className="h-5 w-5" />} endAdornment={<button type="button" onClick={() => setShowConfirmPassword(v => !v)}>{showConfirmPassword ? <EyeOff className="h-4 w-4 text-gray-500" /> : <Eye className="h-4 w-4 text-gray-500" />}</button>} error={errors.confirmPassword?.message} />
-              <AuthField {...register('phone')} label="الهاتف" placeholder="010XXXXXXXX" icon={<Phone className="h-5 w-5" />} error={errors.phone?.message} />
-              <AuthField {...register('country')} label="الدولة" placeholder="Egypt" error={errors.country?.message} />
+              
+              {/* Country Selection */}
+              <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest text-gray-500 px-1">الدولة</Label>
+                <div className="relative">
+                  <select 
+                    value={selectedCountry}
+                    onChange={handleCountryChange}
+                    className="w-full h-14 rounded-2xl border border-white/10 bg-white/5 px-6 pr-12 font-bold text-white outline-none appearance-none"
+                  >
+                    {COUNTRIES.map(country => (
+                      <option key={country.code} value={country.code}>{country.name} ({country.phoneCode})</option>
+                    ))}
+                  </select>
+                  <Flag className="absolute right-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500" />
+                </div>
+                {errors.country ? <p className="mr-1 text-xs font-bold text-red-500">{errors.country.message}</p> : null}
+              </div>
+              
+              {/* Primary Phone */}
+              <AuthField 
+                value={getValues('phone')}
+                onChange={handlePhoneChange('phone')}
+                onKeyDown={handlePhoneInput}
+                label="الهاتف الأساسي" 
+                placeholder="010XXXXXXXX" 
+                icon={<Phone className="h-5 w-5" />} 
+                error={errors.phone?.message} 
+              />
+              
+              {/* Alternative Phone */}
+              <AuthField 
+                value={getValues('alternativePhone') || ''}
+                onChange={handlePhoneChange('alternativePhone')}
+                onKeyDown={handlePhoneInput}
+                label="الهاتف البديل" 
+                placeholder="010XXXXXXXX (اختياري)" 
+                icon={<Phone className="h-5 w-5" />} 
+                error={errors.alternativePhone?.message} 
+              />
+              
               <AuthField {...register('dateOfBirth')} type="date" label="تاريخ الميلاد" icon={<Calendar className="h-5 w-5" />} error={errors.dateOfBirth?.message} />
             </div>
           )}

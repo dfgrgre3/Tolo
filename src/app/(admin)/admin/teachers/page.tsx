@@ -1,51 +1,35 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { DataTable } from "@/components/admin/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { MoreHorizontal, Plus, Edit, Trash2, GraduationCap, ExternalLink } from "lucide-react";
+import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
+import { AdminButton, IconButton } from "@/components/admin/ui/admin-button";
+import { AdminCard } from "@/components/admin/ui/admin-card";
+import { 
+  Plus, Edit, Trash2, GraduationCap, ExternalLink, Star, 
+  Search, Filter, Users, School, MessageCircle, Globe, RefreshCw
+} from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
+import { 
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
+} from "@/components/ui/dialog";
+import { 
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+} from "@/components/ui/form";
+import { 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Teacher {
   id: string;
@@ -72,15 +56,31 @@ const teacherSchema = z.object({
 type TeacherFormValues = z.infer<typeof teacherSchema>;
 
 export default function AdminTeachersPage() {
-  const [teachers, setTeachers] = React.useState<Teacher[]>([]);
-  const [subjects, setSubjects] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingTeacher, setEditingTeacher] = React.useState<Teacher | null>(null);
-  const [deleteDialog, setDeleteDialog] = React.useState<{
-    open: boolean;
-    id: string | null;
-  }>({ open: false, id: null });
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
+    open: false,
+    id: null,
+  });
+
+  const { data: teachers = [], isLoading, refetch } = useQuery({
+    queryKey: ["admin", "teachers"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/teachers");
+      const result = await response.json();
+      return (result.teachers || []) as Teacher[];
+    },
+  });
+
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["admin", "subjects-list"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/subjects?limit=100");
+      const result = await response.json();
+      return (result.subjects || []) as any[];
+    },
+  });
 
   const form = useForm<TeacherFormValues>({
     resolver: zodResolver(teacherSchema),
@@ -91,30 +91,6 @@ export default function AdminTeachersPage() {
       notes: "",
     },
   });
-
-  const fetchData = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const [teachersRes, subjectsRes] = await Promise.all([
-        fetch("/api/admin/teachers"),
-        fetch("/api/admin/subjects"),
-      ]);
-      const teachersData = await teachersRes.json();
-      const subjectsData = await subjectsRes.json();
-      
-      setTeachers(teachersData.teachers || []);
-      setSubjects(subjectsData.subjects || []);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("حدث خطأ أثناء جلب البيانات");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const handleOpenDialog = (teacher?: Teacher) => {
     if (teacher) {
@@ -139,32 +115,28 @@ export default function AdminTeachersPage() {
 
   const handleSubmit = async (values: TeacherFormValues) => {
     try {
-      const url = "/api/admin/teachers";
       const method = editingTeacher ? "PATCH" : "POST";
       const body = editingTeacher ? { ...values, id: editingTeacher.id } : values;
-
-      const response = await fetch(url, {
+      const response = await fetch("/api/admin/teachers", {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        toast.success(editingTeacher ? "تم تحديث المعلم بنجاح" : "تم إنشاء المعلم بنجاح");
+        toast.success(editingTeacher ? "تم تحديث رتبة المعلم" : "تم تعيين قائد علمي جديد");
         setDialogOpen(false);
-        fetchData();
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حفظ بيانات المعلم");
+        toast.error("فشل في حفظ بيانات المعلم");
       }
     } catch (error) {
-      console.error("Error saving teacher:", error);
-      toast.error("حدث خطأ أثناء حفظ بيانات المعلم");
+      toast.error("خطأ في الاتصال");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
-
     try {
       const response = await fetch("/api/admin/teachers", {
         method: "DELETE",
@@ -173,14 +145,13 @@ export default function AdminTeachersPage() {
       });
 
       if (response.ok) {
-        toast.success("تم حذف المعلم بنجاح");
-        fetchData();
+        toast.success("تم عزل المعلم من هيئة التدريس");
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حذف المعلم");
+        toast.error("فشل في العزل");
       }
     } catch (error) {
-      console.error("Error deleting teacher:", error);
-      toast.error("حدث خطأ أثناء حذف المعلم");
+      toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -189,28 +160,35 @@ export default function AdminTeachersPage() {
   const columns: ColumnDef<Teacher>[] = [
     {
       accessorKey: "name",
-      header: "اسم المعلم",
+      header: "القائد العلمي",
       cell: ({ row }) => {
         const teacher = row.original;
         return (
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <GraduationCap className="h-5 w-5 text-primary" />
+          <div className="flex items-center gap-4">
+            <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-xl p-0.5 bg-background overflow-hidden rounded-[1rem]">
+              <AvatarImage src={`https://api.dicebear.com/7.x/notionists/svg?seed=${teacher.name}`} />
+              <AvatarFallback className="font-black bg-primary/10 text-primary uppercase">{teacher.name.substring(0, 2)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <p className="font-black text-sm tracking-tight">{teacher.name}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]"></div>
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">رتبة: أستاذ قدير</span>
+              </div>
             </div>
-            <span className="font-medium text-lg tracking-tight">{teacher.name}</span>
           </div>
         );
       },
     },
     {
       accessorKey: "subject",
-      header: "المادة",
+      header: "العلم المختص",
       cell: ({ row }) => {
         const subject = row.original.subject;
         return (
           <Badge 
             variant="outline" 
-            className="font-bold border-2" 
+            className="font-black text-[10px] uppercase tracking-wider rounded-lg border-2 px-3 py-1 shadow-sm" 
             style={{ 
               borderColor: subject.color ? `${subject.color}40` : "#3b82f640",
               color: subject.color || "#3b82f6",
@@ -223,210 +201,190 @@ export default function AdminTeachersPage() {
       },
     },
     {
-      accessorKey: "onlineUrl",
-      header: "قناة التواصل",
-      cell: ({ row }) => {
-        const url = row.getValue("onlineUrl") as string;
-        if (!url) return "-";
-        return (
-          <Button variant="ghost" size="sm" asChild className="gap-2 text-blue-500 hover:text-blue-600 hover:bg-blue-50/50">
-            <a href={url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="h-3.5 w-3.5" />
-              زيارة الرابط
-            </a>
-          </Button>
-        );
-      },
-    },
-    {
       accessorKey: "rating",
-      header: "التقييم",
-      cell: ({ row }) => {
-        const rating = row.getValue("rating") as number;
-        return (
-          <div className="flex items-center gap-1">
-             <span className="font-bold text-lg text-amber-500">{rating}</span>
-             <span className="text-xs text-muted-foreground mr-1">/ 5</span>
+      header: "الثقة الملكية",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div className="flex -space-x-1">
+            {[1, 2, 3, 4, 5].map((s) => (
+              <Star 
+                key={s} 
+                className={`w-3.5 h-3.5 ${s <= Math.round(row.original.rating) ? "text-amber-500 fill-current" : "text-muted opacity-20"}`} 
+              />
+            ))}
           </div>
-        );
-      },
+          <span className="text-xs font-black">{row.original.rating.toFixed(1)}</span>
+        </div>
+      ),
     },
     {
-      accessorKey: "createdAt",
-      header: "تاريخ الإضافة",
+      accessorKey: "onlineUrl",
+      header: "منصة التواصل",
       cell: ({ row }) => {
-        const date = row.getValue("createdAt") as string;
-        return <span className="text-sm font-medium">{new Date(date).toLocaleDateString("ar-EG")}</span>;
+        const url = row.original.onlineUrl;
+        if (!url) return <span className="text-[10px] font-bold opacity-30 italic">لا يوجد رابط</span>;
+        return (
+          <AdminButton
+            icon={Globe}
+            variant="ghost"
+            size="sm"
+            className="text-primary hover:bg-primary/5 h-8 px-3 gap-2 border-none"
+            onClick={() => window.open(url || "", "_blank")}
+          >
+            <span className="text-[10px] font-black uppercase">زيارة المقر</span>
+          </AdminButton>
+        );
       },
     },
     {
       id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        const teacher = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl p-1 shadow-2xl">
-              <DropdownMenuLabel className="px-3 py-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">خيارات التحكم</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleOpenDialog(teacher)} className="cursor-pointer gap-2 p-2.5 rounded-lg focus:bg-primary/5">
-                <Edit className="h-4 w-4 text-primary" />
-                <span className="font-medium">تعديل البيانات</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive cursor-pointer gap-2 p-2.5 rounded-lg focus:bg-destructive/5"
-                onClick={() => setDeleteDialog({ open: true, id: teacher.id })}
-              >
-                <Trash2 className="h-4 w-4" />
-                <span className="font-medium">حذف المعلم</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
+      header: "التحكم",
+      cell: ({ row }) => (
+        <RowActions
+          row={row.original}
+          onEdit={handleOpenDialog}
+          onDelete={(t) => setDeleteDialog({ open: true, id: t.id })}
+          extraActions={[
+            { icon: MessageCircle, label: "إرسال رسالة ملكية", onClick: (t) => toast.info(`قريباً: التواصل مع ${t.name}`) },
+          ]}
+        />
+      ),
     },
   ];
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="إدارة المعلمين النجوم"
-        description="إضافة وتعديل بيانات المعلمين المختصين لكل مادة دراسية على المنصة"
+        title="مجلس الحكماء والعلماء 🎓"
+        description="إدارة هيئة التدريس، تخصصات المعلمين، وقنوات التواصل المباشرة مع الطلاب."
       >
-        <Button onClick={() => handleOpenDialog()} className="rounded-xl px-6 py-5 h-auto bg-primary hover:shadow-lg hover:shadow-primary/20 transition-all active:scale-95 group">
-          <Plus className="ml-2 h-5 w-5 transition-transform group-hover:rotate-90 duration-300" />
-          <span className="font-bold">إضافة معلم جديد</span>
-        </Button>
+        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+          تعيين قائد جديد
+        </AdminButton>
       </PageHeader>
 
-      {loading ? (
-        <TableSkeleton rows={6} cols={6} />
-      ) : (
-        <div className="rounded-[2rem] border bg-card/50 backdrop-blur-xl shadow-2xl shadow-indigo-500/5 overflow-hidden">
-          <DataTable
-            columns={columns}
-            data={teachers}
-            searchKey="name"
-            searchPlaceholder="البحث عن معلم..."
-          />
-        </div>
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {[
+          { label: "كبار العلماء", value: teachers.length, icon: GraduationCap, color: "blue" },
+          { label: "متوسط الثقة", value: (teachers.reduce((acc, t) => acc + t.rating, 0) / (teachers.length || 1)).toFixed(1), icon: Star, color: "amber" },
+          { label: "تخصصات علمية", value: Array.from(new Set(teachers.map(t => t.subjectId))).length, icon: School, color: "purple" },
+          { label: "قادة جدد", value: teachers.filter(t => new Date(t.createdAt).getFullYear() === 2024).length, icon: Users, color: "emerald" },
+        ].map((stat, i) => (
+          <AdminCard key={i} variant="glass" className={`p-6 bg-${stat.color}-500/5 border-${stat.color}-500/10`}>
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
+                <stat.icon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black">{stat.value}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+              </div>
+            </div>
+          </AdminCard>
+        ))}
+      </div>
 
-      {/* Add/Edit Dialog */}
+      <AdminDataTable
+        columns={columns}
+        data={teachers}
+        loading={isLoading}
+        searchKey="name"
+        searchPlaceholder="ابحث عن اسم المعلم أو التخصص..."
+        actions={{ onRefresh: () => refetch() }}
+      />
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg rounded-[2.5rem] overflow-hidden border-none p-0 shadow-2xl">
-          <div className="h-2 bg-primary" />
+        <DialogContent className="max-w-md bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-primary to-blue-500" />
           <div className="p-8">
             <DialogHeader className="mb-8">
-                <div className="flex items-center gap-4 mb-2">
-                    <div className="h-12 w-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                        <GraduationCap className="h-6 w-6 text-primary" />
-                    </div>
-                    <div>
-                        <DialogTitle className="text-2xl font-black">{editingTeacher ? "تعديل بيانات المعلم" : "إضافة معلم جديد"}</DialogTitle>
-                        <DialogDescription className="text-sm font-medium text-muted-foreground mt-1">يرجى ملء كافة الحقول لضمان تكامل بيانات المعلم</DialogDescription>
-                    </div>
-                </div>
+              <DialogTitle className="text-2xl font-black">
+                {editingTeacher ? "تعديل بيانات الحكيم" : "تعيين معلم جديد"}
+              </DialogTitle>
+              <DialogDescription className="font-bold text-muted-foreground">
+                يرجى إدخال بيانات القائد العلمي بدقة لضمان تواصل فعال مع المحاربين.
+              </DialogDescription>
             </DialogHeader>
             <Form {...form}>
-                <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <FormField
-                    control={form.control}
-                    name="name"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="font-bold text-sm tracking-wide mr-1">اسم المعلم الكامل</FormLabel>
-                        <FormControl>
-                        <Input {...field} className="rounded-2xl border-2 py-6 focus-visible:ring-0 focus-visible:border-primary transition-all bg-muted/20" placeholder="أدخل اسم المعلم كاملاً" />
-                        </FormControl>
-                        <FormMessage className="font-bold text-xs" />
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الاسم الكامل للقائد</FormLabel>
+                      <FormControl><Input {...field} placeholder="الاسم ثلاثي أو رباعي" className="rounded-2xl border-white/10 bg-white/5 h-12 px-6 focus:ring-1 ring-primary/50" /></FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
 
                 <FormField
-                    control={form.control}
-                    name="subjectId"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="subjectId"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="font-bold text-sm tracking-wide mr-1">التخصص الدراسي</FormLabel>
-                        <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        >
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">التخصص الدراسي</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
                         <FormControl>
-                            <SelectTrigger className="rounded-2xl border-2 py-6 focus:ring-0 focus:border-primary transition-all bg-muted/20 h-auto">
-                            <SelectValue placeholder="اختر المادة الدراسية" />
-                            </SelectTrigger>
+                          <SelectTrigger className="rounded-2xl border-white/10 bg-white/5 h-12 px-6">
+                            <SelectValue placeholder="اختر المادة العلمية" />
+                          </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="rounded-xl border-2 shadow-2xl">
-                            {subjects.map((subject) => (
-                            <SelectItem key={subject.id} value={subject.id} className="cursor-pointer py-3 rounded-lg focus:bg-primary/5">
-                                {subject.nameAr || subject.name}
+                        <SelectContent className="rounded-2xl border-white/10">
+                          {subjects.map((subject: any) => (
+                            <SelectItem key={subject.id} value={subject.id} className="cursor-pointer py-3">
+                              {subject.nameAr || subject.name}
                             </SelectItem>
-                            ))}
+                          ))}
                         </SelectContent>
-                        </Select>
-                        <FormMessage className="font-bold text-xs" />
+                      </Select>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
 
                 <FormField
-                    control={form.control}
-                    name="onlineUrl"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="onlineUrl"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="font-bold text-sm tracking-wide mr-1 text-blue-500">رابط قناة تليجرام أو يوتيوب (اختياري)</FormLabel>
-                        <FormControl>
-                        <Input {...field} className="rounded-2xl border-2 py-6 focus-visible:ring-0 focus-visible:border-blue-500 transition-all bg-blue-50/5 text-blue-600 font-medium" placeholder="https://..." dir="ltr" />
-                        </FormControl>
-                        <FormMessage className="font-bold text-xs" />
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">رابط القناة الرسمية (URL)</FormLabel>
+                      <FormControl><Input {...field} dir="ltr" placeholder="https://..." className="rounded-2xl border-white/10 bg-blue-500/5 text-blue-400 h-12 px-6" /></FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
 
                 <FormField
-                    control={form.control}
-                    name="notes"
-                    render={({ field }) => (
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="font-bold text-sm tracking-wide mr-1">ملاحظات إضافية (اختياري)</FormLabel>
-                        <FormControl>
-                        <Textarea
-                            {...field}
-                            className="rounded-2xl border-2 focus-visible:ring-0 focus-visible:border-primary transition-all bg-muted/20 min-h-[120px] resize-none"
-                            placeholder="أي تفاصيل أخرى تود إضافتها عن المعلم..."
-                        />
-                        </FormControl>
-                        <FormMessage className="font-bold text-xs" />
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">توصيات ملكية (ملاحظات)</FormLabel>
+                      <FormControl><Textarea {...field} className="rounded-2xl border-white/10 bg-white/5 min-h-[100px] p-6 focus:ring-1 ring-primary/50" /></FormControl>
+                      <FormMessage />
                     </FormItem>
-                    )}
+                  )}
                 />
-                <DialogFooter className="pt-4 flex flex-col sm:flex-row gap-3">
-                    <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="rounded-xl py-6 flex-1 font-bold border-2">إلغاء</Button>
-                    <Button type="submit" className="rounded-xl py-6 flex-1 font-black shadow-lg shadow-primary/20 tracking-wider">
-                    {editingTeacher ? "تحديث البيانات" : "حفظ المعلم"}
-                    </Button>
+
+                <DialogFooter className="pt-4">
+                  <AdminButton type="submit" className="w-full h-14 text-md font-black shadow-xl">
+                    {editingTeacher ? "حفظ المرسوم الملكي" : "اعتماد القائد رسمياً"}
+                  </AdminButton>
                 </DialogFooter>
-                </form>
+              </form>
             </Form>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="تأكيد حذف المعلم"
-        description="أنت على وشك حذف بيانات المعلم نهائياً من المنصة. هل تود المتابعة؟"
-        confirmText="نعم، حذف المعلم"
+        title="تأكيد العزل النهائي؟"
+        description="أنت على وشك عزل هذا القائد العلمي من هيئة التدريس بالمملكة. هل أنت متأكد من هذا القرار؟"
+        confirmText="نعم، اعزله"
         variant="destructive"
         onConfirm={handleDelete}
       />
