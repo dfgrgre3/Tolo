@@ -2,8 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Lightbulb, BookOpen, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw, Zap } from 'lucide-react';
-import { getGeminiInfo } from '@/lib/ai-config';
+import { BookOpen, Lightbulb, Target, AlertTriangle, CheckCircle, Loader2, RefreshCw } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
 
@@ -30,7 +29,7 @@ export default function TipsGenerator({
   const [challenges, setChallenges] = useState('');
   const [currentGrade, setCurrentGrade] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [tipsData, setTipsData] = useState<{ tips?: Tip[]; summary?: string } | null>(null);
+  const [tipsData, setTipsData] = useState<{tips?: Tip[];summary?: string;} | null>(null);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +42,7 @@ export default function TipsGenerator({
       const response = await fetch('/api/ai/tips', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           userId,
@@ -52,7 +51,7 @@ export default function TipsGenerator({
           challenges: challenges || undefined,
           currentGrade: currentGrade || undefined,
           provider: 'gemini' // استخدام Gemini كخيار افتراضي
-        }),
+        })
       });
 
       if (!response.ok) {
@@ -142,40 +141,40 @@ export default function TipsGenerator({
         </div>
       </div>
 
-      {!tipsData ? (
-        <form onSubmit={handleSubmit} className="space-y-4">
+      {!tipsData ?
+      <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {subjects.length > 0 && (
-              <div>
+            {subjects.length > 0 &&
+          <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   المادة (اختياري)
                 </label>
                 <select
-                  value={selectedSubject}
-                  onChange={(e) => setSelectedSubject(e.target.value)}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
+              value={selectedSubject}
+              onChange={(e) => setSelectedSubject(e.target.value)}
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+              
                   <option value="">اختر المادة</option>
-                  {subjects.map((subject) => (
-                    <option key={subject} value={subject}>
+                  {subjects.map((subject) =>
+              <option key={subject} value={subject}>
                       {subject}
                     </option>
-                  ))}
+              )}
                 </select>
               </div>
-            )}
+          }
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 المستوى الدراسي (اختياري)
               </label>
               <input
-                type="text"
-                value={currentGrade}
-                onChange={(e) => setCurrentGrade(e.target.value)}
-                placeholder="مثال: أول ثانوي، ثالث إعدادي..."
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              type="text"
+              value={currentGrade}
+              onChange={(e) => setCurrentGrade(e.target.value)}
+              placeholder="مثال: أول ثانوي، ثالث إعدادي..."
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            
             </div>
 
             <div>
@@ -183,12 +182,12 @@ export default function TipsGenerator({
                 الهدف الدراسي (اختياري)
               </label>
               <input
-                type="text"
-                value={studyGoal}
-                onChange={(e) => setStudyGoal(e.target.value)}
-                placeholder="مثال: تحسين الدرجات، فهم مفاهيم صعبة..."
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              type="text"
+              value={studyGoal}
+              onChange={(e) => setStudyGoal(e.target.value)}
+              placeholder="مثال: تحسين الدرجات، فهم مفاهيم صعبة..."
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            
             </div>
 
             <div>
@@ -196,65 +195,65 @@ export default function TipsGenerator({
                 التحديات (اختياري)
               </label>
               <input
-                type="text"
-                value={challenges}
-                onChange={(e) => setChallenges(e.target.value)}
-                placeholder="مثال: صعوبة الحفظ، قلة التركيز..."
-                className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+              type="text"
+              value={challenges}
+              onChange={(e) => setChallenges(e.target.value)}
+              placeholder="مثال: صعوبة الحفظ، قلة التركيز..."
+              className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+            
             </div>
           </div>
 
-          {error && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg">
+          {error &&
+        <div className="bg-red-50 text-red-700 p-3 rounded-lg">
               {error}
             </div>
-          )}
+        }
 
           <button
-            type="submit"
-            disabled={isGenerating}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {isGenerating ? (
-              <>
+          type="submit"
+          disabled={isGenerating}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          
+            {isGenerating ?
+          <>
                 <Loader2 className="h-5 w-5 animate-spin" />
                 جاري إنشاء النصائح...
-              </>
-            ) : (
-              <>
+              </> :
+
+          <>
                 <Lightbulb className="h-5 w-5" />
                 احصل على نصائح تعليمية
               </>
-            )}
+          }
           </button>
-        </form>
-      ) : (
-        <div className="space-y-6">
+        </form> :
+
+      <div className="space-y-6">
           <div className="flex items-center justify-between">
             <h3 className="font-medium text-gray-800">نصائح مخصصة لك</h3>
             <button
-              onClick={() => {
-                setTipsData(null);
-                setError('');
-              }}
-              className="text-blue-500 hover:text-blue-700 text-sm font-medium flex items-center gap-1"
-            >
+            onClick={() => {
+              setTipsData(null);
+              setError('');
+            }}
+            className="text-blue-500 hover:text-blue-700 text-sm font-medium flex items-center gap-1">
+            
               <RefreshCw className="h-4 w-4" />
               نصائح جديدة
             </button>
           </div>
 
-          {tipsData.summary && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          {tipsData.summary &&
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <h4 className="font-medium text-blue-800 mb-2">ملخص النصائح</h4>
               <p className="text-blue-700">{tipsData.summary}</p>
             </div>
-          )}
+        }
 
           <div className="space-y-4">
-            {tipsData.tips?.map((tip, index) => (
-              <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+            {tipsData.tips?.map((tip, index) =>
+          <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <div className={`p-2 rounded-lg ${getCategoryColor(tip.category)}`}>
@@ -268,10 +267,10 @@ export default function TipsGenerator({
                 </div>
                 <p className="text-gray-600">{tip.content}</p>
               </div>
-            ))}
+          )}
           </div>
         </div>
-      )}
-    </div>
-  );
+      }
+    </div>);
+
 }

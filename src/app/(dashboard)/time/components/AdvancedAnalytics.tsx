@@ -2,7 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { TrendingUp, TrendingDown, Clock, Target, Flame, Award, BarChart3, Calendar } from 'lucide-react';
+import { Clock, Target, Flame, Award, BarChart3, Calendar, TrendingUp } from 'lucide-react';
 import type { Task, StudySession, Reminder } from '../types';
 import { useMemo } from 'react';
 
@@ -15,50 +15,50 @@ interface AdvancedAnalyticsProps {
 export default function AdvancedAnalytics({ tasks, studySessions, reminders }: AdvancedAnalyticsProps) {
   const analytics = useMemo(() => {
     // Calculate task completion rate over time
-    const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
-    const completionRate = tasks.length > 0 ? (completedTasks.length / tasks.length) * 100 : 0;
-    
+    const completedTasks = tasks.filter((t) => t.status === 'COMPLETED');
+    const completionRate = tasks.length > 0 ? completedTasks.length / tasks.length * 100 : 0;
+
     // Calculate average task completion time
-    const tasksWithCompletion = completedTasks.filter(t => t.completedAt && t.createdAt);
-    const avgCompletionTime = tasksWithCompletion.length > 0
-      ? tasksWithCompletion.reduce((acc, task) => {
-          const created = new Date(task.createdAt!).getTime();
-          const completed = new Date(task.completedAt!).getTime();
-          return acc + (completed - created);
-        }, 0) / tasksWithCompletion.length / (1000 * 60 * 60 * 24) // Convert to days
-      : 0;
-    
+    const tasksWithCompletion = completedTasks.filter((t) => t.completedAt && t.createdAt);
+    const avgCompletionTime = tasksWithCompletion.length > 0 ?
+    tasksWithCompletion.reduce((acc, task) => {
+      const created = new Date(task.createdAt!).getTime();
+      const completed = new Date(task.completedAt!).getTime();
+      return acc + (completed - created);
+    }, 0) / tasksWithCompletion.length / (1000 * 60 * 60 * 24) // Convert to days
+    : 0;
+
     // Study time analysis
     const totalStudyMinutes = studySessions.reduce((acc, s) => acc + s.durationMin, 0);
-    const avgSessionDuration = studySessions.length > 0 
-      ? totalStudyMinutes / studySessions.length 
-      : 0;
-    
+    const avgSessionDuration = studySessions.length > 0 ?
+    totalStudyMinutes / studySessions.length :
+    0;
+
     // Weekly study pattern
     const weeklyHours = totalStudyMinutes / 60;
     const weeklyGoal = 21; // 3 hours per day
-    const weeklyProgress = Math.min(100, (weeklyHours / weeklyGoal) * 100);
-    
+    const weeklyProgress = Math.min(100, weeklyHours / weeklyGoal * 100);
+
     // Task priority distribution
     const priorityCounts = {
-      urgent: tasks.filter(t => t.priority === 'URGENT').length,
-      high: tasks.filter(t => t.priority === 'HIGH').length,
-      medium: tasks.filter(t => t.priority === 'MEDIUM').length,
-      low: tasks.filter(t => t.priority === 'LOW').length,
+      urgent: tasks.filter((t) => t.priority === 'URGENT').length,
+      high: tasks.filter((t) => t.priority === 'HIGH').length,
+      medium: tasks.filter((t) => t.priority === 'MEDIUM').length,
+      low: tasks.filter((t) => t.priority === 'LOW').length
     };
-    
+
     // Study streak (consecutive days with study sessions)
     const studyDays = new Set(
-      studySessions.map(s => new Date(s.startTime).toDateString())
+      studySessions.map((s) => new Date(s.startTime).toDateString())
     );
     const streakDays = studyDays.size;
-    
+
     // Reminder effectiveness
-    const completedReminders = reminders.filter(r => r.isCompleted).length;
-    const reminderCompletionRate = reminders.length > 0
-      ? (completedReminders / reminders.length) * 100
-      : 0;
-    
+    const completedReminders = reminders.filter((r) => r.isCompleted).length;
+    const reminderCompletionRate = reminders.length > 0 ?
+    completedReminders / reminders.length * 100 :
+    0;
+
     return {
       completionRate,
       avgCompletionTime: Math.round(avgCompletionTime * 10) / 10,
@@ -68,7 +68,7 @@ export default function AdvancedAnalytics({ tasks, studySessions, reminders }: A
       priorityCounts,
       streakDays,
       reminderCompletionRate,
-      totalStudyMinutes,
+      totalStudyMinutes
     };
   }, [tasks, studySessions, reminders]);
 
@@ -84,7 +84,7 @@ export default function AdvancedAnalytics({ tasks, studySessions, reminders }: A
             <div className="text-2xl font-bold">{Math.round(analytics.completionRate)}%</div>
             <Progress value={analytics.completionRate} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {tasks.filter(t => t.status === 'COMPLETED').length} من {tasks.length} مهمة
+              {tasks.filter((t) => t.status === 'COMPLETED').length} من {tasks.length} مهمة
             </p>
           </CardContent>
         </Card>
@@ -143,40 +143,40 @@ export default function AdvancedAnalytics({ tasks, studySessions, reminders }: A
                 <span className="text-sm">عاجل</span>
                 <span className="font-bold text-red-600">{analytics.priorityCounts.urgent}</span>
               </div>
-              <Progress 
-                value={tasks.length > 0 ? (analytics.priorityCounts.urgent / tasks.length) * 100 : 0} 
-                className="h-2"
-              />
+              <Progress
+                value={tasks.length > 0 ? analytics.priorityCounts.urgent / tasks.length * 100 : 0}
+                className="h-2" />
+              
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm">عالي</span>
                 <span className="font-bold text-orange-600">{analytics.priorityCounts.high}</span>
               </div>
-              <Progress 
-                value={tasks.length > 0 ? (analytics.priorityCounts.high / tasks.length) * 100 : 0} 
-                className="h-2"
-              />
+              <Progress
+                value={tasks.length > 0 ? analytics.priorityCounts.high / tasks.length * 100 : 0}
+                className="h-2" />
+              
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm">متوسط</span>
                 <span className="font-bold text-yellow-600">{analytics.priorityCounts.medium}</span>
               </div>
-              <Progress 
-                value={tasks.length > 0 ? (analytics.priorityCounts.medium / tasks.length) * 100 : 0} 
-                className="h-2"
-              />
+              <Progress
+                value={tasks.length > 0 ? analytics.priorityCounts.medium / tasks.length * 100 : 0}
+                className="h-2" />
+              
             </div>
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-sm">منخفض</span>
                 <span className="font-bold text-blue-600">{analytics.priorityCounts.low}</span>
               </div>
-              <Progress 
-                value={tasks.length > 0 ? (analytics.priorityCounts.low / tasks.length) * 100 : 0} 
-                className="h-2"
-              />
+              <Progress
+                value={tasks.length > 0 ? analytics.priorityCounts.low / tasks.length * 100 : 0}
+                className="h-2" />
+              
             </div>
           </CardContent>
         </Card>
@@ -213,7 +213,6 @@ export default function AdvancedAnalytics({ tasks, studySessions, reminders }: A
           </CardContent>
         </Card>
       </div>
-    </div>
-  );
-}
+    </div>);
 
+}

@@ -94,6 +94,7 @@ export default function DashboardPage() {
   const { user, isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
 
+  // Initialize mounted state in a separate effect to prevent cascading renders
   useEffect(() => {
     setMounted(true);
   }, []);

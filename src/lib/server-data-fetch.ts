@@ -80,18 +80,18 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
 
       // Calculate total minutes
       const totalMinutes = sessions.reduce(
-        (sum: number, session) => sum + (session.durationMin || 0),
+        (sum: number, session: any) => sum + (session.durationMin || 0),
         0
       );
 
       // Calculate average focus
       const focusSessions = sessions.filter(
-        (session) => session.focusScore !== null
+        (session: any) => session.focusScore !== null
       );
       const averageFocus =
         focusSessions.length > 0
           ? focusSessions.reduce(
-            (sum: number, session) => sum + (session.focusScore || 0),
+            (sum: number, session: any) => sum + (session.focusScore || 0),
             0
           ) / focusSessions.length
           : 0;
@@ -114,7 +114,7 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
         currentDate.setHours(0, 0, 0, 0);
 
         // Check if the user studied today or yesterday
-        const studiedToday = sessions.some((session) => {
+        const studiedToday = sessions.some((session: any) => {
           const sessionDate = new Date(session.createdAt);
           sessionDate.setHours(0, 0, 0, 0);
           return sessionDate.getTime() === currentDate.getTime();
@@ -129,7 +129,7 @@ export async function getProgressSummary(): Promise<ProgressSummary | null> {
 
           while (found) {
             checkDate.setDate(checkDate.getDate() - 1);
-            found = sessions.some((session) => {
+            found = sessions.some((session: any) => {
               const sessionDate = new Date(session.createdAt);
               sessionDate.setHours(0, 0, 0, 0);
               return sessionDate.getTime() === checkDate.getTime();

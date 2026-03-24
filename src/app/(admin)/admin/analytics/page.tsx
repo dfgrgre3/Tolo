@@ -4,8 +4,6 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminStatsCard, AdminCard, AdminGridCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { TopPerformers } from "@/components/admin/dashboard/widgets";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Select,
   SelectContent,
@@ -15,13 +13,13 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Users, BookOpen, FileText, Trophy, Clock, Target, Activity, Zap, BarChart3, RefreshCw, Download, Move, Settings, Search, ArrowRight, MousePointerClick, TrendingUp, DollarSign, Wallet, Percent, PieChart, AlertTriangle
+  Users, BookOpen, FileText, Trophy, Target, Activity, Zap, RefreshCw, Download, Move, Settings, Search, ArrowRight, MousePointerClick, TrendingUp, DollarSign, Wallet, Percent, PieChart
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { AnalyticsSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { AiCommandCenter } from "@/components/admin/dashboard/ai-command-center";
-import { motion, Reorder } from "framer-motion";
+import { Reorder } from "framer-motion";
 import { toast } from "sonner";
 
 const DailyActiveUsersChart = dynamic(() => import('./charts').then(mod => mod.DailyActiveUsersChart), { ssr: false, loading: () => <div className="h-[300px] w-full animate-pulse bg-muted/50 rounded-xl" /> });
@@ -33,7 +31,7 @@ export default function AdminAnalyticsPage() {
   const [isEditMode, setIsEditMode] = React.useState(false);
   const [widgetOrder, setWidgetOrder] = React.useState(["users", "activity", "finance", "content"]);
 
-  const { data, isLoading: loading, error: queryError, refetch } = useQuery({
+  const { data, isLoading: loading, error: _queryError, refetch } = useQuery({
     queryKey: ['admin', 'analytics', period],
     queryFn: async () => {
       const response = await fetch(`/api/admin/analytics?period=${period}`);

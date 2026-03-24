@@ -11,12 +11,12 @@ import { ERROR_CODES } from '@/lib/error-codes';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const bookId = params.id;
+        const { id: bookId } = await params;
 
         const progress = await prisma.bookProgress.findUnique({
           where: {
@@ -46,12 +46,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const bookId = params.id;
+        const { id: bookId } = await params;
         const { progress, currentPage, totalPages, isCompleted } = await req.json();
 
         // Update or create progress

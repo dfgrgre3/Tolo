@@ -108,7 +108,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary transition-all duration-500 ease-in-out;
+    @apply bg-background text-foreground antialiased selection:bg-primary/20 selection:text-primary;
     min-height: 100vh;
   }
 
@@ -167,9 +167,9 @@
 .mesh-gradient {
   background-color: hsla(234, 66%, 8%, 1);
   background-image:
-    radial-gradient(at 0% 0%, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%),
-    radial-gradient(at 50% 0%, hsla(234, 100%, 40%, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%);
+    radial-gradient(closest-side at 0% 0%, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%),
+    radial-gradient(closest-side at 50% 0%, hsla(234, 100%, 40%, 0.15) 0px, transparent 50%),
+    radial-gradient(closest-side at 100% 0%, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%);
 }
 
 .dark .rpg-glass {
@@ -181,7 +181,7 @@
 }
 
 .rpg-card {
-  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] backdrop-blur-md transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-primary/40 hover:-translate-y-1;
+  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] backdrop-blur-md transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-primary/40 hover:scale-[1.01];
 }
 
 .dark .rpg-card {

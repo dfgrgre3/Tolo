@@ -87,11 +87,11 @@ export function SystemPulse() {
     <div className="rpg-glass p-8 space-y-8 border-primary/20">
       <div className="flex items-center justify-between">
         <h3 className="text-xl font-black flex items-center gap-3">
-          <Activity className="w-6 h-6 text-primary animate-pulse" />
+          <Activity className="w-6 h-6 text-primary" />
           <span>نبض النظام - System Pulse</span>
         </h3>
         <div className="flex items-center gap-2">
-           <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+           <div className="w-2 h-2 rounded-full bg-emerald-500" />
            <span className="text-[10px] font-black uppercase text-emerald-500 tracking-widest text-shadow-sm">متصل</span>
         </div>
       </div>

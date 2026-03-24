@@ -43,6 +43,7 @@ type SubjectWithStats = {
   name: string;
   nameAr: string | null;
   code: string | null;
+  categoryId: string | null;
   description: string | null;
   type: string | null;
   createdAt: Date;
@@ -132,11 +133,17 @@ function inferCategoryFromText(text: string): string {
 }
 
 export function resolveCourseCategory(subject: {
+  categoryId?: string | null;
   type?: string | null;
   code?: string | null;
   name: string;
   nameAr?: string | null;
 }): string {
+  const normalizedCategoryId = normalizeCategoryToken(subject.categoryId);
+  if (normalizedCategoryId) {
+    return normalizedCategoryId;
+  }
+
   const normalizedType = normalizeCategoryToken(subject.type);
   if (normalizedType && CATEGORY_NAMES[normalizedType]) {
     return normalizedType;
@@ -194,7 +201,7 @@ export async function getSubjectLessonCounts(subjectIds: string[]): Promise<Reco
     },
   });
 
-  return topicCounts.reduce<Record<string, number>>((accumulator, row) => {
+  return topicCounts.reduce((accumulator: Record<string, number>, row: any) => {
     accumulator[row.subjectId] = (accumulator[row.subjectId] ?? 0) + row._count.subTopics;
     return accumulator;
   }, {});
@@ -252,7 +259,7 @@ export async function getSubjectProgressMap(
       userId,
       completed: true,
       subTopicId: {
-        in: lessons.map((lesson) => lesson.id),
+        in: lessons.map((lesson: any) => lesson.id),
       },
     },
     select: {

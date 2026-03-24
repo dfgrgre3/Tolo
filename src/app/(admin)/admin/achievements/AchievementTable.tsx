@@ -3,7 +3,6 @@
 import * as React from "react";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { Badge } from "@/components/ui/badge";
-import { AdminButton } from "@/components/admin/ui/admin-button";
 import {
   Select,
   SelectContent,
@@ -12,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { 
-  Plus, Edit, Trash2, Award, Filter, Search, Trophy, Star, Zap, Eye, EyeOff, Users, Calendar
+  Award, Filter, Search, Star, Zap, Eye, EyeOff, Users, Calendar
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { Achievement, rarityColors, categoryLabels, categoryOptions, rarityOptions, rarityLabels } from "./types";

@@ -2,26 +2,19 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+
 import { 
-  Ticket, 
-  Plus, 
-  Trash2, 
-  CheckCircle2, 
-  XCircle, 
-  Search, 
-  Filter, 
-  Calendar, 
-  Tag, 
-  Percent, 
-  DollarSign,
-  Users,
-  AlertCircle,
-  MoreVertical,
-  Activity,
-  ArrowRight,
+  Settings,
   TrendingUp,
-  Settings
-} from "lucide-react";
+  Ticket,
+  Plus,
+  Trash2,
+  XCircle,
+  Search,
+  Percent,
+  Activity } from
+
+"lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -39,7 +32,7 @@ interface Coupon {
   minOrderAmount: number;
   createdAt: string;
   _count?: {
-      payments: number;
+    payments: number;
   };
 }
 
@@ -58,7 +51,7 @@ export default function AdminCouponsPage() {
     description: "",
     maxUses: "",
     expiryDate: "",
-    minOrderAmount: "",
+    minOrderAmount: ""
   });
 
   const fetchCoupons = async () => {
@@ -68,7 +61,7 @@ export default function AdminCouponsPage() {
         const data = await res.json();
         setCoupons(data);
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("خطأ في جلب الأكواد");
     } finally {
       setLoading(false);
@@ -82,14 +75,14 @@ export default function AdminCouponsPage() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCoupon.code || !newCoupon.discountValue) {
-        return toast.error("يرجى إكمال البيانات الأساسية");
+      return toast.error("يرجى إكمال البيانات الأساسية");
     }
-    
+
     try {
       const res = await fetch("/api/admin/coupons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCoupon),
+        body: JSON.stringify(newCoupon)
       });
 
       if (res.ok) {
@@ -97,19 +90,19 @@ export default function AdminCouponsPage() {
         fetchCoupons();
         setIsAdding(false);
         setNewCoupon({
-            code: "",
-            discountType: "PERCENTAGE",
-            discountValue: "",
-            description: "",
-            maxUses: "",
-            expiryDate: "",
-            minOrderAmount: "",
+          code: "",
+          discountType: "PERCENTAGE",
+          discountValue: "",
+          description: "",
+          maxUses: "",
+          expiryDate: "",
+          minOrderAmount: ""
         });
       } else {
-          const data = await res.json();
-          toast.error(data.error || "فشل إنشاء الكود");
+        const data = await res.json();
+        toast.error(data.error || "فشل إنشاء الكود");
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("حدث خطأ غير متوقع");
     }
   };
@@ -119,13 +112,13 @@ export default function AdminCouponsPage() {
       const res = await fetch(`/api/admin/coupons/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !current }),
+        body: JSON.stringify({ isActive: !current })
       });
       if (res.ok) {
         toast.success("تم تحديث الحالة");
         fetchCoupons();
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("فشل التحديث");
     }
   };
@@ -133,26 +126,26 @@ export default function AdminCouponsPage() {
   const deleteCoupon = async (id: string) => {
     if (!confirm("هل أنت متأكد من حذف هذا الكود؟ لا يمكن التراجع!")) return;
     try {
-        const res = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
-        if (res.ok) {
-            toast.success("تم حذف الكود");
-            fetchCoupons();
-        }
-    } catch (err) {
-        toast.error("فشل الحذف");
+      const res = await fetch(`/api/admin/coupons/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        toast.success("تم حذف الكود");
+        fetchCoupons();
+      }
+    } catch (_err) {
+      toast.error("فشل الحذف");
     }
   };
 
-  const filtered = coupons.filter(c => {
+  const filtered = coupons.filter((c) => {
     const matchesSearch = c.code.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = activeFilter === "all" || (activeFilter === "active" ? c.isActive : !c.isActive);
     return matchesSearch && matchesFilter;
   });
 
   const stats = {
-      total: coupons.length,
-      active: coupons.filter(c => c.isActive).length,
-      totalUses: coupons.reduce((sum, c) => sum + (c._count?.payments || c.usedCount), 0),
+    total: coupons.length,
+    active: coupons.filter((c) => c.isActive).length,
+    totalUses: coupons.reduce((sum, c) => sum + (c._count?.payments || c.usedCount), 0)
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
@@ -171,10 +164,10 @@ export default function AdminCouponsPage() {
                إدارة أكواد الخصم والترويج
             </h1>
           </div>
-          <button 
+          <button
             onClick={() => setIsAdding(!isAdding)}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95"
-          >
+            className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold transition-all shadow-lg shadow-blue-600/20 active:scale-95">
+            
             {isAdding ? <XCircle size={18} /> : <Plus size={18} />}
             {isAdding ? "إلغاء العملية" : "إنشاء كود جديد"}
           </button>
@@ -212,13 +205,13 @@ export default function AdminCouponsPage() {
         </div>
 
         <AnimatePresence>
-          {isAdding && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="bg-[#111114] border border-blue-500/20 rounded-3xl p-8 mb-12 overflow-hidden"
-            >
+          {isAdding &&
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="bg-[#111114] border border-blue-500/20 rounded-3xl p-8 mb-12 overflow-hidden">
+            
               <h2 className="text-xl font-bold mb-8 flex items-center gap-2">
                   <Plus size={20} className="text-blue-500" />
                   إضافة كود خصم جديد
@@ -226,21 +219,21 @@ export default function AdminCouponsPage() {
               <form onSubmit={handleCreate} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                 <div>
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">الكود (Code)</label>
-                   <input 
-                     type="text" 
-                     placeholder="مثلاً: EID2024"
-                     value={newCoupon.code}
-                     onChange={(e) => setNewCoupon({...newCoupon, code: e.target.value.toUpperCase()})}
-                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                   />
+                   <input
+                  type="text"
+                  placeholder="مثلاً: EID2024"
+                  value={newCoupon.code}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, code: e.target.value.toUpperCase() })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all" />
+                
                 </div>
                 <div>
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">نوع الخصم</label>
-                   <select 
-                      value={newCoupon.discountType}
-                      onChange={(e) => setNewCoupon({...newCoupon, discountType: e.target.value as any})}
-                      className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                   >
+                   <select
+                  value={newCoupon.discountType}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, discountType: e.target.value as any })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all">
+                  
                        <option value="PERCENTAGE">نسبة مئوية (%)</option>
                        <option value="FIXED">قيمة ثابتة (ج.م)</option>
                    </select>
@@ -248,13 +241,13 @@ export default function AdminCouponsPage() {
                 <div>
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">القيمة</label>
                    <div className="relative">
-                       <input 
-                         type="number" 
-                         placeholder="مثلاً: 50"
-                         value={newCoupon.discountValue}
-                         onChange={(e) => setNewCoupon({...newCoupon, discountValue: e.target.value})}
-                         className="w-full bg-black/40 border border-white/10 rounded-xl pr-10 pl-4 py-3 text-sm focus:border-blue-500 outline-none transition-all text-left"
-                       />
+                       <input
+                    type="number"
+                    placeholder="مثلاً: 50"
+                    value={newCoupon.discountValue}
+                    onChange={(e) => setNewCoupon({ ...newCoupon, discountValue: e.target.value })}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl pr-10 pl-4 py-3 text-sm focus:border-blue-500 outline-none transition-all text-left" />
+                  
                        <div className="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400">
                            {newCoupon.discountType === "PERCENTAGE" ? <Percent size={14} /> : <span className="text-xs">ج.م</span>}
                        </div>
@@ -262,92 +255,92 @@ export default function AdminCouponsPage() {
                 </div>
                 <div>
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">تاريخ الانتهاء (اختياري)</label>
-                   <input 
-                     type="date"
-                     value={newCoupon.expiryDate}
-                     onChange={(e) => setNewCoupon({...newCoupon, expiryDate: e.target.value})}
-                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                   />
+                   <input
+                  type="date"
+                  value={newCoupon.expiryDate}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, expiryDate: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all" />
+                
                 </div>
                 <div className="md:col-span-2">
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">الوصف</label>
-                   <input 
-                     type="text" 
-                     placeholder="مثلاً: خصم العيد الكبير لكل الطلاب"
-                     value={newCoupon.description}
-                     onChange={(e) => setNewCoupon({...newCoupon, description: e.target.value})}
-                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                   />
+                   <input
+                  type="text"
+                  placeholder="مثلاً: خصم العيد الكبير لكل الطلاب"
+                  value={newCoupon.description}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, description: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all" />
+                
                 </div>
                 <div>
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">أقصى استخدام</label>
-                   <input 
-                     type="number" 
-                     placeholder="مثلاً: 100"
-                     value={newCoupon.maxUses}
-                     onChange={(e) => setNewCoupon({...newCoupon, maxUses: e.target.value})}
-                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                   />
+                   <input
+                  type="number"
+                  placeholder="مثلاً: 100"
+                  value={newCoupon.maxUses}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, maxUses: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all" />
+                
                 </div>
                 <div>
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">الحد الأدنى للشراء</label>
-                   <input 
-                     type="number" 
-                     placeholder="0"
-                     value={newCoupon.minOrderAmount}
-                     onChange={(e) => setNewCoupon({...newCoupon, minOrderAmount: e.target.value})}
-                     className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all"
-                   />
+                   <input
+                  type="number"
+                  placeholder="0"
+                  value={newCoupon.minOrderAmount}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, minOrderAmount: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all" />
+                
                 </div>
                 <div className="md:col-span-4 flex justify-end gap-3 mt-4">
-                    <button 
-                      type="button" 
-                      onClick={() => setIsAdding(false)} 
-                      className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm transition-all"
-                    >
+                    <button
+                  type="button"
+                  onClick={() => setIsAdding(false)}
+                  className="px-6 py-3 bg-white/5 hover:bg-white/10 rounded-xl text-sm transition-all">
+                  
                         إلغاء
                     </button>
-                    <button 
-                      type="submit" 
-                      className="px-8 py-3 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-600/20"
-                    >
+                    <button
+                  type="submit"
+                  className="px-8 py-3 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-bold transition-all shadow-lg shadow-green-600/20">
+                  
                         حفظ الكود
                     </button>
                 </div>
               </form>
             </motion.div>
-          )}
+          }
         </AnimatePresence>
 
         {/* Filters and Search */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
             <div className="relative flex-1">
                 <Search className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="ابحث عن كود معين..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full bg-[#111114] border border-white/5 rounded-2xl pr-12 pl-4 py-4 text-sm focus:border-blue-500 outline-none transition-all"
-                />
+                <input
+              type="text"
+              placeholder="ابحث عن كود معين..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full bg-[#111114] border border-white/5 rounded-2xl pr-12 pl-4 py-4 text-sm focus:border-blue-500 outline-none transition-all" />
+            
             </div>
             <div className="flex bg-[#111114] border border-white/5 rounded-2xl p-1 gap-1">
-                <button 
-                  onClick={() => setActiveFilter("all")}
-                  className={`px-6 py-3 rounded-xl text-sm transition-all ${activeFilter === "all" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
-                >
+                <button
+              onClick={() => setActiveFilter("all")}
+              className={`px-6 py-3 rounded-xl text-sm transition-all ${activeFilter === "all" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}>
+              
                     الكل
                 </button>
-                <button 
-                  onClick={() => setActiveFilter("active")}
-                  className={`px-6 py-3 rounded-xl text-sm transition-all ${activeFilter === "active" ? "bg-green-500/10 text-green-400" : "text-gray-400 hover:text-white"}`}
-                >
+                <button
+              onClick={() => setActiveFilter("active")}
+              className={`px-6 py-3 rounded-xl text-sm transition-all ${activeFilter === "active" ? "bg-green-500/10 text-green-400" : "text-gray-400 hover:text-white"}`}>
+              
                     مفعل
                 </button>
-                <button 
-                  onClick={() => setActiveFilter("inactive")}
-                  className={`px-6 py-3 rounded-xl text-sm transition-all ${activeFilter === "inactive" ? "bg-red-500/10 text-red-500" : "text-gray-400 hover:text-white"}`}
-                >
+                <button
+              onClick={() => setActiveFilter("inactive")}
+              className={`px-6 py-3 rounded-xl text-sm transition-all ${activeFilter === "inactive" ? "bg-red-500/10 text-red-500" : "text-gray-400 hover:text-white"}`}>
+              
                     معطل
                 </button>
             </div>
@@ -368,8 +361,8 @@ export default function AdminCouponsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {filtered.map((coupon) => (
-                  <tr key={coupon.id} className="hover:bg-white/2 transition-colors">
+                {filtered.map((coupon) =>
+                <tr key={coupon.id} className="hover:bg-white/2 transition-colors">
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -393,10 +386,10 @@ export default function AdminCouponsPage() {
                                {coupon.maxUses && <span>من {coupon.maxUses}</span>}
                            </div>
                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                               <div 
-                                 className="h-full bg-blue-500" 
-                                 style={{ width: `${coupon.maxUses ? (coupon.usedCount / coupon.maxUses) * 100 : 100}%` }}
-                               />
+                               <div
+                          className="h-full bg-blue-500"
+                          style={{ width: `${coupon.maxUses ? coupon.usedCount / coupon.maxUses * 100 : 100}%` }} />
+                        
                            </div>
                         </div>
                     </td>
@@ -405,40 +398,40 @@ export default function AdminCouponsPage() {
                     </td>
                     <td className="px-6 py-5">
                        <div className="flex justify-center">
-                        <button 
-                           onClick={() => toggleStatus(coupon.id, coupon.isActive)}
-                           className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                             coupon.isActive ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                           }`}
-                        >
+                        <button
+                        onClick={() => toggleStatus(coupon.id, coupon.isActive)}
+                        className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                        coupon.isActive ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`
+                        }>
+                        
                            {coupon.isActive ? "مفعل" : "معطل"}
                         </button>
                        </div>
                     </td>
                     <td className="px-6 py-5">
                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => deleteCoupon(coupon.id)}
-                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                          >
+                          <button
+                        onClick={() => deleteCoupon(coupon.id)}
+                        className="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                        
                             <Trash2 size={18} />
                           </button>
                        </div>
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
-          {filtered.length === 0 && (
-            <div className="p-20 text-center flex flex-col items-center gap-4">
+          {filtered.length === 0 &&
+          <div className="p-20 text-center flex flex-col items-center gap-4">
                 <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center text-gray-400">
                     <Search size={32} />
                 </div>
                 <p className="text-gray-400">لم يتم العثور على أي أكواد خصم تطابق بحثك.</p>
                 <button onClick={() => setIsAdding(true)} className="text-blue-500 hover:underline">أضف كود جديد الآن</button>
             </div>
-          )}
+          }
         </div>
       </div>
 
@@ -446,6 +439,6 @@ export default function AdminCouponsPage() {
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
         body { font-family: 'Cairo', 'Inter', sans-serif; }
       `}</style>
-    </div>
-  );
+    </div>);
+
 }

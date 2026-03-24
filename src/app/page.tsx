@@ -3,6 +3,8 @@ import { getProgressSummary } from "@/lib/server-data-fetch";
 import { HomeClient } from "@/app/components/home/HomeClient";
 import { Skeleton } from "@/components/ui/skeleton";
 
+export const dynamic = "force-dynamic";
+
 /**
  * Server Component - Home Page
  * 

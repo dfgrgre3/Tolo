@@ -41,7 +41,7 @@ export async function GET(
           },
         });
 
-        const data = userAchievements.map((item) => ({
+        const data = userAchievements.map((item: any) => ({
           id: item.id,
           title: item.achievement.title,
           description: item.achievement.description,

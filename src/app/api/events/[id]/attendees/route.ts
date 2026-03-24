@@ -30,7 +30,7 @@ export async function GET(
       });
 
       // Fetch user details manually since relation is missing
-      const userIds = attendees.map(a => a.userId);
+      const userIds = attendees.map((a: any) => a.userId);
       const users = await prisma.user.findMany({
         where: { id: { in: userIds } },
         select: {
@@ -40,11 +40,11 @@ export async function GET(
         }
       });
 
-      const userMap = new Map(users.map(u => [u.id, u]));
+      const userMap = new Map(users.map((u: any) => [u.id, u] as [string, any]));
 
       // Transform the data to match the frontend structure
-      const transformedAttendees = attendees.map((attendee) => {
-        const user = userMap.get(attendee.userId);
+      const transformedAttendees = attendees.map((attendee: any) => {
+        const user = userMap.get(attendee.userId) as any;
         return {
           id: user?.id || attendee.userId,
           name: user?.name || 'Unknown',

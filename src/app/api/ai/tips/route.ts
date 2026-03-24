@@ -1,4 +1,4 @@
-﻿import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { AI_PROVIDERS, getDefaultProvider } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -11,14 +11,14 @@ export async function POST(request: NextRequest) {
     try {
       const { userId, subject, studyGoal, challenges, currentGrade, provider } = await req.json();
 
-      // 7?7?7?8y7? 8&87?8& 7?87?7?8&7?
+      // تحديد المزود
       const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
 
       if (!selectedProvider.apiKey) {
         return createErrorResponse(`مفتاح API لـ ${selectedProvider.name} غير مهيأ`, 500);
       }
 
-      // 7?87?7?8?8 7?880 7?8y7?8 7?7? 7?88&7?7?7?7?8& 7?7?7? 7?8& 7?8?8~8y7? 8&7?7?8~ 7?88&7?7?7?7?8&
+      // جلب بيانات المستخدم لتخصيص النصيحة
       let userData = null;
       if (userId) {
         userData = await prisma.user.findUnique({
@@ -39,49 +39,48 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // 7?8 7?7?7 7?7?7?87? 7?88 7?7?8& 87?8?7?8y8! 7?87?8?7?7 7?87?7?7?8 7?7?8y 87?87?8y8& 7?88 7?7?7?7?
-      const systemPrompt = `7?8 7? 8&7?7?7?7? 7?8?7?7 7?7?7?8 7?7?8y 8&7?7?7?7? 8~8y 7?87?7?7?7?7? 7?87?8?7?7?8y8&8y 88&8 7?7? 7?8 7?8?8y.
-    8&8!8&7?8? 8!8y 7?87?8y8& 8 7?7?7?7? 7?7?88y8&8y7? 8&7?7?7?7? 8?8~7?7?87? 887?7?87?.
+      // بناء نص المطالبة
+      const systemPrompt = `أنت خبير تعليمي متخصص في مساعدة الطلاب المصريين بنظام الثانوية العامة.
+    قدم نصائح دراسية وخطط عمل مخصصة بناءً على المعطيات التالية.
 
-    8&7?88?8&7?7? 7?87?7?87?:
+    بيانات الطالب الحالية:
     ${userData ? `
-    - 7?87?7?8&: ${userData.name || "78y7? 8&7?7?7?"}
-    - 7?88&8?7?7? 7?88&7?7?87?: ${userData.subjectEnrollments?.map((s) => s.subjectId).join(", ") || "87? 7?8?7?7? 8&8?7?7? 8&7?7?87?"}
-    - 8&7?8?7?7? 7?7?7?7?7? 7?87?8&7?7?7?8 7?7? 7?87?7?8y7?7?: ${userData.examResults && userData.examResults.length > 0 ? (userData.examResults.reduce((sum: number, exam) => sum + exam.score, 0) / userData.examResults.length).toFixed(2) : "87? 7?8?7?7? 7?8y7?8 7?7?"}
-    - 8&7?8?7?7? 8?87? 7?87?7?7?7?7? 7?87?7?7?8?7?8y: ${userData.progressSnapshots && userData.progressSnapshots.length > 0 ? (userData.progressSnapshots.reduce((sum: number, p) => sum + p.totalStudyMinutes, 0) / userData.progressSnapshots.length / 60).toFixed(2) + " 7?7?7?7?7?" : "87? 7?8?7?7? 7?8y7?8 7?7?"}
-    ` : "87? 7?8?7?7? 7?8y7?8 7?7? 8&7?7?7?7?8& 8&7?7?7?7?"}
+    - اسم الطالب: ${userData.name || "طالب غير مسمى"}
+    - المواد المشترك بها: ${userData.subjectEnrollments?.map((s: any) => s.subjectId).join(", ") || "لا توجد بيانات"}
+    - نتائج الامتحانات الأخيرة: ${userData.examResults && userData.examResults.length > 0 ? (userData.examResults.reduce((sum: number, exam: any) => sum + exam.score, 0) / userData.examResults.length).toFixed(2) : "لا توجد نتائج"}
+    - متوسط دقائق المذاكرة الأخيرة: ${userData.progressSnapshots && userData.progressSnapshots.length > 0 ? (userData.progressSnapshots.reduce((sum: number, p: any) => sum + p.totalStudyMinutes, 0) / userData.progressSnapshots.length / 60).toFixed(2) + " ساعة" : "لا توجد نتائج"}
+    ` : "طالب جديد لم يقم بأي نشاط بعد"}
 
-    7?87? 7?88 7?7?7?7?:
-    ${subject ? `- 7?88&7?7?7?: ${subject}` : ""}
-    ${studyGoal ? `- 7?88!7?8~ 7?87?7?7?7?8y: ${studyGoal}` : ""}
-    ${challenges ? `- 7?87?7?7?8y7?7? 7?87?8y 8y8?7?7?8!8!7? 7?87?7?87?: ${challenges}` : ""}
-    ${currentGrade ? `- 7?88&7?7?8?80 7?87?7?7?7?8y 7?87?7?88y: ${currentGrade}` : ""}
+    الموضوع أو المشكلة الحالية:
+    ${subject ? `- المادة: ${subject}` : ""}
+    ${studyGoal ? `- الهدف الدراسي: ${studyGoal}` : ""}
+    ${challenges ? `- التحديات التي يواجهها الطالب: ${challenges}` : ""}
+    ${currentGrade ? `- المستوى الحالي للطالب: ${currentGrade}` : ""}
 
-    88& 7?7?87?8y8& 8 7?7?7?7? 7?8&88y7? 8?8&7?7?7?7? 7?7?8&8:
-    1. 7?7?7?7?7?7?8y7?8y7?7? 7?87?7?7?7?7? 7?88~7?7?87?
-    2. 8?8y8~8y7? 7?87?787? 7?880 7?87?7?7?8y7?7? 7?88&7?8?8?7?7?
-    3. 8&7?7?7?7? 7?7?88y8&8y7? 8&8?7?80 7?8!7?
-    4. 7?7?7? 7?7?7?7?8y7? 8&87?7?7?7?
-    5. 8 7?7?7?7? 87?7?7?8y8  7?87?7?7?7 7?87?8?7?7?8y8&8y
+    يجب أن تكون النصيحة عملية وتشمل:
+    1. نصائح تقنية للمادة المذكورة
+    2. كيفية إدارة الوقت بناءً على التحديات المذكورة
+    3. استراتيجيات مراجعة فعالة
+    4. تشجيع ودعم نفسي
+    5. خطوات عملية فورية للتطبيق
 
-    8y7?7? 7?8  7?8?8?8  7?88 7?7?7?7? 7?8&88y7? 8?8?7?87?8y7? 8?87?7?87? 887?7?7?8y8.
-    88& 7?7?8 7?8y8 7?87?7?7?7?7? 8?8? JSON 8&7? 7?87?8 8y7? 7?87?7?88y7?:
+    اجعل الرد بصيغة JSON حصراً بهذا التنسيق:
     {
       "tips": [
         {
-          "category": "7?7?7?7?7?7?8y7?8y7?7? 7?87?7?7?7?7?|7?87?787? 7?880 7?87?7?7?8y7?7?|7?88&7?7?7?7? 7?87?7?88y8&8y7?|7?87?7?7? 7?87?7?7?7?8y7?|7?7?7?8y8  7?87?7?7?7",
-          "title": "7?8 8?7?8  7?88 7?8y7?7?",
-          "content": "8&7?7?8?80 7?88 7?8y7?7? 7?88&8~7?8",
+          "category": "نصائح موضوعية|إدارة الوقت|استراتيجيات|تحفيز|خطوات عملية",
+          "title": "عنوان النصيحة",
+          "content": "محتوى النصيحة المفصل",
           "priority": "high|medium|low"
         }
       ],
-      "summary": "8&87?7? 7?7?8&8 888 7?7?7?7? 7?88&87?8&7?"
+      "summary": "ملخص عام للحالة والخطوات القادمة"
     }`;
 
       let tipsContent = "";
 
       if (selectedProvider === AI_PROVIDERS.OPENAI) {
-        // 7?7?7?7?7?7?8& OpenAI API
+        // الاتصال بـ OpenAI API
         const response = await fetch(selectedProvider.baseUrl, {
           method: "POST",
           headers: {
@@ -105,7 +104,7 @@ export async function POST(request: NextRequest) {
         const data = await response.json();
         tipsContent = data.choices[0].message.content;
       } else {
-        // 7?7?7?7?7?7?8& Google Gemini API
+        // الاتصال بـ Google Gemini API
         const response = await fetch(`${selectedProvider.baseUrl}${selectedProvider.model}:generateContent?key=${selectedProvider.apiKey}`, {
           method: "POST",
           headers: {
@@ -135,11 +134,11 @@ export async function POST(request: NextRequest) {
         tipsContent = data.candidates[0].content.parts[0].text;
       }
 
-      // 8&7?7?8?87? 7?7?88y8 7?88&7?7?8?80 8?8? JSON
+      // تحليل النتيجة وحفظها
       try {
         const tipsData = JSON.parse(tipsContent);
 
-        // 7?8~7? 7?88 7?7?7?7? 8~8y 87?7?7?7? 7?87?8y7?8 7?7? 7?7?7? 8?7?8  8!8 7?8? 8&7?7?8~ 8&7?7?7?7?8&
+        // حفظ النصائح في قاعدة البيانات لإبقاء سجل للتلميحات الممنوحة
         if (userId) {
           for (const tip of tipsData.tips) {
             try {
@@ -177,4 +176,3 @@ export async function POST(request: NextRequest) {
     }
   });
 }
-

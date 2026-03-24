@@ -20,22 +20,64 @@ import { motion } from "framer-motion";
 export default function MarketingPage() {
   const [audience, setAudience] = React.useState("challenge_winners");
   const [rewardType, setRewardType] = React.useState("xp");
+  const [rewardValue, setRewardValue] = React.useState("500");
+  const [title, setTitle] = React.useState("🎁 هدية من القيادة العُليا");
+  const [content, setContent] = React.useState("أيها المحارب المغوار، لقد أثبت كفاءتك في المعارك السابقة. تقديراً لجهودك، أرسلنا لك هذه الغنيمة لترفع من تصنيفك. استمر في القتال!");
   const [isSending, setIsSending] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  
+  const [stats, setStats] = React.useState({
+    delivered: 0,
+    opened: "0%",
+    lootsClaimed: 0,
+  });
 
-  // Stats mock
-  const stats = {
-    delivered: 12450,
-    opened: "68%",
-    lootsClaimed: 11020,
-  };
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/marketing");
+        const data = await res.json();
+        if (data.stats) setStats(data.stats);
+      } catch (error) {
+        console.error("Failed to fetch marketing stats", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
 
-  const handleLaunchCampaign = (e: React.FormEvent) => {
+  const handleLaunchCampaign = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSending(true);
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/marketing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          content,
+          audience,
+          rewardType,
+          rewardValue
+        })
+      });
+
+      if (res.ok) {
+        toast.success("تم إطلاق حملة الغنائم بنجاح لكافة المحاربين المستهدفين!");
+        // Refresh stats
+        const data = await res.json();
+        // Update stats locally or re-fetch
+      } else {
+        toast.error("حدث خطأ أثناء إطلاق الحملة");
+      }
+    } catch (error) {
+      console.error(error);
+      toast.error("حدث خطأ أثناء إطلاق الحملة");
+    } finally {
       setIsSending(false);
-      toast.success("تم إطلاق حملة الغنائم بنجاح لكافة المحاربين المستهدفين!");
-    }, 2000);
+    }
   };
 
   return (
@@ -137,7 +179,13 @@ export default function MarketingPage() {
                {rewardType === "xp" && (
                  <div className="space-y-3">
                    <label className="text-sm font-bold block">مبلغ الـ XP</label>
-                   <SearchInput type="number" placeholder="مثال: 500" defaultValue="500" className="bg-background h-12 text-center text-lg font-black text-amber-500" />
+                    <SearchInput 
+                      type="number" 
+                      placeholder="مثال: 500" 
+                      value={rewardValue} 
+                      onChange={(e: any) => setRewardValue(e.target.value)}
+                      className="bg-background h-12 text-center text-lg font-black text-amber-500" 
+                    />
                  </div>
                )}
 
@@ -147,16 +195,22 @@ export default function MarketingPage() {
                     <BellRing className="w-4 h-4 text-blue-500" />
                     عنوان الإشعار (Notification Title)
                  </label>
-                 <SearchInput placeholder="مثال: غنيمة أسطورية لمعركتك القادمة!" defaultValue="🎁 هدية من القيادة العُليا" className="bg-background h-12 font-bold" />
+                  <SearchInput 
+                    placeholder="مثال: غنيمة أسطورية لمعركتك القادمة!" 
+                    value={title} 
+                    onChange={(e: any) => setTitle(e.target.value)}
+                    className="bg-background h-12 font-bold" 
+                  />
                </div>
 
                <div className="space-y-3">
                  <label className="text-sm font-bold block">محتوى البريد / التنبيه</label>
-                 <Textarea 
-                   placeholder="اكتب رسالتك الموجهة للمحاربين بثقة وحماس..." 
-                   className="min-h-[140px] resize-none bg-background rounded-xl p-4 border-border font-medium"
-                   defaultValue={`أيها المحارب المغوار، لقد أثبت كفاءتك في المعارك السابقة. تقديراً لجهودك، أرسلنا لك هذه الغنيمة لترفع من تصنيفك. استمر في القتال!`}
-                 />
+                  <Textarea 
+                    placeholder="اكتب رسالتك الموجهة للمحاربين بثقة وحماس..." 
+                    className="min-h-[140px] resize-none bg-background rounded-xl p-4 border-border font-medium"
+                    value={content}
+                    onChange={(e) => setContent(e.target.value)}
+                  />
                </div>
 
                <AdminButton 
@@ -199,12 +253,12 @@ export default function MarketingPage() {
                           {rewardType === 'xp' ? <Gift className="w-6 h-6" /> : <BellRing className="w-6 h-6" />}
                         </div>
                         <div>
-                          <h5 className="font-bold text-sm leading-tight">🎁 هدية من القيادة العُليا</h5>
-                          <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed line-clamp-3">أيها المحارب المغوار، لقد أثبت كفاءتك في المعارك السابقة. تقديراً لجهودك، أرسلنا لك هذه الغنيمة لترفع من تصنيفك.</p>
+                          <h5 className="font-bold text-sm leading-tight">{title}</h5>
+                          <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed line-clamp-3">{content}</p>
                           
                           {rewardType === 'xp' && (
                             <div className="mt-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 text-xs font-black text-center py-1.5 rounded-lg">
-                              +500 XP
+                              +{rewardValue} XP
                             </div>
                           )}
                           {!['none', 'xp'].includes(rewardType) && (

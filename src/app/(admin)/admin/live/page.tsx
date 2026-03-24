@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
+import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -13,12 +13,12 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  ShieldAlert, Target, Activity, Eye, Focus, RefreshCw, XCircle, Radio, MapPin, 
+  ShieldAlert, Target, Eye, Focus, RefreshCw, XCircle, Radio, 
   Smartphone, Monitor, KeyRound, ShieldHalf, UserCog, Lock, AlertTriangle, Fingerprint, Ban, CheckCircle2
 } from "lucide-react";
 
 // Types
-type ActivityType = "TAKING_EXAM" | "IDLE" | "SUSPICIOUS";
+// type ActivityType = "TAKING_EXAM" | "IDLE" | "SUSPICIOUS";
 
 interface ExamStudent {
   id: string;

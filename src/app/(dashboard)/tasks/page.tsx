@@ -1,39 +1,32 @@
-﻿"use client";
+"use client";
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useState, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+
+
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { 
-  Plus, 
-  Trash2, 
-  Edit, 
-  Filter, 
-  Search, 
-  Calendar, 
-  Clock, 
-  Tag, 
-  CheckCircle2, 
-  Circle, 
-  AlertCircle, 
-  Sword, 
-  Shield, 
-  Target, 
+import {
+  Plus,
+  Search,
+  Clock,
+  CheckCircle2,
+  Circle,
+  AlertCircle,
+  Sword,
   Sparkles,
   Scroll,
   Zap,
-  Flame
-} from 'lucide-react';
+  Flame } from
+'lucide-react';
 import { Task, TaskStatus, SubjectType } from '@/types/tasks';
-import { TaskForm, TaskAnalytics, TaskList } from '@/app/(dashboard)/tasks/components';
+import { TaskForm, TaskList } from '@/app/(dashboard)/tasks/components';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { safeFetch } from '@/lib/safe-client-utils';
@@ -43,7 +36,7 @@ const taskSchema = z.object({
   description: z.string().optional(),
   subject: z.nativeEnum(SubjectType).optional(),
   dueAt: z.string().optional(),
-  priority: z.number().int().min(0).max(2).optional(),
+  priority: z.number().int().min(0).max(2).optional()
 });
 
 const STYLES = {
@@ -64,7 +57,7 @@ export default function TasksPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
 
-  const extractTaskFromPayload = (payload: { data?: Task } | Task | null): Task | null => {
+  const extractTaskFromPayload = (payload: {data?: Task;} | Task | null): Task | null => {
     if (!payload) return null;
     return 'id' in payload ? payload : payload.data ?? null;
   };
@@ -75,9 +68,9 @@ export default function TasksPage() {
     handleSubmit,
     reset,
     setValue,
-    formState: { errors },
+    formState: { errors }
   } = useForm<z.infer<typeof taskSchema>>({
-    resolver: zodResolver(taskSchema),
+    resolver: zodResolver(taskSchema)
   });
 
   const fetchTasks = async () => {
@@ -105,23 +98,23 @@ export default function TasksPage() {
 
   const filteredAndSortedTasks = useMemo(() => {
     let result = [...tasks];
-    
+
     if (activeTab === 'pending') {
-      result = result.filter(task => task.status === 'PENDING');
+      result = result.filter((task) => task.status === 'PENDING');
     } else if (activeTab === 'inProgress') {
-      result = result.filter(task => task.status === 'IN_PROGRESS');
+      result = result.filter((task) => task.status === 'IN_PROGRESS');
     } else if (activeTab === 'completed') {
-      result = result.filter(task => task.status === 'COMPLETED');
+      result = result.filter((task) => task.status === 'COMPLETED');
     } else if (statusFilter !== 'ALL') {
-      result = result.filter(task => task.status === statusFilter);
+      result = result.filter((task) => task.status === statusFilter);
     }
 
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      result = result.filter(task =>
-        task.title.toLowerCase().includes(term) ||
-        (task.description && task.description.toLowerCase().includes(term)) ||
-        (task.subject && task.subject.toLowerCase().includes(term))
+      result = result.filter((task) =>
+      task.title.toLowerCase().includes(term) ||
+      task.description && task.description.toLowerCase().includes(term) ||
+      task.subject && task.subject.toLowerCase().includes(term)
       );
     }
 
@@ -142,12 +135,12 @@ export default function TasksPage() {
 
   const handleAddTaskSubmit = async (data: z.infer<typeof taskSchema>) => {
     try {
-      const { data: payload, error } = await safeFetch<{ data?: Task } | Task>(
+      const { data: payload, error } = await safeFetch<{data?: Task;} | Task>(
         '/api/tasks',
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify(data)
         },
         null
       );
@@ -175,12 +168,12 @@ export default function TasksPage() {
     if (!editingTask) return;
 
     try {
-      const { data: payload, error } = await safeFetch<{ data?: Task } | Task>(
+      const { data: payload, error } = await safeFetch<{data?: Task;} | Task>(
         `/api/tasks/${editingTask.id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data),
+          body: JSON.stringify(data)
         },
         null
       );
@@ -194,7 +187,7 @@ export default function TasksPage() {
         throw new Error('فشل في تحديث المهمة');
       }
 
-      setTasks(tasks.map((task) => (task.id === editingTask.id ? updatedTask : task)));
+      setTasks(tasks.map((task) => task.id === editingTask.id ? updatedTask : task));
       setEditingTask(null);
       reset();
       setIsEditDialogOpen(false);
@@ -209,12 +202,12 @@ export default function TasksPage() {
     const newStatus = status === 'COMPLETED' ? 'PENDING' : 'COMPLETED';
 
     try {
-      const { data: payload, error } = await safeFetch<{ data?: Task } | Task>(
+      const { data: payload, error } = await safeFetch<{data?: Task;} | Task>(
         `/api/tasks/${id}`,
         {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: newStatus }),
+          body: JSON.stringify({ status: newStatus })
         },
         null
       );
@@ -228,7 +221,7 @@ export default function TasksPage() {
         throw new Error('فشل في تحديث حالة المهمة');
       }
 
-      setTasks(tasks.map((task) => (task.id === id ? updatedTask : task)));
+      setTasks(tasks.map((task) => task.id === id ? updatedTask : task));
       toast.success(`تم ${newStatus === 'COMPLETED' ? 'إكمال' : 'إعادة فتح'} المهمة بنجاح`);
     } catch (error) {
       console.error('Error updating task status:', error);
@@ -286,7 +279,7 @@ export default function TasksPage() {
     }
   };
 
-  const isOverdue = (dueAt: string | undefined) => {
+  const isOverdue = (dueAt: string | null | undefined) => {
     if (!dueAt) return false;
     return new Date(dueAt) < new Date();
   };
@@ -295,8 +288,8 @@ export default function TasksPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
          <div className="h-12 w-12 animate-spin rounded-full border-b-2 border-primary" />
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -310,11 +303,11 @@ export default function TasksPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         
         {/* --- Header Section --- */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row justify-between items-center gap-6"
-        >
+          className="flex flex-col md:flex-row justify-between items-center gap-6">
+          
           <div className="space-y-4 text-center md:text-right">
              <div className="inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-amber-500">
                 <Scroll className="w-4 h-4" />
@@ -357,22 +350,22 @@ export default function TasksPage() {
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-primary/50 transition-all cursor-default"}>
               <Flame className="w-8 h-8 text-orange-500 group-hover:scale-110 transition-transform" />
               <p className="text-xs text-gray-500 font-bold uppercase">المهام النشطة</p>
-              <p className="text-3xl font-black">{tasks.filter(t => t.status !== 'COMPLETED').length}</p>
+              <p className="text-3xl font-black">{tasks.filter((t) => t.status !== 'COMPLETED').length}</p>
            </div>
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-emerald-500/50 transition-all cursor-default"}>
               <Zap className="w-8 h-8 text-emerald-500 group-hover:scale-110 transition-transform" />
               <p className="text-xs text-gray-500 font-bold uppercase">المهام المنجزة</p>
-              <p className="text-3xl font-black">{tasks.filter(t => t.status === 'COMPLETED').length}</p>
+              <p className="text-3xl font-black">{tasks.filter((t) => t.status === 'COMPLETED').length}</p>
            </div>
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-red-500/50 transition-all cursor-default"}>
               <AlertCircle className="w-8 h-8 text-red-500 group-hover:scale-110 transition-transform" />
               <p className="text-xs text-gray-500 font-bold uppercase">مهام متأخرة</p>
-              <p className="text-3xl font-black text-red-500">{tasks.filter(t => isOverdue(t.dueAt) && t.status !== 'COMPLETED').length}</p>
+              <p className="text-3xl font-black text-red-500">{tasks.filter((t) => isOverdue(t.dueAt) && t.status !== 'COMPLETED').length}</p>
            </div>
            <div className={STYLES.glass + " p-6 flex flex-col items-center justify-center text-center gap-2 group hover:border-amber-500/50 transition-all cursor-default"}>
               <Sparkles className="w-8 h-8 text-amber-500 group-hover:scale-110 transition-transform" />
               <p className="text-xs text-gray-500 font-bold uppercase">XP المكتسب</p>
-              <p className="text-3xl font-black text-amber-400">+{tasks.filter(t => t.status === 'COMPLETED').length * 100}</p>
+              <p className="text-3xl font-black text-amber-400">+{tasks.filter((t) => t.status === 'COMPLETED').length * 100}</p>
            </div>
         </div>
 
@@ -393,12 +386,12 @@ export default function TasksPage() {
             <div className="flex flex-wrap items-center justify-center gap-3 w-full lg:w-auto">
                <div className="relative group flex-1 min-w-[200px]">
                   <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 group-hover:text-primary transition-colors" />
-                  <Input 
-                    placeholder="بحث في أرشيف المهام..." 
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-12 pr-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary focus:border-primary shadow-inner"
-                  />
+                  <Input
+                  placeholder="بحث في أرشيف المهام..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="h-12 pr-12 bg-white/5 border-white/10 rounded-xl focus:ring-primary focus:border-primary shadow-inner" />
+                
                </div>
                
                <Select value={sortBy} onValueChange={(value: 'dueAt' | 'priority') => setSortBy(value)}>
@@ -416,33 +409,33 @@ export default function TasksPage() {
           {/* Task List Component */}
           <div className="min-h-[400px]">
             <AnimatePresence mode="wait">
-              {loading ? (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex items-center justify-center h-[400px]"
-                >
+              {loading ?
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center justify-center h-[400px]">
+                
                   <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
-                </motion.div>
-              ) : (
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                >
-                   <TaskList 
-                      tasks={filteredAndSortedTasks} 
-                      onStatusChange={handleStatusChange}
-                      onEdit={openEditDialog}
-                      onDelete={handleDeleteTask}
-                      getPriorityBadge={getPriorityBadge}
-                      getStatusIcon={getStatusIcon}
-                      isOverdue={isOverdue}
-                    />
-                    {filteredAndSortedTasks.length === 0 && (
-                      <div className="text-center py-20 space-y-4">
+                </motion.div> :
+
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}>
+                
+                   <TaskList
+                  tasks={filteredAndSortedTasks}
+                  onStatusChange={handleStatusChange}
+                  onEdit={openEditDialog}
+                  onDelete={handleDeleteTask}
+                  getPriorityBadge={getPriorityBadge}
+                  getStatusIcon={getStatusIcon}
+                  isOverdue={isOverdue} />
+                
+                    {filteredAndSortedTasks.length === 0 &&
+                <div className="text-center py-20 space-y-4">
                          <div className="mx-auto w-20 h-20 rounded-full bg-white/5 flex items-center justify-center">
                             <Sword className="w-10 h-10 text-gray-600" />
                          </div>
@@ -451,9 +444,9 @@ export default function TasksPage() {
                             <p className="text-gray-500">منطقتك آمنة تماماً، القائد مرتاح.</p>
                          </div>
                       </div>
-                    )}
+                }
                 </motion.div>
-              )}
+              }
             </AnimatePresence>
           </div>
         </div>
@@ -477,6 +470,6 @@ export default function TasksPage() {
         </Dialog>
 
       </div>
-    </div>
-  );
+    </div>);
+
 }

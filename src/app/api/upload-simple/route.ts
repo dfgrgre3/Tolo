@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('❌ Upload error:', error);
     return NextResponse.json(
-      { error: 'فشل رفع الملف', details: error.message },
+      { error: 'فشل رفع الملف', details: (error as any).message },
       { status: 500 }
     );
   }

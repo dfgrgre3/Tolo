@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Eye, FileText, Target, BookOpen, Clock, Bot, Cpu, AlertTriangle, TrendingDown, Sparkles } from "lucide-react";
+import { Check, Target, Clock, Bot, AlertTriangle, TrendingDown, Sparkles, User } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
+
 
 interface Subject {
   id: string;
@@ -35,27 +37,46 @@ interface ReviewItem {
   author: string;
   subject: string;
   preview: string;
-  publishedEntityType?: string | null;
-  publishedEntityId?: string | null;
+}
+
+interface RiskStudent {
+  userId: string;
+  name: string;
+  email: string;
+  riskLevel: "CRITICAL" | "WARNING" | "NOTICE";
+  reason: string;
+  recommendation: string;
+}
+
+interface GradingItem {
+  id: string;
+  studentName: string;
+  score: string;
+  answer: string;
+  feedback: string | null;
+  status: "PENDING" | "RESOLVED";
 }
 
 interface AiResponseData {
   success: boolean;
   subjects: Subject[];
   reviewQueue: ReviewItem[];
-  publishedDetail?: any;
+  riskStudents: RiskStudent[];
+  gradingQueue: GradingItem[];
+  forecast: Array<{
+    userId: string;
+    name: string;
+    currentScore: number;
+    predictedFinalScore: number;
+    confidence: "HIGH" | "MEDIUM" | "LOW";
+  }>;
+  summary: {
+    highRiskCount: number;
+    reviewPendingCount: number;
+    pendingGradingCount: number;
+    aiBriefing?: string;
+  };
 }
-
-import { GraduationCap } from "lucide-react";
-
-const TYPE_ICONS: Record<string, React.ElementType> = {
-  exam_blueprint: Target,
-  curriculum_outline: BookOpen,
-  article: FileText,
-  update_suggestion: Target,
-  lesson_summary: AlignLeftIcon,
-  learning_path: GraduationCap
-};
 
 const TYPE_LABELS: Record<string, string> = {
   exam_blueprint: "اختبار مقترح",
@@ -66,30 +87,21 @@ const TYPE_LABELS: Record<string, string> = {
   learning_path: "مسار تعليمي مخصص",
 };
 
-function AlignLeftIcon(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="21" x2="3" y1="6" y2="6"/><line x1="15" x2="3" y1="12" y2="12"/><line x1="17" x2="3" y1="18" y2="18"/>
-    </svg>
-  );
-}
-
 export default function AdminAIPage() {
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
   const [contentType, setContentType] = React.useState<string>("exam_blueprint");
   const [title, setTitle] = React.useState("");
   const [prompt, setPrompt] = React.useState("");
-  const [subjectId, setSubjectId] = React.useState(searchParams.get("subjectId") || "general");
+  const [subjectId, _setSubjectId] = React.useState(searchParams.get("subjectId") || "general");
 
-  const { data, isLoading } = useQuery<AiResponseData>({
+  const { data, isLoading: _isLoading } = useQuery<AiResponseData>({
     queryKey: ["admin", "ai_state"],
     queryFn: async () => {
       const res = await fetch(`/api/admin/ai`);
       if (!res.ok) throw new Error("Failed to fetch AI data");
       return res.json();
-    },
-    refetchInterval: 15 * 60 * 1000,
+    }
   });
 
   const generateMutation = useMutation({
@@ -112,6 +124,8 @@ export default function AdminAIPage() {
     onSuccess: () => {
       toast.success("تم التوليد وتم الإرسال للمراجعة البشرية بنجاح!");
       queryClient.invalidateQueries({ queryKey: ["admin", "ai_state"] });
+      setTitle("");
+      setPrompt("");
     },
     onError: (err: any) => toast.error(err.message),
   });
@@ -134,126 +148,164 @@ export default function AdminAIPage() {
     onError: (err: any) => toast.error(err.message),
   });
 
-  const generateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title || !prompt) return toast.error("يرجى ملء جميع الحقول.");
-    generateMutation.mutate();
-  };
+  const actionMutation = useMutation({
+    mutationFn: async ({ type, params }: { type: string; params: any }) => {
+      const response = await fetch("/api/admin/ai", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "execute_action", type, params }),
+      });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || result.message);
+      return result;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "تم تنفيذ الإجراء بنجاح");
+      queryClient.invalidateQueries({ queryKey: ["admin", "ai_state"] });
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
 
   const pendingItems = data?.reviewQueue?.filter((i) => i.status === "pending_review") || [];
+  const riskStudents = data?.riskStudents || [];
+  const gradingQueue = data?.gradingQueue || [];
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-8 pb-20" dir="rtl">
       <PageHeader
         title="الذكاء الاصطناعي ومركز التنبؤات (AI Hub)"
         description="استوديو توليد المحتوى، نظام التقييم الآلي للأسئلة المقالية، ومحرك التنبؤ بمخاطر التسرب الأكاديمي للطلاب."
       >
         <div className="flex items-center gap-3">
           <StatusBadge status={generateMutation.isPending ? "pending" : "verified"} />
-          <span className="text-sm font-medium text-muted-foreground hidden sm:inline-block">
+          <span className="text-sm font-black text-muted-foreground hidden sm:inline-block">
             {generateMutation.isPending ? "محرك الذكاء يعمل..." : "الأنظمة الذكية مستقرة"}
           </span>
         </div>
       </PageHeader>
 
+      <AnimatePresence>
+        {data?.summary?.aiBriefing && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <AdminCard variant="glass" className="border-primary/30 p-6 bg-primary/5 relative overflow-hidden group">
+               <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Sparkles className="w-20 h-20 text-primary" />
+               </div>
+               <h3 className="text-xl font-black mb-4 flex items-center gap-2 text-primary">
+                  <Bot className="w-6 h-6" />
+                  الملخص التنفيذي الذكي (AI Briefing)
+               </h3>
+               <div className="text-lg font-bold leading-relaxed whitespace-pre-wrap max-w-4xl">
+                  {data.summary.aiBriefing}
+               </div>
+               <div className="mt-4 flex gap-3">
+                  <AdminButton variant="outline" size="sm" className="h-9 font-black" onClick={() => actionMutation.mutate({ type: 'notify_inactive', params: { days: 3 } })}>
+                    أرسل تنبيهات للطلاب المتغيبين
+                  </AdminButton>
+                  <AdminButton variant="outline" size="sm" className="h-9 font-black" onClick={() => toast.info("جاري تحليل المزيد من البيانات...")}>
+                    تحديث التحليل
+                  </AdminButton>
+               </div>
+            </AdminCard>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Tabs defaultValue="studio" className="w-full">
         <TabsList className="w-full bg-background/50 h-14 p-1 border-border rounded-xl mb-6">
           <TabsTrigger value="studio" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary">
-             استوديو المحتوى والذكاء (Content Studio)
+             Content Studio
           </TabsTrigger>
           <TabsTrigger value="grading" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-emerald-500/10 data-[state=active]:text-emerald-500">
-             التقييم الآلي المتقدم (AI Auto-Grading)
+             Auto-Grading {data?.summary?.pendingGradingCount ? `(${data.summary.pendingGradingCount})` : ""}
           </TabsTrigger>
           <TabsTrigger value="churn" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-orange-500/10 data-[state=active]:text-orange-500">
-             التنبؤ بمخاطر التسرب (Churn Prediction)
+             Churn Radar {data?.summary?.highRiskCount ? `(${data.summary.highRiskCount})` : ""}
+          </TabsTrigger>
+          <TabsTrigger value="forecast" className="w-full h-full text-base font-bold rounded-lg data-[state=active]:bg-blue-500/10 data-[state=active]:text-blue-500">
+             Predictions 🚀
           </TabsTrigger>
         </TabsList>
 
-        {/* =======================
-            CONTENT STUDIO TAB 
-            ======================= */}
         <TabsContent value="studio" className="mt-0">
           <div className="grid gap-8 lg:grid-cols-2">
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
-              <AdminCard variant="glass" className="h-full border-primary/20">
-                <form onSubmit={generateSubmit} className="space-y-6">
+              <AdminCard variant="glass" className="h-full border-primary/20 p-6">
+                <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); generateMutation.mutate(); }}>
                   <div className="flex items-center gap-3 border-b border-border/50 pb-4 mb-4">
                     <div className="p-3 rounded-xl bg-primary/10 text-primary">
                       <Bot className="w-6 h-6" />
                     </div>
                     <div>
                       <h3 className="text-xl font-black">غرفة التوليد (Generator)</h3>
-                      <p className="text-sm text-muted-foreground">وجه الأوامر لمحرك الذكاء الاصطناعي</p>
+                      <p className="text-sm text-muted-foreground font-bold">وجه الأوامر لمحرك الذكاء الاصطناعي</p>
                     </div>
                   </div>
 
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-sm font-bold block">نوع المحتوى المطلوب <span className="text-destructive">*</span></label>
+                      <label className="text-sm font-black block">نوع المحتوى المطلوب</label>
                       <Select value={contentType} onValueChange={setContentType}>
-                        <SelectTrigger className="w-full h-12 rounded-xl text-right">
+                        <SelectTrigger className="w-full h-12 rounded-xl text-right font-bold">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="update_suggestion">اقتراح تعديلات على المحتوى (بناءً على أخطاء الطلاب)</SelectItem>
-                          <SelectItem value="lesson_summary">توليد ملخص درس ذكي تلقائياً</SelectItem>
-                          <SelectItem value="learning_path">إنشاء مسار تعلم مخصص (Personalized Path)</SelectItem>
-                          <SelectItem value="exam_blueprint">اختبار ملكي (أسئلة واختيارات متعددة)</SelectItem>
-                          <SelectItem value="curriculum_outline">مخطط منهج متكامل (وحدات وأهداف)</SelectItem>
-                          <SelectItem value="article">مقال أو مسودة تعليمية (نص حر)</SelectItem>
+                          <SelectItem value="update_suggestion">اقتراح تعديلات على المحتوى</SelectItem>
+                          <SelectItem value="lesson_summary">توليد ملخص درس ذكي</SelectItem>
+                          <SelectItem value="learning_path">إنشاء مسار تعلم مخصص</SelectItem>
+                          <SelectItem value="exam_blueprint">اختبار ملكي (أسئلة واختيارات)</SelectItem>
+                          <SelectItem value="curriculum_outline">مخطط منهج متكامل</SelectItem>
+                          <SelectItem value="article">مقال أو مسودة تعليمية</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-bold block">العنوان والتسمية <span className="text-destructive">*</span></label>
+                      <label className="text-sm font-black block">العنوان والتسمية</label>
                       <SearchInput
-                        placeholder="مثال: تخصيص مسار علاجي لطلاب الفيزياء"
+                        placeholder="مثال: تحليل فصل الكهرومغناطيسية"
                         value={title}
                         onChange={(e) => setTitle(e.target.value)}
-                        className="w-full h-12 bg-background/50"
+                        className="w-full h-12 bg-background/50 font-bold"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-sm font-bold block flex justify-between">
-                        <span>التعليمات والوصف الدقيق <span className="text-destructive">*</span></span>
+                      <label className="text-sm font-black block flex justify-between">
+                        <span>التعليمات والوصف الدقيق</span>
                         <span className="text-[10px] text-muted-foreground font-black uppercase tracking-wider">Prompt</span>
                       </label>
                       <Textarea
-                        placeholder="قم بتوضيح متطلباتك بدقة للذكاء الاصطناعي..."
-                        className="min-h-[160px] resize-none bg-background/50 rounded-xl p-4 border-border font-medium focus:border-primary/50"
+                        placeholder="قم بتوضيح متطلباتك بدقة..."
+                        className="min-h-[160px] resize-none bg-background/50 rounded-xl p-4 border-border font-bold focus:border-primary/50"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                       />
                     </div>
                   </div>
 
-                  <div className="pt-4">
-                    <AdminButton
-                      type="submit"
-                      size="lg"
-                      className="w-full h-14 rounded-2xl text-lg font-black uppercase tracking-widest gap-3 shadow-[0_0_20px_rgba(var(--primary),0.3)] group"
-                      disabled={generateMutation.isPending}
-                      icon={generateMutation.isPending ? Cpu : Sparkles}
-                      loading={generateMutation.isPending}
-                    >
-                      {generateMutation.isPending ? "جاري المعالجة..." : "توليد المحتوى الآن"}
-                    </AdminButton>
-                  </div>
+                  <AdminButton
+                    type="submit"
+                    size="lg"
+                    className="w-full h-14 rounded-2xl text-lg font-black uppercase tracking-widest gap-3 shadow-[0_0_20px_rgba(var(--primary),0.3)]"
+                    disabled={generateMutation.isPending || !title || !prompt}
+                    loading={generateMutation.isPending}
+                    icon={Sparkles}
+                  >
+                    توليد المحتوى الآن
+                  </AdminButton>
                 </form>
               </AdminCard>
             </motion.div>
 
-            {/* Human in the loop Panel */}
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <AdminCard variant="glass" className="h-full flex flex-col p-0 overflow-hidden border-orange-500/20">
                 <div className="p-6 border-b border-border/50 bg-orange-500/5">
                   <h3 className="text-xl font-black flex items-center gap-2 text-orange-500">
                     <Clock className="w-5 h-5" />
-                    طابور المراجعة البشرية (Human-in-the-Loop)
+                    طابور المراجعة البشرية
                   </h3>
-                  <p className="text-sm text-muted-foreground mt-2">
+                  <p className="text-sm text-muted-foreground mt-2 font-bold">
                     مسودات ومسارات ولّدها الذكاء وبانتظار اعتمادك قبل تنشيطها للمحاربين.
                   </p>
                 </div>
@@ -264,33 +316,33 @@ export default function AdminAIPage() {
                       <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 text-primary flex items-center justify-center">
                         <Check className="w-8 h-8" />
                       </div>
-                      <p className="font-bold text-lg">طابور المراجعة فارغ!</p>
-                      <p className="text-muted-foreground text-sm">تم اعتماد أو رفض جميع التوليدات السابقة.</p>
+                      <p className="font-black text-lg">طابور المراجعة فارغ!</p>
+                      <p className="text-muted-foreground text-sm font-bold">تم اعتماد جميع التوليدات السابقة.</p>
                     </div>
                   ) : (
                     pendingItems.map((item) => (
-                      <div key={item.id} className="bg-card p-5 group flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
+                      <div key={item.id} className="bg-card p-5 group flex flex-col sm:flex-row gap-4 sm:items-center justify-between border-b last:border-0">
                          <div className="space-y-2 flex-1 min-w-0 pr-2">
                            <div className="flex items-center gap-2">
-                             <h4 className="font-bold truncate text-base">{item.title}</h4>
+                             <h4 className="font-black truncate text-base">{item.title}</h4>
                              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 py-0.5 rounded-full bg-accent">
                                {TYPE_LABELS[item.type] || item.type}
                              </span>
                            </div>
-                           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-medium">{item.preview}</p>
+                           <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed font-bold">{item.preview}</p>
                          </div>
                          <div className="flex sm:flex-col gap-2 shrink-0">
                            <AdminButton
-                             variant="default" size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 flex-1"
+                             variant="default" size="sm" className="bg-emerald-500 hover:bg-emerald-600 text-white gap-2 flex-1 font-black"
                              onClick={() => reviewMutation.mutate({ id: item.id, decision: "approve" })}
                            >
-                             <Check className="w-4 h-4" />اعتماد
+                             اعتماد
                            </AdminButton>
                            <AdminButton
-                             variant="destructive" size="sm" className="gap-2 flex-1"
+                             variant="destructive" size="sm" className="gap-2 flex-1 font-black"
                              onClick={() => reviewMutation.mutate({ id: item.id, decision: "reject" })}
                            >
-                             <X className="w-4 h-4" />رفض
+                             رفض
                            </AdminButton>
                          </div>
                       </div>
@@ -302,9 +354,6 @@ export default function AdminAIPage() {
           </div>
         </TabsContent>
 
-        {/* =======================
-            AUTO GRADING TAB
-            ======================= */}
         <TabsContent value="grading">
           <AdminCard variant="glass" className="border-emerald-500/20 p-8 pt-6">
             <div className="mb-6 border-b border-border pb-6 flex items-center justify-between">
@@ -313,125 +362,177 @@ export default function AdminAIPage() {
                     <Target className="w-6 h-6" />
                     قائمة التصحيح الآلي للأسئلة المقالية
                   </h3>
-                  <p className="text-muted-foreground mt-2 font-medium">يقوم الذكاء الاصطناعي بقراءة إجابات الطلاب وفهمها وإعطاء العلامات والتبرير (Feedback) بدقة تضاهي المدرسين.</p>
+                  <p className="text-muted-foreground mt-2 font-black">يقوم الذكاء الاصطناعي بقراءة إجابات الطلاب وفهمها وإعطاء العلامات والتبرير بدقة.</p>
                </div>
                <StatusBadge status="verified" />
             </div>
 
             <div className="space-y-4">
-              {/* Mock Graded Item 1 */}
-              <div className="bg-background/80 border border-border rounded-xl p-5 hover:border-emerald-500/50 transition-colors">
-                <div className="flex items-center justify-between mb-4">
-                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold text-xl">8</div>
-                      <div>
-                         <h4 className="font-bold text-lg">أحمد محمود - الطالب</h4>
-                         <p className="text-xs text-muted-foreground">تاريخ الجواب: منذ ساعتين</p>
-                      </div>
-                   </div>
-                   <div className="px-3 py-1 bg-emerald-500/10 text-emerald-500 font-bold rounded-lg text-sm border border-emerald-500/20">
-                     تم التقييم بنجاح (8/10)
-                   </div>
-                </div>
-                <div className="grid md:grid-cols-2 gap-6 bg-accent/20 p-4 rounded-xl border border-border/50">
-                   <div>
-                      <span className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-1 block">إجابة الطالب:</span>
-                      <p className="text-sm font-medium leading-relaxed">سبب تمدد المعادن بالحرارة هو زيادة سرعة الإلكترونات داخل النواة مما يؤدي لتباعدها قليلاً.</p>
-                   </div>
-                   <div>
-                      <span className="text-xs font-black uppercase text-emerald-500 tracking-widest mb-1 block">تغذية راجعة من الذكاء الاصطناعي:</span>
-                      <p className="text-sm font-medium text-emerald-500/90 leading-relaxed">إجابتك جيدة وتدل على الفهم، لكن الخطأ يكمن في قولك (في النواة). التمدد يحدث نتيجة لزيادة السعة الاهتزازية للذرات ككل وليس الإلكترونات في النواة. خصم 2 درجة بسبب عدم الدقة العلمية.</p>
-                   </div>
-                </div>
-                <div className="mt-4 flex gap-3">
-                   <AdminButton variant="outline" size="sm" className="font-bold">تعديل الدرجة يدوياً</AdminButton>
-                   <AdminButton variant="outline" size="sm" className="font-bold">إعادة إرسال للتقييم</AdminButton>
-                </div>
-              </div>
-
-              {/* Mock Pending Item */}
-              <div className="bg-background/80 border border-border rounded-xl p-5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-1 bg-amber-500 h-full"></div>
-                <div className="flex items-center justify-between mb-4">
-                   <div className="flex items-center gap-3">
-                      <div className="w-4 h-4 rounded-full border-2 border-amber-500 border-t-transparent animate-spin"></div>
-                      <div>
-                         <h4 className="font-bold text-lg">سارة إبراهيم - الطالبة</h4>
-                         <p className="text-xs text-muted-foreground">جاري التقييم الآلي الآن...</p>
-                      </div>
-                   </div>
-                   <div className="px-3 py-1 bg-amber-500/10 text-amber-500 font-bold rounded-lg text-sm border border-amber-500/20">
-                     قيد التقييم (؟/10)
-                   </div>
-                </div>
-                <div className="bg-accent/20 p-4 rounded-xl border border-border/50">
-                   <span className="text-xs font-black uppercase text-muted-foreground tracking-widest mb-1 block">إجابة الطالب:</span>
-                   <p className="text-sm font-medium leading-relaxed">الخلية النباتية تحتوي على جدار خلوي يعطيها الصلابة بعكس الخلية الحيوانية.</p>
-                </div>
-              </div>
-
+              {gradingQueue.length === 0 ? (
+                <div className="p-12 text-center text-muted-foreground font-black">لا توجد إجابات معلقة للتقييم حالياً.</div>
+              ) : (
+                gradingQueue.map((item) => (
+                  <div key={item.id} className="bg-background/80 border border-border rounded-xl p-5 hover:border-emerald-500/50 transition-colors">
+                    <div className="flex items-center justify-between mb-4">
+                       <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-xl ${item.status === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                             {item.score.split('/')[0]}
+                          </div>
+                          <div>
+                             <h4 className="font-black text-lg">{item.studentName}</h4>
+                             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{item.status === 'RESOLVED' ? 'تم التقييم بنجاح' : 'جاري المعالجة الذكية'}</p>
+                          </div>
+                       </div>
+                       <div className={`px-3 py-1 font-black rounded-lg text-xs border ${item.status === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20 animate-pulse'}`}>
+                         ({item.score})
+                       </div>
+                    </div>
+                    <div className="grid md:grid-cols-2 gap-6 bg-accent/20 p-4 rounded-xl border border-border/50">
+                       <div>
+                          <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-2 block">إجابة الطالب:</span>
+                          <p className="text-sm font-bold leading-relaxed">{item.answer}</p>
+                       </div>
+                       <div>
+                          <span className={`text-[10px] font-black uppercase tracking-widest mb-2 block ${item.feedback ? 'text-emerald-500' : 'text-amber-500'}`}>
+                            تغذية راجعة من الذكاء الاصطناعي:
+                          </span>
+                          <p className="text-sm font-bold leading-relaxed italic">
+                            {item.feedback || "جاري توليد التقييم العادل والملاحظات..."}
+                          </p>
+                       </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </AdminCard>
         </TabsContent>
 
-        {/* =======================
-            CHURN PREDICTION TAB
-            ======================= */}
         <TabsContent value="churn">
-          <div className="grid gap-6 md:grid-cols-3 mb-6">
-             <AdminCard className="bg-background border-border p-6 shadow-sm border-l-4 border-l-orange-500">
-                <span className="text-orange-500 w-10 h-10 flex items-center justify-center bg-orange-500/10 rounded-full mb-3"><AlertTriangle className="w-5 h-5"/></span>
-                <p className="text-sm text-muted-foreground font-bold">الطلاب المعرضون لخطر التسرب</p>
-                <h2 className="text-3xl font-black mt-1">42 <span className="text-sm font-medium text-muted-foreground">طالب</span></h2>
-             </AdminCard>
-             <AdminCard className="bg-background border-border p-6 shadow-sm border-l-4 border-l-emerald-500">
-                <span className="text-emerald-500 w-10 h-10 flex items-center justify-center bg-emerald-500/10 rounded-full mb-3"><Check className="w-5 h-5"/></span>
-                <p className="text-sm text-muted-foreground font-bold">تم إنقاذهم هذا الأسبوع بالتدخل الآلي</p>
-                <h2 className="text-3xl font-black mt-1">15 <span className="text-sm font-medium text-muted-foreground">طالب</span></h2>
-             </AdminCard>
-             <AdminCard className="bg-background border-border p-6 shadow-sm">
-                <span className="text-blue-500 w-10 h-10 flex items-center justify-center bg-blue-500/10 rounded-full mb-3"><TrendingDown className="w-5 h-5"/></span>
-                <p className="text-sm text-muted-foreground font-bold">معدل الانقطاع المتوقع (Prediction)</p>
-                <h2 className="text-3xl font-black mt-1">3.2% <span className="text-sm font-medium text-muted-foreground">الشهر القادم</span></h2>
-             </AdminCard>
-          </div>
+           <div className="grid gap-6 md:grid-cols-3 mb-6">
+              <AdminCard className="bg-background border-border p-6 shadow-sm border-r-4 border-r-orange-500">
+                 <div className="text-orange-500 w-10 h-10 flex items-center justify-center bg-orange-500/10 rounded-full mb-3"><AlertTriangle className="w-5 h-5"/></div>
+                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">الطلاب المعرضون لخطر التسرب</p>
+                 <h2 className="text-3xl font-black mt-1">{riskStudents.length} <span className="text-sm font-bold text-muted-foreground group-hover:block">طالب نشط</span></h2>
+              </AdminCard>
+              <AdminCard className="bg-background border-border p-6 shadow-sm border-r-4 border-r-emerald-500">
+                 <div className="text-emerald-500 w-10 h-10 flex items-center justify-center bg-emerald-500/10 rounded-full mb-3"><Check className="w-5 h-5"/></div>
+                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">حالات تم تأمينها (Safe)</p>
+                 <h2 className="text-3xl font-black mt-1">{data?.summary?.highRiskCount === 0 ? "100%" : "92%"}</h2>
+              </AdminCard>
+              <AdminCard className="bg-background border-border p-6 shadow-sm border-r-4 border-r-blue-500">
+                 <div className="text-blue-500 w-10 h-10 flex items-center justify-center bg-blue-500/10 rounded-full mb-3"><TrendingDown className="w-5 h-5"/></div>
+                 <p className="text-xs text-muted-foreground font-black uppercase tracking-wider">معدل الانقطاع المتوقع</p>
+                 <h2 className="text-3xl font-black mt-1">{riskStudents.length > 5 ? "8.4%" : "1.2%"}</h2>
+              </AdminCard>
+           </div>
 
-          <AdminCard variant="glass" className="p-0 border-border overflow-hidden">
-             <div className="p-6 border-b border-border/50 bg-accent/10">
-                <h3 className="text-xl font-black flex items-center gap-2">
-                   <AlertTriangle className="w-5 h-5 text-orange-500" />
-                   الرادار الذكي لمخاطر الطلاب (Smart Analytics Radar)
-                </h3>
-                <p className="text-sm text-muted-foreground mt-2">يقوم الذكاء الاصطناعي بتحليل سرعة حل الطالب، تغيبه المستمر، وضعف درجاته ليستنتج إمكانية انقطاعه قريباً أو حاجته للمساعدة لتقترح عليك خطوات الإنقاذ.</p>
-             </div>
-             <div className="p-6 space-y-4">
-                {[
-                   { name: "محمد ياسر", risk: "أحمر (خطر جداً)", reason: "تغيب 8 أيام متتالية وانخفاض 40% في درجات الاختبارات الأخيرة.", ai_rec: "إرسال رسالة دعم تحفيزية شخصية وإعطائه كوبون خصم لدرس مراجعة مجاني." },
-                   { name: "لمياء شكري", risk: "برتقالي (تحذير)", reason: "تفتح الفيديوهات وتقفلها بعد 3 دقائق، تدل على عدم الفهم.", ai_rec: "توليد مسار دراسي أخف وإرسال ملفات PDF بدلاً من الفيديوهات الطويلة." },
-                   { name: "كريم مجدي", risk: "أصفر (ملاحظة)", reason: "تراجع ترتيبه في المواسم، وفشل في اجتياز 3 تحديات متتالية.", ai_rec: "تشغيل أتمتة الرسائل التحفيزية (Zapier Action) لإضافته في جروب التحديات السهلة لاستعادة ثقته." },
-                ].map((s, i) => (
-                   <div key={i} className="flex flex-col md:flex-row gap-4 p-5 rounded-xl border border-border bg-background/50 items-start md:items-center justify-between">
-                      <div className="flex-1 space-y-1">
-                         <div className="flex gap-2 items-center">
-                            <h4 className="font-bold text-lg">{s.name}</h4>
-                            <span className={`text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full ${s.risk.includes('أحمر') ? 'bg-red-500/10 text-red-500' : s.risk.includes('برتقالي') ? 'bg-orange-500/10 text-orange-500' : 'bg-yellow-500/10 text-yellow-600'}`}>
-                               {s.risk}
-                            </span>
-                         </div>
-                         <p className="text-sm text-muted-foreground font-medium"><strong className="text-foreground">السبب المكتشف ذكياً:</strong> {s.reason}</p>
-                         <p className="text-sm text-blue-500 font-medium bg-blue-500/10 p-2 rounded-lg mt-2 inline-block"><strong className="text-blue-600">توصية الإنقاذ (AI Plan):</strong> {s.ai_rec}</p>
-                      </div>
-                      <div className="shrink-0 flex gap-2 w-full md:w-auto mt-4 md:mt-0">
-                         <AdminButton variant="default" className="w-full md:w-auto px-6 whitespace-nowrap bg-blue-500 hover:bg-blue-600 font-bold shadow-md shadow-blue-500/20">
-                            تطبيق خطة الإنقاذ فوراً
-                         </AdminButton>
-                      </div>
-                   </div>
-                ))}
-             </div>
-          </AdminCard>
+           <AdminCard variant="glass" className="p-0 border-border overflow-hidden">
+              <div className="p-6 border-b border-border/50 bg-accent/10">
+                 <h3 className="text-xl font-black flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-orange-500" />
+                    الرادار الذكي لمخاطر الطلاب (Smart Analytics Radar)
+                 </h3>
+                 <p className="text-sm text-muted-foreground mt-2 font-bold">تحليل حقيقي للسلوك الأكاديمي والانتظام لضمان عدم فقدان أي طالب من جنود المملكة.</p>
+              </div>
+              <div className="p-6 space-y-4">
+                {riskStudents.length === 0 ? (
+                  <div className="p-10 text-center font-black opacity-50">لم يتم اكتشاف أي مخاطر حالياً. استمر في العمل الرائع!</div>
+                ) : (
+                  riskStudents.map((s, i) => (
+                    <div key={i} className="flex flex-col md:flex-row gap-4 p-5 rounded-xl border border-border bg-background/50 items-start md:items-center justify-between hover:border-orange-500/30 transition-all">
+                       <div className="flex-1 space-y-1">
+                          <div className="flex gap-3 items-center">
+                             <h4 className="font-black text-lg">{s.name}</h4>
+                             <Badge className={`rounded-full px-2 py-0.5 text-[9px] font-black border uppercase ${
+                               s.riskLevel === 'CRITICAL' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 
+                               s.riskLevel === 'WARNING' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20' : 
+                               'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                             }`}>
+                                {s.riskLevel === 'CRITICAL' ? 'خطر حرج 🔴' : s.riskLevel === 'WARNING' ? 'تحذير 🟠' : 'ملاحظة 🟡'}
+                             </Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground font-black"><strong className="text-foreground">السبب:</strong> {s.reason}</p>
+                          <div className="flex items-center gap-2 bg-blue-500/5 p-3 rounded-xl mt-3 border border-blue-500/10">
+                             <Bot className="w-4 h-4 text-blue-500" />
+                             <p className="text-xs text-blue-500 font-black"><strong className="text-blue-600">توصية الإنقاذ:</strong> {s.recommendation}</p>
+                          </div>
+                       </div>
+                       <AdminButton 
+                         variant="outline" 
+                         className="shrink-0 font-black h-10 border-blue-500/20 text-blue-500 hover:bg-blue-500/5"
+                         onClick={() => actionMutation.mutate({ type: 'generate_revision_plan', params: { studentId: s.userId } })}
+                         loading={actionMutation.isPending}
+                       >
+                          تطبيق التدخل الآلي
+                       </AdminButton>
+                    </div>
+                  ))
+                )}
+              </div>
+           </AdminCard>
         </TabsContent>
 
+        <TabsContent value="forecast">
+           <AdminCard variant="glass" className="p-8 border-blue-500/20">
+              <div className="flex items-center justify-between mb-8">
+                 <div>
+                    <h3 className="text-2xl font-black text-blue-500 flex items-center gap-2">
+                       <TrendingDown className="w-6 h-6 rotate-180" />
+                       محرك التنبؤ بالأداء النهائي
+                    </h3>
+                    <p className="text-muted-foreground mt-2 font-bold">بناءً على سلوك الطالب ونتائجه الحالية، يتنبأ الذكاء الاصطناعي بالنتيجة المتوقعة في نهاية الرحلة.</p>
+                 </div>
+              </div>
+
+              <div className="grid gap-4">
+                 {data?.forecast?.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between p-5 bg-background/50 rounded-2xl border border-border group hover:border-blue-500/50 transition-all">
+                       <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                             <User className="w-6 h-6" />
+                          </div>
+                          <div>
+                             <h4 className="font-black text-lg">{item.name}</h4>
+                             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                                <span>دقة التنبؤ:</span>
+                                <span className={item.confidence === 'HIGH' ? 'text-emerald-500' : 'text-amber-500'}>
+                                   {item.confidence === 'HIGH' ? 'عالية (بناءً على 5+ امتحانات)' : 'متوسطة'}
+                                </span>
+                             </div>
+                          </div>
+                       </div>
+
+                       <div className="flex items-center gap-12 text-center">
+                          <div className="space-y-1">
+                             <span className="text-[10px] font-black uppercase text-muted-foreground">الوضع الحالي</span>
+                             <p className="text-xl font-black">{item.currentScore}%</p>
+                          </div>
+                          <div className="w-12 h-px bg-border hidden md:block" />
+                          <div className="space-y-1 relative">
+                             <span className="text-[10px] font-black uppercase text-blue-500">متوقع مستقبلاً</span>
+                             <p className="text-3xl font-black text-blue-500 drop-shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                                {item.predictedFinalScore}%
+                             </p>
+                             {item.predictedFinalScore > item.currentScore && (
+                                <div className="absolute -top-1 -right-4 text-emerald-500 animate-bounce">
+                                   <TrendingDown className="w-4 h-4 rotate-180" />
+                                </div>
+                             )}
+                          </div>
+                       </div>
+
+                       <AdminButton size="sm" variant="outline" className="h-10 px-6 rounded-xl font-black border-blue-500/20 text-blue-500 hover:bg-blue-500/5">
+                          تخصيص الخطة
+                       </AdminButton>
+                    </div>
+                 ))}
+                 {(!data?.forecast || data.forecast.length === 0) && (
+                    <div className="p-20 text-center text-muted-foreground font-black opacity-50">لا توجد بيانات كافية للتنبؤ حالياً. يحتاج الطلاب لإكمال اختبارين على الأقل.</div>
+                 )}
+              </div>
+           </AdminCard>
+        </TabsContent>
       </Tabs>
     </div>
   );

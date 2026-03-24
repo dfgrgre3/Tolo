@@ -44,7 +44,7 @@ export default function BlogPostPage() {
       try {
         const res = await fetch(`/api/blog/posts/${postId}`);
         if (res.ok) {
-          const postData = await res.json() as BlogPost;
+          const postData = (await res.json()) as BlogPost;
           setPost(postData);
         } else {
           // Post not found
@@ -78,20 +78,20 @@ export default function BlogPostPage() {
     return (
       <div className="px-4 py-12 flex justify-center">
         <div className="text-center">جاري التحميل...</div>
-      </div>
-    );
+      </div>);
+
   }
 
   if (!post) {
     return (
       <div className="px-4 py-12 flex justify-center">
         <div className="text-center">المقال غير موجود</div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
-          <Layout>
+    <Layout>
         <div className="max-w-4xl mx-auto space-y-6">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Link href="/blog" className="hover:text-primary">المدونة التعليمية</Link>
@@ -101,19 +101,19 @@ export default function BlogPostPage() {
 
         {/* Post Header */}
         <div className="rounded-lg border overflow-hidden">
-          {post.coverImageUrl ? (
-            <div className="aspect-video bg-muted">
-              <img 
-                src={post.coverImageUrl} 
-                alt={post.title} 
-                className="w-full h-full object-cover"
-              />
-            </div>
-          ) : (
-            <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+          {post.coverImageUrl ?
+          <div className="aspect-video bg-muted">
+              <img
+              src={post.coverImageUrl}
+              alt={post.title}
+              className="w-full h-full object-cover" />
+            
+            </div> :
+
+          <div className="aspect-video bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
               <span className="text-4xl">📝</span>
             </div>
-          )}
+          }
 
           <div className="p-6">
             <div className="mb-4">
@@ -144,11 +144,11 @@ export default function BlogPostPage() {
             </div>
 
             <div className="flex flex-wrap gap-2 mb-6">
-              {post.tags.map((tag, index) => (
-                <span key={index} className="bg-muted px-2 py-1 rounded text-xs">
+              {post.tags.map((tag, index) =>
+              <span key={index} className="bg-muted px-2 py-1 rounded text-xs">
                   {tag}
                 </span>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -171,6 +171,6 @@ export default function BlogPostPage() {
           </div>
         </div>
         </div>
-      </Layout>
-      );
+      </Layout>);
+
 }

@@ -4,19 +4,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Separator } from "@/components/ui/separator";
-import { 
-  Target, 
-  Calendar, 
-  CheckCircle2, 
-  Circle, 
-  Clock, 
-  Flame, 
-  TrendingUp, 
+
+import {
+  Target,
+
+  CheckCircle2,
+
+  Clock,
+  Flame,
+  TrendingUp,
   Trophy,
   Zap,
-  BookOpen
-} from 'lucide-react';
+  BookOpen } from
+'lucide-react';
 import { formatTime } from '../utils/timeUtils';
 import type { Task, Reminder, StudySession, TimeStats } from '../types';
 import QuickActions from './QuickActions';
@@ -50,18 +50,18 @@ export default function DashboardTab({
   onToggleUpcomingReminders,
   onTimerToggle
 }: DashboardTabProps) {
-  const upcomingTasks = tasks
-    .filter(task => 
-      task.dueAt && 
-      new Date(task.dueAt) > new Date() && 
-      (showCompletedTasks || task.status !== 'COMPLETED')
-    )
-    .sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime())
-    .slice(0, 5);
+  const upcomingTasks = tasks.
+  filter((task) =>
+  task.dueAt &&
+  new Date(task.dueAt) > new Date() && (
+  showCompletedTasks || task.status !== 'COMPLETED')
+  ).
+  sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime()).
+  slice(0, 5);
 
-  const recentSessions = studySessions
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-    .slice(0, 3);
+  const recentSessions = studySessions.
+  sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()).
+  slice(0, 3);
 
   return (
     <div className="space-y-6">
@@ -78,10 +78,10 @@ export default function DashboardTab({
             <p className="text-xs text-muted-foreground">
               من أصل {tasks.length} مهمة
             </p>
-            <Progress 
-              value={tasks.length ? Math.round((stats.completedTasks / tasks.length) * 100) : 0} 
-              className="mt-2 h-1.5" 
-            />
+            <Progress
+              value={tasks.length ? Math.round(stats.completedTasks / tasks.length * 100) : 0}
+              className="mt-2 h-1.5" />
+            
           </CardContent>
         </Card>
 
@@ -97,10 +97,10 @@ export default function DashboardTab({
             <p className="text-xs text-muted-foreground">
               هذا الأسبوع
             </p>
-            <Progress 
-              value={Math.min(100, stats.weeklyGoalProgress)} 
-              className="mt-2 h-1.5" 
-            />
+            <Progress
+              value={Math.min(100, stats.weeklyGoalProgress)}
+              className="mt-2 h-1.5" />
+            
           </CardContent>
         </Card>
 
@@ -116,10 +116,10 @@ export default function DashboardTab({
             <p className="text-xs text-muted-foreground">
               استمرارية وتحقيق الأهداف
             </p>
-            <Progress 
-              value={stats.disciplineScore} 
-              className="mt-2 h-1.5 bg-purple-300" 
-            />
+            <Progress
+              value={stats.disciplineScore}
+              className="mt-2 h-1.5 bg-purple-300" />
+            
           </CardContent>
         </Card>
 
@@ -135,10 +135,10 @@ export default function DashboardTab({
             <p className="text-xs text-muted-foreground">
               كفاءة الدراسة والتركيز
             </p>
-            <Progress 
-              value={stats.masteryScore} 
-              className="mt-2 h-1.5 bg-emerald-300" 
-            />
+            <Progress
+              value={stats.masteryScore}
+              className="mt-2 h-1.5 bg-emerald-300" />
+            
           </CardContent>
         </Card>
       </div>
@@ -184,8 +184,8 @@ export default function DashboardTab({
                     default:
                       return;
                   }
-                }}
-              />
+                }} />
+              
             </CardContent>
           </Card>
 
@@ -195,22 +195,22 @@ export default function DashboardTab({
                 <CardTitle>المهام القادمة</CardTitle>
                 <CardDescription>المهام التي يجب إنجازها قريباً</CardDescription>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
-                onClick={onToggleCompletedTasks}
-              >
+                onClick={onToggleCompletedTasks}>
+                
                 {showCompletedTasks ? 'إخفاء المكتملة' : 'عرض المكتملة'}
               </Button>
             </CardHeader>
             <CardContent>
-              <UpcomingTasksCard 
+              <UpcomingTasksCard
                 tasks={upcomingTasks}
                 showCompleted={showCompletedTasks}
                 onToggleView={onToggleCompletedTasks}
                 onTabChange={onTabChange}
-                onTimerToggle={onTimerToggle}
-              />
+                onTimerToggle={onTimerToggle} />
+              
             </CardContent>
           </Card>
         </div>
@@ -256,25 +256,25 @@ export default function DashboardTab({
                 <CardTitle>التذكيرات القادمة</CardTitle>
                 <CardDescription>تذكيراتك في الـ 24 ساعة القادمة</CardDescription>
               </div>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
-                onClick={onToggleUpcomingReminders}
-              >
+                onClick={onToggleUpcomingReminders}>
+                
                 {showUpcomingRemindersOnly ? 'إظهار الكل' : 'القادمة فقط'}
               </Button>
             </CardHeader>
             <CardContent>
-              <UpcomingRemindersCard 
-                reminders={reminders.filter(r => {
+              <UpcomingRemindersCard
+                reminders={reminders.filter((r) => {
                   const now = new Date();
                   const remindDate = new Date(r.remindAt);
                   return remindDate > now;
-                })} 
+                })}
                 showUpcomingOnly={showUpcomingRemindersOnly}
                 onToggleView={onToggleUpcomingReminders}
-                onTabChange={onTabChange}
-              />
+                onTabChange={onTabChange} />
+              
             </CardContent>
           </Card>
 
@@ -284,18 +284,18 @@ export default function DashboardTab({
               <CardDescription>سجل جلساتك الدراسية الأخيرة</CardDescription>
             </CardHeader>
             <CardContent>
-              {recentSessions.length > 0 ? (
-                <div className="space-y-4">
-                  {recentSessions.map((session, index) => (
-                    <div 
-                      key={`${session.id}-${index}`} 
-                      className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors"
-                    >
+              {recentSessions.length > 0 ?
+              <div className="space-y-4">
+                  {recentSessions.map((session, index) =>
+                <div
+                  key={`${session.id}-${index}`}
+                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
+                  
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate">
-                          {session.taskId 
-                            ? tasks.find(t => t.id === session.taskId)?.title || 'جلسة مذاكرة' 
-                            : 'جلسة مذاكرة'}
+                          {session.taskId ?
+                      tasks.find((t) => t.id === session.taskId)?.title || 'جلسة مذاكرة' :
+                      'جلسة مذاكرة'}
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
                           <Clock className="h-3 w-3" />
@@ -306,16 +306,15 @@ export default function DashboardTab({
                         {Math.floor(session.durationMin)} د
                       </Badge>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-muted-foreground py-4">لا توجد جلسات بعد</p>
-              )}
+                )}
+                </div> :
+
+              <p className="text-center text-muted-foreground py-4">لا توجد جلسات بعد</p>
+              }
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>
-  );
-}
+    </div>);
 
+}

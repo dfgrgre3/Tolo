@@ -4,7 +4,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
-import { MoreHorizontal, Plus, Edit, Trash2, Trophy, Eye, RefreshCw, Award, Star, Zap, Shield, Search, Hammer } from "lucide-react";
+import { Plus, Trophy, RefreshCw, Award, Star, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";

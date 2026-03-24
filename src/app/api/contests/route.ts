@@ -9,24 +9,36 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async () => {
     try {
       const contests = await prisma.contest.findMany({
+        include: {
+          organizer: {
+            select: {
+              name: true
+            }
+          },
+          _count: {
+            select: {
+              questions: true
+            }
+          }
+        },
         orderBy: {
           startDate: "asc"
         }
       });
 
       // Transform the data to match the frontend structure
-      const transformedContests = contests.map((contest) => ({
+      const transformedContests = contests.map((contest: any) => ({
         id: contest.id,
         title: contest.title,
         description: contest.description,
-        // imageUrl: contest.imageUrl, // Not in schema
+        imageUrl: contest.imageUrl,
         startDate: contest.startDate.toISOString(),
         endDate: contest.endDate.toISOString(),
-        prize: contest.prizes, // Schema has prizes (Json)
-        // category: contest.category, // Not in schema
-        // organizerName: contest.organizer?.name, // Not in schema
-        // tags: contest.tags, // Not in schema
-        // participantsCount: contest._count?.participants // Not in schema
+        prize: contest.prizes,
+        category: contest.category,
+        organizerName: contest.organizer?.name || "نظام ثنوي",
+        tags: contest.tags,
+        questionsCount: contest._count?.questions || 0
       }));
 
       return successResponse(transformedContests);
@@ -57,26 +69,24 @@ export async function POST(request: NextRequest) {
           return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها");
         }
 
-        // Check if user exists
-        const user = await prisma.user.findUnique({
-          where: { id: userId }
-        });
-
-        if (!user) {
-          return notFoundResponse("المستخدم غير موجود");
-        }
-
         const newContest = await prisma.contest.create({
           data: {
             title,
             description,
-            // imageUrl, // Not in schema
+            imageUrl,
             startDate: new Date(startDate),
             endDate: new Date(endDate),
-            prizes: prize ? JSON.stringify(prize) : undefined, // Schema has prizes
-            // category, // Not in schema
-            // organizerId: userId, // Not in schema
-            // tags: tags || [] // Not in schema
+            prizes: prize,
+            category,
+            tags: Array.isArray(tags) ? tags : [],
+            organizerId: userId
+          },
+          include: {
+            organizer: {
+              select: {
+                name: true
+              }
+            }
           }
         });
 
@@ -85,14 +95,14 @@ export async function POST(request: NextRequest) {
           id: newContest.id,
           title: newContest.title,
           description: newContest.description,
-          // imageUrl: newContest.imageUrl,
+          imageUrl: newContest.imageUrl,
           startDate: newContest.startDate.toISOString(),
           endDate: newContest.endDate.toISOString(),
           prize: newContest.prizes,
-          // category: newContest.category,
-          // organizerName: user.name,
-          // tags: newContest.tags,
-          // participantsCount: 0
+          category: newContest.category,
+          organizerName: newContest.organizer?.name || "أنت",
+          tags: newContest.tags,
+          questionsCount: 0
         };
 
         return successResponse(transformedContest, undefined, 201);

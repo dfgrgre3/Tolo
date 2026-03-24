@@ -217,14 +217,20 @@ class ErrorService {
   }
 
   // Convenience methods
-  public handleNetworkError(error: any, endpoint: string, config: Partial<ErrorConfig> = {}): string {
+  public handleNetworkError(
+    error: any, 
+    endpoint: string, 
+    config: Partial<ErrorConfig> = {},
+    displayOptions: ErrorDisplayOptions = {}
+  ): string {
     return this.handleError(error, { 
       severity: 'high', 
       context: { type: 'network', endpoint, ...config.context },
       ...config 
     }, {
       title: 'خطأ في الاتصال',
-      description: 'فشل في الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.'
+      description: 'فشل في الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.',
+      ...displayOptions
     });
   }
 

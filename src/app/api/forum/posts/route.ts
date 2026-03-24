@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+// import { logger } from '@/lib/logger';
 import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
 
 // GET all forum posts
@@ -11,13 +11,16 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(req.url);
       const categoryId = searchParams.get("categoryId");
 
-      const where = categoryId ? { categoryId } : {};
+      const where = (categoryId && categoryId !== "all") ? { categoryId } : {};
 
       const posts = await prisma.forumPost.findMany({
         where,
         include: {
           author: {
-            select: { name: true }
+            select: { 
+              name: true,
+              username: true
+            }
           },
           category: {
             select: { name: true }
@@ -32,17 +35,18 @@ export async function GET(request: NextRequest) {
         ]
       });
 
-      // Transform the data to match the frontend structure
-      const transformedPosts = posts.map((post) => ({
+      // Transform the data to match the frontend structure with safety fallbacks
+      const transformedPosts = posts.map((post: any) => ({
         id: post.id,
         title: post.title,
         content: post.content,
-        authorName: post.author.name,
+        authorName: (post.author.name || post.author.username || "Anonymous").toString(),
         categoryId: post.categoryId,
         categoryName: post.category.name,
         createdAt: post.createdAt.toISOString(),
         repliesCount: post._count.replies,
-        isPinned: post.isPinned
+        isPinned: post.isPinned,
+        views: post.views || 0
       }));
 
       return successResponse(transformedPosts);
@@ -99,7 +103,20 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        return successResponse(newPost, undefined, 201);
+        const mappedPost = {
+          id: newPost.id,
+          title: newPost.title,
+          content: newPost.content,
+          authorName: newPost.author.name || "Anonymous",
+          categoryId: newPost.categoryId,
+          categoryName: newPost.category.name,
+          createdAt: newPost.createdAt.toISOString(),
+          repliesCount: 0,
+          isPinned: newPost.isPinned,
+          views: newPost.views || 0
+        };
+
+        return successResponse(mappedPost, "تم نشر المخطوطة بنجاح", 201);
       } catch (error: unknown) {
         return handleApiError(error);
       }

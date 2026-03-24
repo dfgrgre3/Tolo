@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         total,
         totalPages: Math.ceil(total / limit),
       },
-      eventTypes: eventTypes.map(e => e.eventType),
+      eventTypes: eventTypes.map((e: any) => e.eventType),
     });
   } catch (error) {
     console.error("Error fetching audit logs:", error);

@@ -39,6 +39,7 @@ interface GlobalSearchProps {
   onSearch?: (query: string) => Promise<SearchResult[]>;
   onSelect?: (result: SearchResult) => void;
   shortcut?: string;
+  onFocus?: () => void;
 }
 
 const typeConfig = {
@@ -54,10 +55,12 @@ export function GlobalSearch({
   className,
   placeholder = "بحث في المستخدمين، المواد، الامتحانات...",
   shortcut = "k",
+  onFocus,
 }: GlobalSearchProps) {
   return (
     <button
       onClick={() => window.dispatchEvent(new CustomEvent("open-command-palette"))}
+      onFocus={onFocus}
       className={cn(
         "flex items-center gap-3 px-4 py-3 rounded-2xl border bg-card/50 hover:bg-accent hover:border-primary/50 transition-all duration-300 text-sm group w-full shadow-sm hover:shadow-md",
         className

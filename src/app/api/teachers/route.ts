@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
 
 			// Transform the data to match the expected format
 			// If a teacher has multiple subjects, create one entry per subject
-			const teachersList = teachers.flatMap(teacher => {
+			const teachersList = teachers.flatMap((teacher: any) => {
 				// If teacher has subjects, create one entry per subject
 				if (teacher.subjectEnrollments && teacher.subjectEnrollments.length > 0) {
 					return teacher.subjectEnrollments.map((enrollment: any) => ({

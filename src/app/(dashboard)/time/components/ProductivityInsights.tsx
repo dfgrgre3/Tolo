@@ -2,18 +2,18 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Lightbulb, 
-  Target, 
-  TrendingUp, 
-  Clock, 
-  Brain, 
-  Calendar, 
+import {
+  Lightbulb,
+  Target,
+  TrendingUp,
+  Clock,
+  Brain,
+  Calendar,
   Award,
   Zap,
   BookOpen,
-  BarChart3
-} from 'lucide-react';
+  BarChart3 } from
+'lucide-react';
 import type { Task, StudySession } from '../types';
 import { calculateDisciplineScore, calculateMasteryScore, calculateStudyEfficiency } from '../utils/timeUtils';
 
@@ -24,41 +24,41 @@ interface ProductivityInsightsProps {
 
 const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProps) => {
   // Calculate insights based on the data
-  const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length;
+  const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length;
   const totalTasks = tasks.length;
-  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-  
+  const completionRate = totalTasks > 0 ? completedTasks / totalTasks * 100 : 0;
+
   // Calculate how many sessions are Pomodoro-length (20-30 minutes)
-  const pomodoroSessions = studySessions.filter(session => 
-    session.durationMin >= 20 && session.durationMin <= 30
+  const pomodoroSessions = studySessions.filter((session) =>
+  session.durationMin >= 20 && session.durationMin <= 30
   ).length;
   const pomodoroRatio = studySessions.length > 0 ? pomodoroSessions / studySessions.length : 0;
-  
+
   // Calculate average daily goal progress (assuming 3 hours per day)
   const DAILY_GOAL_MINUTES = 180;
   const now = new Date();
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
-  
-  const todaySessions = studySessions.filter(session => 
-    new Date(session.startTime) >= startOfToday
+
+  const todaySessions = studySessions.filter((session) =>
+  new Date(session.startTime) >= startOfToday
   );
   const todayMinutes = todaySessions.reduce((sum, session) => sum + session.durationMin, 0);
-  const dailyGoalProgress = Math.min(100, (todayMinutes / DAILY_GOAL_MINUTES) * 100);
-  
+  const dailyGoalProgress = Math.min(100, todayMinutes / DAILY_GOAL_MINUTES * 100);
+
   // Calculate study efficiency
   const totalActualTime = studySessions.reduce((sum, session) => sum + session.durationMin, 0);
   const totalEstimatedTime = tasks.reduce((sum, task) => sum + (task.estimatedTime || 0), 0);
   const studyEfficiency = calculateStudyEfficiency(totalActualTime, totalEstimatedTime);
-  
+
   // Calculate discipline and mastery scores using our new utility functions
   const disciplineScore = calculateDisciplineScore(completedTasks, totalTasks, 7); // Assuming 7-day streak
   const masteryScore = calculateMasteryScore(completionRate, pomodoroRatio, dailyGoalProgress);
-  
+
   // Find the best performing subject based on completed tasks
-  const subjectPerformance: Record<string, { completed: number, total: number }> = {};
-  
-  tasks.forEach(task => {
+  const subjectPerformance: Record<string, {completed: number;total: number;}> = {};
+
+  tasks.forEach((task) => {
     if (task.subject) {
       if (!subjectPerformance[task.subject]) {
         subjectPerformance[task.subject] = { completed: 0, total: 0 };
@@ -69,33 +69,33 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
       }
     }
   });
-  
+
   const bestSubject = Object.entries(subjectPerformance).reduce((best, current) => {
-    const [subject, stats] = current;
-    const currentRate = stats.total > 0 ? (stats.completed / stats.total) * 100 : 0;
-    const bestRate = best[1].total > 0 ? (best[1].completed / best[1].total) * 100 : 0;
-    
+    const [, stats] = current;
+    const currentRate = stats.total > 0 ? stats.completed / stats.total * 100 : 0;
+    const bestRate = best[1].total > 0 ? best[1].completed / best[1].total * 100 : 0;
+
     return currentRate > bestRate ? current : best;
   }, ['', { completed: 0, total: 0 }]);
-  
+
   // Identify optimal study times
-  const hourlyPerformance: Record<number, { sessions: number, avgDuration: number }> = {};
-  
-  studySessions.forEach(session => {
+  const hourlyPerformance: Record<number, {sessions: number;avgDuration: number;}> = {};
+
+  studySessions.forEach((session) => {
     const hour = new Date(session.startTime).getHours();
     if (!hourlyPerformance[hour]) {
       hourlyPerformance[hour] = { sessions: 0, avgDuration: 0 };
     }
-    
+
     const current = hourlyPerformance[hour];
     const newAvg = (current.avgDuration * current.sessions + session.durationMin) / (current.sessions + 1);
     current.avgDuration = newAvg;
     current.sessions += 1;
   });
-  
+
   // Find the hour with highest average duration
   const bestStudyHour = Object.entries(hourlyPerformance).reduce((best, [hour, data]) => {
-    const [bestHour, bestData] = best;
+    const [, bestData] = best;
     return data.avgDuration > bestData.avgDuration ? [hour, data] : best;
   }, ['0', { sessions: 0, avgDuration: 0 }]);
 
@@ -159,13 +159,13 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
             <p className="text-sm text-muted-foreground">
               أعلى نسبة إكمال للمهام
             </p>
-            {bestSubject[0] && (
-              <Badge variant="secondary">
-                {bestSubject[1].total > 0 
-                  ? `${Math.round((bestSubject[1].completed / bestSubject[1].total) * 100)}%` 
-                  : '0%'} إكمال
+            {bestSubject[0] &&
+            <Badge variant="secondary">
+                {bestSubject[1].total > 0 ?
+              `${Math.round(bestSubject[1].completed / bestSubject[1].total * 100)}%` :
+              '0%'} إكمال
               </Badge>
-            )}
+            }
           </div>
           
           <div className="space-y-4">
@@ -205,24 +205,24 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
             اقتراحات لتحسين إنتاجيتك
           </h3>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {completionRate < 70 && (
-              <li className="flex items-start p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
+            {completionRate < 70 &&
+            <li className="flex items-start p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
                 <Target className="h-4 w-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
                 <span>حدد أولوياتك: ركز على المهام عالية الأهمية أولاً</span>
               </li>
-            )}
-            {studyEfficiency < 70 && (
-              <li className="flex items-start p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
+            }
+            {studyEfficiency < 70 &&
+            <li className="flex items-start p-3 bg-yellow-50 dark:bg-yellow-950/30 rounded-lg">
                 <Clock className="h-4 w-4 text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
                 <span>حسّن تقدير الوقت: خصص وقتًا أكثر دقة للمهام الصعبة</span>
               </li>
-            )}
-            {pomodoroRatio < 0.3 && (
-              <li className="flex items-start p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
+            }
+            {pomodoroRatio < 0.3 &&
+            <li className="flex items-start p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
                 <BookOpen className="h-4 w-4 text-purple-500 mt-0.5 mr-2 flex-shrink-0" />
                 <span>جرب تقنية بومودورو: استخدم فترات الدراسة المركزة لزيادة إنتاجيتك</span>
               </li>
-            )}
+            }
             <li className="flex items-start p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
               <Calendar className="h-4 w-4 text-green-500 mt-0.5 mr-2 flex-shrink-0" />
               <span>خطط ليومك مسبقًا: ضع جدولًا زمنيًا لمهامك في بداية كل يوم</span>
@@ -238,8 +238,8 @@ const ProductivityInsights = ({ tasks, studySessions }: ProductivityInsightsProp
           </ul>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>);
+
 };
 
 export default ProductivityInsights;

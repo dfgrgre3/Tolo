@@ -2,8 +2,9 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { DataTable } from "@/components/admin/ui/data-table";
-import { Button } from "@/components/ui/button";
+import { AdminDataTable } from "@/components/admin/ui/admin-table";
+import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -47,6 +48,7 @@ import { Switch } from "@/components/ui/switch";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { SearchInput } from "@/components/admin/ui/admin-input";
 
 interface Event {
   id: string;
@@ -94,6 +96,7 @@ export default function AdminEventsPage() {
     open: boolean;
     id: string | null;
   }>({ open: false, id: null });
+  const [search, setSearch] = React.useState("");
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
@@ -112,9 +115,9 @@ export default function AdminEventsPage() {
   const fetchEvents = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/events");
+      const response = await fetch("/api/admin/events?limit=100");
       const data = await response.json();
-      setEvents(data.events || []);
+      setEvents(data.data?.events || []);
     } catch (error) {
       console.error("Error fetching events:", error);
       toast.error("حدث خطأ أثناء جلب الأحداث");
@@ -212,6 +215,12 @@ export default function AdminEventsPage() {
     COMPETITION: "مسابقة",
   };
 
+  const filteredEvents = React.useMemo(() => {
+    if (!search) return events;
+    const query = search.toLowerCase();
+    return events.filter((event) => event.title.toLowerCase().includes(query));
+  }, [events, search]);
+
   const columns: ColumnDef<Event>[] = [
     {
       accessorKey: "title",
@@ -293,9 +302,9 @@ export default function AdminEventsPage() {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
+              <AdminButton variant="ghost" size="icon-sm">
                 <MoreHorizontal className="h-4 w-4" />
-              </Button>
+              </AdminButton>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
@@ -319,25 +328,47 @@ export default function AdminEventsPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 pb-20" dir="rtl">
       <PageHeader
         title="إدارة الأحداث"
         description="عرض وإدارة جميع الأحداث في الموقع"
+        badge={`${events.length} حدث`}
       >
-        <Button onClick={() => handleOpenDialog()}>
-          <Plus className="ml-2 h-4 w-4" />
+        <AdminButton onClick={() => handleOpenDialog()} icon={Plus}>
           إضافة حدث
-        </Button>
+        </AdminButton>
       </PageHeader>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <AdminCard className="space-y-2 p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">إجمالي الأحداث</p>
+          <p className="text-3xl font-black">{events.length}</p>
+        </AdminCard>
+        <AdminCard className="space-y-2 p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">إجمالي الحضور</p>
+          <p className="text-3xl font-black">{events.reduce((sum, event) => sum + event._count.attendees, 0)}</p>
+        </AdminCard>
+        <AdminCard className="space-y-2 p-5">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">فعاليات أونلاين</p>
+          <p className="text-3xl font-black">{events.filter((event) => event.isOnline).length}</p>
+        </AdminCard>
+      </div>
 
       {loading ? (
         <TableSkeleton rows={5} cols={7} />
       ) : (
-        <DataTable
+        <AdminDataTable
           columns={columns}
-          data={events}
-          searchKey="title"
-          searchPlaceholder="البحث عن حدث..."
+          data={filteredEvents}
+          actions={{ onRefresh: fetchEvents }}
+          toolbar={
+            <SearchInput
+              placeholder="البحث عن حدث..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="w-72"
+            />
+          }
         />
       )}
 
@@ -482,9 +513,9 @@ export default function AdminEventsPage() {
                 />
               </div>
               <DialogFooter>
-                <Button type="submit">
+                <AdminButton type="submit">
                   {editingEvent ? "تحديث" : "إنشاء"}
-                </Button>
+                </AdminButton>
               </DialogFooter>
             </form>
           </Form>

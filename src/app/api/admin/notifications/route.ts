@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
       where: { role: "ADMIN" },
       select: { id: true },
     });
-    const adminIds = adminUsers.map(u => u.id);
+    const adminIds = adminUsers.map((u: any) => u.id);
 
     const where = {
       userId: { in: adminIds },
@@ -72,7 +72,7 @@ export async function PATCH(request: NextRequest) {
         where: { role: "ADMIN" },
         select: { id: true },
       });
-      const adminIds = adminUsers.map(u => u.id);
+      const adminIds = adminUsers.map((u: any) => u.id);
 
       await prisma.notification.updateMany({
         where: { userId: { in: adminIds }, isRead: false },

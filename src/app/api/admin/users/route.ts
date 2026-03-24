@@ -22,12 +22,6 @@ export async function GET(request: NextRequest) {
 
         const where: Prisma.UserWhereInput = {
           AND: [
-            {
-              OR: [
-                { lastLogin: { not: null } },
-                { sessions: { some: {} } },
-              ],
-            },
             search
               ? {
                   OR: [
@@ -41,7 +35,7 @@ export async function GET(request: NextRequest) {
           ],
         };
 
-        const [users, total] = await Promise.all([
+        const [users, total, totalAdmins, powerUsers] = await Promise.all([
           prisma.user.findMany({
             where,
             skip,
@@ -81,10 +75,17 @@ export async function GET(request: NextRequest) {
             },
           }),
           prisma.user.count({ where }),
+          prisma.user.count({ where: { role: UserRole.ADMIN } }),
+          prisma.user.count({ where: { level: { gt: 10 } } }),
         ]);
 
         return successResponse({
           users,
+          summary: {
+            totalUsers: total,
+            totalAdmins,
+            powerUsers,
+          },
           pagination: {
             page,
             limit,

@@ -29,7 +29,7 @@ export async function warmEducationalContentCache(): Promise<void> {
       take: 50,
     });
     
-    const subjects = subjectEnrollments.map((se) => ({
+    const subjects = subjectEnrollments.map((se: any) => ({
       id: se.subjectId,
       subject: se.subjectId,
       enrollmentCount: se._count.subjectId,

@@ -1,7 +1,21 @@
 
 import fs from 'fs';
 import path from 'path';
-import { glob } from 'glob';
+
+function getFiles(dir: string, extension: string): string[] {
+    let results: string[] = [];
+    const list = fs.readdirSync(dir);
+    list.forEach(file => {
+        file = path.join(dir, file);
+        const stat = fs.statSync(file);
+        if (stat && stat.isDirectory()) {
+            results = results.concat(getFiles(file, extension));
+        } else if (file.endsWith(extension)) {
+            results.push(path.relative(dir, file));
+        }
+    });
+    return results;
+}
 
 const COMPONENTS_DIR = path.join(process.cwd(), 'src/components');
 const APP_DIR = path.join(process.cwd(), 'src/app');
@@ -10,7 +24,7 @@ async function findUnusedComponents() {
     console.log('Scanning for components...');
 
     // Get all .tsx files in src/components
-    const componentFiles = await glob('**/*.tsx', { cwd: COMPONENTS_DIR });
+    const componentFiles = getFiles(COMPONENTS_DIR, '.tsx');
 
     console.log(`Found ${componentFiles.length} components.`);
 
@@ -36,7 +50,7 @@ async function findUnusedComponents() {
 }
 
 async function checkUsage(componentName: string): Promise<boolean> {
-    const appFiles = await glob('**/*.{tsx,ts}', { cwd: APP_DIR });
+    const appFiles = getFiles(APP_DIR, '.tsx').concat(getFiles(APP_DIR, '.ts'));
 
     for (const file of appFiles) {
         const content = fs.readFileSync(path.join(APP_DIR, file), 'utf-8');

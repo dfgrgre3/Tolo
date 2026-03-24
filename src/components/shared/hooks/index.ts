@@ -5,17 +5,17 @@
  */
 
 // Storage Hooks
-export { useLocalStorage } from './useLocalStorage';
+export { useLocalStorage } from '@/hooks/use-local-storage';
 
 // Performance Hooks
-export { useDebounce, useDebouncedCallback } from './useDebounce';
+export { useDebounce, useDebouncedCallback } from '@/hooks/use-debounce';
 
 // UI Hooks
-export { useMediaQuery, useDeviceType, useOrientation } from './useMediaQuery';
-export { useOnClickOutside, useOnClickOutsideMultiple } from './useOnClickOutside';
+export { useMediaQuery, useDeviceType, useOrientation } from '@/hooks/use-media-query';
+export { useOnClickOutside, useOnClickOutsideMultiple } from '@/hooks/use-on-click-outside';
 export { 
   useKeyPress, 
-  useMultiKeyPress, 
+  useMultiKeyPress,
   useKeyboardShortcuts,
-  type UseKeyPressOptions 
-} from './useKeyPress';
+  type UseKeyPressOptions
+} from '@/hooks/use-key-press';

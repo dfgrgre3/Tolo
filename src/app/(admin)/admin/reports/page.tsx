@@ -50,14 +50,14 @@ export default function ReportsPage() {
   const [exportType, setExportType] = React.useState("pdf");
   const [isGenerating, setIsGenerating] = React.useState(false);
 
-  // Financial Mock Data
+  // Financial Data
   const financialMetrics = {
-    mrr: "$4,520",
-    growth: "+14.5%",
-    churnRate: "2.1%",
-    totalUsers: 1450,
-    paidUsers: 320,
-    overdue: 15
+    mrr: "$0",
+    growth: "0%",
+    churnRate: "0%",
+    totalUsers: 0,
+    paidUsers: 0,
+    overdue: 0
   };
 
   const toggleColumn = (id: string) => {

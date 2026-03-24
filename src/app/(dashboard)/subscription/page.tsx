@@ -2,28 +2,29 @@
 
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { 
-  Wallet, 
-  CreditCard, 
-  Clock, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Wallet,
+  Clock,
+  CheckCircle2,
+  XCircle,
   AlertCircle,
   ArrowUpRight,
   TrendingUp,
   History,
   ShieldCheck,
   Calendar,
+  FileText,
+  Zap,
   LayoutDashboard,
-  Zap
 } from "lucide-react";
+
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
 import { toast } from "sonner";
 import Link from "next/link";
 import { InvoiceTemplate } from "@/components/billing/invoice-template";
 import { generateInvoicePDF } from "@/utils/billing/generate-pdf";
-import { Download, FileText, Bot, BookOpen, GraduationCap } from "lucide-react";
+import { Download, Bot, BookOpen, GraduationCap } from "lucide-react";
 
 interface BillingSummary {
   name: string;
@@ -62,20 +63,20 @@ export default function SubscriptionPage() {
     async function fetchSummary() {
       try {
         const [summaryRes, addonsRes] = await Promise.all([
-          fetch('/api/user/billing-summary'),
-          fetch('/api/subscriptions/addons')
-        ]);
+        fetch('/api/user/billing-summary'),
+        fetch('/api/subscriptions/addons')]
+        );
 
         if (summaryRes.ok) {
           const data = await summaryRes.json();
           setSummary(data);
         }
-        
+
         if (addonsRes.ok) {
-           const data = await addonsRes.json();
-           setAddons(data.addons || []);
+          const data = await addonsRes.json();
+          setAddons(data.addons || []);
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error(err);
       } finally {
         setLoading(false);
@@ -102,7 +103,7 @@ export default function SubscriptionPage() {
         const data = await res.json();
         toast.error(data.error || "فشلت عملية الشراء");
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("حدث خطأ غير متوقع");
     } finally {
       setPurchasing(null);
@@ -113,20 +114,20 @@ export default function SubscriptionPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c]">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary border-r-2" />
-      </div>
-    );
+      </div>);
+
   }
 
   if (!summary) {
-      return (
-          <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] text-white">
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0c] text-white">
               <div className="text-center">
                   <AlertCircle size={48} className="mx-auto text-red-500 mb-4" />
                   <p>يجب تسجيل الدخول لعرض ملخص الحساب</p>
                   <Link href="/login" className="text-blue-500 hover:underline mt-4 block">تسجيل الدخول</Link>
               </div>
-          </div>
-      );
+          </div>);
+
   }
 
   return (
@@ -140,10 +141,10 @@ export default function SubscriptionPage() {
             </div>
             <h1 className="text-3xl font-bold">إدارة الاشتراك والفواتير</h1>
           </div>
-          <Link 
-            href="/billing" 
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 active:scale-95 text-center justify-center"
-          >
+          <Link
+            href="/billing"
+            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-blue-600/20 active:scale-95 text-center justify-center">
+            
             تجديد أو ترقية الاشتراك
             <ArrowUpRight size={18} />
           </Link>
@@ -151,10 +152,10 @@ export default function SubscriptionPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <motion.div 
+          <motion.div
             whileHover={{ y: -5 }}
-            className="bg-[#111114] border border-white/5 p-6 rounded-3xl"
-          >
+            className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+            
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
                 <Wallet size={20} />
@@ -165,10 +166,10 @@ export default function SubscriptionPage() {
             <div className="text-gray-400 text-xs">متاح للاستخدام في المنصة</div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             whileHover={{ y: -5 }}
-            className="bg-[#111114] border border-white/5 p-6 rounded-3xl"
-          >
+            className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+            
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
                 <TrendingUp size={20} />
@@ -179,10 +180,10 @@ export default function SubscriptionPage() {
             <div className="text-gray-400 text-xs">مجموع العمليات الناجحة</div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             whileHover={{ y: -5 }}
-            className="bg-[#111114] border border-white/5 p-6 rounded-3xl"
-          >
+            className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+            
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
                 <CheckCircle2 size={20} />
@@ -193,10 +194,10 @@ export default function SubscriptionPage() {
             <div className="text-gray-400 text-xs">عمليات مكتملة بنجاح</div>
           </motion.div>
 
-          <motion.div 
+          <motion.div
             whileHover={{ y: -5 }}
-            className="bg-[#111114] border border-white/5 p-6 rounded-3xl"
-          >
+            className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+            
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
                 <XCircle size={20} />
@@ -255,21 +256,21 @@ export default function SubscriptionPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {addons.map((addon) => (
-                    <motion.div 
-                        key={addon.id}
-                        whileHover={{ y: -8 }}
-                        className="bg-[#111114] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center text-center group relative overflow-hidden"
-                    >
+                {addons.map((addon) =>
+            <motion.div
+              key={addon.id}
+              whileHover={{ y: -8 }}
+              className="bg-[#111114] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center text-center group relative overflow-hidden">
+              
                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-blue-500 to-transparent opacity-0 group-hover:opacity-100 transition-all" />
                          
                          <div className={`w-16 h-16 rounded-2xl mb-6 flex items-center justify-center ${
-                             addon.type === 'EXAM_PACK' ? 'bg-purple-500/10 text-purple-500' :
-                             addon.type === 'AI_CREDITS' ? 'bg-blue-500/10 text-blue-500' :
-                             'bg-green-500/10 text-green-500'
-                         }`}>
-                             {addon.type === 'EXAM_PACK' ? <GraduationCap size={32} /> : 
-                              addon.type === 'AI_CREDITS' ? <Bot size={32} /> : <BookOpen size={32} />}
+              addon.type === 'EXAM_PACK' ? 'bg-purple-500/10 text-purple-500' :
+              addon.type === 'AI_CREDITS' ? 'bg-blue-500/10 text-blue-500' :
+              'bg-green-500/10 text-green-500'}`
+              }>
+                             {addon.type === 'EXAM_PACK' ? <GraduationCap size={32} /> :
+                addon.type === 'AI_CREDITS' ? <Bot size={32} /> : <BookOpen size={32} />}
                          </div>
 
                          <h3 className="text-lg font-bold mb-2">{addon.nameAr || addon.name}</h3>
@@ -281,26 +282,26 @@ export default function SubscriptionPage() {
                             </div>
 
                             <button
-                                onClick={() => handlePurchaseAddon(addon.id)}
-                                disabled={purchasing === addon.id || summary.balance < addon.price}
-                                className={`w-full py-3 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${
-                                    summary.balance < addon.price 
-                                    ? 'bg-white/5 text-gray-500 cursor-not-allowed' 
-                                    : 'bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5'
-                                }`}
-                            >
-                                {purchasing === addon.id ? (
-                                    <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" />
-                                ) : (
-                                    <>
+                  onClick={() => handlePurchaseAddon(addon.id)}
+                  disabled={purchasing === addon.id || summary.balance < addon.price}
+                  className={`w-full py-3 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 ${
+                  summary.balance < addon.price ?
+                  'bg-white/5 text-gray-500 cursor-not-allowed' :
+                  'bg-white text-black hover:bg-white/90 shadow-lg shadow-white/5'}`
+                  }>
+                  
+                                {purchasing === addon.id ?
+                  <div className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin" /> :
+
+                  <>
                                         {summary.balance < addon.price ? 'الرصيد غير كافٍ' : 'شراء الآن'}
                                         <ArrowUpRight size={16} />
                                     </>
-                                )}
+                  }
                             </button>
                          </div>
                     </motion.div>
-                ))}
+            )}
             </div>
         </section>
 
@@ -315,8 +316,8 @@ export default function SubscriptionPage() {
             <div className="p-8 rounded-[2rem] bg-gradient-to-br from-blue-600 to-blue-800 shadow-2xl relative overflow-hidden group">
               <div className="absolute top-[-20%] right-[-20%] w-64 h-64 bg-white/10 rounded-full blur-[80px] group-hover:bg-white/20 transition-all" />
               
-              {summary.activeSubscription ? (
-                <>
+              {summary.activeSubscription ?
+              <>
                   <div className="mb-6">
                     <span className="text-white/60 text-sm uppercase tracking-wider font-bold">خطة {summary.activeSubscription.plan?.nameAr || 'الاشتراك'}</span>
                     <h3 className="text-4xl font-extrabold text-white mt-1">نشط</h3>
@@ -333,22 +334,22 @@ export default function SubscriptionPage() {
                     </div>
                   </div>
 
-                  <Link 
-                    href="/dashboard"
-                    className="w-full py-4 bg-white text-blue-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-white/90 transition-all"
-                  >
+                  <Link
+                  href="/dashboard"
+                  className="w-full py-4 bg-white text-blue-600 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-white/90 transition-all">
+                  
                     فتح لوحة الطالب
                   </Link>
-                </>
-              ) : (
-                <div className="text-center py-8">
+                </> :
+
+              <div className="text-center py-8">
                   <div className="w-16 h-16 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-4">
                     <AlertCircle size={32} className="text-white/50" />
                   </div>
                   <p className="text-white font-bold mb-6">لا يوجد اشتراك نشط حالياً</p>
                   <Link href="/billing" className="px-6 py-3 bg-white text-blue-600 rounded-xl font-bold">اشترك الآن</Link>
                 </div>
-              )}
+              }
             </div>
 
             <div className="mt-8 p-6 rounded-3xl bg-[#111114] border border-white/5">
@@ -378,8 +379,8 @@ export default function SubscriptionPage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-white/5">
-                      {summary.paymentHistory.map((payment) => (
-                        <tr key={payment.id} className="hover:bg-white/2 transition-colors border-l border-transparent hover:border-blue-500/30">
+                      {summary.paymentHistory.map((payment) =>
+                    <tr key={payment.id} className="hover:bg-white/2 transition-colors border-l border-transparent hover:border-blue-500/30">
                           <td className="px-6 py-4">
                             <div className="font-bold">{payment.subscription?.plan?.nameAr || 'رصيد / شحن'}</div>
                             <div className="text-[10px] text-gray-500 uppercase tracking-tighter">{payment.paymentMethod || 'Card'}</div>
@@ -388,12 +389,12 @@ export default function SubscriptionPage() {
                           <td className="px-6 py-4">
                             <div className="flex justify-center">
                                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold ${
-                                payment.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
-                                payment.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
-                                'bg-red-500/10 text-red-500 border border-red-500/20'
-                                }`}>
-                                {payment.status === 'SUCCESS' ? <CheckCircle2 size={10} /> : 
-                                payment.status === 'PENDING' ? <Clock size={10} /> : <XCircle size={10} />}
+                          payment.status === 'SUCCESS' ? 'bg-green-500/10 text-green-500 border border-green-500/20' :
+                          payment.status === 'PENDING' ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' :
+                          'bg-red-500/10 text-red-500 border border-red-500/20'}`
+                          }>
+                                {payment.status === 'SUCCESS' ? <CheckCircle2 size={10} /> :
+                            payment.status === 'PENDING' ? <Clock size={10} /> : <XCircle size={10} />}
                                 {payment.status === 'SUCCESS' ? 'ناجحة' : payment.status === 'PENDING' ? 'قيد الانتظار' : 'فشلت'}
                                 </span>
                             </div>
@@ -403,15 +404,15 @@ export default function SubscriptionPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex justify-center">
-                                {payment.status === 'SUCCESS' && (
-                                    <button 
-                                        onClick={() => generateInvoicePDF(`invoice-${payment.id}`, `invoice-${payment.id}`)}
-                                        className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 transition-all hover:scale-110 active:scale-95"
-                                        title="تحميل الفاتورة"
-                                    >
+                                {payment.status === 'SUCCESS' &&
+                          <button
+                            onClick={() => generateInvoicePDF(`invoice-${payment.id}`, `invoice-${payment.id}`)}
+                            className="p-2 bg-blue-500/10 text-blue-500 rounded-lg hover:bg-blue-500/20 transition-all hover:scale-110 active:scale-95"
+                            title="تحميل الفاتورة">
+                            
                                         <Download size={14} />
                                     </button>
-                                )}
+                          }
                             </div>
                           </td>
                           <td className="px-6 py-4 font-mono text-[10px] text-gray-500 text-left">
@@ -420,39 +421,39 @@ export default function SubscriptionPage() {
                             </span>
                           </td>
                         </tr>
-                      ))}
+                    )}
                     </tbody>
                   </table>
                </div>
                
                {/* Hidden Off-screen Invoice Templates for Capturing */}
                <div className="fixed top-[-10000px] left-[-10000px] opacity-0 pointer-events-none">
-                   {summary.paymentHistory.filter(p => p.status === 'SUCCESS').map(payment => (
-                        <InvoiceTemplate 
-                        key={payment.id} 
-                        data={{
-                            paymentId: payment.id,
-                            orderId: payment.orderId,
-                            customerName: summary.name,
-                            customerEmail: summary.email,
-                            planName: payment.subscription?.plan?.nameAr || 'رصيد / شحن',
-                            amount: payment.amount + (payment.discountAmount || 0),
-                            discountAmount: payment.discountAmount,
-                            promoDiscount: payment.promoDiscount,
-                            prorationDiscount: payment.prorationDiscount,
-                            balanceUsed: payment.balanceUsed,
-                            finalAmount: payment.amount,
-                            date: payment.createdAt,
-                            paymentMethod: payment.paymentMethod || 'Card'
-                        }} 
-                       />
-                   ))}
+                   {summary.paymentHistory.filter((p) => p.status === 'SUCCESS').map((payment) =>
+                <InvoiceTemplate
+                  key={payment.id}
+                  data={{
+                    paymentId: payment.id,
+                    orderId: payment.orderId,
+                    customerName: summary.name,
+                    customerEmail: summary.email,
+                    planName: payment.subscription?.plan?.nameAr || 'رصيد / شحن',
+                    amount: payment.amount + (payment.discountAmount || 0),
+                    discountAmount: payment.discountAmount,
+                    promoDiscount: payment.promoDiscount,
+                    prorationDiscount: payment.prorationDiscount,
+                    balanceUsed: payment.balanceUsed,
+                    finalAmount: payment.amount,
+                    date: payment.createdAt,
+                    paymentMethod: payment.paymentMethod || 'Card'
+                  }} />
+
+                )}
                </div>
-               {summary.paymentHistory.length === 0 && (
-                 <div className="p-12 text-center text-gray-500">
+               {summary.paymentHistory.length === 0 &&
+              <div className="p-12 text-center text-gray-500">
                    <p>لا توجد أي عمليات دفع حتى الآن.</p>
                  </div>
-               )}
+              }
             </div>
           </div>
         </div>
@@ -462,6 +463,6 @@ export default function SubscriptionPage() {
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap');
         body { font-family: 'Cairo', sans-serif; }
       `}</style>
-    </div>
-  );
+    </div>);
+
 }

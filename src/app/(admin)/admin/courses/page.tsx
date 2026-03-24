@@ -2,35 +2,65 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { ColumnDef } from "@tanstack/react-table";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import {
+  Award,
+  BookOpen,
+  Clock,
+  DollarSign,
+  ExternalLink,
+  Filter,
+  GraduationCap,
+  LayoutGrid,
+  Pencil,
+  PlayCircle,
+  Plus,
+  RefreshCw,
+  Search,
+  Sparkles,
+  Tags,
+  Trash2,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
-import {
-  Plus, Users, LayoutGrid, DollarSign, PlayCircle, GraduationCap, RefreshCw, BookOpen, ExternalLink,
-  Target, Award, Clock
-} from "lucide-react";
-import { ColumnDef } from "@tanstack/react-table";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { toast } from "sonner";
+import { AdminUpload } from "@/components/admin/ui/admin-upload";
+import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { 
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
-import { 
-  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { AdminUpload } from "@/components/admin/ui/admin-upload";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-interface Subject {
+interface Course {
   id: string;
   name: string;
   nameAr: string | null;
@@ -55,10 +85,40 @@ interface Subject {
   };
 }
 
+interface CoursesResponse {
+  data: {
+    courses: Course[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
+interface CourseCategory {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string | null;
+  description: string | null;
+  coursesCount: number;
+}
+
+type FilterKey = "all" | "published" | "draft" | "active" | "inactive";
+
+const categorySchema = z.object({
+  name: z.string().min(1, "اسم التصنيف مطلوب"),
+  slug: z.string().optional().nullable(),
+  icon: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+});
+
 const courseSchema = z.object({
-  name: z.string().min(1, "English name is required"),
-  nameAr: z.string().min(1, "الاسم العربي مطلوب"),
-  price: z.coerce.number().min(0),
+  name: z.string().min(1, "اسم الدورة بالإنجليزية مطلوب"),
+  nameAr: z.string().min(1, "اسم الدورة بالعربية مطلوب"),
+  price: z.coerce.number().min(0, "السعر يجب أن يكون صفرًا أو أكثر"),
   level: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]),
   instructorName: z.string().optional().nullable(),
   instructorId: z.string().optional().nullable(),
@@ -66,7 +126,7 @@ const courseSchema = z.object({
   description: z.string().optional().nullable(),
   isActive: z.boolean(),
   isPublished: z.boolean(),
-  durationHours: z.coerce.number().min(0),
+  durationHours: z.coerce.number().min(0, "عدد الساعات يجب أن يكون صفرًا أو أكثر"),
   requirements: z.string().optional().nullable(),
   learningObjectives: z.string().optional().nullable(),
   thumbnailUrl: z.string().optional().nullable(),
@@ -74,121 +134,197 @@ const courseSchema = z.object({
 });
 
 type CourseFormValues = z.infer<typeof courseSchema>;
+type CategoryFormValues = z.infer<typeof categorySchema>;
+
+const levelLabels: Record<string, string> = {
+  EASY: "مبتدئ",
+  MEDIUM: "متوسط",
+  HARD: "متقدم",
+  EXPERT: "خبير",
+};
+
+const levelStyles: Record<string, string> = {
+  EASY: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600",
+  MEDIUM: "border-sky-500/20 bg-sky-500/10 text-sky-600",
+  HARD: "border-amber-500/20 bg-amber-500/10 text-amber-600",
+  EXPERT: "border-rose-500/20 bg-rose-500/10 text-rose-600",
+};
+
+const filterOptions: Array<{ key: FilterKey; label: string }> = [
+  { key: "all", label: "كل الدورات" },
+  { key: "published", label: "المنشورة" },
+  { key: "draft", label: "المسودات" },
+  { key: "active", label: "النشطة" },
+  { key: "inactive", label: "الموقوفة" },
+];
+
+const defaultValues: CourseFormValues = {
+  name: "",
+  nameAr: "",
+  price: 0,
+  level: "MEDIUM",
+  instructorName: "",
+  instructorId: "",
+  categoryId: "",
+  description: "",
+  isActive: true,
+  isPublished: false,
+  durationHours: 0,
+  requirements: "",
+  learningObjectives: "",
+  thumbnailUrl: "",
+  trailerUrl: "",
+};
+
+const defaultCategoryValues: CategoryFormValues = {
+  name: "",
+  slug: "",
+  icon: "",
+  description: "",
+};
 
 export default function AdminCoursesPage() {
   const router = useRouter();
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [editingCourse, setEditingCourse] = React.useState<Subject | null>(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = React.useState(false);
+  const [editingCourse, setEditingCourse] = React.useState<Course | null>(null);
+  const [editingCategory, setEditingCategory] = React.useState<CourseCategory | null>(null);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
     open: false,
     id: null,
   });
+  const [categoryDeleteDialog, setCategoryDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
+    open: false,
+    id: null,
+  });
+  const [activeFilter, setActiveFilter] = React.useState<FilterKey>("all");
+  const [selectedCategoryId, setSelectedCategoryId] = React.useState<string>("all");
+  const [selectedTeacherId, setSelectedTeacherId] = React.useState<string>("all");
+  const [page, setPage] = React.useState(1);
+  const [limit, setLimit] = React.useState(10);
+  const [search, setSearch] = React.useState("");
+  const deferredCategoryId = React.useDeferredValue(selectedCategoryId);
+  const deferredTeacherId = React.useDeferredValue(selectedTeacherId);
+  const deferredSearch = React.useDeferredValue(search);
 
-  const { data: courses = [], isLoading, refetch } = useQuery({
-    queryKey: ["admin", "courses"],
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["admin", "courses", page, limit, deferredSearch, activeFilter, deferredCategoryId, deferredTeacherId],
     queryFn: async () => {
-      const response = await fetch("/api/admin/subjects?limit=100");
-      const result = await response.json();
-      return (result.data?.subjects || []) as Subject[];
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+
+      if (deferredSearch) params.set("search", deferredSearch);
+      if (activeFilter === "active") params.set("isActive", "true");
+      if (activeFilter === "inactive") params.set("isActive", "false");
+      if (activeFilter === "published") params.set("isPublished", "true");
+      if (activeFilter === "draft") params.set("isPublished", "false");
+      if (deferredCategoryId !== "all") params.set("categoryId", deferredCategoryId);
+      if (deferredTeacherId !== "all") params.set("instructorId", deferredTeacherId);
+
+      const response = await fetch(`/api/admin/courses?${params.toString()}`);
+      return (await response.json()) as CoursesResponse;
     },
   });
+
+  const courses = data?.data?.courses || [];
+  const pagination = data?.data?.pagination;
 
   const { data: teachers = [] } = useQuery({
     queryKey: ["admin", "teachers"],
     queryFn: async () => {
       const response = await fetch("/api/admin/teachers");
       const result = await response.json();
-      return (result.data?.teachers || []) as any[];
+      return (result.data?.teachers || []) as Array<{ id: string; name: string }>;
     },
   });
 
-  const { data: categories = [] } = useQuery({
+  const { data: categories = [], refetch: refetchCategories } = useQuery({
     queryKey: ["admin", "course-categories"],
     queryFn: async () => {
       const response = await fetch("/api/admin/course-categories");
       const result = await response.json();
-      return (result.data?.categories || []) as any[];
+      return (result.data?.categories || []) as CourseCategory[];
     },
   });
 
+  const memoizedCourses = React.useMemo(() => courses, [courses]);
+
   const totalEnrollments = React.useMemo(
-    () => courses.reduce((total, course) => total + (course._count?.enrollments || 0), 0),
-    [courses]
+    () => memoizedCourses.reduce((total, course) => total + (course._count?.enrollments || 0), 0),
+    [memoizedCourses]
   );
-
   const totalCurriculumUnits = React.useMemo(
-    () => courses.reduce((total, course) => total + (course._count?.topics || 0), 0),
-    [courses]
+    () => memoizedCourses.reduce((total, course) => total + (course._count?.topics || 0), 0),
+    [memoizedCourses]
   );
-
-  const activeCoursesCount = React.useMemo(
-    () => courses.filter((course) => course.isActive).length,
-    [courses]
-  );
-
-  const averagePrice = React.useMemo(() => {
-    if (courses.length === 0) {
-      return 0;
-    }
-
-    return Math.round(courses.reduce((total, course) => total + (course.price || 0), 0) / courses.length);
-  }, [courses]);
-
   const totalHours = React.useMemo(
-    () => courses.reduce((total, course) => total + (course.durationHours || 0), 0),
-    [courses]
+    () => memoizedCourses.reduce((total, course) => total + (course.durationHours || 0), 0),
+    [memoizedCourses]
   );
-
   const publishedCoursesCount = React.useMemo(
-    () => courses.filter((course) => course.isPublished).length,
-    [courses]
+    () => memoizedCourses.filter((course) => course.isPublished).length,
+    [memoizedCourses]
   );
+  const activeCoursesCount = React.useMemo(
+    () => memoizedCourses.filter((course) => course.isActive).length,
+    [memoizedCourses]
+  );
+  const averagePrice = React.useMemo(() => {
+    if (!memoizedCourses.length) return 0;
+    const total = memoizedCourses.reduce((sum, course) => sum + (course.price || 0), 0);
+    return Math.round(total / memoizedCourses.length);
+  }, [memoizedCourses]);
 
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
-    defaultValues: {
-      name: "",
-      nameAr: "",
-      price: 0,
-      level: "MEDIUM",
-      instructorName: "",
-      instructorId: "",
-      categoryId: "",
-      description: "",
-      isActive: true,
-      isPublished: false,
-      durationHours: 0,
-      requirements: "",
-      learningObjectives: "",
-      thumbnailUrl: "",
-      trailerUrl: "",
-    },
+    defaultValues,
+  });
+  const categoryForm = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: defaultCategoryValues,
   });
 
   const selectedInstructorId = form.watch("instructorId");
+  const previewThumbnail = form.watch("thumbnailUrl");
+  const previewName = form.watch("nameAr") || form.watch("name") || "دورة جديدة";
+  const previewDescription = form.watch("description") || "أضف وصفًا مختصرًا يوضح قيمة الدورة للطلاب.";
+  const previewLevel = form.watch("level");
+  const previewPrice = form.watch("price");
+  const previewDuration = form.watch("durationHours");
+  const previewPublished = form.watch("isPublished");
+  const previewActive = form.watch("isActive");
   React.useEffect(() => {
-    if (selectedInstructorId) {
-      const teacher = teachers.find((t: any) => t.id === selectedInstructorId);
-      if (teacher) {
-        form.setValue("instructorName", teacher.name);
-      }
+    if (!selectedInstructorId) {
+      form.setValue("instructorName", "");
+      return;
+    }
+
+    const teacher = teachers.find((item) => item.id === selectedInstructorId);
+    if (teacher) {
+      form.setValue("instructorName", teacher.name);
     }
   }, [selectedInstructorId, teachers, form]);
 
-  const handleOpenDialog = (course?: Subject) => {
+  React.useEffect(() => {
+    setPage(1);
+  }, [activeFilter, deferredCategoryId, deferredTeacherId, deferredSearch]);
+
+  const openDialog = (course?: Course) => {
     if (course) {
       setEditingCourse(course);
       form.reset({
         name: course.name,
         nameAr: course.nameAr || "",
         price: course.price || 0,
-        level: (course.level as any) || "MEDIUM",
+        level: (course.level as CourseFormValues["level"]) || "MEDIUM",
         instructorName: course.instructorName || "",
         instructorId: course.instructorId || "",
         categoryId: course.categoryId || "",
         description: course.description || "",
         isActive: course.isActive,
-        isPublished: course.isPublished || false,
+        isPublished: course.isPublished,
         durationHours: course.durationHours || 0,
         requirements: course.requirements || "",
         learningObjectives: course.learningObjectives || "",
@@ -197,95 +333,165 @@ export default function AdminCoursesPage() {
       });
     } else {
       setEditingCourse(null);
-      form.reset({
-        name: "",
-        nameAr: "",
-        price: 0,
-        level: "MEDIUM",
-        instructorName: "",
-        instructorId: "",
-        categoryId: "",
-        description: "",
-        isActive: true,
-        isPublished: false,
-        durationHours: 0,
-        requirements: "",
-        learningObjectives: "",
-        thumbnailUrl: "",
-        trailerUrl: "",
-      });
+      form.reset(defaultValues);
     }
+
     setDialogOpen(true);
+  };
+
+  const openCategoryDialog = (category?: CourseCategory) => {
+    if (category) {
+      setEditingCategory(category);
+      categoryForm.reset({
+        name: category.name,
+        slug: category.slug || "",
+        icon: category.icon || "",
+        description: category.description || "",
+      });
+    } else {
+      setEditingCategory(null);
+      categoryForm.reset(defaultCategoryValues);
+    }
+
+    setCategoryDialogOpen(true);
   };
 
   const handleSubmit = async (values: CourseFormValues) => {
     try {
       const method = editingCourse ? "PATCH" : "POST";
-      const body = editingCourse ? { ...values, id: editingCourse.id } : values;
-      const response = await fetch("/api/admin/subjects", {
+      const payload = editingCourse ? { ...values, id: editingCourse.id } : values;
+
+      const response = await fetch("/api/admin/courses", {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
 
-      if (response.ok) {
-        toast.success(editingCourse ? "تم تحديث الدورة بنجاح" : "تم إنشاء دورة جديدة");
-        setDialogOpen(false);
-        refetch();
-      } else {
-        toast.error("فشل في حفظ البيانات");
+      if (!response.ok) {
+        toast.error("تعذر حفظ بيانات الدورة");
+        return;
       }
-    } catch (error) {
-      toast.error("خطأ في الاتصال بالخادم");
+
+      toast.success(editingCourse ? "تم تحديث الدورة بنجاح" : "تم إنشاء الدورة بنجاح");
+      setDialogOpen(false);
+      setEditingCourse(null);
+      form.reset(defaultValues);
+      await refetch();
+    } catch {
+      toast.error("حدث خطأ أثناء الاتصال بالخادم");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
+
     try {
-      const response = await fetch("/api/admin/subjects", {
+      const response = await fetch("/api/admin/courses", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
       });
 
-      if (response.ok) {
-        toast.success("تم حذف الدورة بنجاح");
-        refetch();
-      } else {
-        toast.error("فشل في حذف الدورة");
+      if (!response.ok) {
+        toast.error("تعذر حذف الدورة");
+        return;
       }
-    } catch (error) {
-      toast.error("خطأ في الاتصال");
+
+      toast.success("تم حذف الدورة بنجاح");
+      await refetch();
+    } catch {
+      toast.error("حدث خطأ أثناء الاتصال بالخادم");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
   };
 
-  const columns: ColumnDef<Subject>[] = [
+  const handleCategorySubmit = async (values: CategoryFormValues) => {
+    try {
+      const method = editingCategory ? "PATCH" : "POST";
+      const payload = editingCategory ? { ...values, id: editingCategory.id } : values;
+
+      const response = await fetch("/api/admin/course-categories", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result?.error || result?.message || "تعذر حفظ التصنيف");
+        return;
+      }
+
+      toast.success(editingCategory ? "تم تحديث التصنيف بنجاح" : "تم إنشاء التصنيف بنجاح");
+      setCategoryDialogOpen(false);
+      setEditingCategory(null);
+      categoryForm.reset(defaultCategoryValues);
+      await refetchCategories();
+      await refetch();
+    } catch {
+      toast.error("حدث خطأ أثناء الاتصال بالخادم");
+    }
+  };
+
+  const handleCategoryDelete = async () => {
+    if (!categoryDeleteDialog.id) return;
+
+    try {
+      const response = await fetch("/api/admin/course-categories", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: categoryDeleteDialog.id }),
+      });
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result?.error || result?.message || "تعذر حذف التصنيف");
+        return;
+      }
+
+      if (selectedCategoryId === categoryDeleteDialog.id) {
+        setSelectedCategoryId("all");
+      }
+
+      toast.success("تم حذف التصنيف بنجاح");
+      await refetchCategories();
+      await refetch();
+    } catch {
+      toast.error("حدث خطأ أثناء الاتصال بالخادم");
+    } finally {
+      setCategoryDeleteDialog({ open: false, id: null });
+    }
+  };
+
+  const columns: ColumnDef<Course>[] = [
     {
       accessorKey: "name",
       id: "nameAr",
-      header: "الدورة التدريبية",
+      header: "الدورة",
       cell: ({ row }) => {
         const course = row.original;
+
         return (
           <div className="flex items-center gap-4">
-            <div className="relative h-14 w-24 overflow-hidden rounded-xl border bg-muted shadow-sm">
+            <div className="relative h-14 w-24 overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
               {course.thumbnailUrl ? (
                 <img src={course.thumbnailUrl} alt={course.name} className="h-full w-full object-cover" />
               ) : (
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-500/20 to-indigo-500/20">
+                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-sky-500/10 to-indigo-500/10">
                   <PlayCircle className="h-6 w-6 text-primary" />
                 </div>
               )}
             </div>
-            <div>
-              <p className="font-bold text-sm">{course.nameAr || course.name}</p>
-              <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                <GraduationCap className="w-3 h-3" />
-                {course.instructorName || "غير محدد"}
-              </p>
+            <div className="min-w-0 space-y-1">
+              <p className="truncate text-sm font-bold">{course.nameAr || course.name}</p>
+              <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                <span className="inline-flex items-center gap-1">
+                  <GraduationCap className="h-3.5 w-3.5" />
+                  {course.instructorName || "بدون مدرس"}
+                </span>
+                {course.code && <span>#{course.code}</span>}
+              </div>
             </div>
           </div>
         );
@@ -295,9 +501,9 @@ export default function AdminCoursesPage() {
       accessorKey: "price",
       header: "السعر",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 font-black text-primary text-xs">
-          <DollarSign className="w-3.5 h-3.5" />
-          <span>{row.original.price || 0} EGP</span>
+        <div className="flex items-center gap-1 text-sm font-bold text-primary">
+          <DollarSign className="h-3.5 w-3.5" />
+          {row.original.price || 0} EGP
         </div>
       ),
     },
@@ -305,38 +511,29 @@ export default function AdminCoursesPage() {
       accessorKey: "durationHours",
       header: "المدة",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 font-bold text-sm text-muted-foreground">
-          <Clock className="w-3.5 h-3.5" />
-          <span>{row.original.durationHours || 0}h</span>
+        <div className="flex items-center gap-1 text-sm font-medium text-muted-foreground">
+          <Clock className="h-3.5 w-3.5" />
+          {row.original.durationHours || 0} ساعة
         </div>
       ),
     },
     {
       id: "enrollments",
-      header: "المشتركين",
+      header: "الملتحقون",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 font-bold text-sm">
-          <Users className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>{row.original._count?.enrollments || 0}</span>
+        <div className="flex items-center gap-1 text-sm font-bold">
+          <Users className="h-3.5 w-3.5 text-muted-foreground" />
+          {row.original._count?.enrollments || 0}
         </div>
-      ),
-    },
-    {
-      accessorKey: "isPublished",
-      header: "النشر",
-      cell: ({ row }) => (
-        <Badge variant={row.original.isPublished ? "default" : "outline"} className={`rounded-full px-2 py-0 text-[10px] font-bold ${row.original.isPublished ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "text-muted-foreground opacity-50 font-normal"}`}>
-          {row.original.isPublished ? "منشور" : "مغلق"}
-        </Badge>
       ),
     },
     {
       id: "topics",
       header: "المحتوى",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 font-bold text-sm">
-          <LayoutGrid className="w-3.5 h-3.5 text-muted-foreground" />
-          <span>{row.original._count?.topics || 0} وحدات</span>
+        <div className="flex items-center gap-1 text-sm font-bold">
+          <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground" />
+          {row.original._count?.topics || 0} وحدة
         </div>
       ),
     },
@@ -344,27 +541,42 @@ export default function AdminCoursesPage() {
       accessorKey: "level",
       header: "المستوى",
       cell: ({ row }) => {
-        const colors: Record<string, string> = {
-          EASY: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-          MEDIUM: "bg-blue-500/10 text-blue-500 border-blue-500/20",
-          HARD: "bg-orange-500/10 text-orange-500 border-orange-500/20",
-          EXPERT: "bg-rose-500/10 text-rose-500 border-rose-500/20",
-        };
-        const labels: Record<string, string> = { EASY: "مبتدئ", MEDIUM: "متوسط", HARD: "متقدم", EXPERT: "خبير" };
-        const level = (row.original.level || "MEDIUM") as string;
+        const level = row.original.level || "MEDIUM";
         return (
-          <Badge variant="outline" className={`rounded-full px-2 py-0 text-[10px] font-bold ${colors[level] || colors.MEDIUM}`}>
-            {labels[level] || level}
+          <Badge
+            variant="outline"
+            className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${levelStyles[level] || levelStyles.MEDIUM}`}
+          >
+            {levelLabels[level] || level}
           </Badge>
         );
       },
     },
     {
+      accessorKey: "isPublished",
+      header: "النشر",
+      cell: ({ row }) => (
+        <Badge
+          variant="outline"
+          className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+            row.original.isPublished
+              ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600"
+              : "border-border/60 bg-muted/30 text-muted-foreground"
+          }`}
+        >
+          {row.original.isPublished ? "منشورة" : "مسودة"}
+        </Badge>
+      ),
+    },
+    {
       accessorKey: "isActive",
       header: "الحالة",
       cell: ({ row }) => (
-        <Badge variant={row.original.isActive ? "default" : "secondary"} className="rounded-full px-2.5 py-0.5 font-bold text-[10px]">
-          {row.original.isActive ? "نشط" : "مسودة"}
+        <Badge
+          variant={row.original.isActive ? "default" : "secondary"}
+          className="rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+        >
+          {row.original.isActive ? "نشطة" : "موقوفة"}
         </Badge>
       ),
     },
@@ -374,12 +586,20 @@ export default function AdminCoursesPage() {
       cell: ({ row }) => (
         <RowActions
           row={row.original}
-          onEdit={handleOpenDialog}
-          onDelete={(c) => setDeleteDialog({ open: true, id: c.id })}
+          onView={(course) => router.push(`/admin/courses/${course.id}`)}
+          onEdit={openDialog}
+          onDelete={(course) => setDeleteDialog({ open: true, id: course.id })}
           extraActions={[
-            { icon: PlayCircle, label: "إدارة المحتوى", onClick: (c) => router.push(`/admin/courses/${c.id}/curriculum`) },
-            { icon: BookOpen, label: "تفاصيل الدورة", onClick: (c) => router.push(`/admin/courses/${c.id}`) },
-            { icon: ExternalLink, label: "عرض بالموقع", onClick: (c) => router.push(`/courses/${c.id}`) },
+            {
+              icon: BookOpen,
+              label: "إدارة المنهج",
+              onClick: (course) => router.push(`/admin/courses/${course.id}/curriculum`),
+            },
+            {
+              icon: ExternalLink,
+              label: "عرض في الموقع",
+              onClick: (course) => router.push(`/courses/${course.id}`),
+            },
           ]}
         />
       ),
@@ -389,71 +609,212 @@ export default function AdminCoursesPage() {
   return (
     <div className="space-y-8 pb-20" dir="rtl">
       <PageHeader
-        title="إدارة الدورات التدريبية 🎓"
-        description="أنشئ وأدر الدورات، حدد الأسعار، وراقب مبيعاتك."
+        title="إدارة الدورات التعليمية"
+        description="أنشئ الدورات، راقب حالة النشر، ووجّه فريق المحتوى بسرعة من شاشة تشغيل واحدة."
+        badge={`${pagination?.total || courses.length} دورة`}
       >
-        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
-          إنشاء دورة جديدة
-        </AdminButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <AdminButton variant="outline" icon={RefreshCw} onClick={() => refetch()}>
+            تحديث
+          </AdminButton>
+          <AdminButton variant="outline" icon={Tags} onClick={() => openCategoryDialog()}>
+            إدارة التصنيفات
+          </AdminButton>
+          <AdminButton icon={Plus} onClick={() => openDialog()}>
+            دورة جديدة
+          </AdminButton>
+        </div>
       </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <AdminCard variant="glass" className="p-5">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 shadow-inner">
-              <PlayCircle className="w-5 h-5" />
+      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
+        <AdminCard variant="glass" className="overflow-hidden border-white/10 p-0">
+          <div className="grid gap-6 border-b border-white/10 bg-gradient-to-l from-slate-950 via-slate-900 to-sky-950 px-6 py-6 text-white lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-4">
+              <Badge className="w-fit rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-white">
+                غرفة تشغيل المحتوى
+              </Badge>
+              <div className="space-y-2">
+                <h2 className="text-2xl font-black leading-tight">لوحة مركزة لإطلاق الدورات ومتابعة جاهزيتها</h2>
+                <p className="max-w-2xl text-sm leading-7 text-slate-300">
+                  راقب الدورات المنشورة، الدورات المتوقفة، وحجم المحتوى داخل كل دورة بدون التنقل بين عدة شاشات.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {filterOptions.map((option) => (
+                  <button
+                    key={option.key}
+                    type="button"
+                    onClick={() => setActiveFilter(option.key)}
+                    className={`rounded-full border px-4 py-2 text-xs font-bold transition ${
+                      activeFilter === option.key
+                        ? "border-white bg-white text-slate-950"
+                        : "border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <p className="text-xl font-black">{courses.length}</p>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">إجمالي الدورات</p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs font-bold text-slate-300">الدورات المنشورة</p>
+                <p className="mt-3 text-3xl font-black">{publishedCoursesCount}</p>
+                <p className="mt-2 text-xs text-slate-400">جاهزة للعرض للطلاب الآن</p>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs font-bold text-slate-300">الدورات النشطة</p>
+                <p className="mt-3 text-3xl font-black">{activeCoursesCount}</p>
+                <p className="mt-2 text-xs text-slate-400">متاحة ضمن عمليات المنصة</p>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs font-bold text-slate-300">إجمالي الوحدات</p>
+                <p className="mt-3 text-3xl font-black">{totalCurriculumUnits}</p>
+                <p className="mt-2 text-xs text-slate-400">حجم المحتوى عبر جميع الدورات</p>
+              </div>
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+                <p className="text-xs font-bold text-slate-300">متوسط السعر</p>
+                <p className="mt-3 text-3xl font-black">{averagePrice} EGP</p>
+                <p className="mt-2 text-xs text-slate-400">يساعد في ضبط التسعير العام</p>
+              </div>
             </div>
           </div>
         </AdminCard>
-        <AdminCard variant="glass" className="p-5">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-500 shadow-inner">
-              <Users className="w-5 h-5" />
+
+        <AdminCard variant="outline" className="space-y-4 p-5">
+          <div className="flex items-center gap-2 text-sm font-bold">
+            <Filter className="h-4 w-4 text-primary" />
+            فلاتر تشغيل سريعة
+          </div>
+
+          <div className="space-y-3">
+            <label className="space-y-2 text-sm">
+              <span className="font-medium text-foreground">التصنيف</span>
+              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="كل التصنيفات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل التصنيفات</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+
+            <label className="space-y-2 text-sm">
+              <span className="font-medium text-foreground">المدرس</span>
+              <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="كل المدرسين" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">كل المدرسين</SelectItem>
+                  {teachers.map((teacher) => (
+                    <SelectItem key={teacher.id} value={teacher.id}>
+                      {teacher.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </label>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl bg-muted/40 p-4">
+              <p className="text-[11px] font-bold text-muted-foreground">الملتحقون</p>
+              <p className="mt-2 text-2xl font-black">{totalEnrollments}</p>
             </div>
-            <div>
-              <p className="text-xl font-black">{totalEnrollments}</p>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">إجمالي المشتركين</p>
+            <div className="rounded-2xl bg-muted/40 p-4">
+              <p className="text-[11px] font-bold text-muted-foreground">الساعات</p>
+              <p className="mt-2 text-2xl font-black">{totalHours}</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-dashed border-primary/20 bg-primary/5 p-4 text-sm leading-7 text-muted-foreground">
+            أسرع مسار للعمل: أنشئ الدورة، اربطها بالمدرس، أضف الصورة والفيديو، ثم انقلها إلى &quot;منشورة&quot; عندما يصبح المنهج جاهزًا.
+          </div>
+
+          <div className="space-y-3 rounded-3xl border border-border/60 bg-background/70 p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <Tags className="h-4 w-4 text-primary" />
+                التصنيفات التعليمية
+              </div>
+              <button
+                type="button"
+                onClick={() => openCategoryDialog()}
+                className="text-xs font-bold text-primary transition hover:opacity-80"
+              >
+                إضافة تصنيف
+              </button>
+            </div>
+            <div className="space-y-2">
+              {categories.slice(0, 6).map((category) => (
+                <div key={category.id} className="flex items-center justify-between rounded-2xl bg-muted/30 px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{category.name}</p>
+                    <p className="text-[11px] text-muted-foreground">{category.coursesCount} دورة</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openCategoryDialog(category)}
+                      className="rounded-xl p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCategoryDeleteDialog({ open: true, id: category.id })}
+                      className="rounded-xl p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </AdminCard>
-        <AdminCard variant="glass" className="p-5">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-violet-500/10 text-violet-500 shadow-inner">
-              <LayoutGrid className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xl font-black">{totalCurriculumUnits}</p>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">وحدات المنهج</p>
-            </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <AdminCard className="space-y-3 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground">إجمالي الدورات</span>
+            <PlayCircle className="h-4 w-4 text-primary" />
           </div>
+          <p className="text-3xl font-black">{courses.length}</p>
+          <p className="text-sm text-muted-foreground">جميع السجلات التعليمية في لوحة التحكم.</p>
         </AdminCard>
-        <AdminCard variant="glass" className="p-5">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-fuchsia-500/10 text-fuchsia-500 shadow-inner">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xl font-black">{totalHours}h</p>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">إجمالي الساعات</p>
-            </div>
+        <AdminCard className="space-y-3 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground">الدورات المنشورة</span>
+            <Sparkles className="h-4 w-4 text-emerald-500" />
           </div>
+          <p className="text-3xl font-black">{publishedCoursesCount}</p>
+          <p className="text-sm text-muted-foreground">جاهزة للظهور للطلاب في الواجهة التعليمية.</p>
         </AdminCard>
-        <AdminCard variant="glass" className="p-5">
-          <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 shadow-inner">
-              <Award className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xl font-black">{publishedCoursesCount}</p>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                {activeCoursesCount} / {courses.length} دورات نشطة
-              </p>
-            </div>
+        <AdminCard className="space-y-3 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground">المحتوى المتاح</span>
+            <LayoutGrid className="h-4 w-4 text-violet-500" />
           </div>
+          <p className="text-3xl font-black">{totalCurriculumUnits}</p>
+          <p className="text-sm text-muted-foreground">وحدة تعليمية موزعة على الدورات الحالية.</p>
+        </AdminCard>
+        <AdminCard className="space-y-3 p-5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-muted-foreground">السعر المتوسط</span>
+            <Award className="h-4 w-4 text-amber-500" />
+          </div>
+          <p className="text-3xl font-black">{averagePrice} EGP</p>
+          <p className="text-sm text-muted-foreground">مرجع سريع عند تسعير دورة جديدة.</p>
         </AdminCard>
       </div>
 
@@ -461,162 +822,537 @@ export default function AdminCoursesPage() {
         columns={columns}
         data={courses}
         loading={isLoading}
-        searchKey="nameAr"
-        searchPlaceholder="ابحث..."
+        serverSide
+        totalRows={pagination?.total || 0}
+        pageCount={pagination?.totalPages || 1}
+        currentPage={page}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        pageSize={limit}
+        actions={{ onRefresh: () => refetch() }}
+        emptyMessage={{
+          title: "لا توجد دورات مطابقة",
+          description: "جرّب تغيير الفلاتر أو أنشئ دورة جديدة لبدء المحتوى.",
+        }}
+        toolbar={
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="???? ???? ?????? ?? ?????"
+                className="h-10 w-64 rounded-xl border border-border bg-accent/20 px-10 text-sm outline-none ring-primary transition focus:ring-1"
+              />
+            </div>
+            <span className="rounded-full bg-muted px-3 py-2 font-medium">
+              {pagination?.total || courses.length} نتيجة
+            </span>
+            {(activeFilter !== "all" || selectedCategoryId !== "all" || selectedTeacherId !== "all" || search) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveFilter("all");
+                  setSelectedCategoryId("all");
+                  setSelectedTeacherId("all");
+                  setSearch("");
+                }}
+                className="rounded-full border px-3 py-2 font-medium text-foreground transition hover:bg-muted"
+              >
+                تصفير الفلاتر
+              </button>
+            )}
+          </div>
+        }
       />
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl rounded-3xl">
-          <DialogHeader dir="rtl">
-            <DialogTitle className="text-2xl font-black">{editingCourse ? "تعديل الدورة" : "دورة جديدة"}</DialogTitle>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-4 max-h-[70vh] overflow-y-auto px-1">
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="nameAr" render={({ field }) => (
-                  <FormItem><FormLabel>الاسم بالعربي</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="name" render={({ field }) => (
-                  <FormItem><FormLabel>English Name (ID)</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
-                )} />
-              </div>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={(open) => {
+          setDialogOpen(open);
+          if (!open) {
+            setEditingCourse(null);
+            form.reset(defaultValues);
+          }
+        }}
+      >
+        <DialogContent className="max-w-5xl rounded-[2rem] p-0">
+          <div className="grid max-h-[88vh] gap-0 overflow-hidden lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="overflow-y-auto p-6 sm:p-8" dir="rtl">
+              <DialogHeader className="space-y-2 text-right">
+                <DialogTitle className="text-2xl font-black">
+                  {editingCourse ? "تعديل الدورة" : "إضافة دورة جديدة"}
+                </DialogTitle>
+                <p className="text-sm text-muted-foreground">
+                  أدخل البيانات الأساسية أولًا، ثم أضف الوسائط والمتطلبات قبل النشر.
+                </p>
+              </DialogHeader>
 
-              <div className="grid grid-cols-3 gap-4">
-                <FormField control={form.control} name="price" render={({ field }) => (
-                  <FormItem><FormLabel>السعر (EGP)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="durationHours" render={({ field }) => (
-                  <FormItem><FormLabel>عدد الساعات</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="level" render={({ field }) => (
-                  <FormItem><FormLabel>المستوى</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl><SelectTrigger><SelectValue /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        <SelectItem value="EASY">مبتدئ</SelectItem>
-                        <SelectItem value="MEDIUM">متوسط</SelectItem>
-                        <SelectItem value="HARD">متقدم</SelectItem>
-                        <SelectItem value="EXPERT">خبير</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  <FormMessage /></FormItem>
-                )} />
-              </div>
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(handleSubmit)} className="mt-6 space-y-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="nameAr"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>اسم الدورة بالعربية</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} placeholder="مثال: أساسيات اللغة العربية" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>اسم الدورة بالإنجليزية</FormLabel>
+                          <FormControl>
+                            <Input {...field} value={field.value || ""} placeholder="Arabic Foundations" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="instructorId" render={({ field }) => (
-                  <FormItem><FormLabel>المدرس / المحاضر</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="اختر المدرس" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {teachers.map((t: any) => (
-                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  <FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="categoryId" render={({ field }) => (
-                  <FormItem><FormLabel>التصنيف</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ""}>
-                      <FormControl><SelectTrigger><SelectValue placeholder="اختر التصنيف" /></SelectTrigger></FormControl>
-                      <SelectContent>
-                        {categories.map((c: any) => (
-                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  <FormMessage /></FormItem>
-                )} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-4">
-                  <FormField control={form.control} name="thumbnailUrl" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الصورة المصغرة</FormLabel>
-                      <FormControl>
-                        <div className="space-y-3">
-                          <Input {...field} value={field.value || ""} placeholder="رابط مباشر للصورة..." />
-                          <AdminUpload 
-                            accept="image/*" 
-                            label="رفع صورة من الجهاز" 
-                            onUploadComplete={(url) => field.onChange(url)} 
+                  <FormField
+                    control={form.control}
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الوصف</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            {...field}
+                            value={field.value || ""}
+                            className="min-h-[110px]"
+                            placeholder="ملخص واضح لما سيتعلمه الطالب داخل الدورة."
                           />
-                        </div>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="requirements"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>المتطلبات</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              value={field.value || ""}
+                              placeholder={"اكتب كل متطلب في سطر منفصل"}
+                              className="min-h-[120px]"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="learningObjectives"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>مخرجات التعلم</FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              value={field.value || ""}
+                              placeholder={"اكتب كل هدف تعليمي في سطر منفصل"}
+                              className="min-h-[120px]"
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <FormField
+                      control={form.control}
+                      name="price"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>السعر</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="durationHours"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>عدد الساعات</FormLabel>
+                          <FormControl>
+                            <Input type="number" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="level"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>المستوى</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="EASY">مبتدئ</SelectItem>
+                              <SelectItem value="MEDIUM">متوسط</SelectItem>
+                              <SelectItem value="HARD">متقدم</SelectItem>
+                              <SelectItem value="EXPERT">خبير</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="instructorId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>المدرس</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="اختر المدرس" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {teachers.map((teacher) => (
+                                <SelectItem key={teacher.id} value={teacher.id}>
+                                  {teacher.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="categoryId"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>التصنيف</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="اختر التصنيف" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {categories.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>
+                                  {category.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-6 sm:grid-cols-2">
+                    <FormField
+                      control={form.control}
+                      name="thumbnailUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>صورة الدورة</FormLabel>
+                          <FormControl>
+                            <div className="space-y-3">
+                              <Input {...field} value={field.value || ""} placeholder="رابط مباشر للصورة" />
+                              <AdminUpload
+                                accept="image/*"
+                                label="رفع صورة من الجهاز"
+                                onUploadComplete={(url) => field.onChange(url)}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="trailerUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>فيديو تعريفي</FormLabel>
+                          <FormControl>
+                            <div className="space-y-3">
+                              <Input {...field} value={field.value || ""} placeholder="رابط فيديو مباشر أو يوتيوب" />
+                              <AdminUpload
+                                accept="video/*"
+                                label="رفع فيديو من الجهاز"
+                                onUploadComplete={(url) => field.onChange(url)}
+                              />
+                            </div>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="flex items-center justify-between rounded-3xl border bg-muted/20 p-4">
+                      <div className="space-y-1">
+                        <p className="font-bold">الحالة</p>
+                        <p className="text-xs text-muted-foreground">عند إيقافها لن تظهر ضمن التشغيل المعتاد.</p>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="isActive"
+                        render={({ field }) => (
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        )}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between rounded-3xl border bg-muted/20 p-4">
+                      <div className="space-y-1">
+                        <p className="font-bold">النشر</p>
+                        <p className="text-xs text-muted-foreground">فعّل النشر عندما تكون الدورة جاهزة للطلاب.</p>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="isPublished"
+                        render={({ field }) => (
+                          <FormControl>
+                            <Switch checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  <DialogFooter>
+                    <AdminButton type="submit" className="h-12 w-full text-base font-black" icon={RefreshCw}>
+                      {editingCourse ? "حفظ التعديلات" : "إنشاء الدورة"}
+                    </AdminButton>
+                  </DialogFooter>
+                </form>
+              </Form>
+            </div>
+
+            <div className="border-r bg-muted/20 p-6 sm:p-8" dir="rtl">
+              <div className="space-y-5">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    معاينة سريعة
+                  </p>
+                  <h3 className="mt-2 text-2xl font-black">{previewName}</h3>
+                </div>
+
+                <div className="overflow-hidden rounded-[1.75rem] border bg-background">
+                  <div className="relative aspect-[16/10] w-full bg-gradient-to-br from-sky-500/10 via-background to-indigo-500/10">
+                    {previewThumbnail ? (
+                      <img src={previewThumbnail} alt={previewName} className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <PlayCircle className="h-12 w-12 text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-4 p-5">
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="outline" className={`rounded-full ${levelStyles[previewLevel] || levelStyles.MEDIUM}`}>
+                        {levelLabels[previewLevel] || previewLevel}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={previewPublished ? "rounded-full border-emerald-500/20 bg-emerald-500/10 text-emerald-600" : "rounded-full"}
+                      >
+                        {previewPublished ? "منشورة" : "مسودة"}
+                      </Badge>
+                      <Badge variant={previewActive ? "default" : "secondary"} className="rounded-full">
+                        {previewActive ? "نشطة" : "موقوفة"}
+                      </Badge>
+                    </div>
+
+                    <p className="text-sm leading-7 text-muted-foreground">{previewDescription}</p>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-2xl bg-muted/40 p-4">
+                        <p className="text-[11px] font-bold text-muted-foreground">السعر</p>
+                        <p className="mt-2 text-lg font-black">{previewPrice || 0} EGP</p>
+                      </div>
+                      <div className="rounded-2xl bg-muted/40 p-4">
+                        <p className="text-[11px] font-bold text-muted-foreground">المدة</p>
+                        <p className="mt-2 text-lg font-black">{previewDuration || 0} ساعة</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-dashed bg-background p-5">
+                  <p className="text-sm font-bold">توصية تشغيل</p>
+                  <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                    قبل النشر، تأكد من وجود مدرس مرتبط، وصف واضح، وصورة مناسبة حتى تظهر الدورة بشكل مكتمل في صفحة التعليم.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={categoryDialogOpen}
+        onOpenChange={(open) => {
+          setCategoryDialogOpen(open);
+          if (!open) {
+            setEditingCategory(null);
+            categoryForm.reset(defaultCategoryValues);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl rounded-[2rem] p-0">
+          <div className="p-6 sm:p-8" dir="rtl">
+            <DialogHeader className="space-y-2 text-right">
+              <DialogTitle className="text-2xl font-black">
+                {editingCategory ? "تعديل تصنيف دورة" : "إضافة تصنيف دورة"}
+              </DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                استخدم التصنيفات لتنظيم الدورات التعليمية وتسهيل الفرز داخل لوحة الأدمن وواجهة الطالب.
+              </p>
+            </DialogHeader>
+
+            <Form {...categoryForm}>
+              <form onSubmit={categoryForm.handleSubmit(handleCategorySubmit)} className="mt-6 space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={categoryForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>اسم التصنيف</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} placeholder="مثال: الأحياء" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={categoryForm.control}
+                    name="slug"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>الرابط المختصر</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} placeholder="biology-courses" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={categoryForm.control}
+                    name="icon"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>اسم الأيقونة</FormLabel>
+                        <FormControl>
+                          <Input {...field} value={field.value || ""} placeholder="BookOpen" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <div className="rounded-3xl border bg-muted/20 p-4">
+                    <p className="text-xs font-bold text-muted-foreground">عدد الدورات المرتبطة</p>
+                    <p className="mt-2 text-3xl font-black">{editingCategory?.coursesCount ?? 0}</p>
+                  </div>
+                </div>
+                <FormField
+                  control={categoryForm.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>الوصف</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          value={field.value || ""}
+                          className="min-h-[110px]"
+                          placeholder="وصف مختصر يساعد فريق المحتوى على فهم استخدام هذا التصنيف."
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
-                  )} />
-                </div>
-                <div className="space-y-4">
-                  <FormField control={form.control} name="trailerUrl" render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>فيديو الإعلان</FormLabel>
-                      <FormControl>
-                        <div className="space-y-3">
-                          <Input {...field} value={field.value || ""} placeholder="رابط يوتيوب أو فيديو مباشر..." />
-                          <AdminUpload 
-                            accept="video/*" 
-                            label="رفع فيديو من الجهاز" 
-                            onUploadComplete={(url) => field.onChange(url)} 
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )} />
-                </div>
-              </div>
-
-              <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel>الوصف العام</FormLabel><FormControl><Textarea {...field} value={field.value || ""} className="min-h-[100px]" /></FormControl><FormMessage /></FormItem>
-              )} />
-
-              <div className="grid grid-cols-2 gap-4">
-                <FormField control={form.control} name="requirements" render={({ field }) => (
-                  <FormItem><FormLabel>المتطلبات (خطوة بخطوة)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} placeholder="ماذا يحتاج الطالب قبل البدء؟" /></FormControl><FormMessage /></FormItem>
-                )} />
-                <FormField control={form.control} name="learningObjectives" render={({ field }) => (
-                  <FormItem><FormLabel>ماذا ستتعلم؟</FormLabel><FormControl><Textarea {...field} value={field.value || ""} placeholder="الأهداف التعليمية للدورة..." /></FormControl><FormMessage /></FormItem>
-                )} />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
-                  <div>
-                    <p className="font-bold text-sm">الحالة (نشط)</p>
-                    <p className="text-[10px] text-muted-foreground">عرض الدورة في القوائم</p>
-                  </div>
-                  <FormField control={form.control} name="isActive" render={({ field }) => (
-                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  )} />
-                </div>
-                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
-                  <div>
-                    <p className="font-bold text-sm">نشر الدورة</p>
-                    <p className="text-[10px] text-muted-foreground">إتاحة الدورة للطلاب</p>
-                  </div>
-                  <FormField control={form.control} name="isPublished" render={({ field }) => (
-                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  )} />
-                </div>
-              </div>
-
-              <DialogFooter className="pt-4">
-                <AdminButton type="submit" className="w-full h-12 text-lg font-black" icon={RefreshCw}>حفظ بيانات الدورة</AdminButton>
-              </DialogFooter>
-            </form>
-          </Form>
+                  )}
+                />
+                <DialogFooter className="gap-2 sm:justify-start">
+                  <AdminButton type="submit" icon={editingCategory ? Pencil : Plus}>
+                    {editingCategory ? "حفظ التعديلات" : "إنشاء التصنيف"}
+                  </AdminButton>
+                  <AdminButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setCategoryDialogOpen(false);
+                      setEditingCategory(null);
+                      categoryForm.reset(defaultCategoryValues);
+                    }}
+                  >
+                    إلغاء
+                  </AdminButton>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
       <ConfirmDialog
         open={deleteDialog.open}
-        onOpenChange={(open) => setDeleteDialog({ open, id: null })}
+        onOpenChange={(open) => setDeleteDialog({ open, id: open ? deleteDialog.id : null })}
         onConfirm={handleDelete}
-        title="حذف؟"
-        description="سيتم الحذف نهائياً."
+        title="حذف الدورة"
+        description="سيتم حذف الدورة نهائيًا إذا لم تكن مرتبطة بطلاب أو سجلات تمنع ذلك."
+      />
+      <ConfirmDialog
+        open={categoryDeleteDialog.open}
+        onOpenChange={(open) => setCategoryDeleteDialog({ open, id: open ? categoryDeleteDialog.id : null })}
+        onConfirm={handleCategoryDelete}
+        title="حذف التصنيف"
+        description="سيتم حذف التصنيف نهائيًا إذا لم يكن مرتبطًا بأي دورة تعليمية."
+        confirmText="حذف التصنيف"
+        variant="destructive"
       />
     </div>
   );

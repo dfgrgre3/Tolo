@@ -99,22 +99,22 @@ export async function GET(
 
         const activity: ActivityItem[] = [
           ...tasks
-            .filter((task) => task.completedAt)
-            .map((task) => ({
+            .filter((task: any) => task.completedAt)
+            .map((task: any) => ({
               id: `task-${task.id}`,
               type: "task" as const,
               title: `Completed task: ${task.title}`,
               description: task.description || "Task marked as completed.",
               timestamp: (task.completedAt || new Date()).toISOString(),
             })),
-          ...enrollments.map((enrollment) => ({
+          ...enrollments.map((enrollment: any) => ({
             id: `course-${enrollment.id}`,
             type: "course" as const,
             title: `Enrolled in subject: ${enrollment.subject.nameAr || enrollment.subject.name}`,
             description: "A new subject was added to your study plan.",
             timestamp: enrollment.createdAt.toISOString(),
           })),
-          ...examResults.map((result) => ({
+          ...examResults.map((result: any) => ({
             id: `exam-${result.id}`,
             type: "exam" as const,
             title: `Exam result: ${result.exam.title}`,
@@ -122,14 +122,14 @@ export async function GET(
             timestamp: result.takenAt.toISOString(),
             xp: Math.max(5, Math.round(result.score / 10)),
           })),
-          ...forumPosts.map((post) => ({
+          ...forumPosts.map((post: any) => ({
             id: `forum-${post.id}`,
             type: "forum" as const,
             title: `New forum post: ${post.title}`,
             description: "You published a new post in the forum.",
             timestamp: post.createdAt.toISOString(),
           })),
-          ...earnedAchievements.map((item) => ({
+          ...earnedAchievements.map((item: any) => ({
             id: `achievement-${item.id}`,
             type: "achievement" as const,
             title: `New achievement: ${item.achievement.title}`,

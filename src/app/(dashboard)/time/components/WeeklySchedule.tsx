@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { format, startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns';
-import { ar } from 'date-fns/locale';
-import { Settings, Download, Upload, ChevronLeft, ChevronRight, Eye, EyeOff, CheckCircle, Circle } from 'lucide-react';
-import type { Schedule, TimeBlock, WeeklyScheduleProps } from './WeeklySchedule/types';
+
+import { format } from 'date-fns';
+
+
+import type { TimeBlock, WeeklyScheduleProps } from './WeeklySchedule/types';
 import { calculateWeekStats, addMinutesToTime } from './WeeklySchedule/utils';
 import { ScheduleHeader } from './WeeklySchedule/ScheduleHeader';
 import { WeekNavigation } from './WeeklySchedule/WeekNavigation';
@@ -18,23 +18,23 @@ import { SettingsDialog } from './WeeklySchedule/SettingsDialog';
 
 import { logger } from '@/lib/logger';
 
-export default function WeeklySchedule({ 
-  schedule, 
-  subjects, 
-  userId, 
-  onScheduleUpdate 
+export default function WeeklySchedule({
+  schedule,
+  subjects,
+  userId,
+  onScheduleUpdate
 }: WeeklyScheduleProps) {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [blockToEdit, setBlockToEdit] = useState<TimeBlock | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<{ day: number; time: string } | null>(null);
+  const [, setSelectedSlot] = useState<{day: number;time: string;} | null>(null);
   const [viewMode, setViewMode] = useState<'week' | 'day' | 'agenda'>('week');
-  const [selectedDay, setSelectedDay] = useState(0);
+  const [,,] = useState(0);
   const [showCompleted, setShowCompleted] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   // Form states
   const [formData, setFormData] = useState({
     title: '',
@@ -52,16 +52,16 @@ export default function WeeklySchedule({
     location: '',
     notes: ''
   });
-  
+
   // Advanced features
-  const [draggedBlock, setDraggedBlock] = useState<TimeBlock | null>(null);
+  const [, setDraggedBlock] = useState<TimeBlock | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [autoSave, setAutoSave] = useState(true);
   const [compactView, setCompactView] = useState(false);
   const [showTimeLabels, setShowTimeLabels] = useState(true);
-  const [snapToGrid, setSnapToGrid] = useState(true);
+  const [,,] = useState(true);
   const [defaultDuration, setDefaultDuration] = useState(60); // minutes
-  
+
   // Statistics
   const [weekStats, setWeekStats] = useState(calculateWeekStats([], currentWeek));
 
@@ -108,7 +108,7 @@ export default function WeeklySchedule({
     try {
       const endpoint = schedule?.id ? `/api/schedule/${schedule.id}` : '/api/schedule';
       const method = schedule?.id ? 'PATCH' : 'POST';
-      
+
       const response = await fetch(endpoint, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -122,7 +122,7 @@ export default function WeeklySchedule({
         const errorText = await response.text().catch(() => 'Unknown error');
         throw new Error(`Failed to save schedule: ${errorText}`);
       }
-      
+
       const savedSchedule = await response.json();
       onScheduleUpdate?.(savedSchedule);
     } catch (error) {
@@ -134,17 +134,17 @@ export default function WeeklySchedule({
   // Debounced auto-save
   useEffect(() => {
     if (!autoSave) return;
-    
+
     const timer = setTimeout(() => {
       saveSchedule();
     }, 1000);
-    
+
     return () => clearTimeout(timer);
   }, [timeBlocks, autoSave, saveSchedule]);
 
   const handleSlotClick = useCallback((day: number, time: string) => {
     setSelectedSlot({ day, time });
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       day,
       startTime: time,
@@ -156,7 +156,7 @@ export default function WeeklySchedule({
 
   const handleBlockEdit = useCallback((block: TimeBlock) => {
     if (!block) return;
-    
+
     setBlockToEdit(block);
     setFormData({
       title: block.title || '',
@@ -179,7 +179,7 @@ export default function WeeklySchedule({
 
   const handleFormSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate time range
     if (formData.startTime >= formData.endTime) {
       logger.error('Start time must be before end time');
@@ -194,17 +194,17 @@ export default function WeeklySchedule({
     };
 
     if (blockToEdit) {
-      setTimeBlocks(prev => prev.map(block => 
-        block.id === blockToEdit.id ? newBlock : block
+      setTimeBlocks((prev) => prev.map((block) =>
+      block.id === blockToEdit.id ? newBlock : block
       ));
     } else {
-      setTimeBlocks(prev => [...prev, newBlock]);
+      setTimeBlocks((prev) => [...prev, newBlock]);
     }
 
     setIsDialogOpen(false);
     setBlockToEdit(null);
     setSelectedSlot(null);
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       title: '',
       description: '',
@@ -218,7 +218,7 @@ export default function WeeklySchedule({
       isRecurring: false,
       recurringPattern: 'WEEKLY' as TimeBlock['recurringPattern'],
       reminders: [],
-      location: '',
+      location: ''
     }));
   }, [formData, blockToEdit]);
 
@@ -246,23 +246,23 @@ export default function WeeklySchedule({
 
   const handleBlockDelete = useCallback((blockId: string) => {
     if (!blockId) return;
-    setTimeBlocks(prev => prev.filter(block => block.id !== blockId));
+    setTimeBlocks((prev) => prev.filter((block) => block.id !== blockId));
   }, []);
 
   const handleBlockComplete = useCallback((blockId: string) => {
     if (!blockId) return;
-    setTimeBlocks(prev => prev.map(block => 
-      block.id === blockId 
-        ? { 
-            ...block, 
-            isCompleted: !block.isCompleted,
-            completedAt: !block.isCompleted ? new Date().toISOString() : undefined
-          }
-        : block
+    setTimeBlocks((prev) => prev.map((block) =>
+    block.id === blockId ?
+    {
+      ...block,
+      isCompleted: !block.isCompleted,
+      completedAt: !block.isCompleted ? new Date().toISOString() : undefined
+    } :
+    block
     ));
   }, []);
 
-  const duplicateBlock = useCallback((block: TimeBlock) => {
+  const _duplicateBlock = useCallback((block: TimeBlock) => {
     if (!block) return;
     const newBlock: TimeBlock = {
       ...block,
@@ -271,12 +271,12 @@ export default function WeeklySchedule({
       isCompleted: false,
       completedAt: undefined
     };
-    setTimeBlocks(prev => [...prev, newBlock]);
+    setTimeBlocks((prev) => [...prev, newBlock]);
   }, []);
 
   // Memoize filtered blocks
   const filteredBlocks = useMemo(() => {
-    return timeBlocks.filter(block => {
+    return timeBlocks.filter((block) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
@@ -286,17 +286,17 @@ export default function WeeklySchedule({
           return false;
         }
       }
-      
+
       // Type filter
       if (filterType !== 'all' && block.type !== filterType) {
         return false;
       }
-      
+
       // Completed filter
       if (!showCompleted && block.isCompleted) {
         return false;
       }
-      
+
       return true;
     });
   }, [timeBlocks, searchQuery, filterType, showCompleted]);
@@ -309,7 +309,7 @@ export default function WeeklySchedule({
         exportDate: new Date().toISOString(),
         version: '2.0'
       };
-      
+
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -327,7 +327,7 @@ export default function WeeklySchedule({
   const importSchedule = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-    
+
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
@@ -356,16 +356,16 @@ export default function WeeklySchedule({
           weekStats={weekStats}
           onSettingsClick={() => setShowSettings(true)}
           onExport={exportSchedule}
-          onImport={importSchedule}
-        />
+          onImport={importSchedule} />
+        
         
         <div className="flex flex-wrap gap-2">
           <WeekNavigation
             currentWeek={currentWeek}
             onWeekChange={setCurrentWeek}
             viewMode={viewMode}
-            onViewModeChange={setViewMode}
-          />
+            onViewModeChange={setViewMode} />
+          
         </div>
       </div>
 
@@ -376,35 +376,35 @@ export default function WeeklySchedule({
         filterType={filterType}
         onFilterTypeChange={setFilterType}
         showCompleted={showCompleted}
-        onShowCompletedToggle={() => setShowCompleted(!showCompleted)}
-      />
+        onShowCompletedToggle={() => setShowCompleted(!showCompleted)} />
+      
 
       {/* Schedule View */}
       <Card>
         <CardContent className="p-0">
-          {viewMode === 'week' ? (
-            <div className="overflow-x-auto">
+          {viewMode === 'week' ?
+          <div className="overflow-x-auto">
               <TimeGrid
-                currentWeek={currentWeek}
-                timeBlocks={filteredBlocks}
-                showTimeLabels={showTimeLabels}
-                compactView={compactView}
-                onSlotClick={handleSlotClick}
-                onBlockEdit={handleBlockEdit}
-                onBlockComplete={handleBlockComplete}
-                onBlockDragStart={setDraggedBlock}
-              />
-            </div>
-          ) : (
-            <div className="p-6">
+              currentWeek={currentWeek}
+              timeBlocks={filteredBlocks}
+              showTimeLabels={showTimeLabels}
+              compactView={compactView}
+              onSlotClick={handleSlotClick}
+              onBlockEdit={handleBlockEdit}
+              onBlockComplete={handleBlockComplete}
+              onBlockDragStart={setDraggedBlock} />
+            
+            </div> :
+
+          <div className="p-6">
               <AgendaView
-                currentWeek={currentWeek}
-                timeBlocks={filteredBlocks}
-                onBlockEdit={handleBlockEdit}
-                onBlockComplete={handleBlockComplete}
-              />
+              currentWeek={currentWeek}
+              timeBlocks={filteredBlocks}
+              onBlockEdit={handleBlockEdit}
+              onBlockComplete={handleBlockComplete} />
+            
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -415,13 +415,13 @@ export default function WeeklySchedule({
         blockToEdit={blockToEdit}
         formData={formData}
         subjects={subjects}
-        onFormDataChange={(updates) => setFormData(prev => ({ ...prev, ...updates }))}
+        onFormDataChange={(updates) => setFormData((prev) => ({ ...prev, ...updates }))}
         onSubmit={handleFormSubmit}
         onDelete={blockToEdit ? () => {
           handleBlockDelete(blockToEdit.id);
           handleDialogClose();
-        } : undefined}
-      />
+        } : undefined} />
+      
 
       {/* Settings Dialog */}
       <SettingsDialog
@@ -434,8 +434,8 @@ export default function WeeklySchedule({
         showTimeLabels={showTimeLabels}
         onShowTimeLabelsToggle={() => setShowTimeLabels(!showTimeLabels)}
         defaultDuration={defaultDuration}
-        onDefaultDurationChange={setDefaultDuration}
-      />
-    </div>
-  );
+        onDefaultDurationChange={setDefaultDuration} />
+      
+    </div>);
+
 }

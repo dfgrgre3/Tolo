@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Play, 
-  CheckCircle2, 
-  Circle, 
-  ChevronRight, 
+import { motion } from "framer-motion";
+import {
+  Play,
+  CheckCircle2,
+
+  ChevronRight,
   ChevronLeft,
   FileText,
   Download,
@@ -20,8 +20,8 @@ import {
   Star,
   Settings,
   Share2,
-  Bookmark
-} from "lucide-react";
+  Bookmark } from
+"lucide-react";
 import { CourseVideoPlayer } from "@/components/video/CourseVideoPlayer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -89,7 +89,7 @@ export default function AdvancedLearningHub() {
         if (res.ok) {
           const data = await res.json();
           setChapters(data.curriculum || []);
-          
+
           const courseRes = await fetch(`/api/courses/${courseId}`);
           if (courseRes.ok) {
             const cData = await courseRes.json();
@@ -119,18 +119,18 @@ export default function AdvancedLearningHub() {
         // Fetch Note
         const noteRes = await fetch(`/api/courses/lessons/${activeLesson.id}/notes`);
         if (noteRes.ok) {
-           const noteData = await noteRes.json();
-           setNoteContent(noteData.data?.content || "");
+          const noteData = await noteRes.json();
+          setNoteContent(noteData.data?.content || "");
         }
 
         // Fetch Questions
         const qRes = await fetch(`/api/courses/lessons/${activeLesson.id}/questions`);
         if (qRes.ok) {
-           const qData = await qRes.json();
-           setQuestions(qData.data || []);
+          const qData = await qRes.json();
+          setQuestions(qData.data || []);
         }
       } catch (err) {
-        logger.error(err instanceof Error ? err.message : String(err));
+        logger.error("Error fetching lesson extras", err);
       }
     };
 
@@ -147,7 +147,7 @@ export default function AdvancedLearningHub() {
         body: JSON.stringify({ content: noteContent })
       });
     } catch (err) {
-      logger.error(String(err));
+      logger.error("Error saving note", err);
     } finally {
       setSavingNote(false);
     }
@@ -164,29 +164,29 @@ export default function AdvancedLearningHub() {
       });
       if (res.ok) {
         const data = await res.json();
-        setQuestions(prev => [data.data, ...prev]);
+        setQuestions((prev) => [data.data, ...prev]);
         setNewQuestion("");
       }
     } catch (err) {
-      logger.error(String(err));
+      logger.error("Error posting question", err);
     } finally {
       setAddingQuestion(false);
     }
   };
 
-  const totalLessons = useMemo(() => 
-    chapters.reduce((acc, c) => acc + c.subTopics.length, 0), 
-    [chapters]
-  );
-  
-  const completedLessons = useMemo(() => 
-    chapters.reduce((acc, c) => acc + c.subTopics.filter(l => l.completed).length, 0), 
-    [chapters]
+  const totalLessons = useMemo(() =>
+  chapters.reduce((acc, c) => acc + c.subTopics.length, 0),
+  [chapters]
   );
 
-  const progress = useMemo(() => 
-    totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0, 
-    [totalLessons, completedLessons]
+  const completedLessons = useMemo(() =>
+  chapters.reduce((acc, c) => acc + c.subTopics.filter((l) => l.completed).length, 0),
+  [chapters]
+  );
+
+  const progress = useMemo(() =>
+  totalLessons > 0 ? Math.round(completedLessons / totalLessons * 100) : 0,
+  [totalLessons, completedLessons]
   );
 
   const handleLessonComplete = async (lessonId: string) => {
@@ -196,24 +196,24 @@ export default function AdvancedLearningHub() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: true, subject: (course as any)?.name })
       });
-      
+
       // Update local state
-      setChapters(prev => prev.map(c => ({
+      setChapters((prev) => prev.map((c) => ({
         ...c,
-        subTopics: c.subTopics.map(l => l.id === lessonId ? { ...l, completed: true } : l)
+        subTopics: c.subTopics.map((l) => l.id === lessonId ? { ...l, completed: true } : l)
       })));
 
       // Auto-move to next lesson logic could go here
     } catch (err) {
-      logger.error(err);
+      logger.error("Error updating lesson progress", err);
     }
   };
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-screen bg-[#0A0A0F]">
       <div className="h-16 w-16 border-t-2 border-primary rounded-full animate-spin" />
-    </div>
-  );
+    </div>);
+
 
   return (
     <div className="flex h-screen bg-[#0A0A0F] text-gray-100 overflow-hidden" dir="rtl">
@@ -221,8 +221,8 @@ export default function AdvancedLearningHub() {
       <motion.aside
         initial={false}
         animate={{ width: sidebarOpen ? 400 : 0, opacity: sidebarOpen ? 1 : 0 }}
-        className="relative bg-black/40 border-l border-white/5 backdrop-blur-xl flex flex-col h-full z-20"
-      >
+        className="relative bg-black/40 border-l border-white/5 backdrop-blur-xl flex flex-col h-full z-20">
+        
         <div className="p-6 border-b border-white/5 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-black text-white">خارطة التعلم</h2>
@@ -241,8 +241,8 @@ export default function AdvancedLearningHub() {
 
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <div className="space-y-6 pb-20">
-            {chapters.map((chapter, cIdx) => (
-              <div key={chapter.id} className="space-y-3">
+            {chapters.map((chapter, cIdx) =>
+            <div key={chapter.id} className="space-y-3">
                 <div className="flex items-center gap-3 px-2">
                   <div className="h-6 w-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary">
                     {cIdx + 1}
@@ -250,35 +250,35 @@ export default function AdvancedLearningHub() {
                   <h3 className="font-black text-sm text-gray-300 uppercase tracking-widest">{chapter.name}</h3>
                 </div>
                 <div className="space-y-1">
-                  {chapter.subTopics.map((lesson) => (
-                    <button
-                      key={lesson.id}
-                      onClick={() => setActiveLesson(lesson)}
-                      className={cn(
-                        "w-full p-4 rounded-2xl text-right flex items-center gap-4 transition-all group",
-                        activeLesson?.id === lesson.id ? "bg-primary/10 border border-primary/20" : "hover:bg-white/[0.03] border border-transparent"
-                      )}
-                    >
+                  {chapter.subTopics.map((lesson) =>
+                <button
+                  key={lesson.id}
+                  onClick={() => setActiveLesson(lesson)}
+                  className={cn(
+                    "w-full p-4 rounded-2xl text-right flex items-center gap-4 transition-all group",
+                    activeLesson?.id === lesson.id ? "bg-primary/10 border border-primary/20" : "hover:bg-white/[0.03] border border-transparent"
+                  )}>
+                  
                       <div className={cn(
-                        "h-8 w-8 min-w-[32px] rounded-full flex items-center justify-center transition-all",
-                        lesson.completed ? "bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]" : activeLesson?.id === lesson.id ? "bg-primary text-black" : "bg-white/5 text-gray-500"
-                      )}>
+                    "h-8 w-8 min-w-[32px] rounded-full flex items-center justify-center transition-all",
+                    lesson.completed ? "bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]" : activeLesson?.id === lesson.id ? "bg-primary text-black" : "bg-white/5 text-gray-500"
+                  )}>
                         {lesson.completed ? <CheckCircle2 className="w-4 h-4" /> : <Play className="w-3 h-3 ml-0.5" />}
                       </div>
                       <div className="flex-1 overflow-hidden">
                         <p className={cn(
-                          "text-sm font-bold truncate transition-colors",
-                          activeLesson?.id === lesson.id ? "text-primary" : "text-gray-400 group-hover:text-white"
-                        )}>{lesson.name}</p>
+                      "text-sm font-bold truncate transition-colors",
+                      activeLesson?.id === lesson.id ? "text-primary" : "text-gray-400 group-hover:text-white"
+                    )}>{lesson.name}</p>
                         <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">
                           {lesson.type === 'VIDEO' ? 'محتوى مرئي' : 'محتوى نصي'}
                         </span>
                       </div>
                     </button>
-                  ))}
+                )}
                 </div>
               </div>
-            ))}
+            )}
           </div>
         </div>
       </motion.aside>
@@ -287,11 +287,11 @@ export default function AdvancedLearningHub() {
       <main className="flex-1 flex flex-col h-full relative">
         <header className="h-16 border-b border-white/5 bg-black/40 backdrop-blur-md px-6 flex items-center justify-between z-10">
           <div className="flex items-center gap-4">
-            {!sidebarOpen && (
-              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
+            {!sidebarOpen &&
+            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
                 <Menu className="w-5 h-5" />
               </Button>
-            )}
+            }
             <div className="flex items-center gap-3">
               <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-black font-black">
                 <Trophy className="w-4 h-4" />
@@ -323,23 +323,23 @@ export default function AdvancedLearningHub() {
           <div className="max-w-6xl mx-auto p-4 lg:p-10 space-y-10">
              {/* Lesson Content Container */}
              <div className="relative rounded-[2rem] overflow-hidden border border-white/5 bg-black/60 shadow-2xl">
-               {activeLesson?.videoUrl && activeLesson.type === 'VIDEO' ? (
-                 <CourseVideoPlayer 
-                  courseId={courseId}
-                  lessonId={activeLesson.id}
-                  lessonTitle={activeLesson.name}
-                  videoUrl={activeLesson.videoUrl}
-                  alreadyCompleted={activeLesson.completed}
-                  onLessonAutoComplete={() => handleLessonComplete(activeLesson.id)}
-                 />
-               ) : (
-                 <div className="aspect-video flex items-center justify-center bg-white/5 p-12 text-center">
+               {activeLesson?.videoUrl && activeLesson.type === 'VIDEO' ?
+              <CourseVideoPlayer
+                courseId={courseId}
+                lessonId={activeLesson.id}
+                lessonTitle={activeLesson.name}
+                videoUrl={activeLesson.videoUrl}
+                alreadyCompleted={activeLesson.completed}
+                onLessonAutoComplete={() => handleLessonComplete(activeLesson.id)} /> :
+
+
+              <div className="aspect-video flex items-center justify-center bg-white/5 p-12 text-center">
                     <div className="space-y-4">
                        <FileText className="w-16 h-16 text-primary mx-auto opacity-20" />
                        <h3 className="text-xl font-bold text-gray-400 italic">هذا الدرس يحتوي على محتوى نصي فقط</h3>
                     </div>
                  </div>
-               )}
+              }
 
                <div className="p-8 lg:p-12 space-y-8">
                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-8">
@@ -350,14 +350,14 @@ export default function AdvancedLearningHub() {
                       </div>
                       <h2 className="text-3xl lg:text-5xl font-black text-white tracking-tight">{activeLesson?.name}</h2>
                     </div>
-                    {!activeLesson?.completed && (
-                      <Button 
-                        onClick={() => activeLesson && handleLessonComplete(activeLesson.id)}
-                        className="h-14 px-8 bg-emerald-500 text-black font-black rounded-2xl hover:bg-emerald-400 hover:scale-105 transition-all shadow-xl shadow-emerald-500/20"
-                      >
+                    {!activeLesson?.completed &&
+                  <Button
+                    onClick={() => activeLesson && handleLessonComplete(activeLesson.id)}
+                    className="h-14 px-8 bg-emerald-500 text-black font-black rounded-2xl hover:bg-emerald-400 hover:scale-105 transition-all shadow-xl shadow-emerald-500/20">
+                    
                          تحديد المهـمة كمكتملة ✓
                       </Button>
-                    )}
+                  }
                  </div>
 
                  {/* Information Tabs */}
@@ -387,17 +387,17 @@ export default function AdvancedLearningHub() {
 
                      <div className="mt-8">
                         <TabsContent value="content" className="min-h-[400px]">
-                           <div 
-                             className="prose prose-invert prose-p:text-gray-400 prose-headings:text-white max-w-none prose-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
-                             dangerouslySetInnerHTML={{ __html: activeLesson?.content || "<p className='italic text-gray-500'>لا يوجد تفاصيل نصية لهذا الدرس.</p>" }}
-                           />
+                           <div
+                        className="prose prose-invert prose-p:text-gray-400 prose-headings:text-white max-w-none prose-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
+                        dangerouslySetInnerHTML={{ __html: activeLesson?.content || "<p className='italic text-gray-500'>لا يوجد تفاصيل نصية لهذا الدرس.</p>" }} />
+                      
                         </TabsContent>
                         
                         <TabsContent value="resources" className="min-h-[400px]">
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              {activeLesson?.attachments && activeLesson.attachments.length > 0 ? (
-                                activeLesson.attachments.map(att => (
-                                  <div key={att.id} className="p-6 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-between group hover:border-primary/30 transition-all">
+                              {activeLesson?.attachments && activeLesson.attachments.length > 0 ?
+                        activeLesson.attachments.map((att) =>
+                        <div key={att.id} className="p-6 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-between group hover:border-primary/30 transition-all">
                                      <div className="flex items-center gap-4">
                                         <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-black transition-all">
                                            <FileText className="w-6 h-6" />
@@ -411,13 +411,13 @@ export default function AdvancedLearningHub() {
                                         <Download className="w-4 h-4" />
                                      </Button>
                                   </div>
-                                ))
-                              ) : (
-                                <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
+                        ) :
+
+                        <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
                                    <Download className="w-12 h-12 text-gray-600 mx-auto mb-4 opacity-20" />
                                    <p className="text-gray-500 font-bold italic">لا توجد مرفقات لهذا الدرس</p>
                                 </div>
-                              )}
+                        }
                            </div>
                         </TabsContent>
 
@@ -426,19 +426,19 @@ export default function AdvancedLearningHub() {
                               <div className="bg-white/5 p-8 rounded-3xl border border-white/5 space-y-6">
                                  <div className="space-y-2">
                                     <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">طرح سؤال جديد</label>
-                                    <textarea 
-                                      value={newQuestion}
-                                      onChange={(e) => setNewQuestion(e.target.value)}
-                                      placeholder="اكتب سؤالك هنا ليستفيد الجميع..."
-                                      className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-6 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none"
-                                    />
+                                    <textarea
+                              value={newQuestion}
+                              onChange={(e) => setNewQuestion(e.target.value)}
+                              placeholder="اكتب سؤالك هنا ليستفيد الجميع..."
+                              className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-6 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none" />
+                            
                                  </div>
                                  <div className="flex justify-end">
-                                    <Button 
-                                      onClick={postQuestion}
-                                      disabled={addingQuestion || !newQuestion.trim()}
-                                      className="bg-primary text-black font-black px-8 rounded-xl h-12 hover:scale-105 transition-all"
-                                    >
+                                    <Button
+                              onClick={postQuestion}
+                              disabled={addingQuestion || !newQuestion.trim()}
+                              className="bg-primary text-black font-black px-8 rounded-xl h-12 hover:scale-105 transition-all">
+                              
                                        {addingQuestion && <span className="animate-spin ml-2">⏳</span>}
                                        نشر السؤال العلني
                                     </Button>
@@ -446,9 +446,9 @@ export default function AdvancedLearningHub() {
                               </div>
 
                               <div className="space-y-8">
-                                 {questions.length > 0 ? (
-                                    questions.map(q => (
-                                      <div key={q.id} className="p-8 rounded-3xl border border-white/5 bg-white/[0.02] space-y-6 hover:border-white/10 transition-all">
+                                 {questions.length > 0 ?
+                          questions.map((q) =>
+                          <div key={q.id} className="p-8 rounded-3xl border border-white/5 bg-white/[0.02] space-y-6 hover:border-white/10 transition-all">
                                          <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
                                                <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-black border border-primary/20 flex items-center justify-center text-primary font-bold text-xs">
@@ -462,13 +462,13 @@ export default function AdvancedLearningHub() {
                                          </div>
                                          <p className="text-gray-300 text-sm leading-relaxed">{q.content}</p>
                                       </div>
-                                    ))
-                                 ) : (
-                                    <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-3xl">
+                          ) :
+
+                          <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-3xl">
                                        <MessageSquare className="w-12 h-12 text-gray-600 mx-auto mb-4 opacity-20" />
                                        <p className="text-gray-500 font-bold italic">لا توجد أسئلة بعد. كن أول من يسأل!</p>
                                     </div>
-                                 )}
+                          }
                               </div>
                            </div>
                         </TabsContent>
@@ -480,19 +480,19 @@ export default function AdvancedLearningHub() {
                                  <Badge className="bg-primary/20 text-primary border-none text-[8px] tracking-widest px-3 h-5">خاصة بك فقط</Badge>
                               </div>
                               <div className="relative group">
-                                 <textarea 
-                                   value={noteContent}
-                                   onChange={(e) => setNoteContent(e.target.value)}
-                                   placeholder="سجل أهم النقاط والحكم المستخلصة من هذا الدرس..."
-                                   className="w-full min-h-[400px] bg-black/40 border border-white/10 rounded-3xl p-8 text-gray-300 italic leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-y"
-                                 />
+                                 <textarea
+                            value={noteContent}
+                            onChange={(e) => setNoteContent(e.target.value)}
+                            placeholder="سجل أهم النقاط والحكم المستخلصة من هذا الدرس..."
+                            className="w-full min-h-[400px] bg-black/40 border border-white/10 rounded-3xl p-8 text-gray-300 italic leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-y" />
+                          
                               </div>
                               <div className="flex justify-end pt-4">
-                                 <Button 
-                                   onClick={saveNote}
-                                   disabled={savingNote}
-                                   className="h-14 px-10 bg-white text-black font-black rounded-2xl flex gap-3 hover:scale-105 active:scale-95 transition-all shadow-2xl"
-                                 >
+                                 <Button
+                            onClick={saveNote}
+                            disabled={savingNote}
+                            className="h-14 px-10 bg-white text-black font-black rounded-2xl flex gap-3 hover:scale-105 active:scale-95 transition-all shadow-2xl">
+                            
                                     {savingNote ? <span className="animate-spin">🌀</span> : "💾"}
                                     <span>حفظ المذكرات</span>
                                  </Button>
@@ -510,12 +510,12 @@ export default function AdvancedLearningHub() {
                                 <div className="space-y-4">
                                    <h3 className="text-xl font-black text-white uppercase tracking-widest">متطلبات المادة</h3>
                                    <ul className="grid grid-cols-1 gap-3">
-                                      {["المعرفة الأساسية بالموضوع", "الرغبة في التعلم", "تطبيقات عملية مستمرة"].map((item, i) => (
-                                         <li key={i} className="flex items-center gap-3 text-gray-400 text-sm">
+                                      {["المعرفة الأساسية بالموضوع", "الرغبة في التعلم", "تطبيقات عملية مستمرة"].map((item, i) =>
+                              <li key={i} className="flex items-center gap-3 text-gray-400 text-sm">
                                             <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                                             <span>{item}</span>
                                          </li>
-                                      ))}
+                              )}
                                    </ul>
                                 </div>
                              </div>
@@ -564,6 +564,6 @@ export default function AdvancedLearningHub() {
           </div>
         </div>
       </main>
-    </div>
-  );
+    </div>);
+
 }

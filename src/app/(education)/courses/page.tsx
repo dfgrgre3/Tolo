@@ -3,20 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { 
+  ArrowUpRight,
   BookCheck, 
   BookOpen, 
-  Star, 
+  FilterX,
   Sparkles, 
-  Sword, 
-  Shield, 
-  Map, 
-  Target, 
-  Flame, 
   LayoutGrid, 
-  ListFilter, 
   Users,
-  Search,
-  Zap
+  Star
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -58,7 +52,7 @@ type CoursesApiResponse = {
 };
 
 const STYLES = {
-  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 sensitive:bg-black/60 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
   card: "rpg-card h-full p-6 transition-all",
   neonText: "rpg-neon-text font-black",
   goldText: "rpg-gold-text font-black"
@@ -98,8 +92,24 @@ function levelLabel(level: CourseLevelFilter): string {
   }
 }
 
+function sortLabel(sortBy: SortOption): string {
+  switch (sortBy) {
+    case "popular":
+      return "الأكثر طلبًا";
+    case "rated":
+      return "الأعلى تقييمًا";
+    case "price-low":
+      return "السعر الأقل";
+    case "price-high":
+      return "السعر الأعلى";
+    case "newest":
+    default:
+      return "الأحدث";
+  }
+}
+
 export default function CoursesPage() {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, fetchWithAuth } = useAuth(); // Get fetchWithAuth from auth context
   const router = useRouter();
 
   const [courses, setCourses] = useState<Course[]>([]);
@@ -114,6 +124,15 @@ export default function CoursesPage() {
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const resetFilters = () => {
+    setActiveCategory("all");
+    setSearchTerm("");
+    setSortBy("newest");
+    setLevelFilter("all");
+    setShowEnrolledOnly(false);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   const hasActiveFilters =
     activeCategory !== "all" ||
@@ -131,7 +150,8 @@ export default function CoursesPage() {
         setLoading(true);
         setFetchError(null);
 
-        const response = await fetch("/api/courses", {
+        // Use fetchWithAuth instead of regular fetch to handle authentication
+        const response = await fetchWithAuth("/api/courses", {
           cache: "no-store",
           signal: controller.signal,
         });
@@ -151,10 +171,26 @@ export default function CoursesPage() {
       } catch (error) {
         if (controller.signal.aborted) return;
         logger.error("Error fetching courses:", error);
+        
+        // Determine more specific error message based on error type
+        let errorMessage = "تعذر تحميل الأرشيف حالياً.";
+        let toastMessage = "تعذر تحميل الأرشيف حالياً";
+        
+        if (error instanceof TypeError && error.message.includes('fetch')) {
+          errorMessage = "لا يمكن الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.";
+          toastMessage = "مشكلة في الاتصال بالخادم";
+        } else if (error instanceof Error && error.message.includes('500')) {
+          errorMessage = "حدث خطأ داخلي في الخادم.";
+          toastMessage = "خطأ داخلي في الخادم";
+        } else if (error instanceof Error && error.message.includes('403')) {
+          errorMessage = "غير مصرح لك بالوصول إلى هذه البيانات.";
+          toastMessage = "وصول محظور";
+        }
+        
         setCourses([]);
         setCategories([]);
-        setFetchError("تعذر الاتصال بالمكتبة حالياً.");
-        toast.error("تعذر تحميل الأرشيف حالياً");
+        setFetchError(errorMessage);
+        toast.error(toastMessage);
       } finally {
         if (!controller.signal.aborted) setLoading(false);
       }
@@ -162,7 +198,11 @@ export default function CoursesPage() {
 
     void fetchCourses();
     return () => controller.abort();
-  }, [authLoading, refreshKey, user?.id]);
+  }, [authLoading, refreshKey, user?.id, fetchWithAuth]); // Add fetchWithAuth to dependencies
+
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [activeCategory, searchTerm, sortBy, levelFilter, showEnrolledOnly]);
 
   const filteredCourses = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -225,6 +265,24 @@ export default function CoursesPage() {
       totalInstructors: new Set(courses.map(c => c.instructor)).size,
     };
   }, [courses]);
+
+  const activeCategoryLabel = useMemo(() => {
+    if (activeCategory === "all") {
+      return "كل التخصصات";
+    }
+
+    return categories.find((category) => category.id === activeCategory)?.name || "تخصص محدد";
+  }, [activeCategory, categories]);
+
+  const activeSignals = useMemo(
+    () => [
+      `الترتيب: ${sortLabel(sortBy)}`,
+      `المستوى: ${levelLabel(levelFilter)}`,
+      `النطاق: ${showEnrolledOnly ? "المسجل فيها فقط" : "جميع الدورات"}`,
+      `التصنيف: ${activeCategoryLabel}`,
+    ],
+    [sortBy, levelFilter, showEnrolledOnly, activeCategoryLabel]
+  );
 
   const handleEnroll = async (courseId: string) => {
     if (!user) {
@@ -351,8 +409,87 @@ export default function CoursesPage() {
              setLevelFilter={setLevelFilter}
              resultsCount={sortedCourses.length}
              hasActiveFilters={hasActiveFilters}
-             onResetFilters={() => setRefreshKey(k => k + 1)}
+             onResetFilters={resetFilters}
            />
+
+           <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+             <motion.div
+               initial={{ opacity: 0, y: 16 }}
+               animate={{ opacity: 1, y: 0 }}
+               className={STYLES.glass + " p-6"}
+             >
+               <div className="flex items-start justify-between gap-4">
+                 <div className="space-y-2">
+                   <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">
+                     غرفة الاستكشاف
+                   </p>
+                   <h2 className="text-2xl font-black text-white">
+                     {sortedCourses.length.toLocaleString()} دورة جاهزة للمراجعة
+                   </h2>
+                   <p className="max-w-2xl text-sm leading-7 text-gray-400">
+                     اعرض النتائج حسب المستوى والسعر والتخصص، ثم انتقل مباشرة إلى الدورة أو استكمل رحلتك التعليمية الحالية.
+                   </p>
+                 </div>
+                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                   <ArrowUpRight className="h-5 w-5 text-primary" />
+                 </div>
+               </div>
+
+               <div className="mt-6 flex flex-wrap gap-2">
+                 {activeSignals.map((signal) => (
+                   <span
+                     key={signal}
+                     className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-gray-300"
+                   >
+                     {signal}
+                   </span>
+                 ))}
+               </div>
+             </motion.div>
+
+             <motion.div
+               initial={{ opacity: 0, y: 16 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: 0.05 }}
+               className={STYLES.glass + " p-6"}
+             >
+               <div className="flex items-center justify-between gap-3">
+                 <div>
+                   <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">
+                     مؤشرات سريعة
+                   </p>
+                   <h3 className="mt-2 text-xl font-black text-white">ملخص النتائج الحالية</h3>
+                 </div>
+                 {hasActiveFilters && (
+                   <Button
+                     variant="ghost"
+                     onClick={resetFilters}
+                     className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10"
+                   >
+                     <FilterX className="ml-2 h-4 w-4" />
+                     تصفير
+                   </Button>
+                 )}
+               </div>
+
+               <div className="mt-6 grid grid-cols-3 gap-3">
+                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                   <p className="text-[11px] font-bold text-gray-500">النتائج</p>
+                   <p className="mt-2 text-2xl font-black text-white">{sortedCourses.length}</p>
+                 </div>
+                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                   <p className="text-[11px] font-bold text-gray-500">المميزة</p>
+                   <p className="mt-2 text-2xl font-black text-white">{featuredCourses.length}</p>
+                 </div>
+                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                   <p className="text-[11px] font-bold text-gray-500">المجانية</p>
+                   <p className="mt-2 text-2xl font-black text-white">
+                     {sortedCourses.filter((course) => (course.price || 0) === 0).length}
+                   </p>
+                 </div>
+               </div>
+             </motion.div>
+           </div>
 
            <div className="min-h-[600px]">
               <AnimatePresence mode="wait">
@@ -376,8 +513,29 @@ export default function CoursesPage() {
                          />
                        ))}
                     </motion.div>
+                 ) : fetchError ? (
+                    <motion.div
+                      key="error"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={STYLES.glass + " flex min-h-[420px] flex-col items-center justify-center gap-5 px-6 text-center"}
+                    >
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10">
+                        <Star className="h-8 w-8 text-red-400" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-2xl font-black text-white">تعذر تحميل الدورات</h3>
+                        <p className="mx-auto max-w-xl text-sm leading-7 text-gray-400">{fetchError}</p>
+                      </div>
+                      <Button
+                        onClick={() => setRefreshKey((k) => k + 1)}
+                        className="h-12 rounded-2xl px-8 font-black"
+                      >
+                        إعادة المحاولة
+                      </Button>
+                    </motion.div>
                  ) : (
-                    <CoursesEmptyState key="empty" onAction={() => setRefreshKey(k => k + 1)} />
+                    <CoursesEmptyState key="empty" onAction={resetFilters} />
                  )}
               </AnimatePresence>
            </div>

@@ -11,11 +11,11 @@ import { ERROR_CODES } from '@/lib/error-codes';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return opsWrapper(request, async (req) => {
     try {
-      const bookId = params.id;
+      const { id: bookId } = await params;
 
       const reviews = await prisma.bookReview.findMany({
         where: { bookId },
@@ -41,12 +41,12 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const bookId = params.id;
+        const { id: bookId } = await params;
         const { rating, comment } = await req.json();
 
         if (!rating || rating < 1 || rating > 5) {
@@ -79,7 +79,7 @@ export async function POST(
           select: { rating: true }
         });
 
-        const avgRating = allReviews.reduce((sum, rev) => sum + rev.rating, 0) / allReviews.length;
+        const avgRating = allReviews.reduce((sum: number, rev: { rating: number }) => sum + rev.rating, 0) / (allReviews.length || 1);
 
         await prisma.book.update({
           where: { id: bookId },

@@ -45,7 +45,7 @@ export async function GET(req: Request) {
     console.log(`[CRON] Found ${expiringSubscriptions.length} subscriptions expiring in 3 days.`);
 
     // Send notifications
-    const results = await Promise.all(expiringSubscriptions.map(async (sub) => {
+    const results = await Promise.all(expiringSubscriptions.map(async (sub: any) => {
       return await sendMultiChannelNotification({
         userId: sub.userId,
         title: 'أوشك اشتراكك على الانتهاء ⏳',

@@ -1,12 +1,10 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SecurityLogs from './SecurityLogs';
 import AdvancedProtection from './AdvancedProtection';
 import PasswordManagement from './PasswordManagement';
-import { Shield, Lock, Key, AlertTriangle, Smartphone, Globe } from "lucide-react";
+import { Shield, Key, AlertTriangle, Globe } from "lucide-react";
 
 interface SecurityTabProps {
   userId: string | null;
@@ -17,8 +15,8 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
     return (
       <div className="text-center py-8">
         <p className="text-muted-foreground">يجب تسجيل الدخول لعرض إعدادات الأمان</p>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -58,10 +56,9 @@ export default function SecurityTab({ userId }: SecurityTabProps) {
         </TabsContent>
 
         <TabsContent value="password" className="space-y-6 mt-6">
-          <PasswordManagement userId={userId} />
+          <PasswordManagement _userId={userId} />
         </TabsContent>
       </Tabs>
-    </div>
-  );
-}
+    </div>);
 
+}

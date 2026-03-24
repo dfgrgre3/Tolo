@@ -12,22 +12,18 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ar } from 'date-fns/locale';
 import { formatDistanceToNow } from 'date-fns';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Shield, 
-  Key, 
-  Lock, 
-  ChevronRight, 
-  LogOut, 
+import { motion } from 'framer-motion';
+import {
+  Shield,
+  Key,
   History,
   AlertTriangle,
   CheckCircle2,
   Loader2,
-  Settings,
   ShieldCheck,
   ShieldX,
-  Smartphone
-} from 'lucide-react';
+  Smartphone } from
+'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -42,7 +38,7 @@ export default function SecurityPage() {
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
-    confirmPassword: '',
+    confirmPassword: ''
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -51,11 +47,11 @@ export default function SecurityPage() {
   const [isLoading2FA, setIsLoading2FA] = useState(true);
   const [show2FAModal, setShow2FAModal] = useState(false);
   const [isDisabling2FA, setIsDisabling2FA] = useState(false);
-  
+
   // Phone Verification State
   const [showPhoneModal, setShowPhoneModal] = useState(false);
 
-  
+
   // Security Logs State
   const [recentLogs, setRecentLogs] = useState<any[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
@@ -68,7 +64,7 @@ export default function SecurityPage() {
     PASSWORD_CHANGE: 'تغيير كلمة المرور',
     MAGIC_LINK_REQUESTED: 'طلب رابط دخول',
     DEVICE_TRUST_CHANGE: 'تغيير حالة ثقة الجهاز',
-    SUSPICIOUS_ACTIVITY: 'نشاط مشبوه',
+    SUSPICIOUS_ACTIVITY: 'نشاط مشبوه'
   };
 
   // Fetch 2FA Status
@@ -79,14 +75,14 @@ export default function SecurityPage() {
         const data = await res.json();
         setIs2FAEnabled(data.enabled);
       }
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to fetch 2FA status');
     } finally {
       setIsLoading2FA(false);
     }
   }, []);
 
-  
+
   // Fetch Recent Security Logs
   const fetchRecentLogs = useCallback(async () => {
     try {
@@ -94,7 +90,7 @@ export default function SecurityPage() {
       if (!res.ok) throw new Error();
       const data = await res.json();
       setRecentLogs(data.logs || []);
-    } catch (err) {
+    } catch (_err) {
       console.error('Failed to fetch logs');
     } finally {
       setIsLoadingLogs(false);
@@ -120,8 +116,8 @@ export default function SecurityPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword: passwordData.currentPassword,
-          newPassword: passwordData.newPassword,
-        }),
+          newPassword: passwordData.newPassword
+        })
       });
 
       if (!response.ok) {
@@ -169,8 +165,8 @@ export default function SecurityPage() {
     fetch2FAStatus();
   };
 
-  
-  
+
+
   const handleDeleteAccount = async () => {
     if (!user?.id) return;
 
@@ -178,7 +174,7 @@ export default function SecurityPage() {
       const res = await fetch(`/api/users/${user.id}`, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        credentials: "include"
       });
 
       if (res.ok) {
@@ -224,63 +220,63 @@ export default function SecurityPage() {
             </div>
             <button
               onClick={() => setIsChangingPassword(!isChangingPassword)}
-              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors"
-            >
+              className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-colors">
+              
               {isChangingPassword ? 'إلغاء' : 'تحديث'}
             </button>
           </div>
 
-          {isChangingPassword && (
-            <motion.form
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              onSubmit={handlePasswordChange}
-              className="space-y-4 border-t border-white/10 pt-6"
-            >
+          {isChangingPassword &&
+          <motion.form
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            onSubmit={handlePasswordChange}
+            className="space-y-4 border-t border-white/10 pt-6">
+            
               <div className="grid gap-4">
                 <div className="space-y-2">
                   <label className="text-sm text-slate-300">كلمة المرور الحالية</label>
                   <input
-                    type="password"
-                    required
-                    value={passwordData.currentPassword}
-                    onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                    className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                  />
+                  type="password"
+                  required
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                  className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                
                 </div>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-sm text-slate-300">كلمة المرور الجديدة</label>
                     <input
-                      type="password"
-                      required
-                      value={passwordData.newPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                      className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                    />
+                    type="password"
+                    required
+                    value={passwordData.newPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                    className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm text-slate-300">تأكيد كلمة المرور الجديدة</label>
                     <input
-                      type="password"
-                      required
-                      value={passwordData.confirmPassword}
-                      onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                      className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50"
-                    />
+                    type="password"
+                    required
+                    value={passwordData.confirmPassword}
+                    onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                    className="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/50" />
+                  
                   </div>
                 </div>
               </div>
               <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full sm:w-auto px-6 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white transition-colors flex items-center justify-center gap-2"
-              >
+              type="submit"
+              disabled={isLoading}
+              className="w-full sm:w-auto px-6 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white transition-colors flex items-center justify-center gap-2">
+              
                 {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 تحديث كلمة المرور
               </button>
             </motion.form>
-          )}
+          }
         </div>
       </section>
 
@@ -292,50 +288,50 @@ export default function SecurityPage() {
               "h-12 w-12 rounded-xl flex items-center justify-center",
               is2FAEnabled ? "bg-green-500/10" : "bg-slate-500/10"
             )}>
-              {isLoading2FA ? (
-                <Loader2 className="h-6 w-6 text-slate-400 animate-spin" />
-              ) : is2FAEnabled ? (
-                <ShieldCheck className="h-6 w-6 text-green-400" />
-              ) : (
-                <Shield className="h-6 w-6 text-slate-400" />
-              )}
+              {isLoading2FA ?
+              <Loader2 className="h-6 w-6 text-slate-400 animate-spin" /> :
+              is2FAEnabled ?
+              <ShieldCheck className="h-6 w-6 text-green-400" /> :
+
+              <Shield className="h-6 w-6 text-slate-400" />
+              }
             </div>
             <div>
               <h3 className="font-semibold text-white">المصادقة الثنائية (2FA)</h3>
               <p className="text-sm text-slate-400">
-                {isLoading2FA ? 'جاري التحميل...' : 
-                 is2FAEnabled ? 'مفعّلة - حسابك محمي بطبقة إضافية' : 
-                 'إضافة طبقة حماية إضافية لحسابك'}
+                {isLoading2FA ? 'جاري التحميل...' :
+                is2FAEnabled ? 'مفعّلة - حسابك محمي بطبقة إضافية' :
+                'إضافة طبقة حماية إضافية لحسابك'}
               </p>
             </div>
           </div>
-          <button 
+          <button
             onClick={handle2FAToggle}
             disabled={isLoading2FA || isDisabling2FA}
             className={cn(
               "px-4 py-2 rounded-xl transition-colors flex items-center gap-2 disabled:opacity-50",
-              is2FAEnabled 
-                ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30"
-                : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-            )}
-          >
-            {isDisabling2FA ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : is2FAEnabled ? (
-              <>
+              is2FAEnabled ?
+              "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/30" :
+              "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+            )}>
+            
+            {isDisabling2FA ?
+            <Loader2 className="h-4 w-4 animate-spin" /> :
+            is2FAEnabled ?
+            <>
                 <ShieldX className="h-4 w-4" />
                 تعطيل
-              </>
-            ) : (
-              <>
+              </> :
+
+            <>
                 <ShieldCheck className="h-4 w-4" />
                 تفعيل
               </>
-            )}
+            }
           </button>
         </div>
-        {is2FAEnabled && (
-          <div className="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-start gap-3">
+        {is2FAEnabled &&
+        <div className="mt-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 flex items-start gap-3">
             <CheckCircle2 className="h-5 w-5 text-green-400 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm text-green-300">المصادقة الثنائية مفعّلة</p>
@@ -344,7 +340,7 @@ export default function SecurityPage() {
               </p>
             </div>
           </div>
-        )}
+        }
       </section>
       {/* Phone Verification */}
       <section className="rounded-2xl bg-white/5 border border-white/10 p-6">
@@ -354,11 +350,11 @@ export default function SecurityPage() {
               "h-12 w-12 rounded-xl flex items-center justify-center",
               user?.phoneVerified ? "bg-indigo-500/10" : "bg-yellow-500/10"
             )}>
-              {user?.phoneVerified ? (
-                <Smartphone className="h-6 w-6 text-indigo-400" />
-              ) : (
-                <Smartphone className="h-6 w-6 text-yellow-400" />
-              )}
+              {user?.phoneVerified ?
+              <Smartphone className="h-6 w-6 text-indigo-400" /> :
+
+              <Smartphone className="h-6 w-6 text-yellow-400" />
+              }
             </div>
             <div>
               <h3 className="font-semibold text-white">تحقق رقم الهاتف</h3>
@@ -367,29 +363,29 @@ export default function SecurityPage() {
               </p>
             </div>
           </div>
-          {!user?.phoneVerified && (
-            <button 
-              onClick={() => setShowPhoneModal(true)}
-              className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white transition-colors text-sm font-medium"
-            >
+          {!user?.phoneVerified &&
+          <button
+            onClick={() => setShowPhoneModal(true)}
+            className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white transition-colors text-sm font-medium">
+            
               تحقق الآن
             </button>
-          )}
-          {user?.phoneVerified && (
-            <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
+          }
+          {user?.phoneVerified &&
+          <div className="flex items-center gap-2 text-green-400 text-sm font-medium">
               <CheckCircle2 className="h-4 w-4" />
               تم التحقق
             </div>
-          )}
+          }
         </div>
-        {!user?.phoneVerified && (
-          <div className="mt-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
+        {!user?.phoneVerified &&
+        <div className="mt-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
             <p className="text-xs text-yellow-500/80">
               التحقق من رقم الهاتف يحمي حسابك ويسمح لنا بالتواصل معك بخصوص الدروس والمهام الهامة.
             </p>
           </div>
-        )}
+        }
       </section>
 
       
@@ -403,21 +399,21 @@ export default function SecurityPage() {
           <Link href="/settings/security/logs" className="text-sm text-indigo-400 hover:underline">عرض الكل</Link>
         </div>
         <div className="space-y-4">
-          {isLoadingLogs ? (
-            <div className="flex items-center justify-center py-4">
+          {isLoadingLogs ?
+          <div className="flex items-center justify-center py-4">
               <Loader2 className="h-5 w-5 text-indigo-500 animate-spin" />
-            </div>
-          ) : recentLogs.length > 0 ? (
-            recentLogs.map((log) => (
-              <div key={log.id} className="flex items-center justify-between text-sm">
+            </div> :
+          recentLogs.length > 0 ?
+          recentLogs.map((log) =>
+          <div key={log.id} className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                  {log.eventType.includes('SUCCESS') || log.eventType === 'REGISTER' ? (
-                    <CheckCircle2 className="h-4 w-4 text-green-400" />
-                  ) : log.eventType.includes('FAILED') || log.eventType.includes('SUSPICIOUS') ? (
-                    <AlertTriangle className="h-4 w-4 text-red-400" />
-                  ) : (
-                    <Shield className="h-4 w-4 text-indigo-400" />
-                  )}
+                  {log.eventType.includes('SUCCESS') || log.eventType === 'REGISTER' ?
+              <CheckCircle2 className="h-4 w-4 text-green-400" /> :
+              log.eventType.includes('FAILED') || log.eventType.includes('SUSPICIOUS') ?
+              <AlertTriangle className="h-4 w-4 text-red-400" /> :
+
+              <Shield className="h-4 w-4 text-indigo-400" />
+              }
                   <span className="text-slate-300">
                     {EVENT_LABELS[log.eventType] || log.eventType}
                   </span>
@@ -426,10 +422,10 @@ export default function SecurityPage() {
                   {formatDistanceToNow(new Date(log.createdAt), { addSuffix: true, locale: ar })}
                 </span>
               </div>
-            ))
-          ) : (
-            <p className="text-center text-xs text-slate-500 py-2">لا يوجد نشاطات مسجلة حتى الآن</p>
-          )}
+          ) :
+
+          <p className="text-center text-xs text-slate-500 py-2">لا يوجد نشاطات مسجلة حتى الآن</p>
+          }
         </div>
       </section>
 
@@ -458,8 +454,8 @@ export default function SecurityPage() {
       <TwoFactorSetupModal
         isOpen={show2FAModal}
         onClose={() => setShow2FAModal(false)}
-        onSuccess={handle2FASuccess}
-      />
+        onSuccess={handle2FASuccess} />
+      
       {/* Phone Verification Modal */}
       <PhoneVerificationModal
         isOpen={showPhoneModal}
@@ -468,8 +464,8 @@ export default function SecurityPage() {
           setShowPhoneModal(false);
           refreshUser();
         }}
-        initialPhone={user?.phone || ''}
-      />
-    </div>
-  );
+        initialPhone={user?.phone || ''} />
+      
+    </div>);
+
 }

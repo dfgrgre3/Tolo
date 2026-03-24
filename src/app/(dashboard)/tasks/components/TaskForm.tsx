@@ -1,24 +1,24 @@
-import { Control, Controller, FieldErrors, UseFormRegister } from 'react-hook-form';
+import { Control, Controller, FieldErrors, UseFormRegister, FieldValues, Path } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { SubjectType } from '@/types/tasks';
 
-interface TaskFormProps {
-  control: Control<any>;
-  register: UseFormRegister<any>;
-  errors: FieldErrors<any>;
+interface TaskFormProps<T extends FieldValues = any> {
+  control: Control<T>;
+  register: UseFormRegister<T>;
+  errors: FieldErrors<T>;
 }
 
-export function TaskForm({ control, register, errors }: TaskFormProps) {
+export function TaskForm<T extends FieldValues>({ control, register, errors }: TaskFormProps<T>) {
   return (
     <>
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="title" className="text-right">
           العنوان
         </Label>
-        <Input id="title" {...register('title')} className="col-span-3" />
+        <Input id="title" {...register('title' as Path<T>)} className="col-span-3" />
       </div>
       {errors.title && <p className="text-red-500 col-start-2 col-span-3">{String(errors.title.message)}</p>}
 
@@ -26,7 +26,7 @@ export function TaskForm({ control, register, errors }: TaskFormProps) {
         <Label htmlFor="description" className="text-right">
           الوصف
         </Label>
-        <Textarea id="description" {...register('description')} className="col-span-3" />
+        <Textarea id="description" {...register('description' as Path<T>)} className="col-span-3" />
       </div>
 
       <div className="grid grid-cols-4 items-center gap-4">
@@ -34,7 +34,7 @@ export function TaskForm({ control, register, errors }: TaskFormProps) {
           المادة
         </Label>
         <Controller
-          name="subject"
+          name={'subject' as Path<T>}
           control={control}
           render={({ field }) => (
             <Select 
@@ -60,7 +60,7 @@ export function TaskForm({ control, register, errors }: TaskFormProps) {
         <Label htmlFor="dueAt" className="text-right">
           تاريخ الاستحقاق
         </Label>
-        <Input id="dueAt" type="datetime-local" {...register('dueAt')} className="col-span-3" />
+        <Input id="dueAt" type="datetime-local" {...register('dueAt' as Path<T>)} className="col-span-3" />
       </div>
 
       <div className="grid grid-cols-4 items-center gap-4">
@@ -68,7 +68,7 @@ export function TaskForm({ control, register, errors }: TaskFormProps) {
           الأولوية
         </Label>
         <Controller
-          name="priority"
+          name={'priority' as Path<T>}
           control={control}
           render={({ field }) => (
             <Select 

@@ -1,3 +1,4 @@
+import { CategoryType } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -93,35 +94,97 @@ export async function GET(request: NextRequest) {
 
       // Use cache for basic subject list
       const subjectsKey = `courses:public:list`;
-      const subjects = await CacheService.getOrSet(subjectsKey, async () => {
-        return prisma.subject.findMany({
-          where: {
-            isActive: true,
-          },
-          include: {
-            teachers: {
-              select: {
-                name: true,
-                rating: true,
+      
+      let subjects: any[] = [];
+      
+      try {
+        subjects = await CacheService.getOrSet(subjectsKey, async () => {
+          return prisma.subject.findMany({
+            where: {
+              isActive: true,
+            },
+            include: {
+              teachers: {
+                select: {
+                  name: true,
+                  rating: true,
+                },
+                orderBy: {
+                  rating: "desc",
+                },
               },
-              orderBy: {
-                rating: "desc",
+              _count: {
+                select: {
+                  enrollments: true,
+                },
               },
             },
-            _count: {
-              select: {
-                enrollments: true,
+            orderBy: {
+              createdAt: "desc",
+            },
+          });
+        }, 300) as any[];
+      } catch (cacheError) {
+        // If cache fails, try direct database access
+        logger.warn("Cache failed for courses list, falling back to direct DB query", cacheError);
+        try {
+          subjects = await prisma.subject.findMany({
+            where: {
+              isActive: true,
+            },
+            include: {
+              teachers: {
+                select: {
+                  name: true,
+                  rating: true,
+                },
+                orderBy: {
+                  rating: "desc",
+                },
+              },
+              _count: {
+                select: {
+                  enrollments: true,
+                },
               },
             },
-          },
-          orderBy: {
-            createdAt: "desc",
-          },
-        });
-      }, 300) as any[];
+            orderBy: {
+              createdAt: "desc",
+            },
+          });
+        } catch (dbError) {
+          logger.error("Direct DB query also failed for courses list", dbError);
+          return NextResponse.json(
+            {
+              error: "An error occurred while fetching courses.",
+              details: process.env.NODE_ENV === 'development' ? dbError : undefined
+            },
+            { status: 500 }
+          );
+        }
+      }
 
       const subjectIds = subjects.map((subject) => subject.id);
       const lessonCounts = await getSubjectLessonCounts(subjectIds);
+      const courseCategories = await prisma.category.findMany({
+        where: {
+          type: CategoryType.COURSE,
+        },
+        select: {
+          id: true,
+          name: true,
+          icon: true,
+        },
+      });
+      const categoryMap = new Map<string, { name: string; icon: string }>(
+        courseCategories.map((category: { id: string; name: string; icon: string | null }) => [
+          category.id,
+          {
+            name: category.name,
+            icon: category.icon || "BookOpen",
+          },
+        ])
+      );
 
       const enrollmentMap = new Map<string, boolean>();
       const progressMap = new Map<string, number>();
@@ -139,7 +202,7 @@ export async function GET(request: NextRequest) {
           },
         });
 
-        const enrolledSubjectIds = enrollments.map((enrollment) => enrollment.subjectId);
+        const enrolledSubjectIds = enrollments.map((enrollment: any) => enrollment.subjectId);
         for (const subjectId of enrolledSubjectIds) {
           enrollmentMap.set(subjectId, true);
         }
@@ -152,13 +215,20 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const courseList = subjects.map((subject) =>
-        mapSubjectToCourse(subject, {
+      const courseList = subjects.map((subject) => {
+        const course = mapSubjectToCourse(subject, {
           lessonsCount: lessonCounts[subject.id] ?? 0,
           enrolled: enrollmentMap.has(subject.id),
           progress: progressMap.get(subject.id),
-        })
-      );
+        });
+        const categoryMeta = categoryMap.get(course.categoryId);
+
+        return {
+          ...course,
+          categoryName: categoryMeta?.name ?? course.categoryName,
+          subject: categoryMeta?.name ?? course.subject,
+        };
+      });
 
       const filteredCourses = applyCourseFilters(courseList, {
         search,
@@ -167,7 +237,30 @@ export async function GET(request: NextRequest) {
         sort,
       });
 
-      const categories = buildCategoriesFromCourses(courseList);
+      const fallbackCategories = buildCategoriesFromCourses(courseList);
+      const categoryCounts = new Map<string, number>();
+
+      for (const course of courseList) {
+        categoryCounts.set(course.categoryId, (categoryCounts.get(course.categoryId) ?? 0) + 1);
+      }
+
+      const categories =
+        courseCategories.length > 0
+          ? courseCategories
+              .map((category: { id: string; name: string; icon: string | null }) => ({
+                id: category.id,
+                name: category.name,
+                icon: category.icon || "BookOpen",
+                count: categoryCounts.get(category.id) ?? 0,
+              }))
+              .filter((category: { count: number }) => category.count > 0)
+              .sort(
+                (
+                  left: { count: number },
+                  right: { count: number }
+                ) => right.count - left.count
+              )
+          : fallbackCategories;
 
       return NextResponse.json({
         courses: filteredCourses,
@@ -189,6 +282,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         {
           error: "An error occurred while fetching courses.",
+          details: process.env.NODE_ENV === 'development' ? String(error) : undefined
         },
         { status: 500 }
       );

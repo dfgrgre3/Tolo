@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAchievements } from './hooks/useAchievements';
 import { AchievementStats } from './components/AchievementStats';
@@ -54,6 +54,19 @@ export default function AchievementsPage() {
 			setShowCelebration(true);
 		}
 	}, [hasRecentEarning]);
+
+  const debouncedHideCelebration = useCallback(() => {
+    const timer = setTimeout(() => {
+      setShowCelebration(false);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (showCelebration) {
+      debouncedHideCelebration();
+    }
+  }, [showCelebration, debouncedHideCelebration]);
 
 	return (
 		<div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">

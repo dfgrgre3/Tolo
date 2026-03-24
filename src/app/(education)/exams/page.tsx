@@ -1,40 +1,40 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { ensureUser } from "@/lib/user-utils";
-import { safeDocument, safeFetch } from "@/lib/safe-client-utils";
-import { logger } from "@/lib/logger";
+import { safeFetch } from "@/lib/safe-client-utils";
+
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Shield, 
-  Sword, 
-  Trash2, 
-  BookOpen, 
-  Award, 
-  Calendar, 
-  Sparkles, 
-  Flame, 
-  Target, 
-  Zap,
-  Info,
+import {
+
+  Sword,
+  Trash2,
+  BookOpen,
+  Award,
+  Calendar,
+
+  Flame,
+  Target,
+
+
   ExternalLink,
-  ChevronRight,
-  Scroll,
-  Clock,
-  LayoutDashboard
-} from "lucide-react";
+
+  Scroll } from
+
+
+"lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-interface Exam { 
-  id: string; 
-  subject: string; 
-  title: string; 
-  year: number; 
+interface Exam {
+  id: string;
+  subject: string;
+  title: string;
+  year: number;
   url: string;
   type?: string;
 }
@@ -43,10 +43,10 @@ interface ExamsResponse {
   exams: Exam[];
 }
 
-interface ExamResult { 
-  id: string; 
-  score: number; 
-  takenAt: string; 
+interface ExamResult {
+  id: string;
+  score: number;
+  takenAt: string;
   exam: Exam;
 }
 
@@ -58,69 +58,69 @@ const STYLES = {
 };
 
 export default function ExamsPage() {
-	const search = useSearchParams();
-	const focusId = search.get("focus");
-	const [userId, setUserId] = useState<string | null>(null);
-	const [exams, setExams] = useState<Exam[]>([]);
-	const [results, setResults] = useState<ExamResult[]>([]);
-	const [examId, setExamId] = useState("");
-	const [score, setScore] = useState("");
-	const [takenAt, setTakenAt] = useState("");
-	const [isLoading, setIsLoading] = useState(true);
-	const [isSubmitting, setIsSubmitting] = useState(false);
-	const [error, setError] = useState<string | null>(null);
+  const search = useSearchParams();
+  const _focusId = search.get("focus");
+  const [userId, setUserId] = useState<string | null>(null);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [results, setResults] = useState<ExamResult[]>([]);
+  const [examId, setExamId] = useState("");
+  const [score, setScore] = useState("");
+  const [takenAt, setTakenAt] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [,,] = useState<string | null>(null);
 
-	useEffect(() => {
-		ensureUser().then(setUserId);
-	}, []);
+  useEffect(() => {
+    ensureUser().then(setUserId);
+  }, []);
 
-	useEffect(() => {
-		const fetchExams = async () => {
-			setIsLoading(true);
-			try {
-				const { data } = await safeFetch<ExamsResponse>("/api/exams", undefined, { exams: [] });
-				setExams(Array.isArray(data?.exams) ? data.exams : []);
-			} finally { setIsLoading(false); }
-		};
-		fetchExams();
-	}, []);
+  useEffect(() => {
+    const fetchExams = async () => {
+      setIsLoading(true);
+      try {
+        const { data } = await safeFetch<ExamsResponse>("/api/exams", undefined, { exams: [] });
+        setExams(Array.isArray(data?.exams) ? data.exams : []);
+      } finally {setIsLoading(false);}
+    };
+    fetchExams();
+  }, []);
 
-	useEffect(() => {
-		if (!userId) return;
-		const fetchResults = async () => {
-			const { data } = await safeFetch<ExamResult[]>(`/api/exams/results?userId=${userId}`, undefined, []);
-			if (data) setResults(data);
-		};
-		fetchResults();
-	}, [userId]);
+  useEffect(() => {
+    if (!userId) return;
+    const fetchResults = async () => {
+      const { data } = await safeFetch<ExamResult[]>(`/api/exams/results?userId=${userId}`, undefined, []);
+      if (data) setResults(data);
+    };
+    fetchResults();
+  }, [userId]);
 
-	const addResult = useCallback(async (e: React.FormEvent) => {
-		e.preventDefault();
-		if (!userId || !examId) return;
-		const scoreNum = parseFloat(score);
-		if (isNaN(scoreNum)) return;
+  const addResult = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!userId || !examId) return;
+    const scoreNum = parseFloat(score);
+    if (isNaN(scoreNum)) return;
 
-		setIsSubmitting(true);
-		try {
-			const { data } = await safeFetch<ExamResult>("/api/exams/results", {
-					method: "POST",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify({ userId, examId, score: scoreNum, takenAt: takenAt || undefined }),
-				}, null );
-			if (data) {
-				setResults((r) => [data, ...r]);
-				setExamId(""); setScore(""); setTakenAt("");
-			}
-		} finally { setIsSubmitting(false); }
-	}, [userId, examId, score, takenAt]);
+    setIsSubmitting(true);
+    try {
+      const { data } = await safeFetch<ExamResult>("/api/exams/results", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, examId, score: scoreNum, takenAt: takenAt || undefined })
+      }, null);
+      if (data) {
+        setResults((r) => [data, ...r]);
+        setExamId("");setScore("");setTakenAt("");
+      }
+    } finally {setIsSubmitting(false);}
+  }, [userId, examId, score, takenAt]);
 
-	const deleteResult = useCallback(async (id: string) => {
-		if (!confirm('هل أنت متأكد من حذف هذه المعركة؟')) return;
-		const { error: deleteError } = await safeFetch(`/api/exams/results/${id}`, { method: "DELETE" }, null );
-		if (!deleteError) setResults((r) => r.filter((x) => x.id !== id));
-	}, []);
+  const deleteResult = useCallback(async (id: string) => {
+    if (!confirm('هل أنت متأكد من حذف هذه المعركة؟')) return;
+    const { error: deleteError } = await safeFetch(`/api/exams/results/${id}`, { method: "DELETE" }, null);
+    if (!deleteError) setResults((r) => r.filter((x) => x.id !== id));
+  }, []);
 
-	return (
+  return (
     <div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">
       {/* --- Ambient Background --- */}
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -134,10 +134,10 @@ export default function ExamsPage() {
         
         {/* --- Header: The Chamber Arrival --- */}
         <motion.div
-           initial={{ opacity: 0, y: -30 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="text-center space-y-6"
-        >
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-6">
+          
            <div className="inline-flex items-center gap-3 rounded-full border border-red-500/30 bg-red-500/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.2)]">
               <Sword className="h-5 w-5" />
               <span>ردهة التحديات الكبرى</span>
@@ -168,22 +168,22 @@ export default function ExamsPage() {
                   <Badge className="bg-white/5 text-gray-500 h-8 px-4 rounded-xl border border-white/10 uppercase font-black text-[10px] tracking-widest">{exams.length} متاح</Badge>
                </div>
 
-               {isLoading ? (
-                  <div className="h-96 flex flex-col items-center justify-center gap-4 opacity-50">
+               {isLoading ?
+            <div className="h-96 flex flex-col items-center justify-center gap-4 opacity-50">
                      <div className="h-12 w-12 border-t-2 border-primary rounded-full animate-spin" />
                      <p className="text-xs font-black uppercase tracking-widest text-primary">جاري فك تشفير اللفائف...</p>
-                  </div>
-               ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  </div> :
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <AnimatePresence>
-                        {exams.map((exam, idx) => (
-                           <motion.div
-                             key={exam.id}
-                             initial={{ opacity: 0, scale: 0.95 }}
-                             animate={{ opacity: 1, scale: 1 }}
-                             transition={{ delay: idx * 0.05 }}
-                             className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all hover:translate-y-[-5px]"}
-                           >
+                        {exams.map((exam, idx) =>
+                <motion.div
+                  key={exam.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all hover:translate-y-[-5px]"}>
+                  
                               <div className="flex flex-col h-full justify-between gap-6">
                                  <div className="space-y-4">
                                     <div className="flex items-center justify-between">
@@ -192,21 +192,21 @@ export default function ExamsPage() {
                                     </div>
                                     <h3 className="text-xl font-black text-white group-hover:text-primary transition-colors leading-relaxed line-clamp-2">{exam.title}</h3>
                                  </div>
-                                 <a 
-                                    href={exam.url} 
-                                    target="_blank" 
-                                    rel="noreferrer"
-                                    className="h-12 w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-2xl group-hover:bg-primary group-hover:border-primary transition-all text-sm font-black text-white"
-                                 >
+                                 <a
+                      href={exam.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="h-12 w-full flex items-center justify-center gap-3 bg-white/5 border border-white/10 rounded-2xl group-hover:bg-primary group-hover:border-primary transition-all text-sm font-black text-white">
+                      
                                     <span>بدء التحدي</span>
                                     <ExternalLink className="w-4 h-4" />
                                  </a>
                               </div>
                            </motion.div>
-                        ))}
+                )}
                      </AnimatePresence>
                   </div>
-               )}
+            }
             </div>
 
             {/* --- Right: Grade Registry (The Forge) --- */}
@@ -231,11 +231,11 @@ export default function ExamsPage() {
 									<SelectValue placeholder="اختر الامتحان" />
 								</SelectTrigger>
 								<SelectContent className="bg-background border-white/10 text-white font-medium">
-									{exams.map((exam) => (
-										<SelectItem key={exam.id} value={exam.id} className="focus:bg-primary focus:text-white">
+									{exams.map((exam) =>
+                        <SelectItem key={exam.id} value={exam.id} className="focus:bg-primary focus:text-white">
 											{exam.subject} - {exam.title} ({exam.year})
 										</SelectItem>
-									))}
+                        )}
 								</SelectContent>
 						   </Select>
                         </div>
@@ -243,23 +243,23 @@ export default function ExamsPage() {
                         <div className="grid grid-cols-2 gap-6">
                            <div className="space-y-2">
                               <Label className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">الدرجة النهائية</Label>
-                              <Input 
-                                 type="number" 
-                                 placeholder="100" 
-                                 className="h-14 bg-white/5 border-white/10 rounded-2xl text-white font-black text-center text-xl focus:border-amber-500/50"
-                                 value={score}
-                                 onChange={(e) => setScore(e.target.value)}
-                                 required
-                              />
+                              <Input
+                        type="number"
+                        placeholder="100"
+                        className="h-14 bg-white/5 border-white/10 rounded-2xl text-white font-black text-center text-xl focus:border-amber-500/50"
+                        value={score}
+                        onChange={(e) => setScore(e.target.value)}
+                        required />
+                      
                            </div>
                            <div className="space-y-2">
                               <Label className="text-[10px] font-black uppercase text-gray-500 tracking-widest px-1">توقيت المعركة</Label>
-                              <Input 
-                                 type="date" 
-                                 className="h-14 bg-white/5 border-white/10 rounded-2xl text-white font-bold px-4"
-                                 value={takenAt}
-                                 onChange={(e) => setTakenAt(e.target.value)}
-                              />
+                              <Input
+                        type="date"
+                        className="h-14 bg-white/5 border-white/10 rounded-2xl text-white font-bold px-4"
+                        value={takenAt}
+                        onChange={(e) => setTakenAt(e.target.value)} />
+                      
                            </div>
                         </div>
 
@@ -275,14 +275,14 @@ export default function ExamsPage() {
                   <div className="space-y-1">
                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">المعدل القتالي</p>
                      <p className="text-3xl font-black text-white">
-                        {results.length > 0 ? (results.reduce((a,b) => a+b.score, 0) / results.length).toFixed(1) : '---'}
+                        {results.length > 0 ? (results.reduce((a, b) => a + b.score, 0) / results.length).toFixed(1) : '---'}
                      </p>
                   </div>
                   <div className="h-12 w-px bg-white/5" />
                   <div className="space-y-1">
                      <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">أعلى قوة</p>
                      <p className="text-3xl font-black text-emerald-400">
-                        {results.length > 0 ? Math.max(...results.map(r => r.score)) : '---'}
+                        {results.length > 0 ? Math.max(...results.map((r) => r.score)) : '---'}
                      </p>
                   </div>
                </div>
@@ -303,21 +303,21 @@ export default function ExamsPage() {
 
             <div className={STYLES.glass + " p-0 overflow-hidden"}>
                <div className="divide-y divide-white/5">
-                  {results.length === 0 ? (
-                     <div className="p-20 text-center space-y-4 opacity-30">
+                  {results.length === 0 ?
+              <div className="p-20 text-center space-y-4 opacity-30">
                         <Flame className="w-16 h-16 mx-auto text-gray-500" />
                         <p className="text-sm font-black uppercase tracking-[0.2em] text-gray-400">لم يتم خوض أي معارك رسمية حتى الآن</p>
-                     </div>
-                  ) : (
-                     <AnimatePresence>
-                        {results.map((result, idx) => (
-                           <motion.div
-                             key={result.id}
-                             initial={{ opacity: 0, x: -30 }}
-                             animate={{ opacity: 1, x: 0 }}
-                             transition={{ delay: idx * 0.05 }}
-                             className="p-8 flex items-center justify-between hover:bg-white/[0.02] group transition-all"
-                           >
+                     </div> :
+
+              <AnimatePresence>
+                        {results.map((result, idx) =>
+                <motion.div
+                  key={result.id}
+                  initial={{ opacity: 0, x: -30 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
+                  className="p-8 flex items-center justify-between hover:bg-white/[0.02] group transition-all">
+                  
                               <div className="flex items-center gap-8">
                                  <div className={`h-16 w-16 rounded-[1.5rem] flex items-center justify-center text-xl font-black shadow-2xl transition-transform group-hover:rotate-6 ${result.score >= 90 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : result.score >= 70 ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
                                     {result.score}%
@@ -340,21 +340,21 @@ export default function ExamsPage() {
                                  </div>
                               </div>
                               <Button
-                                 variant="ghost"
-                                 size="icon"
-                                 onClick={() => deleteResult(result.id)}
-                                 className="h-12 w-12 rounded-2xl hover:bg-red-500/10 text-gray-600 hover:text-red-500 transition-all"
-                              >
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => deleteResult(result.id)}
+                    className="h-12 w-12 rounded-2xl hover:bg-red-500/10 text-gray-600 hover:text-red-500 transition-all">
+                    
                                  <Trash2 className="h-5 w-5" />
                               </Button>
                            </motion.div>
-                        ))}
+                )}
                      </AnimatePresence>
-                  )}
+              }
                </div>
             </div>
         </div>
       </div>
-    </div>
-	);
+    </div>);
+
 }
