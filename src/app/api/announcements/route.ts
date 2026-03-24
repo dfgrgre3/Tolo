@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+ï»¿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { CacheService } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       } = await req.json();
 
       if (!title || !content || !priority) {
-        return badRequestResponse("ÌãíÚ ÇáÍŞæá ÇáãØáæÈÉ íÌÈ ãáÄåÇ");
+        return badRequestResponse("Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ„ Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© ÙŠØ¬Ø¨ Ù…Ù„Ø¤Ù‡Ø§");
       }
 
       const newAnnouncement = await prisma.announcement.create({
@@ -94,3 +94,4 @@ export async function POST(request: NextRequest) {
     }
   });
 }
+

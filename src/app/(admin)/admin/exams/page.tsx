@@ -1,51 +1,33 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { DataTable } from "@/components/admin/ui/data-table";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { MoreHorizontal, Plus, Edit, Trash2, ExternalLink, Target, LayoutGrid, List, Search, Filter, FileText, Eye, Calendar, Users } from "lucide-react";
+import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
+import { AdminButton, IconButton } from "@/components/admin/ui/admin-button";
+import { AdminCard } from "@/components/admin/ui/admin-card";
+import { 
+  Plus, Edit, Trash2, ExternalLink, Target, LayoutGrid, List, 
+  Search, Filter, FileText, Eye, Calendar, Users, Trophy, RefreshCw
+} from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
-import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
-import { Card, CardContent } from "@/components/ui/card";
+import { 
+  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle 
+} from "@/components/ui/dialog";
+import { 
+  Form, FormControl, FormField, FormItem, FormLabel, FormMessage 
+} from "@/components/ui/form";
+import { 
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { useQuery } from "@tanstack/react-query";
 
 interface Exam {
   id: string;
@@ -81,18 +63,32 @@ const examSchema = z.object({
 type ExamFormValues = z.infer<typeof examSchema>;
 
 export default function AdminExamsPage() {
-  const [exams, setExams] = React.useState<Exam[]>([]);
-  const [subjects, setSubjects] = React.useState<Subject[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const router = useRouter();
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [deleteDialog, setDeleteDialog] = React.useState<{
-    open: boolean;
-    id: string | null;
-  }>({ open: false, id: null });
-  const [viewMode, setViewMode] = React.useState<"table" | "grid">("table");
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [subjectFilter, setSubjectFilter] = React.useState<string>("");
+  const [editingExam, setEditingExam] = React.useState<Exam | null>(null);
   const [previewExam, setPreviewExam] = React.useState<Exam | null>(null);
+  const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
+    open: false,
+    id: null,
+  });
+
+  const { data: exams = [], isLoading, refetch } = useQuery({
+    queryKey: ["admin", "exams"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/exams");
+      const result = await response.json();
+      return (result.data?.exams || []) as Exam[];
+    },
+  });
+
+  const { data: subjects = [] } = useQuery({
+    queryKey: ["admin", "subjects-list"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/subjects?limit=100");
+      const result = await response.json();
+      return (result.data?.subjects || []) as Subject[];
+    },
+  });
 
   const form = useForm<ExamFormValues>({
     resolver: zodResolver(examSchema),
@@ -105,54 +101,53 @@ export default function AdminExamsPage() {
     },
   });
 
-  const fetchData = React.useCallback(async () => {
-    setLoading(true);
-    try {
-      const [examsRes, subjectsRes] = await Promise.all([
-        fetch("/api/admin/exams"),
-        fetch("/api/admin/subjects?limit=100"),
-      ]);
-      const examsData = await examsRes.json();
-      const subjectsData = await subjectsRes.json();
-      setExams(examsData.exams);
-      setSubjects(subjectsData.subjects);
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      toast.error("حدث خطأ أثناء جلب البيانات");
-    } finally {
-      setLoading(false);
+  const handleOpenDialog = (exam?: Exam) => {
+    if (exam) {
+      setEditingExam(exam);
+      form.reset({
+        title: exam.title,
+        subjectId: exam.subject.id,
+        year: exam.year,
+        url: exam.url,
+        type: exam.type || "",
+      });
+    } else {
+      setEditingExam(null);
+      form.reset({
+        title: "",
+        subjectId: "",
+        year: new Date().getFullYear(),
+        url: "",
+        type: "",
+      });
     }
-  }, []);
-
-  React.useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    setDialogOpen(true);
+  };
 
   const handleSubmit = async (values: ExamFormValues) => {
     try {
+      const method = editingExam ? "PATCH" : "POST";
+      const body = editingExam ? { ...values, id: editingExam.id } : values;
       const response = await fetch("/api/admin/exams", {
-        method: "POST",
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        toast.success("تم إنشاء الامتحان بنجاح");
+        toast.success(editingExam ? "تم تحديث الاختبار الملكي" : "تم إنشاء مبارزة جديدة");
         setDialogOpen(false);
-        form.reset();
-        fetchData();
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حفظ الامتحان");
+        toast.error("فشل في حفظ الاختبار");
       }
     } catch (error) {
-      console.error("Error saving exam:", error);
-      toast.error("حدث خطأ أثناء حفظ الامتحان");
+      toast.error("خطأ في الاتصال");
     }
   };
 
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
-
     try {
       const response = await fetch("/api/admin/exams", {
         method: "DELETE",
@@ -161,14 +156,13 @@ export default function AdminExamsPage() {
       });
 
       if (response.ok) {
-        toast.success("تم حذف الامتحان بنجاح");
-        fetchData();
+        toast.success("تم مسح السجل من قاعة الاختبارات");
+        refetch();
       } else {
-        toast.error("حدث خطأ أثناء حذف الامتحان");
+        toast.error("فشل في الحذف");
       }
     } catch (error) {
-      console.error("Error deleting exam:", error);
-      toast.error("حدث خطأ أثناء حذف الامتحان");
+      toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -177,17 +171,20 @@ export default function AdminExamsPage() {
   const columns: ColumnDef<Exam>[] = [
     {
       accessorKey: "title",
-      header: "الامتحان",
+      header: "الاختبار / المبارزة",
       cell: ({ row }) => {
         const exam = row.original;
         return (
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-              <Target className="h-5 w-5 text-green-500" />
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
+              <Trophy className="h-6 w-6" />
             </div>
             <div>
-              <p className="font-medium">{exam.title}</p>
-              <p className="text-sm text-muted-foreground">{exam.year}</p>
+              <p className="font-black text-sm tracking-tight">{exam.title}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Badge variant="outline" className="text-[8px] font-bold py-0">{exam.year}</Badge>
+                <span className="text-[10px] text-muted-foreground font-bold">{exam.type || "عام"}</span>
+              </div>
             </div>
           </div>
         );
@@ -195,407 +192,228 @@ export default function AdminExamsPage() {
     },
     {
       accessorKey: "subject",
-      header: "المادة",
-      cell: ({ row }) => {
-        const exam = row.original;
-        return (
-          <Badge variant="outline">
-            {exam.subject.nameAr || exam.subject.name}
-          </Badge>
-        );
-      },
+      header: "المجال العلمي",
+      cell: ({ row }) => (
+        <Badge variant="secondary" className="rounded-lg bg-primary/10 text-primary border-primary/20 font-black text-[10px] uppercase">
+          {row.original.subject.nameAr || row.original.subject.name}
+        </Badge>
+      ),
     },
     {
-      accessorKey: "type",
-      header: "النوع",
-      cell: ({ row }) => row.getValue("type") || "-",
-    },
-    {
-      id: "results",
-      header: "النتائج",
-      cell: ({ row }) => {
-        const exam = row.original;
-        return <span>{exam._count.results} نتيجة</span>;
-      },
+      accessorKey: "results",
+      header: "المشاركة الشعبية",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+            <Users className="w-3.5 h-3.5" />
+          </div>
+          <span className="text-xs font-black">{row.original._count.results} محارب اجتاز الاختبار</span>
+        </div>
+      ),
     },
     {
       accessorKey: "createdAt",
-      header: "تاريخ الإضافة",
-      cell: ({ row }) => {
-        const date = row.getValue("createdAt") as string;
-        return new Date(date).toLocaleDateString("ar-EG");
-      },
+      header: "تاريخ التدوين",
+      cell: ({ row }) => (
+        <div className="flex flex-col">
+          <span className="text-xs font-bold">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
+          <span className="text-[10px] text-muted-foreground">أضيف بواسطة القائد</span>
+        </div>
+      ),
     },
     {
       id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        const exam = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => window.open(exam.url, "_blank")}>
-                <ExternalLink className="ml-2 h-4 w-4" />
-                عرض الامتحان
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => setDeleteDialog({ open: true, id: exam.id })}
-              >
-                <Trash2 className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
+      header: "العمليات",
+      cell: ({ row }) => (
+        <RowActions
+          row={row.original}
+          onEdit={handleOpenDialog}
+          onDelete={(e) => setDeleteDialog({ open: true, id: e.id })}
+          extraActions={[
+            { icon: Eye, label: "معاينة الاختبار", onClick: (e) => setPreviewExam(e) },
+            { icon: ExternalLink, label: "فتح الرابط المرجعي", onClick: (e) => window.open(e.url, "_blank") },
+          ]}
+        />
+      ),
     },
   ];
 
-  // Exam Card for Grid View
-  const ExamCard = ({ exam }: { exam: Exam }) => (
-    <Card className="group hover:shadow-lg transition-all hover:-translate-y-0.5">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary/80">
-              <FileText className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <p className="font-semibold line-clamp-1">{exam.title}</p>
-              <p className="text-sm text-muted-foreground">{exam.year}</p>
-            </div>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => setPreviewExam(exam)}>
-                <Eye className="ml-2 h-4 w-4" />
-                معاينة
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.open(exam.url, "_blank")}>
-                <ExternalLink className="ml-2 h-4 w-4" />
-                فتح الرابط
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => setDeleteDialog({ open: true, id: exam.id })}
-              >
-                <Trash2 className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        <div className="flex items-center gap-2 mb-4">
-          <Badge variant="outline">
-            {exam.subject.nameAr || exam.subject.name}
-          </Badge>
-          {exam.type && (
-            <Badge variant="secondary">{exam.type}</Badge>
-          )}
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 text-center text-sm">
-          <div className="rounded-lg bg-muted/50 p-2">
-            <p className="font-bold text-primary">{exam._count.results}</p>
-            <p className="text-xs text-muted-foreground">نتيجة</p>
-          </div>
-          <div className="rounded-lg bg-muted/50 p-2">
-            <p className="font-bold text-primary">{new Date(exam.createdAt).toLocaleDateString("ar-EG", { month: "short", year: "numeric" })}</p>
-            <p className="text-xs text-muted-foreground">تاريخ الإضافة</p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  // Filter exams
-  const filteredExams = React.useMemo(() => {
-    return exams.filter(exam => {
-      const matchesSearch = !searchQuery || 
-        exam.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesSubject = !subjectFilter || exam.subject.id === subjectFilter;
-      return matchesSearch && matchesSubject;
-    });
-  }, [exams, searchQuery, subjectFilter]);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="إدارة الامتحانات"
-        description="عرض وإدارة جميع الامتحانات المتاحة في الموقع"
+        title="قاعة الاختبارات الملكية 🏆"
+        description="إدارة المسابقات العلمية، امتحانات السنوات السابقة، وتقييم قدرات المحاربين."
       >
-        <Button onClick={() => setDialogOpen(true)} size="sm" className="rounded-lg">
-          <Plus className="ml-2 h-4 w-4" />
-          إضافة امتحان
-        </Button>
+        <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+          إضافة اختبار جديد
+        </AdminButton>
       </PageHeader>
 
-      {/* Filters & View Toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative">
-            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="البحث عن امتحان..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pr-9 w-64 h-9 rounded-lg"
-            />
-          </div>
-          <Select value={subjectFilter} onValueChange={setSubjectFilter}>
-            <SelectTrigger className="w-40 h-9 rounded-lg">
-              <SelectValue placeholder="فلترة بالمادة" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">كل المواد</SelectItem>
-              {subjects.map(subject => (
-                <SelectItem key={subject.id} value={subject.id}>
-                  {subject.nameAr || subject.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        
-        {/* View Mode Toggle */}
-        <div className="flex items-center gap-1 rounded-lg border p-1">
-          <Button
-            variant={viewMode === "table" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("table")}
-            className="h-7 px-2"
-          >
-            <List className="h-4 w-4" />
-          </Button>
-          <Button
-            variant={viewMode === "grid" ? "default" : "ghost"}
-            size="sm"
-            onClick={() => setViewMode("grid")}
-            className="h-7 px-2"
-          >
-            <LayoutGrid className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Stats Summary */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: "إجمالي الامتحانات", value: exams.length, icon: FileText, color: "text-primary" },
-          { label: "إجمالي النتائج", value: exams.reduce((acc, e) => acc + e._count.results, 0), icon: Target, color: "text-green-500" },
-          { label: "امتحانات هذا العام", value: exams.filter(e => e.year === new Date().getFullYear()).length, icon: Calendar, color: "text-blue-500" },
-          { label: "المواد المتاحة", value: subjects.length, icon: Users, color: "text-purple-500" },
+          { label: "إجمالي الاختبارات", value: exams.length, icon: FileText, color: "emerald" },
+          { label: "إجمالي المحاولات", value: exams.reduce((acc, e) => acc + e._count.results, 0), icon: Users, color: "blue" },
+          { label: "مواد مختبرة", value: Array.from(new Set(exams.map(e => e.subject.id))).length, icon: Target, color: "amber" },
+          { label: "اختبارات حديثة", value: exams.filter(e => e.year === 2024).length, icon: Calendar, color: "purple" },
         ].map((stat, i) => (
-          <div key={i} className="rounded-xl border bg-card p-3 flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted/50">
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+          <AdminCard key={i} variant="glass" className={`p-6 bg-${stat.color}-500/5 border-${stat.color}-500/10`}>
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
+                <stat.icon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black">{stat.value}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+              </div>
             </div>
-            <div>
-              <p className={`text-xl font-bold ${stat.color}`}>{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </div>
-          </div>
+          </AdminCard>
         ))}
       </div>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={5} />
-      ) : viewMode === "table" ? (
-        <DataTable
-          columns={columns}
-          data={filteredExams}
-          searchKey="title"
-          searchPlaceholder="البحث عن امتحان..."
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredExams.map((exam) => (
-            <ExamCard key={exam.id} exam={exam} />
-          ))}
-        </div>
-      )}
+      <AdminDataTable
+        columns={columns}
+        data={exams}
+        loading={isLoading}
+        searchKey="title"
+        searchPlaceholder="ابحث عن عنوان اختبار أو مادة..."
+        actions={{ onRefresh: () => refetch() }}
+      />
 
-      {/* Preview Dialog */}
-      <Dialog open={!!previewExam} onOpenChange={() => setPreviewExam(null)}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Eye className="h-5 w-5" />
-              معاينة الامتحان
-            </DialogTitle>
-          </DialogHeader>
-          {previewExam && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground mb-1">العنوان</p>
-                  <p className="font-semibold">{previewExam.title}</p>
-                </div>
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground mb-1">المادة</p>
-                  <p className="font-semibold">{previewExam.subject.nameAr || previewExam.subject.name}</p>
-                </div>
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground mb-1">السنة</p>
-                  <p className="font-semibold">{previewExam.year}</p>
-                </div>
-                <div className="rounded-lg bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground mb-1">النوع</p>
-                  <p className="font-semibold">{previewExam.type || "-"}</p>
-                </div>
-              </div>
-              <div className="rounded-lg bg-muted/50 p-3">
-                <p className="text-xs text-muted-foreground mb-1">الرابط</p>
-                <a 
-                  href={previewExam.url} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline break-all"
-                >
-                  {previewExam.url}
-                </a>
-              </div>
-              {previewExam.url.includes("pdf") || previewExam.url.includes("drive.google") ? (
-                <div className="rounded-lg border overflow-hidden bg-muted/30 h-96">
-                  <iframe 
-                    src={previewExam.url} 
-                    className="w-full h-full"
-                    title="معاينة الامتحان"
-                  />
-                </div>
-              ) : (
-                <Button onClick={() => window.open(previewExam.url, "_blank")} className="w-full">
-                  <ExternalLink className="ml-2 h-4 w-4" />
-                  فتح الرابط في نافذة جديدة
-                </Button>
-              )}
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Add Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md bg-card/80 backdrop-blur-xl border-white/10 rounded-[2rem]">
           <DialogHeader>
-            <DialogTitle>إضافة امتحان جديد</DialogTitle>
-            <DialogDescription>
-              أدخل بيانات الامتحان
+            <DialogTitle className="text-2xl font-black">
+              {editingExam ? "تعديل الاختبار" : "صياغة اختبار جديد"}
+            </DialogTitle>
+            <DialogDescription className="font-bold text-muted-foreground">
+              أدخل بيانات الاختبار لضمان دقة التقييم للمحاربين.
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>عنوان الامتحان *</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">عنوان الاختبار</FormLabel>
+                    <FormControl><Input {...field} className="rounded-xl border-white/10" /></FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="subjectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المادة *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر المادة" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {subjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.nameAr || subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
               <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="subjectId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">العلم التابع له</FormLabel>
+                      <Select value={field.value} onValueChange={field.onChange}>
+                        <FormControl>
+                          <SelectTrigger className="rounded-xl border-white/10">
+                            <SelectValue placeholder="اختر المادة" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-xl border-white/10">
+                          {subjects.map((subject: any) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {subject.nameAr || subject.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="year"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>السنة *</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">سنة الإصدار</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        <Input 
+                          type="number" 
+                          {...field} 
+                          onChange={(e) => field.onChange(parseInt(e.target.value))} 
+                          className="rounded-xl border-white/10" 
                         />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
                   name="type"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>النوع</FormLabel>
-                      <FormControl>
-                        <Input {...field} />
-                      </FormControl>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تصنيف الاختبار</FormLabel>
+                      <FormControl><Input {...field} placeholder="مثال: تجريبي / نهائي" className="rounded-xl border-white/10" /></FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="url"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الرابط المرجعي (URL)</FormLabel>
+                      <FormControl><Input {...field} className="rounded-xl border-white/10" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-              <FormField
-                control={form.control}
-                name="url"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>رابط الامتحان *</FormLabel>
-                    <FormControl>
-                      <Input {...field} type="url" />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+
               <DialogFooter>
-                <Button type="submit">إنشاء</Button>
+                <AdminButton type="submit" className="w-full h-12 text-md font-black">
+                  {editingExam ? "حفظ الاختبار" : "اعتماد الاختبار رسمياً"}
+                </AdminButton>
               </DialogFooter>
             </form>
           </Form>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      <Dialog open={!!previewExam} onOpenChange={() => setPreviewExam(null)}>
+        <DialogContent className="max-w-4xl h-[80vh] bg-card/90 backdrop-blur-2xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden">
+          <div className="flex flex-col h-full">
+            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black">{previewExam?.title}</h3>
+                <p className="text-xs font-bold text-muted-foreground">{previewExam?.subject.nameAr || previewExam?.subject.name} - {previewExam?.year}</p>
+              </div>
+              <AdminButton variant="outline" size="sm" onClick={() => window.open(previewExam?.url, "_blank")}>
+                فتح في نافذة جديدة
+              </AdminButton>
+            </div>
+            <div className="flex-1 bg-white/[0.02]">
+              {previewExam?.url && (
+                <iframe 
+                  src={previewExam.url} 
+                  className="w-full h-full border-none shadow-inner" 
+                  title="معاينة الاختبار"
+                />
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="حذف الامتحان"
-        description="هل أنت متأكد من حذف هذا الامتحان؟"
-        confirmText="حذف"
+        title="حذف الاختبار من السجلات؟"
+        description="سيتم حذف الاختبار ونتائجه بشكل نهائي من قاعدة بيانات المملكة. هل أنت متأكد؟"
+        confirmText="نعم، احذف الاختبار"
         variant="destructive"
         onConfirm={handleDelete}
       />

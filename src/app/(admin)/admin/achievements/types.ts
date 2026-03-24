@@ -48,6 +48,14 @@ export const rarityColors: Record<string, string> = {
   legendary: "bg-yellow-500",
 };
 
+export const rarityLabels: Record<string, string> = {
+  common: "عادي",
+  uncommon: "غير عادي",
+  rare: "نادر",
+  epic: "ملحمي",
+  legendary: "أسطوري",
+};
+
 export const categoryLabels: Record<string, string> = {
   STUDY: "دراسة",
   TASKS: "مهام",

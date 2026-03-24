@@ -3,19 +3,53 @@ import { sendTemplatedNotification } from '@/services/notification-service';
 
 import { logger } from '@/lib/logger';
 
-// دالة لفحص المهام القريبة الموعد وإرسال إشعارات
-export async function checkUpcomingTasks() {
+/**
+ * Helper to safely fetch JSON data from APIs
+ */
+async function safeFetchJson(url: string, options: RequestInit = {}): Promise<any> {
   try {
-    // Token is in httpOnly cookie - no need to send Authorization header
-    // جلب المهام القريبة الموعد (خلال 24 ساعة القادمة)
-    const response = await fetch('/api/tasks/upcoming', {
+    const response = await fetch(url, {
+      ...options,
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json', // Explicitly ask for JSON
+        ...options.headers,
       },
       credentials: 'include',
     });
 
-    const result = await response.json();
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      const text = await response.text();
+      logger.warn(`API responded with non-JSON content: ${url}`, {
+        status: response.status,
+        contentType,
+        preview: text.substring(0, 100)
+      });
+      return null;
+    }
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      logger.debug(`API returned error status: ${url}`, {
+        status: response.status,
+        error: errorData
+      });
+      return null;
+    }
+
+    return await response.json();
+  } catch (error) {
+    logger.error(`Failed to fetch from ${url}:`, error);
+    return null;
+  }
+}
+
+// دالة لفحص المهام القريبة الموعد وإرسال إشعارات
+export async function checkUpcomingTasks() {
+  try {
+    const result = await safeFetchJson('/api/tasks/upcoming');
+    if (!result) return;
     const tasks = result.data?.tasks || result.tasks || [];
 
     if (!Array.isArray(tasks)) return;
@@ -54,16 +88,8 @@ export async function checkUpcomingTasks() {
 // دالة لفحص الاختبارات القريبة وإرسال إشعارات
 export async function checkUpcomingTests() {
   try {
-    // Token is in httpOnly cookie - no need to send Authorization header
-    // جلب الاختبارات القريبة
-    const response = await fetch('/api/tests/upcoming', {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    const result = await response.json();
+    const result = await safeFetchJson('/api/tests/upcoming');
+    if (!result) return;
     const tests = result.data?.tests || result.tests || [];
 
     if (!Array.isArray(tests)) return;
@@ -90,17 +116,9 @@ export async function checkUpcomingTests() {
 // دالة لفحص الجدول الدراسي وإرسال إشعارات
 export async function checkSchedule() {
   try {
-    // Token is in httpOnly cookie - no need to send Authorization header
-    // جلب الجدول الدراسي لليوم الحالي
     const today = new Date().toISOString().split('T')[0];
-    const response = await fetch(`/api/schedule?date=${today}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    const result = await response.json();
+    const result = await safeFetchJson(`/api/schedule?date=${today}`);
+    if (!result) return;
     const scheduleData = result.data || result;
     
     if (!scheduleData || !scheduleData.planJson) return;
@@ -140,16 +158,8 @@ export async function checkSchedule() {
 // دالة لفحص التقدم وإرسال إشعارات عند تحقيق إنجازات
 export async function checkProgressMilestones() {
   try {
-    // Token is in httpOnly cookie - no need to send Authorization header
-    // جلب بيانات التقدم
-    const response = await fetch('/api/progress', {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    const result = await response.json();
+    const result = await safeFetchJson('/api/progress');
+    if (!result) return;
     const progress = result.data || result;
 
     if (!progress) return;
@@ -166,7 +176,6 @@ export async function checkProgressMilestones() {
           sendTemplatedNotification('goalAchieved', goal.name || goal.title);
 
           // تحديث الهدف لتمييزه بأنه تم إرسال إشعار له
-          // Token is in httpOnly cookie - no need to send Authorization header
           await fetch(`/api/goals/${goal.id}/notify`, {
             method: 'POST',
             headers: {
@@ -185,16 +194,8 @@ export async function checkProgressMilestones() {
 // دالة لفحص المناسبات القريبة وإرسال إشعارات
 export async function checkUpcomingEvents() {
   try {
-    // Token is in httpOnly cookie - no need to send Authorization header
-    // جلب المناسبات القريبة
-    const response = await fetch('/api/events/upcoming', {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      credentials: 'include',
-    });
-
-    const result = await response.json();
+    const result = await safeFetchJson('/api/events/upcoming');
+    if (!result) return;
     const events = result.data?.events || result.events || [];
 
     if (!Array.isArray(events)) return;
@@ -218,6 +219,15 @@ export async function checkUpcomingEvents() {
   }
 }
 
+// دالة لفحص دورة حياة الاشتراكات (فترة السماح وانتهاء الصلاحية)
+export async function checkSubscriptionLifecycle() {
+  try {
+    await safeFetchJson('/api/subscriptions/cron');
+  } catch (error) {
+    logger.error('Error checking subscription lifecycle:', error);
+  }
+}
+
 // دالة لتشغيل جميع فحوصص الإشعارات
 export async function runNotificationChecks() {
   await checkUpcomingTasks();
@@ -225,6 +235,7 @@ export async function runNotificationChecks() {
   await checkSchedule();
   await checkProgressMilestones();
   await checkUpcomingEvents();
+  await checkSubscriptionLifecycle(); // أتمتة دورة حياة الاشتراكات وفترات السماح
 }
 
 // دالة لجدولة الفحوصص لتعمل بشكل دوري

@@ -99,6 +99,35 @@ export async function POST(request: NextRequest) {
   });
 }
 
+// PATCH /api/admin/blog - Update blog post
+export async function PATCH(request: NextRequest) {
+  return opsWrapper(request, async (req) => {
+    return withAuth(req, async (authUser) => {
+      if (authUser.userRole !== "ADMIN") {
+        return forbiddenResponse("غير مسموح لك بتحديث مقالات");
+      }
+
+      try {
+        const body = await req.json();
+        const { id, ...data } = body;
+
+        if (!id) {
+          return badRequestResponse("معرف المقال مطلوب");
+        }
+
+        const post = await prisma.blogPost.update({
+          where: { id },
+          data,
+        });
+
+        return successResponse(post, "تم تحديث المقال بنجاح");
+      } catch (error) {
+        return handleApiError(error);
+      }
+    });
+  });
+}
+
 export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async (authUser) => {

@@ -1,9 +1,9 @@
 import React from "react";
-import { useFormContext, Controller, ControllerProps, FieldValues, Path } from "react-hook-form";
+import { FormProvider, Controller, ControllerProps, FieldValues, Path } from "react-hook-form";
 
-export function Form({ children, ...props }: React.FormHTMLAttributes<HTMLFormElement>) {
-  return <form {...props}>{children}</form>;
-}
+const Form = FormProvider;
+
+export { Form };
 
 export function FormField<
   TFieldValues extends FieldValues = FieldValues,

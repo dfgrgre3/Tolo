@@ -114,6 +114,11 @@ export default function AdminForumPage() {
         fetch("/api/admin/forum"),
         fetch("/api/admin/forum-categories"),
       ]);
+
+      if (!postsRes.ok || !categoriesRes.ok) {
+        throw new Error("Failed to fetch forum data");
+      }
+
       const postsData = await postsRes.json();
       const categoriesData = await categoriesRes.json();
       setPosts(postsData.posts || []);

@@ -437,6 +437,10 @@ export function addSecurityHeaders(response: NextResponse): NextResponse {
   return response;
 }
 
+// Export Ops Middleware utilities for easier access
+export { opsMiddleware, opsWrapper } from './middleware/ops-middleware';
+
+
 /**
  * Create error response (backward compatibility alias)
  * @param message Error message

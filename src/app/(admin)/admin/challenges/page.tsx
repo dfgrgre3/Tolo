@@ -2,17 +2,10 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { DataTable } from "@/components/admin/ui/data-table";
-import { Button } from "@/components/ui/button";
+import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
+import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -39,7 +32,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { MoreHorizontal, Plus, Edit, Trash2, Trophy, Download, Upload, Target } from "lucide-react";
+import { 
+  Plus, Edit, Trash2, Trophy, Download, Upload, Target, 
+  Zap, Calendar, Star, Users, Flame, Swords, Shield, Search, RefreshCw, Hammer, Sparkles
+} from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -47,6 +43,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
+import { motion } from "framer-motion";
 
 interface Subject {
   id: string;
@@ -92,18 +89,25 @@ const challengeSchema = z.object({
 type ChallengeFormValues = z.infer<typeof challengeSchema>;
 
 const challengeTypes = [
-  { value: "daily", label: "يومي" },
-  { value: "weekly", label: "أسبوعي" },
-  { value: "monthly", label: "شهري" },
-  { value: "special", label: "خاص" },
+  { value: "daily", label: "مبارزة يومية" },
+  { value: "weekly", label: "حملة أسبوعية" },
+  { value: "monthly", label: "ملحمة شهرية" },
+  { value: "special", label: "بطولة خاصة" },
 ];
 
 const difficultyOptions = [
-  { value: "EASY", label: "سهل" },
-  { value: "MEDIUM", label: "متوسط" },
-  { value: "HARD", label: "صعب" },
-  { value: "EXPERT", label: "خبير" },
+  { value: "EASY", label: "تدريب مبتدئ" },
+  { value: "MEDIUM", label: "مستوى جندي" },
+  { value: "HARD", label: "رتبة فارس" },
+  { value: "EXPERT", label: "مستوى أسطوري" },
 ];
+
+const difficultyColors: Record<string, string> = {
+  EASY: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5",
+  MEDIUM: "text-blue-500 border-blue-500/20 bg-blue-500/5",
+  HARD: "text-orange-500 border-orange-500/20 bg-orange-500/5",
+  EXPERT: "text-red-500 border-red-500/20 bg-red-500/5",
+};
 
 export default function AdminChallengesPage() {
   const [challenges, setChallenges] = React.useState<Challenge[]>([]);
@@ -141,11 +145,11 @@ export default function AdminChallengesPage() {
       ]);
       const challengesData = await challengesRes.json();
       const subjectsData = await subjectsRes.json();
-      setChallenges(challengesData.challenges);
-      setSubjects(subjectsData.subjects);
+      setChallenges(challengesData.challenges || []);
+      setSubjects(subjectsData.subjects || []);
     } catch (error) {
       console.error("Error fetching challenges:", error);
-      toast.error("حدث خطأ أثناء جلب التحديات");
+      toast.error("حدث خطأ في استدعاء سجلات المبارزات");
     } finally {
       setLoading(false);
     }
@@ -201,15 +205,14 @@ export default function AdminChallengesPage() {
       });
 
       if (response.ok) {
-        toast.success(editingChallenge ? "تم تحديث التحدي بنجاح" : "تم إنشاء التحدي بنجاح");
+        toast.success(editingChallenge ? "تم تحديث خطة المبارزة" : "تم نقش مبارزة جديدة في ساحة القتال");
         setDialogOpen(false);
         fetchChallenges();
       } else {
-        toast.error("حدث خطأ أثناء حفظ التحدي");
+        toast.error("فشل في تثبيت المبارزة");
       }
     } catch (error) {
-      console.error("Error saving challenge:", error);
-      toast.error("حدث خطأ أثناء حفظ التحدي");
+      toast.error("خطأ في الاتصال بالخادم");
     }
   };
 
@@ -224,14 +227,13 @@ export default function AdminChallengesPage() {
       });
 
       if (response.ok) {
-        toast.success("تم حذف التحدي بنجاح");
+        toast.success("تم مسح المبارزة من السجلات");
         fetchChallenges();
       } else {
-        toast.error("حدث خطأ أثناء حذف التحدي");
+        toast.error("فشل في الإتلاف");
       }
     } catch (error) {
-      console.error("Error deleting challenge:", error);
-      toast.error("حدث خطأ أثناء حذف التحدي");
+      toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -252,12 +254,12 @@ export default function AdminChallengesPage() {
     }));
     const dataStr = JSON.stringify(exportData, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
-    const exportFileDefaultName = `challenges-${new Date().toISOString().split('T')[0]}.json`;
+    const exportFileDefaultName = `challenges-empire-${new Date().toISOString().split('T')[0]}.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
-    toast.success("تم تصدير التحديات بنجاح");
+    toast.success("تم تصدير سجلات المبارزات بنجاح");
   };
 
   const handleImport = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -269,10 +271,9 @@ export default function AdminChallengesPage() {
       try {
         const imported = JSON.parse(e.target?.result as string);
         if (!Array.isArray(imported)) {
-          throw new Error("الملف يجب أن يحتوي على مصفوفة من التحديات");
+          throw new Error("تنسيق المخطوطة غير صالح");
         }
         
-        // Import each challenge
         let importedCount = 0;
         for (const challenge of imported) {
           try {
@@ -283,150 +284,116 @@ export default function AdminChallengesPage() {
             });
             if (response.ok) importedCount++;
           } catch {
-            // Skip failed imports
+            // Skip
           }
         }
         
-        toast.success(`تم استيراد ${importedCount} تحدي بنجاح`);
+        toast.success(`تم استدعاء ${importedCount} مبارزة جديدة للمملكة`);
         fetchChallenges();
       } catch {
-        toast.error("فشل في قراءة ملف التحديات");
+        toast.error("فشل في قراءة المخطوطات المستوردة");
       }
     };
     reader.readAsText(file);
-    // Reset input
     event.target.value = '';
-  };
-
-  const difficultyColors: Record<string, string> = {
-    EASY: "bg-green-500",
-    MEDIUM: "bg-yellow-500",
-    HARD: "bg-orange-500",
-    EXPERT: "bg-red-500",
-  };
-
-  const difficultyLabels: Record<string, string> = {
-    EASY: "سهل",
-    MEDIUM: "متوسط",
-    HARD: "صعب",
-    EXPERT: "خبير",
   };
 
   const columns: ColumnDef<Challenge>[] = [
     {
       accessorKey: "title",
-      header: "التحدي",
+      header: "المبارزة / التحدي",
       cell: ({ row }) => {
         const challenge = row.original;
         return (
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-500/10">
-              <Trophy className="h-5 w-5 text-orange-500" />
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-orange-500/10 text-orange-500 border border-orange-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+              <Swords className="h-6 w-6" />
             </div>
             <div>
-              <p className="font-medium">{challenge.title}</p>
-              <p className="text-sm text-muted-foreground">{challenge.type}</p>
+              <p className="font-black text-sm tracking-tight">{challenge.title}</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <Badge variant="outline" className="text-[8px] font-bold py-0">{challenge.type}</Badge>
+                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">{challenge.category}</span>
+              </div>
             </div>
           </div>
         );
       },
     },
     {
-      accessorKey: "category",
-      header: "الفئة",
+      accessorKey: "difficulty",
+      header: "مستوى الصعوبة",
+      cell: ({ row }) => {
+        const diff = row.original.difficulty;
+        const colorClass = difficultyColors[diff] || difficultyColors.MEDIUM;
+        return (
+          <Badge 
+            variant="outline" 
+            className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 ${colorClass}`}
+          >
+            {difficultyOptions.find(o => o.value === diff)?.label || diff}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "xpReward",
-      header: "المكافأة",
-      cell: ({ row }) => {
-        const xp = row.getValue("xpReward") as number;
-        return <span className="font-medium">{xp} XP</span>;
-      },
-    },
-    {
-      accessorKey: "difficulty",
-      header: "الصعوبة",
-      cell: ({ row }) => {
-        const difficulty = row.getValue("difficulty") as string;
-        return (
-          <Badge className={`${difficultyColors[difficulty]} text-white`}>
-            {difficultyLabels[difficulty] || difficulty}
-          </Badge>
-        );
-      },
-    },
-    {
-      accessorKey: "isActive",
-      header: "الحالة",
-      cell: ({ row }) => {
-        const isActive = row.getValue("isActive") as boolean;
-        return (
-          <Badge variant={isActive ? "default" : "secondary"}>
-            {isActive ? "نشط" : "معطل"}
-          </Badge>
-        );
-      },
+      header: "مكافأة النصر",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Zap className="w-3.5 h-3.5 text-blue-500 fill-blue-500" />
+          <span className="text-sm font-black">{row.original.xpReward} XP</span>
+        </div>
+      ),
     },
     {
       id: "completions",
-      header: "المشاركين",
-      cell: ({ row }) => {
-        const challenge = row.original;
-        return <span>{challenge._count.completions} مشارك</span>;
-      },
+      header: "جيش المشاركين",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-2">
+          <Users className="w-3.5 h-3.5 text-muted-foreground" />
+          <span className="text-xs font-black">{row.original._count?.completions || 0} محارب اجتازها</span>
+        </div>
+      ),
     },
     {
-      accessorKey: "endDate",
-      header: "ينتهي في",
+      accessorKey: "isActive",
+      header: "الحالة الآن",
       cell: ({ row }) => {
-        const date = row.getValue("endDate") as string;
-        return new Date(date).toLocaleDateString("ar-EG");
+        const active = row.original.isActive;
+        return (
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
+            <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
+              {active ? "متاحة للقتال" : "خارج الخدمة"}
+            </span>
+          </div>
+        );
       },
     },
     {
       id: "actions",
-      header: "الإجراءات",
-      cell: ({ row }) => {
-        const challenge = row.original;
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>الإجراءات</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => handleOpenDialog(challenge)}>
-                <Edit className="ml-2 h-4 w-4" />
-                تعديل
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive"
-                onClick={() => setDeleteDialog({ open: true, id: challenge.id })}
-              >
-                <Trash2 className="ml-2 h-4 w-4" />
-                حذف
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        );
-      },
+      header: "التحكم الإمبراطوري",
+      cell: ({ row }) => (
+        <RowActions
+          row={row.original}
+          onEdit={handleOpenDialog}
+          onDelete={(c) => setDeleteDialog({ open: true, id: c.id })}
+        />
+      ),
     },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="إدارة التحديات"
-        description="عرض وإدارة جميع التحديات في الموقع"
+        title=" ساحة التحديات والمبارزات ⚔️"
+        description="إدارة المهمات اليومية، البطولات الملحمية، وتوزيع هالات الـ XP للمحاربين المميزين."
       >
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleExport}>
-            <Download className="ml-2 h-4 w-4" />
-            تصدير
-          </Button>
+        <div className="flex items-center gap-3">
+          <AdminButton variant="outline" icon={Download} onClick={handleExport}>
+            تصدير المخطوطات
+          </AdminButton>
           <div className="relative">
             <input
               type="file"
@@ -434,127 +401,78 @@ export default function AdminChallengesPage() {
               onChange={handleImport}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <Button variant="outline" size="sm">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد
-            </Button>
+            <AdminButton variant="outline" icon={Upload}>
+              استيراد سجلات
+            </AdminButton>
           </div>
-          <Button onClick={() => handleOpenDialog()}>
-            <Plus className="ml-2 h-4 w-4" />
-            إضافة تحدي
-          </Button>
+          <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+            إعلان مبارزة جديدة
+          </AdminButton>
         </div>
       </PageHeader>
 
-      {loading ? (
-        <TableSkeleton rows={6} cols={7} />
-      ) : (
-        <DataTable
-          columns={columns}
-          data={challenges}
-          searchKey="title"
-          searchPlaceholder="البحث عن تحدي..."
-        />
-      )}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        {[
+          { label: "إجمالي التحديات", value: challenges.length, icon: Trophy, color: "orange" },
+          { label: "تحديات نشطة", value: challenges.filter(c => c.isActive).length, icon: Flame, color: "red" },
+          { label: "إجمالي الانتصارات", value: challenges.reduce((acc, c) => acc + (c._count?.completions || 0), 0), icon: Target, color: "emerald" },
+          { label: "متوسط الـ XP", value: Math.round(challenges.reduce((acc, c) => acc + c.xpReward, 0) / (challenges.length || 1)), icon: Zap, color: "blue" },
+        ].map((stat, i) => (
+          <AdminCard key={i} variant="glass" className={`p-6 border-white/10`}>
+            <div className="flex items-center gap-4">
+              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
+                <stat.icon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-2xl font-black">{stat.value}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
+              </div>
+            </div>
+          </AdminCard>
+        ))}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
+      >
+        {loading ? (
+          <TableSkeleton rows={8} cols={7} />
+        ) : (
+          <AdminDataTable
+            columns={columns}
+            data={challenges}
+            searchKey="title"
+            searchPlaceholder="ابحث في ساحة المعركة..."
+            actions={{ onRefresh: () => fetchChallenges() }}
+          />
+        )}
+      </motion.div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {editingChallenge ? "تعديل التحدي" : "إضافة تحدي جديد"}
-            </DialogTitle>
-            <DialogDescription>
-              أدخل بيانات التحدي
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>عنوان التحدي *</FormLabel>
-                    <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>الوصف *</FormLabel>
-                    <FormControl>
-                      <Textarea {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
+        <DialogContent className="max-w-lg bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">
+          <div className="h-1.5 bg-gradient-to-r from-orange-500 via-red-500 to-purple-500" />
+          <div className="p-8">
+            <DialogHeader className="mb-8">
+              <DialogTitle className="text-2xl font-black">
+                {editingChallenge ? "تنقيح خطة القتال" : "بناء تحدي ملحمي جديد"}
+              </DialogTitle>
+              <DialogDescription className="font-bold text-muted-foreground">
+                أدخل بيانات المبارزة بدقة لضمان عدالة القتال بين المحاربين.
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
                 <FormField
                   control={form.control}
-                  name="type"
+                  name="title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>النوع *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر النوع" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {challengeTypes.map((type) => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="difficulty"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الصعوبة *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="اختر الصعوبة" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {difficultyOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>الفئة *</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسـم المبارزة</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="تحدي فرسان القمة..." className="rounded-xl border-white/10 bg-white/5 h-12 px-6 font-bold" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -562,105 +480,187 @@ export default function AdminChallengesPage() {
                 />
                 <FormField
                   control={form.control}
-                  name="xpReward"
+                  name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>مكافأة XP *</FormLabel>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تفاصيل المهمة</FormLabel>
                       <FormControl>
-                        <Input
-                          {...field}
-                          type="number"
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                        <Textarea {...field} placeholder="يجب على المحارب..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[100px]" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="type"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">دورة القتال</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
+                              <SelectValue placeholder="اختر النوع" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="rounded-xl border-white/10">
+                            {challengeTypes.map((type) => (
+                              <SelectItem key={type.value} value={type.value} className="font-bold cursor-pointer">
+                                {type.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="difficulty"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">درجة الخطورة</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
+                              <SelectValue placeholder="اختر الصعوبة" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="rounded-xl border-white/10">
+                            {difficultyOptions.map((option) => (
+                              <SelectItem key={option.value} value={option.value} className="font-bold cursor-pointer">
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الفئة العسكرية</FormLabel>
+                        <FormControl>
+                          <Input {...field} placeholder="مثال: MATH" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 font-bold" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="xpReward"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">هالة المكافأة (XP)</FormLabel>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            className="rounded-xl border-white/10 bg-white/5 h-11 text-center font-black"
+                            onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="subjectId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">العلم التابع له (اختياري)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
+                            <SelectValue placeholder="اختر المادة" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-xl border-white/10">
+                          {subjects.map((subject) => (
+                            <SelectItem key={subject.id} value={subject.id} className="font-bold cursor-pointer">
+                              {subject.nameAr || subject.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="startDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">بداية الحملة</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">نهاية الحملة</FormLabel>
+                        <FormControl>
+                          <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+                <FormField
+                  control={form.control}
+                  name="isActive"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-2xl border border-white/10 p-4 bg-white/5 shadow-inner">
+                      <div className="space-y-0.5">
+                        <FormLabel className="font-black text-xs">تفعيل النزاع المسلح؟</FormLabel>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">المبارزات النشطة تظهر فوراً للجيش</p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
                         />
                       </FormControl>
-                      <FormMessage />
                     </FormItem>
                   )}
                 />
-              </div>
-              <FormField
-                control={form.control}
-                name="subjectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المادة (اختياري)</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر المادة" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {subjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.nameAr || subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="startDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ البداية *</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="endDate"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>تاريخ النهاية *</FormLabel>
-                      <FormControl>
-                        <Input {...field} type="date" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name="isActive"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between rounded-lg border p-3">
-                    <FormLabel>نشط</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <DialogFooter>
-                <Button type="submit">
-                  {editingChallenge ? "تحديث" : "إنشاء"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
+                <DialogFooter className="pt-4">
+                  <AdminButton type="submit" icon={editingChallenge ? Sparkles : Hammer} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                    {editingChallenge ? "تحديث ميثاق المبارزة" : "نشر المبارزة في الإمبراطورية"}
+                  </AdminButton>
+                </DialogFooter>
+              </form>
+            </Form>
+          </div>
         </DialogContent>
       </Dialog>
 
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="حذف التحدي"
-        description="هل أنت متأكد من حذف هذا التحدي؟"
-        confirmText="حذف"
+        title="إلغاء المبارزة وحرق السجل؟"
+        description="أنت على وشك مسح هذه المبارزة من تاريخ المملكة. هل أنت متأكد؟"
+        confirmText="نعم، احذف المبارزة"
         variant="destructive"
         onConfirm={handleDelete}
       />

@@ -45,7 +45,8 @@ import {
   TableProperties,
   Send,
   Split,
-  Workflow
+  Workflow,
+  PlayCircle
 } from "lucide-react";
 import { IconButton, AdminButton } from "@/components/admin/ui/admin-button";
 import { SearchInput } from "@/components/admin/ui/admin-input";
@@ -147,6 +148,13 @@ const mainNavItems: SidebarNavItem[] = [
 ];
 
 const contentNavItems: SidebarNavItem[] = [
+  {
+    title: "الدورات التعليمية",
+    href: "/admin/courses",
+    icon: PlayCircle,
+    color: "from-blue-600 to-cyan-500",
+    permission: "SUBJECTS_VIEW",
+  },
   {
     title: "المواد الدراسية",
     href: "/admin/subjects",

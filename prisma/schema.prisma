@@ -9,119 +9,129 @@ datasource db {
 }
 
 model User {
-  id                            String    @id @default(cuid())
-  email                         String    @unique
+  id                            String                @id @default(cuid())
+  email                         String                @unique
   name                          String?
   username                      String?
   avatar                        String?
   passwordHash                  String
-  createdAt                     DateTime  @default(now())
-  updatedAt                     DateTime  @updatedAt
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
   wakeUpTime                    String?
   sleepTime                     String?
-  focusStrategy                 String?   @default("POMODORO")
-  emailNotifications            Boolean?  @default(true)
+  focusStrategy                 String?               @default("POMODORO")
+  emailNotifications            Boolean?              @default(true)
   emailVerificationToken        String?
   emailVerificationExpires      DateTime?
-  emailVerified                 Boolean?  @default(false)
+  emailVerified                 Boolean?              @default(false)
   lastLogin                     DateTime?
   phone                         String?
-  phoneVerified                 Boolean?  @default(false)
+  phoneVerified                 Boolean?              @default(false)
   phoneVerificationOTP          String?
   phoneVerificationExpires      DateTime?
-  phoneVerificationAttempts     Int       @default(0)
+  phoneVerificationAttempts     Int                   @default(0)
   phoneVerificationLastSent     DateTime?
   resetToken                    String?
   resetTokenExpires             DateTime?
-  twoFactorEnabled              Boolean   @default(false)
+  twoFactorEnabled              Boolean               @default(false)
   twoFactorSecret               String?
   recoveryCodes                 String?
-  smsNotifications              Boolean?  @default(false)
-  biometricEnabled              Boolean   @default(false)
+  smsNotifications              Boolean?              @default(false)
+  biometricEnabled              Boolean               @default(false)
   magicLinkToken                String?
   magicLinkExpires              DateTime?
-  googleId                      String?   @unique
-  githubId                      String?   @unique
+  googleId                      String?               @unique
+  githubId                      String?               @unique
   passwordChangedAt             DateTime?
   passwordExpiresAt             DateTime?
-  passwordExpirationWarningSent Boolean   @default(false)
-  totalXP                       Int       @default(0)
-  level                         Int       @default(1)
-  currentStreak                 Int       @default(0)
-  longestStreak                 Int       @default(0)
-  totalStudyTime                Int       @default(0)
-  tasksCompleted                Int       @default(0)
-  examsPassed                   Int       @default(0)
-  pomodoroSessions              Int       @default(0)
-  deepWorkSessions              Int       @default(0)
-  studyXP                       Int       @default(0)
-  taskXP                        Int       @default(0)
-  examXP                        Int       @default(0)
-  challengeXP                   Int       @default(0)
-  questXP                       Int       @default(0)
-  seasonXP                      Int       @default(0)
-  role                          UserRole  @default(STUDENT)
-  permissions                   String[]  @default([])
-
-  country          String?
-  dateOfBirth      DateTime?
-  gender           String?
-  alternativePhone String?
-
-  gradeLevel         String?
-  educationType      String?
-  section            String?
-  interestedSubjects String[] @default([])
-  studyGoal          String?
-  bio                String?  @db.Text
-  school             String?
-
-  subjectsTaught  String[] @default([])
-  classesTaught   String[] @default([])
-  experienceYears String?
-
-  aiChatMessages       AiChatMessage[]
-  aiGeneratedContent   AiGeneratedContent[]
-  aiGeneratedExams     AiGeneratedExam[]
-  biometricCredentials BiometricCredential[]
-  blogPosts            BlogPost[]            @relation("BlogPostAuthor")
-  challengeCompletions ChallengeCompletion[]
-  contentPreferences   ContentPreference[]
-  customGoals          CustomGoal[]
-  organizedEvents      Event[]               @relation("EventOrganizer")
-  examResults          ExamResult[]
-  forumPosts           ForumPost[]           @relation("ForumPostAuthor")
-  forumReplies         ForumReply[]          @relation("ForumReplyAuthor")
-  leaderboardEntries   LeaderboardEntry[]
-  mlRecommendations    MlRecommendation[]
-  notifications        Notification[]
-  offlineLessons       OfflineLesson[]
-  passwordHistory      PasswordHistory[]
-  progressSnapshots    ProgressSnapshot[]
-  questProgresses      QuestProgress[]
-  reminders            Reminder[]
-  schedules            Schedule[]
-  seasonParticipations SeasonParticipation[]
-  securityLogs         SecurityLog[]
-  securityQuestions    SecurityQuestion[]
-  sentimentAnalyses    SentimentAnalysis[]
-  sessions             Session[]
-  studySessions        StudySession[]
-  subjectEnrollments   SubjectEnrollment[]
-  tasks                Task[]
-  achievements         UserAchievement[]
-  userGrades           UserGrade[]
-  userInteractions     UserInteraction[]
-  userRewards          UserReward[]
-  automationLogs       AutomationLog[]
-  lessonNotes          LessonNote[]
-  lessonQuestions      LessonQuestion[]
-  lessonAnswers        LessonAnswer[]
-  reviews              SubjectReview[]
-  certificates         SubjectCertificate[]
-  uploadedBooks        Book[]                @relation("BookUploader")
-  bookReviews          BookReview[]
-  bookProgresses       BookProgress[]
+  passwordExpirationWarningSent Boolean               @default(false)
+  totalXP                       Int                   @default(0)
+  level                         Int                   @default(1)
+  currentStreak                 Int                   @default(0)
+  longestStreak                 Int                   @default(0)
+  totalStudyTime                Int                   @default(0)
+  tasksCompleted                Int                   @default(0)
+  examsPassed                   Int                   @default(0)
+  pomodoroSessions              Int                   @default(0)
+  deepWorkSessions              Int                   @default(0)
+  studyXP                       Int                   @default(0)
+  taskXP                        Int                   @default(0)
+  examXP                        Int                   @default(0)
+  challengeXP                   Int                   @default(0)
+  questXP                       Int                   @default(0)
+  seasonXP                      Int                   @default(0)
+  role                          UserRole              @default(STUDENT)
+  country                       String?
+  dateOfBirth                   DateTime?
+  gender                        String?
+  alternativePhone              String?
+  gradeLevel                    String?
+  educationType                 String?
+  section                       String?
+  interestedSubjects            String[]              @default([])
+  studyGoal                     String?
+  subjectsTaught                String[]              @default([])
+  classesTaught                 String[]              @default([])
+  experienceYears               String?
+  bio                           String?
+  permissions                   String[]              @default([])
+  school                        String?
+  balance                       Float                 @default(0)
+  referralCode                  String?               @unique
+  referredById                  String?
+  additionalAiCredits           Int                   @default(0)
+  additionalExamCredits         Int                   @default(0)
+  aiChatMessages                AiChatMessage[]
+  aiGeneratedContent            AiGeneratedContent[]
+  aiGeneratedExams              AiGeneratedExam[]
+  automationLogs                AutomationLog[]
+  biometricCredentials          BiometricCredential[]
+  blogPosts                     BlogPost[]            @relation("BlogPostAuthor")
+  uploadedBooks                 Book[]                @relation("BookUploader")
+  bookProgresses                BookProgress[]
+  bookReviews                   BookReview[]
+  challengeCompletions          ChallengeCompletion[]
+  contentPreferences            ContentPreference[]
+  customGoals                   CustomGoal[]
+  organizedEvents               Event[]               @relation("EventOrganizer")
+  examResults                   ExamResult[]
+  forumPosts                    ForumPost[]           @relation("ForumPostAuthor")
+  forumReplies                  ForumReply[]          @relation("ForumReplyAuthor")
+  ownedGroup                    GroupSubscription?    @relation("GroupOwner")
+  leaderboardEntries            LeaderboardEntry[]
+  lessonAnswers                 LessonAnswer[]
+  lessonNotes                   LessonNote[]
+  lessonQuestions               LessonQuestion[]
+  mlRecommendations             MlRecommendation[]
+  notifications                 Notification[]
+  offlineLessons                OfflineLesson[]
+  passwordHistory               PasswordHistory[]
+  payments                      Payment[]             @relation("UserPayments")
+  progressSnapshots             ProgressSnapshot[]
+  questProgresses               QuestProgress[]
+  referralRewards               ReferralReward[]      @relation("UserReferrer")
+  reminders                     Reminder[]
+  schedules                     Schedule[]
+  seasonParticipations          SeasonParticipation[]
+  securityLogs                  SecurityLog[]
+  securityQuestions             SecurityQuestion[]
+  sentimentAnalyses             SentimentAnalysis[]
+  sessions                      Session[]
+  studySessions                 StudySession[]
+  certificates                  SubjectCertificate[]
+  subjectEnrollments            SubjectEnrollment[]
+  reviews                       SubjectReview[]
+  subscriptions                 Subscription[]        @relation("UserSubscription")
+  tasks                         Task[]
+  referredBy                    User?                 @relation("ReferralStory", fields: [referredById], references: [id])
+  referrals                     User[]                @relation("ReferralStory")
+  achievements                  UserAchievement[]
+  userGrades                    UserGrade[]
+  userInteractions              UserInteraction[]
+  userRewards                   UserReward[]
+  user_preferences              user_preferences?
+  announcements                 Announcement[]    @relation("AnnouncementAuthor")
+  memberGroups                  GroupSubscription[]   @relation("GroupMembers")
 
   @@index([role])
   @@index([totalXP(sort: Desc)])
@@ -134,10 +144,10 @@ model SubjectEnrollment {
   id                String   @id @default(cuid())
   userId            String
   subjectId         String
-  progress          Int      @default(0)
   targetWeeklyHours Int      @default(0)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+  progress          Int      @default(0)
   subject           Subject  @relation(fields: [subjectId], references: [id])
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -223,18 +233,19 @@ model ProgressSnapshot {
 }
 
 model Resource {
-  id          String   @id @default(cuid())
-  subjectId   String
-  title       String
-  description String?
-  url         String
-  free        Boolean  @default(true)
-  price       Float?   @default(0)
-  type        String
-  source      String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  subjectId    String
+  title        String
+  description  String?
+  url          String
+  free         Boolean  @default(true)
+  type         String
+  source       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  price        Float?   @default(0)
+  minPlanLevel Int      @default(0)
+  subject      Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@index([subjectId])
 }
@@ -250,15 +261,15 @@ model Book {
   rating      Float          @default(0)
   views       Int            @default(0)
   downloads   Int            @default(0)
-  price       Float?         @default(0)
-  uploaderId  String?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
   tags        String[]       @default([])
+  price       Float?         @default(0)
+  uploaderId  String?
   subject     Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   uploader    User?          @relation("BookUploader", fields: [uploaderId], references: [id])
-  reviews     BookReview[]
   progresses  BookProgress[]
+  reviews     BookReview[]
 
   @@index([subjectId])
   @@index([uploaderId])
@@ -269,7 +280,7 @@ model BookReview {
   bookId    String
   userId    String
   rating    Int
-  comment   String?  @db.Text
+  comment   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
@@ -761,21 +772,21 @@ model Subject {
   color              String?
   type               String?
   isActive           Boolean              @default(true)
-  isPublished        Boolean              @default(false)
-  price              Float?               @default(0)
-  instructorName     String?
-  instructorId       String?
-  rating             Float?               @default(0)
-  durationHours      Int?                 @default(0)
-  thumbnailUrl       String?
-  trailerUrl         String?
-  enrolledCount      Int?                 @default(0)
-  level              Difficulty           @default(MEDIUM)
-  learningObjectives String?              @db.Text
-  requirements       String?              @db.Text
-  categoryId         String?
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
+  categoryId         String?
+  durationHours      Int?                 @default(0)
+  enrolledCount      Int?                 @default(0)
+  instructorId       String?
+  instructorName     String?
+  isPublished        Boolean              @default(false)
+  learningObjectives String?
+  level              Difficulty           @default(MEDIUM)
+  price              Float?               @default(0)
+  rating             Float?               @default(0)
+  requirements       String?
+  thumbnailUrl       String?
+  trailerUrl         String?
   aiContent          AiGeneratedContent[]
   aiExams            AiGeneratedExam[]
   books              Book[]
@@ -786,13 +797,13 @@ model Subject {
   resources          Resource[]
   schedules          Schedule[]
   studySessions      StudySession[]
+  certificates       SubjectCertificate[]
   enrollments        SubjectEnrollment[]
+  reviews            SubjectReview[]
   tasks              Task[]
   teachers           Teacher[]
   topics             Topic[]
   userGrades         UserGrade[]
-  reviews            SubjectReview[]
-  certificates       SubjectCertificate[]
 
   @@index([categoryId])
   @@index([isActive, createdAt(sort: Desc)])
@@ -820,19 +831,19 @@ model SubTopic {
   topicId     String
   name        String
   description String?
-  content     String?            @db.Text
+  content     String?
   videoUrl    String?
-  duration    Int                @default(0) // in seconds
-  type        LessonType         @default(VIDEO)
   order       Int                @default(0)
-  isFree      Boolean            @default(false)
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
-  topic       Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  progresses  TopicProgress[]
+  duration    Int                @default(0)
+  isFree      Boolean            @default(false)
+  type        LessonType         @default(VIDEO)
   attachments LessonAttachment[]
   notes       LessonNote[]
   questions   LessonQuestion[]
+  topic       Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  progresses  TopicProgress[]
 
   @@index([topicId])
 }
@@ -856,7 +867,7 @@ model SubjectReview {
   subjectId String
   userId    String
   rating    Int
-  comment   String?  @db.Text
+  comment   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
@@ -914,8 +925,11 @@ model Announcement {
   id        String   @id @default(cuid())
   title     String
   content   String
-  priority  String   @default("normal")
+  type      String   @default("INFO")
+  priority  Int      @default(0)
   isActive  Boolean  @default(true)
+  authorId  String?
+  author    User?    @relation("AnnouncementAuthor", fields: [authorId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -1215,6 +1229,238 @@ model SecurityQuestion {
   @@index([userId])
 }
 
+model AutomationRule {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  triggerType String
+  conditions  String
+  actionType  String
+  actionData  String
+  isActive    Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  logs        AutomationLog[]
+}
+
+model AutomationLog {
+  id          String         @id @default(cuid())
+  ruleId      String
+  userId      String
+  actionTaken String
+  metadata    String?
+  createdAt   DateTime       @default(now())
+  rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([ruleId])
+  @@index([userId])
+}
+
+model LessonNote {
+  id         String   @id @default(cuid())
+  userId     String
+  subTopicId String
+  content    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  subTopic   SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subTopicId])
+  @@index([userId])
+  @@index([subTopicId])
+}
+
+model LessonQuestion {
+  id         String         @id @default(cuid())
+  userId     String
+  subTopicId String
+  content    String
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  answers    LessonAnswer[]
+  subTopic   SubTopic       @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subTopicId])
+}
+
+model LessonAnswer {
+  id         String         @id @default(cuid())
+  questionId String
+  userId     String
+  content    String
+  isTeacher  Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  question   LessonQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([questionId])
+  @@index([userId])
+}
+
+model SubscriptionPlan {
+  id             String         @id @default(cuid())
+  name           String         @unique
+  nameAr         String?
+  description    String?
+  descriptionAr  String?
+  price          Float
+  currency       String         @default("EGP")
+  interval       PlanInterval   @default(MONTHLY)
+  features       String[]       @default([])
+  featuresAr     String[]       @default([])
+  isActive       Boolean        @default(true)
+  level          Int            @default(0)
+  memberLimit    Int            @default(1)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  aiMessageLimit Int?
+  examLimit      Int?
+  extraExamPrice Float?         @default(0)
+  subscriptions  Subscription[]
+
+  @@index([isActive])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String
+  planId             String
+  status             SubscriptionStatus @default(INACTIVE)
+  startDate          DateTime           @default(now())
+  endDate            DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  gracePeriodEndDate DateTime?
+  payments           Payment[]
+  plan               SubscriptionPlan   @relation(fields: [planId], references: [id])
+  user               User               @relation("UserSubscription", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+}
+
+model Payment {
+  id                String          @id @default(cuid())
+  userId            String
+  subscriptionId    String?
+  amount            Float
+  currency          String          @default("EGP")
+  status            PaymentStatus   @default(PENDING)
+  provider          String          @default("PAYMOB")
+  transactionId     String?         @unique
+  orderId           String?         @unique
+  paymentMethod     String?
+  paymentData       String?
+  errorMessage      String?
+  couponId          String?
+  discountAmount    Float?          @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  referralRewardId  String?         @unique
+  creditAmount      Float?          @default(0)
+  balanceUsed       Float?          @default(0)
+  promoDiscount     Float?          @default(0)
+  prorationDiscount Float?          @default(0)
+  coupon            Coupon?         @relation(fields: [couponId], references: [id])
+  referralReward    ReferralReward? @relation(fields: [referralRewardId], references: [id])
+  subscription      Subscription?   @relation(fields: [subscriptionId], references: [id])
+  user              User            @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([transactionId])
+}
+
+model Coupon {
+  id              String       @id @default(cuid())
+  code            String       @unique
+  description     String?
+  discountType    DiscountType @default(PERCENTAGE)
+  discountValue   Float
+  maxUses         Int?
+  usedCount       Int          @default(0)
+  expiryDate      DateTime?
+  isActive        Boolean      @default(true)
+  minOrderAmount  Float?       @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  isWinBack       Boolean?     @default(false)
+  minInactiveDays Int?
+  regionTarget    String?
+  schoolTarget    String?
+  userTargetId    String?
+  payments        Payment[]
+
+  @@index([code])
+  @@index([userTargetId])
+  @@index([isActive])
+}
+
+model ReferralReward {
+  id         String   @id @default(cuid())
+  referrerId String
+  referredId String   @unique
+  amount     Float
+  status     String   @default("PENDING")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  payment    Payment?
+  referrer   User     @relation("UserReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+}
+
+model GroupSubscription {
+  id        String   @id @default(cuid())
+  ownerId   String   @unique
+  planId    String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  owner     User     @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members   User[]   @relation("GroupMembers")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  userId    String?
+  type      String
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  @@index([type])
+  @@index([userId])
+}
+
+model Addon {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  nameAr      String?
+  description String?
+  price       Float
+  type        AddonType
+  value       Int
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model user_preferences {
+  userId        String   @id
+  appearance    String   @default("{}")
+  language      String   @default("{}")
+  privacy       String   @default("{}")
+  notifications String   @default("{}")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now())
+  User          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
 enum UserRole {
   USER
   STUDENT
@@ -1274,75 +1520,36 @@ enum NotificationType {
   ERROR
 }
 
-model AutomationRule {
-  id          String          @id @default(cuid())
-  name        String
-  description String?
-  triggerType String
-  conditions  String
-  actionType  String
-  actionData  String
-  isActive    Boolean         @default(true)
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  logs        AutomationLog[]
+enum DiscountType {
+  PERCENTAGE
+  FIXED
 }
 
-model AutomationLog {
-  id          String         @id @default(cuid())
-  ruleId      String
-  userId      String
-  actionTaken String
-  metadata    String?
-  createdAt   DateTime       @default(now())
-  rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([ruleId])
-  @@index([userId])
+enum PlanInterval {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  LIFETIME
 }
 
-model LessonNote {
-  id         String   @id @default(cuid())
-  userId     String
-  subTopicId String
-  content    String   @db.Text
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subTopic   SubTopic @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, subTopicId])
-  @@index([userId])
-  @@index([subTopicId])
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  EXPIRED
+  CANCELLED
+  GRACE_PERIOD
 }
 
-model LessonQuestion {
-  id         String         @id @default(cuid())
-  userId     String
-  subTopicId String
-  content    String         @db.Text
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subTopic   SubTopic       @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
-  answers    LessonAnswer[]
-
-  @@index([userId])
-  @@index([subTopicId])
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUNDED
 }
 
-model LessonAnswer {
-  id         String         @id @default(cuid())
-  questionId String
-  userId     String
-  content    String         @db.Text
-  isTeacher  Boolean        @default(false)
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
-  question   LessonQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([questionId])
-  @@index([userId])
+enum AddonType {
+  EXAM_PACK
+  AI_CREDITS
+  TEACHER_HOURS
+  OTHER
 }

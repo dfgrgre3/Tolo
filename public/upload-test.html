@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Upload Test</title>
+</head>
+<body>
+    <h1>File Upload Test</h1>
+    
+    <h2>Simple Upload (No Auth)</h2>
+    <form id="simpleUploadForm">
+        <input type="file" id="simpleFile" required>
+        <button type="submit">Upload (Simple)</button>
+    </form>
+    <div id="simpleResult"></div>
+    
+    <h2>Main Upload (Requires Auth)</h2>
+    <form id="mainUploadForm">
+        <input type="file" id="mainFile" required>
+        <button type="submit">Upload (Main)</button>
+    </form>
+    <div id="mainResult"></div>
+
+    <script>
+        // Simple upload test
+        document.getElementById('simpleUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = document.getElementById('simpleFile').files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/upload-simple', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById('simpleResult').innerHTML = 
+                    response.ok ? 
+                    `✅ Success: ${result.fileUrl}` : 
+                    `❌ Error: ${result.error}`;
+            } catch (error) {
+                document.getElementById('simpleResult').innerHTML = `❌ Error: ${error.message}`;
+            }
+        });
+
+        // Main upload test (requires auth)
+        document.getElementById('mainUploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = document.getElementById('mainFile').files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            try {
+                const response = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: {
+                        'x-user-id': 'test-user-id' // This needs to be a real user ID
+                    },
+                    body: formData
+                });
+                
+                const result = await response.json();
+                document.getElementById('mainResult').innerHTML = 
+                    response.ok ? 
+                    `✅ Success: ${result.fileUrl}` : 
+                    `❌ Error: ${result.error}`;
+            } catch (error) {
+                document.getElementById('mainResult').innerHTML = `❌ Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

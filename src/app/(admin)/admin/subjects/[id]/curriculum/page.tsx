@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { 
   Plus, 
@@ -14,7 +14,6 @@ import {
   Save, 
   ArrowRight,
   PlusCircle,
-  MoreVertical,
   Layers,
   Layout
 } from "lucide-react";
@@ -39,15 +38,37 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { PageHeader } from "@/components/admin/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter,
+  DialogDescription
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { AdminUpload } from "@/components/admin/ui/admin-upload";
 
 type Lesson = {
   id: string;
   name: string;
   order: number;
   type: string;
+  videoUrl?: string | null;
+  duration?: number;
+  isFree?: boolean;
+  description?: string | null;
 };
 
 type Chapter = {
@@ -57,7 +78,13 @@ type Chapter = {
   subTopics: Lesson[];
 };
 
-function SortableLesson({ lesson, onDelete }: { lesson: Lesson; onDelete: (id: string) => void }) {
+type SubjectSummary = {
+  id: string;
+  name: string;
+  nameAr?: string | null;
+};
+
+function SortableLesson({ lesson, onDelete, onEdit }: { lesson: Lesson; onDelete: (id: string) => void; onEdit: (lesson: Lesson) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: lesson.id });
   
   const style = {
@@ -75,9 +102,17 @@ function SortableLesson({ lesson, onDelete }: { lesson: Lesson; onDelete: (id: s
         <GripVertical className="w-4 h-4" />
       </div>
       {lesson.type === 'VIDEO' ? <Video className="w-4 h-4 text-blue-500" /> : <FileText className="w-4 h-4 text-emerald-500" />}
-      <span className="flex-1 text-sm font-bold">{lesson.name}</span>
-      <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-zinc-100">
+      <div className="flex-1 flex flex-col gap-0.5">
+        <span className="text-sm font-bold">{lesson.name}</span>
+        {lesson.videoUrl && (
+          <span className="text-[10px] text-zinc-500 font-medium truncate max-w-[200px]">
+            {lesson.videoUrl}
+          </span>
+        )}
+      </div>
+      {lesson.isFree && <Badge className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 text-[9px]">مجاني</Badge>}
+      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <Button variant="ghost" size="icon" onClick={() => onEdit(lesson)} className="h-8 w-8 text-zinc-400 hover:text-primary">
            <Edit className="w-3.5 h-3.5" />
         </Button>
         <Button variant="ghost" size="icon" onClick={() => onDelete(lesson.id)} className="h-8 w-8 text-red-500 hover:bg-red-500/10">
@@ -88,12 +123,14 @@ function SortableLesson({ lesson, onDelete }: { lesson: Lesson; onDelete: (id: s
   );
 }
 
-function SortableChapter({ chapter, onDeleteChapter, onAddLesson, onDeleteLesson, onReorderLessons }: { 
+function SortableChapter({ chapter, onDeleteChapter, onAddLesson, onDeleteLesson, onReorderLessons, onEditChapter, onEditLesson }: { 
   chapter: Chapter; 
   onDeleteChapter: (id: string) => void;
   onAddLesson: (chapterId: string) => void;
   onDeleteLesson: (chapterId: string, lessonId: string) => void;
   onReorderLessons: (chapterId: string, event: DragEndEvent) => void;
+  onEditChapter: (chapter: Chapter) => void;
+  onEditLesson: (lesson: Lesson, chapterId: string) => void;
 }) {
   const [expanded, setExpanded] = useState(true);
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id: chapter.id });
@@ -119,7 +156,7 @@ function SortableChapter({ chapter, onDeleteChapter, onAddLesson, onDeleteLesson
                 <div {...attributes} {...listeners} className="cursor-grab text-zinc-400 hover:text-primary p-2">
                    <GripVertical className="w-5 h-5" />
                 </div>
-                <div onClick={() => setExpanded(!expanded)} className="cursor-pointer flex items-center gap-3">
+                <div onClick={() => setExpanded(!expanded)} className="cursor-pointer flex items-center gap-3 flex-1">
                    {expanded ? <ChevronUp className="w-5 h-5 text-primary" /> : <ChevronDown className="w-5 h-5 text-zinc-400" />}
                    <div className="space-y-0.5">
                       <h3 className="font-black text-sm uppercase tracking-widest">{chapter.name}</h3>
@@ -128,6 +165,9 @@ function SortableChapter({ chapter, onDeleteChapter, onAddLesson, onDeleteLesson
                 </div>
              </div>
              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" onClick={() => onEditChapter(chapter)} className="h-8 w-8 text-zinc-400 hover:text-primary">
+                   <Edit className="w-4 h-4" />
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => onAddLesson(chapter.id)} className="h-8 rounded-lg border-zinc-200 dark:border-zinc-800 gap-2 font-black text-[10px] uppercase">
                    <PlusCircle className="w-3.5 h-3.5" />
                    إضافة درس
@@ -149,7 +189,12 @@ function SortableChapter({ chapter, onDeleteChapter, onAddLesson, onDeleteLesson
                <SortableContext items={chapter.subTopics.map(l => l.id)} strategy={verticalListSortingStrategy}>
                   <div className="space-y-2">
                      {chapter.subTopics.map(lesson => (
-                       <SortableLesson key={lesson.id} lesson={lesson} onDelete={(lId) => onDeleteLesson(chapter.id, lId)} />
+                       <SortableLesson 
+                        key={lesson.id} 
+                        lesson={lesson} 
+                        onDelete={(lId) => onDeleteLesson(chapter.id, lId)}
+                        onEdit={(l) => onEditLesson(l, chapter.id)}
+                      />
                      ))}
                      {chapter.subTopics.length === 0 && (
                        <div className="p-8 text-center border-2 border-dashed border-zinc-100 dark:border-zinc-800 rounded-2xl">
@@ -171,8 +216,13 @@ export default function CurriculumEditorPage() {
   const subjectId = params.id as string;
 
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [subject, setSubject] = useState<SubjectSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isPending, startTransition] = useTransition();
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Edit states
+  const [editingChapter, setEditingChapter] = useState<{ id: string, name: string } | null>(null);
+  const [editingLesson, setEditingLesson] = useState<{ lesson: Lesson, chapterId: string } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -182,10 +232,11 @@ export default function CurriculumEditorPage() {
   useEffect(() => {
     const fetchCurriculum = async () => {
       try {
-        const res = await fetch(`/api/courses/${subjectId}/curriculum`);
+        const res = await fetch(`/api/admin/subjects?id=${subjectId}&include=curriculum`);
         if (res.ok) {
           const data = await res.json();
-          setChapters(data.curriculum || []);
+          setSubject(data.data?.subject || null);
+          setChapters(data.data?.curriculum || []);
         }
       } catch (err) {
         toast.error("فشل تحميل المنهج");
@@ -247,7 +298,10 @@ export default function CurriculumEditorPage() {
             id: `new-lesson-${Date.now()}`,
             name: "درس جديد",
             order: c.subTopics.length,
-            type: "VIDEO"
+            type: "VIDEO",
+            videoUrl: "",
+            duration: 0,
+            isFree: false
           }]
         };
       }
@@ -264,16 +318,59 @@ export default function CurriculumEditorPage() {
      }));
   };
 
+  const handleEditLesson = (lesson: Lesson, chapterId: string) => {
+    setEditingLesson({ lesson: { ...lesson }, chapterId });
+  };
+
+  const handleSaveLesson = () => {
+    if (!editingLesson) return;
+    
+    setChapters(prev => prev.map(c => {
+      if (c.id === editingLesson.chapterId) {
+        return {
+          ...c,
+          subTopics: c.subTopics.map(l => 
+            l.id === editingLesson.lesson.id ? editingLesson.lesson : l
+          )
+        };
+      }
+      return c;
+    }));
+    setEditingLesson(null);
+  };
+
+  const handleEditChapter = (chapter: Chapter) => {
+    setEditingChapter({ id: chapter.id, name: chapter.name });
+  };
+
+  const handleSaveChapter = () => {
+    if (!editingChapter) return;
+    setChapters(prev => prev.map(c => 
+      c.id === editingChapter.id ? { ...c, name: editingChapter.name } : c
+    ));
+    setEditingChapter(null);
+  };
+
   const handleSave = async () => {
-     // Here you would normally send the entire chapters array to the backend to sync
-     toast.promise(
-       new Promise(resolve => setTimeout(resolve, 1500)), 
-       {
-         loading: 'جاري حفظ التغييرات...',
-         success: 'تم حفظ خارطة المنهج بنجاح!',
-         error: 'حدث خطأ أثناء الحفظ',
+     setIsSaving(true);
+     try {
+       const res = await fetch(`/api/admin/subjects`, {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ id: subjectId, curriculum: chapters }),
+       });
+
+       if (res.ok) {
+         toast.success('تم حفظ المنهج بنجاح!');
+       } else {
+         const error = await res.json();
+         toast.error(error.error || 'فشل حفظ المنهج');
        }
-     );
+     } catch (err) {
+       toast.error('حدث خطأ في الاتصال');
+     } finally {
+       setIsSaving(false);
+     }
   };
 
   if (loading) return (
@@ -296,12 +393,20 @@ export default function CurriculumEditorPage() {
              <p className="text-zinc-500 font-bold text-sm">قم بترتيب الفصول والدروس وإضافة المحتوى التعليمي للمادة</p>
           </div>
           <div className="flex items-center gap-3">
-             <Button variant="outline" className="border-zinc-200 dark:border-zinc-800 font-black text-[10px] uppercase h-11 px-6 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all">
+             <Button
+               variant="outline"
+               className="border-zinc-200 dark:border-zinc-800 font-black text-[10px] uppercase h-11 px-6 rounded-xl hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-all"
+               onClick={() => router.push(`/courses/${subjectId}`)}
+             >
                 <Layout className="w-4 h-4 ml-2" />
                 معاينة المادة
              </Button>
-             <Button onClick={handleSave} className="bg-primary hover:bg-primary/90 text-black font-black text-[10px] uppercase h-11 px-8 rounded-xl shadow-lg shadow-primary/20 transition-all">
-                <Save className="w-4 h-4 ml-2" />
+             <Button onClick={handleSave} disabled={isSaving} className="bg-primary hover:bg-primary/90 text-black font-black text-[10px] uppercase h-11 px-8 rounded-xl shadow-lg shadow-primary/20 transition-all">
+                {isSaving ? (
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-black ml-2" />
+                ) : (
+                  <Save className="w-4 h-4 ml-2" />
+                )}
                 حفظ التغييرات
              </Button>
           </div>
@@ -337,6 +442,8 @@ export default function CurriculumEditorPage() {
                            onAddLesson={addLesson}
                            onDeleteLesson={deleteLesson}
                            onReorderLessons={handleReorderLessons}
+                           onEditChapter={handleEditChapter}
+                           onEditLesson={handleEditLesson}
                         />
                       ))}
                       {chapters.length === 0 && (
@@ -352,6 +459,114 @@ export default function CurriculumEditorPage() {
              </DndContext>
           </div>
        </div>
+
+       {/* Edit Chapter Dialog */}
+       <Dialog open={!!editingChapter} onOpenChange={(open) => !open && setEditingChapter(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="font-black text-xl">تعديل الفصل الدراسي</DialogTitle>
+              <DialogDescription className="text-zinc-500 font-bold text-xs">تغيير اسم الفصل الذي سيظهر للطلاب</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+               <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">اسم الفصل</Label>
+                  <Input 
+                    value={editingChapter?.name || ""} 
+                    onChange={(e) => setEditingChapter(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    className="h-12 rounded-xl text-sm font-bold"
+                  />
+               </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleSaveChapter} className="w-full h-12 rounded-xl bg-primary text-black font-black tracking-widest uppercase text-xs">حفظ التغييرات</Button>
+            </DialogFooter>
+          </DialogContent>
+       </Dialog>
+
+       {/* Edit Lesson Dialog */}
+       <Dialog open={!!editingLesson} onOpenChange={(open) => !open && setEditingLesson(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="font-black text-xl">تعديل محتوى الدرس</DialogTitle>
+              <DialogDescription className="text-zinc-500 font-bold text-xs">أدخل تفاصيل الدرس والروابط التعليمية</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-5 py-4">
+               <div className="space-y-2">
+                  <Label className="text-[10px] font-black uppercase">اسم الدرس</Label>
+                  <Input 
+                    value={editingLesson?.lesson.name || ""} 
+                    onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, name: e.target.value } } : null)}
+                    className="h-12 rounded-xl text-sm font-bold"
+                  />
+               </div>
+               
+               <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">نوع الدرس</Label>
+                    <Select 
+                      value={editingLesson?.lesson.type} 
+                      onValueChange={(val) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, type: val } } : null)}
+                    >
+                      <SelectTrigger className="h-12 rounded-xl text-sm font-bold">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="VIDEO">فيديو تعليمي</SelectItem>
+                        <SelectItem value="ARTICLE">مقال / نص</SelectItem>
+                        <SelectItem value="QUIZ">اختبار سريع</SelectItem>
+                        <SelectItem value="FILE">ملف PDF / مرفق</SelectItem>
+                      </SelectContent>
+                    </Select>
+                 </div>
+                 <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase">مدة الدرس (دقائق)</Label>
+                    <Input 
+                      type="number"
+                      value={editingLesson?.lesson.duration || 0} 
+                      onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, duration: parseInt(e.target.value) || 0 } } : null)}
+                      className="h-12 rounded-xl text-sm font-bold"
+                    />
+                 </div>
+               </div>
+
+               <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase">محتوى الدرس (فيديو / رابط)</Label>
+                  <div className="space-y-3">
+                    <div className="relative">
+                      <Input 
+                        value={editingLesson?.lesson.videoUrl || ""} 
+                        onChange={(e) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, videoUrl: e.target.value } } : null)}
+                        className="h-12 rounded-xl text-sm font-bold pr-10"
+                        placeholder="https://..."
+                      />
+                      <Video className="absolute left-3 top-4 w-4 h-4 text-zinc-400" />
+                    </div>
+                    {editingLesson?.lesson.type === 'VIDEO' && (
+                      <AdminUpload 
+                        accept="video/*" 
+                        label="رفع فيديو الدرس من الكمبيوتر" 
+                        onUploadComplete={(url: string) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, videoUrl: url } } : null)} 
+                      />
+                    )}
+                  </div>
+               </div>
+
+               <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
+                  <div className="space-y-0.5">
+                    <Label className="text-sm font-bold">درس مجاني</Label>
+                    <p className="text-[10px] text-zinc-500 font-medium">سيظهر هذا الدرس كمعاينة للطلاب غير المشتركين</p>
+                  </div>
+                  <Switch 
+                    checked={editingLesson?.lesson.isFree || false} 
+                    onCheckedChange={(checked: boolean) => setEditingLesson(prev => prev ? { ...prev, lesson: { ...prev.lesson, isFree: checked } } : null)}
+                  />
+               </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleSaveLesson} className="w-full h-12 rounded-xl bg-primary text-black font-black tracking-widest uppercase text-xs">حفظ بيانات الدرس</Button>
+            </DialogFooter>
+          </DialogContent>
+       </Dialog>
 
        {/* Floating Quick Stats */}
        <div className="fixed bottom-10 left-10 p-6 rounded-[2rem] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl shadow-black/20 hidden xl:flex flex-col gap-6 z-50 min-w-[240px]" dir="rtl">

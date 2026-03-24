@@ -79,9 +79,61 @@ export async function DELETE(
         );
       }
 
-      // Delete the subject
-      await prisma.subject.delete({
-        where: { id }
+      // Delete related data in order to avoid foreign key constraints
+      await prisma.$transaction(async (tx: any) => {
+        // Delete enrollments first
+        await tx.subjectEnrollment.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete study sessions
+        await tx.studySession.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete tasks
+        await tx.task.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete challenge completions
+        await tx.challengeCompletion.deleteMany({
+          where: {
+            challenge: {
+              subjectId: id
+            }
+          }
+        });
+
+        // Delete challenges
+        await tx.challenge.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete leaderboard entries
+        await tx.leaderboardEntry.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete AI generated content
+        await tx.aiGeneratedContent.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete schedules
+        await tx.schedule.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete AI generated exams
+        await tx.aiGeneratedExam.deleteMany({
+          where: { subjectId: id }
+        });
+
+        // Delete the subject (this will cascade delete related records)
+        await tx.subject.delete({
+          where: { id }
+        });
       });
 
       return NextResponse.json(
@@ -90,6 +142,52 @@ export async function DELETE(
       );
     } catch (error) {
       logger.error("Error deleting subject:", error);
+
+      // Handle specific foreign key constraint errors
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase();
+        const { id } = await params; // Re-deconstruct params here for error handling
+
+        if (errorMessage.includes('foreign key constraint') ||
+          errorMessage.includes('violates foreign key') ||
+          errorMessage.includes('still referenced')) {
+
+          // Try to identify what's blocking the deletion
+          let blockingInfo = "";
+          try {
+            const blockingData = await prisma.$transaction(async (tx: any) => {
+              const enrollments = await tx.subjectEnrollment.count({ where: { subjectId: id } });
+              const studySessions = await tx.studySession.count({ where: { subjectId: id } });
+              const tasks = await tx.task.count({ where: { subjectId: id } });
+              const challenges = await tx.challenge.count({ where: { subjectId: id } });
+              const schedules = await tx.schedule.count({ where: { subjectId: id } });
+
+              return { enrollments, studySessions, tasks, challenges, schedules };
+            });
+
+            const issues = [];
+            if (blockingData.enrollments > 0) issues.push(`${blockingData.enrollments} تسجيلات طلاب`);
+            if (blockingData.studySessions > 0) issues.push(`${blockingData.studySessions} جلسات دراسة`);
+            if (blockingData.tasks > 0) issues.push(`${blockingData.tasks} مهام`);
+            if (blockingData.challenges > 0) issues.push(`${blockingData.challenges} تحديات`);
+            if (blockingData.schedules > 0) issues.push(`${blockingData.schedules} جداول`);
+
+            if (issues.length > 0) {
+              blockingInfo = `\nالبيانات المرتبطة: ${issues.join(', ')}`;
+            }
+          } catch (countError) {
+            // Ignore counting errors, just return generic message
+          }
+
+          return NextResponse.json(
+            {
+              error: `لا يمكن حذف المادة بسبب وجود بيانات مرتبطة بها.${blockingInfo}\n\nيتم حذف هذه البيانات تلقائياً. يرجى المحاولة مرة أخرى.`
+            },
+            { status: 409 }
+          );
+        }
+      }
+
       return NextResponse.json(
         { error: "حدث خطأ أثناء معالجة الطلب" },
         { status: 500 }

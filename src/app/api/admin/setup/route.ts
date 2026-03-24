@@ -8,6 +8,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, username, password, secretKey } = body;
 
+    // Validate that name does not contain email addresses
+    if (name && typeof name === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) {
+      return NextResponse.json(
+        { error: "الاسم لا يمكن أن يكون عنوان بريد إلكتروني" },
+        { status: 400 }
+      );
+    }
+
     // Verify secret key to prevent unauthorized admin creation
     const adminSecretKey = process.env.ADMIN_SECRET_KEY || "tolo-admin-2026";
 

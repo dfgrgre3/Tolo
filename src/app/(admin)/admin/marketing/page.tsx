@@ -13,7 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Send, Target, Sparkles, Gift, BellRing, Users } from "lucide-react";
+import { Send, Target, Sparkles, Gift, BellRing, Users, MailOpen } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 

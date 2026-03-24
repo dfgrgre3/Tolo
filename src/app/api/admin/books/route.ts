@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { withAdmin, opsWrapper, handleApiError } from "@/lib/api-utils";
+import { withAdmin, handleApiError } from "@/lib/api-utils";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 // GET /api/admin/books - Get all books
 export async function GET(request: NextRequest) {

@@ -14,7 +14,8 @@ import {
   ProgressOverview,
 } from "@/components/admin/dashboard/widgets";
 import dynamic from "next/dynamic";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { SystemPulse } from "@/components/admin/dashboard/system-pulse";
 
 const UserGrowthChart = dynamic(() => import("@/components/admin/dashboard/user-growth-chart").then(mod => mod.UserGrowthChart), {
   ssr: false,
@@ -220,6 +221,16 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-4 bg-accent/10 p-4 rounded-[2rem] border border-border backdrop-blur-md">
+          <div className="flex items-center gap-4 px-6 py-2 border-l border-white/5 mr-4 hidden xl:flex">
+             <div className="flex flex-col items-end">
+                <span className="text-[10px] font-black text-primary uppercase tracking-widest">توقيت المملكة</span>
+                <span className="text-sm font-black font-mono">{new Date().toLocaleTimeString('ar-EG')}</span>
+             </div>
+             <div className="p-2 rounded-lg bg-primary/10 border border-primary/20">
+                <Clock className="w-4 h-4 text-primary" />
+             </div>
+          </div>
+
           <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
             <SelectTrigger className="w-40 h-12 rounded-xl bg-background border-border text-foreground font-bold">
               <div className="flex items-center gap-2">
@@ -372,6 +383,8 @@ export default function AdminDashboardPage() {
 
          {/* Side Widgets */}
          <div className="space-y-8">
+            <SystemPulse />
+
             <RealtimeNotifications
               notifications={notifications}
               isConnected={true}

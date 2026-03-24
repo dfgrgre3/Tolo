@@ -2,7 +2,7 @@
 
 
 
-import React, { useRef, Suspense, lazy } from "react";
+import React, { useRef } from "react";
 
 import { AnimatePresence, MotionConfig, motion } from "framer-motion";
 
@@ -28,9 +28,25 @@ import { MegaMenuGrid } from "./MegaMenuGrid";
 
 
 
-// Lazy load AI Suggestions for better initial performance
+import dynamic from "next/dynamic";
 
-const AiSuggestions = lazy(() => import("./AiSuggestions").then(mod => ({ default: mod.AiSuggestions })));
+// Dynamic load AI Suggestions with error handling to avoid ChunkLoadError crashing the UI
+const AiSuggestions = dynamic(
+	async () => {
+		try {
+			const mod = await import("./AiSuggestions");
+			return { default: mod.AiSuggestions };
+		} catch (err) {
+			console.error("ChunkLoadError in AiSuggestions:", err);
+			// Fallback to a null component to avoid crashing the whole menu
+			return { default: () => null };
+		}
+	}, 
+	{
+		ssr: false,
+		loading: () => <AiSuggestionsLoader />
+	}
+);
 
 
 
@@ -276,27 +292,14 @@ export function MegaMenuContent({
 									{!searchQuery && user && (
 
 										<div className={cn(
-
 											"px-4 md:px-6",
-
 											isCompact ? 'pt-4 md:pt-5' : 'pt-6 md:pt-8'
-
 										)}>
-
-											<Suspense fallback={<AiSuggestionsLoader />}>
-
-												<AiSuggestions
-
+											<AiSuggestions
 													userId={user.id || user.userId}
-
 													isCompact={isCompact}
-
 													onItemClick={onClose}
-
 												/>
-
-											</Suspense>
-
 										</div>
 
 									)}

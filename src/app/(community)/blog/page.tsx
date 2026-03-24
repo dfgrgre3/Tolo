@@ -77,14 +77,22 @@ export default function BlogPage() {
           fetch("/api/blog/categories"),
           fetch("/api/blog/posts")
         ]);
-        if (catRes.ok) setCategories(await catRes.json());
-        if (postRes.ok) setPosts(await postRes.json());
+        if (catRes.ok) {
+          const res = await catRes.json();
+          setCategories(Array.isArray(res) ? res : (res.data || []));
+        }
+        if (postRes.ok) {
+          const res = await postRes.json();
+          setPosts(res.data || []);
+        }
       } finally { setLoading(false); }
     };
     fetchData();
   }, []);
 
   const filteredPosts = useMemo(() => {
+    if (!Array.isArray(posts)) return [];
+    
     return posts.filter(post => {
       const matchesCategory = activeCategory === "all" || post.categoryId === activeCategory;
       const matchesSearch = post.title.toLowerCase().includes(searchTerm.toLowerCase()) || 

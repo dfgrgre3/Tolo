@@ -100,3 +100,4 @@ _override.tf.json
 *.tmp
 *.temp
 lighthouse-results.json
+.vercel

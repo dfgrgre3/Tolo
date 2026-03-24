@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -222,7 +222,7 @@ export function AdminDataTable<TData, TValue>({
 
           {/* Row count badge */}
           <div className="hidden sm:flex items-center text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">
-            <span className="font-semibold text-foreground">{totalRows.toLocaleString()}</span>
+            <span className="font-semibold text-foreground">{formatNumber(totalRows)}</span>
             <span className="mr-1">عنصر</span>
             {selectedCount > 0 && !bulkActions && (
               <span className="mr-2 text-primary">

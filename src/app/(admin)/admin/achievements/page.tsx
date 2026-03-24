@@ -4,13 +4,14 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
-import { MoreHorizontal, Plus, Edit, Trash2, Trophy, Eye, RefreshCw, Award, Star, Zap } from "lucide-react";
+import { MoreHorizontal, Plus, Edit, Trash2, Trophy, Eye, RefreshCw, Award, Star, Zap, Shield, Search, Hammer } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { AchievementTable } from "./AchievementTable";
 import { AchievementFormDialog } from "./AchievementFormDialog";
 import { Achievement } from "./types";
+import { motion } from "framer-motion";
 
 export default function AdminAchievementsPage() {
   const [achievements, setAchievements] = React.useState<Achievement[]>([]);
@@ -44,8 +45,8 @@ export default function AdminAchievementsPage() {
     fetchAchievements();
   }, [fetchAchievements]);
 
-  const handleEdit = (achievement: Achievement) => {
-    setEditingAchievement(achievement);
+  const handleOpenDialog = (achievement?: Achievement) => {
+    setEditingAchievement(achievement || null);
     setDialogOpen(true);
   };
 
@@ -78,62 +79,68 @@ export default function AdminAchievementsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="إدارة الإنجازات"
-        description="عرض وإدارة جميع الإنجازات في الموقع"
+        title="قاعة أوسمة البسالة 🏅"
+        description="سجل البطولات الملحمية، تخليد ذكرى الأبطال، ومنح أوسمة الجدارة للمحاربين المميزين."
       >
-        <div className="flex items-center gap-2">
-          <AdminButton variant="outline" size="sm" icon={RefreshCw} onClick={fetchAchievements}>
-            تحديث
+        <div className="flex items-center gap-3">
+          <AdminButton variant="outline" icon={RefreshCw} onClick={fetchAchievements} loading={loading}>
+            تحديث السجلات
           </AdminButton>
-          <AdminButton icon={Plus}>
-            إضافة إنجاز
+          <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
+            صياغة وسام جديد
           </AdminButton>
         </div>
       </PageHeader>
 
       {/* Stats Summary */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-6 md:grid-cols-4">
         <AdminStatsCard
-          title="إجمالي الإنجازات"
+          title="فيالق الأوسمة"
           value={achievements.length}
-          description="إنجاز متاح"
+          description="وسام جدارة متاح"
           icon={Trophy}
           color="yellow"
         />
         <AdminStatsCard
-          title="إنجازات غير سرية"
+          title="أوسمة الشرف المعلنة"
           value={achievements.filter(a => !a.isSecret).length}
-          description="إنجاز ظاهر"
+          description="وسام ظاهر للجيش"
           icon={Award}
           color="green"
         />
         <AdminStatsCard
-          title="إنجازات نادرة"
+          title="كنوز أسطورية"
           value={achievements.filter(a => a.rarity === "rare" || a.rarity === "epic" || a.rarity === "legendary").length}
-          description="إنجاز مميز"
+          description="أوسمة نادرة جداً"
           icon={Star}
           color="purple"
         />
         <AdminStatsCard
-          title="إجمالي XP"
+          title="هالات الـ XP"
           value={achievements.reduce((sum, a) => sum + (a.xpReward || 0), 0).toLocaleString()}
-          description="نقاط خبرة"
+          description="إجمالي نقاط الخبرة المتاحة"
           icon={Zap}
           color="blue"
         />
       </div>
 
-      {loading ? (
-        <TableSkeleton rows={5} cols={7} />
-      ) : (
-        <AchievementTable
-          achievements={achievements}
-          onEdit={handleEdit}
-          onDelete={handleDeleteRequest}
-        />
-      )}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
+      >
+        {loading ? (
+          <TableSkeleton rows={8} cols={7} />
+        ) : (
+          <AchievementTable
+            achievements={achievements}
+            onEdit={handleOpenDialog}
+            onDelete={handleDeleteRequest}
+          />
+        )}
+      </motion.div>
 
       <AchievementFormDialog
         open={dialogOpen}
@@ -149,9 +156,9 @@ export default function AdminAchievementsPage() {
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="حذف الإنجاز"
-        description="هل أنت متأكد من حذف هذا الإنجاز؟"
-        confirmText="حذف"
+        title="سحب وسام الشرف؟"
+        description="هل أنت متأكد من حذف هذا الوسام من سجلات المملكة؟ هذا القرار سيؤثر على تاريخ المحاربين الحاصلين عليه."
+        confirmText="نعم، احذف الوسام"
         variant="destructive"
         onConfirm={handleDelete}
       />

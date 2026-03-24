@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { UserRole } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import { withAdmin, handleApiError, successResponse, badRequestResponse, notFoundResponse } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { PasswordService } from "@/services/auth/password-service";
@@ -20,8 +20,14 @@ export async function GET(request: NextRequest) {
 
         const skip = (page - 1) * limit;
 
-        const where = {
+        const where: Prisma.UserWhereInput = {
           AND: [
+            {
+              OR: [
+                { lastLogin: { not: null } },
+                { sessions: { some: {} } },
+              ],
+            },
             search
               ? {
                   OR: [
@@ -57,6 +63,14 @@ export async function GET(request: NextRequest) {
               totalXP: true,
               level: true,
               currentStreak: true,
+              sessions: {
+                where: {
+                  isActive: true,
+                },
+                select: {
+                  id: true,
+                },
+              },
               _count: {
                 select: {
                   tasks: true,
@@ -86,36 +100,42 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/admin/users - Create a new user
-export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req: NextRequest) => {
-    return withAdmin(req, async () => {
-      try {
-        const body = await req.json();
-        const { name, email, username, password, role } = body;
+export async function POST(req: NextRequest) {
+  return withAdmin(req, async () => {
+    try {
+      const body = await req.json();
+      const { name, email, username, password, role } = body;
 
-        if (!email || !password || !role) {
-          return badRequestResponse("البريد الإلكتروني وكلمة المرور والدور مطلوبون");
-        }
-
-        const hashedPassword = await PasswordService.hash(password);
-
-        const user = await prisma.user.create({
-          data: {
-            name,
-            email,
-            username,
-            passwordHash: hashedPassword,
-            role: role as UserRole,
-            emailVerified: true,
-          },
-        });
-
-        const { passwordHash: _, ...userWithoutPassword } = user;
-        return successResponse(userWithoutPassword, "تم إنشاء المستخدم بنجاح", 201);
-      } catch (error) {
-        return handleApiError(error);
+      // Validate that name does not contain email addresses
+      if (name && typeof name === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) {
+        return NextResponse.json(
+          { error: "الاسم لا يمكن أن يكون عنوان بريد إلكتروني" },
+          { status: 400 }
+        );
       }
-    });
+
+      if (!email || !password || !role) {
+        return badRequestResponse("البريد الإلكتروني وكلمة المرور والدور مطلوبون");
+      }
+
+      const hashedPassword = await PasswordService.hash(password);
+
+      const user = await prisma.user.create({
+        data: {
+          name,
+          email,
+          username,
+          passwordHash: hashedPassword,
+          role: role as UserRole,
+          emailVerified: true,
+        },
+      });
+
+      const { passwordHash: _, ...userWithoutPassword } = user;
+      return successResponse(userWithoutPassword, "تم إنشاء المستخدم بنجاح", 201);
+    } catch (error) {
+      return handleApiError(error);
+    }
   });
 }
 

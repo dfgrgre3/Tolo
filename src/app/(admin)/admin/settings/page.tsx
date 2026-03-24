@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminButton } from "@/components/admin/ui/admin-button";
+import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
@@ -47,46 +47,21 @@ import {
   CheckCircle,
   Clock,
   Database,
+  Crown,
+  Zap,
+  Lock,
+  AppWindow,
+  Layout,
+  Server,
+  Terminal,
+  Users,
+  Trophy,
+  MessageCircle,
+  Target,
+  TrendingUp
 } from "lucide-react";
 import { SettingsSkeleton } from "@/components/admin/ui/loading-skeleton";
-
-interface SystemSettings {
-  siteName: string;
-  siteDescription: string;
-  siteKeywords: string[];
-  contactEmail: string;
-  supportPhone: string;
-  socialLinks: {
-    facebook?: string;
-    twitter?: string;
-    instagram?: string;
-    youtube?: string;
-  };
-  features: {
-    registration: boolean;
-    emailVerification: boolean;
-    gamification: boolean;
-    forum: boolean;
-    blog: boolean;
-    events: boolean;
-    aiAssistant: boolean;
-  };
-  gamification: {
-    xpPerTask: number;
-    xpPerStudySession: number;
-    xpPerExam: number;
-    streakBonus: number;
-  };
-  limits: {
-    maxUploadSize: number;
-    maxStudySessionDuration: number;
-    examTimeLimit: number;
-  };
-  maintenance: {
-    enabled: boolean;
-    message: string;
-  };
-}
+import { motion, AnimatePresence } from "framer-motion";
 
 const settingsSchema = z.object({
   siteName: z.string().min(1, "اسم الموقع مطلوب"),
@@ -133,14 +108,6 @@ export default function AdminSettingsPage() {
   const [saving, setSaving] = React.useState(false);
   const [hasChanges, setHasChanges] = React.useState(false);
   const [lastSaved, setLastSaved] = React.useState<Date | null>(null);
-  const [changeHistory, setChangeHistory] = React.useState<Array<{
-    id: string;
-    field: string;
-    oldValue: string;
-    newValue: string;
-    changedAt: Date;
-    changedBy: string;
-  }>>([]);
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -190,8 +157,7 @@ export default function AdminSettingsPage() {
         siteKeywords: settings.siteKeywords?.join(", ") || "",
       });
     } catch (error) {
-      console.error("Error fetching settings:", error);
-      toast.error("حدث خطأ أثناء جلب الإعدادات");
+      toast.error("حدث خطأ أثناء جلب مرسوم الإعدادات");
     } finally {
       setLoading(false);
     }
@@ -214,15 +180,14 @@ export default function AdminSettingsPage() {
       });
 
       if (response.ok) {
-        toast.success("تم حفظ الإعدادات بنجاح");
+        toast.success("تم ختم المرسوم وحفظ الإعدادات الملكية");
         setLastSaved(new Date());
         setHasChanges(false);
       } else {
-        toast.error("حدث خطأ أثناء حفظ الإعدادات");
+        toast.error("فشل في ختم المرسوم");
       }
     } catch (error) {
-      console.error("Error saving settings:", error);
-      toast.error("حدث خطأ أثناء حفظ الإعدادات");
+      toast.error("خطأ في الاتصال بالسيرفر الملكي");
     } finally {
       setSaving(false);
     }
@@ -242,11 +207,10 @@ export default function AdminSettingsPage() {
           ...data.settings,
           siteKeywords: data.settings.siteKeywords?.join(", ") || "",
         });
-        toast.success("تم إعادة تعيين الإعدادات");
+        toast.success("تمت العودة للقيم الأساسية للمملكة");
       }
     } catch (error) {
-      console.error("Error resetting settings:", error);
-      toast.error("حدث خطأ أثناء إعادة تعيين الإعدادات");
+      toast.error("فشل في استعادة القيم الأصلية");
     }
   };
 
@@ -254,36 +218,13 @@ export default function AdminSettingsPage() {
     const settings = form.getValues();
     const dataStr = JSON.stringify(settings, null, 2);
     const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-    const exportFileDefaultName = `settings-backup-${new Date().toISOString().split('T')[0]}.json`;
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
-    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.setAttribute('download', `kingdom-legacy-${new Date().toISOString().split('T')[0]}.json`);
     linkElement.click();
-    toast.success("تم تصدير الإعدادات بنجاح");
+    toast.success("تم تصدير نسخة من قوانين المملكة");
   };
 
-  const handleImportSettings = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const imported = JSON.parse(e.target?.result as string);
-        form.reset({
-          ...imported,
-          siteKeywords: imported.siteKeywords?.join?.(", ") || imported.siteKeywords || "",
-        });
-        toast.success("تم استيراد الإعدادات بنجاح");
-        setHasChanges(true);
-      } catch {
-        toast.error("فشل في قراءة ملف الإعدادات");
-      }
-    };
-    reader.readAsText(file);
-  };
-
-  // Track changes
   React.useEffect(() => {
     const subscription = form.watch(() => {
       setHasChanges(form.formState.isDirty);
@@ -291,102 +232,89 @@ export default function AdminSettingsPage() {
     return () => subscription.unsubscribe();
   }, [form]);
 
-  if (loading) {
-    return <SettingsSkeleton />;
-  }
+  if (loading) return <SettingsSkeleton />;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="إعدادات النظام"
-        description="إدارة إعدادات الموقع العامة"
+        title="قوانين وأعراف المملكة 📜"
+        description="تعديل القوانين الأساسية، تفعيل المزايا السحرية، وإدارة شؤون الصيانة العامة."
       >
-        <div className="flex items-center gap-2">
-          {lastSaved && (
-            <span className="text-xs text-muted-foreground hidden md:flex items-center gap-1">
-              <Clock className="h-3 w-3" />
-              آخر حفظ: {lastSaved.toLocaleTimeString("ar-EG")}
-            </span>
-          )}
-          {hasChanges && (
-            <Badge variant="secondary" className="text-xs">
-              تغييرات غير محفوظة
-            </Badge>
-          )}
-          <Button variant="outline" size="sm" onClick={handleExportSettings} className="rounded-lg">
-            <Download className="ml-2 h-4 w-4" />
-            تصدير
-          </Button>
-          <div className="relative">
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportSettings}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-            />
-            <Button variant="outline" size="sm" className="rounded-lg">
-              <Upload className="ml-2 h-4 w-4" />
-              استيراد
-            </Button>
+        <div className="flex items-center gap-3">
+          <AnimatePresence>
+            {hasChanges && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+              >
+                <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black h-8 px-4 px-3 rounded-xl animate-pulse">
+                  تعديلات غير مختومة ✒️
+                </Badge>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          <div className="flex gap-2 bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-xl shadow-2xl">
+            <IconButton icon={Download} onClick={handleExportSettings} title="تصدير القوانين" />
+            <IconButton icon={RefreshCw} onClick={handleReset} title="استعادة الجذور" />
+            <div className="w-px h-6 bg-white/10 self-center mx-1" />
+            <AdminButton 
+              size="sm" 
+              onClick={form.handleSubmit(handleSave)} 
+              disabled={saving || !hasChanges} 
+              className="h-9 px-6 rounded-xl font-black bg-primary/20 text-primary hover:bg-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]"
+            >
+              <Save className="ml-2 h-4 w-4" />
+              {saving ? "جاري الختم..." : "ختم المرسوم"}
+            </AdminButton>
           </div>
-          <Button variant="outline" size="sm" onClick={handleReset} className="rounded-lg">
-            <RefreshCw className="ml-2 h-4 w-4" />
-            إعادة تعيين
-          </Button>
-          <Button size="sm" onClick={form.handleSubmit(handleSave)} disabled={saving || !hasChanges} className="rounded-lg">
-            <Save className="ml-2 h-4 w-4" />
-            {saving ? "جاري الحفظ..." : "حفظ"}
-          </Button>
         </div>
       </PageHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleSave)} className="space-y-6">
-          <Tabs defaultValue="general" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
-              <TabsTrigger value="general">
-                <Globe className="ml-2 h-4 w-4" />
-                عام
-              </TabsTrigger>
-              <TabsTrigger value="features">
-                <Shield className="ml-2 h-4 w-4" />
-                الميزات
-              </TabsTrigger>
-              <TabsTrigger value="gamification">
-                <Gamepad2 className="ml-2 h-4 w-4" />
-                اللعب
-              </TabsTrigger>
-              <TabsTrigger value="limits">
-                <Wrench className="ml-2 h-4 w-4" />
-                الحدود
-              </TabsTrigger>
-              <TabsTrigger value="social">
-                <Share2 className="ml-2 h-4 w-4" />
-                التواصل
-              </TabsTrigger>
-              <TabsTrigger value="maintenance">
-                <Settings className="ml-2 h-4 w-4" />
-                الصيانة
-              </TabsTrigger>
+        <form onSubmit={form.handleSubmit(handleSave)}>
+          <Tabs defaultValue="general" className="space-y-10">
+            <TabsList className="flex flex-wrap h-auto bg-card/50 backdrop-blur-xl border border-white/10 p-2 rounded-[2rem] gap-2 items-center justify-center">
+              {[
+                { value: "general", label: "الهوية العامة", icon: Globe, color: "blue" },
+                { value: "features", label: "القوى والمزايا", icon: Zap, color: "amber" },
+                { value: "gamification", label: "نظام التطور", icon: Gamepad2, color: "purple" },
+                { value: "limits", label: "موازين القدرة", icon: Wrench, color: "emerald" },
+                { value: "social", label: "روابط التواصل", icon: Share2, color: "pink" },
+                { value: "maintenance", label: "مقر الإصلاح", icon: Server, color: "red" },
+              ].map((tab) => (
+                <TabsTrigger 
+                  key={tab.value} 
+                  value={tab.value}
+                  className="rounded-2xl h-11 px-6 data-[state=active]:bg-white/10 data-[state=active]:shadow-lg font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all border border-transparent data-[state=active]:border-white/10"
+                >
+                  <tab.icon className={`w-4 h-4 text-${tab.color}-500`} />
+                  {tab.label}
+                </TabsTrigger>
+              ))}
             </TabsList>
 
-            {/* General Settings */}
-            <TabsContent value="general">
-              <Card>
-                <CardHeader>
-                  <CardTitle>الإعدادات العامة</CardTitle>
-                  <CardDescription>الإعدادات الأساسية للموقع</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
+            <TabsContent value="general" className="space-y-6 focus-visible:outline-none">
+              <AdminCard variant="glass" className="p-8 space-y-8">
+                <div className="flex items-center gap-4 border-b border-white/5 pb-6">
+                  <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500">
+                    <Globe className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black">هوية المملكة الرقمية</h3>
+                    <p className="text-xs font-bold text-muted-foreground uppercase opacity-60">تحديد الاسم، الوصف، والكلمات الدليلية للانتشار.</p>
+                  </div>
+                </div>
+
+                <div className="grid gap-8">
                   <FormField
                     control={form.control}
                     name="siteName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>اسم الموقع</FormLabel>
-                        <FormControl>
-                          <Input {...field} />
-                        </FormControl>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">اسم المملكة الرسمي</FormLabel>
+                        <FormControl><Input {...field} className="h-14 rounded-2xl border-white/10 bg-white/5 text-lg font-black px-6" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -396,39 +324,23 @@ export default function AdminSettingsPage() {
                     name="siteDescription"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>وصف الموقع</FormLabel>
-                        <FormControl>
-                          <Textarea {...field} />
-                        </FormControl>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">توصيف المملكة (Meta Description)</FormLabel>
+                        <FormControl><Textarea {...field} className="rounded-2xl border-white/10 bg-white/5 min-h-[120px] p-6 text-sm font-bold" /></FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="siteKeywords"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>الكلمات المفتاحية</FormLabel>
-                        <FormControl>
-                          <Input {...field} placeholder="تعليم, ثانوية, امتحانات" />
-                        </FormControl>
-                        <FormDescription>افصل بين الكلمات بفاصلة</FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid md:grid-cols-2 gap-8">
                     <FormField
                       control={form.control}
                       name="contactEmail"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>البريد الإلكتروني</FormLabel>
+                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">الحمام الزاجل (البريد الرسمي)</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Mail className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input {...field} type="email" className="pr-9" dir="ltr" />
+                              <Mail className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <Input {...field} className="h-14 rounded-2xl border-white/10 bg-white/5 pr-12 dir-ltr text-center font-bold" />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -440,11 +352,11 @@ export default function AdminSettingsPage() {
                       name="supportPhone"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>رقم الدعم</FormLabel>
+                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">خط الاستدعاء (الدعم الفني)</FormLabel>
                           <FormControl>
                             <div className="relative">
-                              <Phone className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input {...field} className="pr-9" dir="ltr" />
+                              <Phone className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                              <Input {...field} className="h-14 rounded-2xl border-white/10 bg-white/5 pr-12 dir-ltr text-center font-bold" />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -452,326 +364,156 @@ export default function AdminSettingsPage() {
                       )}
                     />
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </AdminCard>
             </TabsContent>
 
-            {/* Features Settings */}
-            <TabsContent value="features">
-              <Card>
-                <CardHeader>
-                  <CardTitle>ميزات الموقع</CardTitle>
-                  <CardDescription>تفعيل أو تعطيل ميزات الموقع</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    {[
-                      { key: "registration", label: "التسجيل", desc: "السماح بتسجيل مستخدمين جدد" },
-                      { key: "emailVerification", label: "التحقق من البريد", desc: "طلب التحقق من البريد الإلكتروني" },
-                      { key: "gamification", label: "نظام اللعب", desc: "تفعيل نظام النقاط والإنجازات" },
-                      { key: "forum", label: "المنتدى", desc: "تفعيل المنتدى والمناقشات" },
-                      { key: "blog", label: "المدونة", desc: "تفعيل المدونة والمقالات" },
-                      { key: "events", label: "الأحداث", desc: "تفعيل نظام الأحداث والفعاليات" },
-                      { key: "aiAssistant", label: "المساعد الذكي", desc: "تفعيل المساعد الذكي للطلاب" },
-                    ].map((feature) => (
-                      <FormField
-                        key={feature.key}
-                        control={form.control}
-                        name={`features.${feature.key}` as any}
-                        render={({ field }) => (
-                          <FormItem className="flex items-center justify-between rounded-lg border p-4">
+            <TabsContent value="features" className="focus-visible:outline-none">
+              <div className="grid md:grid-cols-2 gap-6">
+                {[
+                  { key: "registration", label: "بوابة التجنيد", icon: Users, desc: "السماح بانضمام محاربين جدد للمملكة" },
+                  { key: "emailVerification", label: "ختم التحقق", icon: Lock, desc: "طلب التأكد من هوية المحارب عبر البريد" },
+                  { key: "gamification", label: "قوانين التطور", icon: Trophy, desc: "تفعيل نظام الـ XP والمستويات والبطولات" },
+                  { key: "forum", label: "ميدان النقاش", icon: MessageCircle, desc: "تفعيل ساحات الحوار والتبادل العلمي" },
+                  { key: "blog", label: "المكتبة الإخبارية", icon: Layout, desc: "تفعيل تدوينات القادة والمقالات التعليمية" },
+                  { key: "aiAssistant", label: "المستشار الملكي (AI)", icon: Crown, desc: "تفعيل الذكاء الاصطناعي لمساعدة الطلاب" },
+                ].map((feature) => (
+                  <FormField
+                    key={feature.key}
+                    control={form.control}
+                    name={`features.${feature.key}` as any}
+                    render={({ field }) => (
+                      <AdminCard variant="glass" className="p-6 transition-all hover:border-primary/30">
+                        <div className="flex items-center justify-between">
+                          <div className="flex gap-4 items-center">
+                            <div className="p-3 rounded-2xl bg-white/5 text-primary border border-white/10">
+                              <feature.icon className="w-5 h-5" />
+                            </div>
                             <div>
-                              <FormLabel>{feature.label}</FormLabel>
-                              <FormDescription>{feature.desc}</FormDescription>
+                              <h4 className="font-black text-sm tracking-tight">{feature.label}</h4>
+                              <p className="text-[10px] font-bold text-muted-foreground">{feature.desc}</p>
                             </div>
-                            <FormControl>
-                              <Switch
-                                checked={field.value as boolean}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
+                          </div>
+                          <Switch
+                            checked={field.value as boolean}
+                            onCheckedChange={field.onChange}
+                            className="bg-white/10"
+                          />
+                        </div>
+                      </AdminCard>
+                    )}
+                  />
+                ))}
+              </div>
             </TabsContent>
 
-            {/* Gamification Settings */}
-            <TabsContent value="gamification">
-              <Card>
-                <CardHeader>
-                  <CardTitle>إعدادات نظام اللعب</CardTitle>
-                  <CardDescription>تخصيص نقاط الخبرة والمكافآت</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="gamification.xpPerTask"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>نقاط لكل مهمة</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="gamification.xpPerStudySession"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>نقاط لكل جلسة دراسة</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="gamification.xpPerExam"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>نقاط لكل امتحان</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="gamification.streakBonus"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>مكافأة التتابع (%)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            <TabsContent value="gamification" className="focus-visible:outline-none">
+              <AdminCard variant="glass" className="p-8">
+                <div className="flex items-center gap-4 mb-10">
+                  <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-500 border border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.2)]">
+                    <Gamepad2 className="w-6 h-6" />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <h3 className="text-xl font-black">موازين الخبرة وتطوير الذات</h3>
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-60">تحديد نقاط الـ XP الممنوحة مقابل كل إنجاز يقوم به المحارب.</p>
+                  </div>
+                </div>
+
+                <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-8">
+                  {[
+                    { key: "xpPerTask", label: "مبارزة (مهمة)", icon: Zap, color: "amber" },
+                    { key: "xpPerStudySession", label: "خلوة علمية", icon: Clock, color: "blue" },
+                    { key: "xpPerExam", label: "اختبار ملكي", icon: Target, color: "red" },
+                    { key: "streakBonus", label: "مكافأة التتابع %", icon: TrendingUp, color: "emerald" },
+                  ].map((field) => (
+                    <FormField
+                      key={field.key}
+                      control={form.control}
+                      name={`gamification.${field.key}` as any}
+                      render={({ field: inputField }) => (
+                        <FormItem className="text-center group">
+                          <div className={`mx-auto p-4 rounded-3xl bg-${field.color}-500/5 border border-${field.color}-500/10 group-hover:scale-110 transition-transform mb-4`}>
+                            <field.icon className={`w-8 h-8 text-${field.color}-500`} />
+                          </div>
+                          <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">{field.label}</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              className="h-14 rounded-2xl border-white/10 bg-white/5 text-center font-black text-xl" 
+                              {...inputField} 
+                              onChange={(e) => inputField.onChange(parseInt(e.target.value) || 0)}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </AdminCard>
             </TabsContent>
 
-            {/* Limits Settings */}
-            <TabsContent value="limits">
-              <Card>
-                <CardHeader>
-                  <CardTitle>الحدود والقيود</CardTitle>
-                  <CardDescription>تحديد حدود الاستخدام</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-3 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="limits.maxUploadSize"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>حجم الرفع الأقصى (MB)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="limits.maxStudySessionDuration"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>مدة الجلسة القصوى (دقيقة)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="limits.examTimeLimit"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>وقت الامتحان الافتراضي (دقيقة)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              {...field}
-                              onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+            <TabsContent value="maintenance" className="focus-visible:outline-none">
+              <AdminCard variant="glass" className="p-8 border-red-500/20 bg-red-500/5">
+                <div className="flex items-center justify-between mb-10 border-b border-red-500/10 pb-6">
+                  <div className="flex gap-4 items-center">
+                    <div className="p-4 rounded-3xl bg-red-500 text-white shadow-[0_0_25px_rgba(239,68,68,0.4)] animate-pulse">
+                      <AlertTriangle className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-red-500">مقر الإصلاحات الطارئة</h3>
+                      <p className="text-xs font-bold text-red-500/60 uppercase">عند تفعيل هذا المرسوم، سيتم إغلاق أبواب المملكة أمام الجميع فيما عدا القادة الكبار.</p>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Social Links */}
-            <TabsContent value="social">
-              <Card>
-                <CardHeader>
-                  <CardTitle>روابط التواصل الاجتماعي</CardTitle>
-                  <CardDescription>روابط حسابات الموقع على منصات التواصل</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="socialLinks.facebook"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>فيسبوك</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="https://facebook.com/..." dir="ltr" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="socialLinks.twitter"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>تويتر</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="https://twitter.com/..." dir="ltr" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="socialLinks.instagram"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>انستجرام</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="https://instagram.com/..." dir="ltr" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="socialLinks.youtube"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>يوتيوب</FormLabel>
-                          <FormControl>
-                            <Input {...field} placeholder="https://youtube.com/..." dir="ltr" />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            {/* Maintenance Mode */}
-            <TabsContent value="maintenance">
-              <Card>
-                <CardHeader>
-                  <CardTitle>وضع الصيانة</CardTitle>
-                  <CardDescription>تفعيل وضع الصيانة لإيقاف الموقع مؤقتاً</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
                     name="maintenance.enabled"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-lg border p-4">
-                        <div>
-                          <FormLabel>تفعيل وضع الصيانة</FormLabel>
-                          <FormDescription>
-                            عند التفعيل، سيتم إغلاق الموقع للمستخدمين العاديين
-                          </FormDescription>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="scale-125 data-[state=checked]:bg-red-500"
+                        />
+                      </FormControl>
                     )}
                   />
-                  <FormField
-                    control={form.control}
-                    name="maintenance.message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>رسالة الصيانة</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            {...field}
-                            placeholder="الموقع تحت الصيانة، يرجى المحاولة لاحقاً"
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  {form.watch("maintenance.enabled") && (
-                    <div className="rounded-lg bg-yellow-50 border border-yellow-200 p-4">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="destructive">تحذير</Badge>
-                        <span className="text-sm text-yellow-800">
-                          وضع الصيانة مفعل - الموقع مغلق للمستخدمين
-                        </span>
-                      </div>
-                    </div>
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="maintenance.message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-black text-[10px] uppercase tracking-widest text-red-500/60">رسالة تظهر للمحاربين أثناء الصيانة</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          {...field} 
+                          placeholder="المملكة في مرحلة تطوير دفاعي.. سنعود أقوى قريبًا!" 
+                          className="rounded-3xl border-red-500/10 bg-red-500/5 min-h-[150px] p-8 text-lg font-black text-red-500/80 placeholder:text-red-500/30"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
                   )}
-                </CardContent>
-              </Card>
+                />
+              </AdminCard>
             </TabsContent>
           </Tabs>
         </form>
       </Form>
     </div>
+  );
+}
+
+function IconButton({ icon: Icon, onClick, title }: { icon: any, onClick?: () => void, title?: string }) {
+  return (
+    <button 
+      type="button"
+      onClick={onClick}
+      title={title}
+      className="p-2.5 rounded-xl bg-white/5 border border-white/5 text-muted-foreground hover:text-white hover:bg-white/10 hover:border-white/20 transition-all active:scale-90"
+    >
+      <Icon className="w-4 h-4" />
+    </button>
   );
 }

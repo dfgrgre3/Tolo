@@ -172,3 +172,13 @@ export function generateId(): string {
     return `id-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   }
 }
+
+/**
+ * Format number with consistent locale to avoid hydration errors
+ */
+export function formatNumber(number: number | string | null | undefined): string {
+  if (number === null || number === undefined) return "0";
+  const num = typeof number === "string" ? parseFloat(number) : number;
+  if (isNaN(num)) return "0";
+  return num.toLocaleString("en-US");
+}

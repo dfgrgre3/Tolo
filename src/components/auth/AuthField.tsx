@@ -11,12 +11,18 @@ interface AuthFieldProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export function AuthField({ label, error, icon, endAdornment, className, ...props }: AuthFieldProps) {
+  // Ensure value is never undefined if the prop is provided, to prevent uncontrolled-to-controlled warning
+  const inputProps = { ...props };
+  if ('value' in inputProps && (inputProps.value === undefined || inputProps.value === null)) {
+    inputProps.value = '';
+  }
+
   return (
     <div className="space-y-3">
       <label className="mr-1 text-[10px] font-black uppercase tracking-widest text-gray-500">{label}</label>
       <div className="group relative">
         <input
-          {...props}
+          {...inputProps}
           className={cn(
             'w-full rounded-2xl border border-white/10 bg-white/5 py-4 text-white outline-none transition-all placeholder:text-gray-600 disabled:opacity-50',
             icon ? 'pr-12 pl-6' : 'px-6',
