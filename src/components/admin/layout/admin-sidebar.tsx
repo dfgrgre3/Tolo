@@ -609,7 +609,7 @@ export function AdminSidebar() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link
-                    href="/dashboard"
+                    href="/"
                     className="flex items-center justify-center rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
                     <Home className="h-4.5 w-4.5" />
@@ -622,7 +622,7 @@ export function AdminSidebar() {
             </TooltipProvider>
           ) : (
             <Link
-              href="/dashboard"
+              href="/"
               className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-muted/50">

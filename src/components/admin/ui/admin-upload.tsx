@@ -54,21 +54,30 @@ export function AdminUpload({
       };
 
       xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          const response = JSON.parse(xhr.responseText);
-          toast.success("تم رفع الملف بنجاح");
-          onUploadComplete(response.fileUrl);
-        } else {
-          const response = JSON.parse(xhr.responseText);
-          setError(response.error || "فشل رفع الملف");
-          toast.error(response.error || "فشل رفع الملف");
+        let errorMsg = "فشل رفع الملف";
+        try {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const response = JSON.parse(xhr.responseText);
+            toast.success("تم رفع الملف بنجاح");
+            onUploadComplete(response.fileUrl);
+            setIsUploading(false);
+            return;
+          } else {
+            const response = JSON.parse(xhr.responseText);
+            errorMsg = response.details || response.error || errorMsg;
+          }
+        } catch (e) {
+          errorMsg = `خطأ في الخادم (Status: ${xhr.status})`;
         }
+        
+        setError(errorMsg);
+        toast.error(errorMsg);
         setIsUploading(false);
       };
 
       xhr.onerror = () => {
-        setError("خطأ في الاتصال");
-        toast.error("خطأ في الاتصال");
+        setError("خطأ في الاتصال بالخادم");
+        toast.error("خطأ في الاتصال بالخادم");
         setIsUploading(false);
       };
 

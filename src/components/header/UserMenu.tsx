@@ -120,13 +120,7 @@ export function UserMenu() {
         <DropdownMenuSeparator />
 
         <DropdownMenuGroup>
-          <Link href="/dashboard">
-            <DropdownMenuItem className="cursor-pointer gap-2.5 py-2.5 touch-manipulation">
-              <LayoutDashboard className="h-4 w-4 text-primary" />
-              <span>لوحة التحكم</span>
-              <ChevronRight className="h-3.5 w-3.5 ml-auto opacity-50" />
-            </DropdownMenuItem>
-          </Link>
+
 
           {user.role === "ADMIN" && (
             <Link href="/admin">

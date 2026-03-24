@@ -55,7 +55,7 @@ export function RoleGate({
                     ليست لديك الصلاحيات الكافية لدخول هذه الغرفة. يرجى العودة للساحة العامة.
                 </p>
                 <Link 
-                    href="/dashboard" 
+                    href="/" 
                     className="px-8 h-12 flex items-center bg-primary text-black font-black rounded-xl hover:scale-105 transition-transform"
                 >
                     العودة للرئيسية

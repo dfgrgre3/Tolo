@@ -7,7 +7,8 @@ import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import {
-  Plus, Users, LayoutGrid, DollarSign, PlayCircle, GraduationCap, RefreshCw, BookOpen, ExternalLink
+  Plus, Users, LayoutGrid, DollarSign, PlayCircle, GraduationCap, RefreshCw, BookOpen, ExternalLink,
+  Target, Award, Clock
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -38,9 +39,15 @@ interface Subject {
   price: number;
   level: string;
   instructorName: string | null;
+  instructorId: string | null;
+  categoryId: string | null;
   thumbnailUrl: string | null;
   trailerUrl: string | null;
   isActive: boolean;
+  isPublished: boolean;
+  durationHours: number;
+  requirements: string | null;
+  learningObjectives: string | null;
   _count: {
     enrollments: number;
     topics: number;
@@ -54,8 +61,14 @@ const courseSchema = z.object({
   price: z.coerce.number().min(0),
   level: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]),
   instructorName: z.string().optional().nullable(),
+  instructorId: z.string().optional().nullable(),
+  categoryId: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   isActive: z.boolean(),
+  isPublished: z.boolean(),
+  durationHours: z.coerce.number().min(0),
+  requirements: z.string().optional().nullable(),
+  learningObjectives: z.string().optional().nullable(),
   thumbnailUrl: z.string().optional().nullable(),
   trailerUrl: z.string().optional().nullable(),
 });
@@ -77,6 +90,24 @@ export default function AdminCoursesPage() {
       const response = await fetch("/api/admin/subjects?limit=100");
       const result = await response.json();
       return (result.data?.subjects || []) as Subject[];
+    },
+  });
+
+  const { data: teachers = [] } = useQuery({
+    queryKey: ["admin", "teachers"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/teachers");
+      const result = await response.json();
+      return (result.data?.teachers || []) as any[];
+    },
+  });
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["admin", "course-categories"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/course-categories");
+      const result = await response.json();
+      return (result.data?.categories || []) as any[];
     },
   });
 
@@ -103,6 +134,16 @@ export default function AdminCoursesPage() {
     return Math.round(courses.reduce((total, course) => total + (course.price || 0), 0) / courses.length);
   }, [courses]);
 
+  const totalHours = React.useMemo(
+    () => courses.reduce((total, course) => total + (course.durationHours || 0), 0),
+    [courses]
+  );
+
+  const publishedCoursesCount = React.useMemo(
+    () => courses.filter((course) => course.isPublished).length,
+    [courses]
+  );
+
   const form = useForm<CourseFormValues>({
     resolver: zodResolver(courseSchema),
     defaultValues: {
@@ -111,12 +152,28 @@ export default function AdminCoursesPage() {
       price: 0,
       level: "MEDIUM",
       instructorName: "",
+      instructorId: "",
+      categoryId: "",
       description: "",
       isActive: true,
+      isPublished: false,
+      durationHours: 0,
+      requirements: "",
+      learningObjectives: "",
       thumbnailUrl: "",
       trailerUrl: "",
     },
   });
+
+  const selectedInstructorId = form.watch("instructorId");
+  React.useEffect(() => {
+    if (selectedInstructorId) {
+      const teacher = teachers.find((t: any) => t.id === selectedInstructorId);
+      if (teacher) {
+        form.setValue("instructorName", teacher.name);
+      }
+    }
+  }, [selectedInstructorId, teachers, form]);
 
   const handleOpenDialog = (course?: Subject) => {
     if (course) {
@@ -127,8 +184,14 @@ export default function AdminCoursesPage() {
         price: course.price || 0,
         level: (course.level as any) || "MEDIUM",
         instructorName: course.instructorName || "",
+        instructorId: course.instructorId || "",
+        categoryId: course.categoryId || "",
         description: course.description || "",
         isActive: course.isActive,
+        isPublished: course.isPublished || false,
+        durationHours: course.durationHours || 0,
+        requirements: course.requirements || "",
+        learningObjectives: course.learningObjectives || "",
         thumbnailUrl: course.thumbnailUrl || "",
         trailerUrl: course.trailerUrl || "",
       });
@@ -140,8 +203,14 @@ export default function AdminCoursesPage() {
         price: 0,
         level: "MEDIUM",
         instructorName: "",
+        instructorId: "",
+        categoryId: "",
         description: "",
         isActive: true,
+        isPublished: false,
+        durationHours: 0,
+        requirements: "",
+        learningObjectives: "",
         thumbnailUrl: "",
         trailerUrl: "",
       });
@@ -226,9 +295,19 @@ export default function AdminCoursesPage() {
       accessorKey: "price",
       header: "السعر",
       cell: ({ row }) => (
-        <div className="flex items-center gap-1 font-black text-primary">
+        <div className="flex items-center gap-1 font-black text-primary text-xs">
           <DollarSign className="w-3.5 h-3.5" />
           <span>{row.original.price || 0} EGP</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: "durationHours",
+      header: "المدة",
+      cell: ({ row }) => (
+        <div className="flex items-center gap-1 font-bold text-sm text-muted-foreground">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{row.original.durationHours || 0}h</span>
         </div>
       ),
     },
@@ -240,6 +319,15 @@ export default function AdminCoursesPage() {
           <Users className="w-3.5 h-3.5 text-muted-foreground" />
           <span>{row.original._count?.enrollments || 0}</span>
         </div>
+      ),
+    },
+    {
+      accessorKey: "isPublished",
+      header: "النشر",
+      cell: ({ row }) => (
+        <Badge variant={row.original.isPublished ? "default" : "outline"} className={`rounded-full px-2 py-0 text-[10px] font-bold ${row.original.isPublished ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "text-muted-foreground opacity-50 font-normal"}`}>
+          {row.original.isPublished ? "منشور" : "مغلق"}
+        </Badge>
       ),
     },
     {
@@ -309,7 +397,7 @@ export default function AdminCoursesPage() {
         </AdminButton>
       </PageHeader>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <AdminCard variant="glass" className="p-5">
           <div className="flex items-center gap-4">
             <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-500 shadow-inner">
@@ -345,11 +433,22 @@ export default function AdminCoursesPage() {
         </AdminCard>
         <AdminCard variant="glass" className="p-5">
           <div className="flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 shadow-inner">
-              <DollarSign className="w-5 h-5" />
+            <div className="p-2.5 rounded-xl bg-fuchsia-500/10 text-fuchsia-500 shadow-inner">
+              <Clock className="w-5 h-5" />
             </div>
             <div>
-              <p className="text-xl font-black">{averagePrice} EGP</p>
+              <p className="text-xl font-black">{totalHours}h</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">إجمالي الساعات</p>
+            </div>
+          </div>
+        </AdminCard>
+        <AdminCard variant="glass" className="p-5">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 text-amber-500 shadow-inner">
+              <Award className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-xl font-black">{publishedCoursesCount}</p>
               <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                 {activeCoursesCount} / {courses.length} دورات نشطة
               </p>
@@ -372,7 +471,7 @@ export default function AdminCoursesPage() {
             <DialogTitle className="text-2xl font-black">{editingCourse ? "تعديل الدورة" : "دورة جديدة"}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-4">
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4 pt-4 max-h-[70vh] overflow-y-auto px-1">
               <div className="grid grid-cols-2 gap-4">
                 <FormField control={form.control} name="nameAr" render={({ field }) => (
                   <FormItem><FormLabel>الاسم بالعربي</FormLabel><FormControl><Input {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
@@ -382,9 +481,12 @@ export default function AdminCoursesPage() {
                 )} />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <FormField control={form.control} name="price" render={({ field }) => (
-                  <FormItem><FormLabel>السعر</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                  <FormItem><FormLabel>السعر (EGP)</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="durationHours" render={({ field }) => (
+                  <FormItem><FormLabel>عدد الساعات</FormLabel><FormControl><Input type="number" {...field} /></FormControl><FormMessage /></FormItem>
                 )} />
                 <FormField control={form.control} name="level" render={({ field }) => (
                   <FormItem><FormLabel>المستوى</FormLabel>
@@ -395,6 +497,33 @@ export default function AdminCoursesPage() {
                         <SelectItem value="MEDIUM">متوسط</SelectItem>
                         <SelectItem value="HARD">متقدم</SelectItem>
                         <SelectItem value="EXPERT">خبير</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  <FormMessage /></FormItem>
+                )} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="instructorId" render={({ field }) => (
+                  <FormItem><FormLabel>المدرس / المحاضر</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="اختر المدرس" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {teachers.map((t: any) => (
+                          <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  <FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="categoryId" render={({ field }) => (
+                  <FormItem><FormLabel>التصنيف</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="اختر التصنيف" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {categories.map((c: any) => (
+                          <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   <FormMessage /></FormItem>
@@ -441,18 +570,41 @@ export default function AdminCoursesPage() {
               </div>
 
               <FormField control={form.control} name="description" render={({ field }) => (
-                <FormItem><FormLabel>الوصف</FormLabel><FormControl><Textarea {...field} value={field.value || ""} /></FormControl><FormMessage /></FormItem>
+                <FormItem><FormLabel>الوصف العام</FormLabel><FormControl><Textarea {...field} value={field.value || ""} className="min-h-[100px]" /></FormControl><FormMessage /></FormItem>
               )} />
 
-              <div className="flex items-center justify-between p-4 bg-muted/50 rounded-2xl">
-                <p className="font-bold">الحالة</p>
-                <FormField control={form.control} name="isActive" render={({ field }) => (
-                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+              <div className="grid grid-cols-2 gap-4">
+                <FormField control={form.control} name="requirements" render={({ field }) => (
+                  <FormItem><FormLabel>المتطلبات (خطوة بخطوة)</FormLabel><FormControl><Textarea {...field} value={field.value || ""} placeholder="ماذا يحتاج الطالب قبل البدء؟" /></FormControl><FormMessage /></FormItem>
+                )} />
+                <FormField control={form.control} name="learningObjectives" render={({ field }) => (
+                  <FormItem><FormLabel>ماذا ستتعلم؟</FormLabel><FormControl><Textarea {...field} value={field.value || ""} placeholder="الأهداف التعليمية للدورة..." /></FormControl><FormMessage /></FormItem>
                 )} />
               </div>
 
-              <DialogFooter>
-                <AdminButton type="submit" className="w-full h-12 text-lg font-black" icon={RefreshCw}>حفظ</AdminButton>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
+                  <div>
+                    <p className="font-bold text-sm">الحالة (نشط)</p>
+                    <p className="text-[10px] text-muted-foreground">عرض الدورة في القوائم</p>
+                  </div>
+                  <FormField control={form.control} name="isActive" render={({ field }) => (
+                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  )} />
+                </div>
+                <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl border">
+                  <div>
+                    <p className="font-bold text-sm">نشر الدورة</p>
+                    <p className="text-[10px] text-muted-foreground">إتاحة الدورة للطلاب</p>
+                  </div>
+                  <FormField control={form.control} name="isPublished" render={({ field }) => (
+                    <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
+                  )} />
+                </div>
+              </div>
+
+              <DialogFooter className="pt-4">
+                <AdminButton type="submit" className="w-full h-12 text-lg font-black" icon={RefreshCw}>حفظ بيانات الدورة</AdminButton>
               </DialogFooter>
             </form>
           </Form>

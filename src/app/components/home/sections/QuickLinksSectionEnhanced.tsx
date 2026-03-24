@@ -115,19 +115,7 @@ export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced
         ))}
       </div>
       
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.5 }}
-        className="mt-8 text-center"
-      >
-        <Link href="/dashboard">
-          <Button variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white backdrop-blur-sm px-8">
-            استكشاف الخريطة الكاملة
-          </Button>
-        </Link>
-      </motion.div>
+
     </section>
   );
 });
