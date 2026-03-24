@@ -1,7 +1,5 @@
 "use client";
 
-import React from "react";
-import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardLoading() {
@@ -16,12 +14,12 @@ export default function DashboardLoading() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-2xl bg-card border border-border" />
-        ))}
+        {[...Array(3)].map((_, i) =>
+        <Skeleton key={i} className="h-32 w-full rounded-2xl bg-card border border-border" />
+        )}
       </div>
       
       <Skeleton className="h-[400px] w-full rounded-[2rem] bg-card/40 border border-white/5 mt-8" />
-    </div>
-  );
+    </div>);
+
 }

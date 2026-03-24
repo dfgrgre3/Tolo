@@ -56,7 +56,7 @@ export async function GET(req: Request) {
     });
 
     // Process top plans to get names
-    const topPlans = await Promise.all(topPlansRaw.map(async (p) => {
+    const topPlans = await Promise.all(topPlansRaw.map(async (p: any) => {
         const sub = await prisma.subscription.findUnique({
             where: { id: p.subscriptionId as string },
             include: { plan: true }

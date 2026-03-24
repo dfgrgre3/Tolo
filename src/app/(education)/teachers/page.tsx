@@ -3,34 +3,34 @@
 import { useEffect, useState } from "react";
 import { ensureUser } from "@/lib/user-utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Users, 
-  UserCheck, 
-  MapPin, 
-  Clock, 
-  Plus, 
-  ExternalLink, 
-  Sparkles, 
-  Shield, 
-  Sword, 
-  Scroll, 
-  Zap, 
-  Info,
+import {
+  Users,
+  UserCheck,
+  MapPin,
+  Clock,
+  Plus,
+  ExternalLink,
+
+
+
+
+
+
   Calendar,
-  LayoutDashboard,
-  Target,
-  Flame,
-  Search
-} from "lucide-react";
+
+
+  Flame } from
+
+"lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 
-type Teacher = { id: string; name: string; subject: string; onlineUrl?: string | null };
-type Lesson = { id: string; title: string; location: string; startTime: string; endTime: string; teacher: Teacher };
-type Schedule = { id: string; planJson: string };
+type Teacher = {id: string;name: string;subject: string;onlineUrl?: string | null;};
+type Lesson = {id: string;title: string;location: string;startTime: string;endTime: string;teacher: Teacher;};
+type Schedule = {id: string;planJson: string;};
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -40,68 +40,68 @@ const STYLES = {
 };
 
 export default function TeachersPage() {
-	const [userId, setUserId] = useState<string | null>(null);
-	const [teachers, setTeachers] = useState<Teacher[]>([]);
-	const [lessons, setLessons] = useState<Lesson[]>([]);
-	const [schedule, setSchedule] = useState<Schedule | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [lessons, setLessons] = useState<Lesson[]>([]);
+  const [schedule, setSchedule] = useState<Schedule | null>(null);
 
-	const [teacherId, setTeacherId] = useState("");
-	const [title, setTitle] = useState("");
-	const [location, setLocation] = useState("");
-	const [startTime, setStartTime] = useState("");
-	const [endTime, setEndTime] = useState("");
+  const [teacherId, setTeacherId] = useState("");
+  const [title, setTitle] = useState("");
+  const [location, setLocation] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-	useEffect(() => {
-		ensureUser().then(setUserId);
-	}, []);
+  useEffect(() => {
+    ensureUser().then(setUserId);
+  }, []);
 
-	useEffect(() => {
-		(async () => {
+  useEffect(() => {
+    (async () => {
       setIsLoading(true);
-			const ts = await fetch("/api/teachers").then((r) => r.json());
-			setTeachers(ts);
+      const ts = await fetch("/api/teachers").then((r) => r.json());
+      setTeachers(ts);
       setIsLoading(false);
-		})();
-	}, []);
+    })();
+  }, []);
 
-	useEffect(() => {
-		if (!userId) return;
-		(async () => {
-			const ls = await fetch(`/api/lessons?userId=${userId}`).then((r) => r.json());
-			setLessons(ls);
-			const sch = await fetch(`/api/schedule?userId=${userId}`).then((r) => r.json());
-			setSchedule(sch);
-		})();
-	}, [userId]);
+  useEffect(() => {
+    if (!userId) return;
+    (async () => {
+      const ls = await fetch(`/api/lessons?userId=${userId}`).then((r) => r.json());
+      setLessons(ls);
+      const sch = await fetch(`/api/schedule?userId=${userId}`).then((r) => r.json());
+      setSchedule(sch);
+    })();
+  }, [userId]);
 
-	async function addLesson(e: React.FormEvent) {
-		e.preventDefault();
-		if (!userId || !teacherId || !title || !location || !startTime || !endTime) return;
-		const res = await fetch("/api/lessons", {
-			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ userId, teacherId, title, location, startTime, endTime }),
-		});
-		const newLesson = await res.json();
-		setLessons((l) => [...l, newLesson]);
-		
-		try {
-			const plan = schedule?.planJson ? JSON.parse(schedule.planJson) : {};
-			const dayKey = new Date(startTime).toLocaleDateString("en-CA");
-			plan[dayKey] = plan[dayKey] || [];
-			plan[dayKey].push({ type: "lesson", title, location, startTime, endTime, teacherId });
-			const s = await fetch("/api/schedule", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ userId, plan }),
-			}).then((r) => r.json());
-			setSchedule(s);
-		} catch (err) { console.error(err); }
-		setTeacherId(""); setTitle(""); setLocation(""); setStartTime(""); setEndTime("");
-	}
+  async function addLesson(e: React.FormEvent) {
+    e.preventDefault();
+    if (!userId || !teacherId || !title || !location || !startTime || !endTime) return;
+    const res = await fetch("/api/lessons", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, teacherId, title, location, startTime, endTime })
+    });
+    const newLesson = await res.json();
+    setLessons((l) => [...l, newLesson]);
 
-	return (
+    try {
+      const plan = schedule?.planJson ? JSON.parse(schedule.planJson) : {};
+      const dayKey = new Date(startTime).toLocaleDateString("en-CA");
+      plan[dayKey] = plan[dayKey] || [];
+      plan[dayKey].push({ type: "lesson", title, location, startTime, endTime, teacherId });
+      const s = await fetch("/api/schedule", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, plan })
+      }).then((r) => r.json());
+      setSchedule(s);
+    } catch (err) {console.error(err);}
+    setTeacherId("");setTitle("");setLocation("");setStartTime("");setEndTime("");
+  }
+
+  return (
     <div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">
       {/* --- Ambient Background --- */}
       <div className="fixed inset-0 pointer-events-none -z-10">
@@ -114,10 +114,10 @@ export default function TeachersPage() {
         
         {/* --- Header: The Guild Entrance --- */}
         <motion.div
-           initial={{ opacity: 0, y: -30 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="text-center space-y-6"
-        >
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-6">
+          
            <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
               <Users className="h-5 w-5" />
               <span>نقابة المعلمين الكبار</span>
@@ -142,20 +142,20 @@ export default function TeachersPage() {
               <Badge className="bg-white/5 text-gray-500 font-black px-4 h-8 rounded-xl border border-white/10">{teachers.length} معلم</Badge>
            </div>
 
-           {isLoading ? (
-              <div className="h-40 flex items-center justify-center opacity-50">
+           {isLoading ?
+          <div className="h-40 flex items-center justify-center opacity-50">
                  <div className="h-8 w-8 border-t-2 border-primary rounded-full animate-spin" />
-              </div>
-           ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                 {teachers.map((t, idx) => (
-                    <motion.div
-                       key={t.id}
-                       initial={{ opacity: 0, scale: 0.9 }}
-                       animate={{ opacity: 1, scale: 1 }}
-                       transition={{ delay: idx * 0.05 }}
-                       className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all"}
-                    >
+              </div> :
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {teachers.map((t, idx) =>
+            <motion.div
+              key={t.id}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.05 }}
+              className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all"}>
+              
                        <div className="flex items-center gap-6">
                           <div className="h-16 w-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-black text-white group-hover:bg-primary group-hover:scale-110 transition-all">
                              {t.name.charAt(0).toUpperCase()}
@@ -165,21 +165,21 @@ export default function TeachersPage() {
                              <p className="text-[10px] font-black uppercase tracking-widest text-primary/70">{t.subject}</p>
                           </div>
                        </div>
-                       {t.onlineUrl && (
-                          <a 
-                             href={t.onlineUrl} 
-                             target="_blank" 
-                             rel="noreferrer"
-                             className="mt-6 h-10 w-full flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all"
-                          >
+                       {t.onlineUrl &&
+              <a
+                href={t.onlineUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 h-10 w-full flex items-center justify-center gap-2 bg-primary/10 border border-primary/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary hover:text-white transition-all">
+                
                              <ExternalLink className="w-3.5 h-3.5" />
                              <span>الملف السحري</span>
                           </a>
-                       )}
+              }
                     </motion.div>
-                 ))}
+            )}
               </div>
-           )}
+          }
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -202,11 +202,11 @@ export default function TeachersPage() {
                               <SelectValue placeholder="اختر المعلم" />
                            </SelectTrigger>
                            <SelectContent className="bg-background border-white/10 text-white font-medium">
-                              {teachers.map((t) => (
-                                 <SelectItem key={t.id} value={t.id} className="focus:bg-primary focus:text-white">
+                              {teachers.map((t) =>
+                      <SelectItem key={t.id} value={t.id} className="focus:bg-primary focus:text-white">
                                     {t.subject} - {t.name}
                                  </SelectItem>
-                              ))}
+                      )}
                            </SelectContent>
                         </Select>
                      </div>
@@ -250,21 +250,21 @@ export default function TeachersPage() {
 
                <div className={STYLES.glass + " p-0 overflow-hidden"}>
                   <div className="divide-y divide-white/5">
-                     {lessons.length === 0 ? (
-                        <div className="p-20 text-center space-y-4 opacity-30">
+                     {lessons.length === 0 ?
+                <div className="p-20 text-center space-y-4 opacity-30">
                            <MapPin className="w-16 h-16 mx-auto text-gray-500" />
                            <p className="text-sm font-black uppercase tracking-[0.2em] text-gray-400">لا توجد غارات تعليمية مخططة حالياً</p>
-                        </div>
-                     ) : (
-                        <AnimatePresence>
-                           {lessons.map((l, idx) => (
-                              <motion.div
-                                 key={l.id}
-                                 initial={{ opacity: 0, x: 30 }}
-                                 animate={{ opacity: 1, x: 0 }}
-                                 transition={{ delay: idx * 0.05 }}
-                                 className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-white/[0.02] group transition-all"
-                              >
+                        </div> :
+
+                <AnimatePresence>
+                           {lessons.map((l, idx) =>
+                  <motion.div
+                    key={l.id}
+                    initial={{ opacity: 0, x: 30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="p-8 flex flex-col md:flex-row items-center justify-between gap-6 hover:bg-white/[0.02] group transition-all">
+                    
                                  <div className="flex items-center gap-8 text-right md:text-right w-full md:w-auto">
                                     <div className="h-16 w-16 min-w-[64px] rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary">
                                        <Flame className="w-8 h-8 group-hover:scale-125 transition-transform" />
@@ -291,14 +291,14 @@ export default function TeachersPage() {
                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{new Date(l.startTime).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                                  </div>
                               </motion.div>
-                           ))}
+                  )}
                         </AnimatePresence>
-                     )}
+                }
                   </div>
                </div>
             </div>
         </div>
       </div>
-    </div>
-	);
+    </div>);
+
 }

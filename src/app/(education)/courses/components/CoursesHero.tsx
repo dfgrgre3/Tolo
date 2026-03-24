@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { GraduationCap, BookOpen, Users, Award, Sparkles, Scroll, Sword, Shield, Zap } from "lucide-react";
+import { Users, Sparkles, Scroll, Sword, Shield } from "lucide-react";
 
 interface CoursesHeroProps {
   totalCourses: number;
@@ -23,10 +23,10 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
   totalInstructors
 }) => {
   const stats = [
-    { icon: Scroll, value: totalCourses, label: "مخطوطة علمية", color: "text-blue-400", bgColor: "bg-blue-400/10" },
-    { icon: Users, value: totalStudents, label: "محارب نشط", color: "text-purple-400", bgColor: "bg-purple-400/10" },
-    { icon: Shield, value: totalInstructors, label: "معلم حكيم", color: "text-amber-400", bgColor: "bg-amber-400/10" },
-  ];
+  { icon: Scroll, value: totalCourses, label: "مخطوطة علمية", color: "text-blue-400", bgColor: "bg-blue-400/10" },
+  { icon: Users, value: totalStudents, label: "محارب نشط", color: "text-purple-400", bgColor: "bg-purple-400/10" },
+  { icon: Shield, value: totalInstructors, label: "معلم حكيم", color: "text-amber-400", bgColor: "bg-amber-400/10" }];
+
 
   return (
     <section className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-background p-8 md:p-16 mb-12 shadow-2xl">
@@ -43,43 +43,43 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
         {/* Title Group */}
         <div className="space-y-6 max-w-3xl">
            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="inline-flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-6 py-2 text-sm font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]"
-           >
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="inline-flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-6 py-2 text-sm font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+            
               <Sparkles className="h-5 w-5" />
               <span>أهلاً بك في الأرشيف الملكي</span>
            </motion.div>
 
-           <motion.h1 
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-5xl md:text-7xl font-black tracking-tight leading-tight"
-           >
+           <motion.h1
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
+            
               مستودع <br />
               <span className={STYLES.neonText}>الحكمة والمهارات</span>
            </motion.h1>
 
            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="text-lg md:text-xl text-gray-400 font-medium max-w-2xl mx-auto"
-           >
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-lg md:text-xl text-gray-400 font-medium max-w-2xl mx-auto">
+            
               استعرض آلاف المخطوطات والدروس المصممة لترقية قدراتك القتالية في ساحات العلم. اختر طريقك وابدأ رحلتك الأسطورية اليوم.
            </motion.p>
         </div>
 
         {/* Thematic Stats Bar */}
         <div className="flex flex-wrap justify-center gap-6 md:gap-10 w-full max-w-5xl">
-           {stats.map((stat, index) => (
-             <motion.div
-               key={index}
-               initial={{ opacity: 0, y: 20 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.2 + index * 0.1 }}
-               className="flex-1 min-w-[200px]"
-             >
+           {stats.map((stat, index) =>
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 + index * 0.1 }}
+            className="flex-1 min-w-[200px]">
+            
                 <div className="relative group">
                    <div className="absolute inset-0 bg-white/[0.02] border border-white/5 rounded-3xl group-hover:bg-white/[0.05] group-hover:border-white/10 transition-all duration-300" />
                    <div className="relative p-8 flex flex-col items-center gap-4">
@@ -93,7 +93,7 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
                    </div>
                 </div>
              </motion.div>
-           ))}
+          )}
         </div>
 
         {/* Decorative Divider */}
@@ -103,8 +103,8 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
            <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white" />
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 };
 
 export default CoursesHero;

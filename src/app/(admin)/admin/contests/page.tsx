@@ -3,7 +3,7 @@
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminCard } from "@/components/admin/ui/admin-card";
-import { AdminButton, IconButton } from "@/components/admin/ui/admin-button";
+import { AdminButton } from "@/components/admin/ui/admin-button";
 import {
   Gamepad2,
   Play,
@@ -11,44 +11,70 @@ import {
   Timer,
   Volume2,
   Plus,
-  Rocket,
   Settings2,
   StopCircle,
-  QrCode
+  QrCode,
+  ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 
 // Types
+interface ContestQuestion {
+  id: string;
+  question: string;
+  correctAnswer: string;
+  options: string[];
+  duration: number;
+  points: number;
+}
+
+interface Contest {
+  id: string;
+  title: string;
+  description?: string;
+  category?: string;
+  questionsCount: number;
+  participantsCount?: number;
+  pinCode?: string;
+  questions?: ContestQuestion[];
+}
+
 interface LiveLobby {
   id: string;
   title: string;
   pinCode: string;
-  status: "WAITING" | "IN_PROGRESS" | "FINISHED";
+  status: "WAITING" | "IN_PROGRESS" | "FINISHED" | "DRAFT";
   players: { id: string; name: string; score: number }[];
   currentQuestion: number;
   totalQuestions: number;
+  questions: ContestQuestion[];
 }
 
-const MOCK_LOBBY: LiveLobby = {
-  id: "c_1",
-  title: "بطولة مراجعة الكيمياء العضوية",
-  pinCode: "849201",
-  status: "WAITING",
-  players: [
-    { id: "p1", name: "أحمد محمود", score: 0 },
-    { id: "p2", name: "سارة طارق", score: 0 },
-    { id: "p3", name: "محمد علي", score: 0 },
-    { id: "p4", name: "نور حسن", score: 0 },
-  ],
-  currentQuestion: 1,
-  totalQuestions: 15,
-};
-
 export default function ContestsPage() {
-  const [activeLobby, setActiveLobby] = React.useState<LiveLobby | null>(MOCK_LOBBY);
+  const [contests, setContests] = React.useState<Contest[]>([]);
+  const [activeLobby, setActiveLobby] = React.useState<LiveLobby | null>(null);
   const [showConfig, setShowConfig] = React.useState(false);
   const [pulse, setPulse] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    const fetchContests = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch("/api/contests");
+        const data = await res.json();
+        setContests(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to fetch contests", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchContests();
+  }, []);
 
   // Lobby pulse animation
   React.useEffect(() => {
@@ -58,30 +84,60 @@ export default function ContestsPage() {
     }
   }, [activeLobby]);
 
-  const startGame = () => {
+  const startGame = async () => {
     if (activeLobby) {
-      setActiveLobby({ ...activeLobby, status: "IN_PROGRESS" });
+      try {
+        await fetch(`/api/contests/${activeLobby.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "IN_PROGRESS" })
+        });
+        setActiveLobby({ ...activeLobby, status: "IN_PROGRESS" });
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
-  const endGame = () => {
+  const endGame = async () => {
     if (activeLobby) {
-      setActiveLobby({ ...activeLobby, status: "FINISHED" });
+       try {
+        await fetch(`/api/contests/${activeLobby.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "FINISHED" })
+        });
+        setActiveLobby({ ...activeLobby, status: "FINISHED" });
+      } catch (e) {
+        console.error(e);
+      }
     }
   };
 
-  const createGame = () => {
+  const createGame = (contest: Contest) => {
+    const pin = contest.pinCode || Math.floor(100000 + Math.random() * 900000).toString();
     setActiveLobby({
-      id: `c_${Date.now()}`,
-      title: "مسابقة فجائية للمحاربين",
-      pinCode: Math.floor(100000 + Math.random() * 900000).toString(),
+      id: contest.id,
+      title: contest.title,
+      pinCode: pin,
       status: "WAITING",
       players: [],
       currentQuestion: 1,
-      totalQuestions: 10,
+      totalQuestions: contest.questions?.length || 0,
+      questions: contest.questions || [],
     });
+    
+    // Sync to DB
+    fetch(`/api/contests/${contest.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pinCode: pin, status: "WAITING" })
+    });
+    
     setShowConfig(false);
   };
+
+  const currentQuestion = activeLobby?.questions[activeLobby.currentQuestion - 1];
 
   return (
     <div className="space-y-8 pb-10">
@@ -120,40 +176,46 @@ export default function ContestsPage() {
                       <Settings2 className="w-6 h-6" />
                    </div>
                    <div>
-                      <h3 className="font-black text-lg">محرك الساحة (Game Engine)</h3>
-                      <p className="text-[11px] text-muted-foreground font-bold">تجهيز واختيار الأسئلة للبطولة المُقبلة</p>
+                      <h3 className="font-black text-lg">اختيار المسابقة</h3>
+                      <p className="text-[11px] text-muted-foreground font-bold">اختر مسابقة من الأرشيف لإطلاقها حياً</p>
                    </div>
                 </div>
 
-                <div className="space-y-5">
-                   <div className="space-y-2">
-                     <label className="text-xs font-bold text-muted-foreground uppercase">اسم المعركة (البطولة)</label>
-                     <input type="text" className="w-full h-11 bg-card border border-border/50 rounded-lg px-3 text-sm font-bold" placeholder="مثال: بطولة مراجعة ليلة الامتحان" />
-                   </div>
-                   
-                   <div className="space-y-2">
-                     <label className="text-xs font-bold text-muted-foreground uppercase">استدعاء الأسئلة من (Question Bank)</label>
-                     <select className="w-full h-11 bg-card border border-border/50 rounded-lg px-3 text-sm font-bold appearance-none">
-                       <option>وحدة الكهربية - فيزياء (20 سؤال)</option>
-                       <option>المنهج الكامل - لغة عربية (50 سؤال)</option>
-                       <option>توليد عشوائي بالذكاء الاصطناعي (AI)</option>
-                     </select>
-                   </div>
+                <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                   {loading ? (
+                      <div className="text-center py-10 opacity-50">جاري تحميل المسابقات...</div>
+                   ) : contests.length > 0 ? (
+                      contests.map((contest) => (
+                         <div 
+                           key={contest.id} 
+                           className="group p-4 bg-card border border-border/50 rounded-2xl hover:border-primary/50 transition-all cursor-pointer"
+                           onClick={() => createGame(contest)}
+                         >
+                            <div className="flex justify-between items-start mb-2">
+                               <h4 className="font-bold text-sm line-clamp-1">{contest.title}</h4>
+                               <Badge className="text-[9px] bg-primary/10 text-primary border-none">{contest.category}</Badge>
+                            </div>
+                            <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-bold">
+                               <div className="flex items-center gap-1">
+                                  <Timer className="w-3 h-3" />
+                                  <span>{contest.questionsCount} سؤال</span>
+                               </div>
+                               <div className="flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  <span>{contest.participantsCount || 0} مشارك</span>
+                               </div>
+                            </div>
+                         </div>
+                      ))
+                   ) : (
+                      <div className="text-center py-10 opacity-50 font-bold border-2 border-dashed rounded-2xl">لا توجد مسابقات حالياً</div>
+                   )}
 
-                   <div className="grid grid-cols-2 gap-3 pt-2">
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black text-muted-foreground uppercase rounded-md bg-accent px-2 py-1">المدة للسؤال</label>
-                         <input type="number" defaultValue={30} className="w-full h-11 bg-card border border-border/50 rounded-lg text-center font-bold text-primary" />
-                      </div>
-                      <div className="space-y-2">
-                         <label className="text-[10px] font-black text-muted-foreground uppercase rounded-md bg-accent px-2 py-1">XP الجائزة</label>
-                         <input type="number" defaultValue={2500} className="w-full h-11 bg-card border border-border/50 rounded-lg text-center font-bold text-amber-500" />
-                      </div>
-                   </div>
-
-                   <AdminButton onClick={createGame} className="w-full h-12 uppercase tracking-widest font-black mt-4 gap-2" icon={Rocket}>
-                      فتح غرف الانتظار (Lobby)
-                   </AdminButton>
+                   <Link href="/contests/new" className="block w-full">
+                      <AdminButton variant="outline" className="w-full h-12 uppercase tracking-widest font-black mt-4 gap-2" icon={Plus}>
+                         إضافة مسابقة جديدة
+                      </AdminButton>
+                   </Link>
                 </div>
               </AdminCard>
             </motion.div>
@@ -251,20 +313,25 @@ export default function ContestsPage() {
                                 14s
                              </div>
                              <div className="bg-background px-4 py-2 rounded-2xl border font-black text-sm text-muted-foreground shadow-sm">
-                                سؤال {activeLobby.currentQuestion} من {activeLobby.totalQuestions}
+                             سؤال {activeLobby.currentQuestion} من {activeLobby.totalQuestions}
+                             <div className="flex items-center gap-2 mr-2">
+                                <AdminButton size="sm" variant="ghost" icon={ChevronRight} onClick={() => setActiveLobby({...activeLobby, currentQuestion: Math.min(activeLobby.currentQuestion + 1, activeLobby.totalQuestions)})}>
+                                  السؤال التالي
+                                </AdminButton>
+                             </div>
                              </div>
                           </div>
                           
                           <div className="flex-1 flex flex-col items-center justify-center text-center px-4 max-w-3xl mx-auto w-full">
                              <h2 className="text-2xl md:text-4xl font-black mb-12 bg-card/80 backdrop-blur-md p-6 sm:p-10 rounded-3xl border-2 border-border/50 shadow-xl leading-relaxed">
-                                ما هو التركيب الجزيئي للبنزين العطري وما هي خاصية الرنين التي تميزه؟
+                               {currentQuestion?.question || "لا يوجد نص للسؤال"}
                              </h2>
                              
                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full">
-                                {["C6H6 حلقي مستوي", "C6H12 سلسلة", "C5H10 متبادل", "C4H8 متعدد"].map((ans, i) => {
+                                {(currentQuestion?.options || []).map((ans: string, i: number) => {
                                    const colors = ["bg-red-500", "bg-blue-500", "bg-emerald-500", "bg-amber-500"];
                                    return (
-                                     <div key={i} className={`${colors[i]} h-16 sm:h-20 rounded-2xl flex items-center justify-center border-4 border-black/10 shadow-lg cursor-not-allowed`}>
+                                     <div key={i} className={`${colors[i % 4]} h-16 sm:h-20 rounded-2xl flex items-center justify-center border-4 border-black/10 shadow-lg cursor-not-allowed`}>
                                         <span className="text-white font-black text-lg drop-shadow-md">{ans}</span>
                                      </div>
                                    )

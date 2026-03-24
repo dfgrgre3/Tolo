@@ -122,11 +122,11 @@ async function handleGetRequest(request: NextRequest) {
       notified: boolean;
     };
 
-    // Mark goals as achieved (this is a placeholder logic)
+    // Mark goals as achieved using real database field
     const goalsWithStatus: GoalWithStatus[] = recentGoals.map((goal: Prisma.CustomGoalGetPayload<{}>) => ({
       ...goal,
-      achieved: Math.random() > 0.7, // Random for demo
-      notified: false, // This would be stored in the database in a real app
+      achieved: goal.isCompleted,
+      notified: false, // This would be managed by a notification service
     }));
 
     const result = {

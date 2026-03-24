@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Download, FileText, FileJson, Printer, Calendar } from 'lucide-react';
 import { exportToCSV, exportToJSON, generatePDFReport, downloadFile, printPDFReport, type ExportData } from '../utils/exportUtils';
-import { format as formatDate, subDays, subWeeks, subMonths, startOfWeek, endOfWeek } from 'date-fns';
+import { format as formatDate, subWeeks, subMonths, startOfWeek, endOfWeek } from 'date-fns';
 import { ar } from 'date-fns/locale';
 import type { Task, StudySession, Reminder } from '../types';
 
@@ -47,18 +47,18 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
 
   const filterDataByPeriod = () => {
     const { start, end } = getPeriodDates();
-    
-    const filteredTasks = tasks.filter(task => {
+
+    const filteredTasks = tasks.filter((task) => {
       const taskDate = task.createdAt ? new Date(task.createdAt) : null;
-      return !taskDate || (taskDate >= start && taskDate <= end);
+      return !taskDate || taskDate >= start && taskDate <= end;
     });
 
-    const filteredSessions = studySessions.filter(session => {
+    const filteredSessions = studySessions.filter((session) => {
       const sessionDate = new Date(session.startTime);
       return sessionDate >= start && sessionDate <= end;
     });
 
-    const filteredReminders = reminders.filter(reminder => {
+    const filteredReminders = reminders.filter((reminder) => {
       const reminderDate = new Date(reminder.remindAt);
       return reminderDate >= start && reminderDate <= end;
     });
@@ -90,12 +90,12 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
           const csvContent = exportToCSV(exportData);
           downloadFile(csvContent, `${filename}.csv`, 'text/csv;charset=utf-8;');
           break;
-        
+
         case 'json':
           const jsonContent = exportToJSON(exportData);
           downloadFile(jsonContent, `${filename}.json`, 'application/json');
           break;
-        
+
         case 'pdf':
           const htmlContent = generatePDFReport(exportData);
           const blob = new Blob([htmlContent], { type: 'text/html' });
@@ -108,7 +108,7 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
           document.body.removeChild(link);
           URL.revokeObjectURL(url);
           break;
-        
+
         case 'print':
           const printHtml = generatePDFReport(exportData);
           printPDFReport(printHtml);
@@ -182,8 +182,8 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
               onClick={() => handleExport('csv')}
               disabled={isExporting}
               variant="outline"
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+              
               <FileText className="h-4 w-4" />
               CSV
             </Button>
@@ -192,8 +192,8 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
               onClick={() => handleExport('json')}
               disabled={isExporting}
               variant="outline"
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+              
               <FileJson className="h-4 w-4" />
               JSON
             </Button>
@@ -202,8 +202,8 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
               onClick={() => handleExport('pdf')}
               disabled={isExporting}
               variant="outline"
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+              
               <FileText className="h-4 w-4" />
               PDF (HTML)
             </Button>
@@ -212,21 +212,20 @@ export default function ExportDialog({ tasks, studySessions, reminders }: Export
               onClick={() => handleExport('print')}
               disabled={isExporting}
               variant="outline"
-              className="flex items-center gap-2"
-            >
+              className="flex items-center gap-2">
+              
               <Printer className="h-4 w-4" />
               طباعة
             </Button>
           </div>
 
-          {isExporting && (
-            <p className="text-sm text-center text-muted-foreground">
+          {isExporting &&
+          <p className="text-sm text-center text-muted-foreground">
               جاري التصدير...
             </p>
-          )}
+          }
         </div>
       </DialogContent>
-    </Dialog>
-  );
-}
+    </Dialog>);
 
+}

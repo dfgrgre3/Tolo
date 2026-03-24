@@ -4,7 +4,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { AdminCard } from "@/components/admin/ui/admin-card";
+import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -33,8 +33,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { 
-  Plus, Edit, Trash2, Trophy, Download, Upload, Target, 
-  Zap, Calendar, Star, Users, Flame, Swords, Shield, Search, RefreshCw, Hammer, Sparkles
+  Plus, Trophy, Download, Upload, Target, 
+  Zap, Users, Flame, Swords, Hammer, Sparkles, Send
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -102,11 +102,11 @@ const difficultyOptions = [
   { value: "EXPERT", label: "مستوى أسطوري" },
 ];
 
-const difficultyColors: Record<string, string> = {
-  EASY: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5",
-  MEDIUM: "text-blue-500 border-blue-500/20 bg-blue-500/5",
-  HARD: "text-orange-500 border-orange-500/20 bg-orange-500/5",
-  EXPERT: "text-red-500 border-red-500/20 bg-red-500/5",
+const difficultyColors: Record<string, { color: "green" | "blue" | "yellow" | "red" | "purple" | "default", label: string }> = {
+  EASY: { color: "green", label: "تدريب مبتدئ" },
+  MEDIUM: { color: "blue", label: "مستوى جندي" },
+  HARD: { color: "yellow", label: "رتبة فارس" },
+  EXPERT: { color: "red", label: "مستوى أسطوري" },
 };
 
 export default function AdminChallengesPage() {
@@ -211,7 +211,7 @@ export default function AdminChallengesPage() {
       } else {
         toast.error("فشل في تثبيت المبارزة");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال بالخادم");
     }
   };
@@ -232,7 +232,7 @@ export default function AdminChallengesPage() {
       } else {
         toast.error("فشل في الإتلاف");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
@@ -306,14 +306,14 @@ export default function AdminChallengesPage() {
         const challenge = row.original;
         return (
           <div className="flex items-center gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-orange-500/10 text-orange-500 border border-orange-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]">
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-orange-500/10 text-orange-500 border border-orange-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)] transition-transform hover:scale-105">
               <Swords className="h-6 w-6" />
             </div>
             <div>
               <p className="font-black text-sm tracking-tight">{challenge.title}</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <Badge variant="outline" className="text-[8px] font-bold py-0">{challenge.type}</Badge>
-                <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60">{challenge.category}</span>
+                <Badge variant="outline" className="text-[8px] font-bold py-0 border-white/5 bg-white/5 uppercase tracking-tighter opacity-70 italic">{challenge.type}</Badge>
+                <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">{challenge.category}</span>
               </div>
             </div>
           </div>
@@ -325,13 +325,14 @@ export default function AdminChallengesPage() {
       header: "مستوى الصعوبة",
       cell: ({ row }) => {
         const diff = row.original.difficulty;
-        const colorClass = difficultyColors[diff] || difficultyColors.MEDIUM;
+        const config = difficultyColors[diff] || difficultyColors.MEDIUM;
         return (
           <Badge 
             variant="outline" 
-            className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 ${colorClass}`}
+            className="font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 bg-white/5"
+            style={{ color: `oklch(var(--${config.color}))`, borderColor: `oklch(var(--${config.color}) / 0.3)` }}
           >
-            {difficultyOptions.find(o => o.value === diff)?.label || diff}
+            {config.label}
           </Badge>
         );
       },
@@ -412,30 +413,40 @@ export default function AdminChallengesPage() {
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {[
-          { label: "إجمالي التحديات", value: challenges.length, icon: Trophy, color: "orange" },
-          { label: "تحديات نشطة", value: challenges.filter(c => c.isActive).length, icon: Flame, color: "red" },
-          { label: "إجمالي الانتصارات", value: challenges.reduce((acc, c) => acc + (c._count?.completions || 0), 0), icon: Target, color: "emerald" },
-          { label: "متوسط الـ XP", value: Math.round(challenges.reduce((acc, c) => acc + c.xpReward, 0) / (challenges.length || 1)), icon: Zap, color: "blue" },
-        ].map((stat, i) => (
-          <AdminCard key={i} variant="glass" className={`p-6 border-white/10`}>
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
-                <stat.icon className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-2xl font-black">{stat.value}</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
-              </div>
-            </div>
-          </AdminCard>
-        ))}
+        <AdminStatsCard 
+          title="إجمالي التحديات" 
+          value={challenges.length} 
+          icon={Trophy} 
+          color="yellow"
+          description="مهمة في ساحات المعارك"
+        />
+        <AdminStatsCard 
+          title="تحديات نشطة" 
+          value={challenges.filter(c => c.isActive).length} 
+          icon={Flame} 
+          color="red"
+          description="تنتظر المحاربين الآن"
+        />
+        <AdminStatsCard 
+          title="إجمالي الانتصارات" 
+          value={challenges.reduce((acc, c) => acc + (c._count?.completions || 0), 0)} 
+          icon={Target} 
+          color="green"
+          description="عملية اجتياز ناجحة"
+        />
+        <AdminStatsCard 
+          title="متوسط الـ XP" 
+          value={Math.round(challenges.reduce((acc, c) => acc + c.xpReward, 0) / (challenges.length || 1))} 
+          icon={Zap} 
+          color="blue"
+          description="هالة المكافأة لكل مهمة"
+        />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
+        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
       >
         {loading ? (
           <TableSkeleton rows={8} cols={7} />
@@ -444,7 +455,7 @@ export default function AdminChallengesPage() {
             columns={columns}
             data={challenges}
             searchKey="title"
-            searchPlaceholder="ابحث في ساحة المعركة..."
+            searchPlaceholder="ابحث في سجلات المبارزات..."
             actions={{ onRefresh: () => fetchChallenges() }}
           />
         )}
@@ -456,8 +467,18 @@ export default function AdminChallengesPage() {
           <div className="h-1.5 bg-gradient-to-r from-orange-500 via-red-500 to-purple-500" />
           <div className="p-8">
             <DialogHeader className="mb-8">
-              <DialogTitle className="text-2xl font-black">
-                {editingChallenge ? "تنقيح خطة القتال" : "بناء تحدي ملحمي جديد"}
+              <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                {editingChallenge ? (
+                  <>
+                    <Hammer className="w-7 h-7 text-indigo-500" />
+                    تنقيح ميثاق المبارزة
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-7 h-7 text-orange-500" />
+                    بناء تحدي ملحمي جديد
+                  </>
+                )}
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
                 أدخل بيانات المبارزة بدقة لضمان عدالة القتال بين المحاربين.
@@ -485,7 +506,7 @@ export default function AdminChallengesPage() {
                     <FormItem>
                       <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">تفاصيل المهمة</FormLabel>
                       <FormControl>
-                        <Textarea {...field} placeholder="يجب على المحارب..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[100px]" />
+                        <Textarea {...field} placeholder="يجب على المحارب..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[100px] font-medium" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -606,7 +627,7 @@ export default function AdminChallengesPage() {
                       <FormItem>
                         <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">بداية الحملة</FormLabel>
                         <FormControl>
-                          <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                          <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11 font-bold" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -619,7 +640,7 @@ export default function AdminChallengesPage() {
                       <FormItem>
                         <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">نهاية الحملة</FormLabel>
                         <FormControl>
-                          <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11" />
+                          <Input {...field} type="date" className="rounded-xl border-white/10 bg-white/5 h-11 font-bold" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -630,10 +651,10 @@ export default function AdminChallengesPage() {
                   control={form.control}
                   name="isActive"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-2xl border border-white/10 p-4 bg-white/5 shadow-inner">
+                    <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                       <div className="space-y-0.5">
                         <FormLabel className="font-black text-xs">تفعيل النزاع المسلح؟</FormLabel>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase">المبارزات النشطة تظهر فوراً للجيش</p>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">المبارزات النشطة تظهر فوراً للجيش</p>
                       </div>
                       <FormControl>
                         <Switch
@@ -645,7 +666,7 @@ export default function AdminChallengesPage() {
                   )}
                 />
                 <DialogFooter className="pt-4">
-                  <AdminButton type="submit" icon={editingChallenge ? Sparkles : Hammer} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                  <AdminButton type="submit" icon={editingChallenge ? Hammer : Send} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
                     {editingChallenge ? "تحديث ميثاق المبارزة" : "نشر المبارزة في الإمبراطورية"}
                   </AdminButton>
                 </DialogFooter>

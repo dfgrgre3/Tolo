@@ -1,14 +1,12 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
-import { AdminButton, IconButton } from "@/components/admin/ui/admin-button";
+import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { 
-  Plus, Edit, Trash2, BookOpen, Download, Upload, Star, 
-  FileText, Search, Filter, Eye, List, Users, RefreshCw
+  Plus, BookOpen, Download, Star, Eye, Users, Search
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -55,6 +53,22 @@ interface Subject {
   nameAr: string | null;
 }
 
+interface BooksResponse {
+  books: Book[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+interface SubjectsListResponse {
+  data: {
+    subjects: Subject[];
+  };
+}
+
 const bookSchema = z.object({
   title: z.string().min(1, "عنوان الكتاب مطلوب"),
   author: z.string().min(1, "اسم المؤلف مطلوب"),
@@ -68,20 +82,30 @@ const bookSchema = z.object({
 type BookFormValues = z.infer<typeof bookSchema>;
 
 export default function AdminBooksPage() {
-  const router = useRouter();
   const [dialogOpen, setDialogOpen] = React.useState(false);
   const [editingBook, setEditingBook] = React.useState<Book | null>(null);
   const [deleteDialog, setDeleteDialog] = React.useState<{ open: boolean; id: string | null }>({
     open: false,
     id: null,
   });
+  const [page, setPage] = React.useState(1);
+  const [limit, setLimit] = React.useState(10);
+  const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
 
-  const { data: books = [], isLoading, refetch } = useQuery({
-    queryKey: ["admin", "books"],
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["admin", "books", page, limit, deferredSearch],
     queryFn: async () => {
-      const response = await fetch("/api/admin/books");
-      const result = await response.json();
-      return (result.books || []) as Book[];
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (deferredSearch) {
+        params.set("search", deferredSearch);
+      }
+
+      const response = await fetch(`/api/admin/books?${params.toString()}`);
+      return (await response.json()) as BooksResponse;
     },
   });
 
@@ -89,10 +113,17 @@ export default function AdminBooksPage() {
     queryKey: ["admin", "subjects-list"],
     queryFn: async () => {
       const response = await fetch("/api/admin/subjects?limit=100");
-      const result = await response.json();
-      return (result.subjects || []) as Subject[];
+      const result = (await response.json()) as SubjectsListResponse;
+      return result.data?.subjects || [];
     },
   });
+
+  const books = data?.books || [];
+  const pagination = data?.pagination;
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [deferredSearch]);
 
   const form = useForm<BookFormValues>({
     resolver: zodResolver(bookSchema),
@@ -151,7 +182,7 @@ export default function AdminBooksPage() {
       } else {
         toast.error("فشل في حفظ الكتاب");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال");
     }
   };
@@ -171,7 +202,7 @@ export default function AdminBooksPage() {
       } else {
         toast.error("فشل في الحذف");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
@@ -294,9 +325,26 @@ export default function AdminBooksPage() {
         columns={columns}
         data={books}
         loading={isLoading}
-        searchKey="title"
-        searchPlaceholder="ابحث عن عنوان كتاب أو مؤلف..."
+        serverSide
+        totalRows={pagination?.total || 0}
+        pageCount={pagination?.totalPages || 1}
+        currentPage={page}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        pageSize={limit}
         actions={{ onRefresh: () => refetch() }}
+        toolbar={
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="???? ?? ????? ???? ?? ????"
+              className="h-10 w-72 rounded-xl border border-border bg-accent/20 px-10 text-sm outline-none ring-primary transition focus:ring-1"
+            />
+          </div>
+        }
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

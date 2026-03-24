@@ -1,6 +1,5 @@
 import React from 'react';
 // import removed
-import { ToastProvider } from '../contexts/toast-context';
 import { WebSocketProvider } from '../contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
 
@@ -17,11 +16,9 @@ export function CombinedProviders({ children }: { readonly children: React.React
   return (
     <>
       <ClientLayoutProvider>
-        <ToastProvider>
-          <WebSocketProvider>
-            {children}
-          </WebSocketProvider>
-        </ToastProvider>
+        <WebSocketProvider>
+          {children}
+        </WebSocketProvider>
       </ClientLayoutProvider>
     </>
   );

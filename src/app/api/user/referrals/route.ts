@@ -38,7 +38,7 @@ export async function GET(req: Request) {
     });
 
     // Let's refine the schema to be better, but for now I'll just fetch based on referredId 
-    const history = await Promise.all(rewards.map(async (r) => {
+    const history = await Promise.all(rewards.map(async (r: any) => {
         const referred = await prisma.user.findUnique({
             where: { id: r.referredId },
             select: { name: true, email: true }
@@ -46,7 +46,7 @@ export async function GET(req: Request) {
         return { ...r, referred };
     }));
 
-    const totalEarned = rewards.reduce((sum, r) => sum + r.amount, 0);
+    const totalEarned = rewards.reduce((sum: number, r: any) => sum + r.amount, 0);
 
     return NextResponse.json({
         referralCode: user.referralCode,

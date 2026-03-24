@@ -4,20 +4,17 @@ import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  Clock, 
-  Users, 
-  Star, 
-  BookOpen, 
-  PlayCircle,
-  ChevronLeft,
+import {
   Bookmark,
-  GraduationCap,
+  BookOpen,
+  Clock,
+  Layers3,
   Loader2,
-  Zap,
-  Sword,
+  PlayCircle,
   Shield,
-  Sparkles
+  Star,
+  Users,
+  Zap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,14 +49,12 @@ const levelConfig: Record<string, { label: string; color: string; bgColor: strin
   MEDIUM: { label: "متوسط", color: "text-amber-400", bgColor: "bg-amber-400/10" },
   ADVANCED: { label: "متقدم", color: "text-rose-400", bgColor: "bg-rose-400/10" },
   HARD: { label: "صعب", color: "text-rose-400", bgColor: "bg-rose-400/10" },
-  EXPERT: { label: "أستاذ", color: "text-purple-400", bgColor: "bg-purple-400/10" }
+  EXPERT: { label: "خبير", color: "text-purple-400", bgColor: "bg-purple-400/10" },
 };
 
 const STYLES = {
-  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
-  card: "rpg-card h-full flex flex-col group",
+  card: "group flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
   neonText: "rpg-neon-text font-black",
-  goldText: "rpg-gold-text font-black"
 };
 
 export const CourseCard: React.FC<CourseCardProps> = ({
@@ -82,165 +77,189 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   onUnenroll,
   isProcessing = false,
   featured = false,
-  index = 0
+  index = 0,
 }) => {
   const levelInfo = levelConfig[level] || levelConfig.INTERMEDIATE;
+  const safeProgress = Math.max(0, Math.min(progress ?? 0, 100));
+  const visibleTags = tags.slice(0, 2);
 
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      whileHover={{ y: -10 }}
+      whileHover={{ y: -8 }}
       className={STYLES.card + (featured ? " ring-2 ring-primary/40 shadow-[0_0_30px_rgba(var(--primary),0.2)]" : "")}
+      dir="rtl"
     >
-      {/* Thumbnail Area */}
-      <div className="relative h-56 overflow-hidden">
+      <div className="relative h-52 overflow-hidden sm:h-56">
         {thumbnailUrl ? (
-          <Image 
-            src={thumbnailUrl} 
-            alt={title} 
+          <Image
+            src={thumbnailUrl}
+            alt={title}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            className="object-cover transition-transform duration-700 group-hover:scale-110" 
+            className="object-cover transition-transform duration-700 group-hover:scale-110"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-tr from-black via-[#0f172a] to-[#1e1b4b] flex items-center justify-center">
-             <BookOpen className="w-20 h-20 text-white/10 group-hover:scale-110 transition-transform duration-700" />
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-tr from-black via-[#0f172a] to-[#1e1b4b]">
+            <BookOpen className="h-20 w-20 text-white/10 transition-transform duration-700 group-hover:scale-110" />
           </div>
         )}
-        
-        {/* Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-        
-        {/* Badges */}
-        <div className="absolute top-4 right-4 flex flex-col gap-2">
-           {featured && (
-             <Badge className="bg-amber-500 text-black font-black px-3 py-1 border-2 border-black/20 shadow-lg flex items-center gap-1">
-                <Star className="w-3 h-3 fill-current" />
-                <span>مخطوطة ممتازة</span>
-             </Badge>
-           )}
-           <Badge className="bg-white/10 backdrop-blur-xl border border-white/10 text-white font-bold py-1 px-3">
+
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-90" />
+
+        <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-3">
+          <div className="flex flex-wrap gap-2">
+            <Badge className="border border-white/10 bg-white/10 px-3 py-1 font-bold text-white backdrop-blur-xl">
               {subject}
-           </Badge>
+            </Badge>
+            {lessonsCount ? (
+              <Badge className="border border-white/10 bg-black/35 px-3 py-1 font-bold text-white backdrop-blur-xl">
+                <Layers3 className="ml-1 h-3.5 w-3.5" />
+                {lessonsCount} درس
+              </Badge>
+            ) : null}
+          </div>
+
+          {featured ? (
+            <Badge className="flex items-center gap-1 border-2 border-black/20 bg-amber-500 px-3 py-1 font-black text-black shadow-lg">
+              <Star className="h-3 w-3 fill-current" />
+              <span>مميزة</span>
+            </Badge>
+          ) : null}
         </div>
 
         <div className="absolute bottom-4 right-4">
-           <Badge className={`${levelInfo.bgColor} ${levelInfo.color} border border-white/5 font-black px-3 py-1 uppercase tracking-widest text-[10px]`}>
-              {levelInfo.label}
-           </Badge>
+          <Badge className={`${levelInfo.bgColor} ${levelInfo.color} border border-white/5 px-3 py-1 text-[10px] font-black uppercase tracking-widest`}>
+            {levelInfo.label}
+          </Badge>
         </div>
 
-        {/* Play Icon on Hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 transform scale-50 group-hover:scale-100">
-           <div className="h-16 w-16 rounded-full bg-primary/20 backdrop-blur-3xl border border-primary/50 flex items-center justify-center">
-              <PlayCircle className="w-10 h-10 text-primary fill-primary/20" />
-           </div>
+        <div className="absolute inset-0 flex scale-50 items-center justify-center opacity-0 transition-all duration-300 group-hover:scale-100 group-hover:opacity-100">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-primary/50 bg-primary/20 backdrop-blur-3xl">
+            <PlayCircle className="h-10 w-10 fill-primary/20 text-primary" />
+          </div>
         </div>
       </div>
 
-      {/* Content Area */}
-      <div className="p-6 flex flex-col flex-grow gap-4 text-right" dir="rtl">
-        
-        {/* Progress for enrolled */}
-        {enrolled && progress !== undefined && (
+      <div className="flex flex-1 flex-col gap-4 p-5 text-right sm:p-6">
+        {enrolled && progress !== undefined ? (
           <div className="space-y-1.5">
             <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-               <span className="text-gray-500">معدل التزامن</span>
-               <span className="text-primary">{progress}%</span>
+              <span className="text-gray-500">معدل التقدم</span>
+              <span className="text-primary">{safeProgress}%</span>
             </div>
-            <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-               <motion.div 
-                 initial={{ width: 0 }}
-                 animate={{ width: `${progress}%` }}
-                 className="h-full bg-gradient-to-r from-primary to-purple-600"
-               />
+            <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${safeProgress}%` }}
+                className="h-full bg-gradient-to-r from-primary to-purple-600"
+              />
             </div>
           </div>
-        )}
+        ) : null}
 
         <div className="space-y-2">
-           <Link href={`/courses/${id}`}>
-              <h3 className="text-xl font-black text-white leading-snug group-hover:text-primary transition-colors line-clamp-2">
-                {title}
-              </h3>
-           </Link>
-           <div className="flex items-center gap-2 text-xs text-gray-500 font-bold uppercase">
-              <span className="w-5 h-5 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-[10px]">
-                 {instructor.charAt(0)}
+          <Link href={`/courses/${id}`} className="block">
+            <h3 className="line-clamp-2 text-lg font-black leading-snug text-white transition-colors group-hover:text-primary sm:text-xl">
+              {title}
+            </h3>
+          </Link>
+
+          <div className="flex items-center gap-2 text-xs font-bold uppercase text-gray-500">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full border border-white/10 bg-white/5 text-[10px]">
+              {instructor.charAt(0)}
+            </span>
+            <span className="line-clamp-1">بواسطة: {instructor}</span>
+          </div>
+        </div>
+
+        <p className="line-clamp-2 text-sm leading-relaxed text-gray-400">{description}</p>
+
+        {visibleTags.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {visibleTags.map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold text-gray-300"
+              >
+                {tag}
               </span>
-              <span>بواسطة: {instructor}</span>
-           </div>
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-auto grid grid-cols-2 gap-3 border-t border-white/5 pt-4 text-sm sm:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="mb-2 flex items-center gap-1.5">
+              <Star className="h-4 w-4 fill-amber-500 text-amber-500" />
+              <span className="text-[11px] font-bold text-gray-500">التقييم</span>
+            </div>
+            <span className="text-sm font-black text-white">{rating.toFixed(1)}</span>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div className="mb-2 flex items-center gap-1.5">
+              <Users className="h-4 w-4 text-gray-500" />
+              <span className="text-[11px] font-bold text-gray-500">الطلاب</span>
+            </div>
+            <span className="text-sm font-black text-white">{enrolledCount.toLocaleString()}</span>
+          </div>
+
+          <div className="col-span-2 rounded-2xl border border-white/10 bg-white/5 p-3 sm:col-span-1">
+            <div className="mb-2 flex items-center gap-1.5">
+              <Clock className="h-4 w-4 text-gray-500" />
+              <span className="text-[11px] font-bold text-gray-500">المدة</span>
+            </div>
+            <span className="text-sm font-black text-white">{duration} ساعة</span>
+          </div>
         </div>
 
-        <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
-           {description}
-        </p>
-
-        <div className="flex items-center justify-between mt-auto pt-4 border-t border-white/5">
-           <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                 <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                 <span className="text-sm font-black text-white">{rating.toFixed(1)}</span>
+        <div className="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center sm:justify-between">
+          <div className="text-2xl font-black">
+            {price === 0 ? (
+              <span className={STYLES.neonText + " text-emerald-500"}>مجاني</span>
+            ) : (
+              <div className="flex items-baseline gap-1">
+                <span className="text-white">{price}</span>
+                <span className="text-xs font-bold text-gray-500">EGP</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                 <Users className="w-4 h-4 text-gray-500" />
-                 <span className="text-sm font-bold text-gray-400">{enrolledCount.toLocaleString()}</span>
-              </div>
-           </div>
-           
-           <div className="flex items-center gap-1.5 text-gray-400">
-              <Clock className="w-4 h-4" />
-              <span className="text-xs font-bold">{duration} ساعة</span>
-           </div>
-        </div>
+            )}
+          </div>
 
-        {/* Footer Actions */}
-        <div className="flex items-center justify-between gap-3 pt-2">
-           <div className="text-2xl font-black">
-              {price === 0 ? (
-                <span className={STYLES.neonText + " text-emerald-500"}>مجاني</span>
-              ) : (
-                <div className="flex items-baseline gap-1">
-                   <span className="text-white">{price}</span>
-                   <span className="text-xs text-gray-500 font-bold">نقود</span>
-                </div>
-              )}
-           </div>
-
-           <div className="flex gap-2">
-              {enrolled ? (
+          <div className="flex gap-2 sm:min-w-[188px] sm:justify-end">
+            {enrolled ? (
+              <>
                 <Link href={`/courses/${id}`} className="flex-1">
-                   <Button className="w-full bg-white/10 hover:bg-white/20 text-white font-black rounded-xl border border-white/10 h-10 gap-2">
-                      <Zap className="w-4 h-4 fill-primary text-primary" />
-                      <span>دخول</span>
-                   </Button>
+                  <Button className="h-11 w-full gap-2 rounded-xl border border-white/10 bg-white/10 font-black text-white hover:bg-white/20">
+                    <Zap className="h-4 w-4 fill-primary text-primary" />
+                    <span>متابعة</span>
+                  </Button>
                 </Link>
-              ) : (
-                <Button 
-                   onClick={onEnroll}
-                   disabled={isProcessing}
-                   className="bg-primary hover:bg-primary/90 text-white font-black rounded-xl h-10 px-6 shadow-lg shadow-primary/20 gap-2"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onUnenroll}
+                  className="h-11 w-11 rounded-xl transition-colors hover:bg-red-500/10 hover:text-red-500"
                 >
-                   {isProcessing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-                   <span>سجل الآن</span>
+                  <Bookmark className="h-4 w-4 fill-current" />
                 </Button>
-              )}
-              {enrolled && (
-                <Button 
-                   variant="ghost" 
-                   size="icon" 
-                   onClick={onUnenroll}
-                   className="h-10 w-10 rounded-xl hover:bg-red-500/10 hover:text-red-500 transition-colors"
-                >
-                   <Bookmark className="w-4 h-4 fill-current" />
-                </Button>
-              )}
-           </div>
+              </>
+            ) : (
+              <Button
+                onClick={onEnroll}
+                disabled={isProcessing}
+                className="h-11 flex-1 gap-2 rounded-xl bg-primary px-6 font-black text-white shadow-lg shadow-primary/20 hover:bg-primary/90"
+              >
+                {isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
+                <span>سجل الآن</span>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
-    </motion.div>
+    </motion.article>
   );
 };
 

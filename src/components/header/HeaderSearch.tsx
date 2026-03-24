@@ -155,7 +155,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 				error instanceof Error ? error : new Error("Failed to load search preferences"),
 
-				{ showToast: false, logError: true, severity: "low" },
+				{ showToast: false, logToConsole: true, severity: "low" },
 
 				{ description: "تعذر تحميل تفضيلات البحث" }
 
@@ -331,7 +331,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 					showToast: true,
 
-					logError: true,
+					logToConsole: true,
 
 					severity: "medium",
 

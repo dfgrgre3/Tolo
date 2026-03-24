@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { EventBus } from '@/lib/event-bus';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
 import { ERROR_CODES } from '@/lib/error-codes';
 
 // GET all events
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       });
 
       // Transform the data to match the frontend structure
-      const transformedEvents = events.map((event) => ({
+      const transformedEvents = events.map((event: any) => ({
         id: event.id,
         title: event.title,
         description: event.description,
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
 // POST create a new event
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req: NextRequest) => {
-    return withAuth(req, async ({ userId }) => {
+    return withAuth(req, async ({ userId }: { userId: string }) => {
       try {
         const eventBus = new EventBus();
         const {

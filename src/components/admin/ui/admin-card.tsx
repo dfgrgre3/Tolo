@@ -100,36 +100,57 @@ export function AdminStatsCard({
   className,
 }: StatsCardProps) {
   return (
-    <AdminCard variant="gradient" className={cn("relative overflow-hidden", className)}>
-      {/* Background decoration */}
-      <div className="absolute -left-4 -top-4 h-24 w-24 rounded-full bg-gradient-to-br from-primary/5 to-transparent" />
+    <AdminCard 
+      variant="glass" 
+      className={cn(
+        "relative overflow-hidden group transition-all duration-500 hover:scale-[1.02] hover:shadow-2xl",
+        className
+      )}
+    >
+      {/* Dynamic Glow Effect */}
+      <div 
+        className={cn(
+          "absolute -right-8 -top-8 h-32 w-32 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40",
+          color === "blue" && "bg-blue-500",
+          color === "green" && "bg-emerald-500",
+          color === "yellow" && "bg-amber-500",
+          color === "red" && "bg-red-500",
+          color === "purple" && "bg-purple-500",
+          color === "default" && "bg-primary"
+        )} 
+      />
       
       <div className="relative">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className={cn("text-3xl font-bold tracking-tight", colorClasses[color])}>
-              {typeof value === "number" ? formatNumber(value) : value}
-            </p>
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">{title}</p>
+            <div className="flex items-baseline gap-1">
+              <p className={cn("text-4xl font-black tracking-tight drop-shadow-sm", colorClasses[color])}>
+                {typeof value === "number" ? formatNumber(value) : value}
+              </p>
+            </div>
           </div>
           {Icon && (
-            <div className={cn("flex h-12 w-12 items-center justify-center rounded-xl", iconBgClasses[color])}>
-              <Icon className={cn("h-6 w-6", colorClasses[color])} />
+            <div className={cn(
+              "flex h-14 w-14 items-center justify-center rounded-[1.25rem] border border-white/10 shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-3", 
+              iconBgClasses[color]
+            )}>
+              <Icon className={cn("h-7 w-7", colorClasses[color])} />
             </div>
           )}
         </div>
         
         {(description || trend) && (
-          <div className="mt-4 flex items-center gap-2">
+          <div className="mt-6 flex items-center gap-3">
             {trend && (
-              <span
+              <div
                 className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                  "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold border",
                   trend.isPositive
-                    ? "bg-green-500/10 text-green-600 dark:text-green-400"
+                    ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                     : trend.value === 0
-                    ? "bg-muted text-muted-foreground"
-                    : "bg-red-500/10 text-red-600 dark:text-red-400"
+                    ? "bg-muted text-muted-foreground border-border"
+                    : "bg-red-500/10 text-red-500 border-red-500/20"
                 )}
               >
                 {trend.value === 0 ? (
@@ -140,10 +161,10 @@ export function AdminStatsCard({
                   <TrendingDown className="h-3 w-3" />
                 )}
                 {Math.abs(trend.value)}%
-              </span>
+              </div>
             )}
             {description && (
-              <span className="text-xs text-muted-foreground">{description}</span>
+              <span className="text-[11px] font-bold text-muted-foreground/80 italic">{description}</span>
             )}
           </div>
         )}

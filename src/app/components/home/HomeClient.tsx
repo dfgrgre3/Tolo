@@ -59,14 +59,7 @@ export function HomeClient({ summary }: HomeClientProps) {
            }));
            setPerformanceMetrics(transformed);
         } else {
-             // Fallback/Mock Data
-             setPerformanceMetrics([
-                 { name: "speed", rpgName: "السرعة (Agility)", value: 92, target: 85, unit: "%", trend: "up", status: "excellent" },
-                 { name: "accuracy", rpgName: "الدقة (Precision)", value: 88, target: 90, unit: "%", trend: "stable", status: "good" },
-                 { name: "stamina", rpgName: "القدرة (Stamina)", value: 75, target: 80, unit: "%", trend: "down", status: "warning" },
-                 { name: "focus", rpgName: "التركيز (Focus)", value: 95, target: 90, unit: "%", trend: "up", status: "excellent" },
-                 { name: "xp_rate", rpgName: "معدل الخبرة (XP Rate)", value: 120, target: 100, unit: "xp/h", trend: "up", status: "excellent" },
-             ]);
+             setPerformanceMetrics([]);
         }
       } catch (err) {
         if (cancelled) return;
@@ -129,18 +122,18 @@ export function HomeClient({ summary }: HomeClientProps) {
       totalXP: authUser.totalXP ?? 0,
       level: authUser.level ?? 1,
       currentStreak: authUser.currentStreak ?? 0,
-      longestStreak: 0,
-      totalStudyTime: 0,
-      tasksCompleted: 0,
-      examsPassed: 0,
-      pomodoroSessions: 0,
-      deepWorkSessions: 0,
-      studyXP: 0,
-      taskXP: 0,
-      examXP: 0,
-      challengeXP: 0,
-      questXP: 0,
-      seasonXP: 0,
+      longestStreak: authUser.longestStreak ?? 0,
+      totalStudyTime: authUser.totalStudyTime ?? 0,
+      tasksCompleted: authUser.tasksCompleted ?? 0,
+      examsPassed: authUser.examsPassed ?? 0,
+      pomodoroSessions: authUser.pomodoroSessions ?? 0,
+      deepWorkSessions: authUser.deepWorkSessions ?? 0,
+      studyXP: authUser.studyXP ?? 0,
+      taskXP: authUser.taskXP ?? 0,
+      examXP: authUser.examXP ?? 0,
+      challengeXP: authUser.challengeXP ?? 0,
+      questXP: authUser.questXP ?? 0,
+      seasonXP: authUser.seasonXP ?? 0,
   };
 
   return (

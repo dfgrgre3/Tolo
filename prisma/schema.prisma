@@ -61,6 +61,7 @@ model User {
   questXP                       Int                   @default(0)
   seasonXP                      Int                   @default(0)
   role                          UserRole              @default(STUDENT)
+  status                        UserStatus            @default(ACTIVE)
   country                       String?
   dateOfBirth                   DateTime?
   gender                        String?
@@ -94,6 +95,7 @@ model User {
   contentPreferences            ContentPreference[]
   customGoals                   CustomGoal[]
   organizedEvents               Event[]               @relation("EventOrganizer")
+  organizedContests            Contest[]             @relation("ContestOrganizer")
   examResults                   ExamResult[]
   forumPosts                    ForumPost[]           @relation("ForumPostAuthor")
   forumReplies                  ForumReply[]          @relation("ForumReplyAuthor")
@@ -132,6 +134,8 @@ model User {
   user_preferences              user_preferences?
   announcements                 Announcement[]    @relation("AnnouncementAuthor")
   memberGroups                  GroupSubscription[]   @relation("GroupMembers")
+  reports                       ContentReport[]       @relation("UserReports")
+
 
   @@index([role])
   @@index([totalXP(sort: Desc)])
@@ -800,7 +804,10 @@ model Subject {
   certificates       SubjectCertificate[]
   enrollments        SubjectEnrollment[]
   reviews            SubjectReview[]
+  reports            ContentReport[]
   tasks              Task[]
+
+
   teachers           Teacher[]
   topics             Topic[]
   userGrades         UserGrade[]
@@ -1043,13 +1050,69 @@ model Contest {
   id          String   @id @default(cuid())
   title       String
   description String?
+  imageUrl    String?
+  category    String?
+  tags        String[]
   startDate   DateTime
   endDate     DateTime
   rules       String?
   prizes      String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  isActive    Boolean       @default(true)
+  status      ContestStatus @default(DRAFT)
+  createdAt   DateTime      @default(now())
   updatedAt   DateTime @updatedAt
+  pinCode     String?  @unique
+  questions   ContestQuestion[]
+  organizerId String?
+  organizer   User?    @relation("ContestOrganizer", fields: [organizerId], references: [id])
+}
+
+model ContestQuestion {
+  id            String   @id @default(cuid())
+  contestId     String
+  question      String
+  correctAnswer String
+  options       String[]
+  duration      Int      @default(30)
+  points        Int      @default(100)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  contest       Contest  @relation(fields: [contestId], references: [id], onDelete: Cascade)
+}
+
+model Experiment {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?
+  status       String   @default("draft")
+  variantAName String
+  variantBName String
+  variantAViews Int     @default(0)
+  variantAComps Int     @default(0)
+  variantBViews Int     @default(0)
+  variantBComps Int     @default(0)
+  startDate    DateTime @default(now())
+  endDate      DateTime?
+  createdBy    String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model MarketingCampaign {
+  id             String   @id @default(cuid())
+  title          String
+  content        String
+  audience       String
+  rewardType     String
+  rewardValue    Float?
+  status         String   @default("draft")
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  deliveredCount Int      @default(0)
+  openedCount    Int      @default(0)
+  claimedCount   Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
 
 model Schedule {
@@ -1459,6 +1522,33 @@ model user_preferences {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now())
   User          User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model ContentReport {
+  id          String   @id @default(cuid())
+  userId      String
+  targetId    String   // ID of the video, exam, or lesson
+  targetType  String   // "VIDEO", "EXAM", "LESSON", "BOOK"
+  subjectId   String?
+  issueType   String   // "ERROR", "TYPO", "VIDEO_ISSUE", "OTHER"
+  description String
+  status      String   @default("PENDING") // PENDING, INVESTIGATING, RESOLVED, DISMISSED
+  adminNote   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation("UserReports", fields: [userId], references: [id], onDelete: Cascade)
+  subject     Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+
+  @@index([targetId])
+  @@index([status])
+  @@index([userId])
+}
+
+enum ContestStatus {
+  DRAFT
+  WAITING
+  IN_PROGRESS
+  FINISHED
 }
 
 enum UserRole {

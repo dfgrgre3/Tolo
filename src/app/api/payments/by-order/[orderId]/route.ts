@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
-export async function GET(req: Request, { params }: { params: { orderId: string } }) {
+export async function GET(req: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
-    const { orderId } = params;
+    const { orderId } = await params;
     
     // Find payment by Order ID (Paymob)
     const payment = await prisma.payment.findFirst({

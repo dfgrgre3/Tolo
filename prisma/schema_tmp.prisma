@@ -1,0 +1,142 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                            String                @id @default(cuid())
+  email                         String                @unique
+  name                          String?
+  username                      String?
+  avatar                        String?
+  passwordHash                  String
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
+  wakeUpTime                    String?
+  sleepTime                     String?
+  focusStrategy                 String?               @default("POMODORO")
+  emailNotifications            Boolean?              @default(true)
+  emailVerificationToken        String?
+  emailVerificationExpires      DateTime?
+  emailVerified                 Boolean?              @default(false)
+  lastLogin                     DateTime?
+  phone                         String?
+  phoneVerified                 Boolean?              @default(false)
+  phoneVerificationOTP          String?
+  phoneVerificationExpires      DateTime?
+  phoneVerificationAttempts     Int                   @default(0)
+  phoneVerificationLastSent     DateTime?
+  resetToken                    String?
+  resetTokenExpires             DateTime?
+  twoFactorEnabled              Boolean               @default(false)
+  twoFactorSecret               String?
+  recoveryCodes                 String?
+  smsNotifications              Boolean?              @default(false)
+  biometricEnabled              Boolean               @default(false)
+  magicLinkToken                String?
+  magicLinkExpires              DateTime?
+  googleId                      String?               @unique
+  githubId                      String?               @unique
+  passwordChangedAt             DateTime?
+  passwordExpiresAt             DateTime?
+  passwordExpirationWarningSent Boolean               @default(false)
+  totalXP                       Int                   @default(0)
+  level                         Int                   @default(1)
+  currentStreak                 Int                   @default(0)
+  longestStreak                 Int                   @default(0)
+  totalStudyTime                Int                   @default(0)
+  tasksCompleted                Int                   @default(0)
+  examsPassed                   Int                   @default(0)
+  pomodoroSessions              Int                   @default(0)
+  deepWorkSessions              Int                   @default(0)
+  studyXP                       Int                   @default(0)
+  taskXP                        Int                   @default(0)
+  examXP                        Int                   @default(0)
+  challengeXP                   Int                   @default(0)
+  questXP                       Int                   @default(0)
+  seasonXP                      Int                   @default(0)
+  role                          UserRole              @default(STUDENT)
+  country                       String?
+  dateOfBirth                   DateTime?
+  gender                        String?
+  alternativePhone              String?
+  gradeLevel                    String?
+  educationType                 String?
+  section                       String?
+  interestedSubjects            String[]              @default([])
+  studyGoal                     String?
+  subjectsTaught                String[]              @default([])
+  classesTaught                 String[]              @default([])
+  experienceYears               String?
+  bio                           String?
+  permissions                   String[]              @default([])
+  school                        String?
+  balance                       Float                 @default(0)
+  referralCode                  String?               @unique
+  referredById                  String?
+  additionalAiCredits           Int                   @default(0)
+  additionalExamCredits         Int                   @default(0)
+  aiChatMessages                AiChatMessage[]
+  aiGeneratedContent            AiGeneratedContent[]
+  aiGeneratedExams              AiGeneratedExam[]
+  automationLogs                AutomationLog[]
+  biometricCredentials          BiometricCredential[]
+  blogPosts                     BlogPost[]            @relation("BlogPostAuthor")
+  uploadedBooks                 Book[]                @relation("BookUploader")
+  bookProgresses                BookProgress[]
+  bookReviews                   BookReview[]
+  challengeCompletions          ChallengeCompletion[]
+  contentPreferences            ContentPreference[]
+  customGoals                   CustomGoal[]
+  organizedEvents               Event[]               @relation("EventOrganizer")
+  examResults                   ExamResult[]
+  forumPosts                    ForumPost[]           @relation("ForumPostAuthor")
+  forumReplies                  ForumReply[]          @relation("ForumReplyAuthor")
+  ownedGroup                    GroupSubscription?    @relation("GroupOwner")
+  leaderboardEntries            LeaderboardEntry[]
+  lessonAnswers                 LessonAnswer[]
+  lessonNotes                   LessonNote[]
+  lessonQuestions               LessonQuestion[]
+  mlRecommendations             MlRecommendation[]
+  notifications                 Notification[]
+  offlineLessons                OfflineLesson[]
+  passwordHistory               PasswordHistory[]
+  payments                      Payment[]             @relation("UserPayments")
+  progressSnapshots             ProgressSnapshot[]
+  questProgresses               QuestProgress[]
+  referralRewards               ReferralReward[]      @relation("UserReferrer")
+  reminders                     Reminder[]
+  schedules                     Schedule[]
+  seasonParticipations          SeasonParticipation[]
+  securityLogs                  SecurityLog[]
+  securityQuestions             SecurityQuestion[]
+  sentimentAnalyses             SentimentAnalysis[]
+  sessions                      Session[]
+  studySessions                 StudySession[]
+  certificates                  SubjectCertificate[]
+  subjectEnrollments            SubjectEnrollment[]
+  reviews                       SubjectReview[]
+  subscriptions                 Subscription[]        @relation("UserSubscription")
+  tasks                         Task[]
+  referredBy                    User?                 @relation("ReferralStory", fields: [referredById], references: [id])
+  referrals                     User[]                @relation("ReferralStory")
+  achievements                  UserAchievement[]
+  userGrades                    UserGrade[]
+  userInteractions              UserInteraction[]
+  userRewards                   UserReward[]
+  user_preferences              user_preferences?
+  announcements                 Announcement[]    @relation("AnnouncementAuthor")
+  memberGroups                  GroupSubscription[]   @relation("GroupMembers")
+  reports                       ContentReport[]       @relation("UserReports")
+
+  @@index([role])
+  @@index([totalXP(sort: Desc)])
+  @@index([level])
+  @@index([lastLogin])
+  @@index([emailVerified])
+}

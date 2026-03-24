@@ -3,15 +3,15 @@
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  CheckCircle2, 
-  BookOpen, 
-  FileText, 
-  MessageSquare, 
+import {
+  CheckCircle2,
+  BookOpen,
+  FileText,
+  MessageSquare,
   Award,
   Clock,
-  TrendingUp
-} from "lucide-react";
+  TrendingUp } from
+"lucide-react";
 
 interface Activity {
   id: string;
@@ -31,15 +31,7 @@ const activityIcons = {
   course: BookOpen,
   exam: FileText,
   forum: MessageSquare,
-  achievement: Award,
-};
-
-const activityColors = {
-  task: "from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800",
-  course: "from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800",
-  exam: "from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800",
-  forum: "from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800",
-  achievement: "from-yellow-50 to-yellow-100 dark:from-yellow-950 dark:to-yellow-900 border-yellow-200 dark:border-yellow-800",
+  achievement: Award
 };
 
 const activityBadgeColors = {
@@ -47,7 +39,7 @@ const activityBadgeColors = {
   course: "bg-blue-500 text-white",
   exam: "bg-purple-500 text-white",
   forum: "bg-orange-500 text-white",
-  achievement: "bg-yellow-500 text-yellow-900",
+  achievement: "bg-yellow-500 text-yellow-900"
 };
 
 const activityLabels = {
@@ -55,7 +47,7 @@ const activityLabels = {
   course: "دورة",
   exam: "امتحان",
   forum: "منتدى",
-  achievement: "إنجاز",
+  achievement: "إنجاز"
 };
 
 export function RecentActivity({ activities }: RecentActivityProps) {
@@ -75,16 +67,16 @@ export function RecentActivity({ activities }: RecentActivityProps) {
             <p className="text-sm mt-1">ابدأ بالتعلم والمشاركة في المنصة</p>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>);
+
   }
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
+      transition={{ duration: 0.5 }}>
+      
       <Card className="shadow-xl border-2 border-primary/10">
         <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
           <CardTitle className="flex items-center gap-2 text-primary">
@@ -103,15 +95,15 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                   className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r border hover:shadow-lg transition-shadow"
-                  style={{ 
+                  style={{
                     background: `linear-gradient(to right, var(--${activity.type}-50), var(--${activity.type}-100))`,
                     borderColor: `var(--${activity.type}-200)`
-                  }}
-                >
+                  }}>
+                  
                   <motion.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
-                    className="flex-shrink-0"
-                  >
+                    className="flex-shrink-0">
+                    
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white shadow-lg">
                       <Icon className="h-6 w-6" />
                     </div>
@@ -137,23 +129,23 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                             month: "long",
                             day: "numeric",
                             hour: "2-digit",
-                            minute: "2-digit",
+                            minute: "2-digit"
                           })}
                         </span>
                       </div>
-                      {activity.xp && (
-                        <Badge variant="outline" className="text-xs">
+                      {activity.xp &&
+                      <Badge variant="outline" className="text-xs">
                           +{activity.xp} XP
                         </Badge>
-                      )}
+                      }
                     </div>
                   </div>
-                </motion.div>
-              );
+                </motion.div>);
+
             })}
           </div>
         </CardContent>
       </Card>
-    </motion.div>
-  );
+    </motion.div>);
+
 }

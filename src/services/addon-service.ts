@@ -24,7 +24,7 @@ export class AddonService {
     }
 
     // 1. Transaction to deduct balance and add credits
-    return await prisma.$transaction(async (tx) => {
+    return await prisma.$transaction(async (tx: any) => {
       // Deduct balance
       await tx.user.update({
         where: { id: userId },

@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { prisma } from '@/lib/db';
+import { handleApiError } from '@/lib/api-utils';
 
 /**
  * GET /api/analytics/predictions
- * Get AI-powered progress predictions
+ * Get AI-powered progress predictions based on real user data
  */
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -18,58 +20,49 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         );
       }
-    
-    // In production, this would:
-    // 1. Analyze user's historical performance data
-    // 2. Use ML models to predict future performance
-    // 3. Generate personalized milestones and recommendations
-    
-    // Mock data for now
-    const predictions = [
-      {
-        period: "الأسبوع القادم",
-        predictedScore: 87,
-        confidence: 85,
-        milestones: [
-          { date: "2024-01-15", goal: "إكمال 20 ساعة دراسة", status: "upcoming" },
-          { date: "2024-01-18", goal: "مراجعة جميع الدروس", status: "upcoming" },
-          { date: "2024-01-20", goal: "اختبار تجريبي", status: "upcoming" }
-        ],
-        recommendations: [
-          "ركز على مراجعة المواد الضعيفة لمدة 30 دقيقة يومياً",
-          "احرص على جلسات دراسة قصيرة متكررة",
-          "خذ استراحات منتظمة للحفاظ على التركيز"
-        ]
-      },
-      {
-        period: "الشهر القادم",
-        predictedScore: 92,
-        confidence: 78,
-        milestones: [
-          { date: "2024-01-25", goal: "إكمال 100 ساعة إجمالية", status: "upcoming" },
-          { date: "2024-02-01", goal: "إنجاز سلسلة 30 يوم", status: "upcoming" },
-          { date: "2024-02-10", goal: "اختبار منتصف الفصل", status: "upcoming" }
-        ],
-        recommendations: [
-          "استمر في الالتزام بجدولك الدراسي اليومي",
-          "شارك في المناقشات الجماعية لتعزيز الفهم",
-          "استخدم تقنيات الاستذكار المتقدم"
-        ]
-      }
-    ];
 
-    return NextResponse.json({
-      success: true,
-      predictions,
-      timestamp: new Date().toISOString()
-    });
-  } catch (error) {
-    logger.error('Error generating predictions:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate predictions' },
-      { status: 500 }
-    );
+      const user = await prisma.user.findUnique({
+        where: { id: userId as string },
+        select: {
+          totalXP: true,
+          level: true,
+          totalStudyTime: true,
+          tasksCompleted: true,
+          currentStreak: true,
+        }
+      });
+
+      if (!user) {
+        return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      }
+
+      // Base prediction on real user data
+      const xpPerTask = user.tasksCompleted > 0 ? user.totalXP / user.tasksCompleted : 50;
+      const confidence = Math.min(95, 60 + (user.currentStreak * 2));
+
+      const predictions = [
+        {
+          period: "الأسبوع القادم",
+          predictedScore: Math.min(100, 70 + (user.level * 2)),
+          confidence,
+          milestones: [
+            { date: new Date(Date.now() + 7 * 86400000).toISOString(), goal: `الوصول إلى مستوى ${user.level + 1}`, status: "upcoming" },
+            { date: new Date(Date.now() + 3 * 86400000).toISOString(), goal: "إكمال 5 مهام جديدة", status: "upcoming" },
+          ],
+          recommendations: user.totalStudyTime < 100 
+            ? ["تحتاج إلى زيادة وقت المذاكرة اليومي بمقدار 15 دقيقة", "ابدأ بمهام صغيرة لزيادة الزخم"]
+            : ["استمر في هذا الأداء الرائع!", "حاول تنويع المواد الدراسية لتجنب الملل"]
+        }
+      ];
+
+      return NextResponse.json({
+        success: true,
+        predictions,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      logger.error('Error generating predictions:', error);
+      return handleApiError(error);
     }
   });
 }
-

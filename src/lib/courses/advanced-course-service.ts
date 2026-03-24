@@ -36,14 +36,14 @@ export async function getCourseCurriculum(subjectId: string, userId?: string) {
     },
   });
 
-  const progressMap = new Map(progress.map((p) => [p.subTopicId, p]));
+  const progressMap = new Map(progress.map((p: any) => [p.subTopicId, p]));
 
-  return topics.map((topic) => ({
+  return topics.map((topic: any) => ({
     ...topic,
-    subTopics: topic.subTopics.map((subTopic) => ({
+    subTopics: topic.subTopics.map((subTopic: any) => ({
       ...subTopic,
-      completed: progressMap.get(subTopic.id)?.completed ?? false,
-      completedAt: progressMap.get(subTopic.id)?.completedAt ?? null,
+      completed: (progressMap.get(subTopic.id) as any)?.completed ?? false,
+      completedAt: (progressMap.get(subTopic.id) as any)?.completedAt ?? null,
     })),
   }));
 }
@@ -70,15 +70,15 @@ export async function getCourseStats(subjectId: string) {
 
   if (!subject) return null;
 
-  const totalLessons = subject.topics.reduce((acc, t) => acc + t.subTopics.length, 0);
+  const totalLessons = subject.topics.reduce((acc: number, t: any) => acc + t.subTopics.length, 0);
   const totalDuration = subject.topics.reduce(
-    (acc, t) => acc + t.subTopics.reduce((subAcc, st) => subAcc + (st.duration || 0), 0),
+    (acc: number, t: any) => acc + t.subTopics.reduce((subAcc: number, st: any) => subAcc + (st.duration || 0), 0),
     0
   );
 
   const avgRating =
     subject.reviews.length > 0
-      ? subject.reviews.reduce((acc, r) => acc + r.rating, 0) / subject.reviews.length
+      ? subject.reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / subject.reviews.length
       : subject.rating || 0;
 
   return {

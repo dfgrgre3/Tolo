@@ -2,20 +2,19 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Calendar, 
+import { Button } from "@/components/ui/button";
+import {
+  BarChart3,
   Clock,
   Target,
   Award,
   Activity,
   Download,
   Bell,
-  BookOpen
+  BookOpen,
 } from 'lucide-react';
-import { Button } from "@/components/ui/button";
 import type { Task, StudySession, Reminder, TimeStats } from '../types';
+import { startOfWeek } from 'date-fns';
 
 interface AdvancedReportsProps {
   tasks: Task[];
@@ -34,34 +33,34 @@ export default function AdvancedReports({
 }: AdvancedReportsProps) {
   // Calculate advanced metrics
   const totalTasks = tasks.length;
-  const completedTasks = tasks.filter(t => t.status === 'COMPLETED').length;
-  const inProgressTasks = tasks.filter(t => t.status === 'IN_PROGRESS').length;
-  const pendingTasks = tasks.filter(t => t.status === 'PENDING').length;
-  
-  const completionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
-  
+  const completedTasks = tasks.filter((t) => t.status === 'COMPLETED').length;
+  const inProgressTasks = tasks.filter((t) => t.status === 'IN_PROGRESS').length;
+  const pendingTasks = tasks.filter((t) => t.status === 'PENDING').length;
+
+  const completionRate = totalTasks > 0 ? completedTasks / totalTasks * 100 : 0;
+
   // Time analysis
   const totalStudyMinutes = studySessions.reduce((acc, s) => acc + s.durationMin, 0);
-  const avgSessionDuration = studySessions.length > 0 
-    ? Math.round(totalStudyMinutes / studySessions.length) 
-    : 0;
-  
+  const avgSessionDuration = studySessions.length > 0 ?
+  Math.round(totalStudyMinutes / studySessions.length) :
+  0;
+
   // Task priority distribution
-  const highPriorityTasks = tasks.filter(t => t.priority === 'HIGH' || t.priority === 'URGENT').length;
-  const mediumPriorityTasks = tasks.filter(t => t.priority === 'MEDIUM').length;
-  const lowPriorityTasks = tasks.filter(t => t.priority === 'LOW').length;
-  
+  const highPriorityTasks = tasks.filter((t) => t.priority === 'HIGH' || t.priority === 'URGENT').length;
+  const mediumPriorityTasks = tasks.filter((t) => t.priority === 'MEDIUM').length;
+  const lowPriorityTasks = tasks.filter((t) => t.priority === 'LOW').length;
+
   // Weekly progress
   const now = new Date();
-  const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
-  const weekSessions = studySessions.filter(s => 
+  const weekStart = startOfWeek(now, { weekStartsOn: 0 }); // Start week on Sunday
+  const weekSessions = studySessions.filter((s) =>
     new Date(s.startTime) >= weekStart
   );
   const weekMinutes = weekSessions.reduce((acc, s) => acc + s.durationMin, 0);
-  
+
   // Subject distribution (if available)
   const subjectStats: Record<string, number> = {};
-  studySessions.forEach(session => {
+  studySessions.forEach((session) => {
     if (session.subject) {
       subjectStats[session.subject] = (subjectStats[session.subject] || 0) + session.durationMin;
     }
@@ -74,12 +73,12 @@ export default function AdvancedReports({
           <BarChart3 className="h-6 w-6 text-primary" />
           تقارير الأداء المتقدمة
         </h2>
-        {onExport && (
-          <Button onClick={onExport} variant="outline" size="sm">
+        {onExport &&
+        <Button onClick={onExport} variant="outline" size="sm">
             <Download className="h-4 w-4 ml-2" />
             تصدير التقرير
           </Button>
-        )}
+        }
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -97,21 +96,21 @@ export default function AdvancedReports({
                 <span>مكتملة</span>
                 <span className="font-bold text-green-600">{completedTasks}</span>
               </div>
-              <Progress value={(completedTasks / totalTasks) * 100 || 0} className="h-2" />
+              <Progress value={completedTasks / totalTasks * 100 || 0} className="h-2" />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>قيد التنفيذ</span>
                 <span className="font-bold text-blue-600">{inProgressTasks}</span>
               </div>
-              <Progress value={(inProgressTasks / totalTasks) * 100 || 0} className="h-2" />
+              <Progress value={inProgressTasks / totalTasks * 100 || 0} className="h-2" />
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>في الانتظار</span>
                 <span className="font-bold text-yellow-600">{pendingTasks}</span>
               </div>
-              <Progress value={(pendingTasks / totalTasks) * 100 || 0} className="h-2" />
+              <Progress value={pendingTasks / totalTasks * 100 || 0} className="h-2" />
             </div>
             <div className="pt-2 border-t">
               <div className="flex justify-between items-center">
@@ -204,30 +203,30 @@ export default function AdvancedReports({
                 <span>عالية / عاجلة</span>
                 <span className="font-bold text-red-600">{highPriorityTasks}</span>
               </div>
-              <Progress 
-                value={totalTasks > 0 ? (highPriorityTasks / totalTasks) * 100 : 0} 
-                className="h-2" 
-              />
+              <Progress
+                value={totalTasks > 0 ? highPriorityTasks / totalTasks * 100 : 0}
+                className="h-2" />
+              
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>متوسطة</span>
                 <span className="font-bold text-yellow-600">{mediumPriorityTasks}</span>
               </div>
-              <Progress 
-                value={totalTasks > 0 ? (mediumPriorityTasks / totalTasks) * 100 : 0} 
-                className="h-2" 
-              />
+              <Progress
+                value={totalTasks > 0 ? mediumPriorityTasks / totalTasks * 100 : 0}
+                className="h-2" />
+              
             </div>
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span>منخفضة</span>
                 <span className="font-bold text-green-600">{lowPriorityTasks}</span>
               </div>
-              <Progress 
-                value={totalTasks > 0 ? (lowPriorityTasks / totalTasks) * 100 : 0} 
-                className="h-2" 
-              />
+              <Progress
+                value={totalTasks > 0 ? lowPriorityTasks / totalTasks * 100 : 0}
+                className="h-2" />
+              
             </div>
           </CardContent>
         </Card>
@@ -257,7 +256,7 @@ export default function AdvancedReports({
               <div className="flex justify-between">
                 <span className="text-sm">التذكيرات المكتملة</span>
                 <span className="font-bold text-green-600">
-                  {reminders.filter(r => r.isCompleted).length}
+                  {reminders.filter((r) => r.isCompleted).length}
                 </span>
               </div>
             </div>
@@ -265,7 +264,7 @@ export default function AdvancedReports({
               <div className="flex justify-between">
                 <span className="text-sm">التذكيرات المتكررة</span>
                 <span className="font-bold text-blue-600">
-                  {reminders.filter(r => r.isRecurring).length}
+                  {reminders.filter((r) => r.isRecurring).length}
                 </span>
               </div>
             </div>
@@ -273,8 +272,8 @@ export default function AdvancedReports({
         </Card>
 
         {/* Subject Distribution */}
-        {Object.keys(subjectStats).length > 0 && (
-          <Card className="border-2 border-indigo-200 dark:border-indigo-800">
+        {Object.keys(subjectStats).length > 0 &&
+        <Card className="border-2 border-indigo-200 dark:border-indigo-800">
             <CardHeader className="bg-gradient-to-r from-indigo-50 to-indigo-100 dark:from-indigo-950/30 dark:to-indigo-900/30">
               <CardTitle className="flex items-center text-lg">
                 <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400 ml-2" />
@@ -282,26 +281,25 @@ export default function AdvancedReports({
               </CardTitle>
             </CardHeader>
             <CardContent className="p-4 space-y-3">
-              {Object.entries(subjectStats)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5)
-                .map(([subject, minutes]) => (
-                  <div key={subject} className="space-y-2">
+              {Object.entries(subjectStats).
+            sort((a, b) => b[1] - a[1]).
+            slice(0, 5).
+            map(([subject, minutes]) =>
+            <div key={subject} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>{subject}</span>
                       <span className="font-bold">{Math.round(minutes / 60 * 10) / 10} ساعة</span>
                     </div>
-                    <Progress 
-                      value={(minutes / totalStudyMinutes) * 100 || 0} 
-                      className="h-2" 
-                    />
+                    <Progress
+                value={minutes / totalStudyMinutes * 100 || 0}
+                className="h-2" />
+              
                   </div>
-                ))}
+            )}
             </CardContent>
           </Card>
-        )}
+        }
       </div>
-    </div>
-  );
-}
+    </div>);
 
+}

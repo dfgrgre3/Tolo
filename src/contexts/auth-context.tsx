@@ -48,6 +48,18 @@ export interface AuthUser {
     totalXP?: number;
     level?: number;
     currentStreak?: number;
+    longestStreak?: number;
+    totalStudyTime?: number;
+    tasksCompleted?: number;
+    examsPassed?: number;
+    pomodoroSessions?: number;
+    deepWorkSessions?: number;
+    studyXP?: number;
+    taskXP?: number;
+    examXP?: number;
+    challengeXP?: number;
+    questXP?: number;
+    seasonXP?: number;
     permissions: string[];
 }
 

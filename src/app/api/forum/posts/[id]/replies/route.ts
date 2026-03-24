@@ -35,7 +35,7 @@ export async function GET(
       });
 
       // Transform the data to match the frontend structure
-      const transformedReplies = replies.map((reply) => ({
+      const transformedReplies = replies.map((reply: any) => ({
         id: reply.id,
         content: reply.content,
         authorName: reply.author.name,

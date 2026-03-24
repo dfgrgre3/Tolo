@@ -1,14 +1,14 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { AchievementStats as StatsType, AchievementCategory, AchievementDifficulty } from '../types';
+import { AchievementStats as StatsType, AchievementCategory } from '../types';
 import { getCategoryIcon, getCategoryLabel } from '../utils';
-import { Trophy, Target, Lock, TrendingUp, Award, Zap, Star, Shield, Sword, Sparkles, Scroll } from 'lucide-react';
+import { Trophy, Zap, Sparkles, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface AchievementStatsProps {
-	stats: StatsType | null;
-	userProgress: { totalXP: number; level: number } | null;
+  stats: StatsType | null;
+  userProgress: {totalXP: number;level: number;} | null;
 }
 
 const STYLES = {
@@ -19,14 +19,14 @@ const STYLES = {
 };
 
 export function AchievementStats({ stats, userProgress }: AchievementStatsProps) {
-	if (!stats) return null;
+  if (!stats) return null;
 
-	const circleRadius = 38;
-	const circleCircumference = 2 * Math.PI * circleRadius;
-	const strokeDashoffset = circleCircumference - (stats.completionPercentage / 100) * circleCircumference;
+  const circleRadius = 38;
+  const circleCircumference = 2 * Math.PI * circleRadius;
+  const strokeDashoffset = circleCircumference - stats.completionPercentage / 100 * circleCircumference;
 
-	return (
-		<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12" dir="rtl">
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12" dir="rtl">
 			
 			{/* --- Ancient Seal: Overall Completion --- */}
 			<Card className={STYLES.glass + " p-0 group flex flex-col items-center justify-center min-h-[250px]"}>
@@ -35,26 +35,26 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 					<div className="relative flex items-center justify-center">
 						<svg className="w-32 h-32 transform -rotate-90">
 							<circle
-								cx="64"
-								cy="64"
-								r={circleRadius}
-								className="stroke-white/5"
-								strokeWidth="10"
-								fill="none"
-							/>
+                cx="64"
+                cy="64"
+                r={circleRadius}
+                className="stroke-white/5"
+                strokeWidth="10"
+                fill="none" />
+              
 							<motion.circle
-								initial={{ strokeDashoffset: circleCircumference }}
-								animate={{ strokeDashoffset }}
-								transition={{ duration: 2, ease: "easeOut" }}
-								cx="64"
-								cy="64"
-								r={circleRadius}
-								className="stroke-primary"
-								strokeWidth="10"
-								fill="none"
-								strokeLinecap="round"
-								style={{ strokeDasharray: circleCircumference }}
-							/>
+                initial={{ strokeDashoffset: circleCircumference }}
+                animate={{ strokeDashoffset }}
+                transition={{ duration: 2, ease: "easeOut" }}
+                cx="64"
+                cy="64"
+                r={circleRadius}
+                className="stroke-primary"
+                strokeWidth="10"
+                fill="none"
+                strokeLinecap="round"
+                style={{ strokeDasharray: circleCircumference }} />
+              
 						</svg>
 						<div className="absolute inset-0 flex flex-col items-center justify-center">
 							<span className={STYLES.neonText + " text-2xl uppercase tracking-tighter"}>{stats.completionPercentage}%</span>
@@ -117,26 +117,26 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 				</CardHeader>
 				<CardContent className="px-8 pb-8 pt-4">
 					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 h-full">
-						{(Object.entries(stats.byCategory) as [AchievementCategory, number][]).map(([category, count], idx) => (
-							<motion.div 
-								key={category} 
-								initial={{ opacity: 0, scale: 0.9 }}
-								animate={{ opacity: 1, scale: 1 }}
-								transition={{ delay: idx * 0.1 }}
-								className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-primary/30 transition-all cursor-default group"
-							>
+						{(Object.entries(stats.byCategory) as [AchievementCategory, number][]).map(([category, count], idx) =>
+            <motion.div
+              key={category}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-primary/30 transition-all cursor-default group">
+              
 								<div className="text-4xl mb-3 filter drop-shadow-[0_0_10px_rgba(255,255,255,0.1)] group-hover:scale-125 transition-transform duration-500">{getCategoryIcon(category)}</div>
 								<div className="text-2xl font-black text-white">{count}</div>
 								<div className="text-[9px] font-black text-gray-500 uppercase tracking-tighter mt-1 group-hover:text-primary transition-colors">
 									{getCategoryLabel(category)}
 								</div>
 							</motion.div>
-						))}
+            )}
 					</div>
 				</CardContent>
 			</Card>
-		</div>
-	);
+		</div>);
+
 }
 
 function LayoutGrid(props: any) {
@@ -151,12 +151,12 @@ function LayoutGrid(props: any) {
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+      strokeLinejoin="round">
+      
       <rect width="7" height="7" x="3" y="3" rx="1" />
       <rect width="7" height="7" x="14" y="3" rx="1" />
       <rect width="7" height="7" x="14" y="14" rx="1" />
       <rect width="7" height="7" x="3" y="14" rx="1" />
-    </svg>
-  )
+    </svg>);
+
 }

@@ -1,4 +1,4 @@
-﻿import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { CacheService } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
           });
 
           // Transform the data to match the frontend structure
-          return announcements.map((announcement) => ({
+          return announcements.map((announcement: any) => ({
             id: announcement.id,
             title: announcement.title,
             content: announcement.content,

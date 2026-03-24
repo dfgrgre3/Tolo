@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getOrSetEnhanced } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
+import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 
 // GET lessons for a course (now topics for a subject)
 export async function GET(
@@ -21,10 +22,7 @@ export async function GET(
       });
 
       if (!subject) {
-        return NextResponse.json(
-          { error: "المادة غير موجودة" },
-          { status: 404 }
-        );
+        return badRequestResponse("المادة غير موجودة", "SUBJECT_NOT_FOUND");
       }
 
       // Get lessons (now subtopics) for this subject
@@ -50,8 +48,8 @@ export async function GET(
 
       // If userId is provided, get progress information
       let lessonProgress = {};
-      if (userId) {
-        const lessonIds = lessons.map((lesson) => lesson.id);
+      if (userId && Array.isArray(lessons)) {
+        const lessonIds = (lessons as any[]).map((lesson: any) => lesson.id);
         const progressRecords = await prisma.topicProgress.findMany({
           where: {
             userId,
@@ -59,22 +57,19 @@ export async function GET(
           }
         });
 
-        lessonProgress = progressRecords.reduce((acc, progress) => {
+        lessonProgress = progressRecords.reduce((acc: any, progress: any) => {
           acc[progress.subTopicId] = progress.completed;
           return acc;
         }, {} as Record<string, boolean>);
       }
 
-      return NextResponse.json({
+      return successResponse({
         lessons,
         progress: lessonProgress
       });
     } catch (error) {
       logger.error("Error fetching subject lessons:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ أثناء معالجة الطلب" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }
@@ -95,10 +90,7 @@ export async function POST(
       });
 
       if (!subject) {
-        return NextResponse.json(
-          { error: "المادة غير موجودة" },
-          { status: 404 }
-        );
+        return badRequestResponse("المادة غير موجودة", "SUBJECT_NOT_FOUND");
       }
 
       // Create subtopic
@@ -107,19 +99,14 @@ export async function POST(
           name: title,
           description,
           topicId,
-          order
+          order: Number(order) || 0
         }
       });
 
-      // Invalidate cache (optional: implement cache invalidation strategy)
-
-      return NextResponse.json(newLesson);
+      return successResponse(newLesson, "تمت إضافة المخطوطة بنجاح", 201);
     } catch (error) {
       logger.error("Error creating lesson:", error);
-      return NextResponse.json(
-        { error: "حدث خطأ أثناء معالجة الطلب" },
-        { status: 500 }
-      );
+      return handleApiError(error);
     }
   });
 }

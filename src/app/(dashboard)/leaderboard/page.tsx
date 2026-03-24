@@ -1,25 +1,25 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useGamification } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
-import { 
-  Trophy, 
-  Crown, 
-  Medal, 
-  Star, 
-  Zap, 
-  Sword, 
-  Shield, 
-  Sparkles, 
-  Flame, 
-  Users, 
-  TrendingUp,
-  Target,
-  Clock,
-  LayoutDashboard
-} from 'lucide-react';
+import {
+  Trophy,
+  Crown,
+  Medal,
+
+  Zap,
+
+  Shield,
+  Sparkles,
+
+  Users,
+
+
+  Clock } from
+
+'lucide-react';
 import { ensureUser } from "@/lib/user-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -42,7 +42,7 @@ export default function LeaderboardPage() {
     clearAchievementNotification,
     getUserRank,
     isLoading,
-    error
+    error: _error
   } = useGamification({
     userId,
     enableRealTime: true,
@@ -59,8 +59,10 @@ export default function LeaderboardPage() {
   const userRank = getUserRank();
   const safeLeaderboard = Array.isArray(leaderboard) ? leaderboard : [];
 
-  const topThree = useMemo(() => safeLeaderboard.slice(0, 3), [safeLeaderboard]);
-  const others = useMemo(() => safeLeaderboard.slice(3), [safeLeaderboard]);
+  const memoizedSafeLeaderboard = useMemo(() => safeLeaderboard, [safeLeaderboard]);
+
+  const topThree = useMemo(() => memoizedSafeLeaderboard.slice(0, 3), [memoizedSafeLeaderboard]);
+  const others = useMemo(() => memoizedSafeLeaderboard.slice(3), [memoizedSafeLeaderboard]);
 
   if (isLoading) {
     return (
@@ -71,8 +73,8 @@ export default function LeaderboardPage() {
              <Trophy className="h-10 w-10 text-primary" />
           </div>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -88,10 +90,10 @@ export default function LeaderboardPage() {
         
         {/* --- Header: Coliseum Entrance --- */}
         <motion.div
-           initial={{ opacity: 0, y: -30 }}
-           animate={{ opacity: 1, y: 0 }}
-           className="text-center space-y-6"
-        >
+          initial={{ opacity: 0, y: -30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center space-y-6">
+          
           <div className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
             <Shield className="h-5 w-5" />
             <span>الحلبة الكبرى للمتفوقين</span>
@@ -107,22 +109,22 @@ export default function LeaderboardPage() {
         {/* --- Top 3 Podium: The Champions --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end pt-12">
            {topThree.map((entry, idx) => {
-              const colors = [
-                { border: 'border-amber-400/50', bg: 'bg-amber-400/10', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
-                { border: 'border-slate-300/50', bg: 'bg-slate-300/10', text: 'text-slate-300', glow: 'shadow-slate-400/20' },
-                { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-orange-600/20' }
-              ][idx];
-              
-              const isFirst = idx === 0;
+            const colors = [
+            { border: 'border-amber-400/50', bg: 'bg-amber-400/10', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
+            { border: 'border-slate-300/50', bg: 'bg-slate-300/10', text: 'text-slate-300', glow: 'shadow-slate-400/20' },
+            { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-orange-600/20' }][
+            idx];
 
-              return (
-                <motion.div
-                  key={entry.userId}
-                  initial={{ opacity: 0, y: 50 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.2 }}
-                  className={`${isFirst ? 'md:order-2 h-[450px]' : idx === 1 ? 'md:order-1 h-[380px]' : 'md:order-3 h-[350px]'} relative flex flex-col items-center justify-end pb-8`}
-                >
+            const isFirst = idx === 0;
+
+            return (
+              <motion.div
+                key={entry.userId}
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.2 }}
+                className={`${isFirst ? 'md:order-2 h-[450px]' : idx === 1 ? 'md:order-1 h-[380px]' : 'md:order-3 h-[350px]'} relative flex flex-col items-center justify-end pb-8`}>
+                
                    {/* Avatar Group */}
                    <div className="absolute top-0 flex flex-col items-center gap-4">
                       <div className={`relative ${isFirst ? 'w-32 h-32' : 'w-24 h-24'} rounded-[2.5rem] p-1.5 ${colors.bg} border-2 ${colors.border} shadow-2xl transition-transform hover:scale-110 duration-500`}>
@@ -150,18 +152,18 @@ export default function LeaderboardPage() {
                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">XP كلي</p>
                       </div>
                    </div>
-                </motion.div>
-              )
-           })}
+                </motion.div>);
+
+          })}
         </div>
 
         {/* --- Current Player Status: Contender's Badge --- */}
-        {userProgress && (
-           <motion.div
-             initial={{ opacity: 0, scale: 0.9 }}
-             animate={{ opacity: 1, scale: 1 }}
-             className={STYLES.glass + " p-8 flex flex-col md:flex-row items-center justify-between gap-8 group"}
-           >
+        {userProgress &&
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className={STYLES.glass + " p-8 flex flex-col md:flex-row items-center justify-between gap-8 group"}>
+          
               <div className="flex items-center gap-6">
                  <div className="relative">
                     <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:bg-primary/60 transition-all duration-700" />
@@ -189,23 +191,23 @@ export default function LeaderboardPage() {
                  </Button>
               </div>
            </motion.div>
-        )}
+        }
 
         {/* --- Leaderboard List: Scroll of Rankings --- */}
         <div className="space-y-8">
            <div className="flex items-center justify-between gap-6 border-b border-white/5 pb-8">
               <div className="flex items-center gap-4">
                  <button
-                   onClick={() => setLeaderboardType('global')}
-                   className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'global' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}
-                 >
+                onClick={() => setLeaderboardType('global')}
+                className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'global' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
+                
                     <Users className="w-5 h-5" />
                     <span>المملكة بأكملها</span>
                  </button>
                  <button
-                   onClick={() => setLeaderboardType('friends')}
-                   className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'friends' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}
-                 >
+                onClick={() => setLeaderboardType('friends')}
+                className={`h-12 px-8 flex items-center gap-3 font-black transition-all rounded-2xl ${leaderboardType === 'friends' ? 'bg-primary text-white' : 'bg-white/5 text-gray-500 hover:text-white'}`}>
+                
                     <Sparkles className="w-5 h-5" />
                     <span>كتيبة الرفاق</span>
                  </button>
@@ -218,20 +220,20 @@ export default function LeaderboardPage() {
 
            <div className={STYLES.glass + " p-0 overflow-hidden"}>
               <div className="divide-y divide-white/5">
-                 {others.length === 0 && safeLeaderboard.length < 4 ? (
-                    <div className="p-20 text-center space-y-4">
+                 {others.length === 0 && safeLeaderboard.length < 4 ?
+              <div className="p-20 text-center space-y-4">
                        <Zap className="w-16 h-16 text-gray-800 mx-auto" />
                        <p className="text-gray-500 font-black uppercase tracking-widest">لا يوجد محاربون آخرون في القاعة حالياً</p>
-                    </div>
-                 ) : (
-                    others.map((entry, idx) => (
-                       <motion.div
-                         key={entry.userId}
-                         initial={{ opacity: 0, x: -30 }}
-                         animate={{ opacity: 1, x: 0 }}
-                         transition={{ delay: idx * 0.05 }}
-                         className={`p-6 flex items-center justify-between hover:bg-white/[0.03] transition-all group ${entry.userId === userId ? 'bg-primary/10' : ''}`}
-                       >
+                    </div> :
+
+              others.map((entry, idx) =>
+              <motion.div
+                key={entry.userId}
+                initial={{ opacity: 0, x: -30 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05 }}
+                className={`p-6 flex items-center justify-between hover:bg-white/[0.03] transition-all group ${entry.userId === userId ? 'bg-primary/10' : ''}`}>
+                
                           <div className="flex items-center gap-8">
                              <span className="w-12 text-2xl font-black text-gray-700 group-hover:text-primary transition-colors text-center">{entry.rank}</span>
                              <div className="h-14 w-14 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-xl font-black text-white group-hover:scale-110 group-hover:rotate-6 transition-all">
@@ -255,8 +257,8 @@ export default function LeaderboardPage() {
                              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">XP عسكري</p>
                           </div>
                        </motion.div>
-                    ))
-                 )}
+              )
+              }
               </div>
            </div>
         </div>
@@ -264,11 +266,11 @@ export default function LeaderboardPage() {
         {/* --- Summary Boxes --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-12 pb-20">
             {[
-              { label: "المحاربون المسجلون", val: safeLeaderboard.length, icon: Users, color: "text-blue-400" },
-              { label: "أعلى نقاط مسجلة", val: safeLeaderboard.length > 0 ? Math.max(...safeLeaderboard.map(l => l.totalXP)).toLocaleString() : '0', icon: Crown, color: "text-amber-400" },
-              { label: "ساعات التفوق", val: userProgress ? Math.floor(userProgress.totalStudyTime / 60) : 0, icon: Clock, color: "text-purple-400" },
-            ].map((stat, i) => (
-              <div key={i} className={STYLES.glass + " p-6 flex items-center gap-6 group hover:translate-y-[-5px] transition-all"}>
+          { label: "المحاربون المسجلون", val: safeLeaderboard.length, icon: Users, color: "text-blue-400" },
+          { label: "أعلى نقاط مسجلة", val: safeLeaderboard.length > 0 ? Math.max(...safeLeaderboard.map((l) => l.totalXP)).toLocaleString() : '0', icon: Crown, color: "text-amber-400" },
+          { label: "ساعات التفوق", val: userProgress ? Math.floor(userProgress.totalStudyTime / 60) : 0, icon: Clock, color: "text-purple-400" }].
+          map((stat, i) =>
+          <div key={i} className={STYLES.glass + " p-6 flex items-center gap-6 group hover:translate-y-[-5px] transition-all"}>
                  <div className={`p-4 rounded-2xl bg-white/5 border border-white/10 ${stat.color} group-hover:scale-110 transition-transform`}>
                     <stat.icon className="w-6 h-6" />
                  </div>
@@ -277,14 +279,14 @@ export default function LeaderboardPage() {
                     <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{stat.label}</p>
                  </div>
               </div>
-            ))}
+          )}
         </div>
       </div>
 
       <AchievementToast
         achievement={currentAchievement}
-        onClose={clearAchievementNotification}
-      />
-    </div>
-  );
+        onClose={clearAchievementNotification} />
+      
+    </div>);
+
 }

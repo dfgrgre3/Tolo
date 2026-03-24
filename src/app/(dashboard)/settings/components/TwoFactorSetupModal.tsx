@@ -2,21 +2,22 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Shield, 
-  QrCode, 
-  Key, 
-  CheckCircle2, 
-  AlertCircle, 
-  Loader2, 
+import {
+  Shield,
+
+  Key,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
   X,
   Copy,
   Check,
   Eye,
-  EyeOff
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+  EyeOff } from
+'lucide-react';
+
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 interface TwoFactorSetupModalProps {
   isOpen: boolean;
@@ -79,7 +80,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
       const res = await fetch('/api/auth/2fa/enable', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret: setupData.secret, token }),
+        body: JSON.stringify({ secret: setupData.secret, token })
       });
 
       if (!res.ok) {
@@ -128,21 +129,21 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
 
   return (
     <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-          onClick={handleClose}
-        >
+      {isOpen &&
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+        onClick={handleClose}>
+        
           <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            onClick={(e) => e.stopPropagation()}
-            className="w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl"
-          >
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          className="w-full max-w-md bg-slate-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
+          
             {/* Header */}
             <div className="p-6 border-b border-white/10 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -159,22 +160,22 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                 </div>
               </div>
               <button
-                onClick={handleClose}
-                className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
-              >
+              onClick={handleClose}
+              className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+              
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Content */}
             <div className="p-6">
-              {isLoading ? (
-                <div className="flex flex-col items-center justify-center py-10 gap-4">
+              {isLoading ?
+            <div className="flex flex-col items-center justify-center py-10 gap-4">
                   <Loader2 className="h-8 w-8 text-green-500 animate-spin" />
                   <p className="text-slate-400">جاري إعداد المصادقة الثنائية...</p>
-                </div>
-              ) : step === 'setup' && setupData ? (
-                <div className="space-y-6">
+                </div> :
+            step === 'setup' && setupData ?
+            <div className="space-y-6">
                   <div className="text-center">
                     <p className="text-sm text-slate-300 mb-4">
                       قم بمسح رمز QR هذا باستخدام تطبيق المصادقة (مثل Google Authenticator أو Microsoft Authenticator)
@@ -190,36 +191,36 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                     <div className="flex items-center gap-2">
                       <div className="flex-1 relative">
                         <input
-                          type={showSecret ? 'text' : 'password'}
-                          value={setupData.secret}
-                          readOnly
-                          className="w-full p-3 pr-10 rounded-xl bg-white/5 border border-white/10 text-white font-mono text-sm"
-                        />
+                      type={showSecret ? 'text' : 'password'}
+                      value={setupData.secret}
+                      readOnly
+                      className="w-full p-3 pr-10 rounded-xl bg-white/5 border border-white/10 text-white font-mono text-sm" />
+                    
                         <button
-                          onClick={() => setShowSecret(!showSecret)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                        >
+                      onClick={() => setShowSecret(!showSecret)}
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                      
                           {showSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                         </button>
                       </div>
                       <button
-                        onClick={handleCopySecret}
-                        className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors"
-                      >
+                    onClick={handleCopySecret}
+                    className="p-3 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+                    
                         {copiedSecret ? <Check className="h-4 w-4 text-green-400" /> : <Copy className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
 
                   <button
-                    onClick={() => setStep('verify')}
-                    className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors"
-                  >
+                onClick={() => setStep('verify')}
+                className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors">
+                
                     التالي
                   </button>
-                </div>
-              ) : step === 'verify' ? (
-                <div className="space-y-6">
+                </div> :
+            step === 'verify' ?
+            <div className="space-y-6">
                   <div className="text-center">
                     <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-500/20 mb-4">
                       <Key className="h-8 w-8 text-green-400" />
@@ -231,41 +232,41 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
 
                   <div className="space-y-2">
                     <input
-                      type="text"
-                      value={token}
-                      onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="000000"
-                      className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-green-500/50"
-                      maxLength={6}
-                      autoFocus
-                    />
+                  type="text"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  placeholder="000000"
+                  className="w-full p-4 rounded-xl bg-white/5 border border-white/10 text-white text-center text-2xl font-mono tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-green-500/50"
+                  maxLength={6}
+                  autoFocus />
+                
                   </div>
 
                   <div className="flex gap-3">
                     <button
-                      onClick={() => setStep('setup')}
-                      className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-                    >
+                  onClick={() => setStep('setup')}
+                  className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors">
+                  
                       السابق
                     </button>
                     <button
-                      onClick={handleVerify}
-                      disabled={token.length !== 6 || isVerifying}
-                      className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      {isVerifying ? (
-                        <>
+                  onClick={handleVerify}
+                  disabled={token.length !== 6 || isVerifying}
+                  className="flex-1 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  
+                      {isVerifying ?
+                  <>
                           <Loader2 className="h-4 w-4 animate-spin" />
                           جاري التحقق...
-                        </>
-                      ) : (
-                        'تحقق'
-                      )}
+                        </> :
+
+                  'تحقق'
+                  }
                     </button>
                   </div>
-                </div>
-              ) : step === 'recovery' ? (
-                <div className="space-y-6">
+                </div> :
+            step === 'recovery' ?
+            <div className="space-y-6">
                   <div className="text-center">
                     <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-green-500/20 mb-4">
                       <CheckCircle2 className="h-8 w-8 text-green-400" />
@@ -282,36 +283,36 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                     <label className="text-xs text-slate-400">رموز الاسترداد:</label>
                     <div className="p-4 rounded-xl bg-white/5 border border-white/10">
                       <div className="grid grid-cols-2 gap-2 font-mono text-sm">
-                        {recoveryCodes.map((code, index) => (
-                          <div key={index} className="text-slate-300 text-center">
+                        {recoveryCodes.map((code, index) =>
+                    <div key={index} className="text-slate-300 text-center">
                             {code}
                           </div>
-                        ))}
+                    )}
                       </div>
                     </div>
                   </div>
 
                   <button
-                    onClick={handleCopyRecoveryCodes}
-                    className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                  >
+                onClick={handleCopyRecoveryCodes}
+                className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 transition-colors flex items-center justify-center gap-2">
+                
                     <Copy className="h-4 w-4" />
                     نسخ الرموز
                   </button>
 
                   <button
-                    onClick={handleClose}
-                    className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors"
-                  >
+                onClick={handleClose}
+                className="w-full py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-colors">
+                
                     تم
                   </button>
-                </div>
-              ) : null}
+                </div> :
+            null}
             </div>
 
             {/* Footer Warning */}
-            {step !== 'recovery' && (
-              <div className="px-6 pb-6">
+            {step !== 'recovery' &&
+          <div className="px-6 pb-6">
                 <div className="p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex gap-3 items-start">
                   <AlertCircle className="h-5 w-5 text-yellow-400 shrink-0 mt-0.5" />
                   <p className="text-xs text-yellow-200/80">
@@ -319,10 +320,10 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                   </p>
                 </div>
               </div>
-            )}
+          }
           </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
-  );
+      }
+    </AnimatePresence>);
+
 }

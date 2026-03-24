@@ -26,11 +26,11 @@ interface PerformanceMetricsProps {
 	performanceMetrics: PerformanceMetricsData | null;
 }
 
-export default function PerformanceMetrics({ 
+const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({  
 	summary, 
 	weekly, 
-	performanceMetrics 
-}: PerformanceMetricsProps) {
+	_performanceMetrics 
+}) => {
 	const calculateMetrics = () => {
 		if (!summary || !weekly) {
 			return {

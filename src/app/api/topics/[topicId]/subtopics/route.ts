@@ -40,13 +40,13 @@ export async function GET(
           where: {
             userId: authUser.userId,
             subTopicId: {
-              in: subTopics.map(st => st.id)
+              in: subTopics.map((st: any) => st.id)
             }
           }
         });
 
-        const subTopicsWithProgress = subTopics.map(st => {
-          const pg = progress.find(p => p.subTopicId === st.id);
+        const subTopicsWithProgress = subTopics.map((st: any) => {
+                                          const pg = progress.find((p: any) => p.subTopicId === st.id);
           return {
             ...st,
             isCompleted: pg ? pg.completed : false,

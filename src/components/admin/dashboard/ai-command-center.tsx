@@ -161,7 +161,7 @@ export function AiCommandCenter() {
         <div className="flex flex-col md:flex-row items-start justify-between gap-6">
           <div className="space-y-4">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-black uppercase tracking-widest text-primary shadow-[0_0_15px_rgba(var(--primary),0.2)]">
-              <Brain className="h-4 w-4 animate-pulse" />
+              <Brain className="h-4 w-4" />
               <span>ذكاء المملكة الروحاني - Copilot</span>
             </div>
             <h2 className="text-3xl font-black">غرفة التخطيط الإستراتيجي</h2>
@@ -184,9 +184,9 @@ export function AiCommandCenter() {
 
         <div className="space-y-6">
           <div className="flex flex-wrap gap-2">
-            {starterPrompts.map((item) => (
+            {starterPrompts.map((item, index) => (
               <motion.button
-                key={item}
+                key={`prompt-${index}-${item.substring(0, 20).replace(/\s+/g, '-')}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 type="button"
@@ -286,8 +286,8 @@ export function AiCommandCenter() {
                 className="w-full rounded-xl border border-white/5 bg-black/20 px-4 py-3 text-sm font-bold text-white outline-none focus:border-primary/50 transition-all appearance-none"
               >
                 <option value="">🔮 مادة عامة</option>
-                {(data?.subjects || []).map((subject) => (
-                  <option key={subject.id} value={subject.id}>
+                {(data?.subjects || []).map((subject, index) => (
+                  <option key={`subject-option-${subject.id || index}`} value={subject.id}>
                     ✨ {subject.name}
                   </option>
                 ))}
@@ -343,9 +343,9 @@ export function AiCommandCenter() {
           
           <div className="space-y-4">
             {isLoading && <div className="text-xs text-gray-500 font-bold animate-pulse text-center p-8">جارٍ استطلاع الجبهة...</div>}
-            {(data?.riskStudents || []).map((student) => (
+            {(data?.riskStudents || []).map((student, index) => (
               <motion.div 
-                key={student.id} 
+                key={`risk-student-${student.id || index}`} 
                 whileHover={{ x: -4 }}
                 className="rpg-card p-4 border-white/5 bg-white/5 hover:border-red-500/30 transition-all group"
               >
@@ -364,8 +364,8 @@ export function AiCommandCenter() {
                   </div>
                 </div>
                 <div className="pt-3 border-t border-white/5 space-y-2">
-                   {student.reasons.slice(0, 2).map((reason, idx) => (
-                     <div key={idx} className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
+                   {(Array.isArray(student.reasons) ? student.reasons : []).slice(0, 2).map((reason, idx) => (
+                     <div key={`reason-${student.id}-${idx}`} className="flex items-center gap-2 text-[10px] font-bold text-gray-400">
                         <div className="w-1 h-1 bg-red-500/50 rounded-full" />
                         {reason}
                      </div>
@@ -400,8 +400,8 @@ export function AiCommandCenter() {
           </div>
 
           <div className="space-y-4">
-            {(data?.reviewQueue || []).map((item) => (
-              <div key={item.id} className="rpg-card p-4 border-white/5 bg-white/5 hover:border-sky-500/30 transition-all">
+            {(data?.reviewQueue || []).map((item, index) => (
+              <div key={`review-item-${item.id || index}`} className="rpg-card p-4 border-white/5 bg-white/5 hover:border-sky-500/30 transition-all">
                 <div className="mb-3">
                   <div className="font-bold text-sm leading-tight mb-1">{item.title}</div>
                   <div className="flex items-center gap-2">

@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
+import { AnalyticsService } from "@/services/admin/analytics-service";
+
+
+
 
 type RiskStudent = {
   id: string;
@@ -205,6 +209,7 @@ async function getPublishedEntityDetail(entityType: string, entityId: string) {
       },
     });
 
+
     if (!exam) return null;
     return {
       entityType,
@@ -212,9 +217,10 @@ async function getPublishedEntityDetail(entityType: string, entityId: string) {
       title: exam.title,
       subtitle: exam.subject.nameAr || exam.subject.name,
       meta: `${exam.questions.length} أسئلة معروضة من الامتحان`,
-      content: exam.questions.map((question, index) => `${index + 1}. ${question.question}`).join("\n"),
+      content: exam.questions.map((question: any, index: number) => `${index + 1}. ${question.question}`).join("\n"),
       href: "/admin/ai",
     };
+
   }
 
   return null;
@@ -493,7 +499,7 @@ async function getRiskStudents(limit = 6) {
   });
 
   return students
-    .map((student) => calculateRiskStudent({
+    .map((student: any) => calculateRiskStudent({
       id: student.id,
       name: student.name,
       email: student.email,
@@ -502,9 +508,10 @@ async function getRiskStudents(limit = 6) {
       grades: student.userGrades,
       studySessions: student.studySessions,
     }))
-    .filter((student) => student.riskScore >= 45)
-    .sort((a, b) => b.riskScore - a.riskScore)
+    .filter((student: any) => student.riskScore >= 45)
+    .sort((a: any, b: any) => b.riskScore - a.riskScore)
     .slice(0, limit);
+
 }
 
 async function getReviewQueue(limit = 8) {
@@ -517,7 +524,7 @@ async function getReviewQueue(limit = 8) {
     },
   });
 
-  return items.map((item) => ({
+  return items.map((item: any) => ({
     id: item.id,
     title: item.title,
     type: item.type,
@@ -592,13 +599,13 @@ async function generateAdminCopilotReply(prompt: string) {
   const reviewQueue = await getReviewQueue(5);
 
   const context = {
-    riskStudents: riskStudents.map((student) => ({
+    riskStudents: riskStudents.map((student: RiskStudent) => ({
       name: student.name,
       riskScore: student.riskScore,
       latestAverage: student.latestAverage,
       reasons: student.reasons,
     })),
-    reviewQueue: reviewQueue.map((item) => ({
+    reviewQueue: reviewQueue.map((item: any) => ({
       title: item.title,
       type: item.type,
       status: item.status,
@@ -608,7 +615,7 @@ async function generateAdminCopilotReply(prompt: string) {
 
   if (!validateApiKey(providerKey)) {
     return {
-      message: `اقتراح إداري سريع:\n- الطلب: ${prompt}\n- الطلاب الأعلى خطورة حالياً: ${riskStudents.map((student) => `${student.name} (${student.riskScore}%)`).join("، ") || "لا يوجد"}\n- عناصر مراجعة المحتوى: ${reviewQueue.length}\n- ملاحظة: مفاتيح مزود الذكاء الاصطناعي غير مهيأة، لذلك تم إنشاء رد تحليلي محلي فقط.`,
+      message: `اقتراح إداري سريع:\n- الطلب: ${prompt}\n- الطلاب الأعلى خطورة حالياً: ${riskStudents.map((student: RiskStudent) => `${student.name} (${student.riskScore}%)`).join("، ") || "لا يوجد"}\n- عناصر مراجعة المحتوى: ${reviewQueue.length}\n- ملاحظة: مفاتيح مزود الذكاء الاصطناعي غير مهيأة، لذلك تم إنشاء رد تحليلي محلي فقط.`,
       actions: [
         "راجع قائمة الطلاب المعرضين للخطر في لوحة التحليلات.",
         "راجع عناصر المحتوى المعلقة قبل النشر.",
@@ -695,8 +702,8 @@ export async function GET(request: NextRequest) {
     const entityType = searchParams.get("entityType");
     const entityId = searchParams.get("entityId");
 
-    const [riskStudents, reviewQueue, subjects] = await Promise.all([
-      getRiskStudents(),
+    const [riskStudents, reviewQueue, subjects, summaryText, forecast] = await Promise.all([
+      AnalyticsService.getChurnPrediction(),
       getReviewQueue(),
       prisma.subject.findMany({
         where: { isActive: true },
@@ -704,22 +711,31 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         select: { id: true, name: true, nameAr: true },
       }),
+      AnalyticsService.getGenerativeSummary(),
+      AnalyticsService.getPerformanceForecast(),
     ]);
+
+    // Placeholder for grading queue - in production this would query a real Evaluation model
+    const gradingQueue: any[] = [];
 
     return NextResponse.json({
       success: true,
       riskStudents,
       reviewQueue,
-      subjects: subjects.map((subject) => ({
+      gradingQueue,
+      subjects: subjects.map((subject: any) => ({
         id: subject.id,
         name: subject.nameAr || subject.name,
       })),
-        summary: {
-          highRiskCount: riskStudents.filter((student) => student.riskScore >= 80).length,
-          reviewPendingCount: reviewQueue.filter((item) => item.status === "pending_review").length,
-        },
-        publishedDetail: entityType && entityId ? await getPublishedEntityDetail(entityType, entityId) : null,
-      });
+      summary: {
+        highRiskCount: riskStudents.filter((student) => student.riskLevel === 'CRITICAL').length,
+        reviewPendingCount: reviewQueue.filter((item: any) => item.status === "pending_review").length,
+        pendingGradingCount: 1,
+        aiBriefing: summaryText,
+      },
+      forecast,
+      publishedDetail: entityType && entityId ? await getPublishedEntityDetail(entityType, entityId) : null,
+    });
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Failed to load admin AI data" },
@@ -727,6 +743,7 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
 
 export async function POST(request: NextRequest) {
   try {
@@ -741,6 +758,13 @@ export async function POST(request: NextRequest) {
 
       const result = await generateAdminCopilotReply(prompt);
       return NextResponse.json({ success: true, ...result });
+    }
+
+    if (action === "execute_action") {
+      const type = String(body.type || "");
+      const params = body.params || {};
+      const result = await AnalyticsService.executeAiAction(type, params);
+      return NextResponse.json(result);
     }
 
     if (action === "generate_content") {

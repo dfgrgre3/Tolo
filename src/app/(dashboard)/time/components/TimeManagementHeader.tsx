@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Play, Pause, RefreshCw, Download, Settings, Calendar, Clock, TrendingUp, Target } from 'lucide-react';
+import { PlusCircle, Play, Pause, RefreshCw, Download, Settings, Calendar, TrendingUp, Target } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import CreateTaskDialog from './CreateTaskDialog';
 import type { SubjectType, Task } from '../types';
@@ -66,102 +66,102 @@ export default function TimeManagementHeader({
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
               لوحة تنظيم الوقت
             </h1>
-            {quickStats && quickStats.overdueTasks > 0 && (
-              <Badge variant="destructive" className="animate-pulse">
+            {quickStats && quickStats.overdueTasks > 0 &&
+            <Badge variant="destructive" className="animate-pulse">
                 {quickStats.overdueTasks} متأخرة
               </Badge>
-            )}
-            {quickStats && quickStats.todayTasks > 0 && (
-              <Badge variant="default" className="bg-blue-600">
+            }
+            {quickStats && quickStats.todayTasks > 0 &&
+            <Badge variant="default" className="bg-blue-600">
                 <Calendar className="h-3 w-3 ml-1" />
                 {quickStats.todayTasks} اليوم
               </Badge>
-            )}
-            {quickStats && quickStats.completedToday > 0 && (
-              <Badge variant="secondary" className="bg-green-600">
+            }
+            {quickStats && quickStats.completedToday > 0 &&
+            <Badge variant="secondary" className="bg-green-600">
                 <Target className="h-3 w-3 ml-1" />
                 {quickStats.completedToday} مكتملة
               </Badge>
-            )}
-            {quickStats && quickStats.studyHours > 0 && (
-              <Badge variant="outline">
+            }
+            {quickStats && quickStats.studyHours > 0 &&
+            <Badge variant="outline">
                 <TrendingUp className="h-3 w-3 ml-1" />
                 {quickStats.studyHours.toFixed(1)} ساعات
               </Badge>
-            )}
+            }
           </div>
           <p className="text-muted-foreground">إدارة وقتك بفعالية وتحقيق أهدافك الأكاديمية</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button 
+          <Button
             className="flex items-center gap-2 transition-all hover:shadow-md hover:scale-105"
             onClick={() => setIsCreateTaskOpen(true)}
-            disabled={!userId}
-          >
+            disabled={!userId}>
+            
             <PlusCircle className="h-4 w-4" />
             مهمة جديدة
           </Button>
           
-          {userId && subjects.length > 0 && onTaskCreate && (
-            <CreateTaskDialog
-              open={isCreateTaskOpen}
-              onOpenChange={setIsCreateTaskOpen}
-              onTaskCreate={handleTaskCreate}
-              subjects={subjects}
-              userId={userId}
-            />
-          )}
+          {userId && subjects.length > 0 && onTaskCreate &&
+          <CreateTaskDialog
+            open={isCreateTaskOpen}
+            onOpenChange={setIsCreateTaskOpen}
+            onTaskCreate={handleTaskCreate}
+            subjects={subjects}
+            userId={userId} />
+
+          }
           
-          <Button 
+          <Button
             onClick={onTimerToggle}
             className={`flex items-center gap-2 transition-all hover:shadow-md hover:scale-105 ${
-              isTimerRunning 
-                ? 'bg-red-600 hover:bg-red-700' 
-                : 'bg-green-600 hover:bg-green-700'
-            }`}
-          >
-            {isTimerRunning ? (
-              <>
+            isTimerRunning ?
+            'bg-red-600 hover:bg-red-700' :
+            'bg-green-600 hover:bg-green-700'}`
+            }>
+            
+            {isTimerRunning ?
+            <>
                 <Pause className="h-4 w-4" />
                 إيقاف المؤقت
-              </>
-            ) : (
-              <>
+              </> :
+
+            <>
                 <Play className="h-4 w-4" />
                 بدء المؤقت
               </>
-            )}
+            }
           </Button>
           
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleRefresh}
             disabled={refreshing}
-            className="flex items-center gap-2 transition-all hover:shadow-md"
-          >
-            {refreshing ? (
-              <RefreshCw className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
+            className="flex items-center gap-2 transition-all hover:shadow-md">
+            
+            {refreshing ?
+            <RefreshCw className="h-4 w-4 animate-spin" /> :
+
+            <RefreshCw className="h-4 w-4" />
+            }
             {refreshing ? 'جاري التحديث...' : 'تحديث'}
           </Button>
           
-          {onExport && (
-            <Button 
-              variant="outline" 
-              onClick={onExport}
-              className="flex items-center gap-2 transition-all hover:shadow-md"
-            >
+          {onExport &&
+          <Button
+            variant="outline"
+            onClick={onExport}
+            className="flex items-center gap-2 transition-all hover:shadow-md">
+            
               <Download className="h-4 w-4" />
               تصدير
             </Button>
-          )}
+          }
           
-          <Button 
-            variant="outline" 
-            className="flex items-center gap-2 transition-all hover:shadow-md"
-          >
+          <Button
+            variant="outline"
+            className="flex items-center gap-2 transition-all hover:shadow-md">
+            
             <Settings className="h-4 w-4" />
             إعدادات
           </Button>
@@ -187,6 +187,6 @@ export default function TimeManagementHeader({
           <div className="text-xs text-muted-foreground">ساعات الدراسة</div>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }

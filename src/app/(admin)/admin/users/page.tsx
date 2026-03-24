@@ -6,13 +6,14 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { RoleBadge, StatusBadge } from "@/components/admin/ui/admin-badge";
-import { AdminCard } from "@/components/admin/ui/admin-card";
+import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search } from "lucide-react";
+import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search, Send } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 
 interface UserModel {
   id: string;
@@ -36,12 +37,19 @@ interface UserModel {
 }
 
 interface ApiResponse {
-  users: UserModel[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
+  data: {
+    users: UserModel[];
+    summary: {
+      totalUsers: number;
+      totalAdmins: number;
+      powerUsers: number;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   };
 }
 
@@ -98,22 +106,22 @@ export default function AdminUsersPage() {
         const user = row.original;
         return (
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <Avatar className="h-10 w-10 border-2 border-primary/20">
+            <div className="relative group">
+              <Avatar className="h-10 w-10 border-2 border-primary/20 transition-transform group-hover:scale-110">
                 <AvatarImage src={user.avatar || ""} />
                 <AvatarFallback className="font-bold bg-primary/10 text-primary">
                   {user.name?.charAt(0) || "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 border border-border">
-                <div className="bg-primary text-[8px] font-black text-white px-1 rounded-full">
+              <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 border border-border shadow-sm">
+                <div className="bg-primary text-[8px] font-black text-white px-1 rounded-full uppercase tracking-tighter">
                   LVL {user.level}
                 </div>
               </div>
             </div>
             <div>
-              <p className="font-bold text-sm tracking-tight">{user.name || user.username || "بدون اسم"}</p>
-              <p className="text-xs text-muted-foreground">{user.email}</p>
+              <p className="font-black text-sm tracking-tight">{user.name || user.username || "بدون اسم"}</p>
+              <p className="text-[10px] text-muted-foreground font-bold opacity-60 italic">{user.email}</p>
             </div>
           </div>
         );
@@ -129,8 +137,13 @@ export default function AdminUsersPage() {
       header: "القوة (XP)",
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="font-black text-amber-500">{row.original.totalXP.toLocaleString()} XP</span>
-          <span className="text-[10px] text-muted-foreground">{row.original._count.tasks} مهمة مكتملة</span>
+          <span className="font-black text-amber-500 flex items-center gap-1">
+            <Zap className="w-3 h-3 fill-amber-500" />
+            {row.original.totalXP.toLocaleString()} XP
+          </span>
+          <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
+            {row.original._count.tasks} مهمة مكتملة
+          </span>
         </div>
       ),
     },
@@ -139,8 +152,10 @@ export default function AdminUsersPage() {
       header: "تاريخ الالتحاق",
       cell: ({ row }) => (
         <div className="flex flex-col">
-          <span className="text-sm font-medium">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
-          <span className="text-[10px] text-muted-foreground">منذ {Math.floor((Date.now() - new Date(row.original.createdAt).getTime()) / (1000 * 60 * 60 * 24))} يوم</span>
+          <span className="text-sm font-black">{new Date(row.original.createdAt).toLocaleDateString("ar-EG")}</span>
+          <span className="text-[10px] text-muted-foreground font-bold italic">
+            منذ {Math.floor((Date.now() - new Date(row.original.createdAt).getTime()) / (1000 * 60 * 60 * 24))} يوم
+          </span>
         </div>
       ),
     },
@@ -159,8 +174,8 @@ export default function AdminUsersPage() {
           onEdit={(u) => router.push(`/admin/users/${u.id}/edit`)}
           onDelete={(u) => setDeleteDialog({ open: true, id: u.id })}
           extraActions={[
-            { icon: Mail, label: "إرسال رسالة رتبة", onClick: (u) => toast.info(`جاري توجيه رسالة إلى ${u.email}`) },
-            { icon: Shield, label: "تعديل الصلاحيات", onClick: (u) => router.push(`/admin/users/${u.id}/permissions`) },
+            { icon: Mail, label: "رسالة ملكية", onClick: (u) => toast.info(`جاري توجيه رسالة إلى ${u.email}`) },
+            { icon: Shield, label: "صلاحيات القائد", onClick: (u) => router.push(`/admin/users/${u.id}/permissions`) },
           ]}
         />
       ),
@@ -168,7 +183,7 @@ export default function AdminUsersPage() {
   ];
 
   return (
-    <div className="space-y-8 pb-20" dir="rtl">
+    <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
         title="سجلات جيش المملكة ⚔️"
         description="إدارة جميع المحاربين، رتبهم العسكرية، وصلاحياتهم داخل الإمبراطورية."
@@ -184,68 +199,68 @@ export default function AdminUsersPage() {
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <AdminCard variant="glass" className="p-6 flex items-center gap-4 bg-blue-500/5 border-blue-500/20">
-          <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-500">
-            <Users className="w-8 h-8" />
-          </div>
-          <div>
-            <p className="text-3xl font-black">{data?.pagination?.total || 0}</p>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">إجمالي المحاربين</p>
-          </div>
-        </AdminCard>
+        <AdminStatsCard 
+          title="إجمالي المحاربين" 
+          value={data?.data?.summary?.totalUsers || 0} 
+          icon={Users} 
+          color="blue"
+          description="جندي في المملكة"
+        />
         
-        <AdminCard variant="glass" className="p-6 flex items-center gap-4 bg-amber-500/5 border-amber-500/20">
-          <div className="p-4 rounded-2xl bg-amber-500/10 text-amber-500">
-            <Crown className="w-8 h-8" />
-          </div>
-          <div>
-            <p className="text-3xl font-black">{data?.users?.filter(u => u.role === "ADMIN").length || 0}</p>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">القادة والنبلاء</p>
-          </div>
-        </AdminCard>
+        <AdminStatsCard 
+          title="القادة والنبلاء" 
+          value={data?.data?.summary?.totalAdmins || 0} 
+          icon={Crown} 
+          color="yellow"
+          description="حساب إداري فعال"
+        />
 
-        <AdminCard variant="glass" className="p-6 flex items-center gap-4 bg-emerald-500/5 border-emerald-500/20">
-          <div className="p-4 rounded-2xl bg-emerald-500/10 text-emerald-500">
-            <Zap className="w-8 h-8" />
-          </div>
-          <div>
-            <p className="text-3xl font-black">{data?.users?.filter(u => u.level > 10).length || 0}</p>
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">محاربين متمرسين</p>
-          </div>
-        </AdminCard>
+        <AdminStatsCard 
+          title="محاربين متمرسين" 
+          value={data?.data?.summary?.powerUsers || 0} 
+          icon={Zap} 
+          color="green"
+          description="رتبة محارب متمرس"
+        />
       </div>
 
-      <AdminDataTable
-        columns={columns}
-        data={data?.users || []}
-        loading={isLoading}
-        searchKey="name"
-        searchPlaceholder="ابحث عن اسم، إيميل، أو معرف..."
-        serverSide
-        totalRows={data?.pagination?.total || 0}
-        pageCount={data?.pagination?.totalPages || 1}
-        currentPage={page}
-        onPageChange={setPage}
-        onPageSizeChange={setLimit}
-        pageSize={limit}
-        actions={{
-          onRefresh: () => refetch(),
-        }}
-        toolbar={
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input 
-                type="text" 
-                placeholder="فلترة البحث..." 
-                className="bg-accent/20 border border-border rounded-xl h-10 px-10 text-sm focus:ring-1 ring-primary outline-none w-64"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
+      >
+        <AdminDataTable
+          columns={columns}
+          data={data?.data?.users || []}
+          loading={isLoading}
+          searchKey="name"
+          searchPlaceholder="ابحث في سجلات الجيش..."
+          serverSide
+          totalRows={data?.data?.pagination?.total || 0}
+          pageCount={data?.data?.pagination?.totalPages || 1}
+          currentPage={page}
+          onPageChange={setPage}
+          onPageSizeChange={setLimit}
+          pageSize={limit}
+          actions={{
+            onRefresh: () => refetch(),
+          }}
+          toolbar={
+            <div className="flex items-center gap-2">
+              <div className="relative group">
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
+                <input 
+                  type="text" 
+                  placeholder="فلترة السجلات..." 
+                  className="bg-accent/10 border border-border rounded-xl h-10 px-10 text-sm focus:ring-1 ring-primary outline-none w-64 font-bold"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
             </div>
-          </div>
-        }
-      />
+          }
+        />
+      </motion.div>
 
       <ConfirmDialog
         open={deleteDialog.open}

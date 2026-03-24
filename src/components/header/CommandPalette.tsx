@@ -276,29 +276,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 			return matchesLabel || matchesDescription || matchesKeywords;
 		});
 
-		// Simulate "Deep Search" results (inside content/files - OCR)
-		if (query.length > 2) {
-			const deepResults: CommandItem[] = [
-				{
-					id: `ocr-1-${query}`,
-					label: `بحث في كتاب الكيمياء: "${query}"`,
-					description: "تم العثور على الكلمة في الصفحة 45 من كتاب الطالب",
-					icon: <Scan className="h-4 w-4" />,
-					action: () => router.push(`/library/viewer/chemistry?q=${query}`),
-					category: "نتائج البحث العميق (OCR)",
-				},
-				{
-					id: `ocr-2-${query}`,
-					label: `ملخص درس الفيزياء: "${query}"`,
-					description: "ذكرت هذه الكلمة في فقرة التجارب العملية",
-					icon: <Scan className="h-4 w-4" />,
-					action: () => router.push(`/lessons/physics/summary?highlight=${query}`),
-					category: "نتائج البحث العميق (OCR)",
-				}
-			];
-			return [...results, ...deepResults];
-		}
-
 		return results;
 	}, [searchQuery, allCommands]);
 

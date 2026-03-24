@@ -2,15 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  BarChart, 
-  Bar, 
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
   ResponsiveContainer,
-  LineChart,
-  Line,
   AreaChart,
   Area
 } from 'recharts';
@@ -24,7 +20,6 @@ import {
   Package,
   Calendar,
   Activity,
-  ArrowRight
 } from 'lucide-react';
 
 interface RevenueStats {

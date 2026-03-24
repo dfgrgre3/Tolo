@@ -77,7 +77,7 @@ export default function NotificationsPage() {
   // Initial fetch
   useEffect(() => {
     fetchNotifications(true);
-  }, []);
+  }, [fetchNotifications]);
 
   // Mark notifications as read
   const markAsRead = async (notificationIds?: string[], all = false) => {

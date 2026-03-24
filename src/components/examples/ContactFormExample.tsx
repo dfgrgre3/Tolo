@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useSessionPersistence } from '@/hooks/useSessionPersistence';
+import { useFormPersistence as useSessionPersistence } from '@/hooks/useFormPersistence';
 
 interface ContactFormData {
   name: string;

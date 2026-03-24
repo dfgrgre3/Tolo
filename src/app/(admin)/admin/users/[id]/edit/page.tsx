@@ -35,7 +35,6 @@ import {
   Shield,
   GraduationCap,
   MapPin,
-  Calendar,
   Target,
 } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -85,7 +84,7 @@ interface UserData {
   studyGoal: string | null;
 }
 
-const roleLabels: Record<string, string> = {
+const _roleLabels: Record<string, string> = {
   ADMIN: "مدير",
   TEACHER: "معلم",
   STUDENT: "طالب",

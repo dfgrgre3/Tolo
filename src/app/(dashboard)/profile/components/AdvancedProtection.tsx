@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
-import { Shield, MapPin, AlertTriangle, X, Plus, Trash2, Globe, Lock } from "lucide-react";
+import { Shield, MapPin, AlertTriangle, Plus, Trash2, Globe, Lock } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 import { logger } from '@/lib/logger';
@@ -38,7 +38,7 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security/protection', {
-        credentials: 'include',
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -57,7 +57,7 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
     try {
       // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch('/api/auth/security/ip-whitelist', {
-        credentials: 'include',
+        credentials: 'include'
       });
 
       if (response.ok) {
@@ -86,7 +86,7 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
     loadProtectionSettings();
     loadIPWhitelist();
     detectCurrentLocation();
-  }, [_userId]);
+  }, [_userId, loadProtectionSettings, loadIPWhitelist, detectCurrentLocation]);
 
 
   const handleSaveProtectionSettings = async () => {
@@ -95,15 +95,15 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
       const response = await fetch('/api/auth/security/protection', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify({
           recaptchaEnabled,
           geographicSecurityEnabled,
           suspiciousActivityDetection,
-          ipWhitelistEnabled,
-        }),
+          ipWhitelistEnabled
+        })
       });
 
       if (response.ok) {
@@ -135,13 +135,13 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
       const response = await fetch('/api/auth/security/ip-whitelist', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         credentials: 'include',
         body: JSON.stringify({
           ip: newIp,
-          label: newIpLabel || 'عنوان IP',
-        }),
+          label: newIpLabel || 'عنوان IP'
+        })
       });
 
       if (response.ok) {
@@ -164,11 +164,11 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
       // Token is in httpOnly cookie - no need to send Authorization header
       const response = await fetch(`/api/auth/security/ip-whitelist/${ipId}`, {
         method: 'DELETE',
-        credentials: 'include',
+        credentials: 'include'
       });
 
       if (response.ok) {
-        setIpWhitelist(ipWhitelist.filter(ip => ip.id !== ipId));
+        setIpWhitelist(ipWhitelist.filter((ip) => ip.id !== ipId));
         toast.success('تم إزالة عنوان IP من القائمة البيضاء');
       } else {
         toast.error('فشل في إزالة عنوان IP');
@@ -205,15 +205,15 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
             </div>
             <Switch
               checked={recaptchaEnabled}
-              onCheckedChange={setRecaptchaEnabled}
-            />
+              onCheckedChange={setRecaptchaEnabled} />
+            
           </div>
 
-          {recaptchaEnabled && (
-            <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
+          {recaptchaEnabled &&
+          <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
               <div className="text-sm text-center py-4">تم التحقق بنجاح</div>
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -241,12 +241,12 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
             </div>
             <Switch
               checked={geographicSecurityEnabled}
-              onCheckedChange={setGeographicSecurityEnabled}
-            />
+              onCheckedChange={setGeographicSecurityEnabled} />
+            
           </div>
 
-          {geographicSecurityEnabled && (
-            <div className="p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20">
+          {geographicSecurityEnabled &&
+          <div className="p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
                 <div className="text-sm text-yellow-800 dark:text-yellow-200">
@@ -255,7 +255,7 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
                 </div>
               </div>
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -283,12 +283,12 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
             </div>
             <Switch
               checked={suspiciousActivityDetection}
-              onCheckedChange={setSuspiciousActivityDetection}
-            />
+              onCheckedChange={setSuspiciousActivityDetection} />
+            
           </div>
 
-          {suspiciousActivityDetection && (
-            <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
+          {suspiciousActivityDetection &&
+          <div className="p-4 rounded-lg border bg-blue-50 dark:bg-blue-900/20">
               <h3 className="font-medium mb-2">ما يتم مراقبته:</h3>
               <ul className="text-sm space-y-1 text-muted-foreground list-disc list-inside">
                 <li>محاولات تسجيل دخول متعددة فاشلة</li>
@@ -297,7 +297,7 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
                 <li>أنشطة غير عادية على الحساب</li>
               </ul>
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -325,12 +325,12 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
             </div>
             <Switch
               checked={ipWhitelistEnabled}
-              onCheckedChange={setIpWhitelistEnabled}
-            />
+              onCheckedChange={setIpWhitelistEnabled} />
+            
           </div>
 
-          {ipWhitelistEnabled && (
-            <div className="space-y-4">
+          {ipWhitelistEnabled &&
+          <div className="space-y-4">
               <div className="p-4 rounded-lg border bg-yellow-50 dark:bg-yellow-900/20">
                 <div className="flex items-start gap-3">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5" />
@@ -344,17 +344,17 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
               <div className="space-y-2">
                 <div className="flex gap-2">
                   <Input
-                    placeholder="عنوان IP (مثال: 192.168.1.1)"
-                    value={newIp}
-                    onChange={(e) => setNewIp(e.target.value)}
-                    className="flex-1"
-                  />
+                  placeholder="عنوان IP (مثال: 192.168.1.1)"
+                  value={newIp}
+                  onChange={(e) => setNewIp(e.target.value)}
+                  className="flex-1" />
+                
                   <Input
-                    placeholder="تسمية (اختياري)"
-                    value={newIpLabel}
-                    onChange={(e) => setNewIpLabel(e.target.value)}
-                    className="w-40"
-                  />
+                  placeholder="تسمية (اختياري)"
+                  value={newIpLabel}
+                  onChange={(e) => setNewIpLabel(e.target.value)}
+                  className="w-40" />
+                
                   <Button onClick={handleAddIP}>
                     <Plus className="h-4 w-4 ml-2" />
                     إضافة
@@ -366,42 +366,42 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
 
               <div className="space-y-2">
                 <h3 className="font-medium">عناوين IP المسموحة:</h3>
-                {ipWhitelist.length > 0 ? (
-                  <div className="space-y-2">
-                    {ipWhitelist.map((ip) => (
-                      <div
-                        key={ip.id}
-                        className="flex items-center justify-between p-3 rounded-lg border"
-                      >
+                {ipWhitelist.length > 0 ?
+              <div className="space-y-2">
+                    {ipWhitelist.map((ip) =>
+                <div
+                  key={ip.id}
+                  className="flex items-center justify-between p-3 rounded-lg border">
+                  
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-medium">{ip.ip}</span>
-                            {ip.label && (
-                              <Badge variant="outline">{ip.label}</Badge>
-                            )}
+                            {ip.label &&
+                      <Badge variant="outline">{ip.label}</Badge>
+                      }
                           </div>
                           <p className="text-xs text-muted-foreground">
                             أضيف في: {new Date(ip.createdAt).toLocaleDateString('ar-EG')}
                           </p>
                         </div>
                         <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleRemoveIP(ip.id)}
-                        >
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleRemoveIP(ip.id)}>
+                    
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">
+                )}
+                  </div> :
+
+              <p className="text-sm text-muted-foreground text-center py-4">
                     لا توجد عناوين IP في القائمة البيضاء
                   </p>
-                )}
+              }
               </div>
             </div>
-          )}
+          }
         </CardContent>
       </Card>
 
@@ -410,7 +410,6 @@ export default function AdvancedProtection({ userId: _userId }: AdvancedProtecti
           حفظ الإعدادات
         </Button>
       </div>
-    </div>
-  );
-}
+    </div>);
 
+}

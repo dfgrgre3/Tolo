@@ -40,6 +40,10 @@ export async function batchGetOrSetEducationalContent<T>(items: { key: string; f
   return Promise.all(items.map(item => getOrSetEducationalContent(item.key, item.fetchFn, item.ttl || LONG_TTL)));
 }
 
+export async function cacheMultipleEducationalItems(items: { key: string; data: any; ttl?: number }[]): Promise<void> {
+  await Promise.all(items.map(item => cacheEducationalContent(item.key, item.data, item.ttl)));
+}
+
 const educationalCacheService = {
   getOrSetEducationalContent,
   getOrSetSubject,
@@ -47,7 +51,8 @@ const educationalCacheService = {
   getOrSetLesson,
   invalidateEducationalContent,
   invalidateEducationalContentPattern,
-  batchGetOrSetEducationalContent
+  batchGetOrSetEducationalContent,
+  cacheMultipleEducationalItems
 };
 
 export default educationalCacheService;

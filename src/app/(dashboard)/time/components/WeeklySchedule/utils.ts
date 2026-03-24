@@ -1,4 +1,4 @@
-import { startOfWeek, addDays, parseISO } from 'date-fns';
+import { startOfWeek, addDays } from 'date-fns';
 import type { TimeBlock, WeekStats } from './types';
 import { DAYS_OF_WEEK } from './constants';
 
@@ -35,39 +35,39 @@ export const getWeekDays = (currentWeek: Date) => {
 export const calculateWeekStats = (timeBlocks: TimeBlock[], currentWeek: Date): WeekStats => {
   const weekStart = startOfWeek(currentWeek, { weekStartsOn: 0 });
   const weekEnd = addDays(weekStart, 6);
-  
-  const weekBlocks = timeBlocks.filter(block => {
+
+  const weekBlocks = timeBlocks.filter((block) => {
     const blockDate = addDays(weekStart, block.day);
     return blockDate >= weekStart && blockDate <= weekEnd;
   });
-  
+
   const totalBlocks = weekBlocks.length;
-  const studyBlocks = weekBlocks.filter(b => b.type === 'STUDY');
-  const breakBlocks = weekBlocks.filter(b => b.type === 'BREAK');
-  const completedBlocks = weekBlocks.filter(b => b.isCompleted).length;
-  const upcomingBlocks = weekBlocks.filter(b => !b.isCompleted).length;
-  
+  const studyBlocks = weekBlocks.filter((b) => b.type === 'STUDY');
+  const breakBlocks = weekBlocks.filter((b) => b.type === 'BREAK');
+  const completedBlocks = weekBlocks.filter((b) => b.isCompleted).length;
+  const upcomingBlocks = weekBlocks.filter((b) => !b.isCompleted).length;
+
   const studyHours = studyBlocks.reduce((acc, block) => {
     const start = parseTime(block.startTime);
     const end = parseTime(block.endTime);
     return acc + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   }, 0);
-  
+
   const breakHours = breakBlocks.reduce((acc, block) => {
     const start = parseTime(block.startTime);
     const end = parseTime(block.endTime);
     return acc + (end.getTime() - start.getTime()) / (1000 * 60 * 60);
   }, 0);
-  
+
   // Find most busy day
   const dayBlockCounts = Array.from({ length: 7 }, (_, i) => ({
     day: i,
-    count: weekBlocks.filter(b => b.day === i).length
+    count: weekBlocks.filter((b) => b.day === i).length
   }));
-  const mostBusyDay = dayBlockCounts.reduce((max, current) => 
-    current.count > max.count ? current : max
+  const mostBusyDay = dayBlockCounts.reduce((max, current) =>
+  current.count > max.count ? current : max
   );
-  
+
   // Calculate average block duration
   const totalDuration = weekBlocks.reduce((acc, block) => {
     const start = parseTime(block.startTime);
@@ -75,7 +75,7 @@ export const calculateWeekStats = (timeBlocks: TimeBlock[], currentWeek: Date): 
     return acc + (end.getTime() - start.getTime()) / (1000 * 60); // minutes
   }, 0);
   const averageBlockDuration = totalBlocks > 0 ? totalDuration / totalBlocks : 0;
-  
+
   return {
     totalBlocks,
     studyHours: Math.round(studyHours * 10) / 10,
@@ -86,4 +86,3 @@ export const calculateWeekStats = (timeBlocks: TimeBlock[], currentWeek: Date): 
     averageBlockDuration: Math.round(averageBlockDuration)
   };
 };
-

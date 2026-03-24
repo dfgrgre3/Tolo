@@ -7,8 +7,8 @@ import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import { 
-  Plus, Edit, Trash2, Eye, FileText, User, Calendar, Globe, 
-  Lock, BookOpen, MessageSquare, TrendingUp, Hash, ArrowUpRight
+  Plus, Eye, FileText, Calendar, Globe, 
+  Lock, BookOpen, MessageSquare, TrendingUp, Hash, ArrowUpRight, Search
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -50,6 +50,18 @@ interface BlogPost {
   };
 }
 
+interface BlogPostsResponse {
+  data: {
+    posts: BlogPost[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
+
 const blogPostSchema = z.object({
   title: z.string().min(1, "عنوان المخطوطة مطلوب"),
   slug: z.string().min(1, "رمز الاستدعاء (Slug) مطلوب"),
@@ -67,15 +79,33 @@ export default function AdminBlogPage() {
     open: false,
     id: null,
   });
+  const [page, setPage] = React.useState(1);
+  const [limit, setLimit] = React.useState(10);
+  const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
 
-  const { data: posts = [], isLoading, refetch } = useQuery({
-    queryKey: ["admin", "blog-posts"],
+  const { data, isLoading, refetch } = useQuery({
+    queryKey: ["admin", "blog-posts", page, limit, deferredSearch],
     queryFn: async () => {
-      const response = await fetch("/api/admin/blog");
-      const result = await response.json();
-      return (result.posts || []) as BlogPost[];
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      if (deferredSearch) {
+        params.set("search", deferredSearch);
+      }
+
+      const response = await fetch(`/api/admin/blog?${params.toString()}`);
+      return (await response.json()) as BlogPostsResponse;
     },
   });
+
+  const posts = data?.data?.posts || [];
+  const pagination = data?.data?.pagination;
+
+  React.useEffect(() => {
+    setPage(1);
+  }, [deferredSearch]);
 
   const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(blogPostSchema),
@@ -128,7 +158,7 @@ export default function AdminBlogPage() {
       } else {
         toast.error("فشل في حفظ المخطوطة");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال");
     }
   };
@@ -148,7 +178,7 @@ export default function AdminBlogPage() {
       } else {
         toast.error("فشل في الإتلاف");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
@@ -279,9 +309,26 @@ export default function AdminBlogPage() {
         columns={columns}
         data={posts}
         loading={isLoading}
-        searchKey="title"
-        searchPlaceholder="ابحث في سجلات المكتبة..."
+        serverSide
+        totalRows={pagination?.total || 0}
+        pageCount={pagination?.totalPages || 1}
+        currentPage={page}
+        onPageChange={setPage}
+        onPageSizeChange={setLimit}
+        pageSize={limit}
         actions={{ onRefresh: () => refetch() }}
+        toolbar={
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="???? ?? ????? ???????"
+              className="h-10 w-72 rounded-xl border border-border bg-accent/20 px-10 text-sm outline-none ring-primary transition focus:ring-1"
+            />
+          </div>
+        }
       />
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

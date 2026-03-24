@@ -12,48 +12,32 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
-  Settings,
   Globe,
   Mail,
   Phone,
   Share2,
   Gamepad2,
-  Shield,
   Wrench,
   RefreshCw,
   Save,
   Download,
-  Upload,
-  History,
   AlertTriangle,
-  CheckCircle,
   Clock,
-  Database,
   Crown,
   Zap,
   Lock,
-  AppWindow,
   Layout,
   Server,
-  Terminal,
   Users,
   Trophy,
   MessageCircle,
@@ -107,7 +91,7 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [hasChanges, setHasChanges] = React.useState(false);
-  const [lastSaved, setLastSaved] = React.useState<Date | null>(null);
+  const [_lastSaved, setLastSaved] = React.useState<Date | null>(null);
 
   const form = useForm<SettingsFormValues>({
     resolver: zodResolver(settingsSchema),
@@ -156,7 +140,7 @@ export default function AdminSettingsPage() {
         ...settings,
         siteKeywords: settings.siteKeywords?.join(", ") || "",
       });
-    } catch (error) {
+    } catch (_error) {
       toast.error("حدث خطأ أثناء جلب مرسوم الإعدادات");
     } finally {
       setLoading(false);
@@ -186,7 +170,7 @@ export default function AdminSettingsPage() {
       } else {
         toast.error("فشل في ختم المرسوم");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال بالسيرفر الملكي");
     } finally {
       setSaving(false);
@@ -209,7 +193,7 @@ export default function AdminSettingsPage() {
         });
         toast.success("تمت العودة للقيم الأساسية للمملكة");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("فشل في استعادة القيم الأصلية");
     }
   };

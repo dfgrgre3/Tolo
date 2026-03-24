@@ -29,7 +29,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { useForm } from "react-hook-form";
-import { Hammer, Sparkles, Wand2 } from "lucide-react";
+import { Hammer, Sparkles } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";

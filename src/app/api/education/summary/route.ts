@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
           }
         });
 
-        const summary = enrollments.map(enr => {
-          const subTopics = enr.subject.topics.flatMap(t => t.subTopics);
+        const summary = enrollments.map((enr: any) => {
+          const subTopics = enr.subject.topics.flatMap((t: any) => t.subTopics);
           const totalSubTopics = subTopics.length;
 
           return {
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
             totalSubTopics,
             completedSubTopics: 0, // Placeholder
             progress: 0,
-            topics: enr.subject.topics.map(t => ({
+            topics: enr.subject.topics.map((t: any) => ({
               id: t.id,
               name: t.name,
               total: t.subTopics.length,
@@ -52,22 +52,22 @@ export async function GET(request: NextRequest) {
           select: { subTopicId: true }
         });
 
-        const completedIds = new Set(completed.map(c => c.subTopicId));
+        const completedIds = new Set(completed.map((c: any) => c.subTopicId));
 
         // Fill in real numbers
-        summary.forEach(sub => {
-          sub.topics.forEach(topic => {
+        summary.forEach((sub: any) => {
+          sub.topics.forEach((topic: any) => {
              // In a real implementation we would check which of topic's subtopics are in completedIds
           });
         });
 
         // Actually calculating numbers
-        const calculatedSummary = summary.map(sub => {
-          const subjectTopics = enrollments.find(e => e.subjectId === sub.subjectId)?.subject.topics || [];
+        const calculatedSummary = summary.map((sub: any) => {
+          const subjectTopics = enrollments.find((e: any) => e.subjectId === sub.subjectId)?.subject.topics || [];
           let totalCompleted = 0;
 
-          const topicsProgress = subjectTopics.map(t => {
-            const topicCompletedCount = t.subTopics.filter(st => completedIds.has(st.id)).length;
+          const topicsProgress = subjectTopics.map((t: any) => {
+            const topicCompletedCount = t.subTopics.filter((st: any) => completedIds.has(st.id)).length;
             totalCompleted += topicCompletedCount;
             return {
               id: t.id,

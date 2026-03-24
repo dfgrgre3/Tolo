@@ -6,7 +6,9 @@ import Header from "@/components/Header";
 export default function Template({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <Header />
+      <React.Suspense fallback={<div className="h-16 w-full animate-pulse bg-background" />}>
+        <Header />
+      </React.Suspense>
       {children}
     </>
   );

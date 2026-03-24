@@ -4,7 +4,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { AdminCard } from "@/components/admin/ui/admin-card";
+import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -33,8 +33,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { 
-  MoreHorizontal, Plus, Edit, Trash2, Gift, Users, Download, Upload, 
-  Sparkles, Star, Gem, Shield, Crown, Wand2, Hammer, Search, RefreshCw, Box
+  Plus, Gift, Users, Download, Upload, 
+  Sparkles, Gem, Shield, Crown, Wand2, Hammer, Box, Send
 } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
@@ -81,20 +81,12 @@ const rewardTypes = [
   { value: "item", label: "عنصر مقدس", icon: Box },
 ];
 
-const rarityColors: Record<string, string> = {
-  common: "text-gray-500 border-gray-500/20 bg-gray-500/5",
-  uncommon: "text-emerald-500 border-emerald-500/20 bg-emerald-500/5",
-  rare: "text-blue-500 border-blue-500/20 bg-blue-500/5",
-  epic: "text-purple-500 border-purple-500/20 bg-purple-500/5",
-  legendary: "text-amber-500 border-amber-500/20 bg-amber-500/5 shadow-[0_0_10px_rgba(245,158,11,0.2)]",
-};
-
-const rarityLabels: Record<string, string> = {
-  common: "عادي",
-  uncommon: "غير عادي",
-  rare: "نادر",
-  epic: "ملحمي",
-  legendary: "أسطوري",
+const rarityColors: Record<string, { color: "green" | "blue" | "yellow" | "red" | "purple" | "default", label: string }> = {
+  common: { color: "default", label: "عادي" },
+  uncommon: { color: "green", label: "غير عادي" },
+  rare: { color: "blue", label: "نادر" },
+  epic: { color: "purple", label: "ملحمي" },
+  legendary: { color: "yellow", label: "أسطوري" },
 };
 
 export default function AdminRewardsPage() {
@@ -126,8 +118,8 @@ export default function AdminRewardsPage() {
       const response = await fetch("/api/admin/rewards");
       const data = await response.json();
       setRewards(data.rewards || []);
-    } catch (error) {
-      console.error("Error fetching rewards:", error);
+    } catch (_error) {
+      console.error("Error fetching rewards:", _error);
       toast.error("حدث خطأ في فتح الخزينة");
     } finally {
       setLoading(false);
@@ -184,7 +176,7 @@ export default function AdminRewardsPage() {
       } else {
         toast.error("فشل في حفظ الغنيمة");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال بالخزانة");
     }
   };
@@ -205,7 +197,7 @@ export default function AdminRewardsPage() {
       } else {
         toast.error("فشل في الإتلاف");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });
@@ -278,12 +270,12 @@ export default function AdminRewardsPage() {
         const Icon = typeInfo?.icon || Gift;
         return (
           <div className="flex items-center gap-4">
-            <div className={`flex h-12 w-12 items-center justify-center rounded-[1rem] bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)]`}>
+            <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-amber-500/10 text-amber-500 border border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.1)] transition-transform hover:scale-105">
               <Icon className="h-6 w-6" />
             </div>
             <div>
               <p className="font-black text-sm tracking-tight">{reward.name}</p>
-              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60 truncate max-w-[200px]">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-60 truncate max-w-[200px] italic mt-0.5">
                 {reward.description}
               </p>
             </div>
@@ -298,7 +290,7 @@ export default function AdminRewardsPage() {
         const type = row.getValue("type") as string;
         const typeInfo = rewardTypes.find(t => t.value === type);
         return (
-          <Badge variant="secondary" className="rounded-lg bg-primary/10 text-primary border-primary/20 font-black text-[10px] uppercase">
+          <Badge variant="outline" className="rounded-lg bg-white/5 text-primary border-primary/20 font-black text-[10px] uppercase px-3 py-1">
             {typeInfo?.label || type}
           </Badge>
         );
@@ -309,12 +301,14 @@ export default function AdminRewardsPage() {
       header: "رتبة الندرة",
       cell: ({ row }) => {
         const rarity = row.getValue("rarity") as string;
+        const config = rarityColors[rarity] || rarityColors.common;
         return (
           <Badge 
             variant="outline" 
-            className={`font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 ${rarityColors[rarity] || "text-gray-500"}`}
+            className="font-black text-[10px] uppercase tracking-widest rounded-lg border-2 px-3 py-1 bg-white/5"
+            style={{ color: `oklch(var(--${config.color}))`, borderColor: `oklch(var(--${config.color}) / 0.3)` }}
           >
-            {rarityLabels[rarity] || rarity}
+            {config.label}
           </Badge>
         );
       },
@@ -351,7 +345,7 @@ export default function AdminRewardsPage() {
         const active = row.original.isActive;
         return (
           <div className="flex items-center gap-2">
-            <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500" : "bg-red-500/30"}`} />
+            <div className={`w-2 h-2 rounded-full ${active ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" : "bg-red-500/30"}`} />
             <span className={`text-[10px] font-black uppercase tracking-widest ${active ? "text-emerald-500" : "text-muted-foreground"}`}>
               {active ? "متاح للغنائم" : "تم إيقاف الإنتاج"}
             </span>
@@ -400,30 +394,40 @@ export default function AdminRewardsPage() {
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {[
-          { label: "إجمالي الغنائم", value: rewards.length, icon: Gem, color: "amber" },
-          { label: "كنوز أسطورية", value: rewards.filter(r => r.rarity === "legendary").length, icon: Crown, color: "orange" },
-          { label: "إجمالي المالكين", value: rewards.reduce((acc, r) => acc + (r._count?.userRewards || 0), 0), icon: Users, color: "blue" },
-          { label: "غنائم نشطة", value: rewards.filter(r => r.isActive).length, icon: Sparkles, color: "emerald" },
-        ].map((stat, i) => (
-          <AdminCard key={i} variant="glass" className={`p-6 border-white/10`}>
-            <div className="flex items-center gap-4">
-              <div className={`p-3 rounded-2xl bg-${stat.color}-500/10 text-${stat.color}-500`}>
-                <stat.icon className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="text-2xl font-black">{stat.value}</p>
-                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{stat.label}</p>
-              </div>
-            </div>
-          </AdminCard>
-        ))}
+        <AdminStatsCard 
+          title="إجمالي الغنائم" 
+          value={rewards.length} 
+          icon={Gem} 
+          color="yellow"
+          description="كنوز في الخزائن"
+        />
+        <AdminStatsCard 
+          title="كنوز أسطورية" 
+          value={rewards.filter(r => r.rarity === "legendary").length} 
+          icon={Crown} 
+          color="yellow"
+          description="رتبة أسطورية عليا"
+        />
+        <AdminStatsCard 
+          title="إجمالي المالكين" 
+          value={rewards.reduce((acc, r) => acc + (r._count?.userRewards || 0), 0)} 
+          icon={Users} 
+          color="blue"
+          description="محارب يتقلدون الغنائم"
+        />
+        <AdminStatsCard 
+          title="غنائم نشطة" 
+          value={rewards.filter(r => r.isActive).length} 
+          icon={Sparkles} 
+          color="green"
+          description="متاحة حالياً للاكتساب"
+        />
       </div>
 
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
+        className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
       >
         {loading ? (
           <TableSkeleton rows={8} cols={7} />
@@ -432,7 +436,7 @@ export default function AdminRewardsPage() {
             columns={columns}
             data={rewards}
             searchKey="name"
-            searchPlaceholder="ابحث في سجلات الخزانة..."
+            searchPlaceholder="ابحث في سجلات الغنائم..."
             actions={{ onRefresh: () => fetchRewards() }}
           />
         )}
@@ -444,8 +448,18 @@ export default function AdminRewardsPage() {
           <div className="h-1.5 bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500" />
           <div className="p-8">
             <DialogHeader className="mb-8">
-              <DialogTitle className="text-2xl font-black">
-                {editingReward ? "تنقيح ميزات الكنز" : "سك جائزة ملكية جديدة"}
+              <DialogTitle className="text-2xl font-black flex items-center gap-3">
+                {editingReward ? (
+                  <>
+                    <Hammer className="w-7 h-7 text-indigo-500" />
+                    تنقيح ميثاق الجائزة
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-7 h-7 text-amber-500" />
+                    سك جائزة ملكية جديدة
+                  </>
+                )}
               </DialogTitle>
               <DialogDescription className="font-bold text-muted-foreground">
                 حدد مواصفات الجائزة لتكون لائقة بمن يحصل عليها من الأبطال.
@@ -473,7 +487,7 @@ export default function AdminRewardsPage() {
                     <FormItem>
                       <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">وصف السحر/التأثير</FormLabel>
                       <FormControl>
-                        <Textarea {...field} placeholder="جائزة تمنح لمن..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[80px]" />
+                        <Textarea {...field} placeholder="جائزة تمنح لمن..." className="rounded-2xl border-white/10 bg-white/5 p-4 min-h-[80px] font-medium" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -520,9 +534,9 @@ export default function AdminRewardsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="rounded-xl border-white/10">
-                            {Object.entries(rarityLabels).map(([value, label]) => (
+                            {Object.entries(rarityColors).map(([value, config]) => (
                               <SelectItem key={value} value={value} className="font-bold cursor-pointer">
-                                {label}
+                                {config.label}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -539,7 +553,7 @@ export default function AdminRewardsPage() {
                     <FormItem>
                       <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">رابط الأيقونة المقدسة</FormLabel>
                       <FormControl>
-                        <Input {...field} type="url" dir="ltr" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 text-xs font-mono" />
+                        <Input {...field} type="url" dir="ltr" className="rounded-xl border-white/10 bg-white/5 h-11 px-4 text-xs font-mono font-bold" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -550,9 +564,9 @@ export default function AdminRewardsPage() {
                     control={form.control}
                     name="isTradeable"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5 shadow-inner">
+                      <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                         <div className="space-y-0.5">
-                          <FormLabel className="font-black text-xs">مقايضة؟</FormLabel>
+                          <FormLabel className="font-black text-xs">قابل للمقايضة؟</FormLabel>
                         </div>
                         <FormControl>
                           <Switch
@@ -567,7 +581,7 @@ export default function AdminRewardsPage() {
                     control={form.control}
                     name="isActive"
                     render={({ field }) => (
-                      <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5 shadow-inner">
+                      <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                         <div className="space-y-0.5">
                           <FormLabel className="font-black text-xs">نشط للتوزيع؟</FormLabel>
                         </div>
@@ -582,7 +596,7 @@ export default function AdminRewardsPage() {
                   />
                 </div>
                 <DialogFooter className="pt-4">
-                  <AdminButton type="submit" icon={editingReward ? Sparkles : Hammer} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
+                  <AdminButton type="submit" icon={editingReward ? Hammer : Send} className="w-full h-14 text-md font-black shadow-xl rounded-2xl">
                     {editingReward ? "تحديث ميثاق الجائزة" : "سك الجائزة في السجلات"}
                   </AdminButton>
                 </DialogFooter>

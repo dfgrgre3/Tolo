@@ -69,7 +69,7 @@ export async function POST(
               select: { id: true }
             });
             
-            const subTopicIds = allSubTopics.map(st => st.id);
+            const subTopicIds = allSubTopics.map((st: any) => st.id);
             const userProgress = await prisma.topicProgress.findMany({
               where: { userId, subTopicId: { in: subTopicIds }, completed: true }
             });

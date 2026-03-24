@@ -12,13 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { ColumnDef } from "@tanstack/react-table";
 import { 
-  Search, Filter, Calendar, Shield, User, Globe, Activity, Terminal, 
-  AlertTriangle, Monitor, Info, History, Eye, UserX, UserCheck, Key, Lock, Unlock, Mail, Scan, RefreshCw
+  Search, Filter, Calendar, Shield, User, Globe, Terminal, 
+  AlertTriangle, Monitor, Info, History, UserX, UserCheck, Key, Lock, Unlock, Mail, Scan, RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
 

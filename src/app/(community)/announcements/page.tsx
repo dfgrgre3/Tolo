@@ -7,21 +7,16 @@ import {
   Megaphone, 
   Trophy, 
   Search, 
-  Filter, 
   Calendar, 
   User, 
   Clock, 
   Shield, 
   Sword, 
-  Info,
   ChevronRight,
-  ArrowRight,
   Zap,
   Sparkles,
   Crown,
   Map,
-  Users,
-  Eye,
   Plus
 } from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
@@ -66,7 +61,6 @@ const STYLES = {
 };
 
 export default function AnnouncementsPage() {
-  const [userId, setUserId] = useState<string | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [contests, setContests] = useState<Contest[]>([]);
   const [activeTab, setActiveTab] = useState<"announcements" | "contests">("announcements");
@@ -75,7 +69,7 @@ export default function AnnouncementsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    ensureUser().then(setUserId);
+    ensureUser();
   }, []);
 
   useEffect(() => {

@@ -216,7 +216,7 @@ export default function CurriculumEditorPage() {
   const subjectId = params.id as string;
 
   const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [subject, setSubject] = useState<SubjectSummary | null>(null);
+  const [_subject, setSubject] = useState<SubjectSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
@@ -238,7 +238,7 @@ export default function CurriculumEditorPage() {
           setSubject(data.data?.subject || null);
           setChapters(data.data?.curriculum || []);
         }
-      } catch (err) {
+      } catch (_err) {
         toast.error("فشل تحميل المنهج");
       } finally {
         setLoading(false);
@@ -366,7 +366,7 @@ export default function CurriculumEditorPage() {
          const error = await res.json();
          toast.error(error.error || 'فشل حفظ المنهج');
        }
-     } catch (err) {
+     } catch (_err) {
        toast.error('حدث خطأ في الاتصال');
      } finally {
        setIsSaving(false);
