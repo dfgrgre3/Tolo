@@ -33,11 +33,11 @@ export default function Footer() {
     { title: "الأكاديمية", items: [
       { name: "جميع الدورات", href: "/courses", icon: BookOpen },
       { name: "المسارات التعليمية", href: "/pathways", icon: Map },
-      { name: "سجل الإنجازات", href: "/achievements", icon: Trophy },
+      { name: "سجل الإنجازات", href: "/courses", icon: Trophy },
     ]},
     { title: "المجتمع", items: [
       { name: "المنتدى", href: "/forum", icon: Shield },
-      { name: "لوحة الصدارة", href: "/leaderboard", icon: Sparkles },
+      { name: "لوحة الصدارة", href: "/courses", icon: Sparkles },
       { name: "المدونة", href: "/blog", icon: History },
     ]},
     { title: "تواصل معنا", items: [

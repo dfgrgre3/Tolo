@@ -10,6 +10,7 @@ import {
   successResponse,
   withAuth,
 } from "@/lib/api-utils";
+import { logger } from '@/lib/logger';
 
 const subjectSchema = z.object({
   name: z.string().min(1, "اسم المادة مطلوب"),
@@ -20,11 +21,15 @@ const subjectSchema = z.object({
   color: z.string().optional().nullable(),
   type: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
+  isPublished: z.boolean().default(false),
   level: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]).default("MEDIUM"),
   price: z.number().min(0).optional().default(0),
+  durationHours: z.number().min(0).optional().default(0),
   requirements: z.string().optional().nullable(),
+  learningObjectives: z.string().optional().nullable(),
   instructorName: z.string().optional().nullable(),
   instructorId: z.string().optional().nullable(),
+  categoryId: z.string().optional().nullable(),
   thumbnailUrl: z.string().optional().nullable(),
   trailerUrl: z.string().optional().nullable(),
 });
@@ -107,11 +112,15 @@ export async function GET(request: NextRequest) {
               color: subject.color,
               type: subject.type,
               isActive: subject.isActive,
+              isPublished: subject.isPublished,
               level: subject.level,
               price: subject.price,
+              durationHours: subject.durationHours,
               requirements: subject.requirements,
+              learningObjectives: subject.learningObjectives,
               instructorName: subject.instructorName,
               instructorId: subject.instructorId,
+              categoryId: subject.categoryId,
               thumbnailUrl: subject.thumbnailUrl,
               trailerUrl: subject.trailerUrl,
             },
@@ -369,12 +378,31 @@ export async function DELETE(request: NextRequest) {
           return badRequestResponse("معرف المادة مطلوب");
         }
 
+        // 1. التحقق من وجود مشتركين (أهم فحص)
+        const enrollmentsCount = await prisma.subjectEnrollment.count({
+          where: { subjectId: id }
+        });
+
+        if (enrollmentsCount > 0) {
+          return badRequestResponse(`لا يمكن حذف هذه الدورة لوجود ${enrollmentsCount} طالب مشترك بها. القواعد تمنع حذف البيانات المرتبطة بسجلات مالية أو طلابية. يرجى إلغاء تفعيل الدورة بدلاً من حذفها.`);
+        }
+
+        // 2. التحقق من وجود بيانات أخرى قد تمنع الحذف (مثل الامتحانات أو الكتب إذا لم تكن Cascade)
+        // ملاحظة: معظم العلاقات الأخرى مرتبطة بـ Cascade في Schema
+        
         await prisma.subject.delete({
           where: { id },
         });
 
-        return successResponse({ success: true }, "تم حذف المادة بنجاح");
-      } catch (error) {
+        return successResponse({ success: true }, "تم حذف الدورة بنجاح");
+      } catch (error: any) {
+        logger.error('Error deleting course:', error);
+        
+        // التقاط أخطاء Prisma المحددة
+        if (error.code === 'P2003') {
+          return badRequestResponse("فشل الحذف بسبب وجود قيود (Constraints) في قاعدة البيانات. هناك سجلات أخرى مرتبطة بهذه المادة تمنع حذفها.");
+        }
+        
         return handleApiError(error);
       }
     })

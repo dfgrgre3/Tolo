@@ -18,7 +18,6 @@ import {
  */
 
 const PROTECTED_PREFIXES = [
-  '/dashboard',
   '/user',
   '/settings',
   '/api/',

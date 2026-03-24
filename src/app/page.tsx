@@ -17,6 +17,8 @@ import { Skeleton } from "@/components/ui/skeleton";
  * 
  * The client-side interactive components are separated into HomeClient
  */
+import { LoadingSpinner } from "@/components/ui/loading-state";
+
 export default async function Home() {
 	// Fetch data on the server
 	// This runs on the server, not in the browser
@@ -25,7 +27,7 @@ export default async function Home() {
 	return (
 		<Suspense fallback={
 			<div className="min-h-screen bg-background flex items-center justify-center">
-				<Skeleton className="h-16 w-16 rounded-full" />
+				<LoadingSpinner />
 			</div>
 		}>
 			<HomeClient summary={summary} />
