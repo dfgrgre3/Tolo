@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Layout } from "@/components/layout/Layout";
+import { Layout } from "@/components/layout/layout";
 
 import { ensureUser } from "@/lib/user-utils";
 

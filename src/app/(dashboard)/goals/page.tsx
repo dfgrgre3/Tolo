@@ -23,7 +23,6 @@ export default function GoalsPage() {
     error: _error
   } = useGamification({
     userId,
-    enableRealTime: true,
     enableNotifications: true
   });
 

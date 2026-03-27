@@ -1,6 +1,6 @@
 'use client';
 
-import ErrorBoundary from '../ErrorBoundary';
+import ErrorBoundary from '../error-boundary';
 
 /**
  * Standard UI ErrorBoundary for components.

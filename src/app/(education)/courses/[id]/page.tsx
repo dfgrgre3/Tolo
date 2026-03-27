@@ -17,25 +17,26 @@ import {
   CheckCircle2,
   Lock,
   GraduationCap,
-
   Share2,
   Bookmark,
   BookmarkCheck,
-
   Loader2,
   Play,
-
-
-
-
-  Sword,
-  Target } from
-
-
-"lucide-react";
+  Award,
+  BarChart3,
+  FileText,
+  MessageSquare,
+  Download,
+  Heart,
+  Zap,
+  Shield,
+  Target,
+  TrendingUp,
+  Layers,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
+import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 
 type Course = {
@@ -68,17 +69,20 @@ type CourseLesson = {
   progress: number;
 };
 
-const STYLES = {
-  glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
-  card: "rpg-card h-full p-8 transition-all",
-  neonText: "rpg-neon-text font-black",
-  goldText: "rpg-gold-text font-black"
+const levelConfig = {
+  BEGINNER: { label: "مبتدئ", color: "text-emerald-500", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+  INTERMEDIATE: { label: "متوسط", color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+  ADVANCED: { label: "متقدم", color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/20" },
 };
 
-const levelConfig = {
-  BEGINNER: { label: "مبتدئ", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" },
-  INTERMEDIATE: { label: "متوسط", color: "text-amber-400 bg-amber-500/10 border-amber-500/20" },
-  ADVANCED: { label: "متقدم", color: "text-rose-400 bg-rose-500/10 border-rose-500/20" }
+const container = {
+  hidden: { opacity: 0 as const },
+  show: { opacity: 1 as const, transition: { staggerChildren: 0.08, delayChildren: 0.1 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0 as const, y: 16 },
+  show: { opacity: 1 as const, y: 0, transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] as const } },
 };
 
 export default function CourseDetailPage() {
@@ -93,8 +97,7 @@ export default function CourseDetailPage() {
   const [activeLesson, setActiveLesson] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
-  const [, setReviews] = useState<any[]>([]);
-  const [, setLeaderboard] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<"curriculum" | "overview" | "reviews">("curriculum");
 
   useEffect(() => {
     ensureUser().then(setUserId);
@@ -125,7 +128,7 @@ export default function CourseDetailPage() {
               createdAt: subject.createdAt || new Date().toISOString(),
               tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
               enrolled: Boolean(courseData.enrollment),
-              progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined
+              progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined,
             });
           }
         }
@@ -151,7 +154,7 @@ export default function CourseDetailPage() {
             duration: l.duration || 600,
             order: l.order || i + 1,
             completed: l.completed || Boolean(progressMap[l.id]),
-            progress: l.completed ? 100 : l.progress || 0
+            progress: l.completed ? 100 : l.progress || 0,
           }));
           setLessons(normalized);
           if (normalized.length > 0) setActiveLesson(normalized[0].id);
@@ -161,20 +164,9 @@ export default function CourseDetailPage() {
       }
     };
 
-    const fetchExtras = async () => {
-      try {
-        const [reviewsRes, leaderboardRes] = await Promise.all([
-        fetch(`/api/courses/${courseId}/reviews`),
-        fetch(`/api/courses/${courseId}/leaderboard`)]
-        );
-        if (reviewsRes.ok) setReviews((await reviewsRes.json()).data || []);
-        if (leaderboardRes.ok) setLeaderboard((await leaderboardRes.json()).data || []);
-      } catch (err) {logger.error(String(err));}
-    };
-
     const loadData = async () => {
       setLoading(true);
-      await Promise.all([fetchCourse(), fetchLessons(), fetchExtras()]);
+      await Promise.all([fetchCourse(), fetchLessons()]);
       setLoading(false);
     };
     loadData();
@@ -187,7 +179,7 @@ export default function CourseDetailPage() {
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: courseId })
+        body: JSON.stringify({ subject: courseId }),
       });
       if (res.ok) {
         if (course) setCourse({ ...course, enrolled: true, progress: 0 });
@@ -204,7 +196,7 @@ export default function CourseDetailPage() {
       await fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: true, subject: course.subject })
+        body: JSON.stringify({ completed: true, subject: course.subject }),
       });
     } catch (err) {
       logger.error("Error marking lesson complete:", err);
@@ -212,289 +204,552 @@ export default function CourseDetailPage() {
   };
 
   const activeLessonData = useMemo(() => lessons.find((l) => l.id === activeLesson), [lessons, activeLesson]);
-  const _completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
+  const completedCount = useMemo(() => lessons.filter((l) => l.completed).length, [lessons]);
+  const courseProgress = lessons.length > 0 ? Math.round((completedCount / lessons.length) * 100) : 0;
 
-  if (loading) return (
-    <div className="min-h-screen bg-[#0A0A0F] flex items-center justify-center">
-       <div className="relative h-24 w-24">
-          <div className="absolute inset-0 border-t-2 border-primary rounded-full animate-spin" />
-          <div className="absolute inset-4 border-b-2 border-primary/30 rounded-full animate-spin-reverse" />
-       </div>
-    </div>);
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative h-16 w-16">
+            <div className="absolute inset-0 border-2 border-primary/20 rounded-full" />
+            <div className="absolute inset-0 border-t-2 border-primary rounded-full animate-spin" />
+          </div>
+          <p className="text-sm text-gray-500 font-medium">جاري تحميل الدورة...</p>
+        </div>
+      </div>
+    );
+  }
 
-
-  if (!course) return <div className="min-h-screen bg-[#0A0A0F] text-white flex items-center justify-center">Course not found</div>;
+  if (!course) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14] flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <GraduationCap className="h-16 w-16 text-gray-300 mx-auto" />
+          <h2 className="text-xl font-bold text-gray-700 dark:text-gray-300">لم يتم العثور على الدورة</h2>
+          <Link href="/courses">
+            <Button className="mt-4">العودة إلى الدورات</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const levelInfo = levelConfig[course.level] || levelConfig.INTERMEDIATE;
 
   return (
-    <div className="min-h-screen bg-[#0A0A0F] text-gray-100 overflow-hidden pb-40" dir="rtl">
-      {/* --- Ambient Background --- */}
+    <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14] pb-20" dir="rtl">
+      {/* Ambient background */}
       <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-[10%] right-[10%] w-[600px] h-[600px] bg-primary/10 blur-[150px] rounded-full opacity-30" />
-        <div className="absolute bottom-[20%] left-[5%] w-[500px] h-[500px] bg-purple-600/5 blur-[130px] rounded-full" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/[0.02] blur-[150px] rounded-full" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-500/[0.02] blur-[130px] rounded-full" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
-        {/* --- Breadcrumb & Actions --- */}
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-           <motion.nav
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-4 text-[10px] font-black uppercase tracking-widest text-gray-500">
-            
-              <Link href="/courses" className="hover:text-primary transition-colors">مخطوطات العلم</Link>
-              <ChevronLeft className="h-4 w-4" />
-              <span className="text-white">{course.title}</span>
-           </motion.nav>
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10"
+      >
+        {/* Breadcrumb */}
+        <motion.nav
+          variants={fadeUp}
+          className="flex items-center gap-2 text-sm text-gray-500"
+        >
+          <Link href="/courses" className="hover:text-primary transition-colors font-medium">
+            الدورات التعليمية
+          </Link>
+          <ChevronLeft className="h-4 w-4" />
+          <span className="text-gray-900 dark:text-white font-bold truncate">{course.title}</span>
+        </motion.nav>
 
-           <div className="flex items-center gap-3">
-              <Button
-              variant="ghost"
-              onClick={() => setBookmarked(!bookmarked)}
-              className={cn("h-12 w-12 rounded-2xl border border-white/5", bookmarked ? "bg-primary text-black" : "bg-white/5 text-gray-400")}>
-              
-                 {bookmarked ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
-              </Button>
-              <Button variant="ghost" className="h-12 w-12 rounded-2xl border border-white/5 bg-white/5 text-gray-400">
-                 <Share2 className="w-5 h-5" />
-              </Button>
-           </div>
-        </div>
-
-        {/* --- Course Master Header --- */}
+        {/* Course Header */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={STYLES.glass + " group overflow-hidden"}>
-          
-           <div className="lg:flex">
-              <div className="lg:w-2/5 relative overflow-hidden group/thumb">
-                 <div className="aspect-video lg:aspect-auto lg:h-full bg-gradient-to-br from-primary/20 via-black to-black">
-                    {course.thumbnailUrl ?
-                <img src={course.thumbnailUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover/thumb:scale-110" /> :
+          variants={fadeUp}
+          className="grid grid-cols-1 lg:grid-cols-5 gap-8"
+        >
+          {/* Left: Course Info (3 cols) */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Badges */}
+            <div className="flex flex-wrap gap-2">
+              <Badge className={cn("border px-3 py-1 font-medium text-xs", levelInfo.bg, levelInfo.color, levelInfo.border)}>
+                {levelInfo.label}
+              </Badge>
+              <Badge className="border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-white/5 text-gray-600 dark:text-gray-400 px-3 py-1 font-medium text-xs">
+                {course.subject}
+              </Badge>
+              {course.price === 0 && (
+                <Badge className="border border-emerald-500/20 bg-emerald-500/10 text-emerald-500 px-3 py-1 font-medium text-xs">
+                  مجانية
+                </Badge>
+              )}
+            </div>
 
-                <div className="w-full h-full flex items-center justify-center opacity-20">
-                         <GraduationCap className="h-32 w-32" />
-                      </div>
-                }
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                 </div>
-                 <div className="absolute top-6 right-6 flex flex-col gap-2">
-                    <Badge className="bg-black/60 backdrop-blur-md text-white font-black text-[9px] uppercase tracking-widest px-4 h-7 border border-white/10">{course.subject}</Badge>
-                    <Badge className={cn("font-black text-[9px] uppercase tracking-widest px-4 h-7 border", levelInfo.color)}>{levelInfo.label}</Badge>
-                 </div>
+            {/* Title */}
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight tracking-tight">
+              {course.title}
+            </h1>
+
+            {/* Description */}
+            <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 leading-relaxed max-w-2xl">
+              {course.description}
+            </p>
+
+            {/* Instructor */}
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-bold text-lg">
+                {course.instructor.charAt(0)}
+              </div>
+              <div>
+                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">المعلم</p>
+                <p className="text-base font-bold text-gray-900 dark:text-white">{course.instructor}</p>
+              </div>
+            </div>
+
+            {/* Stats row */}
+            <div className="flex flex-wrap gap-4">
+              {[
+                { icon: Star, label: "التقييم", value: course.rating.toFixed(1), color: "text-amber-500" },
+                { icon: Users, label: "المسجلين", value: course.enrolledCount, color: "text-blue-500" },
+                { icon: Clock, label: "المدة", value: `${course.duration} ساعة`, color: "text-purple-500" },
+                { icon: BookOpen, label: "الدروس", value: lessons.length, color: "text-emerald-500" },
+              ].map((stat, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 px-4 py-3"
+                >
+                  <stat.icon className={cn("h-4 w-4", stat.color)} />
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{stat.label}</p>
+                    <p className="text-sm font-black text-gray-900 dark:text-white">{stat.value}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Tags */}
+            {course.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {course.tags.map((tag) => (
+                  <span key={tag} className="rounded-lg bg-gray-100 dark:bg-white/5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Action Card (2 cols) */}
+          <div className="lg:col-span-2">
+            <div className="sticky top-24 rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-6 shadow-lg shadow-black/5 dark:shadow-black/20">
+              {/* Thumbnail */}
+              <div className="relative aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800">
+                {course.thumbnailUrl ? (
+                  <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex items-center justify-center h-full">
+                    <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-600" />
+                  </div>
+                )}
+                {course.enrolled && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                    <button
+                      onClick={() => router.push(`/learning/${courseId}`)}
+                      className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 hover:scale-110 transition-transform"
+                    >
+                      <Play className="h-6 w-6 text-white fill-white" />
+                    </button>
+                  </div>
+                )}
               </div>
 
-              <div className="lg:w-3/5 p-10 lg:p-16 space-y-8">
-                 <div className="space-y-4">
-                    <h1 className="text-4xl md:text-6xl font-black text-white leading-tight tracking-tight">{course.title}</h1>
-                    <p className="text-lg text-gray-400 font-medium leading-relaxed max-w-2xl">{course.description}</p>
-                 </div>
-
-                 <div className="flex items-center gap-6">
-                    <div className="h-14 w-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary font-black text-xl">
-                       {course.instructor.charAt(0)}
+              {/* Price */}
+              <div className="flex items-center justify-between">
+                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                  {course.price === 0 ? (
+                    <span className="text-emerald-500">مجاناً</span>
+                  ) : (
+                    <div className="flex items-baseline gap-1">
+                      <span>{course.price}</span>
+                      <span className="text-sm font-bold text-gray-400">ج.م</span>
                     </div>
-                    <div>
-                       <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1">المعلم المسؤول</p>
-                       <p className="text-xl font-black text-white">{course.instructor}</p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setBookmarked(!bookmarked)}
+                    className={cn("h-10 w-10 rounded-xl", bookmarked ? "text-primary bg-primary/10" : "text-gray-400")}
+                  >
+                    {bookmarked ? <BookmarkCheck className="h-5 w-5" /> : <Bookmark className="h-5 w-5" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-gray-400">
+                    <Share2 className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Progress or Enroll */}
+              {course.enrolled ? (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-gray-500">التقدم في الدورة</span>
+                      <span className="font-black text-primary">{courseProgress}%</span>
                     </div>
-                 </div>
+                    <Progress value={courseProgress} className="h-2" />
+                    <p className="text-[11px] text-gray-400">
+                      {completedCount} من {lessons.length} دروس مكتملة
+                    </p>
+                  </div>
 
-                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                    {[
-                { icon: Star, label: "التقييم", val: course.rating.toFixed(1), color: "text-amber-400" },
-                { icon: Users, label: "المتدربين", val: course.enrolledCount, color: "text-blue-400" },
-                { icon: Clock, label: "الساعات", val: course.duration, color: "text-purple-400" },
-                { icon: BookOpen, label: "الدروس", val: lessons.length, color: "text-emerald-400" }].
-                map((stat, i) =>
-                <div key={i} className="space-y-2">
-                         <div className="flex items-center gap-2 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                            <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
-                            <span>{stat.label}</span>
-                          </div>
-                         <p className="text-2xl font-black text-white">{stat.val}</p>
-                      </div>
-                )}
-                 </div>
-
-                 <div className="flex flex-wrap items-center gap-6 pt-4">
-                    {course.enrolled ?
-                <div className="flex-1 space-y-4 bg-white/5 p-6 rounded-2xl border border-white/5">
-                         <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                            <span className="text-gray-400">تقدمك العسكري</span>
-                            <span className="text-primary">{course.progress}%</span>
-                         </div>
-                         <div className="h-2 bg-white/5 rounded-full overflow-hidden mb-6">
-                            <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${course.progress}%` }}
-                      className="h-full bg-primary shadow-[0_0_15px_rgba(var(--primary),0.5)]" />
-                    
-                         </div>
-                         <Button
+                  <Button
                     onClick={() => router.push(`/learning/${courseId}`)}
-                    className="w-full h-14 bg-primary text-black font-black rounded-xl hover:scale-[1.03] transition-all gap-3">
-                    
-                            <Play className="w-5 h-5 fill-current" />
-                            استكمال المغامرة التعليمية
-                         </Button>
-                      </div> :
-
+                    className="w-full h-12 bg-primary text-white font-bold rounded-xl hover:shadow-lg hover:shadow-primary/20 transition-all gap-2"
+                  >
+                    <Play className="h-4 w-4 fill-current" />
+                    {courseProgress > 0 ? "متابعة التعلم" : "ابدأ التعلم الآن"}
+                  </Button>
+                </div>
+              ) : (
                 <Button
                   onClick={handleEnroll}
                   disabled={enrolling}
-                  className="h-16 px-12 bg-primary text-black font-black text-lg rounded-2xl shadow-xl shadow-primary/20 hover:scale-[1.03] transition-all flex gap-4">
-                  
-                         {enrolling ? <Loader2 className="animate-spin" /> : <Sword className="w-6 h-6" />}
-                         <span>{course.price > 0 ? `سجل الآن - ${course.price} ريال` : "ابدأ رحلتك مجاناً"}</span>
-                      </Button>
-                }
-                 </div>
+                  className="w-full h-14 bg-primary text-white font-bold text-base rounded-xl shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30 transition-all gap-2"
+                >
+                  {enrolling ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Shield className="h-5 w-5" />
+                  )}
+                  <span>{course.price > 0 ? `سجل الآن - ${course.price} ج.م` : "ابدأ التعلم مجاناً"}</span>
+                </Button>
+              )}
+
+              {/* Course features */}
+              <div className="space-y-3 border-t border-gray-100 dark:border-white/5 pt-4">
+                {[
+                  { icon: BookOpen, text: `${lessons.length} دروس تعليمية` },
+                  { icon: Clock, text: `${course.duration} ساعات محتوى` },
+                  { icon: Download, text: "وصول مدى الحياة" },
+                  { icon: Award, text: "شهادة إتمام" },
+                  { icon: MessageSquare, text: "دعم ومناقشات" },
+                ].map((feature, i) => (
+                  <div key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                    <feature.icon className="h-4 w-4 text-gray-400" />
+                    <span>{feature.text}</span>
+                  </div>
+                ))}
               </div>
-           </div>
+            </div>
+          </div>
         </motion.div>
 
-        {/* --- Battle Plan: Content Grid --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
-           {/* Sidebar: Lessons Scroll */}
-           <div className="lg:col-span-4 space-y-8 sticky top-12">
-              <div className={STYLES.glass + " p-0 overflow-hidden"}>
-                 <div className="p-8 border-b border-white/5 flex items-center justify-between">
-                    <div>
-                       <h2 className="text-xl font-black text-white">خارطة الدروس</h2>
-                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">رتب مهامك التعليمية</p>
-                    </div>
-                    <Target className="w-6 h-6 text-primary opacity-50" />
-                 </div>
-                 
-                 <div className="max-h-[600px] overflow-y-auto no-scrollbar py-4 divide-y divide-white/5">
-                    {lessons.map((lesson, idx) =>
-                <button
-                  key={lesson.id}
-                  onClick={() => setActiveLesson(lesson.id)}
-                  className={cn(
-                    "w-full p-6 text-right transition-all flex gap-6 items-start group",
-                    activeLesson === lesson.id ? "bg-primary/10" : "hover:bg-white/[0.02]"
-                  )}>
-                  
-                         <div className={cn(
-                    "mt-1 h-8 w-8 min-w-[32px] rounded-xl flex items-center justify-center text-xs font-black transition-all",
-                    lesson.completed ? "bg-emerald-500 text-black" : activeLesson === lesson.id ? "bg-primary text-black" : "bg-white/5 text-gray-500"
-                  )}>
-                            {lesson.completed ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
-                         </div>
-                         <div className="flex-1 space-y-1">
-                            <h4 className={cn("font-black text-sm transition-colors", activeLesson === lesson.id ? "text-primary" : "text-gray-300 group-hover:text-white")}>{lesson.title}</h4>
-                            <div className="flex items-center gap-3 text-[9px] font-bold text-gray-500 uppercase tracking-widest">
-                               <Clock className="w-3 h-3" />
-                               <span>{Math.floor(lesson.duration / 60)}:00 دقيقة</span>
-                               {!course.enrolled && <Lock className="w-3 h-3 text-red-500/50" />}
-                            </div>
-                         </div>
-                      </button>
+        {/* Tabs */}
+        <motion.div variants={fadeUp} className="space-y-8">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/5 max-w-fit">
+            {[
+              { key: "curriculum", label: "المنهج الدراسي", icon: Layers },
+              { key: "overview", label: "نظرة عامة", icon: FileText },
+              { key: "reviews", label: "التقييمات", icon: Star },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as any)}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
+                  activeTab === tab.key
+                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
+                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                 )}
-                 </div>
+              >
+                <tab.icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Curriculum Tab */}
+          {activeTab === "curriculum" && (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              {/* Lessons list */}
+              <div className="lg:col-span-5 space-y-3">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-bold text-gray-900 dark:text-white">
+                    قائمة الدروس
+                  </h2>
+                  <span className="text-xs font-medium text-gray-500">
+                    {completedCount}/{lessons.length} مكتملة
+                  </span>
+                </div>
+
+                <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                  {lessons.map((lesson, idx) => (
+                    <button
+                      key={lesson.id}
+                      onClick={() => setActiveLesson(lesson.id)}
+                      className={cn(
+                        "w-full p-4 rounded-xl text-right flex gap-4 items-center transition-all group",
+                        activeLesson === lesson.id
+                          ? "bg-primary/5 dark:bg-primary/10 border border-primary/20"
+                          : "bg-white dark:bg-gray-900/60 border border-gray-200 dark:border-white/[0.06] hover:border-gray-300 dark:hover:border-white/10"
+                      )}
+                    >
+                      <div
+                        className={cn(
+                          "h-9 w-9 min-w-[36px] rounded-xl flex items-center justify-center text-xs font-bold transition-all",
+                          lesson.completed
+                            ? "bg-emerald-500 text-white"
+                            : activeLesson === lesson.id
+                              ? "bg-primary text-white"
+                              : "bg-gray-100 dark:bg-white/5 text-gray-500"
+                        )}
+                      >
+                        {lesson.completed ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4
+                          className={cn(
+                            "font-bold text-sm truncate transition-colors",
+                            activeLesson === lesson.id ? "text-primary" : "text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+                          )}
+                        >
+                          {lesson.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Clock className="w-3 h-3 text-gray-400" />
+                          <span className="text-[11px] text-gray-400">
+                            {Math.floor(lesson.duration / 60)} دقيقة
+                          </span>
+                          {!course.enrolled && (
+                            <Lock className="w-3 h-3 text-gray-400" />
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-           </div>
 
-           {/* Main Theatre: Player & Content */}
-           <div className="lg:col-span-8 space-y-12">
-              <AnimatePresence mode="wait">
-                 {activeLessonData &&
-              <motion.div
-                key={activeLessonData.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                className="space-y-10">
-                
-                      <div className={STYLES.glass + " p-0 group"}>
-                         {activeLessonData.videoUrl ?
-                  <CourseVideoPlayer
-                    courseId={course.id}
-                    lessonId={activeLessonData.id}
-                    lessonTitle={activeLessonData.title}
-                    videoUrl={activeLessonData.videoUrl}
-                    alreadyCompleted={activeLessonData.completed}
-                    onLessonAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)} /> :
-
-
-                  <div className="aspect-video bg-black flex flex-col items-center justify-center p-12 text-center group">
-                              <div className="relative mb-8">
-                                 <div className="absolute inset-0 bg-primary/20 blur-[50px] rounded-full group-hover:bg-primary/40 transition-all" />
-                                 <Lock className="w-20 h-20 text-white/20 relative z-10" />
-                              </div>
-                              <h3 className="text-3xl font-black text-white mb-4">هذا المحتوى محمي بالأختام الملكية</h3>
-                              <p className="text-gray-500 font-medium max-w-md mb-8">يجب عليك الانضمام إلى فيلق هذه الدورة أولاً لتتمكن من مشاهدة الدروس واستخراج الحكمة منها.</p>
-                              {!course.enrolled &&
-                    <Button
-                      onClick={handleEnroll}
-                      className="h-14 px-10 bg-white text-black font-black rounded-2xl gap-3 hover:scale-105 transition-all">
-                      
-                                   <span>فك الختم الآن</span>
-                                   <Sword className="w-5 h-5" />
+              {/* Lesson content */}
+              <div className="lg:col-span-7 space-y-6">
+                <AnimatePresence mode="wait">
+                  {activeLessonData && (
+                    <motion.div
+                      key={activeLessonData.id}
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 16 }}
+                      className="space-y-6"
+                    >
+                      {/* Video player */}
+                      <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80">
+                        {activeLessonData.videoUrl ? (
+                          <CourseVideoPlayer
+                            courseId={course.id}
+                            lessonId={activeLessonData.id}
+                            lessonTitle={activeLessonData.title}
+                            videoUrl={activeLessonData.videoUrl}
+                            alreadyCompleted={activeLessonData.completed}
+                            onLessonAutoComplete={() => course.enrolled && void handleLessonComplete(activeLessonData.id)}
+                          />
+                        ) : (
+                          <div className="aspect-video flex flex-col items-center justify-center p-8 text-center bg-gray-50 dark:bg-gray-800">
+                            {course.enrolled ? (
+                              <>
+                                <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                <p className="text-sm text-gray-500 font-medium">محتوى نصي - لا يوجد فيديو لهذا الدرس</p>
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="w-12 h-12 text-gray-300 dark:text-gray-600 mb-3" />
+                                <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
+                                  المحتوى مقفل
+                                </h3>
+                                <p className="text-sm text-gray-500 mb-4 max-w-sm">
+                                  سجل في الدورة لتتمكن من الوصول إلى جميع الدروس والمحتوى التعليمي.
+                                </p>
+                                <Button onClick={handleEnroll} className="gap-2 rounded-xl bg-primary text-white shadow-lg">
+                                  <Shield className="h-4 w-4" />
+                                  <span>سجل الآن</span>
                                 </Button>
-                    }
-                           </div>
-                  }
+                              </>
+                            )}
+                          </div>
+                        )}
 
-                         <div className="p-10 space-y-6">
-                            <div className="flex items-center justify-between border-b border-white/5 pb-8">
-                               <div className="space-y-1">
-                                  <h2 className="text-3xl font-black text-white">{activeLessonData.title}</h2>
-                                  <p className="text-sm text-gray-500 font-medium">{activeLessonData.description}</p>
-                               </div>
-                               {!activeLessonData.completed && course.enrolled &&
-                      <Button
-                        onClick={() => handleLessonComplete(activeLessonData.id)}
-                        className="h-12 px-6 bg-emerald-500 text-black font-black text-xs uppercase tracking-widest rounded-xl hover:bg-emerald-400">
-                        تمت المهمة بنجاح ✅</Button>
-                      }
+                        {/* Lesson details */}
+                        <div className="p-6 space-y-4 border-t border-gray-100 dark:border-white/5">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h2 className="text-xl font-bold text-gray-900 dark:text-white">{activeLessonData.title}</h2>
+                              {activeLessonData.description && (
+                                <p className="text-sm text-gray-500 mt-1">{activeLessonData.description}</p>
+                              )}
                             </div>
+                            {!activeLessonData.completed && course.enrolled && (
+                              <Button
+                                onClick={() => handleLessonComplete(activeLessonData.id)}
+                                size="sm"
+                                className="gap-1.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600"
+                              >
+                                <CheckCircle2 className="h-4 w-4" />
+                                <span>مكتمل</span>
+                              </Button>
+                            )}
+                          </div>
 
-                            {activeLessonData.content && course.enrolled &&
-                    <div
-                      className="prose prose-invert prose-p:text-gray-400 prose-headings:text-white max-w-none pt-4"
-                      dangerouslySetInnerHTML={{ __html: activeLessonData.content }} />
-
-                    }
-                         </div>
+                          {activeLessonData.content && course.enrolled && (
+                            <div
+                              className="prose prose-sm dark:prose-invert max-w-none pt-4 border-t border-gray-100 dark:border-white/5"
+                              dangerouslySetInnerHTML={{ __html: activeLessonData.content }}
+                            />
+                          )}
+                        </div>
                       </div>
 
-                      {/* Training Navigation */}
-                      <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-                         <Button
-                    variant="ghost"
-                    className="h-14 px-8 rounded-2xl border border-white/5 flex gap-3 text-gray-400 hover:text-white font-black uppercase tracking-widest text-[10px]"
-                    onClick={() => {
-                      const idx = lessons.findIndex((l) => l.id === activeLesson);
-                      if (idx > 0) setActiveLesson(lessons[idx - 1].id);
-                    }}>
-                    
-                            <ChevronRight className="w-4 h-4" />
-                            <span>المهمة السابقة</span>
-                         </Button>
-                         
-                         <Button
-                    className="h-14 px-10 rounded-2xl bg-white/5 border border-white/10 flex gap-3 text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10"
-                    onClick={() => {
-                      const idx = lessons.findIndex((l) => l.id === activeLesson);
-                      if (idx < lessons.length - 1) setActiveLesson(lessons[idx + 1].id);
-                    }}>
-                    
-                            <span>المهمة التالية</span>
-                            <ChevronLeft className="w-4 h-4" />
-                         </Button>
-                      </div>
-                   </motion.div>
-              }
-              </AnimatePresence>
-           </div>
-        </div>
-      </div>
-    </div>);
+                      {/* Nav buttons */}
+                      <div className="flex items-center justify-between">
+                        <Button
+                          variant="ghost"
+                          className="gap-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700"
+                          onClick={() => {
+                            const idx = lessons.findIndex((l) => l.id === activeLesson);
+                            if (idx > 0) setActiveLesson(lessons[idx - 1].id);
+                          }}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                          <span>الدرس السابق</span>
+                        </Button>
 
+                        <Button
+                          className="gap-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-medium"
+                          onClick={() => {
+                            const idx = lessons.findIndex((l) => l.id === activeLesson);
+                            if (idx < lessons.length - 1) setActiveLesson(lessons[idx + 1].id);
+                          }}
+                        >
+                          <span>الدرس التالي</span>
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* Overview Tab */}
+          {activeTab === "overview" && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl"
+            >
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">عن هذه الدورة</h3>
+                  <p className="text-sm text-gray-500 leading-relaxed">{course.description}</p>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">ما ستتعلمه</h3>
+                  <ul className="space-y-3">
+                    {["فهم المفاهيم الأساسية للموضوع", "تطبيق المعرفة في مشاريع عملية", "اكتساب مهارات متقدمة في المجال", "الاستعداد للاختبارات والتقييمات"].map((item, i) => (
+                      <li key={i} className="flex items-start gap-3 text-sm text-gray-600 dark:text-gray-400">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-500 mt-0.5 shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">المتطلبات</h3>
+                  <ul className="space-y-3">
+                    {["المعرفة الأساسية بالموضوع", "الرغبة في التعلم والتطبيق", "جهاز حاسوب أو هاتف ذكي"].map((item, i) => (
+                      <li key={i} className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6 space-y-4">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">عن المعلم</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="h-14 w-14 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xl font-bold">
+                      {course.instructor.charAt(0)}
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900 dark:text-white">{course.instructor}</p>
+                      <div className="flex items-center gap-1 text-amber-500 mt-1">
+                        <Star className="w-3.5 h-3.5 fill-current" />
+                        <span className="text-xs font-bold">{course.rating.toFixed(1)} تقييم</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Reviews Tab */}
+          {activeTab === "reviews" && (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="max-w-3xl space-y-6"
+            >
+              {/* Review summary */}
+              <div className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6">
+                <div className="flex items-center gap-8">
+                  <div className="text-center">
+                    <p className="text-5xl font-black text-gray-900 dark:text-white">{course.rating.toFixed(1)}</p>
+                    <div className="flex items-center justify-center gap-0.5 mt-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={cn(
+                            "h-4 w-4",
+                            i < Math.round(course.rating) ? "fill-amber-400 text-amber-400" : "text-gray-300"
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{course.enrolledCount} تقييم</p>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    {[5, 4, 3, 2, 1].map((stars) => (
+                      <div key={stars} className="flex items-center gap-3">
+                        <span className="text-xs font-medium text-gray-500 w-3">{stars}</span>
+                        <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                        <div className="flex-1 h-2 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-amber-400 rounded-full"
+                            style={{ width: `${stars === Math.round(course.rating) ? 65 : stars > course.rating ? 5 : 20}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-center py-12 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10">
+                <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-sm text-gray-500 font-medium">لم يتم تحميل التقييمات بعد</p>
+                <p className="text-xs text-gray-400 mt-1">سجل في الدورة وكن أول من يشارك رأيه</p>
+              </div>
+            </motion.div>
+          )}
+        </motion.div>
+      </motion.div>
+    </div>
+  );
 }

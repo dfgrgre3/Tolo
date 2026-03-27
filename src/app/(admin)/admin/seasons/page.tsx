@@ -30,9 +30,7 @@ import {
   Flame, Swords, Sparkles,
   Zap, History, Timer, Trophy,
   Hammer,
-  Sparkles,
-} from
-"lucide-react";
+} from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

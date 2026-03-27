@@ -286,7 +286,8 @@ export function RealtimeNotifications({
         ) : (
           <div className="divide-y">
             {visibleNotifications.map((notification) => {
-              const config = typeConfig[notification.type];
+              const type = (notification.type || "system").toLowerCase() as keyof typeof typeConfig;
+              const config = typeConfig[type] || typeConfig.system;
               return (
                 <NotificationItem
                   key={notification.id}

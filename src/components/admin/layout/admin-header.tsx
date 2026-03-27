@@ -247,8 +247,9 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
                 </div>
               ) : (
                 notifications.map((notification) => {
-                  const Icon = notificationIcons[notification.type] || Info;
-                  const colorClass = notificationColors[notification.type] || notificationColors.info;
+                  const type = (notification.type || "info").toLowerCase();
+                  const Icon = notificationIcons[type] || Info;
+                  const colorClass = notificationColors[type] || notificationColors.info;
                   return (
                     <div
                       key={notification.id}

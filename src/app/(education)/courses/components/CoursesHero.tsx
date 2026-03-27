@@ -2,7 +2,19 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Users, Sparkles, Scroll, Sword, Shield, Star, TrendingUp, Award } from "lucide-react";
+import {
+  GraduationCap,
+  Users,
+  Star,
+  BookOpen,
+  Sparkles,
+  TrendingUp,
+  Award,
+  Play,
+  ArrowLeft,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 interface CoursesHeroProps {
   totalCourses: number;
@@ -11,123 +23,123 @@ interface CoursesHeroProps {
   avgRating: number;
 }
 
-const STYLES = {
-  glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
-  card: "rpg-card h-full p-6",
-  neonText: "rpg-neon-text font-black",
-  goldText: "rpg-gold-text font-black"
+const container = {
+  hidden: { opacity: 0 as const },
+  show: {
+    opacity: 1 as const,
+    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+  },
+};
+
+const item = {
+  hidden: { opacity: 0 as const, y: 20 },
+  show: { opacity: 1 as const, y: 0, transition: { duration: 0.5, ease: [0.23, 1, 0.32, 1] as const } },
 };
 
 export const CoursesHero: React.FC<CoursesHeroProps> = ({
   totalCourses,
   totalStudents,
   totalInstructors,
-  avgRating
+  avgRating,
 }) => {
   const stats = [
-    { icon: Scroll, value: totalCourses, label: "مخطوطة علمية", color: "text-blue-400", bgColor: "bg-blue-400/10" },
-    { icon: Users, value: totalStudents, label: "محارب نشط", color: "text-purple-400", bgColor: "bg-purple-400/10" },
-    { icon: Shield, value: totalInstructors, label: "معلم حكيم", color: "text-amber-400", bgColor: "bg-amber-400/10" },
-    { icon: Star, value: avgRating, label: "معدل التقييم", color: "text-yellow-400", bgColor: "bg-yellow-400/10" },
+    { icon: BookOpen, value: totalCourses, label: "دورة تعليمية", suffix: "+", color: "from-blue-500 to-cyan-500", bg: "bg-blue-500/10", text: "text-blue-500" },
+    { icon: Users, value: totalStudents, label: "طالب مسجل", suffix: "+", color: "from-violet-500 to-purple-500", bg: "bg-violet-500/10", text: "text-violet-500" },
+    { icon: GraduationCap, value: totalInstructors, label: "معلم متخصص", suffix: "+", color: "from-amber-500 to-orange-500", bg: "bg-amber-500/10", text: "text-amber-500" },
+    { icon: Star, value: avgRating, label: "متوسط التقييم", suffix: "/5", color: "from-emerald-500 to-green-500", bg: "bg-emerald-500/10", text: "text-emerald-500" },
   ];
 
-
   return (
-    <section className="relative overflow-hidden rounded-[3rem] border border-white/10 bg-background p-8 md:p-16 mb-12 shadow-2xl">
-      {/* --- Ambient Background Effects --- */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/20 blur-[150px] rounded-full opacity-30 -translate-y-1/2 translate-x-1/2" />
-        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full opacity-20 translate-y-1/2 -translate-x-1/2" />
-        
-        {/* Particle/Grid Pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)] opacity-30" />
+    <section className="relative overflow-hidden rounded-3xl bg-white dark:bg-gray-900/80 border border-gray-200/80 dark:border-white/[0.06] p-8 md:p-12 lg:p-16">
+      {/* Background decorations */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-violet-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_30%_20%,rgba(255,109,0,0.03),transparent_50%)]" />
+        {/* Grid pattern */}
+        <svg className="absolute inset-0 w-full h-full opacity-[0.03] dark:opacity-[0.02]" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeWidth="1" />
+            </pattern>
+          </defs>
+          <rect width="100%" height="100%" fill="url(#grid)" />
+        </svg>
       </div>
 
-      <div className="relative z-10 flex flex-col items-center text-center gap-12">
-        {/* Title Group */}
-        <div className="space-y-6 max-w-3xl">
-           <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-3 rounded-2xl border border-primary/30 bg-primary/10 px-6 py-2 text-sm font-black uppercase tracking-[0.2em] text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
-            
-              <Sparkles className="h-5 w-5" />
-              <span>أهلاً بك في الأرشيف الملكي</span>
-           </motion.div>
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="relative z-10 flex flex-col items-center text-center gap-10"
+      >
+        {/* Top badge */}
+        <motion.div variants={item}>
+          <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-bold text-primary">
+            <Sparkles className="h-4 w-4" />
+            <span>منصة تعليمية متكاملة</span>
+          </div>
+        </motion.div>
 
-           <motion.h1
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
-            
-              مستودع <br />
-              <span className={STYLES.neonText}>الحكمة والمهارات</span>
-           </motion.h1>
+        {/* Main heading */}
+        <motion.div variants={item} className="space-y-4 max-w-3xl">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-gray-900 dark:text-white">
+            اكتشف عالم
+            <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-orange-500 to-amber-500">
+              التعلم بلا حدود
+            </span>
+          </h1>
+          <p className="text-base md:text-lg text-gray-500 dark:text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
+            استكشف مئات الدورات التعليمية المصممة بعناية لتطوير مهاراتك.
+            اختر مسارك التعليمي وابدأ رحلتك نحو التميز اليوم.
+          </p>
+        </motion.div>
 
-           <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-lg md:text-xl text-gray-400 font-medium max-w-2xl mx-auto">
-            
-              استعرض آلاف المخطوطات والدروس المصممة لترقية قدراتك القتالية في ساحات العلم. اختر طريقك وابدأ رحلتك الأسطورية اليوم.
-           </motion.p>
-           
-           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4">
-              <div className="flex items-center gap-2 text-emerald-400">
-                <TrendingUp className="h-5 w-5" />
-                <span className="font-bold">تحديثات أسبوعية</span>
+        {/* Feature badges */}
+        <motion.div variants={item} className="flex flex-wrap items-center justify-center gap-3">
+          {[
+            { icon: TrendingUp, text: "محتوى محدّث", color: "text-emerald-500" },
+            { icon: Award, text: "شهادات معتمدة", color: "text-amber-500" },
+            { icon: Play, text: "فيديوهات عالية الجودة", color: "text-blue-500" },
+          ].map((feature, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-2 rounded-xl bg-gray-50 dark:bg-white/5 px-3.5 py-2 text-sm"
+            >
+              <feature.icon className={cn("h-4 w-4", feature.color)} />
+              <span className="font-medium text-gray-600 dark:text-gray-300">{feature.text}</span>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* Stats */}
+        <motion.div
+          variants={item}
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl"
+        >
+          {stats.map((stat, index) => (
+            <motion.div
+              key={index}
+              whileHover={{ y: -4 }}
+              className="group relative rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] p-5 text-center transition-all duration-300 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-lg"
+            >
+              <div className={cn("mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl", stat.bg)}>
+                <stat.icon className={cn("h-5 w-5", stat.text)} />
               </div>
-              <div className="flex items-center gap-2 text-amber-400">
-                <Award className="h-5 w-5" />
-                <span className="font-bold">محتوى معتمد</span>
+              <div className="text-2xl md:text-3xl font-black text-gray-900 dark:text-white" suppressHydrationWarning>
+                {typeof stat.value === "number" && stat.value >= 1000
+                  ? `${(stat.value / 1000).toFixed(1)}K`
+                  : stat.value}
+                <span className="text-sm font-bold text-gray-400 mr-0.5">{stat.suffix}</span>
               </div>
-              <div className="flex items-center gap-2 text-blue-400">
-                <Star className="h-5 w-5" />
-                <span className="font-bold">معدل تقييم عالي</span>
-              </div>
-           </motion.div>
-        </div>
-
-        {/* Thematic Stats Bar */}
-        <div className="flex flex-wrap justify-center gap-6 md:gap-10 w-full max-w-5xl">
-           {stats.map((stat, index) =>
-          <motion.div
-            key={index}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.1 }}
-            className="flex-1 min-w-[180px]">
-            
-                <div className="relative group">
-                   <div className="absolute inset-0 bg-white/[0.02] border border-white/5 rounded-3xl group-hover:bg-white/[0.05] group-hover:border-white/10 transition-all duration-300" />
-                   <div className="relative p-8 flex flex-col items-center gap-4">
-                      <div className={`p-4 rounded-2xl ${stat.bgColor} ${stat.color} group-hover:scale-110 transition-transform shadow-lg`}>
-                         <stat.icon className="h-8 w-8" />
-                      </div>
-                      <div className="space-y-1">
-                         <div className="text-3xl md:text-4xl font-black text-white">{stat.value}{index === 3 ? '' : '+'}<span className="text-primary text-xl ml-1">{index === 0 && '+ contemporary'}</span></div>
-                         <div className="text-sm font-bold text-gray-500 uppercase tracking-widest">{stat.label}</div>
-                      </div>
-                   </div>
-                </div>
-             </motion.div>
-          )}
-        </div>
-
-        {/* Decorative Divider */}
-        <div className="w-full max-w-xs flex items-center gap-4 opacity-20">
-           <div className="h-px flex-1 bg-gradient-to-r from-transparent to-white" />
-           <Sword className="w-4 h-4 text-white rotate-45" />
-           <div className="h-px flex-1 bg-gradient-to-l from-transparent to-white" />
-        </div>
-      </div>
-    </section>);
-
+              <div className="text-xs font-medium text-gray-500 mt-1">{stat.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
+      </motion.div>
+    </section>
+  );
 };
 
 export default CoursesHero;

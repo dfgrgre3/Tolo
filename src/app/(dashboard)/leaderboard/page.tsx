@@ -36,16 +36,17 @@ export default function LeaderboardPage() {
   const [leaderboardType, setLeaderboardType] = useState<'global' | 'friends'>('global');
 
   const {
-    leaderboard,
     userProgress,
+    achievements,
+    leaderboard,
     currentAchievement,
     clearAchievementNotification,
     getUserRank,
     isLoading,
-    error: _error
+    error,
+    refreshData
   } = useGamification({
     userId,
-    enableRealTime: true,
     enableNotifications: true
   });
 

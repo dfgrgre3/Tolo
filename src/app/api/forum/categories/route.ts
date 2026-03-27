@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       const { name, description, icon } = await req.json();
 
       if (!name || !description) {
-        return badRequestResponse("ÇáÇÓã æÇáæÕİ ãØáæÈÇä");
+        return badRequestResponse("Ø§Ù„Ø§Ø³Ù… ÙˆØ§Ù„ÙˆØµÙ Ù…Ø·Ù„ÙˆØ¨Ø§Ù†");
       }
 
       const newCategory = await prisma.category.create({

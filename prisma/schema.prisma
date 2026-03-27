@@ -806,6 +806,9 @@ model Subject {
   reviews            SubjectReview[]
   reports            ContentReport[]
   tasks              Task[]
+  seoTitle           String?
+  seoDescription     String?
+  slug               String?              @unique
 
 
   teachers           Teacher[]

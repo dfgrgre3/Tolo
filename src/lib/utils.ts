@@ -182,3 +182,11 @@ export function formatNumber(number: number | string | null | undefined): string
   if (isNaN(num)) return "0";
   return num.toLocaleString("en-US");
 }
+
+/**
+ * Format price with EGP suffix
+ */
+export function formatPrice(price: number | string | null | undefined): string {
+  const formatted = formatNumber(price);
+  return `${formatted} EGP`;
+}

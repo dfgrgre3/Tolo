@@ -135,6 +135,39 @@ export class ProgressionService {
     return updatedGoal as unknown as CustomGoal;
   }
 
+  async deleteCustomGoal(goalId: string): Promise<void> {
+    await prisma.customGoal.delete({ where: { id: goalId } });
+  }
+
+  async updateQuestProgress(userId: string, questId: string, progress: number): Promise<any> {
+    const quest = await prisma.quest.findUnique({ where: { id: questId } });
+    if (!quest) throw new Error('Quest not found');
+
+    const isCompleted = progress >= 100;
+    const result = await prisma.questProgress.upsert({
+      where: { userId_questId: { userId, questId } },
+      create: {
+        userId,
+        questId,
+        chainId: quest.chainId,
+        progress,
+        isCompleted,
+        completedAt: isCompleted ? new Date() : null
+      },
+      update: {
+        progress,
+        isCompleted,
+        completedAt: isCompleted ? new Date() : null
+      }
+    });
+
+    if (isCompleted) {
+      await xpService.addXP(userId, quest.xpReward, 'quest');
+    }
+
+    return result;
+  }
+
   // ===== Rewards =====
   async getAvailableRewards(limit: number = 20): Promise<Reward[]> {
     const rewards = await prisma.reward.findMany({
@@ -152,6 +185,21 @@ export class ProgressionService {
       imageUrl: r.imageUrl || undefined,
       metadata: r.metadata as any || undefined
     }));
+  }
+
+  async claimReward(userId: string, rewardId: string): Promise<any> {
+    const reward = await prisma.reward.findUnique({ where: { id: rewardId } });
+    if (!reward) throw new Error('Reward not found');
+
+    const result = await prisma.userReward.create({
+      data: {
+        userId,
+        rewardId,
+        source: 'manual_claim'
+      }
+    });
+
+    return result;
   }
 }
 

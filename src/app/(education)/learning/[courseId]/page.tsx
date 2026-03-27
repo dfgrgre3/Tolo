@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Play,
   CheckCircle2,
-
   ChevronRight,
   ChevronLeft,
   FileText,
@@ -18,15 +17,21 @@ import {
   Menu,
   X,
   Star,
-  Settings,
   Share2,
-  Bookmark } from
-"lucide-react";
+  Bookmark,
+  BarChart3,
+  Clock,
+  Zap,
+  Award,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Loader2,
+  GraduationCap,
+} from "lucide-react";
 import { CourseVideoPlayer } from "@/components/video/CourseVideoPlayer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 
@@ -66,6 +71,8 @@ type Course = {
   rating: number;
 };
 
+type TabKey = "content" | "resources" | "qna" | "notes";
+
 export default function AdvancedLearningHub() {
   const params = useParams();
   const router = useRouter();
@@ -81,6 +88,7 @@ export default function AdvancedLearningHub() {
   const [questions, setQuestions] = useState<any[]>([]);
   const [newQuestion, setNewQuestion] = useState("");
   const [addingQuestion, setAddingQuestion] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabKey>("content");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -96,7 +104,6 @@ export default function AdvancedLearningHub() {
             setCourse(cData.subject);
           }
 
-          // Set first lesson as active by default
           if (data.curriculum?.[0]?.subTopics?.[0]) {
             setActiveLesson(data.curriculum[0].subTopics[0]);
           }
@@ -110,20 +117,17 @@ export default function AdvancedLearningHub() {
     fetchData();
   }, [courseId]);
 
-  // Fetch lesson specific data (Notes, Questions)
   useEffect(() => {
     if (!activeLesson) return;
 
     const fetchLessonExtras = async () => {
       try {
-        // Fetch Note
         const noteRes = await fetch(`/api/courses/lessons/${activeLesson.id}/notes`);
         if (noteRes.ok) {
           const noteData = await noteRes.json();
           setNoteContent(noteData.data?.content || "");
         }
 
-        // Fetch Questions
         const qRes = await fetch(`/api/courses/lessons/${activeLesson.id}/questions`);
         if (qRes.ok) {
           const qData = await qRes.json();
@@ -144,7 +148,7 @@ export default function AdvancedLearningHub() {
       await fetch(`/api/courses/lessons/${activeLesson.id}/notes`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: noteContent })
+        body: JSON.stringify({ content: noteContent }),
       });
     } catch (err) {
       logger.error("Error saving note", err);
@@ -160,7 +164,7 @@ export default function AdvancedLearningHub() {
       const res = await fetch(`/api/courses/lessons/${activeLesson.id}/questions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: newQuestion })
+        body: JSON.stringify({ content: newQuestion }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -174,19 +178,19 @@ export default function AdvancedLearningHub() {
     }
   };
 
-  const totalLessons = useMemo(() =>
-  chapters.reduce((acc, c) => acc + c.subTopics.length, 0),
-  [chapters]
+  const totalLessons = useMemo(
+    () => chapters.reduce((acc, c) => acc + c.subTopics.length, 0),
+    [chapters]
   );
 
-  const completedLessons = useMemo(() =>
-  chapters.reduce((acc, c) => acc + c.subTopics.filter((l) => l.completed).length, 0),
-  [chapters]
+  const completedLessons = useMemo(
+    () => chapters.reduce((acc, c) => acc + c.subTopics.filter((l) => l.completed).length, 0),
+    [chapters]
   );
 
-  const progress = useMemo(() =>
-  totalLessons > 0 ? Math.round(completedLessons / totalLessons * 100) : 0,
-  [totalLessons, completedLessons]
+  const progress = useMemo(
+    () => (totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0),
+    [totalLessons, completedLessons]
   );
 
   const handleLessonComplete = async (lessonId: string) => {
@@ -194,376 +198,481 @@ export default function AdvancedLearningHub() {
       await fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: true, subject: (course as any)?.name })
+        body: JSON.stringify({ completed: true, subject: (course as any)?.name }),
       });
 
-      // Update local state
-      setChapters((prev) => prev.map((c) => ({
-        ...c,
-        subTopics: c.subTopics.map((l) => l.id === lessonId ? { ...l, completed: true } : l)
-      })));
-
-      // Auto-move to next lesson logic could go here
+      setChapters((prev) =>
+        prev.map((c) => ({
+          ...c,
+          subTopics: c.subTopics.map((l) => (l.id === lessonId ? { ...l, completed: true } : l)),
+        }))
+      );
     } catch (err) {
       logger.error("Error updating lesson progress", err);
     }
   };
 
-  if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0A0A0F]">
-      <div className="h-16 w-16 border-t-2 border-primary rounded-full animate-spin" />
-    </div>);
+  // Navigate to next lesson
+  const navigateLesson = useCallback(
+    (direction: "next" | "prev") => {
+      if (!activeLesson) return;
+      const allLessons = chapters.flatMap((c) => c.subTopics);
+      const currentIdx = allLessons.findIndex((l) => l.id === activeLesson.id);
+      if (direction === "next" && currentIdx < allLessons.length - 1) {
+        setActiveLesson(allLessons[currentIdx + 1]);
+      } else if (direction === "prev" && currentIdx > 0) {
+        setActiveLesson(allLessons[currentIdx - 1]);
+      }
+    },
+    [activeLesson, chapters]
+  );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-[#0B0D14]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative h-16 w-16">
+            <div className="absolute inset-0 border-2 border-primary/20 rounded-full" />
+            <div className="absolute inset-0 border-t-2 border-primary rounded-full animate-spin" />
+          </div>
+          <p className="text-sm text-gray-500 font-medium">جاري تحميل بيئة التعلم...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const tabs: { key: TabKey; label: string; icon: typeof BookOpen }[] = [
+    { key: "content", label: "المحتوى", icon: BookOpen },
+    { key: "resources", label: "المرفقات", icon: Download },
+    { key: "qna", label: "المناقشات", icon: MessageSquare },
+    { key: "notes", label: "ملاحظاتي", icon: FileText },
+  ];
 
   return (
-    <div className="flex h-screen bg-[#0A0A0F] text-gray-100 overflow-hidden" dir="rtl">
-      {/* Sidebar Navigation */}
-      <motion.aside
-        initial={false}
-        animate={{ width: sidebarOpen ? 400 : 0, opacity: sidebarOpen ? 1 : 0 }}
-        className="relative bg-black/40 border-l border-white/5 backdrop-blur-xl flex flex-col h-full z-20">
-        
-        <div className="p-6 border-b border-white/5 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black text-white">خارطة التعلم</h2>
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(false)}>
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-black uppercase tracking-widest">
-              <span className="text-gray-500">معدل الإنجاز</span>
-              <span className="text-primary">{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2 bg-white/5" />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
-          <div className="space-y-6 pb-20">
-            {chapters.map((chapter, cIdx) =>
-            <div key={chapter.id} className="space-y-3">
-                <div className="flex items-center gap-3 px-2">
-                  <div className="h-6 w-6 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center text-[10px] font-black text-primary">
-                    {cIdx + 1}
+    <div className="flex h-screen bg-white dark:bg-[#0B0D14] text-gray-900 dark:text-gray-100 overflow-hidden" dir="rtl">
+      {/* Sidebar */}
+      <AnimatePresence initial={false}>
+        {sidebarOpen && (
+          <motion.aside
+            initial={{ width: 0, opacity: 0 }}
+            animate={{ width: 380, opacity: 1 }}
+            exit={{ width: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className="relative bg-gray-50 dark:bg-gray-900/80 border-l border-gray-200 dark:border-white/[0.06] flex flex-col h-full z-20 overflow-hidden"
+          >
+            {/* Sidebar header */}
+            <div className="p-5 border-b border-gray-200 dark:border-white/[0.06] space-y-4 shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <BookOpen className="w-4 h-4 text-primary" />
                   </div>
-                  <h3 className="font-black text-sm text-gray-300 uppercase tracking-widest">{chapter.name}</h3>
+                  <h2 className="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[200px]">
+                    {course?.nameAr || course?.name || "الدورة التعليمية"}
+                  </h2>
                 </div>
-                <div className="space-y-1">
-                  {chapter.subTopics.map((lesson) =>
-                <button
-                  key={lesson.id}
-                  onClick={() => setActiveLesson(lesson)}
-                  className={cn(
-                    "w-full p-4 rounded-2xl text-right flex items-center gap-4 transition-all group",
-                    activeLesson?.id === lesson.id ? "bg-primary/10 border border-primary/20" : "hover:bg-white/[0.03] border border-transparent"
-                  )}>
-                  
-                      <div className={cn(
-                    "h-8 w-8 min-w-[32px] rounded-full flex items-center justify-center transition-all",
-                    lesson.completed ? "bg-emerald-500 text-black shadow-[0_0_10px_rgba(16,185,129,0.3)]" : activeLesson?.id === lesson.id ? "bg-primary text-black" : "bg-white/5 text-gray-500"
-                  )}>
-                        {lesson.completed ? <CheckCircle2 className="w-4 h-4" /> : <Play className="w-3 h-3 ml-0.5" />}
-                      </div>
-                      <div className="flex-1 overflow-hidden">
-                        <p className={cn(
-                      "text-sm font-bold truncate transition-colors",
-                      activeLesson?.id === lesson.id ? "text-primary" : "text-gray-400 group-hover:text-white"
-                    )}>{lesson.name}</p>
-                        <span className="text-[10px] text-gray-600 font-bold uppercase tracking-tight">
-                          {lesson.type === 'VIDEO' ? 'محتوى مرئي' : 'محتوى نصي'}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setSidebarOpen(false)}
+                  className="h-8 w-8 rounded-lg text-gray-400 hover:text-gray-600"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </Button>
+              </div>
+
+              {/* Progress */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs font-medium">
+                  <span className="text-gray-500">التقدم في الدورة</span>
+                  <span className={cn("font-bold", progress >= 80 ? "text-emerald-500" : "text-primary")}>
+                    {progress}%
+                  </span>
+                </div>
+                <Progress value={progress} className="h-2" />
+                <p className="text-[10px] text-gray-400">
+                  {completedLessons} من {totalLessons} دروس مكتملة
+                </p>
+              </div>
+
+              {/* Achievement badge */}
+              {progress === 100 && (
+                <div className="flex items-center gap-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-emerald-600 dark:text-emerald-400">
+                  <Trophy className="h-4 w-4" />
+                  <span className="text-xs font-bold">تهانينا! أكملت جميع الدروس 🎉</span>
+                </div>
+              )}
+            </div>
+
+            {/* Chapter list */}
+            <div className="flex-1 overflow-y-auto p-3">
+              <div className="space-y-4 pb-20">
+                {chapters.map((chapter, cIdx) => {
+                  const chapterCompleted = chapter.subTopics.filter((l) => l.completed).length;
+                  const chapterTotal = chapter.subTopics.length;
+
+                  return (
+                    <div key={chapter.id} className="space-y-1.5">
+                      {/* Chapter header */}
+                      <div className="flex items-center justify-between px-3 py-2">
+                        <div className="flex items-center gap-2.5">
+                          <div className="h-6 w-6 rounded-lg bg-primary/10 flex items-center justify-center text-[10px] font-bold text-primary">
+                            {cIdx + 1}
+                          </div>
+                          <h3 className="font-bold text-xs text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                            {chapter.name}
+                          </h3>
+                        </div>
+                        <span className="text-[10px] font-medium text-gray-400">
+                          {chapterCompleted}/{chapterTotal}
                         </span>
                       </div>
-                    </button>
-                )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </motion.aside>
 
-      {/* Main Content Area */}
-      <main className="flex-1 flex flex-col h-full relative">
-        <header className="h-16 border-b border-white/5 bg-black/40 backdrop-blur-md px-6 flex items-center justify-between z-10">
-          <div className="flex items-center gap-4">
-            {!sidebarOpen &&
-            <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)}>
-                <Menu className="w-5 h-5" />
-              </Button>
-            }
-            <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/50 flex items-center justify-center text-black font-black">
-                <Trophy className="w-4 h-4" />
+                      {/* Lessons */}
+                      <div className="space-y-0.5">
+                        {chapter.subTopics.map((lesson) => (
+                          <button
+                            key={lesson.id}
+                            onClick={() => setActiveLesson(lesson)}
+                            className={cn(
+                              "w-full p-3 rounded-xl text-right flex items-center gap-3 transition-all group",
+                              activeLesson?.id === lesson.id
+                                ? "bg-primary/5 dark:bg-primary/10 border border-primary/20"
+                                : "hover:bg-gray-100 dark:hover:bg-white/[0.03] border border-transparent"
+                            )}
+                          >
+                            <div
+                              className={cn(
+                                "h-7 w-7 min-w-[28px] rounded-lg flex items-center justify-center transition-all",
+                                lesson.completed
+                                  ? "bg-emerald-500 text-white"
+                                  : activeLesson?.id === lesson.id
+                                    ? "bg-primary text-white"
+                                    : "bg-gray-200 dark:bg-white/5 text-gray-500"
+                              )}
+                            >
+                              {lesson.completed ? (
+                                <CheckCircle2 className="w-3.5 h-3.5" />
+                              ) : (
+                                <Play className="w-3 h-3 ml-0.5" />
+                              )}
+                            </div>
+                            <div className="flex-1 overflow-hidden">
+                              <p
+                                className={cn(
+                                  "text-[13px] font-medium truncate transition-colors",
+                                  activeLesson?.id === lesson.id
+                                    ? "text-primary"
+                                    : "text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+                                )}
+                              >
+                                {lesson.name}
+                              </p>
+                              <span className="text-[10px] text-gray-400">
+                                {lesson.type === "VIDEO" ? "فيديو" : "محتوى نصي"}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              <h1 className="font-black text-sm lg:text-base text-white truncate max-w-[200px] lg:max-w-md">
-                {course?.nameAr || course?.name}
+            </div>
+          </motion.aside>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-full relative">
+        {/* Top bar */}
+        <header className="h-14 border-b border-gray-200 dark:border-white/[0.06] bg-white/80 dark:bg-gray-900/80 backdrop-blur-md px-4 flex items-center justify-between z-10 shrink-0">
+          <div className="flex items-center gap-3">
+            {!sidebarOpen && (
+              <Button variant="ghost" size="icon" onClick={() => setSidebarOpen(true)} className="h-8 w-8 rounded-lg">
+                <PanelLeftOpen className="w-4 h-4" />
+              </Button>
+            )}
+            <div className="flex items-center gap-2">
+              <div className="h-7 w-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                <GraduationCap className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <h1 className="font-bold text-sm text-gray-900 dark:text-white truncate max-w-[200px] lg:max-w-md">
+                {activeLesson?.name || course?.nameAr || course?.name}
               </h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-             <Button variant="ghost" className="hidden md:flex gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors">
-               <Share2 className="w-4 h-4" />
-               <span>مشاركة</span>
-             </Button>
-             <Button variant="ghost" className="hidden md:flex gap-2 text-[10px] font-black uppercase tracking-widest text-gray-500 hover:text-white transition-colors">
-               <Bookmark className="w-4 h-4" />
-               <span>حفظ</span>
-             </Button>
-             <div className="h-8 w-px bg-white/5 mx-2" />
-             <Button variant="ghost" size="sm" onClick={() => router.push('/courses')}> 
-                <ArrowRight className="w-4 h-4 ml-2" />
-                خروج
-             </Button>
+          <div className="flex items-center gap-2">
+            {/* Progress indicator */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-100 dark:bg-white/5">
+              <BarChart3 className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{progress}%</span>
+            </div>
+
+            <div className="h-6 w-px bg-gray-200 dark:bg-white/10 mx-1" />
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.push("/courses")}
+              className="gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700"
+            >
+              <ArrowRight className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">خروج</span>
+            </Button>
           </div>
         </header>
 
+        {/* Main content area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto p-4 lg:p-10 space-y-10">
-             {/* Lesson Content Container */}
-             <div className="relative rounded-[2rem] overflow-hidden border border-white/5 bg-black/60 shadow-2xl">
-               {activeLesson?.videoUrl && activeLesson.type === 'VIDEO' ?
-              <CourseVideoPlayer
-                courseId={courseId}
-                lessonId={activeLesson.id}
-                lessonTitle={activeLesson.name}
-                videoUrl={activeLesson.videoUrl}
-                alreadyCompleted={activeLesson.completed}
-                onLessonAutoComplete={() => handleLessonComplete(activeLesson.id)} /> :
-
-
-              <div className="aspect-video flex items-center justify-center bg-white/5 p-12 text-center">
-                    <div className="space-y-4">
-                       <FileText className="w-16 h-16 text-primary mx-auto opacity-20" />
-                       <h3 className="text-xl font-bold text-gray-400 italic">هذا الدرس يحتوي على محتوى نصي فقط</h3>
-                    </div>
-                 </div>
-              }
-
-               <div className="p-8 lg:p-12 space-y-8">
-                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-8">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <Badge className="bg-primary/20 text-primary border-primary/20 text-[9px] uppercase tracking-widest px-3 h-6">المهمة التعليمية</Badge>
-                        <span className="text-[10px] font-black text-gray-600 uppercase tracking-widest">المستوى: متوسط</span>
-                      </div>
-                      <h2 className="text-3xl lg:text-5xl font-black text-white tracking-tight">{activeLesson?.name}</h2>
-                    </div>
-                    {!activeLesson?.completed &&
-                  <Button
-                    onClick={() => activeLesson && handleLessonComplete(activeLesson.id)}
-                    className="h-14 px-8 bg-emerald-500 text-black font-black rounded-2xl hover:bg-emerald-400 hover:scale-105 transition-all shadow-xl shadow-emerald-500/20">
-                    
-                         تحديد المهـمة كمكتملة ✓
-                      </Button>
-                  }
-                 </div>
-
-                 {/* Information Tabs */}
-                 <Tabs defaultValue="content" className="w-full" dir="rtl">
-                    <TabsList className="bg-white/5 p-1 rounded-2xl border border-white/10 w-full md:w-auto h-auto grid grid-cols-2 md:grid-cols-4 gap-2">
-                       <TabsTrigger value="content" className="rounded-xl font-black text-[10px] h-12 uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-black">
-                          <BookOpen className="w-4 h-4 ml-2" />
-                          المحتوى
-                       </TabsTrigger>
-                       <TabsTrigger value="resources" className="rounded-xl font-black text-[10px] h-12 uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-black">
-                          <Download className="w-4 h-4 ml-2" />
-                          المرفقات
-                       </TabsTrigger>
-                       <TabsTrigger value="qna" className="rounded-xl font-black text-[10px] h-12 uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-black">
-                          <MessageSquare className="w-4 h-4 ml-2" />
-                          النقاشات
-                       </TabsTrigger>
-                       <TabsTrigger value="notes" className="rounded-xl font-black text-[10px] h-12 uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-black">
-                          <FileText className="w-4 h-4 ml-2" />
-                          ملاحظاتي
-                       </TabsTrigger>
-                       <TabsTrigger value="about" className="rounded-xl font-black text-[10px] h-12 uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-black">
-                          <Settings className="w-4 h-4 ml-2" />
-                          عن الدورة
-                       </TabsTrigger>
-                    </TabsList>
-
-                     <div className="mt-8">
-                        <TabsContent value="content" className="min-h-[400px]">
-                           <div
-                        className="prose prose-invert prose-p:text-gray-400 prose-headings:text-white max-w-none prose-lg animate-in fade-in slide-in-from-bottom-4 duration-500"
-                        dangerouslySetInnerHTML={{ __html: activeLesson?.content || "<p className='italic text-gray-500'>لا يوجد تفاصيل نصية لهذا الدرس.</p>" }} />
-                      
-                        </TabsContent>
-                        
-                        <TabsContent value="resources" className="min-h-[400px]">
-                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              {activeLesson?.attachments && activeLesson.attachments.length > 0 ?
-                        activeLesson.attachments.map((att) =>
-                        <div key={att.id} className="p-6 rounded-2xl border border-white/5 bg-white/5 flex items-center justify-between group hover:border-primary/30 transition-all">
-                                     <div className="flex items-center gap-4">
-                                        <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-black transition-all">
-                                           <FileText className="w-6 h-6" />
-                                        </div>
-                                        <div>
-                                           <p className="font-bold text-sm text-gray-200">{att.title}</p>
-                                           <p className="text-[10px] text-gray-500 uppercase font-black">{att.fileType} • {(att.fileSize / 1024 / 1024).toFixed(2)} MB</p>
-                                        </div>
-                                     </div>
-                                     <Button variant="ghost" size="icon" onClick={() => window.open(att.fileUrl)}>
-                                        <Download className="w-4 h-4" />
-                                     </Button>
-                                  </div>
-                        ) :
-
-                        <div className="col-span-full py-20 text-center border-2 border-dashed border-white/5 rounded-3xl">
-                                   <Download className="w-12 h-12 text-gray-600 mx-auto mb-4 opacity-20" />
-                                   <p className="text-gray-500 font-bold italic">لا توجد مرفقات لهذا الدرس</p>
-                                </div>
-                        }
-                           </div>
-                        </TabsContent>
-
-                        <TabsContent value="qna">
-                           <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <div className="bg-white/5 p-8 rounded-3xl border border-white/5 space-y-6">
-                                 <div className="space-y-2">
-                                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest px-1">طرح سؤال جديد</label>
-                                    <textarea
-                              value={newQuestion}
-                              onChange={(e) => setNewQuestion(e.target.value)}
-                              placeholder="اكتب سؤالك هنا ليستفيد الجميع..."
-                              className="w-full h-32 bg-black/40 border border-white/10 rounded-2xl p-6 text-sm text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-none" />
-                            
-                                 </div>
-                                 <div className="flex justify-end">
-                                    <Button
-                              onClick={postQuestion}
-                              disabled={addingQuestion || !newQuestion.trim()}
-                              className="bg-primary text-black font-black px-8 rounded-xl h-12 hover:scale-105 transition-all">
-                              
-                                       {addingQuestion && <span className="animate-spin ml-2">⏳</span>}
-                                       نشر السؤال العلني
-                                    </Button>
-                                 </div>
-                              </div>
-
-                              <div className="space-y-8">
-                                 {questions.length > 0 ?
-                          questions.map((q) =>
-                          <div key={q.id} className="p-8 rounded-3xl border border-white/5 bg-white/[0.02] space-y-6 hover:border-white/10 transition-all">
-                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                               <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary/20 to-black border border-primary/20 flex items-center justify-center text-primary font-bold text-xs">
-                                                  {q.user?.avatar ? <img src={q.user.avatar} className="w-full h-full rounded-full" /> : q.user?.name?.charAt(0)}
-                                               </div>
-                                               <div>
-                                                  <p className="font-bold text-sm text-white">{q.user?.name}</p>
-                                                  <p className="text-[10px] text-gray-500 font-medium">قبل {new Date(q.createdAt).toLocaleDateString()}</p>
-                                               </div>
-                                            </div>
-                                         </div>
-                                         <p className="text-gray-300 text-sm leading-relaxed">{q.content}</p>
-                                      </div>
-                          ) :
-
-                          <div className="text-center py-20 border-2 border-dashed border-white/5 rounded-3xl">
-                                       <MessageSquare className="w-12 h-12 text-gray-600 mx-auto mb-4 opacity-20" />
-                                       <p className="text-gray-500 font-bold italic">لا توجد أسئلة بعد. كن أول من يسأل!</p>
-                                    </div>
-                          }
-                              </div>
-                           </div>
-                        </TabsContent>
-
-                        <TabsContent value="notes">
-                           <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                              <div className="flex items-center justify-between">
-                                 <h3 className="text-xl font-black text-white uppercase tracking-widest">مذكرتي الرقمية</h3>
-                                 <Badge className="bg-primary/20 text-primary border-none text-[8px] tracking-widest px-3 h-5">خاصة بك فقط</Badge>
-                              </div>
-                              <div className="relative group">
-                                 <textarea
-                            value={noteContent}
-                            onChange={(e) => setNoteContent(e.target.value)}
-                            placeholder="سجل أهم النقاط والحكم المستخلصة من هذا الدرس..."
-                            className="w-full min-h-[400px] bg-black/40 border border-white/10 rounded-3xl p-8 text-gray-300 italic leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all resize-y" />
-                          
-                              </div>
-                              <div className="flex justify-end pt-4">
-                                 <Button
-                            onClick={saveNote}
-                            disabled={savingNote}
-                            className="h-14 px-10 bg-white text-black font-black rounded-2xl flex gap-3 hover:scale-105 active:scale-95 transition-all shadow-2xl">
-                            
-                                    {savingNote ? <span className="animate-spin">🌀</span> : "💾"}
-                                    <span>حفظ المذكرات</span>
-                                 </Button>
-                              </div>
-                           </div>
-                        </TabsContent>
-
-                       <TabsContent value="about">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                             <div className="md:col-span-2 space-y-8">
-                                <div className="space-y-4">
-                                   <h3 className="text-xl font-black text-white uppercase tracking-widest">وصف الدورة</h3>
-                                   <p className="text-gray-400 leading-relaxed italic">يتم هنا عرض تفاصيل شاملة عن أهداف المادة والمهارات المكتسبة بعد إتمامها بالكامل.</p>
-                                </div>
-                                <div className="space-y-4">
-                                   <h3 className="text-xl font-black text-white uppercase tracking-widest">متطلبات المادة</h3>
-                                   <ul className="grid grid-cols-1 gap-3">
-                                      {["المعرفة الأساسية بالموضوع", "الرغبة في التعلم", "تطبيقات عملية مستمرة"].map((item, i) =>
-                              <li key={i} className="flex items-center gap-3 text-gray-400 text-sm">
-                                            <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                                            <span>{item}</span>
-                                         </li>
-                              )}
-                                   </ul>
-                                </div>
-                             </div>
-                             <div className="space-y-6">
-                                <div className="p-6 rounded-3xl border border-white/5 bg-white/5 space-y-4">
-                                   <h4 className="font-black text-[10px] text-gray-500 uppercase tracking-widest">عن المعلم</h4>
-                                   <div className="flex items-center gap-4">
-                                      <div className="h-14 w-14 rounded-2xl bg-gradient-to-br from-primary/20 to-black border border-primary/20 flex items-center justify-center text-primary text-xl font-black">
-                                         {course?.instructorName?.charAt(0) || "U"}
-                                      </div>
-                                      <div>
-                                         <p className="font-black text-white">{course?.instructorName || "أستاذ المادة"}</p>
-                                         <div className="flex items-center gap-1 text-amber-500">
-                                            <Star className="w-3 h-3 fill-current" />
-                                            <span className="text-[10px] font-bold">4.9 تقييم</span>
-                                         </div>
-                                      </div>
-                                   </div>
-                                   <Button variant="outline" className="w-full border-white/10 hover:bg-white/5 text-[10px] font-black uppercase h-10">عرض الملف الشخصي</Button>
-                                </div>
-                             </div>
-                          </div>
-                       </TabsContent>
-                    </div>
-                 </Tabs>
-               </div>
-             </div>
-
-             {/* Footer Navigation */}
-             <div className="flex items-center justify-between border-t border-white/5 pt-10">
-                <Button variant="ghost" className="h-14 px-8 rounded-2xl border border-white/5 gap-3 text-gray-400 hover:text-white font-black uppercase tracking-widest text-[10px]">
-                   <ChevronRight className="w-4 h-4 ml-2" />
-                   المهمة السابقة
-                </Button>
-                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => router.push(`/courses/${courseId}`)}>
-                   <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-black transition-all">
-                      <BookOpen className="w-5 h-5" />
-                   </div>
-                   <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest group-hover:text-white transition-colors">قائمة المهام الكاملة</span>
+          <div className="max-w-5xl mx-auto p-4 lg:p-8 space-y-8">
+            {/* Video/Content player */}
+            <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 shadow-sm">
+              {activeLesson?.videoUrl && activeLesson.type === "VIDEO" ? (
+                <CourseVideoPlayer
+                  courseId={courseId}
+                  lessonId={activeLesson.id}
+                  lessonTitle={activeLesson.name}
+                  videoUrl={activeLesson.videoUrl}
+                  alreadyCompleted={activeLesson.completed}
+                  onLessonAutoComplete={() => handleLessonComplete(activeLesson.id)}
+                />
+              ) : (
+                <div className="aspect-video flex items-center justify-center bg-gray-50 dark:bg-gray-800/50 p-8 text-center">
+                  <div className="space-y-3">
+                    <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" />
+                    <h3 className="text-sm font-medium text-gray-500">محتوى نصي - لا يوجد فيديو لهذا الدرس</h3>
+                  </div>
                 </div>
-                <Button className="h-14 px-8 rounded-2xl bg-white/5 border border-white/10 gap-3 text-white font-black uppercase tracking-widest text-[10px] hover:bg-white/10">
-                   المهمة التالية
-                   <ChevronLeft className="w-4 h-4 mr-2" />
+              )}
+            </div>
+
+            {/* Lesson header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-primary/10 text-primary border-0 text-[10px] uppercase tracking-wider px-2.5 h-5">
+                    الدرس التعليمي
+                  </Badge>
+                  {activeLesson?.completed && (
+                    <Badge className="bg-emerald-500/10 text-emerald-500 border-0 text-[10px] uppercase tracking-wider px-2.5 h-5">
+                      <CheckCircle2 className="h-3 w-3 ml-1" />
+                      مكتمل
+                    </Badge>
+                  )}
+                </div>
+                <h2 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">
+                  {activeLesson?.name}
+                </h2>
+              </div>
+              {activeLesson && !activeLesson.completed && (
+                <Button
+                  onClick={() => handleLessonComplete(activeLesson.id)}
+                  className="gap-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 h-11"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="font-bold">تحديد كمكتمل</span>
                 </Button>
-             </div>
+              )}
+            </div>
+
+            {/* Tabs */}
+            <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/5 max-w-fit">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-medium transition-all",
+                    activeTab === tab.key
+                      ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
+                      : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+                  )}
+                >
+                  <tab.icon className="w-3.5 h-3.5" />
+                  <span>{tab.label}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Tab content */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.2 }}
+                className="min-h-[300px]"
+              >
+                {/* Content Tab */}
+                {activeTab === "content" && (
+                  <div
+                    className="prose prose-sm dark:prose-invert max-w-none prose-p:text-gray-600 dark:prose-p:text-gray-400 prose-headings:text-gray-900 dark:prose-headings:text-white"
+                    dangerouslySetInnerHTML={{
+                      __html:
+                        activeLesson?.content ||
+                        '<p class="text-gray-400 italic">لا يوجد محتوى نصي لهذا الدرس.</p>',
+                    }}
+                  />
+                )}
+
+                {/* Resources Tab */}
+                {activeTab === "resources" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {activeLesson?.attachments && activeLesson.attachments.length > 0 ? (
+                      activeLesson.attachments.map((att) => (
+                        <div
+                          key={att.id}
+                          className="p-4 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 flex items-center justify-between group hover:border-primary/30 transition-all"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                              <FileText className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-sm text-gray-700 dark:text-gray-200">{att.title}</p>
+                              <p className="text-[10px] text-gray-400 uppercase font-medium">
+                                {att.fileType} • {(att.fileSize / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                            </div>
+                          </div>
+                          <Button variant="ghost" size="icon" onClick={() => window.open(att.fileUrl)} className="h-8 w-8 rounded-lg">
+                            <Download className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="col-span-full py-16 text-center rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10">
+                        <Download className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                        <p className="text-sm text-gray-500 font-medium">لا توجد مرفقات لهذا الدرس</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Q&A Tab */}
+                {activeTab === "qna" && (
+                  <div className="space-y-6">
+                    {/* New question form */}
+                    <div className="rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 p-5 space-y-4">
+                      <label className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                        طرح سؤال جديد
+                      </label>
+                      <textarea
+                        value={newQuestion}
+                        onChange={(e) => setNewQuestion(e.target.value)}
+                        placeholder="اكتب سؤالك هنا..."
+                        className="w-full h-24 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl p-4 text-sm text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-primary/20 resize-none"
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          onClick={postQuestion}
+                          disabled={addingQuestion || !newQuestion.trim()}
+                          className="bg-primary text-white rounded-xl h-9 px-5 text-xs font-bold"
+                        >
+                          {addingQuestion && <Loader2 className="h-3.5 w-3.5 animate-spin ml-1.5" />}
+                          نشر السؤال
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Questions list */}
+                    <div className="space-y-3">
+                      {questions.length > 0 ? (
+                        questions.map((q) => (
+                          <div
+                            key={q.id}
+                            className="p-5 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 space-y-3"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">
+                                {q.user?.name?.charAt(0) || "U"}
+                              </div>
+                              <div>
+                                <p className="font-medium text-sm text-gray-900 dark:text-white">{q.user?.name}</p>
+                                <p className="text-[10px] text-gray-400">
+                                  {new Date(q.createdAt).toLocaleDateString("ar-EG")}
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">{q.content}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-16 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10">
+                          <MessageSquare className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                          <p className="text-sm text-gray-500 font-medium">لا توجد أسئلة بعد</p>
+                          <p className="text-xs text-gray-400 mt-1">كن أول من يسأل!</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Notes Tab */}
+                {activeTab === "notes" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-base font-bold text-gray-900 dark:text-white">ملاحظاتي</h3>
+                      <Badge className="bg-primary/10 text-primary border-0 text-[10px] px-2.5 h-5">
+                        خاصة بك
+                      </Badge>
+                    </div>
+                    <textarea
+                      value={noteContent}
+                      onChange={(e) => setNoteContent(e.target.value)}
+                      placeholder="سجل أهم النقاط والملاحظات من هذا الدرس..."
+                      className="w-full min-h-[300px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl p-5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
+                    />
+                    <div className="flex justify-end">
+                      <Button
+                        onClick={saveNote}
+                        disabled={savingNote}
+                        className="gap-2 bg-primary text-white rounded-xl h-10 px-6 font-bold text-sm"
+                      >
+                        {savingNote && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                        حفظ الملاحظات
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Footer navigation */}
+            <div className="flex items-center justify-between border-t border-gray-200 dark:border-white/[0.06] pt-8">
+              <Button
+                variant="ghost"
+                className="gap-2 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-700"
+                onClick={() => navigateLesson("prev")}
+              >
+                <ChevronRight className="w-4 h-4" />
+                <span>الدرس السابق</span>
+              </Button>
+
+              <Button
+                variant="ghost"
+                className="gap-2 rounded-xl text-sm font-medium text-gray-500"
+                onClick={() => router.push(`/courses/${courseId}`)}
+              >
+                <BookOpen className="w-4 h-4" />
+                <span className="hidden sm:inline">صفحة الدورة</span>
+              </Button>
+
+              <Button
+                className="gap-2 rounded-xl bg-gray-100 dark:bg-white/5 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-white/10 text-sm font-medium"
+                onClick={() => navigateLesson("next")}
+              >
+                <span>الدرس التالي</span>
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </main>
-    </div>);
-
+    </div>
+  );
 }
