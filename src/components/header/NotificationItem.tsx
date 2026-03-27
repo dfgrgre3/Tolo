@@ -24,8 +24,9 @@ interface NotificationItemProps {
 }
 
 export function NotificationItem({ notification, markAsRead }: NotificationItemProps) {
-	const Icon = notificationIcons[notification.type || "info"];
-	const colorClass = notificationColors[notification.type || "info"];
+	const type = (notification.type || "info").toLowerCase() as keyof typeof notificationIcons;
+	const Icon = notificationIcons[type] || Info;
+	const colorClass = notificationColors[type] || notificationColors.info;
 
 	return (
 		<div

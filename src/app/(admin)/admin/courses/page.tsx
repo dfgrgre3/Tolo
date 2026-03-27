@@ -24,6 +24,7 @@ import {
   Sparkles,
   Tags,
   Trash2,
+  TrendingUp,
   Users,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -33,6 +34,18 @@ import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminUpload } from "@/components/admin/ui/admin-upload";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { CourseStats } from "@/components/admin/courses/dashboard-stats";
+import { CourseCard } from "@/components/admin/courses/course-card";
+import { CourseFilters } from "@/components/admin/courses/course-filters";
+import { 
+  CheckCircle, 
+  Copy, 
+  Download, 
+  MoreHorizontal, 
+  PauseCircle, 
+  Play, 
+  Zap 
+} from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -203,6 +216,11 @@ export default function AdminCoursesPage() {
   const [page, setPage] = React.useState(1);
   const [limit, setLimit] = React.useState(10);
   const [search, setSearch] = React.useState("");
+  const [view, setView] = React.useState<"grid" | "list">("grid");
+  const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
+  const [filterLevel, setFilterLevel] = React.useState("ALL");
+  const [filterStatus, setFilterStatus] = React.useState("ALL");
+  const [filterCategory, setFilterCategory] = React.useState("ALL");
   const deferredCategoryId = React.useDeferredValue(selectedCategoryId);
   const deferredTeacherId = React.useDeferredValue(selectedTeacherId);
   const deferredSearch = React.useDeferredValue(search);
@@ -367,8 +385,10 @@ export default function AdminCoursesPage() {
         body: JSON.stringify(payload),
       });
 
+      const result = await response.json();
+
       if (!response.ok) {
-        toast.error("تعذر حفظ بيانات الدورة");
+        toast.error(result?.message || result?.error || "تعذر حفظ بيانات الدورة");
         return;
       }
 
@@ -464,6 +484,59 @@ export default function AdminCoursesPage() {
     }
   };
 
+  const handleDuplicate = async (course: any) => {
+    try {
+      const response = await fetch("/api/admin/courses/duplicate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId: course.id }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "فشل الاستنساخ");
+      toast.success(result.message || "تم استنساخ الدورة بنجاح");
+      await refetch();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleBatchAction = async (action: "publish" | "unpublish" | "activate" | "deactivate" | "delete") => {
+    if (selectedIds.length === 0) return;
+    try {
+      const response = await fetch("/api/admin/courses/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: selectedIds, action }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || "فشلت العملية الجماعية");
+      toast.success(result.message);
+      setSelectedIds([]);
+      await refetch();
+    } catch (error: any) {
+      toast.error(error.message);
+    }
+  };
+
+  const handleExport = () => {
+    window.open("/api/admin/courses/export", "_blank");
+  };
+
+  const statsData = React.useMemo(() => {
+    const totalEnrollments = courses.reduce((sum, c) => sum + (c._count?.enrollments || 0), 0);
+    const totalRevenue = courses.reduce((sum, c) => sum + (c.price * (c._count?.enrollments || 0)), 0);
+    return {
+      totalEnrollments,
+      totalRevenue,
+      activeStudents: Math.round(totalEnrollments * 0.7), // Mock calculation for demo
+      avgCompletion: 65, // Mock calculation for demo
+      growth: {
+        enrollments: 12,
+        revenue: 8
+      }
+    };
+  }, [courses]);
+
   const columns: ColumnDef<Course>[] = [
     {
       accessorKey: "name",
@@ -471,7 +544,6 @@ export default function AdminCoursesPage() {
       header: "الدورة",
       cell: ({ row }) => {
         const course = row.original;
-
         return (
           <div className="flex items-center gap-4">
             <div className="relative h-14 w-24 overflow-hidden rounded-2xl border border-border/60 bg-muted/40">
@@ -541,7 +613,7 @@ export default function AdminCoursesPage() {
       accessorKey: "level",
       header: "المستوى",
       cell: ({ row }) => {
-        const level = row.original.level || "MEDIUM";
+        const level = (row.original.level || "MEDIUM") as string;
         return (
           <Badge
             variant="outline"
@@ -587,13 +659,18 @@ export default function AdminCoursesPage() {
         <RowActions
           row={row.original}
           onView={(course) => router.push(`/admin/courses/${course.id}`)}
-          onEdit={openDialog}
+          onEdit={(course) => openDialog(course)}
           onDelete={(course) => setDeleteDialog({ open: true, id: course.id })}
           extraActions={[
             {
               icon: BookOpen,
               label: "إدارة المنهج",
               onClick: (course) => router.push(`/admin/courses/${course.id}/curriculum`),
+            },
+            {
+              icon: TrendingUp,
+              label: "التحليلات",
+              onClick: (course) => router.push(`/admin/courses/${course.id}/analytics`),
             },
             {
               icon: ExternalLink,
@@ -617,255 +694,110 @@ export default function AdminCoursesPage() {
           <AdminButton variant="outline" icon={RefreshCw} onClick={() => refetch()}>
             تحديث
           </AdminButton>
-          <AdminButton variant="outline" icon={Tags} onClick={() => openCategoryDialog()}>
+          <AdminButton variant="outline" icon={Tags} onClick={() => setCategoryDialogOpen(true)}>
             إدارة التصنيفات
           </AdminButton>
-          <AdminButton icon={Plus} onClick={() => openDialog()}>
+          <AdminButton icon={Plus} onClick={() => setDialogOpen(true)}>
             دورة جديدة
           </AdminButton>
         </div>
       </PageHeader>
 
-      <div className="grid gap-4 xl:grid-cols-[1.35fr_0.65fr]">
-        <AdminCard variant="glass" className="overflow-hidden border-white/10 p-0">
-          <div className="grid gap-6 border-b border-white/10 bg-gradient-to-l from-slate-950 via-slate-900 to-sky-950 px-6 py-6 text-white lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-4">
-              <Badge className="w-fit rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-white">
-                غرفة تشغيل المحتوى
-              </Badge>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-black leading-tight">لوحة مركزة لإطلاق الدورات ومتابعة جاهزيتها</h2>
-                <p className="max-w-2xl text-sm leading-7 text-slate-300">
-                  راقب الدورات المنشورة، الدورات المتوقفة، وحجم المحتوى داخل كل دورة بدون التنقل بين عدة شاشات.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {filterOptions.map((option) => (
-                  <button
-                    key={option.key}
-                    type="button"
-                    onClick={() => setActiveFilter(option.key)}
-                    className={`rounded-full border px-4 py-2 text-xs font-bold transition ${
-                      activeFilter === option.key
-                        ? "border-white bg-white text-slate-950"
-                        : "border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* Dashboard Stats & Filters will be placed here */}
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold text-slate-300">الدورات المنشورة</p>
-                <p className="mt-3 text-3xl font-black">{publishedCoursesCount}</p>
-                <p className="mt-2 text-xs text-slate-400">جاهزة للعرض للطلاب الآن</p>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold text-slate-300">الدورات النشطة</p>
-                <p className="mt-3 text-3xl font-black">{activeCoursesCount}</p>
-                <p className="mt-2 text-xs text-slate-400">متاحة ضمن عمليات المنصة</p>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold text-slate-300">إجمالي الوحدات</p>
-                <p className="mt-3 text-3xl font-black">{totalCurriculumUnits}</p>
-                <p className="mt-2 text-xs text-slate-400">حجم المحتوى عبر جميع الدورات</p>
-              </div>
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
-                <p className="text-xs font-bold text-slate-300">متوسط السعر</p>
-                <p className="mt-3 text-3xl font-black">{averagePrice} EGP</p>
-                <p className="mt-2 text-xs text-slate-400">يساعد في ضبط التسعير العام</p>
-              </div>
-            </div>
-          </div>
-        </AdminCard>
+      <CourseStats stats={statsData} />
 
-        <AdminCard variant="outline" className="space-y-4 p-5">
-          <div className="flex items-center gap-2 text-sm font-bold">
-            <Filter className="h-4 w-4 text-primary" />
-            فلاتر تشغيل سريعة
-          </div>
-
-          <div className="space-y-3">
-            <label className="space-y-2 text-sm">
-              <span className="font-medium text-foreground">التصنيف</span>
-              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="كل التصنيفات" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">كل التصنيفات</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-
-            <label className="space-y-2 text-sm">
-              <span className="font-medium text-foreground">المدرس</span>
-              <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="كل المدرسين" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">كل المدرسين</SelectItem>
-                  {teachers.map((teacher) => (
-                    <SelectItem key={teacher.id} value={teacher.id}>
-                      {teacher.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </label>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-muted/40 p-4">
-              <p className="text-[11px] font-bold text-muted-foreground">الملتحقون</p>
-              <p className="mt-2 text-2xl font-black">{totalEnrollments}</p>
-            </div>
-            <div className="rounded-2xl bg-muted/40 p-4">
-              <p className="text-[11px] font-bold text-muted-foreground">الساعات</p>
-              <p className="mt-2 text-2xl font-black">{totalHours}</p>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-dashed border-primary/20 bg-primary/5 p-4 text-sm leading-7 text-muted-foreground">
-            أسرع مسار للعمل: أنشئ الدورة، اربطها بالمدرس، أضف الصورة والفيديو، ثم انقلها إلى &quot;منشورة&quot; عندما يصبح المنهج جاهزًا.
-          </div>
-
-          <div className="space-y-3 rounded-3xl border border-border/60 bg-background/70 p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-bold">
-                <Tags className="h-4 w-4 text-primary" />
-                التصنيفات التعليمية
-              </div>
-              <button
-                type="button"
-                onClick={() => openCategoryDialog()}
-                className="text-xs font-bold text-primary transition hover:opacity-80"
-              >
-                إضافة تصنيف
-              </button>
-            </div>
-            <div className="space-y-2">
-              {categories.slice(0, 6).map((category) => (
-                <div key={category.id} className="flex items-center justify-between rounded-2xl bg-muted/30 px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-bold">{category.name}</p>
-                    <p className="text-[11px] text-muted-foreground">{category.coursesCount} دورة</p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openCategoryDialog(category)}
-                      className="rounded-xl p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setCategoryDeleteDialog({ open: true, id: category.id })}
-                      className="rounded-xl p-2 text-muted-foreground transition hover:bg-destructive/10 hover:text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </AdminCard>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <AdminCard className="space-y-3 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground">إجمالي الدورات</span>
-            <PlayCircle className="h-4 w-4 text-primary" />
-          </div>
-          <p className="text-3xl font-black">{courses.length}</p>
-          <p className="text-sm text-muted-foreground">جميع السجلات التعليمية في لوحة التحكم.</p>
-        </AdminCard>
-        <AdminCard className="space-y-3 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground">الدورات المنشورة</span>
-            <Sparkles className="h-4 w-4 text-emerald-500" />
-          </div>
-          <p className="text-3xl font-black">{publishedCoursesCount}</p>
-          <p className="text-sm text-muted-foreground">جاهزة للظهور للطلاب في الواجهة التعليمية.</p>
-        </AdminCard>
-        <AdminCard className="space-y-3 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground">المحتوى المتاح</span>
-            <LayoutGrid className="h-4 w-4 text-violet-500" />
-          </div>
-          <p className="text-3xl font-black">{totalCurriculumUnits}</p>
-          <p className="text-sm text-muted-foreground">وحدة تعليمية موزعة على الدورات الحالية.</p>
-        </AdminCard>
-        <AdminCard className="space-y-3 p-5">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-muted-foreground">السعر المتوسط</span>
-            <Award className="h-4 w-4 text-amber-500" />
-          </div>
-          <p className="text-3xl font-black">{averagePrice} EGP</p>
-          <p className="text-sm text-muted-foreground">مرجع سريع عند تسعير دورة جديدة.</p>
-        </AdminCard>
-      </div>
-
-      <AdminDataTable
-        columns={columns}
-        data={courses}
-        loading={isLoading}
-        serverSide
-        totalRows={pagination?.total || 0}
-        pageCount={pagination?.totalPages || 1}
-        currentPage={page}
-        onPageChange={setPage}
-        onPageSizeChange={setLimit}
-        pageSize={limit}
-        actions={{ onRefresh: () => refetch() }}
-        emptyMessage={{
-          title: "لا توجد دورات مطابقة",
-          description: "جرّب تغيير الفلاتر أو أنشئ دورة جديدة لبدء المحتوى.",
+      <CourseFilters 
+        onSearch={setSearch}
+        onFilterChange={(filters) => {
+          setFilterLevel(filters.level);
+          setFilterStatus(filters.status);
+          setFilterCategory(filters.category);
         }}
-        toolbar={
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <div className="relative">
-              <Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="text"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="???? ???? ?????? ?? ?????"
-                className="h-10 w-64 rounded-xl border border-border bg-accent/20 px-10 text-sm outline-none ring-primary transition focus:ring-1"
-              />
-            </div>
-            <span className="rounded-full bg-muted px-3 py-2 font-medium">
-              {pagination?.total || courses.length} نتيجة
-            </span>
-            {(activeFilter !== "all" || selectedCategoryId !== "all" || selectedTeacherId !== "all" || search) && (
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveFilter("all");
-                  setSelectedCategoryId("all");
-                  setSelectedTeacherId("all");
-                  setSearch("");
-                }}
-                className="rounded-full border px-3 py-2 font-medium text-foreground transition hover:bg-muted"
-              >
-                تصفير الفلاتر
-              </button>
-            )}
-          </div>
-        }
+        onViewChange={setView}
+        currentView={view}
+        categories={categories}
+        onRefresh={() => refetch()}
+        onAddCourse={() => openDialog()}
       />
+
+      {view === "grid" ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          {courses.map((course) => (
+            <CourseCard 
+              key={course.id}
+              course={course}
+              onEdit={(c) => {
+                setEditingCourse(c);
+                form.reset({
+                  ...c,
+                  categoryId: c.categoryId || "",
+                  instructorId: c.instructorId || "",
+                });
+                setDialogOpen(true);
+              }}
+              onDuplicate={handleDuplicate}
+              onDelete={(c) => setDeleteDialog({ open: true, id: c.id })}
+              onToggleStatus={async (c) => {
+                 // Fast toggle logic
+                 try {
+                   await fetch("/api/admin/courses", {
+                     method: "PATCH",
+                     headers: { "Content-Type": "application/json" },
+                     body: JSON.stringify({ id: c.id, isPublished: !c.isPublished })
+                   });
+                   await refetch();
+                   toast.success("تم تحديث الحالة");
+                 } catch {
+                   toast.error("فشل التحديث");
+                 }
+              }}
+            />
+          ))}
+          {courses.length === 0 && !isLoading && (
+            <div className="col-span-full py-20 text-center">
+               <BookOpen className="h-12 w-12 text-muted-foreground/20 mx-auto mb-4" />
+               <p className="text-muted-foreground font-bold">لا توجد دورات مطابقة للبحث</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <AdminDataTable
+          columns={columns}
+          data={courses}
+          loading={isLoading}
+          serverSide
+          totalRows={pagination?.total || 0}
+          pageCount={pagination?.totalPages || 1}
+          currentPage={page}
+          onPageChange={setPage}
+          onPageSizeChange={setLimit}
+          pageSize={limit}
+          actions={{ onRefresh: () => refetch() }}
+          emptyMessage={{
+            title: "لا توجد دورات مطابقة",
+            description: "جرّب تغيير الفلاتر أو أنشئ دورة جديدة لبدء المحتوى.",
+          }}
+          toolbar={
+            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+               {selectedIds.length > 0 && (
+                 <div className="flex items-center gap-2 bg-primary/10 px-3 py-1.5 rounded-xl border border-primary/20 animate-in zoom-in duration-300">
+                    <span className="font-bold text-primary">{selectedIds.length} مختارة:</span>
+                    <AdminButton variant="ghost" size="sm" className="h-7 px-2 text-[10px] font-bold" onClick={() => handleBatchAction("publish")}>نشر</AdminButton>
+                    <AdminButton variant="ghost" size="sm" className="h-7 px-2 text-[10px] font-bold" onClick={() => handleBatchAction("unpublish")}>إخفاء</AdminButton>
+                    <AdminButton variant="ghost" size="sm" className="h-7 px-2 text-[10px] font-bold text-red-500" onClick={() => handleBatchAction("delete")}>حذف</AdminButton>
+                 </div>
+               )}
+               <AdminButton variant="outline" size="sm" className="h-9 rounded-xl gap-2 font-bold" onClick={handleExport}>
+                 <Download className="h-4 w-4" />
+                 تصدير الكل
+               </AdminButton>
+            </div>
+          }
+        />
+      )}
+
+      {/* Removed old toolbar stuff */}
 
       <Dialog
         open={dialogOpen}

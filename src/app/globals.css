@@ -6,34 +6,34 @@
     /* Studio Light - Clean, High Contrast, Minimalist */
     --background: 210 20% 98.4%;
     --foreground: 224 71.4% 4.1%;
-    
+
     --card: 0 0% 100%;
     --card-foreground: 224 71.4% 4.1%;
-    
+
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    
+
     --primary: 26 100% 50%;
     --primary-foreground: 0 0% 100%;
-    
+
     --secondary: 234 66% 96%;
     --secondary-foreground: 234 66% 15%;
-    
+
     --muted: 234 10% 95%;
     --muted-foreground: 234 10% 40%;
-    
+
     --accent: 26 100% 50%;
     --accent-foreground: 0 0% 100%;
-    
+
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    
+
     --border: 234 20% 90%;
     --input: 234 20% 90%;
     --ring: 26 100% 50%;
-    
+
     --radius: 1rem;
-    
+
     /* Charts */
     --chart-1: 262 83% 58%;
     --chart-2: 199 89% 48%;
@@ -50,7 +50,7 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    
+
     color-scheme: light;
   }
 
@@ -58,28 +58,28 @@
     /* Cosmic Dark - Deep, Immersive, Glassy */
     --background: 234 66% 8%;
     --foreground: 210 20% 98%;
-    
+
     --card: 234 66% 10%;
     --card-foreground: 210 20% 98%;
-    
+
     --popover: 234 66% 12%;
     --popover-foreground: 210 20% 98%;
-    
+
     --primary: 26 100% 50%;
     --primary-foreground: 0 0% 100%;
-    
+
     --secondary: 234 40% 15%;
     --secondary-foreground: 210 20% 98%;
-    
+
     --muted: 234 40% 12%;
     --muted-foreground: 234 10% 70%;
-    
+
     --accent: 26 100% 50%;
     --accent-foreground: 0 0% 100%;
-    
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 20% 98%;
-    
+
     --border: 234 40% 20%;
     --input: 234 40% 20%;
     --ring: 26 100% 50%;
@@ -93,7 +93,7 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 14%;
     --sidebar-ring: 263.4 70% 60%;
-    
+
     color-scheme: dark;
   }
 
@@ -112,13 +112,26 @@
     min-height: 100vh;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-bold tracking-tight text-foreground;
   }
 
-  h1 { @apply text-4xl md:text-5xl lg:text-6xl font-black; }
-  h2 { @apply text-3xl md:text-4xl font-extrabold; }
-  h3 { @apply text-2xl md:text-3xl font-bold; }
+  h1 {
+    @apply text-4xl md:text-5xl lg:text-6xl font-black;
+  }
+
+  h2 {
+    @apply text-3xl md:text-4xl font-extrabold;
+  }
+
+  h3 {
+    @apply text-2xl md:text-3xl font-bold;
+  }
 
   /* Better focus states for a11y */
   *:focus-visible {
@@ -128,7 +141,10 @@
 
 /* Respect user motion preferences */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+
+  *,
+  ::before,
+  ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -209,23 +225,26 @@
 .gradient-border {
   position: relative;
   background: linear-gradient(var(--background), var(--background)) padding-box,
-              linear-gradient(to right, hsl(var(--primary)), transparent) border-box;
+    linear-gradient(to right, hsl(var(--primary)), transparent) border-box;
   border: 1px solid transparent;
 }
 
 /* Skeleton Shimmer */
 .animate-shimmer {
-  background: linear-gradient(
-    90deg,
-    hsl(var(--muted)) 25%,
-    hsl(var(--muted) / 0.5) 50%,
-    hsl(var(--muted)) 75%
-  );
+  background: linear-gradient(90deg,
+      hsl(var(--muted)) 25%,
+      hsl(var(--muted) / 0.5) 50%,
+      hsl(var(--muted)) 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite linear;
 }
 
 @keyframes shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
 }

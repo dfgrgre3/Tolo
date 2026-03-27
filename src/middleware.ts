@@ -8,7 +8,7 @@ import {
 } from '@/services/auth/navigation';
 
 /**
- * proxy.ts - Global Next.js Proxy/Middleware for professional authentication and security.
+ * middleware.ts - Global Next.js Middleware for professional authentication and security.
  * 
  * Design Goals:
  * 1. API Protection: Intercepts all private routes and validates JWT via TokenService.
@@ -40,9 +40,13 @@ const PUBLIC_AUTH_API_ROUTES = [
   '/api/healthz',
   '/api/readyz',
   '/api/webhooks',
+  '/api/courses',
+  '/api/courses/categories',
+  '/api/subjects',
+  '/api/teachers',
 ];
 
-export default async function proxy(request: NextRequest) {
+export default async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
     

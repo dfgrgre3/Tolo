@@ -36,6 +36,7 @@ export async function GET(
                 topics: true,
                 enrollments: true,
                 reviews: true,
+                teachers: true,
               },
             },
           },

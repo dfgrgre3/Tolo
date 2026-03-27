@@ -9,6 +9,7 @@ import * as gamificationApi from '@/lib/api/gamification-client';
 interface UseGamificationOptions {
   userId: string;
   enableNotifications?: boolean;
+  enableRealTime?: boolean;
 }
 
 interface GamificationState {
@@ -28,7 +29,8 @@ interface GamificationState {
 
 export function useGamification({
   userId,
-  enableNotifications = true
+  enableNotifications = true,
+  enableRealTime = true
 }: UseGamificationOptions) {
   const [state, setState] = useState<GamificationState>({
     userProgress: null,
@@ -81,7 +83,7 @@ export function useGamification({
 
   // Handle periodic refresh (Optional for "real-lite" updates)
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !enableRealTime) return;
     
     // Refresh leaderboard and progress every minute to keep it fresh
     const interval = setInterval(() => {
@@ -89,7 +91,7 @@ export function useGamification({
     }, 60000);
 
     return () => clearInterval(interval);
-  }, [userId, loadInitialData]);
+  }, [userId, loadInitialData, enableRealTime]);
 
   // Load initial data when userId changes
   useEffect(() => {

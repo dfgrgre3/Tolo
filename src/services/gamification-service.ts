@@ -173,6 +173,22 @@ export class GamificationService {
   async updateCustomGoal(goalId: string, currentValue: number): Promise<CustomGoal> {
     return progressionService.updateCustomGoal(goalId, currentValue);
   }
+
+  async deleteCustomGoal(goalId: string): Promise<void> {
+    return progressionService.deleteCustomGoal(goalId);
+  }
+
+  async updateQuestProgress(userId: string, questId: string, progress: number): Promise<any> {
+    return progressionService.updateQuestProgress(userId, questId, progress);
+  }
+
+  async getAvailableRewards(limit?: number): Promise<Reward[]> {
+    return progressionService.getAvailableRewards(limit);
+  }
+
+  async claimReward(userId: string, rewardId: string): Promise<any> {
+    return progressionService.claimReward(userId, rewardId);
+  }
 }
 
 export const gamificationService = GamificationService.getInstance();

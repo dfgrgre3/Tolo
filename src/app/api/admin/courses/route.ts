@@ -31,6 +31,9 @@ const courseSchema = z.object({
   categoryId: z.string().optional().nullable(),
   thumbnailUrl: z.string().optional().nullable(),
   trailerUrl: z.string().optional().nullable(),
+  seoTitle: z.string().optional().nullable(),
+  seoDescription: z.string().optional().nullable(),
+  slug: z.string().optional().nullable(),
 });
 
 function ensureAdmin(userRole: string) {
@@ -63,6 +66,9 @@ function normalizeCoursePayload(payload: Record<string, unknown>) {
     categoryId: normalizeOptionalString(payload.categoryId),
     thumbnailUrl: normalizeOptionalString(payload.thumbnailUrl),
     trailerUrl: normalizeOptionalString(payload.trailerUrl),
+    seoTitle: normalizeOptionalString(payload.seoTitle),
+    seoDescription: normalizeOptionalString(payload.seoDescription),
+    slug: normalizeOptionalString(payload.slug),
   };
 }
 
