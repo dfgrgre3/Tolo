@@ -40,9 +40,9 @@ function ProgressIndicator() {
 		const fetchProgress = async () => {
 			try {
 				const [coursesRes, timeRes, achievementsRes] = await Promise.allSettled([
-					fetch("/api/user/progress/courses").then((r) => r.json()),
-					fetch("/api/user/progress/time").then((r) => r.json()),
-					fetch("/api/user/progress/achievements").then((r) => r.json()),
+					fetch("/api/users/progress/courses").then((r) => r.json()),
+					fetch("/api/users/progress/time").then((r) => r.json()),
+					fetch("/api/users/progress/achievements").then((r) => r.json()),
 				]);
 
 				const data: ProgressData[] = [];

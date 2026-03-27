@@ -66,6 +66,7 @@ export interface AuthResult {
         emailVerified: boolean | null;
         phoneVerified: boolean | null;
         twoFactorEnabled?: boolean;
+        status: string;
     };
     accessToken?: string;
     refreshToken?: string;
@@ -117,6 +118,7 @@ export class AuthService {
                     emailVerified: true,
                     phoneVerified: true,
                     twoFactorEnabled: true,
+                    status: true,
                 },
             });
 
@@ -146,6 +148,23 @@ export class AuthService {
                 };
             }
 
+            // 3. User status check (Security HARDENING)
+            if (user.status !== 'ACTIVE') {
+                const statusMessages: Record<string, string> = {
+                    'INACTIVE': 'هذا الحساب غير نشط حالياً. يرجى التواصل مع الدعم.',
+                    'SUSPENDED': 'تم تعليق هذا الحساب لمخالفة الشروط. يرجى التواصل مع الإدارة.',
+                    'DELETED': 'هذا الحساب محذوف. لا يمكنك تسجيل الدخول.',
+                };
+
+                await SecurityLogger.logFailedLogin(ip, userAgent, `ACCOUNT_${user.status}`);
+
+                return {
+                    success: false,
+                    error: statusMessages[user.status] || 'لا يمكنك تسجيل الدخول بهذا الحساب حالياً.',
+                    statusCode: 403,
+                };
+            }
+
             // 3. Check for 2FA
             if (user.twoFactorEnabled) {
                 // Generate a temporary restricted token for 2FA verification phase
@@ -163,6 +182,7 @@ export class AuthService {
                         avatar: user.avatar,
                         emailVerified: user.emailVerified,
                         phoneVerified: user.phoneVerified,
+                        status: user.status,
                         twoFactorEnabled: user.twoFactorEnabled,
                     }
                 };
@@ -207,6 +227,7 @@ export class AuthService {
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
                     phoneVerified: user.phoneVerified,
+                    status: user.status,
                 },
                 accessToken,
                 refreshToken,
@@ -215,11 +236,11 @@ export class AuthService {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('[AUTH_LOGIN_ERROR]', { error });
-            
+
             return {
                 success: false,
-                error: process.env.NODE_ENV === 'production' 
-                    ? 'Internal server error' 
+                error: process.env.NODE_ENV === 'production'
+                    ? 'Internal server error'
                     : `Internal server error: ${errorMessage}`,
                 statusCode: 500,
             };
@@ -243,6 +264,7 @@ export class AuthService {
                     emailVerified: true,
                     phoneVerified: true,
                     twoFactorSecret: true,
+                    status: true,
                 },
             });
 
@@ -284,6 +306,7 @@ export class AuthService {
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
                     phoneVerified: user.phoneVerified,
+                    status: user.status,
                 },
                 accessToken,
                 refreshToken,
@@ -399,17 +422,18 @@ export class AuthService {
                     avatar: user.avatar,
                     emailVerified: user.emailVerified,
                     phoneVerified: user.phoneVerified,
+                    status: user.status,
                 },
                 statusCode: 201,
             };
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('[AUTH_REGISTER_ERROR]', { error });
-            
+
             return {
                 success: false,
-                error: process.env.NODE_ENV === 'production' 
-                    ? 'Internal server error' 
+                error: process.env.NODE_ENV === 'production'
+                    ? 'Internal server error'
                     : `Internal server error: ${errorMessage}`,
                 statusCode: 500,
             };
@@ -638,6 +662,7 @@ export class AuthService {
                 bio: true,
                 subjectsTaught: true,
                 experienceYears: true,
+                status: true,
             },
         });
     }
@@ -736,6 +761,10 @@ export class AuthService {
                 }
             });
 
+            // Invalidate all existing sessions for this user for security
+            // This ensures hijacked sessions are kicked out immediately
+            await SessionService.revokeAllSessions(userId);
+
             // Log success
             await SecurityLogger.log({
                 userId,
@@ -820,6 +849,7 @@ export class AuthService {
                     avatar: true,
                     emailVerified: true,
                     phoneVerified: true,
+                    status: true,
                 }
             });
 
@@ -867,8 +897,9 @@ export class AuthService {
      */
     static async sendPhoneVerification(userId: string, phone: string, ip: string, userAgent: string): Promise<{ success: boolean; error?: string; statusCode?: number }> {
         try {
-            // 1. Generate 6-digit numeric OTP
-            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            // 1. Generate 6-digit numeric OTP using cryptographically secure random numbers
+            const { randomInt } = await import('crypto');
+            const otp = randomInt(100000, 999999).toString();
             const otpHash = createHash('sha256').update(otp).digest('hex');
             const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 

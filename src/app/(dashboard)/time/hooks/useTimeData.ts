@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { safeFetch } from "@/lib/safe-client-utils";
-import errorManager from "@/services/ErrorManager";
+import { errorService as errorManager } from '@/lib/logging/error-service';
 import { ensureUser } from "@/lib/user-utils";
 import type { Schedule, SubjectEnrollment, Task, StudySession, Reminder, SubjectType } from '../types';
 

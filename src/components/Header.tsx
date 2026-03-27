@@ -8,7 +8,7 @@ import { Menu, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { HeaderLogo } from "./header/HeaderLogo";
 import { HeaderSearch } from "./header/HeaderSearch";
 import { HeaderNavigation } from "./header/HeaderNavigation";

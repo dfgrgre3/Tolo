@@ -89,7 +89,7 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
       }
 
       // Fetch recovery codes
-      const userRes = await fetch('/api/user/profile');
+      const userRes = await fetch('/api/users/profile');
       if (userRes.ok) {
         const userData = await userRes.json();
         if (userData.recoveryCodes) {

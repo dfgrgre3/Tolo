@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // Components
 import TimeManagementHeader from './components/TimeManagementHeader';
 import DashboardTab from './components/DashboardTab';
-import { ComponentErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { ComponentErrorBoundary } from '@/components/ui/error-boundary';
 
 // Hooks
 import { useTimeData } from './hooks/useTimeData';

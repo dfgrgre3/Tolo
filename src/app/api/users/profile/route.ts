@@ -4,7 +4,7 @@ import { AuthService } from '@/services/auth/auth-service';
 import { prisma } from '@/lib/db';
 
 /**
- * GET /api/user/profile
+ * GET /api/users/profile
  * 
  * Retrieves the currently authenticated user's profile information.
  */
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 }
 
 /**
- * PATCH /api/user/profile
+ * PATCH /api/users/profile
  * 
  * Updates the currently authenticated user's profile information.
  */

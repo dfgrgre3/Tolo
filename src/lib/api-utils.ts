@@ -521,132 +521,9 @@ export interface AuthContextUser {
   sessionId?: string;
 }
 
-async function resolveAuthFromCookies(req: NextRequest): Promise<AuthContextUser | null> {
-  try {
-    const { TokenService } = await import('@/services/auth/token-service');
-    const accessToken = req.cookies.get('access_token')?.value;
 
-    if (accessToken) {
-      const accessPayload = await TokenService.verifyToken<{
-        type?: string;
-        userId?: string;
-        role?: string;
-        permissions?: string[];
-        sessionId?: string;
-      }>(accessToken);
 
-      if (accessPayload?.type === 'access' && typeof accessPayload.userId === 'string') {
-        const role = typeof accessPayload.role === 'string' ? accessPayload.role : 'USER';
-        const permissions = Array.isArray(accessPayload.permissions) ? accessPayload.permissions : [];
-        return {
-          userId: accessPayload.userId,
-          userRole: role,
-          role,
-          permissions,
-          sessionId: typeof accessPayload.sessionId === 'string' ? accessPayload.sessionId : undefined,
-        };
-      }
-    }
 
-    const refreshToken = req.cookies.get('refresh_token')?.value;
-    if (!refreshToken) {
-      return null;
-    }
-
-    const refreshPayload = await TokenService.verifyToken<{
-      type?: string;
-      sessionId?: string;
-    }>(refreshToken);
-
-    if (refreshPayload?.type !== 'refresh' || typeof refreshPayload.sessionId !== 'string') {
-      return null;
-    }
-
-    const [{ SessionService }, { prisma }] = await Promise.all([
-      import('@/services/auth/session-service'),
-      import('@/lib/db'),
-    ]);
-
-    const session = await prisma.session.findFirst({
-      where: {
-        id: refreshPayload.sessionId,
-        isActive: true,
-      },
-      select: {
-        id: true,
-        userId: true,
-        refreshToken: true,
-        expiresAt: true,
-        user: {
-          select: {
-            role: true,
-          },
-        },
-      },
-    });
-
-    if (!session || session.expiresAt <= new Date()) {
-      return null;
-    }
-
-    const refreshHash = SessionService.hashRefreshToken(refreshToken);
-    if (!session.refreshToken || session.refreshToken !== refreshHash) {
-      const recentlyRotated = await SessionService.isRecentlyRotated(refreshHash, session.id);
-      if (!recentlyRotated) {
-        return null;
-      }
-    }
-
-    const role = session.user?.role ?? 'USER';
-    const permissions = (session.user as any)?.permissions ?? [];
-    return {
-      userId: session.userId,
-      userRole: role,
-      role,
-      permissions,
-      sessionId: session.id,
-    };
-  } catch (error) {
-    logger.debug('[WITH_AUTH_COOKIE_FALLBACK_FAILED]', error);
-    return null;
-  }
-}
-
-async function resolveAuthFromAuthorization(req: NextRequest): Promise<AuthContextUser | null> {
-  try {
-    const { TokenService } = await import('@/services/auth/token-service');
-    const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || '';
-    const trimmed = authHeader.trim();
-    if (!/^bearer\s+/i.test(trimmed)) return null;
-
-    const token = trimmed.replace(/^bearer\s+/i, '').trim();
-    if (!token) return null;
-
-    const accessPayload = await TokenService.verifyToken<{
-      type?: string;
-      userId?: string;
-      role?: string;
-      permissions?: string[];
-      sessionId?: string;
-    }>(token);
-
-    if (accessPayload?.type === 'access' && typeof accessPayload.userId === 'string') {
-      const role = typeof accessPayload.role === 'string' ? accessPayload.role : 'USER';
-      const permissions = Array.isArray(accessPayload.permissions) ? accessPayload.permissions : [];
-      return {
-        userId: accessPayload.userId,
-        userRole: role,
-        role,
-        permissions,
-        sessionId: typeof accessPayload.sessionId === 'string' ? accessPayload.sessionId : undefined,
-      };
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Standardized authentication wrapper for API routes.
@@ -673,17 +550,8 @@ export async function withAuth(
     });
   }
 
-  const fromAuthorization = await resolveAuthFromAuthorization(req);
-  if (fromAuthorization) {
-    return handler(fromAuthorization);
-  }
-
-  const fallbackAuth = await resolveAuthFromCookies(req);
-  if (!fallbackAuth) {
-    return unauthorizedResponse();
-  }
-
-  return handler(fallbackAuth);
+  // Fallback if middleware didn't run (e.g. Edge cases or direct route calls)
+  return unauthorizedResponse("Missing authentication context. Standard middleware check failed.");
 }
 /**
  * Authentication and Authorization wrapper for ADMIN only routes.

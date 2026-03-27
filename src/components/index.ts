@@ -12,8 +12,8 @@
 // ============================================
 // مكونات التخطيط (Layout Components)
 // ============================================
-export { default as Header } from './Header';
-export { default as Footer } from './Footer';
+export { default as Header } from './header';
+export { default as Footer } from './footer';
 export * as Dashboard from './dashboard';
 
 // ============================================
@@ -26,20 +26,20 @@ export * as Dashboard from './dashboard';
 // ============================================
 // مكونات معالجة الأخطاء (Error Handling)
 // ============================================
-export { default as ErrorBoundary, useErrorBoundary, withErrorBoundary } from './ErrorBoundary';
-export { default as ErrorPages } from './ErrorPages';
+export { default as ErrorBoundary, useErrorBoundary, withErrorBoundary } from './error-boundary';
+export { default as ErrorPages } from './error-pages';
 
 // ============================================
 // مكونات الإشعارات (Notifications)
 // ============================================
-export { default as NotificationsClient } from './NotificationsClient';
-export { NotificationsProvider } from '@/providers/NotificationsProvider';
+export { default as NotificationsClient } from './notifications-client';
+export { NotificationsProvider } from '@/providers/notifications-provider';
 
 // ============================================
 // مكونات المزودين (Providers)
 // ============================================
-export { CombinedProviders } from '@/providers/CombinedProviders';
-export { ThemeProvider } from '@/providers/ThemeProvider';
+// CombinedProviders removed - use GlobalProviders from @/providers instead
+export { ThemeProvider } from '@/providers/theme-provider';
 
 // ============================================
 // مكونات WebSocket

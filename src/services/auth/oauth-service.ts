@@ -117,8 +117,16 @@ export class OAuthService {
             const emailResponse = await fetch('https://api.github.com/user/emails', {
                 headers: { Authorization: `token ${tokens.access_token}` },
             });
-            const emails = await emailResponse.json();
-            const primaryEmail = emails.find((e: any) => e.primary)?.email || user.email;
+
+            interface GithubEmail {
+                email: string;
+                primary: boolean;
+                verified: boolean;
+                visibility: string | null;
+            }
+
+            const emails: GithubEmail[] = await emailResponse.json();
+            const primaryEmail = emails.find((e: GithubEmail) => e.primary)?.email || (user as any).email;
 
             return {
                 id: user.id.toString(),

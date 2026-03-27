@@ -1,7 +1,7 @@
 import React, { Component, ErrorInfo, ReactNode, useState, useCallback } from 'react';
 import { AlertTriangle, RefreshCw, Home, MessageCircle, AlertCircle } from 'lucide-react';
-import errorManager from '../services/ErrorManager';
-import ErrorPage, { ErrorType } from './ErrorPages';
+import { errorService as errorManager } from '@/lib/logging/error-service';
+import ErrorPage, { ErrorType } from './error-pages';
 import { logger } from '@/lib/logger';
 
 /**

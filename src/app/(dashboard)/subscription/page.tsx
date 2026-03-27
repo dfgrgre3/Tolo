@@ -63,7 +63,7 @@ export default function SubscriptionPage() {
     async function fetchSummary() {
       try {
         const [summaryRes, addonsRes] = await Promise.all([
-        fetch('/api/user/billing-summary'),
+        fetch('/api/users/billing-summary'),
         fetch('/api/subscriptions/addons')]
         );
 
@@ -97,7 +97,7 @@ export default function SubscriptionPage() {
       if (res.ok) {
         toast.success("تمت عملية الشراء بنجاح!");
         // Refresh summary
-        const summaryRes = await fetch('/api/user/billing-summary');
+        const summaryRes = await fetch('/api/users/billing-summary');
         if (summaryRes.ok) setSummary(await summaryRes.json());
       } else {
         const data = await res.json();

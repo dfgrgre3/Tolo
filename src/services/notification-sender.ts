@@ -124,8 +124,10 @@ export interface MultiChannelNotificationOptions {
     icon?: string;
 }
 
+import { Notification } from '@prisma/client';
+
 export interface MultiChannelNotificationResult {
-    app: any | null;
+    app: Notification | null;
     email: { success: boolean; messageId?: string; simulated?: boolean } | null;
     sms: { success: boolean; messageId?: string; simulated?: boolean } | null;
 }

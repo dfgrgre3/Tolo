@@ -2,13 +2,28 @@ import nodemailer from 'nodemailer';
 import { logger } from '@/lib/logger';
 // import { withRetry } from '@/lib/auth-utils';
 
-const withRetry = async <T,>(fn: () => Promise<T>, options: any): Promise<T> => {
-  try {
-    return await fn();
-  } catch (error) {
-    if (options.onError) options.onError(error, 1);
-    throw error;
+interface RetryOptions {
+  maxAttempts?: number;
+  delayMs?: number;
+  onError?: (error: unknown, attempt: number) => void;
+}
+
+const withRetry = async <T,>(fn: () => Promise<T>, options: RetryOptions): Promise<T> => {
+  let attempt = 1;
+  const maxAttempts = options.maxAttempts || 3;
+  const delayMs = options.delayMs || 1000;
+
+  while (attempt <= maxAttempts) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (options.onError) options.onError(error, attempt);
+      if (attempt === maxAttempts) throw error;
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+      attempt++;
+    }
   }
+  throw new Error('Retry failed');
 };
 interface EmailOptions {
   to: string;

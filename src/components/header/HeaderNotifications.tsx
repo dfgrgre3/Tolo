@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { VirtualList } from "@/components/ui/VirtualList";
+import { VirtualList } from "@/components/ui/virtual-list";
 import { cn } from "@/lib/utils";
 
 import {
@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import { type User } from "@/types/user";
-import { useNotificationsContext } from "@/providers/NotificationsProvider";
+import { useNotificationsContext } from "@/providers/notifications-provider";
 import { NotificationItem } from "./NotificationItem";
 import { type Notification } from "@/types/notification";
 

@@ -22,7 +22,8 @@ export const abTestingService = {
         throw new Error(`Failed to fetch experiments: ${response.statusText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error fetching experiments:', error);
       throw error;
@@ -46,7 +47,8 @@ export const abTestingService = {
         throw new Error(`Failed to create experiment: ${response.statusText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error creating experiment:', error);
       throw error;
@@ -70,7 +72,8 @@ export const abTestingService = {
         throw new Error(`Failed to update experiment status: ${response.statusText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error updating experiment status:', error);
       throw error;
@@ -94,7 +97,8 @@ export const abTestingService = {
         throw new Error(`Failed to declare winner: ${response.statusText}`);
       }
 
-      return await response.json();
+      const result = await response.json();
+      return result.data;
     } catch (error) {
       console.error('Error declaring winner:', error);
       throw error;

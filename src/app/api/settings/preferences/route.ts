@@ -29,13 +29,7 @@ function buildPatch(body: unknown): SettingsPreferencesPatch | null {
     patch.privacy = body.privacy as unknown as SettingsPreferencesPatch['privacy'];
   }
 
-  if (isPlainObject(body.language)) {
-    patch.language = body.language as unknown as SettingsPreferencesPatch['language'];
-  }
 
-  if (isPlainObject(body.appearance)) {
-    patch.appearance = body.appearance as unknown as SettingsPreferencesPatch['appearance'];
-  }
 
   return patch;
 }

@@ -7,7 +7,7 @@
  * فور تسجيل الدخول أو تطبيقها من الكاش المحلي.
  */
 
-import { useGlobalSettings } from '@/hooks/useGlobalSettings';
+import { useGlobalSettings } from '@/hooks';
 
 export default function GlobalSettingsApplier({ children }: { children: React.ReactNode }) {
   useGlobalSettings();

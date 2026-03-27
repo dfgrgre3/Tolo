@@ -10,7 +10,15 @@ import {
   Sparkles, 
   LayoutGrid, 
   Users,
-  Star
+  Star,
+  TrendingUp,
+  Award,
+  Clock,
+  Heart,
+  Share2,
+  Download,
+  BookMarked,
+  GraduationCap
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -29,13 +37,20 @@ import {
 
 const PAGE_SIZE = 12;
 
-type SortOption = "newest" | "popular" | "rated" | "price-low" | "price-high";
+type SortOption = "newest" | "popular" | "rated" | "price-low" | "price-high" | "duration-short" | "duration-long";
 type CourseLevelFilter = "all" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 
 type Course = CourseCardProps & {
   createdAt: string;
   categoryId?: string;
   categoryName?: string;
+  duration: number;
+  enrolledCount: number;
+  rating: number;
+  price: number;
+  tags: string[];
+  lessonsCount?: number;
+  isWishlisted?: boolean;
 };
 
 type CourseCategory = {
@@ -102,14 +117,24 @@ function sortLabel(sortBy: SortOption): string {
       return "السعر الأقل";
     case "price-high":
       return "السعر الأعلى";
+    case "duration-short":
+      return "الأقصر مدة";
+    case "duration-long":
+      return "الأطول مدة";
     case "newest":
     default:
       return "الأحدث";
   }
 }
 
-export default function CoursesPage() {
-  const { user, isLoading: authLoading, fetchWithAuth } = useAuth(); // Get fetchWithAuth from auth context
+export default function CoursesPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug?: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const { user, isLoading: authLoading, fetchWithAuth } = useAuth();
   const router = useRouter();
 
   const [courses, setCourses] = useState<Course[]>([]);
@@ -124,6 +149,7 @@ export default function CoursesPage() {
   const [enrollingId, setEnrollingId] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
 
   const resetFilters = () => {
     setActiveCategory("all");
@@ -222,7 +248,8 @@ export default function CoursesPage() {
       const matchesSearch =
         course.title.toLowerCase().includes(normalizedSearch) ||
         course.instructor.toLowerCase().includes(normalizedSearch) ||
-        course.description.toLowerCase().includes(normalizedSearch);
+        course.description.toLowerCase().includes(normalizedSearch) ||
+        course.tags.some(tag => tag.toLowerCase().includes(normalizedSearch));
 
       return matchesCategory && matchesSearch && matchesLevel;
     });
@@ -241,6 +268,10 @@ export default function CoursesPage() {
           return (left.price || 0) - (right.price || 0);
         case "price-high":
           return (right.price || 0) - (left.price || 0);
+        case "duration-short":
+          return (left.duration || 0) - (right.duration || 0);
+        case "duration-long":
+          return (right.duration || 0) - (left.duration || 0);
         default:
           return 0;
       }
@@ -257,12 +288,19 @@ export default function CoursesPage() {
   const stats = useMemo(() => {
     const enrolledCoursesCount = courses.filter((course) => course.enrolled).length;
     const freeCoursesCount = courses.filter((course) => (course.price || 0) === 0).length;
+    const totalLessons = courses.reduce((acc, course) => acc + (course.lessonsCount || 0), 0);
+    const avgRating = courses.length > 0 
+      ? courses.reduce((sum, course) => sum + (course.rating || 0), 0) / courses.length 
+      : 0;
+    
     return {
       totalCourses: courses.length,
       totalStudents: courses.reduce((acc, course) => acc + (course.enrolledCount || 0), 0),
       enrolledCoursesCount,
       freeCoursesCount,
       totalInstructors: new Set(courses.map(c => c.instructor)).size,
+      totalLessons,
+      avgRating: parseFloat(avgRating.toFixed(1)),
     };
   }, [courses]);
 
@@ -317,11 +355,23 @@ export default function CoursesPage() {
     }
   };
 
+  const toggleWishlist = (courseId: string) => {
+    setWishlistIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(courseId)) {
+        newSet.delete(courseId);
+      } else {
+        newSet.add(courseId);
+      }
+      return newSet;
+    });
+  };
+
   const visibleCourses = sortedCourses.slice(0, visibleCount);
   const canLoadMore = visibleCount < sortedCourses.length;
 
   return (
-    <div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" dir="rtl">
       {/* --- Ambient Background --- */}
       <div className="fixed inset-0 pointer-events-none -z-10">
         <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-blue-600/5 blur-[120px] rounded-full" />
@@ -335,15 +385,17 @@ export default function CoursesPage() {
           totalCourses={stats.totalCourses}
           totalStudents={stats.totalStudents}
           totalInstructors={stats.totalInstructors}
+          avgRating={stats.avgRating}
         />
 
         {/* --- Stats Dashboard --- */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
            {[
              { label: "مخطوطة متاحة", val: stats.totalCourses, icon: BookOpen, color: "text-blue-400" },
              { label: "محارب مسجل", val: stats.totalStudents, icon: Users, color: "text-purple-400" },
              { label: "مخطوطاتك النشطة", val: stats.enrolledCoursesCount, icon: BookCheck, color: "text-emerald-400" },
              { label: "معرفة مجانية", val: stats.freeCoursesCount, icon: Sparkles, color: "text-amber-400" },
+             { label: "معدل التقييم", val: stats.avgRating, icon: Star, color: "text-yellow-400" },
            ].map((stat, i) => (
              <motion.div
                key={i}
@@ -360,7 +412,11 @@ export default function CoursesPage() {
                 </div>
                 <div className="mt-8 space-y-1">
                    <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">{stat.label}</p>
-                   <p className="text-3xl font-black">{stat.val.toLocaleString()}</p>
+                   <p className="text-3xl font-black">
+                     {typeof stat.val === 'number' && stat.val >= 1000 
+                       ? `${(stat.val / 1000).toFixed(1)}K` 
+                       : stat.val}
+                   </p>
                 </div>
              </motion.div>
            ))}
@@ -395,6 +451,33 @@ export default function CoursesPage() {
                     <span>عوالمي الخاصة</span>
                  </button>
               </div>
+              
+              <div className="flex items-center gap-4">
+                <div className="hidden md:flex items-center gap-2 text-sm text-gray-400">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>محدثة باستمرار</span>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    className="h-10 w-10 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
+                    onClick={() => window.print()}
+                    title="طباعة"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                  <button 
+                    className="h-10 w-10 flex items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"
+                    onClick={() => navigator.share ? navigator.share({
+                      title: 'Thanawy - منصة التعلم',
+                      text: 'اكتشف مسارات التعلم المختلفة على منصة Thanawy',
+                      url: window.location.href
+                    }) : null}
+                    title="مشاركة"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
            </div>
 
            <CoursesFilter
@@ -412,145 +495,78 @@ export default function CoursesPage() {
              onResetFilters={resetFilters}
            />
 
-           <div className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
-             <motion.div
-               initial={{ opacity: 0, y: 16 }}
-               animate={{ opacity: 1, y: 0 }}
-               className={STYLES.glass + " p-6"}
-             >
-               <div className="flex items-start justify-between gap-4">
-                 <div className="space-y-2">
-                   <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">
-                     غرفة الاستكشاف
-                   </p>
-                   <h2 className="text-2xl font-black text-white">
-                     {sortedCourses.length.toLocaleString()} دورة جاهزة للمراجعة
-                   </h2>
-                   <p className="max-w-2xl text-sm leading-7 text-gray-400">
-                     اعرض النتائج حسب المستوى والسعر والتخصص، ثم انتقل مباشرة إلى الدورة أو استكمل رحلتك التعليمية الحالية.
-                   </p>
-                 </div>
-                 <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
-                   <ArrowUpRight className="h-5 w-5 text-primary" />
-                 </div>
-               </div>
+           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+             {sortedCourses.map((course, index) => (
+               <motion.div
+                 key={course.id}
+                 initial={{ opacity: 0, y: 16 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ delay: index * 0.1 }}
+                 className="relative overflow-hidden rounded-xl bg-white dark:bg-gray-800 shadow-sm hover:shadow-md transition-shadow"
+               >
+                 <div className="p-6">
+                   <div className="flex items-center justify-between">
+                     <div className="space-y-2">
+                       <p className="text-sm text-gray-500 dark:text-gray-400">
+                         غرفة الاستكشاف
+                       </p>
+                       <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                         {course.title}
+                       </h2>
+                       <p className="max-w-2xl text-sm leading-7 text-gray-400">
+                         {course.description}
+                       </p>
+                     </div>
+                     <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5">
+                       <ArrowUpRight className="h-5 w-5 text-primary" />
+                     </div>
+                   </div>
 
-               <div className="mt-6 flex flex-wrap gap-2">
-                 {activeSignals.map((signal) => (
-                   <span
-                     key={signal}
-                     className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-gray-300"
-                   >
-                     {signal}
-                   </span>
-                 ))}
-               </div>
-             </motion.div>
+                   <div className="mt-6 flex flex-wrap gap-2">
+                     {course.tags.map((tag) => (
+                       <span
+                         key={tag}
+                         className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold text-gray-300"
+                       >
+                         {tag}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
 
-             <motion.div
-               initial={{ opacity: 0, y: 16 }}
-               animate={{ opacity: 1, y: 0 }}
-               transition={{ delay: 0.05 }}
-               className={STYLES.glass + " p-6"}
-             >
-               <div className="flex items-center justify-between gap-3">
-                 <div>
-                   <p className="text-[11px] font-black uppercase tracking-[0.3em] text-gray-500">
-                     مؤشرات سريعة
-                   </p>
-                   <h3 className="mt-2 text-xl font-black text-white">ملخص النتائج الحالية</h3>
+                  <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-gray-500 uppercase tracking-tighter">
+                        الحالة الاستثمارية
+                      </p>
+                      <h3 className="text-xl font-black text-primary" suppressHydrationWarning>
+                        {course.price === 0 ? "مجاناً" : `${course.price} ج.م`}
+                      </h3>
+                    </div>
+                   <div className="flex items-center gap-4">
+                     <div className="flex items-center gap-2">
+                       <Clock className="h-4 w-4 text-gray-400" />
+                       <span className="text-sm text-gray-400">
+                         {course.duration} دقيقة
+                       </span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Heart className="h-4 w-4 text-gray-400" />
+                       <span className="text-sm text-gray-400">
+                         {course.enrolledCount} مسجل
+                       </span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Star className="h-4 w-4 text-gray-400" />
+                       <span className="text-sm text-gray-400">
+                         {course.rating} نجمة
+                       </span>
+                     </div>
+                   </div>
                  </div>
-                 {hasActiveFilters && (
-                   <Button
-                     variant="ghost"
-                     onClick={resetFilters}
-                     className="h-10 rounded-xl border border-white/10 bg-white/5 px-4 text-white hover:bg-white/10"
-                   >
-                     <FilterX className="ml-2 h-4 w-4" />
-                     تصفير
-                   </Button>
-                 )}
-               </div>
-
-               <div className="mt-6 grid grid-cols-3 gap-3">
-                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                   <p className="text-[11px] font-bold text-gray-500">النتائج</p>
-                   <p className="mt-2 text-2xl font-black text-white">{sortedCourses.length}</p>
-                 </div>
-                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                   <p className="text-[11px] font-bold text-gray-500">المميزة</p>
-                   <p className="mt-2 text-2xl font-black text-white">{featuredCourses.length}</p>
-                 </div>
-                 <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                   <p className="text-[11px] font-bold text-gray-500">المجانية</p>
-                   <p className="mt-2 text-2xl font-black text-white">
-                     {sortedCourses.filter((course) => (course.price || 0) === 0).length}
-                   </p>
-                 </div>
-               </div>
-             </motion.div>
+               </motion.div>
+             ))}
            </div>
-
-           <div className="min-h-[600px]">
-              <AnimatePresence mode="wait">
-                 {loading ? (
-                    <CoursesLoadingSkeleton key="load" />
-                 ) : sortedCourses.length > 0 ? (
-                    <motion.div
-                      key="list"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3"
-                    >
-                       {visibleCourses.map((course, index) => (
-                         <CourseCard
-                           key={course.id}
-                           {...course}
-                           index={index}
-                           isProcessing={enrollingId === course.id}
-                           onEnroll={() => handleEnroll(course.id)}
-                           onUnenroll={() => handleUnenroll(course.id)}
-                         />
-                       ))}
-                    </motion.div>
-                 ) : fetchError ? (
-                    <motion.div
-                      key="error"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={STYLES.glass + " flex min-h-[420px] flex-col items-center justify-center gap-5 px-6 text-center"}
-                    >
-                      <div className="flex h-20 w-20 items-center justify-center rounded-full border border-red-500/20 bg-red-500/10">
-                        <Star className="h-8 w-8 text-red-400" />
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-2xl font-black text-white">تعذر تحميل الدورات</h3>
-                        <p className="mx-auto max-w-xl text-sm leading-7 text-gray-400">{fetchError}</p>
-                      </div>
-                      <Button
-                        onClick={() => setRefreshKey((k) => k + 1)}
-                        className="h-12 rounded-2xl px-8 font-black"
-                      >
-                        إعادة المحاولة
-                      </Button>
-                    </motion.div>
-                 ) : (
-                    <CoursesEmptyState key="empty" onAction={resetFilters} />
-                 )}
-              </AnimatePresence>
-           </div>
-
-           {canLoadMore && (
-             <div className="flex justify-center pt-8">
-                <Button 
-                   onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
-                   className="h-16 px-16 bg-white/5 border border-white/10 hover:bg-white/10 text-white font-black rounded-2xl gap-3 transition-all active:scale-95"
-                >
-                   <span>استكشاف المزيد من العوالم</span>
-                   <Sparkles className="h-5 w-5 text-primary" />
-                </Button>
-             </div>
-           )}
         </div>
       </div>
     </div>

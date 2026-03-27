@@ -10,6 +10,14 @@ export interface StudentRisk {
   recommendation: string;
 }
 
+export interface PerformanceForecast {
+  userId: string;
+  name: string | null;
+  currentScore: number;
+  predictedFinalScore: number;
+  confidence: "HIGH" | "MEDIUM" | "LOW";
+}
+
 export class AnalyticsService {
   static async getChurnPrediction(): Promise<StudentRisk[]> {
     const sevenDaysAgo = subDays(new Date(), 7);
@@ -26,6 +34,11 @@ export class AnalyticsService {
         examResults: {
           orderBy: { createdAt: "desc" },
           take: 5,
+          select: {
+            score: true,
+            totalScore: true,
+            createdAt: true
+          }
         },
         subjectEnrollments: {
           include: {
@@ -41,7 +54,7 @@ export class AnalyticsService {
       const lastLogin = student.lastLogin ? new Date(student.lastLogin) : null;
       const recentResults = student.examResults;
       const avgScore = recentResults.length > 0 
-        ? recentResults.reduce((acc: number, r: any) => acc + (r.score / r.totalScore), 0) / recentResults.length 
+        ? recentResults.reduce((acc: number, r: { score: number; totalScore: number }) => acc + (r.score / r.totalScore), 0) / recentResults.length 
         : 1;
 
 
@@ -122,23 +135,27 @@ export class AnalyticsService {
     return summary;
   }
 
-  static async getPerformanceForecast(): Promise<any> {
+  static async getPerformanceForecast(): Promise<PerformanceForecast[]> {
     // Basic forecasting based on current averages
     const students = await prisma.user.findMany({
       where: { role: "STUDENT" },
       include: {
         examResults: {
           orderBy: { createdAt: "desc" },
-          take: 10
+          take: 10,
+          select: {
+            score: true,
+            totalScore: true
+          }
         }
       }
     });
 
-    const forecast = students.map((student: any) => {
+    const forecast = students.map((student) => {
       const results = student.examResults;
       if (results.length < 2) return null;
       
-      const scores = results.map((r: any) => (r.score / r.totalScore) * 100);
+      const scores = results.map((r: { score: number; totalScore: number }) => (r.score / r.totalScore) * 100);
       const trend = scores[0] - scores[scores.length - 1]; // Very simple trend
       
       return {
@@ -146,14 +163,17 @@ export class AnalyticsService {
         name: student.name,
         currentScore: Math.round(scores[0]),
         predictedFinalScore: Math.min(100, Math.max(0, Math.round(scores[0] + (trend * 0.5)))),
-        confidence: results.length >= 5 ? "HIGH" : "MEDIUM"
+        confidence: results.length >= 5 ? ("HIGH" as const) : ("MEDIUM" as const)
       };
-    }).filter(Boolean);
+    }).filter((f): f is PerformanceForecast => f !== null);
 
     return forecast.slice(0, 10);
   }
 
-  static async executeAiAction(actionType: string, params: any): Promise<{ success: boolean; message: string }> {
+  static async executeAiAction(
+    actionType: string, 
+    params: Record<string, string | number | boolean | any>
+  ): Promise<{ success: boolean; message: string }> {
     if (actionType === "notify_inactive") {
       const { days, subjectId } = params;
       // In a real app, this would trigger an email/push notification service

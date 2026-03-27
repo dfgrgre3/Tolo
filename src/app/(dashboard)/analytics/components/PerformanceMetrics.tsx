@@ -29,7 +29,7 @@ interface PerformanceMetricsProps {
 const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({  
 	summary, 
 	weekly, 
-	_performanceMetrics 
+	performanceMetrics 
 }) => {
 	const calculateMetrics = () => {
 		if (!summary || !weekly) {
@@ -247,5 +247,7 @@ const PerformanceMetrics: React.FC<PerformanceMetricsProps> = ({
 			</Card>
 		</div>
 	);
-}
+};
+
+export default PerformanceMetrics;
 

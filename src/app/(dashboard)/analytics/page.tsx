@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageContainer } from "@/components/ui/PageContainer";
+import { PageContainer } from "@/components/ui/page-container";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,11 @@ const LoadingFallback = () =>
 
 const OverviewStats = dynamic(() => import("./components/OverviewStats"), { loading: () => <LoadingFallback /> });
 const WeeklyChart = dynamic(() => import("./components/WeeklyChart"), { loading: () => <LoadingFallback /> });
-const PerformanceMetrics = dynamic(() => import("./components/PerformanceMetrics"), { loading: () => <LoadingFallback /> });
+const PerformanceMetrics = dynamic(() => import("./components/PerformanceMetrics")) as React.ComponentType<{
+  summary: SummaryData | null;
+  weekly: WeeklyData | null;
+  performanceMetrics: Record<string, unknown> | null;
+}>;
 const PredictionsSection = dynamic(() => import("./components/PredictionsSection"), { loading: () => <LoadingFallback /> });
 const SubjectDistribution = dynamic(() => import("./components/SubjectDistribution"), { loading: () => <LoadingFallback /> });
 const TimeTrends = dynamic(() => import("./components/TimeTrends"), { loading: () => <LoadingFallback /> });

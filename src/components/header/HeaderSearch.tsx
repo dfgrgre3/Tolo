@@ -40,7 +40,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
-import errorManager from "@/services/ErrorManager";
+import { errorService as errorManager } from "@/lib/logging/error-service";
 import { toast } from "sonner";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
 import { registerServiceWorker, preCacheSearch } from "@/lib/service-worker";

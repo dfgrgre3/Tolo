@@ -33,7 +33,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { SettingsHeader, SettingsCard, SettingsToggle } from '@/app/(dashboard)/settings/components';
 import { useAuth } from '@/contexts/auth-context';
-import { useSettingsSync } from '@/hooks/useSettingsSync';
+import { useSettingsSync } from '@/hooks/use-settings-sync';
 import {
   DEFAULT_PRIVACY_SETTINGS,
   type PrivacySettingsPreference,

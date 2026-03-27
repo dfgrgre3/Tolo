@@ -18,7 +18,6 @@ export {
 } from './gamification-service';
 
 export { emailService } from './email-service';
-export { firestoreService } from './firestore-service';
 export { AuthService } from './auth/auth-service';
 export { 
     sendEmailNotification, 
@@ -40,7 +39,10 @@ export {
     default as cacheService,
 } from '@/lib/cache';
 
-// Error Services
-export { default as ErrorLogger } from './ErrorLogger';
-export { default as ErrorManager } from './ErrorManager';
+// Error Services (Unified)
+export { 
+    errorService as ErrorLogger, 
+    errorService as ErrorManager, 
+    errorService as default 
+} from '@/lib/logging/error-service';
 
