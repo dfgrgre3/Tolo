@@ -3,15 +3,16 @@
 import React, { Suspense } from 'react';
 import { AuthProvider } from '@/contexts/auth-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
-import ClientLayoutProvider from '@/providers/ClientLayoutProvider';
-import { NotificationsProvider } from '@/providers/NotificationsProvider';
-import { ThemeProvider } from '@/providers/ThemeProvider';
+import ClientLayoutProvider from '@/providers/client-layout-provider';
+import { NotificationsProvider } from '@/providers/notifications-provider';
+import { ThemeProvider } from '@/providers/theme-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { HydrationFix } from '@/components/utils/HydrationFix';
-import GlobalSettingsApplier from '@/components/layout/GlobalSettingsApplier';
 import { Toaster } from 'sonner';
-import Footer from '@/components/Footer';
+import Footer from '@/components/footer';
+import ErrorBoundary from '@/components/error-boundary';
+import { HydrationFix } from '@/components/hydration-fix';
+import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,7 +51,7 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
 
   
   return (
-    <>
+    <ErrorBoundary variant="global">
       <Suspense fallback={null}>
         <ClientLayoutProvider>
           <HydrationFix />
@@ -78,7 +79,7 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
           </QueryClientProvider>
         </ClientLayoutProvider>
       </Suspense>
-    </>
+    </ErrorBoundary>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   ArrowRight, 
   BarChart3, 
@@ -23,16 +23,25 @@ import {
   Flame,
   LayoutDashboard,
   AlertCircle,
-  Smartphone
+  Smartphone,
+  ChevronRight,
+  TrendingUp,
+  Award
 } from "lucide-react";
-import { AnimatePresence } from "framer-motion";
+
 import { useAuth } from "@/contexts/auth-context";
+import { useGamification } from "@/hooks/use-gamification";
 import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-
 import { Badge } from "@/components/ui/badge";
 
-// --- RPG Style Constants (Synced with globals.css) ---
+// Import custom components
+import { AnnouncementTicker } from "./components/announcement-ticker";
+import { StatsGrid } from "./components/stats-grid";
+import { QuestCard } from "./components/quest-card";
+import { LeaderboardCard } from "./components/leaderboard-card";
+import { QuickActions } from "./components/quick-actions";
+
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5",
   card: "rpg-card h-full",
@@ -83,28 +92,29 @@ const quickLinks = [
 const recentActivity = [
   { id: 1, title: "أكملت درس الكيمياء العضوية", time: "منذ ساعتين", xp: "+50 XP", icon: BookOpen, color: "text-blue-400" },
   { id: 2, title: "حققت هدف التركيز اليومي", time: "منذ 5 ساعات", xp: "+120 XP", icon: Target, color: "text-emerald-400" },
-  { id: 3, title: "ترقيت إلى الرتبة الفضية", time: "يوم أمس", xp: "Rank Up!", icon: Medal, color: "text-amber-400" },
+  { id: 3, title: "ترقيت إلى الرتبة الفضية", time: "يوم أمس", xp: "Rank Up!", icon: Award, color: "text-amber-400" },
 ];
 
-function Medal(props: any) {
-    return <Star {...props} />
-}
-
 export default function DashboardPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
+  const { userProgress, isLoading: isGamificationLoading } = useGamification({ 
+    userId: user?.id || "" 
+  });
   const [mounted, setMounted] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Initialize mounted state in a separate effect to prevent cascading renders
   useEffect(() => {
     setMounted(true);
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  if (isLoading || !mounted) {
+  if (isAuthLoading || isGamificationLoading || !mounted) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="relative h-20 w-20">
+        <div className="relative h-24 w-24">
           <div className="absolute inset-0 animate-ping rounded-full bg-primary/20" />
-          <div className="flex h-full w-full animate-pulse items-center justify-center rounded-full bg-primary/10">
+          <div className="flex h-full w-full animate-pulse items-center justify-center rounded-full bg-primary/10 border border-primary/20">
              <LayoutDashboard className="h-10 w-10 text-primary" />
           </div>
         </div>
@@ -113,116 +123,153 @@ export default function DashboardPage() {
   }
 
   const displayName = user?.name || user?.username || user?.email?.split("@")[0] || "يا بطل";
-  const userLevel = user?.level || 1;
-  const userXP = user?.totalXP || 0;
-  const nextLevelXP = 1000;
-  const xpPercentage = (userXP % nextLevelXP) / 10;
+  const userLevel = userProgress?.level || user?.level || 1;
+  const userXP = userProgress?.totalXP || user?.totalXP || 0;
+  const nextLevelXP = userLevel * 1000;
+  const xpPercentage = Math.min((userXP % nextLevelXP) / (nextLevelXP / 100), 100);
+  
+  const formattedTime = currentTime.toLocaleTimeString('ar-EG', { 
+    hour: '2-digit', 
+    minute: '2-digit'
+  });
+
+  const formattedDate = currentTime.toLocaleDateString('ar-EG', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long'
+  });
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-primary overflow-hidden">
-      {/* --- Ambient Background --- */}
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-primary overflow-x-hidden">
+      {/* --- Mesh Background --- */}
       <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 blur-[120px] rounded-full opacity-50 translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full opacity-30 -translate-x-1/2 translate-y-1/2" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_80%)]" />
+        <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-primary/10 blur-[150px] rounded-full opacity-40 translate-x-1/3 -translate-y-1/3" />
+        <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-purple-600/10 blur-[150px] rounded-full opacity-30 -translate-x-1/3 translate-y-1/3" />
+        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-[0.03]" />
       </div>
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8" dir="rtl">
+      <AnnouncementTicker />
+
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10" dir="rtl">
         
-        {/* --- Hero Header Section --- */}
+        {/* --- Epic Hero Header --- */}
         <motion.div
-           initial={{ opacity: 0, y: 30 }}
-           animate={{ opacity: 1, y: 0 }}
-           className={STYLES.glass + " p-8 md:p-12"}
+           initial={{ opacity: 0, scale: 0.98 }}
+           animate={{ opacity: 1, scale: 1 }}
+           className={STYLES.glass + " p-8 md:p-12 border-primary/20 shadow-primary/5 group transition-all duration-700 hover:border-primary/40"}
         >
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-right">
-            <div className="space-y-4 flex-1">
-              <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-primary shadow-[0_0_15px_rgba(var(--primary),0.2)]">
-                <Sparkles className="h-4 w-4" />
-                <span>غرفة العمليات المركزية</span>
+          {/* Animated Background Decoration */}
+          <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-primary/50 to-transparent group-hover:via-primary transition-all duration-700" />
+          
+          <div className="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
+            <div className="space-y-6 flex-1 text-center md:text-right">
+              <div className="flex flex-wrap justify-center md:justify-start items-center gap-4">
+                <motion.div 
+                  whileHover={{ scale: 1.05 }}
+                  className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-xs font-black uppercase tracking-widest text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]"
+                >
+                  <Sparkles className="h-4 w-4 animate-pulse" />
+                  <span>القائد العام للمنصة</span>
+                </motion.div>
+                <div className="text-gray-400 text-sm font-bold flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full">
+                  <Calendar className="w-4 h-4 text-primary" />
+                  {formattedDate} | {formattedTime}
+                </div>
               </div>
-              <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
-                مرحباً بك مجدداً، <br />
-                <span className={STYLES.neonText}>{displayName}</span>
+
+              <h1 className="text-5xl md:text-8xl font-black tracking-tight leading-none">
+                أهلاً، <span className={STYLES.neonText}>{displayName}</span>
                 <motion.span 
                   animate={{ rotate: [0, 10, -10, 10, 0] }}
-                  transition={{ duration: 2, repeat: Infinity }}
-                  className="inline-block mr-3"
+                  transition={{ duration: 5, repeat: Infinity }}
+                  className="inline-block mr-4 scale-75 md:scale-100"
                 >
-                  ⚔️
+                  🛡️
                 </motion.span>
               </h1>
-              <p className="max-w-xl text-lg text-gray-400 font-medium">
-                استعد لليوم الجديد! عالمك ينتظر إنجازاتك القادمة. تفقد مهامك وابدأ في رفع مستواك.
+
+              <p className="max-w-2xl text-xl text-gray-400 font-medium leading-relaxed">
+                قوتك تزداد يوماً بعد يوم، الرتبة القادمة بانتظارك. هل أنت مستعد لخوض تحديات اليوم الملحمية؟
               </p>
+              
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-2">
+                 <Button className="bg-primary hover:bg-primary/90 text-white font-black px-8 h-14 rounded-2xl shadow-[0_10px_30px_rgba(var(--primary),0.4)] flex items-center gap-2 group-hover:scale-105 transition-all text-lg border-b-4 border-black/20">
+                    <Zap className="w-5 h-5 fill-white" />
+                    ابدأ جلسة المذاكرة
+                 </Button>
+                 <Button variant="outline" className="h-14 px-8 rounded-2xl border-white/10 hover:bg-white/5 font-black text-lg gap-2">
+                    <LayoutDashboard className="w-5 h-5" />
+                    التقارير التفصيلية
+                 </Button>
+              </div>
             </div>
 
-            {/* Level Hexagon */}
-            <div className="relative group">
-               <div className="absolute inset-0 bg-primary/20 blur-2xl group-hover:bg-primary/40 transition-all duration-700" />
-               <div className="relative flex items-center justify-center h-48 w-48 bg-card/40 border-2 border-primary/30 rounded-[2.5rem] rotate-3 hover:rotate-0 transition-transform duration-500 shadow-2xl backdrop-blur-3xl overflow-hidden ring-4 ring-border/5">
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent" />
+            {/* Level Hexagon Display */}
+            <motion.div 
+              initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
+              animate={{ scale: 1, opacity: 1, rotate: 3 }}
+              whileHover={{ rotate: 0, scale: 1.05 }}
+              transition={{ type: "spring", damping: 12 }}
+              className="relative"
+            >
+               <motion.div 
+                  animate={{ 
+                    boxShadow: ["0 0 40px rgba(var(--primary), 0.1)", "0 0 80px rgba(var(--primary), 0.3)", "0 0 40px rgba(var(--primary), 0.1)"]
+                  }}
+                  transition={{ duration: 4, repeat: Infinity }}
+                  className="absolute inset-0 bg-primary/20 blur-3xl opacity-60" 
+               />
+               <div className="relative flex items-center justify-center h-64 w-64 bg-card/60 border-2 border-primary/40 rounded-[3.5rem] shadow-2xl backdrop-blur-3xl overflow-hidden ring-8 ring-white/5 group/level">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-purple-600/10 opacity-30" />
+                  
+                  {/* Rotating Border Effect */}
+                  <div className="absolute inset-0 border-4 border-transparent border-t-primary/50 border-r-primary/20 rounded-full animate-spin-slow scale-110 pointer-events-none" />
+
                   <div className="text-center space-y-1 relative z-10">
-                    <p className="text-gray-400 text-sm font-bold uppercase">المستوى</p>
-                    <p className={STYLES.neonText + " text-7xl underline"}>{userLevel}</p>
-                    <div className="flex items-center justify-center gap-1.5 mt-2">
-                       <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-                       <span className="text-amber-500 font-black text-xs">{userXP} XP</span>
+                    <p className="text-gray-400 text-xs font-black uppercase tracking-tighter">الرتبة الأكاديمية</p>
+                    <p className={STYLES.neonText + " text-9xl font-black drop-shadow-2xl"}>{userLevel}</p>
+                    <div className="flex flex-col items-center justify-center gap-1 mt-2">
+                       <div className="flex items-center gap-2 bg-black/40 px-4 py-2 rounded-full border border-white/10 shadow-inner">
+                          <Zap className="w-5 h-5 text-amber-500 fill-amber-500" />
+                          <span className="text-white font-black text-lg">{userXP.toLocaleString()} XP</span>
+                       </div>
                     </div>
                   </div>
-                  {/* Progress Ring Overlay (Subtle) */}
-                  <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none opacity-20">
-                     <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                     <circle cx="96" cy="96" r="88" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={552} strokeDashoffset={552 * (1 - xpPercentage/100)} className="text-primary" />
+                  
+                  {/* Circular XP Progress */}
+                  <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-4">
+                     <circle cx="112" cy="112" r="100" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
+                     <motion.circle 
+                        initial={{ strokeDashoffset: 628 }}
+                        animate={{ strokeDashoffset: 628 * (1 - xpPercentage/100) }}
+                        transition={{ duration: 2.5, ease: "circOut" }}
+                        cx="112" cy="112" r="100" stroke="currentColor" strokeWidth="8" fill="transparent" strokeDasharray={628} className="text-primary drop-shadow-[0_0_12px_rgba(var(--primary),0.6)]" 
+                     />
                   </svg>
                </div>
-            </div>
+               
+               {/* Level Tooltip Floating */}
+               <motion.div 
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 1 }}
+                  className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-black px-4 py-1.5 rounded-full shadow-2xl z-20 whitespace-nowrap"
+               >
+                  متبقي {(nextLevelXP - (userXP % nextLevelXP)).toLocaleString()} XP للترقية التالية 🎉
+               </motion.div>
+            </motion.div>
           </div>
 
           <div className={STYLES.divider} />
 
-          {/* Mini Stats Bar */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-             <div className="flex items-center gap-4 group cursor-default">
-                <div className="p-3 rounded-2xl bg-orange-500/10 border border-orange-500/20 text-orange-400 group-hover:scale-110 transition-transform">
-                   <Flame className="w-6 h-6" />
-                </div>
-                <div>
-                   <p className="text-gray-500 text-xs font-bold uppercase">النشاط المستمر</p>
-                   <p className="text-white font-black text-xl">{user?.currentStreak || 0} أيام متتالية</p>
-                </div>
-             </div>
-             <div className="flex items-center gap-4 group cursor-default">
-                <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 group-hover:scale-110 transition-transform">
-                   <Clock className="w-6 h-6" />
-                </div>
-                <div>
-                   <p className="text-gray-500 text-xs font-bold uppercase">وقت التدريب</p>
-                   <p className="text-white font-black text-xl">42 ساعة</p>
-                </div>
-             </div>
-             <div className="flex items-center gap-4 group cursor-default">
-                <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 group-hover:scale-110 transition-transform">
-                   <Target className="w-6 h-6" />
-                </div>
-                <div>
-                   <p className="text-gray-500 text-xs font-bold uppercase">دقة الإنجاز</p>
-                   <p className="text-white font-black text-xl">88%</p>
-                </div>
-             </div>
-             <div className="flex items-center gap-4 group cursor-default">
-                <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 group-hover:scale-110 transition-transform">
-                   <Trophy className="w-6 h-6" />
-                </div>
-                <div>
-                   <p className="text-gray-500 text-xs font-bold uppercase">الألقاب المحققة</p>
-                   <p className="text-white font-black text-xl">14 لقب</p>
-                </div>
-             </div>
-          </div>
+          <StatsGrid 
+            currentStreak={user?.currentStreak || 0} 
+            totalXP={userXP} 
+            achievementsCount={userProgress?.achievements?.length || 0} 
+          />
         </motion.div>
         
-        {/* --- Verification Alerts --- */}
+        {/* --- Dynamic Verification Banner --- */}
         <AnimatePresence>
           {mounted && (!user?.emailVerified || !user?.phoneVerified) && (
             <motion.div
@@ -231,30 +278,17 @@ export default function DashboardPage() {
               className="space-y-4"
             >
               {!user?.emailVerified && (
-                <div className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-3xl bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-xl backdrop-blur-xl group">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-500/20 group-hover:scale-110 transition-transform">
-                    <AlertCircle className="h-6 w-6" />
+                <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-[2rem] bg-amber-500/10 border border-amber-500/20 text-amber-500 shadow-xl backdrop-blur-xl group relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-transparent pointer-events-none" />
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/20 group-hover:scale-110 transition-transform shadow-lg border border-amber-500/30">
+                    <AlertCircle className="h-8 w-8" />
                   </div>
                   <div className="flex-1 text-center sm:text-right">
-                    <p className="font-black text-lg">تفعيل البريد الإلكتروني مطلوب!</p>
-                    <p className="text-sm text-amber-500/80">يرجى التحقق من بريدك الإلكتروني والضغط على رابط التفعيل لتأمين حسابك وضمان وصول الإشعارات الأساسية.</p>
+                    <p className="font-black text-2xl tracking-tight">تفعيل البريد الإلكتروني (إجباري)</p>
+                    <p className="text-sm text-amber-500/80 font-medium">أمان حسابك يبدأ من هنا. تفقد بريدك واضغط على الرابط لتفادي حظر الميزات المتقدمة.</p>
                   </div>
-                  <Button variant="outline" className="w-full sm:w-auto border-amber-500/30 hover:bg-amber-500/20 text-amber-500 font-black rounded-2xl h-12 px-8" asChild>
+                  <Button variant="outline" className="w-full sm:w-auto border-amber-500/40 hover:bg-amber-500 hover:text-black text-amber-500 font-black rounded-2xl h-14 px-10 transition-all border-b-4 border-black/10" asChild>
                     <Link href="/settings/security">تفعيل بريدي الآن</Link>
-                  </Button>
-                </div>
-              )}
-              {!user?.phoneVerified && (
-                <div className="flex flex-col sm:flex-row items-center gap-4 p-5 rounded-3xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-xl backdrop-blur-xl group">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-indigo-500/20 group-hover:scale-110 transition-transform">
-                    <Smartphone className="h-6 w-6" />
-                  </div>
-                  <div className="flex-1 text-center sm:text-right">
-                    <p className="font-black text-lg">تفعيل رقم الهاتف!</p>
-                    <p className="text-sm text-indigo-400/80">تفعيل رقم الهاتف ضروري لاستلام رسائل المهام العاجلة (Quest Alerts) عبر WhatsApp/SMS ولزيادة أمان المحفظة الأكاديمية.</p>
-                  </div>
-                  <Button variant="outline" className="w-full sm:w-auto border-indigo-500/30 hover:bg-indigo-500/20 text-indigo-400 font-black rounded-2xl h-12 px-8" asChild>
-                    <Link href="/settings/security">تفعيل هاتفي الآن</Link>
                   </Button>
                 </div>
               )}
@@ -262,45 +296,53 @@ export default function DashboardPage() {
           )}
         </AnimatePresence>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           
-          {/* --- Main Navigation Grid (2/3 width) --- */}
-          <div className="lg:col-span-2 space-y-8">
-            <h2 className="text-2xl font-black flex items-center gap-3">
-              <Sword className="text-primary w-6 h-6" />
-              <span>البوابات الحيوية</span>
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* --- Navigation & Quest Grid (Left 8 cols) --- */}
+          <div className="lg:col-span-8 space-y-10">
+            <div className="flex items-center justify-between">
+              <h2 className="text-3xl font-black flex items-center gap-4">
+                <Sword className="text-primary w-8 h-8" />
+                <span>قائمة العمليات</span>
+              </h2>
+              <Link href="/all-features" className="text-sm text-gray-500 hover:text-primary flex items-center gap-1 font-bold group">
+                عرض كل الميزات
+                <ChevronRight className="w-4 h-4 rtl:rotate-180 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 mt-6">
               {quickLinks.map((link) => {
                 const Icon = link.icon;
                 return (
                   <motion.div
                     key={link.href}
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: link.delay }}
+                    whileHover={{ scale: 1.02 }}
                   >
                     <Link href={link.href} className="block group h-full">
-                      <Card className={STYLES.card}>
-                        <div className="flex items-start gap-4">
-                           <div className={`p-4 rounded-2xl ${link.bgColor} ${link.color} group-hover:scale-110 transition-transform shadow-lg`}>
-                              <Icon className="h-8 w-8" />
+                      <Card className={STYLES.card + " border-white/5 hover:border-primary/30 p-8"}>
+                        <div className="flex items-start gap-6">
+                           <div className={`p-5 rounded-2xl ${link.bgColor} ${link.color} group-hover:scale-110 group-hover:rotate-6 transition-all shadow-2xl border border-white/10`}>
+                              <Icon className="h-10 w-10" />
                            </div>
-                           <div className="space-y-1">
-                              <CardTitle className="text-xl font-bold group-hover:text-primary transition-colors">{link.title}</CardTitle>
-                              <CardDescription className="text-gray-400 text-sm">{link.description}</CardDescription>
+                           <div className="space-y-2">
+                              <CardTitle className="text-2xl font-black group-hover:text-primary transition-colors">{link.title}</CardTitle>
+                              <CardDescription className="text-gray-400 text-base leading-relaxed">{link.description}</CardDescription>
                            </div>
                         </div>
-                        <div className="mt-8 flex items-center justify-between">
-                            <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden mr-4">
+                        <div className="mt-10 flex items-center justify-between">
+                            <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden mr-6 shadow-inner border border-white/5">
                                <motion.div 
                                   initial={{ width: 0 }}
-                                  animate={{ width: "65%" }}
-                                  transition={{ duration: 1, delay: 0.5 }}
-                                  className={`h-full bg-gradient-to-r ${link.color === 'text-blue-400' ? 'from-blue-600 to-blue-400' : link.color === 'text-amber-400' ? 'from-amber-600 to-amber-400' : link.color === 'text-emerald-400' ? 'from-emerald-600 to-emerald-400' : 'from-purple-600 to-purple-400'}`}
+                                  animate={{ width: "75%" }}
+                                  transition={{ duration: 1.5, delay: 1 }}
+                                  className={`h-full bg-gradient-to-r ${link.color === 'text-blue-400' ? 'from-blue-600 to-blue-300' : link.color === 'text-amber-400' ? 'from-amber-600 to-amber-300' : link.color === 'text-emerald-400' ? 'from-emerald-600 to-emerald-300' : 'from-purple-600 to-purple-300'} shadow-[0_0_15px_rgba(255,255,255,0.1)]`}
                                />
                             </div>
-                            <Button variant="ghost" size="sm" className="group-hover:bg-white/5 gap-2 font-bold p-0 px-4">
+                            <Button variant="ghost" size="sm" className="group-hover:bg-primary/20 group-hover:text-primary gap-2 font-black h-10 px-6 rounded-xl transition-all">
                                <span>دخول</span>
                                <ArrowRight className="h-4 w-4 rtl:rotate-180" />
                             </Button>
@@ -312,110 +354,191 @@ export default function DashboardPage() {
               })}
             </div>
 
-            {/* Current Quest Section */}
-            <div className={STYLES.glass + " p-8 relative"}>
-               <div className="absolute top-0 right-10 -translate-y-1/2">
-                  <Badge className="bg-amber-500 text-black px-4 py-1.5 font-black text-sm border-2 border-black">المهمة النشطة حالياً</Badge>
-               </div>
-               <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-                  <div className="flex items-center gap-6">
-                     <div className="h-20 w-20 rounded-full border-4 border-amber-500/30 flex items-center justify-center bg-amber-500/5 relative">
-                        <Play className="w-8 h-8 text-amber-500 fill-amber-500 ml-1" />
-                        <div className="absolute inset-0 rounded-full border-2 border-amber-500 animate-pulse" />
-                     </div>
-                     <div className="space-y-1">
-                        <h3 className="text-2xl font-black">جلسة كيمياء: الروابط التساهمية</h3>
-                        <p className="text-gray-400">بدأت الجلسة منذ 15 دقيقة • متبقي 30 دقيقة</p>
-                     </div>
-                  </div>
-                  <Button className="bg-amber-500 hover:bg-amber-600 text-black font-black px-10 h-14 rounded-2xl shadow-[0_10px_30px_rgba(245,158,11,0.3)]">
-                    العودة للمهمة
-                  </Button>
-               </div>
+            {/* Featured Quest Section */}
+            <div className="space-y-6 pt-4">
+              <h2 className="text-3xl font-black flex items-center gap-4">
+                <Target className="text-orange-500 w-8 h-8" />
+                <span>المهمة الجارية</span>
+              </h2>
+              <QuestCard />
             </div>
           </div>
 
-          {/* --- Secondary Actions (1/3 width) --- */}
-          <div className="space-y-8">
-            <h2 className="text-2xl font-black flex items-center gap-3">
-              <Shield className="text-primary w-6 h-6" />
-              <span>سجل المعارك الأخير</span>
-            </h2>
+          {/* --- Sidebar (Right 4 cols) --- */}
+          <div className="lg:col-span-4 space-y-10">
             
-            <Card className={STYLES.glass + " border-white/5 bg-transparent p-6 space-y-6"}>
-              {recentActivity.map((activity, idx) => {
-                const Icon = activity.icon;
-                return (
-                  <motion.div 
-                    key={activity.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 * idx }}
-                    className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all cursor-default"
-                  >
-                    <div className="flex items-center gap-4">
-                       <div className={`p-2 rounded-xl bg-white/5 ${activity.color}`}>
-                          <Icon className="w-5 h-5" />
-                       </div>
-                       <div>
-                          <p className="font-bold text-sm">{activity.title}</p>
-                          <p className="text-xs text-gray-500">{activity.time}</p>
-                       </div>
-                    </div>
-                    <span className={`text-xs font-black ${activity.xp.includes('XP') ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {activity.xp}
-                    </span>
-                  </motion.div>
-                )
-              })}
+            {/* Leaderboard Card */}
+            <LeaderboardCard />
+
+            <div className="space-y-6">
+              <h2 className="text-2xl font-black flex items-center gap-3">
+                <Shield className="text-primary w-6 h-6" />
+                <span>سجل الميدان</span>
+              </h2>
               
-              <Button variant="ghost" className="w-full text-gray-500 hover:text-white hover:bg-white/5">
-                عرض كل النشاطات القديمة
-              </Button>
-            </Card>
+              <Card className={STYLES.glass + " border-white/5 bg-transparent p-6 space-y-6"}>
+                {recentActivity.map((activity, idx) => {
+                  const Icon = activity.icon;
+                  return (
+                    <motion.div 
+                      key={activity.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * idx }}
+                      className="flex items-center justify-between p-4 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.08] transition-all cursor-default group"
+                    >
+                      <div className="flex items-center gap-4">
+                         <div className={`p-3 rounded-xl bg-white/5 ${activity.color} group-hover:scale-110 transition-transform`}>
+                            <Icon className="w-5 h-5" />
+                         </div>
+                         <div>
+                            <p className="font-bold text-sm leading-tight">{activity.title}</p>
+                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">{activity.time}</p>
+                         </div>
+                      </div>
+                      <Badge className={`text-[10px] font-black ${activity.xp.includes('XP') ? 'bg-emerald-500 text-black' : 'bg-amber-500 text-black'}`}>
+                        {activity.xp}
+                      </Badge>
+                    </motion.div>
+                  )
+                })}
+                
+                <Button variant="ghost" className="w-full text-gray-500 font-black hover:text-white hover:bg-white/5 text-xs py-2 h-auto rounded-xl">
+                  عرض الأرشيف الكامل
+                </Button>
+              </Card>
+            </div>
 
-            <h2 className="text-2xl font-black flex items-center gap-3 pt-4">
-              <Star className="text-amber-400 w-6 h-6" />
-              <span>دليل المهارات</span>
-            </h2>
+            {/* AI Assistant Promo */}
+            <Card className={STYLES.glass + " border-primary/20 bg-gradient-to-br from-primary/10 to-indigo-950/20 p-8 text-center space-y-6 group overflow-hidden relative"}>
+              <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_20px_rgba(var(--primary),0.5)]" />
+              
+              <div className="relative">
+                <motion.div 
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 1, type: "spring" }}
+                  className="mx-auto w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-primary to-indigo-600 flex items-center justify-center shadow-2xl relative z-10"
+                >
+                   <Bot className="w-12 h-12 text-white drop-shadow-lg" />
+                   <div className="absolute inset-0 rounded-[2.5rem] bg-white/20 animate-pulse pointer-events-none" />
+                </motion.div>
+              </div>
 
-            <Card className={STYLES.glass + " border-white/5 bg-transparent p-8 text-center space-y-6"}>
-              <div className="mx-auto w-24 h-24 rounded-[2rem] bg-gradient-to-tr from-primary to-purple-600 flex items-center justify-center shadow-2xl rotate-12">
-                 <Bot className="w-12 h-12 text-white" />
+              <div className="space-y-3 relative z-10">
+                <h3 className="text-2xl font-black tracking-tight text-white group-hover:text-primary transition-colors">مساعدك الذكي دائمـاً معك!</h3>
+                <p className="text-sm text-gray-400 font-medium leading-relaxed px-2">هل تواجه تحدياً في الرياضيات؟ أو تحتاج لشرح سريع في الفيزياء؟ رفيقي هنا للإجابة.</p>
               </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-black">العراف الذكي جاهز!</h3>
-                <p className="text-sm text-gray-400">هل تحتاج لمسودة مذاكرة سريعة أو حل لأحجية معقدة؟</p>
-              </div>
-              <Button className="w-full bg-white text-black font-black hover:bg-gray-200 transition-colors uppercase tracking-widest text-xs h-12 rounded-xl">
-                 اسأل العراف (AI)
+
+              <Button className="w-full bg-primary hover:bg-primary/90 text-white font-black shadow-[0_15px_30px_rgba(var(--primary),0.3)] group-hover:scale-105 transition-all text-sm h-14 rounded-2xl border-b-4 border-black/30">
+                 افتح بوابة الحكمة
               </Button>
+              
+              <div className="flex items-center justify-center gap-2 pt-2 grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100 transition-all">
+                  <Badge variant="outline" className="text-[9px] font-black border-white/10 uppercase tracking-tighter">AI 4.0</Badge>
+                  <Badge variant="outline" className="text-[9px] font-black border-white/10 uppercase tracking-tighter">Latent Space</Badge>
+              </div>
             </Card>
           </div>
 
         </div>
 
-        {/* --- Footer Status --- */}
-        <div className="flex flex-col md:flex-row items-center justify-between pt-12 pb-8 border-t border-white/5 gap-4">
-           <div className="flex items-center gap-6 text-sm font-medium text-gray-500">
-              <div className="flex items-center gap-2">
-                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                 <span>نظام التدريب: متصل</span>
+        {/* --- Social Goal Section --- */}
+        <motion.div 
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          className={STYLES.glass + " p-10 border-white/5 group relative"}
+        >
+           <div className="absolute inset-0 bg-gradient-to-l from-emerald-500/5 to-transparent pointer-events-none" />
+           <div className="flex flex-col md:flex-row items-center gap-12 relative z-10">
+              <div className="relative h-40 w-40 flex-shrink-0">
+                 <svg className="w-full h-full -rotate-90">
+                    <circle cx="80" cy="80" r="72" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/5" />
+                    <motion.circle 
+                      initial={{ strokeDashoffset: 452 }}
+                      whileInView={{ strokeDashoffset: 452 * (1 - 0.75) }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 2, ease: "easeOut" }}
+                      cx="80" cy="80" r="72" stroke="currentColor" strokeWidth="12" fill="transparent" strokeDasharray={452} className="text-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.5)]" 
+                    />
+                 </svg>
+                 <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <motion.span 
+                      animate={{ scale: [1, 1.1, 1] }} 
+                      transition={{ duration: 3, repeat: Infinity }}
+                      className="text-4xl font-black text-white"
+                    >
+                      75%
+                    </motion.span>
+                    <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">اكتمال الهدف</span>
+                 </div>
               </div>
-              <span>خادم الشرق الأوسط: 24ms</span>
-              <span>الإصدار: 4.2.0-Alpha</span>
+
+              <div className="flex-1 space-y-6">
+                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="text-right md:text-right">
+                        <h4 className="text-3xl font-black text-white">هدف المعسكر التدريبي اليومي</h4>
+                        <p className="text-gray-400 text-lg font-medium mt-1">تطورك مستمر؛ أنجز 45 دقيقة إضافية لتصل للقمة اليوم.</p>
+                    </div>
+                    
+                    {/* Active Students Avatars */}
+                    <div className="flex flex-col items-center md:items-end gap-3">
+                       <div className="flex -space-x-4 space-x-reverse">
+                          {[1,2,3,4,5].map(i => (
+                             <motion.div 
+                               key={i} 
+                               whileHover={{ y: -5, scale: 1.1, zIndex: 50 }}
+                               className="h-12 w-12 rounded-full border-2 border-background bg-card flex items-center justify-center overflow-hidden hover:border-primary transition-all cursor-pointer shadow-xl relative"
+                             >
+                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i}`} alt="user" className="w-full h-full object-cover" />
+                             </motion.div>
+                          ))}
+                          <div className="h-12 w-12 rounded-full border-2 border-background bg-primary flex items-center justify-center text-xs font-black text-white relative z-10 shadow-xl shadow-primary/20">
+                             +1.2k
+                          </div>
+                       </div>
+                       <p className="text-[10px] text-gray-500 font-bold uppercase tracking-tighter flex items-center gap-2">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                          1,452 طالباً يذاكرون معك الآن
+                       </p>
+                    </div>
+                 </div>
+
+                 <div className="flex flex-wrap gap-3">
+                    <Badge className="bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-xl px-5 py-2 text-xs font-black">كيمياء ✅ تم الإنجاز</Badge>
+                    <Badge className="bg-emerald-500/20 text-emerald-500 border border-emerald-500/30 rounded-xl px-5 py-2 text-xs font-black">فيزياء ✅ تم الإنجاز</Badge>
+                    <Badge className="bg-primary/20 text-primary border border-primary/30 rounded-xl px-5 py-2 text-xs font-black animate-pulse">رياضيات ⏳ قيد العمل</Badge>
+                    <Badge className="bg-white/5 text-gray-500 border border-white/10 rounded-xl px-5 py-2 text-xs font-black">أحياء 🔒 لم يبدأ</Badge>
+                 </div>
+              </div>
+           </div>
+        </motion.div>
+
+        {/* --- Professional Footer Status --- */}
+        <div className="flex flex-col md:flex-row items-center justify-between pt-12 pb-12 border-t border-white/5 gap-8">
+           <div className="flex flex-wrap items-center justify-center md:justify-start gap-8 text-xs font-bold text-gray-600">
+              <div className="flex items-center gap-3 bg-white/[0.02] px-4 py-2 rounded-full">
+                 <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,1)]" />
+                 <span>استقرار النظام: 100%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                 <TrendingUp className="w-3 h-3 text-primary" />
+                 <span>السرعة: 18ms</span>
+              </div>
+              <span>تحديث الإصدار: V5.1 (Alpha)</span>
            </div>
            
-           <div className="flex items-center gap-2">
-              <Button size="icon" variant="ghost" className="text-gray-500 hover:text-white hover:bg-white/5 rounded-xl">
-                 <Settings className="w-5 h-5" />
+           <div className="flex items-center gap-4">
+              <Button size="icon" variant="ghost" className="h-12 w-12 text-gray-500 hover:text-white hover:bg-white/5 rounded-2xl border border-white/5" asChild>
+                 <Link href="/settings"><Settings className="w-5 h-5" /></Link>
               </Button>
-              <Button size="icon" variant="ghost" className="text-gray-500 hover:text-white hover:bg-white/5 rounded-xl">
-                 <User className="w-5 h-5" />
+              <Button size="icon" variant="ghost" className="h-12 w-12 text-gray-500 hover:text-white hover:bg-white/5 rounded-2xl border border-white/5" asChild>
+                 <Link href="/profile"><User className="w-5 h-5" /></Link>
               </Button>
            </div>
         </div>
       </div>
+      <QuickActions />
     </div>
   );
 }
@@ -430,7 +553,7 @@ function Bot(props: any) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     >

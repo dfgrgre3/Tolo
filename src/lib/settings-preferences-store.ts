@@ -3,21 +3,15 @@ import { logger } from '@/lib/logger';
 import type {
   SettingsPreferences,
   SettingsPreferencesPatch,
-  AppearanceSettingsPreference,
-  LanguageSettingsPreference,
   NotificationSettingsPreference,
   PrivacySettingsPreference,
 } from '@/types/settings-preferences';
 import {
-  DEFAULT_APPEARANCE_SETTINGS,
-  DEFAULT_LANGUAGE_SETTINGS,
   DEFAULT_NOTIFICATION_SETTINGS,
   DEFAULT_PRIVACY_SETTINGS,
 } from '@/types/settings-preferences';
 
 type RawPreferencesRow = {
-  appearance: string | null;
-  language: string | null;
   privacy: string | null;
   notifications: string | null;
 };
@@ -26,8 +20,6 @@ let tableReady = false;
 
 function createDefaultPreferences(): SettingsPreferences {
   return {
-    appearance: { ...DEFAULT_APPEARANCE_SETTINGS },
-    language: { ...DEFAULT_LANGUAGE_SETTINGS },
     privacy: { ...DEFAULT_PRIVACY_SETTINGS },
     notifications: { ...DEFAULT_NOTIFICATION_SETTINGS },
   };
@@ -40,8 +32,6 @@ async function ensurePreferencesTable(): Promise<void> {
     await prisma.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "user_preferences" (
         "userId" TEXT PRIMARY KEY REFERENCES "User"("id") ON DELETE CASCADE,
-        "appearance" TEXT NOT NULL DEFAULT '{}',
-        "language" TEXT NOT NULL DEFAULT '{}',
         "privacy" TEXT NOT NULL DEFAULT '{}',
         "notifications" TEXT NOT NULL DEFAULT '{}',
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -76,14 +66,6 @@ function mergePreferences(
   patch: SettingsPreferencesPatch
 ): SettingsPreferences {
   return {
-    appearance: {
-      ...current.appearance,
-      ...(patch.appearance ?? {}),
-    },
-    language: {
-      ...current.language,
-      ...(patch.language ?? {}),
-    },
     privacy: {
       ...current.privacy,
       ...(patch.privacy ?? {}),
@@ -101,7 +83,7 @@ export async function getSettingsPreferences(userId: string): Promise<SettingsPr
   const defaults = createDefaultPreferences();
 
   const rows = await prisma.$queryRaw<RawPreferencesRow[]>`
-    SELECT "appearance", "language", "privacy", "notifications"
+    SELECT "privacy", "notifications"
     FROM "user_preferences"
     WHERE "userId" = ${userId}
     LIMIT 1
@@ -113,8 +95,6 @@ export async function getSettingsPreferences(userId: string): Promise<SettingsPr
 
   const row = rows[0];
   return mergePreferences(defaults, {
-    appearance: parseSection(row.appearance) as Partial<AppearanceSettingsPreference>,
-    language: parseSection(row.language) as Partial<LanguageSettingsPreference>,
     privacy: parseSection(row.privacy) as Partial<PrivacySettingsPreference>,
     notifications: parseSection(row.notifications) as Partial<NotificationSettingsPreference>,
   });
@@ -133,8 +113,6 @@ export async function upsertSettingsPreferences(
     await prisma.$executeRaw`
       INSERT INTO "user_preferences" (
         "userId",
-        "appearance",
-        "language",
         "privacy",
         "notifications",
         "createdAt",
@@ -142,8 +120,6 @@ export async function upsertSettingsPreferences(
       )
       VALUES (
         ${userId},
-        ${JSON.stringify(merged.appearance)},
-        ${JSON.stringify(merged.language)},
         ${JSON.stringify(merged.privacy)},
         ${JSON.stringify(merged.notifications)},
         CURRENT_TIMESTAMP,
@@ -151,8 +127,6 @@ export async function upsertSettingsPreferences(
       )
       ON CONFLICT ("userId")
       DO UPDATE SET
-        "appearance" = EXCLUDED."appearance",
-        "language" = EXCLUDED."language",
         "privacy" = EXCLUDED."privacy",
         "notifications" = EXCLUDED."notifications",
         "updatedAt" = CURRENT_TIMESTAMP

@@ -31,7 +31,7 @@ export default function ReferralsPage() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await fetch('/api/user/referrals');
+        const res = await fetch('/api/users/referrals');
         if (res.ok) {
           const data = await res.json();
           setStats(data);

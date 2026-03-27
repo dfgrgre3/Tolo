@@ -1643,3 +1643,10 @@ enum AddonType {
   TEACHER_HOURS
   OTHER
 }
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  DELETED
+}

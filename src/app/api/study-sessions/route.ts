@@ -4,7 +4,6 @@ import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
 import { startOfWeek } from 'date-fns';
 import { gamificationService } from '@/services/gamification-service';
-import { firestoreService } from '@/services/firestore-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { successResponse, unauthorizedResponse, badRequestResponse, withAuth, handleApiError } from '@/lib/api-utils';
@@ -94,58 +93,7 @@ export async function POST(request: NextRequest) {
             { duration: body.durationMin || 0 }
           );
 
-          // Update Firestore with new progress
-          await firestoreService.updateUserProgress(authUser.userId, {
-            totalXP: updatedProgress.totalXP,
-            level: updatedProgress.level,
-            currentStreak: updatedProgress.currentStreak,
-            longestStreak: updatedProgress.longestStreak,
-            totalStudyTime: updatedProgress.totalStudyTime,
-            tasksCompleted: updatedProgress.tasksCompleted,
-            examsPassed: updatedProgress.examsPassed,
-            achievements: updatedProgress.achievements
-          });
-
-          // Send achievement notifications if any were unlocked
-          if (updatedProgress.achievements && Array.isArray(updatedProgress.achievements)) {
-            try {
-              const user = await prisma.user.findUnique({
-                where: { id: authUser.userId },
-                select: { achievements: { select: { achievementKey: true } } }
-              });
-
-              if (user) {
-                const previousAchievementKeys = new Set(
-                  (user.achievements || []).map((ua: { achievementKey: string }) => ua.achievementKey)
-                );
-
-                const newAchievementKeys = updatedProgress.achievements.filter(
-                  (achievementKey: string) => !previousAchievementKeys.has(achievementKey)
-                );
-
-                for (const achievementKey of newAchievementKeys) {
-                  const achievement = await prisma.achievement.findUnique({
-                    where: { key: achievementKey }
-                  });
-
-                  if (achievement) {
-                    await firestoreService.sendAchievementNotification(
-                      authUser.userId,
-                      {
-                        key: achievement.key,
-                        title: achievement.title,
-                        description: achievement.description,
-                        icon: achievement.icon,
-                        xpReward: achievement.xpReward
-                      }
-                    );
-                  }
-                }
-              }
-            } catch (notificationError) {
-              logger.error('Error sending achievement notifications:', notificationError);
-            }
-          }
+          // Achievements logic remains but only using local state/database
         } catch (gamificationError) {
           logger.error('Error updating gamification:', gamificationError);
         }

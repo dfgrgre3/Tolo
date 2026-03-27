@@ -203,22 +203,66 @@ export class CacheService {
         }
         return;
       }
-      const keys = await redisClient.keys(pattern);
-      if (keys.length > 0) {
-        await redisClient.del(...keys);
-      }
+
+      // Use SCAN instead of KEYS for production safety (non-blocking)
+      const stream = redisClient.scanStream({
+        match: pattern,
+        count: 100 // Process in chunks
+      });
+
+      stream.on('data', async (keys: string[]) => {
+        if (keys.length > 0) {
+          // Pause stream while deleting to avoid overwhelming Redis
+          stream.pause();
+          try {
+            await redisClient.del(...keys);
+          } catch (delError) {
+            logger.error(`Error deleting keys in pattern ${pattern}:`, delError);
+          }
+          stream.resume();
+        }
+      });
+
+      return new Promise((resolve, reject) => {
+        stream.on('end', () => resolve());
+        stream.on('error', (err) => {
+          logger.error(`Scan stream error for pattern ${pattern}:`, err);
+          reject(err);
+        });
+      });
     } catch (error) {
       logger.error(`Error invalidating pattern ${pattern}:`, error);
     }
   }
 
+  private static pendingPromises = new Map<string, Promise<any>>();
+
+  /**
+   * getOrSet with Cache Stampede prevention
+   */
   static async getOrSet<T>(key: string, compute: () => Promise<T>, ttl: number = 3600): Promise<T> {
     const cached = await this.get<T>(key);
     if (cached) return cached;
-    const computed = await compute();
-    await this.set(key, computed, ttl);
-    return computed;
+
+    // Check if there is already a pending computation for this key
+    const pending = this.pendingPromises.get(key);
+    if (pending) return pending as Promise<T>;
+
+    const promise = compute()
+      .then(async (result) => {
+        await this.set(key, result, ttl);
+        this.pendingPromises.delete(key);
+        return result;
+      })
+      .catch((err) => {
+        this.pendingPromises.delete(key);
+        throw err;
+      });
+
+    this.pendingPromises.set(key, promise);
+    return promise as Promise<T>;
   }
+
 
   static async flushAll(): Promise<void> {
     try {

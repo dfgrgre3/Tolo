@@ -94,7 +94,7 @@ class ApiClient {
             }
 
             // Handle to centralized ErrorManager (lazy import to avoid circular deps)
-            import('@/services/ErrorManager').then(({ default: errorManager }) => {
+            import('@/lib/logging/error-service').then(({ errorService: errorManager }) => {
                 errorManager.handleNetworkError(error, endpoint);
             }).catch(() => { /* silently ignore if ErrorManager fails to load */ });
 

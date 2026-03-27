@@ -16,6 +16,9 @@ import {
   Sparkles,
   X,
   type LucideIcon,
+  Clock,
+  TrendingUp,
+  Star
 } from "lucide-react";
 
 interface Category {
@@ -25,6 +28,7 @@ interface Category {
   count?: number;
 }
 
+type SortOption = "newest" | "popular" | "rated" | "price-low" | "price-high" | "duration-short" | "duration-long";
 type CourseLevelFilter = "all" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
 
 interface CoursesFilterProps {
@@ -33,8 +37,8 @@ interface CoursesFilterProps {
   setActiveCategory: (category: string) => void;
   searchTerm: string;
   setSearchTerm: (term: string) => void;
-  sortBy: "newest" | "popular" | "rated" | "price-low" | "price-high";
-  setSortBy: (sort: "newest" | "popular" | "rated" | "price-low" | "price-high") => void;
+  sortBy: SortOption;
+  setSortBy: (sort: SortOption) => void;
   levelFilter: CourseLevelFilter;
   setLevelFilter: (level: CourseLevelFilter) => void;
   resultsCount: number;
@@ -107,6 +111,8 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
       { value: "rated", label: "الأعلى تقييمًا" },
       { value: "price-low", label: "السعر: الأقل" },
       { value: "price-high", label: "السعر: الأعلى" },
+      { value: "duration-short", label: "المدة: الأقصر" },
+      { value: "duration-long", label: "المدة: الأطول" },
     ],
     []
   );
@@ -231,13 +237,17 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
                   {sortOptions.map((option) => (
                     <button
                       key={option.value}
-                      onClick={() => setSortBy(option.value as typeof sortBy)}
+                      onClick={() => setSortBy(option.value as SortOption)}
                       className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
                         sortBy === option.value
-                          ? "bg-blue-500 text-white"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                          ? "bg-blue-500 text-white flex items-center gap-1"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 flex items-center gap-1"
                       }`}
                     >
+                      {option.value.includes('newest') && <TrendingUp className="h-3 w-3" />}
+                      {option.value.includes('popular') && <TrendingUp className="h-3 w-3" />}
+                      {option.value.includes('rated') && <Star className="h-3 w-3" />}
+                      {option.value.includes('duration') && <Clock className="h-3 w-3" />}
                       {option.label}
                     </button>
                   ))}

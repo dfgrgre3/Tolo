@@ -9,8 +9,9 @@ interface StatsCardsProps {
 export const StatsCards: React.FC<StatsCardsProps> = ({
   experiments
 }) => {
-  const totalParticipants = experiments.reduce((sum, exp) => sum + exp.sampleSize, 0);
-  const activeExperiments = experiments.filter(e => e.status === 'active').length;
+  const safeExperiments = Array.isArray(experiments) ? experiments : [];
+  const totalParticipants = safeExperiments.reduce((sum, exp) => sum + exp.sampleSize, 0);
+  const activeExperiments = safeExperiments.filter(e => e.status === 'active').length;
 
   return (
     <div className="grid gap-6 md:grid-cols-4">
@@ -44,7 +45,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
       <AdminCard variant="glass" className="p-6 border-purple-500/20 shadow-sm flex items-center justify-between">
         <div>
           <p className="text-sm font-bold text-muted-foreground mb-1">إجمالي التجارب</p>
-          <h3 className="text-4xl font-black text-purple-500">{experiments.length}</h3>
+          <h3 className="text-4xl font-black text-purple-500">{safeExperiments.length}</h3>
         </div>
         <div className="w-14 h-14 bg-purple-500/10 rounded-2xl flex items-center justify-center text-purple-500">
           <BarChart3 className="w-7 h-7" />

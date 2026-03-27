@@ -9,6 +9,8 @@ import {
     handleApiError,
 } from '@/lib/api-utils';
 
+
+
 const loginSchema = z.object({
     email: z
         .string()
@@ -77,43 +79,25 @@ export async function POST(req: NextRequest) {
 
         let body: any;
         try {
-            body = rawBody ? JSON.parse(rawBody) : {};
+            body = JSON.parse(rawBody);
         } catch {
             return NextResponse.json({ code: 'INVALID_JSON' }, { status: 400 });
         }
 
-        const emailRaw = typeof body?.email === 'string' ? body.email : '';
-        const passwordRaw = typeof body?.password === 'string' ? body.password : '';
-
-        if (!emailRaw) {
-            return NextResponse.json({ code: 'MISSING_EMAIL' }, { status: 400 });
-        }
-
-        if (!passwordRaw) {
-            return NextResponse.json({ code: 'MISSING_PASSWORD' }, { status: 400 });
-        }
-
-        // Keep explicit length checks aligned with E2E expectations.
-        if (emailRaw.length > 254) {
-            return NextResponse.json({ code: 'EMAIL_TOO_LONG' }, { status: 400 });
-        }
-
         const validation = loginSchema.safeParse(body);
         if (!validation.success) {
-            // Map Zod failures to expected codes.
-            const issues = validation.error.issues || [];
+            const issues = validation.error.issues;
             const emailIssue = issues.find(i => i.path?.[0] === 'email');
             const passwordIssue = issues.find(i => i.path?.[0] === 'password');
 
             if (emailIssue) {
+                if (emailIssue.code === 'too_big') return NextResponse.json({ code: 'EMAIL_TOO_LONG' }, { status: 400 });
                 return NextResponse.json({ code: 'INVALID_EMAIL_FORMAT' }, { status: 400 });
             }
             if (passwordIssue) {
-                const passwordLen = passwordRaw.length;
-                if (passwordLen < 8) return NextResponse.json({ code: 'PASSWORD_TOO_SHORT' }, { status: 400 });
+                if (passwordIssue.code === 'too_small') return NextResponse.json({ code: 'PASSWORD_TOO_SHORT' }, { status: 400 });
                 return NextResponse.json({ code: 'INVALID_PARAMETER' }, { status: 400 });
             }
-
             return NextResponse.json({ code: 'INVALID_PARAMETER' }, { status: 400 });
         }
 

@@ -15,6 +15,12 @@ import {
   Star,
   Users,
   Zap,
+  Heart,
+  Share2,
+  ExternalLink,
+  Download,
+  Award,
+  GraduationCap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,6 +46,11 @@ export interface CourseCardProps {
   isProcessing?: boolean;
   featured?: boolean;
   index?: number;
+  isWishlisted?: boolean;
+  onWishlistToggle?: () => void;
+  certificateAvailable?: boolean;
+  language?: string;
+  lastUpdated?: string;
 }
 
 const levelConfig: Record<string, { label: string; color: string; bgColor: string }> = {
@@ -53,7 +64,7 @@ const levelConfig: Record<string, { label: string; color: string; bgColor: strin
 };
 
 const STYLES = {
-  card: "group flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
+  card: "group flex h-full flex-col overflow-hidden rounded-[2rem] border border-white/10 bg-black/4 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
   neonText: "rpg-neon-text font-black",
 };
 
@@ -78,6 +89,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
   isProcessing = false,
   featured = false,
   index = 0,
+  isWishlisted = false,
+  onWishlistToggle,
+  certificateAvailable = false,
+  language = "العربية",
+  lastUpdated,
 }) => {
   const levelInfo = levelConfig[level] || levelConfig.INTERMEDIATE;
   const safeProgress = Math.max(0, Math.min(progress ?? 0, 100));
@@ -121,6 +137,13 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               </Badge>
             ) : null}
           </div>
+
+          {certificateAvailable && (
+            <Badge className="flex items-center gap-1 border-2 border-yellow-500/20 bg-yellow-500/10 px-3 py-1 font-black text-yellow-500 backdrop-blur-xl">
+              <Award className="h-3 w-3 fill-current" />
+              <span>شهادة</span>
+            </Badge>
+          )}
 
           {featured ? (
             <Badge className="flex items-center gap-1 border-2 border-black/20 bg-amber-500 px-3 py-1 font-black text-black shadow-lg">
@@ -237,13 +260,18 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                     <span>متابعة</span>
                   </Button>
                 </Link>
+                
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onUnenroll}
-                  className="h-11 w-11 rounded-xl transition-colors hover:bg-red-500/10 hover:text-red-500"
+                  onClick={onWishlistToggle}
+                  className={`h-11 w-11 rounded-xl transition-colors ${
+                    isWishlisted 
+                      ? "bg-red-500/10 text-red-500" 
+                      : "hover:bg-white/10"
+                  }`}
                 >
-                  <Bookmark className="h-4 w-4 fill-current" />
+                  <Heart className={`h-4 w-4 fill-current ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
                 </Button>
               </>
             ) : (
@@ -256,6 +284,19 @@ export const CourseCard: React.FC<CourseCardProps> = ({
                 <span>سجل الآن</span>
               </Button>
             )}
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigator.share ? navigator.share({
+                title: title,
+                text: `انظر هذه الدورة التعليمية: ${description}`,
+                url: window.location.origin + `/courses/${id}`
+              }) : null}
+              className="h-11 w-11 rounded-xl transition-colors hover:bg-white/10"
+            >
+              <Share2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
       </div>

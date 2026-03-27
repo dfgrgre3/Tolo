@@ -1,4 +1,4 @@
-ï»¿import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       const { name, description, icon } = await req.json();
 
       if (!name || !description) {
-        return badRequestResponse("Ø§Ù„Ø§Ø³Ù… ÙˆØ§Ù„ÙˆØµÙ Ù…Ø·Ù„ÙˆØ¨Ø§Ù†");
+        return badRequestResponse("ÇáÇÓã æÇáæÕİ ãØáæÈÇä");
       }
 
       const newCategory = await prisma.category.create({

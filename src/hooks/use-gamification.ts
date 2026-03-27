@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { firestoreService, FirestoreUserProgress, FirestoreLeaderboardEntry } from '@/services/firestore-service';
 import { logger } from '@/lib/logger';
 import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/services/gamification-service';
 export type { CustomGoal };
@@ -9,7 +8,6 @@ import * as gamificationApi from '@/lib/api/gamification-client';
 
 interface UseGamificationOptions {
   userId: string;
-  enableRealTime?: boolean;
   enableNotifications?: boolean;
 }
 
@@ -30,7 +28,6 @@ interface GamificationState {
 
 export function useGamification({
   userId,
-  enableRealTime = true,
   enableNotifications = true
 }: UseGamificationOptions) {
   const [state, setState] = useState<GamificationState>({
@@ -82,99 +79,17 @@ export function useGamification({
     }
   }, [userId]);
 
-  // Set up real-time subscriptions
+  // Handle periodic refresh (Optional for "real-lite" updates)
   useEffect(() => {
-    if (!userId || !enableRealTime) return;
+    if (!userId) return;
+    
+    // Refresh leaderboard and progress every minute to keep it fresh
+    const interval = setInterval(() => {
+      loadInitialData();
+    }, 60000);
 
-    let unsubscribeProgress: (() => void) | null = null;
-    let unsubscribeLeaderboard: (() => void) | null = null;
-    let unsubscribeNotifications: (() => void) | null = null;
-
-    const setupSubscriptions = async () => {
-      try {
-        // Subscribe to user progress updates
-        unsubscribeProgress = await firestoreService.subscribeToUserProgress(
-          userId,
-          (progress: FirestoreUserProgress) => {
-            setState(prev => ({
-              ...prev,
-              userProgress: {
-                userId: progress.userId,
-                totalXP: progress.totalXP,
-                level: progress.level,
-                currentStreak: progress.currentStreak,
-                longestStreak: progress.longestStreak,
-                totalStudyTime: progress.totalStudyTime,
-                tasksCompleted: progress.tasksCompleted,
-                examsPassed: progress.examsPassed,
-                achievements: progress.achievements,
-                customGoals: prev.userProgress?.customGoals || []
-              }
-            }));
-          }
-        );
-
-        // Subscribe to leaderboard updates
-        unsubscribeLeaderboard = await firestoreService.subscribeToLeaderboard(
-          'global',
-          50,
-          (leaderboard: FirestoreLeaderboardEntry[]) => {
-            // Ensure leaderboard is always an array
-            const leaderboardArray = Array.isArray(leaderboard) ? leaderboard : [];
-            setState(prev => ({
-              ...prev,
-              leaderboard: leaderboardArray.map(entry => ({
-                userId: entry.userId,
-                username: entry.username,
-                totalXP: entry.totalXP,
-                level: entry.level,
-                rank: entry.rank,
-                avatar: entry.avatar
-              }))
-            }));
-          }
-        );
-
-        // Subscribe to achievement notifications
-        if (enableNotifications) {
-          unsubscribeNotifications = await firestoreService.subscribeToAchievementNotifications(
-            userId,
-            (achievement) => {
-              setState(prev => ({
-                ...prev,
-                currentAchievement: achievement
-              }));
-
-              // Auto-clear achievement notification after 5 seconds
-              setTimeout(() => {
-                setState(prev => ({
-                  ...prev,
-                  currentAchievement: null
-                }));
-              }, 5000);
-            }
-          );
-        }
-      } catch (error) {
-        logger.error('Error setting up real-time subscriptions:', error);
-      }
-    };
-
-    setupSubscriptions();
-
-    // Cleanup function
-    return () => {
-      if (unsubscribeProgress) {
-        firestoreService.cleanupListener(`userProgress:${userId}`);
-      }
-      if (unsubscribeLeaderboard) {
-        firestoreService.cleanupListener(`leaderboard:global:50`);
-      }
-      if (unsubscribeNotifications) {
-        firestoreService.cleanupListener(`notifications:${userId}`);
-      }
-    };
-  }, [userId, enableRealTime, enableNotifications]);
+    return () => clearInterval(interval);
+  }, [userId, loadInitialData]);
 
   // Load initial data when userId changes
   useEffect(() => {
@@ -190,18 +105,6 @@ export function useGamification({
 
     try {
       const updatedProgress = await gamificationApi.updateUserProgress(userId, action, data);
-
-      // Update Firestore
-      await firestoreService.updateUserProgress(userId, {
-        totalXP: updatedProgress.totalXP,
-        level: updatedProgress.level,
-        currentStreak: updatedProgress.currentStreak,
-        longestStreak: updatedProgress.longestStreak,
-        totalStudyTime: updatedProgress.totalStudyTime,
-        tasksCompleted: updatedProgress.tasksCompleted,
-        examsPassed: updatedProgress.examsPassed,
-        achievements: updatedProgress.achievements
-      });
 
       setState(prev => ({
         ...prev,
@@ -228,8 +131,6 @@ export function useGamification({
     try {
       const newGoal = await gamificationApi.createCustomGoal(userId, goalData);
 
-      // Refresh user progress to include the new goal
-      // We could also manually update the state to avoid a fetch
       setState(prev => {
         if (!prev.userProgress) return prev;
         return {
@@ -260,7 +161,6 @@ export function useGamification({
     try {
       const updatedGoal = await gamificationApi.updateCustomGoal(goalId, currentValue);
 
-      // Update state locally
       setState(prev => {
         if (!prev.userProgress) return prev;
         return {

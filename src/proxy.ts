@@ -39,6 +39,7 @@ const PUBLIC_AUTH_API_ROUTES = [
   '/api/users/guest',
   '/api/healthz',
   '/api/readyz',
+  '/api/webhooks',
 ];
 
 export default async function proxy(request: NextRequest) {
@@ -134,15 +135,15 @@ export default async function proxy(request: NextRequest) {
 
       // Header Injection: Prepare request headers for Route Handlers
       const authHeaders = new Headers(request.headers);
-      authHeaders.set('X-User-ID', payload.userId);
-      authHeaders.set('X-User-Role', payload.role);
+      authHeaders.set('x-user-id', payload.userId);
+      authHeaders.set('x-user-role', payload.role);
       
       if (payload.permissions && Array.isArray(payload.permissions)) {
-        authHeaders.set('X-User-Permissions', payload.permissions.join(','));
+        authHeaders.set('x-user-permissions', payload.permissions.join(','));
       }
 
       if (payload.sessionId) {
-        authHeaders.set('X-Session-ID', payload.sessionId);
+        authHeaders.set('x-session-id', payload.sessionId);
       }
 
       const authenticatedResponse = decorateResponse(NextResponse.next({

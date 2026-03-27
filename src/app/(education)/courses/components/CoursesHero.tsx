@@ -2,12 +2,13 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Users, Sparkles, Scroll, Sword, Shield } from "lucide-react";
+import { Users, Sparkles, Scroll, Sword, Shield, Star, TrendingUp, Award } from "lucide-react";
 
 interface CoursesHeroProps {
   totalCourses: number;
   totalStudents: number;
   totalInstructors: number;
+  avgRating: number;
 }
 
 const STYLES = {
@@ -20,12 +21,15 @@ const STYLES = {
 export const CoursesHero: React.FC<CoursesHeroProps> = ({
   totalCourses,
   totalStudents,
-  totalInstructors
+  totalInstructors,
+  avgRating
 }) => {
   const stats = [
-  { icon: Scroll, value: totalCourses, label: "مخطوطة علمية", color: "text-blue-400", bgColor: "bg-blue-400/10" },
-  { icon: Users, value: totalStudents, label: "محارب نشط", color: "text-purple-400", bgColor: "bg-purple-400/10" },
-  { icon: Shield, value: totalInstructors, label: "معلم حكيم", color: "text-amber-400", bgColor: "bg-amber-400/10" }];
+    { icon: Scroll, value: totalCourses, label: "مخطوطة علمية", color: "text-blue-400", bgColor: "bg-blue-400/10" },
+    { icon: Users, value: totalStudents, label: "محارب نشط", color: "text-purple-400", bgColor: "bg-purple-400/10" },
+    { icon: Shield, value: totalInstructors, label: "معلم حكيم", color: "text-amber-400", bgColor: "bg-amber-400/10" },
+    { icon: Star, value: avgRating, label: "معدل التقييم", color: "text-yellow-400", bgColor: "bg-yellow-400/10" },
+  ];
 
 
   return (
@@ -68,6 +72,25 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
             
               استعرض آلاف المخطوطات والدروس المصممة لترقية قدراتك القتالية في ساحات العلم. اختر طريقك وابدأ رحلتك الأسطورية اليوم.
            </motion.p>
+           
+           <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4">
+              <div className="flex items-center gap-2 text-emerald-400">
+                <TrendingUp className="h-5 w-5" />
+                <span className="font-bold">تحديثات أسبوعية</span>
+              </div>
+              <div className="flex items-center gap-2 text-amber-400">
+                <Award className="h-5 w-5" />
+                <span className="font-bold">محتوى معتمد</span>
+              </div>
+              <div className="flex items-center gap-2 text-blue-400">
+                <Star className="h-5 w-5" />
+                <span className="font-bold">معدل تقييم عالي</span>
+              </div>
+           </motion.div>
         </div>
 
         {/* Thematic Stats Bar */}
@@ -78,7 +101,7 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 + index * 0.1 }}
-            className="flex-1 min-w-[200px]">
+            className="flex-1 min-w-[180px]">
             
                 <div className="relative group">
                    <div className="absolute inset-0 bg-white/[0.02] border border-white/5 rounded-3xl group-hover:bg-white/[0.05] group-hover:border-white/10 transition-all duration-300" />
@@ -87,7 +110,7 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
                          <stat.icon className="h-8 w-8" />
                       </div>
                       <div className="space-y-1">
-                         <div className="text-3xl md:text-4xl font-black text-white">{stat.value.toLocaleString()}<span className="text-primary text-xl ml-1">+</span></div>
+                         <div className="text-3xl md:text-4xl font-black text-white">{stat.value}{index === 3 ? '' : '+'}<span className="text-primary text-xl ml-1">{index === 0 && '+ contemporary'}</span></div>
                          <div className="text-sm font-bold text-gray-500 uppercase tracking-widest">{stat.label}</div>
                       </div>
                    </div>

@@ -270,8 +270,8 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
                 'border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/20' :
                 day.minutes === trendData.lowDay?.minutes ?
                 'border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/20' :
-                'border-gray-200 dark:border-gray-800'}`
-                }>
+                'border-gray-200 dark:border-gray-800'}`}
+              >
               
 								<div className="flex items-center justify-between mb-2">
 									<p className="font-semibold">{day.label}</p>
@@ -285,7 +285,7 @@ export default function TimeTrends({ weekly }: TimeTrendsProps) {
 								<p className="text-2xl font-bold">{day.hours.toFixed(1)} ساعة</p>
 								<p className="text-sm text-muted-foreground">{day.minutes} دقيقة</p>
 							</div>
-            )}
+            ))}
 					</div>
 				</CardContent>
 			</Card>

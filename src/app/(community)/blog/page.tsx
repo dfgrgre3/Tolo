@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import { 
   Search,
   Calendar,
@@ -14,9 +15,8 @@ import {
   PenTool,
   Plus,
   ArrowLeft,
-  cn 
-} from "@/lib/utils";
-import { Sword } from "lucide-react";
+  Sword 
+} from "lucide-react";
 import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";

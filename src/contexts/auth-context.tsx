@@ -1,67 +1,18 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
 import { sanitizeRedirectPath } from '@/services/auth/navigation';
+import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
+
 
 /**
  * AuthContext - Client-side authentication state management.
- * 
- * Design Decisions:
- * 1. User state is fetched from /api/auth/me on mount (not stored in localStorage)
- *    → This prevents stale state and XSS token exposure
- * 2. Auto-refresh interceptor: When an API call returns 401, the context
- *    automatically refreshes the token and retries the request
- * 3. The context provides a fetchWithAuth() function that handles
- *    token refresh transparently for all protected API calls
+ * (Now backed by Zustand for better performance and smaller context size)
  */
 
-export interface AuthUser {
-    id: string;
-    email: string;
-    username: string | null;
-    name?: string | null;
-    avatar: string | null;
-    role: string;
-    emailVerified: boolean | null;
-    phone?: string | null;
-    phoneVerified: boolean | null;
-    alternativePhone?: string | null;
-    birthDate?: string | null; // alias for dateOfBirth
-    dateOfBirth?: string | null;
-    gender?: string | null;
-    city?: string | null;
-    country?: string | null;
-    school?: string | null;
-    grade?: string | null;
-    gradeLevel?: string | null;
-    educationType?: string | null;
-    section?: string | null;
-    studyGoal?: string | null;
-    bio?: string | null;
-    subjectsTaught?: string[];
-    experienceYears?: string | null;
-    createdAt?: string;
-
-    lastLogin?: string;
-    totalXP?: number;
-    level?: number;
-    currentStreak?: number;
-    longestStreak?: number;
-    totalStudyTime?: number;
-    tasksCompleted?: number;
-    examsPassed?: number;
-    pomodoroSessions?: number;
-    deepWorkSessions?: number;
-    studyXP?: number;
-    taskXP?: number;
-    examXP?: number;
-    challengeXP?: number;
-    questXP?: number;
-    seasonXP?: number;
-    permissions: string[];
-}
+export type { AuthUser };
 
 interface AuthContextType {
     user: AuthUser | null;
@@ -99,9 +50,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
  * AuthProvider - Wraps the app to provide authentication state.
- * 
- * On mount, it checks if the user is authenticated by calling /api/auth/me.
- * If the access token is expired, it automatically tries to refresh it.
+ * Syncs internal logic with useAuthStore.
  */
 export function AuthProvider({ 
     children, 
@@ -110,12 +59,27 @@ export function AuthProvider({
     children: React.ReactNode; 
     initialAuthHint?: boolean;
 }) {
-    const [user, setUser] = useState<AuthUser | null>(null);
-    const [isLoading, setIsLoading] = useState(initialAuthHint);
+    const { 
+        user, 
+        isLoading, 
+        setIsLoading, 
+        setUser, 
+        reset: resetStore,
+        isRefreshing: isRefreshingStore,
+        setIsRefreshing: setIsRefreshingStore
+    } = useAuthStore();
+    
     const router = useRouter();
     const isRefreshing = useRef(false);
     const refreshPromise = useRef<Promise<boolean> | null>(null);
     const userFetchPromise = useRef<Promise<boolean> | null>(null);
+
+    // Ensure isLoading reflects initialAuthHint on server-side hint
+    useEffect(() => {
+        if (initialAuthHint !== undefined && !user) {
+            setIsLoading(initialAuthHint);
+        }
+    }, [initialAuthHint, user, setIsLoading]);
 
     const delay = useCallback((ms: number) => {
         return new Promise<void>((resolve) => {

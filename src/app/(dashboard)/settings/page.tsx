@@ -346,7 +346,7 @@ export default function ProfileSettingsPage() {
     setIsSaving(true);
 
     try {
-      const response = await fetch('/api/user/profile', {
+      const response = await fetch('/api/users/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
