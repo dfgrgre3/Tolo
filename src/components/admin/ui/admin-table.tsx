@@ -54,6 +54,8 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { ButtonGroup } from "./admin-button";
+import { motion, AnimatePresence } from "framer-motion";
+import { CheckSquare, Trash2, X } from "lucide-react";
 
 interface AdminDataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -198,27 +200,58 @@ export function AdminDataTable<TData, TValue>({
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Bulk Actions */}
-          {selectable && selectedCount > 0 && bulkActions && bulkActions.length > 0 && (
-            <div className="flex items-center gap-2 bg-primary/10 rounded-lg px-3 py-1.5">
-              <span className="text-sm font-medium text-primary">{selectedCount} محدد</span>
-              {bulkActions.map((action, i) => {
-                const Icon = action.icon;
-                return (
-                  <AdminButton
-                    key={i}
-                    variant={action.variant || "outline"}
-                    size="sm"
-                    onClick={() => action.onClick(selectedRows)}
-                    disabled={action.disabled}
+          {/* Floating Bulk Actions Bar */}
+          <AnimatePresence>
+            {selectable && selectedCount > 0 && bulkActions && bulkActions.length > 0 && (
+              <motion.div 
+                initial={{ y: 100, opacity: 0, x: "-50%" }}
+                animate={{ y: 0, opacity: 1, x: "-50%" }}
+                exit={{ y: 100, opacity: 0, x: "-50%" }}
+                className="fixed bottom-10 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-6 bg-neutral-900/90 backdrop-blur-2xl border border-white/10 px-8 py-4 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] min-w-[400px]"
+                dir="rtl"
+              >
+                <div className="flex items-center gap-4 border-l border-white/10 pl-6">
+                  <div className="w-10 h-10 bg-primary/20 rounded-2xl flex items-center justify-center text-primary border border-primary/20">
+                    <CheckSquare className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-black text-muted-foreground uppercase tracking-widest">تحديد العناصر</p>
+                    <p className="text-sm font-black text-white">{selectedCount} محدد</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {bulkActions.map((action, i) => {
+                    const Icon = action.icon;
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => action.onClick(selectedRows)}
+                        disabled={action.disabled}
+                        className={cn(
+                          "flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-sm transition-all active:scale-95 disabled:opacity-50",
+                          action.variant === "destructive" 
+                            ? "bg-rose-500/10 text-rose-500 border border-rose-500/20 hover:bg-rose-500 hover:text-white" 
+                            : "bg-primary text-white shadow-lg shadow-primary/20 hover:scale-105"
+                        )}
+                      >
+                        {Icon && <Icon className="h-4 w-4" />}
+                        {action.label}
+                      </button>
+                    );
+                  })}
+                  
+                  <button 
+                    onClick={() => table.resetRowSelection()}
+                    className="p-2.5 rounded-xl border border-white/10 text-muted-foreground hover:text-white transition-colors"
+                    title="إلغاء التحديد"
                   >
-                    {Icon && <Icon className="h-4 w-4 ml-1" />}
-                    {action.label}
-                  </AdminButton>
-                );
-              })}
-            </div>
-          )}
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* Row count badge */}
           <div className="hidden sm:flex items-center text-sm text-muted-foreground bg-muted/50 rounded-lg px-3 py-2">

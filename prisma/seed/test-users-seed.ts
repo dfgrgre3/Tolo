@@ -59,18 +59,26 @@ async function seedTestUsers() {
           smsNotifications: false,
           twoFactorEnabled: false,
           biometricEnabled: false,
-          // Gamification defaults
-          totalXP: 100,
-          level: 2,
-          currentStreak: 5,
-          longestStreak: 10,
-          totalStudyTime: 3600, // 1 hour
-          tasksCompleted: 15,
-          examsPassed: 3,
-          pomodoroSessions: 20,
-          deepWorkSessions: 5,
           focusStrategy: 'POMODORO',
           role: userData.role === 'admin' ? 'ADMIN' : 'USER',
+          // Gamification data (moved to nested relations)
+          xp: {
+            create: {
+              totalXP: 100,
+              level: 2,
+            }
+          },
+          activity: {
+            create: {
+              currentStreak: 5,
+              longestStreak: 10,
+              totalStudyTime: 3600, // 1 hour
+              tasksCompleted: 15,
+              examsPassed: 3,
+              pomodoroSessions: 20,
+              deepWorkSessions: 5,
+            }
+          }
         },
       });
 

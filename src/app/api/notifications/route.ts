@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
           return addSecurityHeaders(badRequestResponse('Invalid offset parameter. Must be a non-negative integer.', ERROR_CODES.INVALID_PARAMETER));
         }
 
-        // Build where clause with proper typing
-        const where: { userId: string; isRead?: boolean } = { userId };
+        // Build where clause with proper typing - only fetch non-deleted notifications
+        const where: any = { userId, isDeleted: false };
         if (unreadOnly) {
           where.isRead = false;
         }

@@ -77,6 +77,7 @@ const nextConfig = {
     'nodemailer',
     'openai',
     'twilio',
+    '@prisma/client',
   ],
 
   // Optimize package imports - reduces bundle size significantly
@@ -214,14 +215,6 @@ const nextConfig = {
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on',
-          },
-          {
-            key: 'Content-Type',
-            value: 'text/html; charset=utf-8',
-          },
-          {
-            key: 'Charset',
-            value: 'utf-8',
           },
         ],
       },

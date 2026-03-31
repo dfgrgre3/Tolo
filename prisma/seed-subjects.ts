@@ -1,5 +1,5 @@
 import { prisma } from '../src/lib/db'
-import { Difficulty } from '@prisma/client'
+import { Level } from '@prisma/client'
 
 const subjects = [
     {
@@ -14,7 +14,7 @@ const subjects = [
         price: 150,
         rating: 4.8,
         instructorName: 'أ/ محمد علي',
-        level: Difficulty.MEDIUM,
+        level: Level.INTERMEDIATE,
         durationHours: 40,
         thumbnailUrl: 'https://images.unsplash.com/photo-1509228468518-180dd48a5793?q=80&w=2070&auto=format&fit=crop',
         enrolledCount: 1250,
@@ -32,7 +32,7 @@ const subjects = [
         price: 180,
         rating: 4.9,
         instructorName: 'أ/ أحمد حسن',
-        level: Difficulty.HARD,
+        level: Level.ADVANCED,
         durationHours: 45,
         thumbnailUrl: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?q=80&w=2070&auto=format&fit=crop',
         enrolledCount: 980,
@@ -50,7 +50,7 @@ const subjects = [
         price: 160,
         rating: 4.7,
         instructorName: 'د/ سارة محمود',
-        level: Difficulty.MEDIUM,
+        level: Level.INTERMEDIATE,
         durationHours: 38,
         thumbnailUrl: 'https://images.unsplash.com/photo-1532187863486-abf9d3a4461a?q=80&w=2070&auto=format&fit=crop',
         enrolledCount: 850,
@@ -68,7 +68,7 @@ const subjects = [
         price: 120,
         rating: 4.9,
         instructorName: 'أ/ مصطفى سعيد',
-        level: Difficulty.EASY,
+        level: Level.BEGINNER,
         durationHours: 30,
         thumbnailUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=1974&auto=format&fit=crop',
         enrolledCount: 2100,
@@ -86,7 +86,7 @@ const subjects = [
         price: 140,
         rating: 4.6,
         instructorName: 'Mrs. Jane Doe',
-        level: Difficulty.MEDIUM,
+        level: Level.INTERMEDIATE,
         durationHours: 35,
         thumbnailUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?q=80&w=1973&auto=format&fit=crop',
         enrolledCount: 1550,

@@ -1,11 +1,17 @@
 generator client {
   provider   = "prisma-client-js"
-  engineType = "library"
+  engineType = "binary"
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+}
+
+enum Level {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
 }
 
 model User {
@@ -45,23 +51,11 @@ model User {
   passwordChangedAt             DateTime?
   passwordExpiresAt             DateTime?
   passwordExpirationWarningSent Boolean               @default(false)
-  totalXP                       Int                   @default(0)
-  level                         Int                   @default(1)
-  currentStreak                 Int                   @default(0)
-  longestStreak                 Int                   @default(0)
-  totalStudyTime                Int                   @default(0)
-  tasksCompleted                Int                   @default(0)
-  examsPassed                   Int                   @default(0)
-  pomodoroSessions              Int                   @default(0)
-  deepWorkSessions              Int                   @default(0)
-  studyXP                       Int                   @default(0)
-  taskXP                        Int                   @default(0)
-  examXP                        Int                   @default(0)
-  challengeXP                   Int                   @default(0)
-  questXP                       Int                   @default(0)
-  seasonXP                      Int                   @default(0)
   role                          UserRole              @default(STUDENT)
   status                        UserStatus            @default(ACTIVE)
+  xp                            UserXP?
+  activity                      UserActivity?
+  wallet                        UserWallet?
   country                       String?
   dateOfBirth                   DateTime?
   gender                        String?
@@ -77,7 +71,6 @@ model User {
   bio                           String?
   permissions                   String[]              @default([])
   school                        String?
-  balance                       Float                 @default(0)
   referralCode                  String?               @unique
   referredById                  String?
   additionalAiCredits           Int                   @default(0)
@@ -132,32 +125,82 @@ model User {
   userInteractions              UserInteraction[]
   userRewards                   UserReward[]
   user_preferences              user_preferences?
-  announcements                 Announcement[]    @relation("AnnouncementAuthor")
+  announcements                 Announcement[]        @relation("AnnouncementAuthor")
   memberGroups                  GroupSubscription[]   @relation("GroupMembers")
   reports                       ContentReport[]       @relation("UserReports")
-
+  teacherProfile                Teacher?
+  progress                      TopicProgress[]
+  isDeleted                     Boolean               @default(false)
+  deletedAt                     DateTime?
 
   @@index([role])
-  @@index([totalXP(sort: Desc)])
-  @@index([level])
   @@index([lastLogin])
   @@index([emailVerified])
+  @@index([isDeleted])
+}
+
+model UserXP {
+  userId           String   @id
+  totalXP          Int      @default(0)
+  level            Int      @default(1)
+  studyXP          Int      @default(0)
+  taskXP           Int      @default(0)
+  examXP           Int      @default(0)
+  challengeXP      Int      @default(0)
+  questXP          Int      @default(0)
+  seasonXP         Int      @default(0)
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([totalXP(sort: Desc)])
+  @@index([level])
+}
+
+model UserActivity {
+  userId           String   @id
+  currentStreak    Int      @default(0)
+  longestStreak    Int      @default(0)
+  totalStudyTime   Int      @default(0)
+  tasksCompleted   Int      @default(0)
+  examsPassed      Int      @default(0)
+  pomodoroSessions Int      @default(0)
+  deepWorkSessions Int      @default(0)
+  lastActiveAt     DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([lastActiveAt])
+  @@index([currentStreak])
+}
+
+model UserWallet {
+  userId    String   @id
+  balance   Float    @default(0)
+  updatedAt DateTime @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SubjectEnrollment {
   id                String   @id @default(cuid())
   userId            String
   subjectId         String
-  targetWeeklyHours Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  targetWeeklyHours Int           @default(0)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  paymentStatus     PaymentStatus @default(PENDING)
   progress          Int      @default(0)
   subject           Subject  @relation(fields: [subjectId], references: [id])
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: NoAction)
+  isDeleted         Boolean  @default(false)
+  deletedAt         DateTime?
 
   @@unique([userId, subjectId])
   @@index([userId])
   @@index([subjectId])
+  @@index([isDeleted])
 }
 
 model StudySession {
@@ -175,13 +218,16 @@ model StudySession {
   strategy    FocusStrategy?
   subject     Subject?       @relation(fields: [subjectId], references: [id])
   task        Task?          @relation(fields: [taskId], references: [id])
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User           @relation(fields: [userId], references: [id], onDelete: NoAction)
+  isDeleted   Boolean        @default(false)
+  deletedAt   DateTime?
 
   @@index([userId, subjectId])
   @@index([userId, startTime(sort: Desc)])
   @@index([subjectId])
   @@index([taskId])
   @@index([startTime(sort: Desc)])
+  @@index([isDeleted])
 }
 
 model Task {
@@ -199,12 +245,15 @@ model Task {
   status        TaskStatus     @default(PENDING)
   studySessions StudySession[]
   subject       Subject?       @relation(fields: [subjectId], references: [id])
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user          User           @relation(fields: [userId], references: [id], onDelete: NoAction)
+  isDeleted     Boolean        @default(false)
+  deletedAt     DateTime?
 
   @@index([userId, subjectId])
   @@index([userId, status])
   @@index([status, dueAt])
   @@index([dueAt])
+  @@index([isDeleted])
 }
 
 model Reminder {
@@ -342,8 +391,8 @@ model ExamResult {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
-  @@index([userId, examId])
   @@index([examId])
+  @@unique([userId, examId])
 }
 
 model Session {
@@ -467,11 +516,14 @@ model Notification {
   createdAt DateTime         @default(now())
   updatedAt DateTime         @updatedAt
   type      NotificationType @default(INFO)
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: NoAction)
+  isDeleted Boolean          @default(false)
+  deletedAt DateTime?
 
   @@index([userId])
   @@index([userId, isRead])
   @@index([createdAt(sort: Desc)])
+  @@index([isDeleted])
 }
 
 model Season {
@@ -753,17 +805,20 @@ model MlRecommendation {
 
 model Teacher {
   id        String   @id @default(cuid())
+  userId    String   @unique
   name      String
-  subjectId String
+  bio       String?  @db.Text
+  image     String?
   onlineUrl String?
-  rating    Float    @default(0)
+  rating    Float    @default(0.0)
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects  Subject[] @relation("SubjectToTeacher")
 
-  @@unique([name, subjectId], name: "name_subject")
-  @@index([subjectId])
+  @@index([userId])
 }
 
 model Subject {
@@ -785,7 +840,7 @@ model Subject {
   instructorName     String?
   isPublished        Boolean              @default(false)
   learningObjectives String?
-  level              Difficulty           @default(MEDIUM)
+  level              Level                @default(BEGINNER)
   price              Float?               @default(0)
   rating             Float?               @default(0)
   requirements       String?
@@ -811,7 +866,7 @@ model Subject {
   slug               String?              @unique
 
 
-  teachers           Teacher[]
+  teachers           Teacher[]            @relation("SubjectToTeacher")
   topics             Topic[]
   userGrades         UserGrade[]
 
@@ -825,7 +880,7 @@ model Subject {
 model Topic {
   id          String     @id @default(cuid())
   subjectId   String
-  name        String
+  title       String @default("")
   description String?
   order       Int        @default(0)
   createdAt   DateTime   @default(now())
@@ -837,18 +892,18 @@ model Topic {
 }
 
 model SubTopic {
-  id          String             @id @default(cuid())
-  topicId     String
-  name        String
-  description String?
-  content     String?
-  videoUrl    String?
-  order       Int                @default(0)
-  createdAt   DateTime           @default(now())
-  updatedAt   DateTime           @updatedAt
-  duration    Int                @default(0)
-  isFree      Boolean            @default(false)
-  type        LessonType         @default(VIDEO)
+  id              String             @id @default(cuid())
+  topicId         String
+  title           String @default("")
+  description     String?
+  content         String?
+  videoUrl        String?
+  order           Int                @default(0)
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  durationMinutes Int                @default(0)
+  isFree          Boolean            @default(false)
+  type            LessonType         @default(VIDEO)
   attachments LessonAttachment[]
   notes       LessonNote[]
   questions   LessonQuestion[]
@@ -856,6 +911,23 @@ model SubTopic {
   progresses  TopicProgress[]
 
   @@index([topicId])
+}
+
+model TopicProgress {
+  id                String    @id @default(cuid())
+  userId            String
+  subTopicId        String
+  completed         Boolean   @default(false)
+  completedAt       DateTime?
+  lastVideoPosition Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subTopic          SubTopic  @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subTopicId])
+  @@index([userId])
+  @@index([subTopicId])
 }
 
 model LessonAttachment {
@@ -900,21 +972,6 @@ model SubjectCertificate {
   @@unique([subjectId, userId])
   @@index([subjectId])
   @@index([userId])
-}
-
-model TopicProgress {
-  id          String    @id @default(cuid())
-  userId      String
-  subTopicId  String
-  completed   Boolean   @default(false)
-  completedAt DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  subTopic    SubTopic  @relation(fields: [subTopicId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, subTopicId])
-  @@index([userId])
-  @@index([subTopicId])
 }
 
 model Message {
@@ -1233,7 +1290,7 @@ model TestResult {
 
   @@index([userId])
   @@index([examId])
-  @@index([userId, examId])
+  @@unique([userId, examId])
 }
 
 model BiometricCredential {

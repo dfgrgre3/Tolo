@@ -95,6 +95,15 @@ export class AuthService {
         const normalizedEmail = email.toLowerCase().trim();
 
         try {
+            // Robust input validation
+            if (!password || typeof password !== 'string') {
+                return {
+                    success: false,
+                    error: 'Invalid email or password',
+                    statusCode: 400,
+                };
+            }
+
             if (password.length > 256) {
                 await SecurityLogger.logFailedLogin(ip, userAgent, 'PASSWORD_TOO_LONG');
                 return {
@@ -633,21 +642,29 @@ export class AuthService {
                 phoneVerified: true,
                 createdAt: true,
                 lastLogin: true,
-                totalXP: true,
-                level: true,
-                currentStreak: true,
-                longestStreak: true,
-                totalStudyTime: true,
-                tasksCompleted: true,
-                examsPassed: true,
-                pomodoroSessions: true,
-                deepWorkSessions: true,
-                studyXP: true,
-                taskXP: true,
-                examXP: true,
-                challengeXP: true,
-                questXP: true,
-                seasonXP: true,
+                xp: {
+                    select: {
+                        totalXP: true,
+                        level: true,
+                        studyXP: true,
+                        taskXP: true,
+                        examXP: true,
+                        challengeXP: true,
+                        questXP: true,
+                        seasonXP: true,
+                    }
+                },
+                activity: {
+                    select: {
+                        currentStreak: true,
+                        longestStreak: true,
+                        totalStudyTime: true,
+                        tasksCompleted: true,
+                        examsPassed: true,
+                        pomodoroSessions: true,
+                        deepWorkSessions: true,
+                    }
+                },
                 permissions: true,
                 // Additional profile fields needed by settings page
                 alternativePhone: true,

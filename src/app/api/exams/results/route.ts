@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { gamificationService } from "@/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { withAuth, successResponse, badRequestResponse, handleApiError } from '@/lib/api-utils';
+import { withAuth, successResponse, badRequestResponse, handleApiError, forbiddenResponse } from '@/lib/api-utils';
 import { z } from "zod";
 
 const resultSchema = z.object({
@@ -45,6 +45,43 @@ export async function POST(req: NextRequest) {
         }
 
         const { examId, score, takenAt, teacherId } = validation.data;
+
+        // 1. Fetch exam with subject info for verification
+        const exam = await prisma.exam.findUnique({
+          where: { id: examId },
+          include: { subject: true }
+        });
+
+        if (!exam) {
+          return badRequestResponse("الامتحان غير موجود");
+        }
+
+        // 2. SECURITY: Verify student enrollment in the subject (Prevent IDOR)
+        const enrollment = await prisma.subjectEnrollment.findUnique({
+          where: {
+            userId_subjectId: {
+              userId: authUser.userId,
+              subjectId: exam.subjectId
+            }
+          }
+        });
+
+        if (!enrollment) {
+          return forbiddenResponse("يجب الاشتراك في المادة أولاً لتسجيل نتيجة الامتحان");
+        }
+
+        // 3. IDEMPOTENCY: Check if user already submitted this exam
+        const existingResult = await prisma.examResult.findFirst({
+          where: {
+            userId: authUser.userId,
+            examId
+          }
+        });
+
+        if (existingResult) {
+          return badRequestResponse("لقد قمت بتسجيل نتيجة هذا الامتحان مسبقاً");
+        }
+
         const result = await prisma.examResult.create({
           data: {
             userId: authUser.userId,

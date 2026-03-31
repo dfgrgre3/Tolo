@@ -1,5 +1,8 @@
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { apiRateLimiter, authRateLimiter } from '@/lib/rate-limit';
+import { rateLimit } from '@/lib/middleware/rate-limiter';
 import { TokenService, TokenPayload } from '@/services/auth/token-service';
 import {
   DEFAULT_AUTHENTICATED_ROUTE,
@@ -63,6 +66,11 @@ export default async function middleware(request: NextRequest) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-request-id', requestId);
 
+    // -- ZERO TRUST: Sanitize critical internal headers --
+    // Prevent client-side header injection/spoofing
+    const internalHeaders = ['x-user-id', 'x-user-role', 'x-user-permissions', 'x-session-id', 'x-debug-mode'];
+    internalHeaders.forEach(header => requestHeaders.delete(header));
+
     // Helper to add trace + security headers
     const decorateResponse = (res: NextResponse) => {
       res.headers.set('x-request-id', requestId!);
@@ -87,6 +95,28 @@ export default async function middleware(request: NextRequest) {
       pathname.startsWith('/public') ||
       pathname === '/favicon.ico' ||
       pathname.includes('.');
+
+    // -- RATE LIMITING --
+    // Run for all routes except static assets to prevent abuse
+    if (!isStaticAsset) {
+      const { success, headers } = await rateLimit(request);
+      
+      if (!success) {
+        return withSecurityHeaders(NextResponse.json(
+          { 
+            error: 'Too Many Requests', 
+            message: 'Enhance your calm. Please slow down.'
+          },
+          { 
+            status: 429,
+            headers
+          }
+        ));
+      }
+
+      // Inject Rate Limit headers into request for downstream use if needed
+      Object.entries(headers).forEach(([k, v]) => requestHeaders.set(k.toLowerCase(), v));
+    }
 
     if (isStaticAsset || isPublicAuthApiRoute) {
       return passthroughResponse;
@@ -229,6 +259,25 @@ function addSecurityHeaders(response: NextResponse) {
     'Permissions-Policy',
     'camera=(), microphone=(), geolocation=(), interest-cohort=()'
   );
+
+  // Content Security Policy (CSP)
+  const cspHeader = `
+    default-src 'self';
+    script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.google-analytics.com https://*.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    img-src 'self' blob: data: https://*.cloudinary.com https://*.google-analytics.com https://*.gravatar.com;
+    font-src 'self' https://fonts.gstatic.com;
+    connect-src 'self' https://*.google-analytics.com https://*.googleapis.com ws: wss:;
+    frame-src 'self' https://*.youtube.com https://*.vimeo.com https://*.stripe.com;
+    object-src 'none';
+    base-uri 'self';
+    form-action 'self';
+    frame-ancestors 'none';
+    upgrade-insecure-requests;
+  `.replace(/\s{2,}/g, ' ').trim();
+
+  response.headers.set('Content-Security-Policy', cspHeader);
+  response.headers.set('X-Permitted-Cross-Domain-Policies', 'none');
 
   if (process.env.NODE_ENV === 'production') {
     response.headers.set(

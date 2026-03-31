@@ -8,10 +8,12 @@ import { AdminButton } from "@/components/admin/ui/admin-button";
 import { RoleBadge, StatusBadge } from "@/components/admin/ui/admin-badge";
 import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search, Send } from "lucide-react";
+import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search, Send, CheckSquare } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
+import { RoyalCallModal as RoyalMessageModal } from "@/components/admin/royal-call";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 
@@ -63,6 +65,10 @@ export default function AdminUsersPage() {
     open: false,
     id: null,
   });
+  const [messageDialog, setMessageDialog] = React.useState<{ open: boolean; users: UserModel[] }>({
+    open: false,
+    users: [],
+  });
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin", "users", page, limit, search, role],
@@ -99,6 +105,27 @@ export default function AdminUsersPage() {
   };
 
   const columns: ColumnDef<UserModel>[] = [
+    {
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={table.getIsAllPageRowsSelected()}
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="تحديد الكل"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="تحديد الصف"
+          className="translate-y-[2px] border-white/20"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
+    },
     {
       accessorKey: "name",
       header: "المحارب",
@@ -174,7 +201,7 @@ export default function AdminUsersPage() {
           onEdit={(u) => router.push(`/admin/users/${u.id}/edit`)}
           onDelete={(u) => setDeleteDialog({ open: true, id: u.id })}
           extraActions={[
-            { icon: Mail, label: "رسالة ملكية", onClick: (u) => toast.info(`جاري توجيه رسالة إلى ${u.email}`) },
+            { icon: Mail, label: "رسالة ملكية", onClick: (u) => setMessageDialog({ open: true, users: [u] }) },
             { icon: Shield, label: "صلاحيات القائد", onClick: (u) => router.push(`/admin/users/${u.id}/permissions`) },
           ]}
         />
@@ -236,6 +263,20 @@ export default function AdminUsersPage() {
           searchKey="name"
           searchPlaceholder="ابحث في سجلات الجيش..."
           serverSide
+          selectable
+          bulkActions={[
+            { 
+              label: "إرسال مرسوم ملكي", 
+              icon: Send, 
+              onClick: (rows) => setMessageDialog({ open: true, users: rows }) 
+            },
+            { 
+              label: "حذف السجلات", 
+              icon: UserPlus, 
+              variant: "destructive",
+              onClick: (rows) => toast.warning("يرجى حذف كل مستخدم على حدة لضمان السلامة") 
+            },
+          ]}
           totalRows={data?.data?.pagination?.total || 0}
           pageCount={data?.data?.pagination?.totalPages || 1}
           currentPage={page}
@@ -270,6 +311,11 @@ export default function AdminUsersPage() {
         confirmText="تأكيد الحذف النهائي"
         variant="destructive"
         onConfirm={handleDelete}
+      />
+      <RoyalMessageModal 
+        open={messageDialog.open}
+        onOpenChange={(open) => setMessageDialog({ open, users: open ? messageDialog.users : [] })}
+        users={messageDialog.users}
       />
     </div>
   );

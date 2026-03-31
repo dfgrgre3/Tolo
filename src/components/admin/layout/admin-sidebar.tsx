@@ -27,6 +27,7 @@ import {
   Newspaper,
   Gamepad2,
   BarChart3,
+  Monitor,
   ScrollText,
   Sparkles,
   Home,
@@ -298,6 +299,30 @@ const communityNavItems: SidebarNavItem[] = [
   },
 ];
 
+const infrastructureNavItems: SidebarNavItem[] = [
+  {
+    title: "مراقبة البنية التحتية",
+    href: "/admin/infrastructure",
+    icon: Monitor,
+    color: "bg-blue-600",
+    permission: "SETTINGS_MANAGE",
+  },
+  {
+    title: "تقسيم البيانات (Scalability)",
+    href: "/admin/infrastructure/partitions",
+    icon: Split,
+    color: "bg-indigo-600",
+    permission: "SETTINGS_MANAGE",
+  },
+  {
+    title: "سجلات النظام (Engine)",
+    href: "/admin/audit-logs",
+    icon: ScrollText,
+    color: "bg-slate-500",
+    permission: "AUDIT_LOGS_VIEW",
+  }
+];
+
 const quickActions: QuickAction[] = [
   { title: "إضافة مستخدم", href: "/admin/users/new", icon: UserPlus, color: "blue", permission: "USERS_MANAGE" },
   { title: "إضافة محتوى", href: "/admin/subjects/new", icon: FilePlus, color: "green", permission: "SUBJECTS_MANAGE" },
@@ -410,6 +435,7 @@ export function AdminSidebar() {
   const filteredContentNav = filterByPermission(contentNavItems);
   const filteredGamificationNav = filterByPermission(gamificationNavItems);
   const filteredCommunityNav = filterByPermission(communityNavItems);
+  const filteredInfrastructureNav = filterByPermission(infrastructureNavItems);
   const filteredQuickActions = quickActions.filter(action => !action.permission || hasPermission(action.permission as any));
 
   const [bookmarks, setBookmarks] = React.useState<BookmarkItem[]>([]);
@@ -555,6 +581,7 @@ export function AdminSidebar() {
         <SidebarNavSection title="المحتوى التعليمي" items={filteredContentNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="التحديات والمكافآت" items={filteredGamificationNav} pathname={pathname} collapsed={collapsed} />
         <SidebarNavSection title="المجتمع" items={filteredCommunityNav} pathname={pathname} collapsed={collapsed} />
+        <SidebarNavSection title="البنية التحتية" items={filteredInfrastructureNav} pathname={pathname} collapsed={collapsed} />
       </div>
 
       {/* Footer */}

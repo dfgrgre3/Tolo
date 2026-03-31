@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: thanawy-worker-deployment
+  labels:
+    app: thanawy-worker
+spec:
+  replicas: 2 # Redundancy for background jobs
+  selector:
+    matchLabels:
+      app: thanawy-worker
+  template:
+    metadata:
+      labels:
+        app: thanawy-worker
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: thanawy-worker-container
+          image: thanawy-app:latest
+          command: ["npm", "run", "worker:gamification"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 1000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: thanawy-secrets
+                  key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: thanawy-secrets
+                  key: REDIS_URL
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "256Mi"
+            limits:
+              cpu: "250m"
+              memory: "512Mi"

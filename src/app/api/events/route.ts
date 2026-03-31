@@ -1,133 +1,54 @@
-import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
-import { EventBus } from '@/lib/event-bus';
-import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
-import { ERROR_CODES } from '@/lib/error-codes';
+import { NextRequest } from 'next/server';
+import redisService from '@/lib/redis';
+import { logger } from '@/lib/logger';
 
-// GET all events
-export async function GET(request: NextRequest) {
-  return opsWrapper(request, async () => {
-    try {
-      const events = await prisma.event.findMany({
-        include: {
-          organizer: {
-            select: { name: true }
-          },
-          _count: {
-            select: { attendees: true }
-          }
-        },
-        orderBy: {
-          startDate: "desc"
+/**
+ * SSE Route Handler for Real-time Updates.
+ * Replaces client-side polling for progress and notifications.
+ * Scalable for 1M+ users when coupled with horizontal Scaling.
+ */
+export async function GET(req: NextRequest) {
+  const userId = req.nextUrl.searchParams.get('userId');
+
+  if (!userId) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream({
+    async start(controller) {
+      // 1. Initial Heartbeat
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'HEARTBEAT', timestamp: Date.now() })}\n\n`));
+
+      // 2. Setup Redis Sub for this specific user
+      const redis = await redisService.getClient();
+      const sub = redis.duplicate();
+      const userChannel = `user:${userId}:events`;
+
+      await sub.subscribe(userChannel);
+
+      sub.on('message', (channel, message) => {
+        if (channel === userChannel) {
+          controller.enqueue(encoder.encode(`data: ${message}\n\n`));
         }
       });
 
-      // Transform the data to match the frontend structure
-      const transformedEvents = events.map((event: any) => ({
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        location: event.location,
-        startDate: event.startDate.toISOString(),
-        endDate: event.endDate.toISOString(),
-        imageUrl: event.imageUrl,
-        organizerId: event.organizerId,
-        organizerName: event.organizer.name,
-        category: event.category,
-        isPublic: event.isPublic,
-        maxAttendees: event.maxAttendees,
-        currentAttendees: event._count.attendees,
-        tags: event.tags
-      }));
-
-      return successResponse(transformedEvents);
-    } catch (error: unknown) {
-      return handleApiError(error);
+      // 3. Graceful cleanup on client disconnect
+      req.signal.addEventListener('abort', () => {
+        logger.info(`SSE Connection closed for user ${userId}`);
+        sub.unsubscribe();
+        sub.quit();
+        controller.close();
+      });
     }
   });
-}
 
-// POST create a new event
-export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req: NextRequest) => {
-    return withAuth(req, async ({ userId }: { userId: string }) => {
-      try {
-        const eventBus = new EventBus();
-        const {
-          title,
-          description,
-          location,
-          startDate,
-          endDate,
-          imageUrl,
-          category,
-          isPublic,
-          maxAttendees,
-          tags
-        } = await req.json();
-
-        if (!title || !description || !startDate || !endDate || !category) {
-          return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها", ERROR_CODES.MISSING_PARAMETER);
-        }
-
-        // Check if user exists
-        const user = await prisma.user.findUnique({
-          where: { id: userId }
-        });
-
-        if (!user) {
-          return badRequestResponse("المستخدم غير موجود", ERROR_CODES.NOT_FOUND);
-        }
-
-        const newEvent = await prisma.event.create({
-          data: {
-            title,
-            description,
-            location,
-            startDate: new Date(startDate),
-            endDate: new Date(endDate),
-            imageUrl,
-            organizerId: userId,
-            category,
-            isPublic,
-            maxAttendees,
-            tags: tags || []
-          },
-          include: {
-            organizer: {
-              select: { name: true }
-            },
-            _count: {
-              select: { attendees: true }
-            }
-          }
-        });
-
-        // Transform the data to match the frontend structure
-        const transformedEvent = {
-          id: newEvent.id,
-          title: newEvent.title,
-          description: newEvent.description,
-          location: newEvent.location,
-          startDate: newEvent.startDate.toISOString(),
-          endDate: newEvent.endDate.toISOString(),
-          imageUrl: newEvent.imageUrl,
-          organizerId: newEvent.organizerId,
-          organizerName: newEvent.organizer.name,
-          category: newEvent.category,
-          isPublic: newEvent.isPublic,
-          maxAttendees: newEvent.maxAttendees,
-          currentAttendees: newEvent._count.attendees,
-          tags: newEvent.tags
-        };
-
-        await eventBus.publish('event.created', transformedEvent);
-
-        return successResponse(transformedEvent, undefined, 201);
-      } catch (error: unknown) {
-        return handleApiError(error);
-      }
-    });
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*'
+    }
   });
 }

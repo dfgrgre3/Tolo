@@ -1,22 +1,28 @@
-import { redis, RedisClient } from '@/lib/redis';
+import { redis, getRedisClient } from '@/lib/cache';
+import type { RedisClient } from '@/lib/redis';
 
 import { logger } from '@/lib/logger';
 import { RateLimitConfig, RateLimitResult, RateLimitService } from '@/types/services';
 
 export class RateLimitingService implements RateLimitService {
-  private redisClient: RedisClient;
+  private externalClient: RedisClient | null;
   private defaultConfig: RateLimitConfig;
 
   constructor(
-    redisClient: RedisClient,
+    redisClient: RedisClient | null = null,
     defaultConfig: RateLimitConfig = {
       windowMs: 10 * 60 * 1000, // 10 minutes (stricter)
       maxAttempts: 3, // Reduced from 5 for better security
       lockoutMs: 60 * 60 * 1000 // 60 minutes (progressive lockout)
     }
   ) {
-    this.redisClient = redisClient;
+    this.externalClient = redisClient;
     this.defaultConfig = defaultConfig;
+  }
+
+  private async getClient(): Promise<RedisClient | null> {
+    if (this.externalClient) return this.externalClient;
+    return getRedisClient();
   }
 
   /**
@@ -37,8 +43,9 @@ export class RateLimitingService implements RateLimitService {
       config = this.defaultConfig;
     }
 
+    const client = await this.getClient();
     // Fail open if Redis client is not available
-    if (!this.redisClient) {
+    if (!client) {
       return { allowed: true, attempts: 0 };
     }
 
@@ -56,7 +63,7 @@ export class RateLimitingService implements RateLimitService {
 
     try {
       // Check if account is locked with timeout
-      const getLockPromise = this.redisClient.get(lockoutKey);
+      const getLockPromise = client.get(lockoutKey);
       const lockTimeoutPromise = new Promise<string | null>((resolve) => {
         setTimeout(() => resolve(null), 1000); // 1 second timeout
       });
@@ -74,12 +81,12 @@ export class RateLimitingService implements RateLimitService {
           };
         } else {
           // Lockout expired, remove the lockout key (non-blocking)
-          this.redisClient.del(lockoutKey).catch(() => { });
+          client.del(lockoutKey).catch(() => { });
         }
       }
 
       // Use Redis pipeline for atomic operations with timeout
-      const pipeline = this.redisClient.multi();
+      const pipeline = client.multi();
 
       // Remove old entries outside the window
       pipeline.zremrangebyscore(key, 0, windowStart);
@@ -128,8 +135,9 @@ export class RateLimitingService implements RateLimitService {
       return;
     }
 
+    const client = await this.getClient();
     // Fail silently if Redis client is not available
-    if (!this.redisClient) {
+    if (!client) {
       return;
     }
 
@@ -150,7 +158,7 @@ export class RateLimitingService implements RateLimitService {
 
     try {
       // Use Redis pipeline for atomic operations with timeout
-      const pipeline = this.redisClient.multi();
+      const pipeline = client.multi();
 
       // Add current attempt
       pipeline.zadd(key, now, now.toString());
@@ -174,7 +182,7 @@ export class RateLimitingService implements RateLimitService {
           if (result.attempts >= validMaxAttempts && validLockoutMs) {
             // Lock the account with timeout
             const lockoutUntil = now + validLockoutMs;
-            const setExPromise = this.redisClient.setex(lockoutKey, Math.ceil(validLockoutMs / 1000), lockoutUntil.toString());
+            const setExPromise = client.setex(lockoutKey, Math.ceil(validLockoutMs / 1000), lockoutUntil.toString());
             // Fire and forget with error catching
             setExPromise.catch(() => { });
           }
@@ -204,7 +212,8 @@ export class RateLimitingService implements RateLimitService {
       return;
     }
 
-    if (!this.redisClient) {
+    const client = await this.getClient();
+    if (!client) {
       return;
     }
 
@@ -214,7 +223,7 @@ export class RateLimitingService implements RateLimitService {
 
     try {
       // Add timeout protection
-      const delPromise = this.redisClient.del(key, lockoutKey);
+      const delPromise = client.del(key, lockoutKey);
       const timeoutPromise = new Promise<void>((resolve) => {
         setTimeout(() => resolve(), 1500); // 1.5 second timeout
       });
@@ -245,6 +254,6 @@ export class RateLimitingService implements RateLimitService {
 }
 
 // Create and export a default instance
-export const rateLimitingService = new RateLimitingService(redis);
+export const rateLimitingService = new RateLimitingService();
 
 export default rateLimitingService;
