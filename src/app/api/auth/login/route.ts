@@ -29,26 +29,32 @@ const ipRateLimiter = new RateLimiter({
     windowMs: 15 * 60 * 1000,
     maxAttempts: 20,
     lockoutMs: 30 * 60 * 1000,
+    failClosed: process.env.NODE_ENV === 'production' // Security first for IP-based login limits in prod
 });
 
 const credentialRateLimiter = new RateLimiter({
     windowMs: 15 * 60 * 1000,
     maxAttempts: 5,
     lockoutMs: 30 * 60 * 1000,
+    failClosed: process.env.NODE_ENV === 'production' // Security first for credential-based login limits in prod
 });
 
 function buildIpRateLimitKey(ip: string): string {
-    return `login:ip:${ip}`;
+    return `login:ip:v2:${ip}`;
 }
 
 function buildCredentialRateLimitKey(ip: string, email: string): string {
-    return `login:credential:${ip}:${email}`;
+    return `login:credential:v2:${ip}:${email}`;
 }
 
 function createRateLimitResponse(remainingMinutes?: number): NextResponse {
     const retryAfterSeconds = Math.max(60, (remainingMinutes || 15) * 60);
     return NextResponse.json(
-        { code: 'RATE_LIMITED', retryAfterSeconds },
+        { 
+            error: 'Too many login attempts. Please try again later.',
+            code: 'RATE_LIMITED', 
+            retryAfterSeconds 
+        },
         {
             status: 429,
             headers: {
@@ -74,14 +80,14 @@ export async function POST(req: NextRequest) {
         const rawBody = await req.text();
         const MAX_BODY_CHARS = 8000;
         if (rawBody.length > MAX_BODY_CHARS) {
-            return NextResponse.json({ code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
+            return NextResponse.json({ error: 'Payload too large', code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
         }
 
         let body: any;
         try {
             body = JSON.parse(rawBody);
         } catch {
-            return NextResponse.json({ code: 'INVALID_JSON' }, { status: 400 });
+            return NextResponse.json({ error: 'Invalid JSON', code: 'INVALID_JSON' }, { status: 400 });
         }
 
         const validation = loginSchema.safeParse(body);
@@ -91,14 +97,14 @@ export async function POST(req: NextRequest) {
             const passwordIssue = issues.find(i => i.path?.[0] === 'password');
 
             if (emailIssue) {
-                if (emailIssue.code === 'too_big') return NextResponse.json({ code: 'EMAIL_TOO_LONG' }, { status: 400 });
-                return NextResponse.json({ code: 'INVALID_EMAIL_FORMAT' }, { status: 400 });
+                if (emailIssue.code === 'too_big') return NextResponse.json({ error: 'Email is too long', code: 'EMAIL_TOO_LONG' }, { status: 400 });
+                return NextResponse.json({ error: 'Invalid email format', code: 'INVALID_EMAIL_FORMAT' }, { status: 400 });
             }
             if (passwordIssue) {
-                if (passwordIssue.code === 'too_small') return NextResponse.json({ code: 'PASSWORD_TOO_SHORT' }, { status: 400 });
-                return NextResponse.json({ code: 'INVALID_PARAMETER' }, { status: 400 });
+                if (passwordIssue.code === 'too_small') return NextResponse.json({ error: 'Password is too short', code: 'PASSWORD_TOO_SHORT' }, { status: 400 });
+                return NextResponse.json({ error: 'Invalid password', code: 'INVALID_PARAMETER' }, { status: 400 });
             }
-            return NextResponse.json({ code: 'INVALID_PARAMETER' }, { status: 400 });
+            return NextResponse.json({ error: 'Invalid parameter', code: 'INVALID_PARAMETER' }, { status: 400 });
         }
 
         const { email, password, rememberMe } = validation.data;

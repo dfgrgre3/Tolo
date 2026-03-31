@@ -1,6 +1,6 @@
 import { Worker, Job } from 'bullmq';
 import { redisClient } from '@/lib/cache';
-import { xpService } from '@/services/gamification/xp-service';
+import { xpService } from '@/modules/gamification/xp.service';
 import { logger } from '@/lib/logger';
 
 export class GamificationWorker {
@@ -47,7 +47,13 @@ export class GamificationWorker {
 
     switch (type) {
       case 'add_xp':
-        await xpService.commitXPUpdate(payload.userId, payload.amount, payload.type);
+        // Legacy add_xp job 지원
+        await xpService.processXPUpdate({ userId: payload.userId, amount: payload.amount, type: payload.type || 'study' });
+        break;
+
+      case 'PROCESS_ACTION':
+        // Main entry point for actions (tasks, exams, etc.)
+        await xpService.processAction(payload.userId, payload.action, payload.data);
         break;
       
       default:

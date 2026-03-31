@@ -13,7 +13,8 @@ export class RateLimitingService implements RateLimitService {
     defaultConfig: RateLimitConfig = {
       windowMs: 10 * 60 * 1000, // 10 minutes (stricter)
       maxAttempts: 3, // Reduced from 5 for better security
-      lockoutMs: 60 * 60 * 1000 // 60 minutes (progressive lockout)
+      lockoutMs: 60 * 60 * 1000, // 60 minutes (progressive lockout)
+      failClosed: false // Default to fail-open (Availability prioritized)
     }
   ) {
     this.externalClient = redisClient;
@@ -43,18 +44,22 @@ export class RateLimitingService implements RateLimitService {
       config = this.defaultConfig;
     }
 
-    const client = await this.getClient();
-    // Fail open if Redis client is not available
-    if (!client) {
-      return { allowed: true, attempts: 0 };
-    }
-
-    // Validate config values
+    // 1. Sanitize and validate logic
+    const trimmedClientId = clientId.trim().slice(0, 200); // Limit length
     const validWindowMs = Math.max(1000, Math.min(config.windowMs || this.defaultConfig.windowMs, 3600000)); // 1s to 1h
     const validMaxAttempts = Math.max(1, Math.min(config.maxAttempts || this.defaultConfig.maxAttempts, 1000)); // 1 to 1000
     const validLockoutMs = config.lockoutMs ? Math.max(1000, Math.min(config.lockoutMs, 86400000)) : undefined; // 1s to 24h
 
-    const trimmedClientId = clientId.trim().slice(0, 200); // Limit length
+    const client = await this.getClient();
+    // Fail strategy based on config
+    if (!client) {
+      if (config.failClosed) {
+        logger.error(`[RateLimitingService] FAIL-CLOSED: Redis down, blocking request for ${trimmedClientId} for security.`);
+        return { allowed: false, attempts: validMaxAttempts, remainingTime: 15 };
+      }
+      return { allowed: true, attempts: 0 };
+    }
+
     const key = `rate_limit:${trimmedClientId}`;
     const lockoutKey = `lockout:${trimmedClientId}`;
 
@@ -116,6 +121,11 @@ export class RateLimitingService implements RateLimitService {
         logger.warn('Rate limiting check failed (failing open):', errorMessage);
       }
 
+      // Fail strategy based on config during execution error
+      if (config.failClosed) {
+        return { allowed: false, attempts: validMaxAttempts, remainingTime: 15 };
+      }
+      
       // Fail open - don't block requests if rate limiting fails
       return {
         allowed: true,

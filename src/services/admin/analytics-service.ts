@@ -36,7 +36,6 @@ export class AnalyticsService {
           take: 5,
           select: {
             score: true,
-            totalScore: true,
             createdAt: true
           }
         },
@@ -54,7 +53,7 @@ export class AnalyticsService {
       const lastLogin = student.lastLogin ? new Date(student.lastLogin) : null;
       const recentResults = student.examResults;
       const avgScore = recentResults.length > 0 
-        ? recentResults.reduce((acc: number, r: { score: number; totalScore: number }) => acc + (r.score / r.totalScore), 0) / recentResults.length 
+        ? recentResults.reduce((acc: number, r: { score: number }) => acc + (r.score / 100), 0) / recentResults.length 
         : 1;
 
 
@@ -144,18 +143,17 @@ export class AnalyticsService {
           orderBy: { createdAt: "desc" },
           take: 10,
           select: {
-            score: true,
-            totalScore: true
+            score: true
           }
         }
       }
     });
 
-    const forecast = students.map((student) => {
+    const forecast: (PerformanceForecast | null)[] = students.map((student) => {
       const results = student.examResults;
       if (results.length < 2) return null;
       
-      const scores = results.map((r: { score: number; totalScore: number }) => (r.score / r.totalScore) * 100);
+      const scores = results.map((r: { score: number }) => r.score);
       const trend = scores[0] - scores[scores.length - 1]; // Very simple trend
       
       return {
@@ -163,11 +161,13 @@ export class AnalyticsService {
         name: student.name,
         currentScore: Math.round(scores[0]),
         predictedFinalScore: Math.min(100, Math.max(0, Math.round(scores[0] + (trend * 0.5)))),
-        confidence: results.length >= 5 ? ("HIGH" as const) : ("MEDIUM" as const)
+        confidence: results.length >= 5 ? "HIGH" : "MEDIUM"
       };
-    }).filter((f): f is PerformanceForecast => f !== null);
+    });
 
-    return forecast.slice(0, 10);
+    const validForecast = forecast.filter((f): f is PerformanceForecast => f !== null);
+
+    return validForecast.slice(0, 10);
   }
 
   static async executeAiAction(

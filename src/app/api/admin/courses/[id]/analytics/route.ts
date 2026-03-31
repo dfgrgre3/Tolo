@@ -85,15 +85,15 @@ export async function GET(
         });
 
         const progressDistribution = {
-          notStarted: progressData.filter((p) => p.progress === 0).length,
-          inProgress: progressData.filter((p) => p.progress > 0 && p.progress < 50).length,
-          halfWay: progressData.filter((p) => p.progress >= 50 && p.progress < 100).length,
-          completed: progressData.filter((p) => p.progress >= 100).length,
+          notStarted: progressData.filter((p: any) => p.progress === 0).length,
+          inProgress: progressData.filter((p: any) => p.progress > 0 && p.progress < 50).length,
+          halfWay: progressData.filter((p: any) => p.progress >= 50 && p.progress < 100).length,
+          completed: progressData.filter((p: any) => p.progress >= 100).length,
         };
 
         const avgProgress =
           progressData.length > 0
-            ? Math.round(progressData.reduce((sum, p) => sum + p.progress, 0) / progressData.length)
+            ? Math.round(progressData.reduce((sum: number, p: any) => sum + p.progress, 0) / progressData.length)
             : 0;
 
         // Content performance: topic count + lessons per topic
@@ -102,18 +102,18 @@ export async function GET(
           include: {
             _count: { select: { subTopics: true } },
             subTopics: {
-              select: { duration: true, type: true, isFree: true },
+              select: { durationMinutes: true, type: true, isFree: true },
             },
           },
           orderBy: { order: "asc" },
         });
 
-        const contentPerformance = topics.map((topic) => ({
+        const contentPerformance = topics.map((topic: any) => ({
           name: topic.name,
           lessonsCount: topic._count.subTopics,
-          totalDuration: topic.subTopics.reduce((sum, s) => sum + (s.duration || 0), 0),
-          freeCount: topic.subTopics.filter((s) => s.isFree).length,
-          videoCount: topic.subTopics.filter((s) => s.type === "VIDEO").length,
+          totalDuration: topic.subTopics.reduce((sum: number, s: any) => sum + (s.durationMinutes || 0), 0),
+          freeCount: topic.subTopics.filter((s: any) => s.isFree).length,
+          videoCount: topic.subTopics.filter((s: any) => s.type === "VIDEO").length,
         }));
 
         // Reviews distribution
@@ -131,7 +131,7 @@ export async function GET(
 
         const avgRating =
           reviews.length > 0
-            ? parseFloat((reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1))
+            ? parseFloat((reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / reviews.length).toFixed(1))
             : 0;
 
         // Comparison with other courses
@@ -149,7 +149,7 @@ export async function GET(
           take: 10,
         });
 
-        const comparison = allCourses.map((c) => ({
+        const comparison = allCourses.map((c: any) => ({
           id: c.id,
           name: c.nameAr || c.name,
           enrollments: c._count.enrollments,

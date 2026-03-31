@@ -33,11 +33,12 @@ export async function GET(request: NextRequest) {
 
     // 8~7?7? Redis
     try {
-      const client = redisService.getClient();
+      const client = await redisService.getClient();
       if (client && typeof client.ping === 'function') {
         await client.ping();
-      } else if (redisService.isConnected()) {
-        // 7?7?7? 8?7?8  client 8&7?7?87R 8 7?7?7?7?8! 7?7?8!7?
+        checks.redis = true;
+      } else if (await redisService.isConnected()) {
+        // Fallback to isConnected check if client is not directly accessible
         checks.redis = true;
       } else {
         checks.redis = false;

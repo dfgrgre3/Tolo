@@ -5,12 +5,12 @@ import { sendMultiChannelNotification } from "@/services/notification-sender";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   return opsWrapper(request, async (req: NextRequest) => {
     return withAdmin(req, async () => {
       try {
-        const userId = params.id;
+        const { id: userId } = await params;
         
         if (!userId) {
           return badRequestResponse("معرف المستخدم مطلوب");

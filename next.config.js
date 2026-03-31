@@ -113,9 +113,9 @@ const nextConfig = {
   },
 
   // Configure webpack to handle path aliases
-  webpack: (config, { dev, isServer }) => {
-    // Prevent Node.js modules from being bundled for client
-    if (!isServer) {
+  webpack: (config, { dev, isServer, nextRuntime }) => {
+    // Prevent Node.js modules from being bundled for client or Edge
+    if (!isServer || nextRuntime === 'edge') {
       // Add aliases for node: scheme imports and server-side packages
       config.resolve.alias = {
         ...config.resolve.alias,
@@ -123,11 +123,17 @@ const nextConfig = {
         'node:path': false,
         'node:util': false,
         'node:fs': false,
+        'node:console': false,
+        'node:crypto': false,
+        'node:diagnostics_channel': false,
+        'node:dns': false,
+        'node:https': false,
         'async_hooks': false,
         'node:async_hooks': false,
         '@elastic/elasticsearch': false,
         'winston': false,
         'winston-elasticsearch': false,
+        'undici': false,
       };
     } else {
       // Server-side alias

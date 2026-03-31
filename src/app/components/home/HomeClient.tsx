@@ -7,7 +7,7 @@ import { ProgressSummary } from "@/lib/server-data-fetch";
 import { UserHome } from "@/app/components/home/UserHome";
 import LandingPage from "@/app/components/home/LandingPage";
 import { User as ApiUser } from "@/types/user";
-import { UserRole } from "@/types/enums";
+import { UserRole, UserStatus } from "@/types/enums";
 import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { motion, AnimatePresence } from "framer-motion";
@@ -111,6 +111,7 @@ export function HomeClient({ summary }: HomeClientProps) {
       username: authUser.username || null,
       avatar: authUser.avatar || null,
       role: (authUser.role as UserRole) || UserRole.USER,
+      status: (authUser.status as UserStatus) || UserStatus.ACTIVE,
       phone: authUser.phone || null,
       phoneVerified: false,
       emailVerified: authUser.emailVerified ?? false,

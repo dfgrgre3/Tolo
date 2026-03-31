@@ -1,12 +1,13 @@
 import { logger } from './logger';
-import { redisClient } from './cache';
-import Redis from 'ioredis';
+import { getRedisClient } from './cache';
+import type Redis from 'ioredis';
 
 /**
  * --- SCALABLE REALTIME BUS (REDIS PUB/SUB) ---
  * 
  * Supports 1M+ concurrent users by distributing events across multiple app instances.
  * Uses Redis as the message backplane.
+ * Refactored: Consolidates listeners to a single event dispatcher for O(1) Redis scaling.
  */
 export interface RealtimeEvent {
   type: string;
@@ -14,20 +15,53 @@ export interface RealtimeEvent {
   timestamp: string;
 }
 
+type RealtimeHandler = (event: RealtimeEvent) => void;
+
 class RealtimeBus {
   private static instance: RealtimeBus;
-  private pub: Redis;
-  private sub: Redis;
+  private pub: Redis | null = null;
+  private sub: Redis | null = null;
+  private handlers = new Map<string, Set<RealtimeHandler>>();
+  private isSubscribedGlobally = false;
 
-  private constructor() {
-    // Create dedicated Pub/Sub connections (ioredis requires separate clients for Sub)
-    this.pub = redisClient.duplicate();
-    this.sub = redisClient.duplicate();
-  }
+  private constructor() {}
 
   public static getInstance() {
     if (!RealtimeBus.instance) RealtimeBus.instance = new RealtimeBus();
     return RealtimeBus.instance;
+  }
+
+  private async ensureClients() {
+    if (this.pub && this.sub) return;
+
+    const baseClient = await getRedisClient();
+    if (!baseClient) {
+      throw new Error('[RealtimeBus] Could not get base Redis client');
+    }
+
+    this.pub = baseClient.duplicate();
+    this.sub = baseClient.duplicate();
+
+    // Single global listener to dispatch messages to local handlers
+    this.sub.on('message', (channel: string, message: string) => {
+      const channelHandlers = this.handlers.get(channel);
+      if (!channelHandlers) return;
+
+      try {
+        const event: RealtimeEvent = JSON.parse(message);
+        channelHandlers.forEach(handler => {
+          try {
+            handler(event);
+          } catch (handlerErr) {
+            logger.error(`[RealtimeBus] Local handler error on ${channel}:`, handlerErr);
+          }
+        });
+      } catch (parseErr) {
+        logger.error(`[RealtimeBus] Message parse error on ${channel}:`, parseErr);
+      }
+    });
+
+    this.isSubscribedGlobally = true;
   }
 
   /**
@@ -35,7 +69,10 @@ class RealtimeBus {
    */
   async emit(channel: string, event: RealtimeEvent) {
     try {
-      await this.pub.publish(channel, JSON.stringify(event));
+      await this.ensureClients();
+      if (this.pub) {
+        await this.pub.publish(channel, JSON.stringify(event));
+      }
     } catch (error) {
       logger.error(`[RealtimeBus] Publish failed for ${channel}:`, error);
     }
@@ -44,27 +81,33 @@ class RealtimeBus {
   /**
    * Subscribe an SSE connection to a channel
    */
-  async subscribe(channel: string, onMessage: (event: RealtimeEvent) => void) {
-    // We use a shared 'sub' client, but manage handlers locally
-    await this.sub.subscribe(channel);
+  async subscribe(channel: string, onMessage: RealtimeHandler) {
+    await this.ensureClients();
+    if (!this.sub) return () => {};
+
+    // 1. Register handler locally
+    if (!this.handlers.has(channel)) {
+      this.handlers.set(channel, new Set());
+      // 2. Only subscribe to Redis if this is the FIRST local listener for this channel
+      await this.sub.subscribe(channel);
+    }
     
-    const handler = (chan: string, message: string) => {
-      if (chan === channel) {
-        try {
-          onMessage(JSON.parse(message));
-        } catch (e) {
-          logger.error(`[RealtimeBus] Message parse error: ${e}`);
+    this.handlers.get(channel)!.add(onMessage);
+
+    // Return cleanup function
+    return () => {
+      const channelHandlers = this.handlers.get(channel);
+      if (channelHandlers) {
+        channelHandlers.delete(onMessage);
+        
+        // 3. Unsubscribe from Redis only if NO local listeners remain
+        if (channelHandlers.size === 0) {
+          this.handlers.delete(channel);
+          this.sub?.unsubscribe(channel).catch(err => {
+            logger.error(`[RealtimeBus] Unsubscribe failed for ${channel}:`, err);
+          });
         }
       }
-    };
-
-    this.sub.on('message', handler);
-
-    return () => {
-      this.sub.off('message', handler);
-      // Only unsubscribe from Redis if no other local listeners exist for this channel
-      // (This is a simplified version, in a large scale we'd reference count)
-      this.sub.unsubscribe(channel);
     };
   }
 

@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
 
         const where: Prisma.UserWhereInput = {
           AND: [
+            { isDeleted: false }, // Critical: Only show active users by default
             search
               ? {
                   OR: [
@@ -34,6 +35,8 @@ export async function GET(request: NextRequest) {
             role ? { role } : {},
           ],
         };
+
+        const { CacheService } = await import("@/lib/cache");
 
         const [users, total, totalAdmins, powerUsers] = await Promise.all([
           prisma.user.findMany({
@@ -54,9 +57,17 @@ export async function GET(request: NextRequest) {
               emailVerified: true,
               createdAt: true,
               lastLogin: true,
-              totalXP: true,
-              level: true,
-              currentStreak: true,
+              xp: {
+                select: {
+                  totalXP: true,
+                  level: true,
+                }
+              },
+              activity: {
+                select: {
+                  currentStreak: true,
+                }
+              },
               sessions: {
                 where: {
                   isActive: true,
@@ -75,8 +86,15 @@ export async function GET(request: NextRequest) {
             },
           }),
           prisma.user.count({ where }),
-          prisma.user.count({ where: { role: UserRole.ADMIN } }),
-          prisma.user.count({ where: { level: { gt: 10 } } }),
+          // Cache global stats for 5 minutes to reduce DB load
+          CacheService.getOrSet("admin:users:stats:total_admins", () => 
+            prisma.user.count({ where: { role: UserRole.ADMIN } }), 
+            300
+          ),
+          CacheService.getOrSet("admin:users:stats:power_users", () => 
+            prisma.user.count({ where: { xp: { level: { gt: 10 } } } }),
+            300
+          ),
         ]);
 
         return successResponse({
@@ -180,8 +198,14 @@ export async function DELETE(request: NextRequest) {
           return badRequestResponse("معرف المستخدم مطلوب");
         }
 
-        await prisma.user.delete({
+        // Perform Soft Delete to preserve historical associations (XP, Exams, Logs)
+        await prisma.user.update({
           where: { id: userId },
+          data: { 
+            isDeleted: true,
+            deletedAt: new Date(),
+            status: 'DELETED' // Ensure status reflects deletion
+          }
         });
 
         return successResponse(null, "تم حذف المستخدم بنجاح");

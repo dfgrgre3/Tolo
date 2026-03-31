@@ -2,6 +2,7 @@ export interface RateLimitConfig {
     windowMs: number;
     maxAttempts: number;
     lockoutMs?: number;
+    failClosed?: boolean;
 }
 
 export interface RateLimitResult {
