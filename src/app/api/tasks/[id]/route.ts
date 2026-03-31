@@ -35,19 +35,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         const { id } = await params;
         const data = await request.json();
 
-        // Validate that the task belongs to the authenticated user
-        const existingTask = await prisma.task.findFirst({
-          where: {
-            id,
-            userId: authUser.userId
-          }
-        });
-
-        if (!existingTask) {
-          return notFoundResponse('Task not found');
-        }
-
-        // Whitelist allowed fields to prevent mass assignment vulnerability
+        // 1. Pre-validation and whitelist (Compute only)
         const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subjectId'];
         const updates: Record<string, unknown> = {};
 
@@ -60,7 +48,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
             } else if (field === 'completedAt' && data[field] === false) {
               updates[field] = null;
             } else if (field === 'priority' && typeof data[field] === 'number') {
-              updates[field] = data[field] + 1;
+              updates[field] = data[field];
             } else if (field === 'description' && data[field] === '') {
               updates[field] = null;
             } else {
@@ -71,31 +59,41 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         if ('subject' in data) updates.subjectId = data.subject ? SUBJECT_ID_MAP[data.subject] || data.subject : null;
 
-        // Prevent changing userId through mass assignment
         if ('userId' in data) {
           return badRequestResponse('Cannot change task ownership');
         }
 
-        // Check if task is being marked as completed
-        const isCompleting = (updates['status'] === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED) ||
-          (updates['completedAt'] !== undefined && !existingTask.completedAt);
+        // 2. Combined Ownership Check and Fetch
+        // We use findFirst to ensure the user owns the task before updating.
+        const existingTask = await prisma.task.findFirst({
+          where: { id, userId: authUser.userId },
+          select: { status: true, completedAt: true }
+        });
 
-        const updated = await prisma.task.update({
+        if (!existingTask) {
+          return notFoundResponse('Task not found or unauthorized');
+        }
+
+        // 3. Perform update (O(1) by primary key)
+        const updatedTask = await prisma.task.update({
           where: { id },
           data: updates as any,
         });
 
-        // Trigger gamification if task is being completed
+        // 4. Post-update logic (Gamification)
+        // Check if task was just completed
+        const isCompleting = (updates['status'] === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED) ||
+          (updates['completedAt'] !== undefined && !existingTask.completedAt);
+
         if (isCompleting) {
           try {
             await gamificationService.updateUserProgress(authUser.userId, 'task_completed', {});
           } catch (gamificationError) {
             logger.error('Error updating gamification for task:', gamificationError);
-            // Don't fail the request if gamification fails
           }
         }
 
-        return successResponse(updated);
+        return successResponse(updatedTask);
       } catch (e: unknown) {
         return handleApiError(e);
       }
@@ -109,19 +107,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
       try {
         const { id } = await params;
 
-        // Validate that the task belongs to the authenticated user before deletion
-        const existingTask = await prisma.task.findFirst({
-          where: {
-            id,
-            userId: authUser.userId
+        // Optimized Delete: Single-query atomic deletion with ownership check
+        const { count } = await prisma.task.deleteMany({
+          where: { 
+            id, 
+            userId: authUser.userId 
           }
         });
 
-        if (!existingTask) {
-          return notFoundResponse('Task not found');
+        if (count === 0) {
+          return notFoundResponse('Task not found or unauthorized');
         }
 
-        await prisma.task.delete({ where: { id } });
         return successResponse({ ok: true });
       } catch (e: unknown) {
         return handleApiError(e);

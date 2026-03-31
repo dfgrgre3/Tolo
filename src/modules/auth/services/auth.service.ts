@@ -1,7 +1,7 @@
 import { compare } from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { authRepository } from '../repositories/auth.repository';
-import { authRateLimiter } from '@/lib/rate-limit';
+import { authRateLimiter } from '@/lib/rate-limit-unified';
 import { logger } from '@/lib/logger';
 import { CacheService } from '@/lib/cache';
 
@@ -9,10 +9,10 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback-
 
 export class AuthService {
   /**
-   * Production-grade login with distributed rate limiting and distributed caching
+   * Production-grade login with unified distributed rate limiting (sliding window)
    */
   async login(email: string, passwordHash: string, metadata: { ip: string; userAgent: string }) {
-    // 1. Distributed Rate Limiting (Prevent Brute Force)
+    // 1. Unified Rate Limiting (ZSET-based sliding window + Lockout)
     const rateLimit = await authRateLimiter.check(`${email}:${metadata.ip}`);
     if (!rateLimit.allowed) {
       logger.warn(`Auth blocked: Too many attempts for ${email} from ${metadata.ip}`);

@@ -142,7 +142,7 @@ export default function AdminUsersPage() {
               </Avatar>
               <div className="absolute -bottom-1 -right-1 bg-background rounded-full p-0.5 border border-border shadow-sm">
                 <div className="bg-primary text-[8px] font-black text-white px-1 rounded-full uppercase tracking-tighter">
-                  LVL {user.level}
+                  LVL {user.level || 1}
                 </div>
               </div>
             </div>
@@ -166,10 +166,10 @@ export default function AdminUsersPage() {
         <div className="flex flex-col">
           <span className="font-black text-amber-500 flex items-center gap-1">
             <Zap className="w-3 h-3 fill-amber-500" />
-            {row.original.totalXP.toLocaleString()} XP
+            {(row.original.totalXP || 0).toLocaleString()} XP
           </span>
           <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">
-            {row.original._count.tasks} مهمة مكتملة
+            {row.original._count?.tasks || 0} مهمة مكتملة
           </span>
         </div>
       ),

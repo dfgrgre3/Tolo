@@ -56,13 +56,10 @@ export class XPService {
       // 1. Enqueue job immediately for background processing
       await enqueueJob(gamificationQueue, 'ADD_XP', { userId, amount, type });
       
-      // 2. Optimistic Cache Update
-      // Allow the UI to reflect changes instantly while DB processes
+      // 2. Optimistic Cache Update (Atomic)
+      // Instant UI feedback via distributed counter
       const cacheKey = `user:${userId}:xp`;
-      const currentXP = await redisService.get<number>(cacheKey);
-      if (currentXP !== null) {
-        await redisService.set(cacheKey, currentXP + amount, 300); 
-      }
+      await redisService.incrBy(cacheKey, amount);
       
       return { success: true };
     } catch (error) {

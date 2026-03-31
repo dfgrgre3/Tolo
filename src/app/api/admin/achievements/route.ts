@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { AchievementCategory, Difficulty } from "@prisma/client";
+import { AchievementCategory, Difficulty } from "@/types/enums";
 
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";

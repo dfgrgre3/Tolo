@@ -88,7 +88,7 @@ model User {
   contentPreferences            ContentPreference[]
   customGoals                   CustomGoal[]
   organizedEvents               Event[]               @relation("EventOrganizer")
-  organizedContests            Contest[]             @relation("ContestOrganizer")
+  organizedContests             Contest[]             @relation("ContestOrganizer")
   examResults                   ExamResult[]
   forumPosts                    ForumPost[]           @relation("ForumPostAuthor")
   forumReplies                  ForumReply[]          @relation("ForumReplyAuthor")
@@ -133,27 +133,27 @@ model User {
   isDeleted                     Boolean               @default(false)
   deletedAt                     DateTime?
 
-  @@index([role])
+  @@index([role, status])
   @@index([lastLogin])
   @@index([emailVerified])
-  @@index([isDeleted])
+  @@index([isDeleted, role])
 }
 
 model UserXP {
-  userId           String   @id
-  totalXP          Int      @default(0)
-  level            Int      @default(1)
-  studyXP          Int      @default(0)
-  taskXP           Int      @default(0)
-  examXP           Int      @default(0)
-  challengeXP      Int      @default(0)
-  questXP          Int      @default(0)
-  seasonXP         Int      @default(0)
-  updatedAt        DateTime @updatedAt
+  userId      String   @id
+  totalXP     Int      @default(0)
+  level       Int      @default(1)
+  studyXP     Int      @default(0)
+  taskXP      Int      @default(0)
+  examXP      Int      @default(0)
+  challengeXP Int      @default(0)
+  questXP     Int      @default(0)
+  seasonXP    Int      @default(0)
+  updatedAt   DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@index([totalXP(sort: Desc)])
+  @@index([totalXP(sort: Desc), level])
   @@index([level])
 }
 
@@ -179,22 +179,22 @@ model UserWallet {
   userId    String   @id
   balance   Float    @default(0)
   updatedAt DateTime @updatedAt
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model SubjectEnrollment {
-  id                String   @id @default(cuid())
+  id                String        @id @default(cuid())
   userId            String
   subjectId         String
   targetWeeklyHours Int           @default(0)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   paymentStatus     PaymentStatus @default(PENDING)
-  progress          Int      @default(0)
-  subject           Subject  @relation(fields: [subjectId], references: [id])
-  user              User     @relation(fields: [userId], references: [id], onDelete: NoAction)
-  isDeleted         Boolean  @default(false)
+  progress          Int           @default(0)
+  subject           Subject       @relation(fields: [subjectId], references: [id])
+  user              User          @relation(fields: [userId], references: [id], onDelete: NoAction)
+  isDeleted         Boolean       @default(false)
   deletedAt         DateTime?
 
   @@unique([userId, subjectId])
@@ -221,13 +221,12 @@ model StudySession {
   user        User           @relation(fields: [userId], references: [id], onDelete: NoAction)
   isDeleted   Boolean        @default(false)
   deletedAt   DateTime?
+  status      TaskStatus     @default(PENDING)
 
-  @@index([userId, subjectId])
-  @@index([userId, startTime(sort: Desc)])
-  @@index([subjectId])
+  @@index([userId, isDeleted])
+  @@index([subjectId, isDeleted])
   @@index([taskId])
-  @@index([startTime(sort: Desc)])
-  @@index([isDeleted])
+  @@index([status, startTime(sort: Desc)])
 }
 
 model Task {
@@ -390,9 +389,9 @@ model ExamResult {
   exam      Exam     @relation(fields: [examId], references: [id])
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, examId])
   @@index([userId])
   @@index([examId])
-  @@unique([userId, examId])
 }
 
 model Session {
@@ -814,9 +813,9 @@ model Teacher {
   notes     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subjects  Subject[] @relation("SubjectToTeacher")
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjects Subject[] @relation("SubjectToTeacher")
 
   @@index([userId])
 }
@@ -865,10 +864,9 @@ model Subject {
   seoDescription     String?
   slug               String?              @unique
 
-
-  teachers           Teacher[]            @relation("SubjectToTeacher")
-  topics             Topic[]
-  userGrades         UserGrade[]
+  teachers   Teacher[]   @relation("SubjectToTeacher")
+  topics     Topic[]
+  userGrades UserGrade[]
 
   @@index([categoryId])
   @@index([isActive, createdAt(sort: Desc)])
@@ -880,7 +878,7 @@ model Subject {
 model Topic {
   id          String     @id @default(cuid())
   subjectId   String
-  title       String @default("")
+  title       String     @default("")
   description String?
   order       Int        @default(0)
   createdAt   DateTime   @default(now())
@@ -894,7 +892,7 @@ model Topic {
 model SubTopic {
   id              String             @id @default(cuid())
   topicId         String
-  title           String @default("")
+  title           String             @default("")
   description     String?
   content         String?
   videoUrl        String?
@@ -904,11 +902,11 @@ model SubTopic {
   durationMinutes Int                @default(0)
   isFree          Boolean            @default(false)
   type            LessonType         @default(VIDEO)
-  attachments LessonAttachment[]
-  notes       LessonNote[]
-  questions   LessonQuestion[]
-  topic       Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
-  progresses  TopicProgress[]
+  attachments     LessonAttachment[]
+  notes           LessonNote[]
+  questions       LessonQuestion[]
+  topic           Topic              @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  progresses      TopicProgress[]
 
   @@index([topicId])
 }
@@ -1107,7 +1105,7 @@ model EventAttendee {
 }
 
 model Contest {
-  id          String   @id @default(cuid())
+  id          String            @id @default(cuid())
   title       String
   description String?
   imageUrl    String?
@@ -1117,14 +1115,14 @@ model Contest {
   endDate     DateTime
   rules       String?
   prizes      String?
-  isActive    Boolean       @default(true)
-  status      ContestStatus @default(DRAFT)
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime @updatedAt
-  pinCode     String?  @unique
+  isActive    Boolean           @default(true)
+  status      ContestStatus     @default(DRAFT)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  pinCode     String?           @unique
   questions   ContestQuestion[]
   organizerId String?
-  organizer   User?    @relation("ContestOrganizer", fields: [organizerId], references: [id])
+  organizer   User?             @relation("ContestOrganizer", fields: [organizerId], references: [id])
 }
 
 model ContestQuestion {
@@ -1141,38 +1139,38 @@ model ContestQuestion {
 }
 
 model Experiment {
-  id           String   @id @default(cuid())
-  title        String
-  description  String?
-  status       String   @default("draft")
-  variantAName String
-  variantBName String
-  variantAViews Int     @default(0)
-  variantAComps Int     @default(0)
-  variantBViews Int     @default(0)
-  variantBComps Int     @default(0)
-  startDate    DateTime @default(now())
-  endDate      DateTime?
-  createdBy    String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String    @id @default(cuid())
+  title         String
+  description   String?
+  status        String    @default("draft")
+  variantAName  String
+  variantBName  String
+  variantAViews Int       @default(0)
+  variantAComps Int       @default(0)
+  variantBViews Int       @default(0)
+  variantBComps Int       @default(0)
+  startDate     DateTime  @default(now())
+  endDate       DateTime?
+  createdBy     String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 }
 
 model MarketingCampaign {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   title          String
   content        String
   audience       String
   rewardType     String
   rewardValue    Float?
-  status         String   @default("draft")
+  status         String    @default("draft")
   scheduledAt    DateTime?
   sentAt         DateTime?
-  deliveredCount Int      @default(0)
-  openedCount    Int      @default(0)
-  claimedCount   Int      @default(0)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  deliveredCount Int       @default(0)
+  openedCount    Int       @default(0)
+  claimedCount   Int       @default(0)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 }
 
 model Schedule {
@@ -1288,9 +1286,9 @@ model TestResult {
   updatedAt   DateTime        @updatedAt
   exam        AiGeneratedExam @relation(fields: [examId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, examId])
   @@index([userId])
   @@index([examId])
-  @@unique([userId, examId])
 }
 
 model BiometricCredential {
@@ -1587,10 +1585,10 @@ model user_preferences {
 model ContentReport {
   id          String   @id @default(cuid())
   userId      String
-  targetId    String   // ID of the video, exam, or lesson
-  targetType  String   // "VIDEO", "EXAM", "LESSON", "BOOK"
+  targetId    String // ID of the video, exam, or lesson
+  targetType  String // "VIDEO", "EXAM", "LESSON", "BOOK"
   subjectId   String?
-  issueType   String   // "ERROR", "TYPO", "VIDEO_ISSUE", "OTHER"
+  issueType   String // "ERROR", "TYPO", "VIDEO_ISSUE", "OTHER"
   description String
   status      String   @default("PENDING") // PENDING, INVESTIGATING, RESOLVED, DISMISSED
   adminNote   String?

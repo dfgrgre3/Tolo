@@ -7,39 +7,69 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { withAdmin, handleApiError } from '@/lib/api-utils';
 
+// Constants for security limits
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg', 
+  'image/png', 
+  'image/webp', 
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+];
+
 export async function POST(request: NextRequest) {
   return withAdmin(request, async (authUser) => {
     try {
       const data = await request.formData();
       const fileEntry = data.get('file');
 
+      // 1. Basic type check
       if (!(fileEntry instanceof Blob)) {
         return NextResponse.json(
-          { error: 'لم يتم اختيار ملف' },
+          { error: 'لم يتم اختيار ملف صالح' },
           { status: 400 }
+        );
+      }
+
+      // 2. Security: MIME type validation (Simple check - for production use 'file-type' library)
+      if (!ALLOWED_MIME_TYPES.includes(fileEntry.type)) {
+        logger.warn(`Rejected upload with invalid MIME type: ${fileEntry.type} from admin ${authUser.userId}`);
+        return NextResponse.json(
+          { error: `نوع الملف غير مسموح به (${fileEntry.type}). يرجى رفع ملفات الصور أو المستندات فقط.` },
+          { status: 415 }
+        );
+      }
+
+      // 3. Security: File Size limit to prevent Disk Filling attacks
+      if (fileEntry.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: `حجم الملف كبير جدًا. الحد الأقصى هو ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+          { status: 413 }
         );
       }
 
       const buffer = Buffer.from(await fileEntry.arrayBuffer());
 
-      // إنشاء اسم ملف فريد
+      // 4. Filename sanitization
+      // We ignore the original filename for the actual storage to prevent directory traversal
       const originalName = (fileEntry as any).name || 'upload';
-      const fileName = `${uuidv4()}-${originalName}`;
+      const extension = originalName.split('.').pop() || '';
+      const safeFileName = `${uuidv4()}.${extension}`;
+      
       const uploadsDir = join(process.cwd(), 'public', 'uploads');
-      const filePath = join(uploadsDir, fileName);
+      const filePath = join(uploadsDir, safeFileName);
 
-      // التأكد من وجود مجلد الرفع
       if (!existsSync(uploadsDir)) {
         mkdirSync(uploadsDir, { recursive: true });
       }
 
-      // حفظ الملف على القرص
+      // 5. Save to disk
       await writeFile(filePath, buffer);
 
-      // رابط الملف
-      const fileUrl = `/uploads/${fileName}`;
+      const fileUrl = `/uploads/${safeFileName}`;
 
-      logger.info(`File uploaded successfully: ${fileName} by user ${authUser.userId}`);
+      logger.info(`File uploaded successfully: ${safeFileName} (${buffer.length} bytes) by admin ${authUser.userId}`);
 
       return NextResponse.json({
         message: 'تم رفع الملف بنجاح',
@@ -52,8 +82,8 @@ export async function POST(request: NextRequest) {
       logger.error('Error uploading file:', error);
       return NextResponse.json(
         {
-          error: 'فشل رفع الملف. تأكد من حجم الملف وصلاحيات الكتابة.',
-          details: error instanceof Error ? error.message : String(error)
+          error: 'فشل رفع الملف نتيجة خطأ داخلي.',
+          details: process.env.NODE_ENV === 'development' ? error.message : undefined
         },
         { status: 500 }
       );

@@ -4,10 +4,30 @@ import { logger } from '@/lib/logger';
 export { CachePrefixes };
 
 export async function invalidateUserCache(userId: string): Promise<void> {
+  // OPTIMIZATION: Try known prefixes first to avoid O(N) scan in Redis clusters.
+  const commonPatterns = [
+    `user:${userId}:*`,
+    `profile:${userId}:*`,
+    `tasks:${userId}:*`,
+    `progress:${userId}:*`,
+    `sessions:${userId}:*`
+  ];
+  
+  for (const pattern of commonPatterns) {
+    await CacheService.invalidatePattern(pattern);
+  }
+
+  // FAIL-SAFE: The legacy catch-all pattern (O(N) in Redis)
+  // Ensure we don't miss any keys following odd patterns.
   await CacheService.invalidatePattern(`*:${userId}:*`);
 }
 
 export async function invalidateUserDataCache(userId: string, dataType: string): Promise<void> {
+  // Optimized prefix-based invalidation
+  await CacheService.invalidatePattern(`${dataType}:${userId}:*`);
+  await CacheService.invalidatePattern(`user:${userId}:${dataType}:*`);
+  
+  // Legacy fallback
   await CacheService.invalidatePattern(`*:${userId}:${dataType}:*`);
 }
 

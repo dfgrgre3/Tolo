@@ -1,8 +1,6 @@
-
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { apiRateLimiter, authRateLimiter } from '@/lib/rate-limit';
-import { rateLimit } from '@/lib/middleware/rate-limiter';
+import { logger } from '@/lib/logger';
 import { TokenService, TokenPayload } from '@/services/auth/token-service';
 import {
   DEFAULT_AUTHENTICATED_ROUTE,
@@ -99,22 +97,38 @@ export default async function middleware(request: NextRequest) {
     // -- RATE LIMITING --
     // Run for all routes except static assets to prevent abuse
     if (!isStaticAsset) {
-      const { success, headers } = await rateLimit(request);
+      const { apiRateLimiter, authRateLimiter } = await import('@/lib/rate-limit-unified');
+      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown';
+      const isAuthApi = pathname.startsWith('/api/auth');
       
-      if (!success) {
+      const result = isAuthApi 
+        ? await authRateLimiter.check(ip, pathname) 
+        : await apiRateLimiter.check(ip, pathname);
+      
+      const headers = {
+        'X-RateLimit-Limit': (isAuthApi ? 5 : 100).toString(),
+        'X-RateLimit-Remaining': result.remaining.toString(),
+        'X-RateLimit-Reset': result.resetTime.toString(),
+      };
+
+      if (!result.allowed) {
+        logger.warn(`Rate limit exceeded for [${isAuthApi ? 'AUTH' : 'API'}] - IP: ${ip} on ${pathname}`);
         return withSecurityHeaders(NextResponse.json(
           { 
             error: 'Too Many Requests', 
-            message: 'Enhance your calm. Please slow down.'
+            message: result.lockedUntil ? 'Your account is temporarily locked due to too many failed attempts.' : 'Slow down, you are hitting the API too fast.'
           },
           { 
             status: 429,
-            headers
+            headers: {
+              ...headers,
+              'Retry-After': Math.ceil((result.resetTime - Date.now()) / 1000).toString()
+            }
           }
         ));
       }
 
-      // Inject Rate Limit headers into request for downstream use if needed
+      // Inject Rate Limit headers into request for downstream use IF needed
       Object.entries(headers).forEach(([k, v]) => requestHeaders.set(k.toLowerCase(), v));
     }
 

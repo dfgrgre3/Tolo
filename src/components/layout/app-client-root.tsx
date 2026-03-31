@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect } from "react";
-import { HydrationFix } from "../utils/HydrationFix";
+import { HydrationFix } from "../hydration-fix";
 import { initializeSettings } from "@/lib/settings-initializer";
 
 export default function AppClientRoot({ children }: { children: React.ReactNode }) {

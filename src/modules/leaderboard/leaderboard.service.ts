@@ -25,6 +25,7 @@ export class LeaderboardService {
    */
   async getTopUsers(limit: number = 10): Promise<LeaderboardPlayer[]> {
     const redis = await redisService.getClient();
+    if (!redis) return [];
     
     // 1. Get user IDs and scores from Redis Sorted Set
     const results = await redis.zrevrange(LeaderboardService.GLOBAL_KEY, 0, limit - 1, 'WITHSCORES');
@@ -34,7 +35,7 @@ export class LeaderboardService {
       await this.warmUpCache();
       // Retry after warm up
       const retryResults = await redis.zrevrange(LeaderboardService.GLOBAL_KEY, 0, limit - 1, 'WITHSCORES');
-      if (retryResults.length === 0) return [];
+      if (!retryResults || retryResults.length === 0) return [];
     }
 
     const leaderboardItems = results.length > 0 ? results : [];
@@ -63,7 +64,9 @@ export class LeaderboardService {
    */
   async updateRank(userId: string, xp: number) {
     const redis = await redisService.getClient();
-    await redis.zadd(LeaderboardService.GLOBAL_KEY, xp, userId);
+    if (redis) {
+      await redis.zadd(LeaderboardService.GLOBAL_KEY, xp, userId);
+    }
   }
 
   /**
@@ -80,6 +83,7 @@ export class LeaderboardService {
     });
 
     const redis = await redisService.getClient();
+    if (!redis) return;
     const pipeline = redis.pipeline();
     
     // Clear old data to prevent stale ranks
@@ -98,6 +102,7 @@ export class LeaderboardService {
    */
   async getUserRank(userId: string) {
     const redis = await redisService.getClient();
+    if (!redis) return null;
     const rank = await redis.zrevrank(LeaderboardService.GLOBAL_KEY, userId);
     return rank !== null ? rank + 1 : null;
   }

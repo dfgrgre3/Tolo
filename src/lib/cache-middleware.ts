@@ -31,8 +31,9 @@ export function generateCacheKey(req: NextRequest, prefix: string): string {
     const sanitizedUserId = typeof userId === 'string' ? userId.trim().slice(0, 100) : 'anonymous';
     const sanitizedPathname = url.pathname.slice(0, 200);
 
-    // Create base key with prefix, user, and pathname
-    let key = `${sanitizedPrefix}:${sanitizedUserId}:${sanitizedPathname}`;
+    // Create base key with userId first for efficient O(1) invalidation
+    // Order: user:{userId}:{prefix}:{pathname}
+    let key = `user:${sanitizedUserId}:${sanitizedPrefix}:${sanitizedPathname}`;
 
     // Add query parameters to key (limit to prevent DoS)
     const queryEntries = Array.from(url.searchParams.entries()).slice(0, 50);
@@ -84,8 +85,9 @@ export function generateAuthCacheKey(req: NextRequest, prefix: string): string {
     const sanitizedUserId = typeof userId === 'string' ? userId.trim().slice(0, 100) : 'anonymous';
     const sanitizedPathname = url.pathname.slice(0, 200);
 
-    // Create base key with prefix, user, and pathname
-    let key = `${sanitizedPrefix}:${sanitizedUserId}:${sanitizedPathname}`;
+    // Create base key with userId first for efficient O(1) invalidation
+    // Order: user:{userId}:{prefix}:{pathname}
+    let key = `user:${sanitizedUserId}:${sanitizedPrefix}:${sanitizedPathname}`;
 
     // Add query parameters to key (limit to prevent DoS)
     const queryEntries = Array.from(url.searchParams.entries()).slice(0, 50);

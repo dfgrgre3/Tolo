@@ -17,6 +17,7 @@ export const CachePrefixes = {
 
 // --- Redis Client Initialization ---
 
+const MAX_MEMORY_ITEMS = 5000;
 const memoryCache = new Map<string, { value: string; expires: number }>();
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
@@ -83,10 +84,14 @@ export class CacheService {
   static async get<T>(key: string): Promise<T | null> {
     if (!key?.trim()) return null;
     const trimmedKey = key.trim();
+    const isProduction = process.env.NODE_ENV === 'production';
     
     try {
       const client = await getRedisClient();
       if (!client || client.status !== 'ready') {
+        // FAIL-SAFE: Disable memory fallback in production to prevent Inconsistency.
+        if (isProduction) return null;
+
         const item = memoryCache.get(trimmedKey);
         if (item && item.expires > Date.now()) {
           return JSON.parse(item.value) as T;
@@ -101,7 +106,7 @@ export class CacheService {
       }
       return null;
     } catch (error) {
-      logger.error(`Error getting cache key ${trimmedKey}:`, error);
+      logger.error(`[CacheService] Error getting key ${trimmedKey}:`, error);
       return null;
     }
   }
@@ -109,12 +114,25 @@ export class CacheService {
   static async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
     if (!key?.trim()) return;
     const trimmedKey = key.trim();
+    const isProduction = process.env.NODE_ENV === 'production';
     
     try {
       const serialized = JSON.stringify(value);
       const client = await getRedisClient();
       
       if (!client || client.status !== 'ready') {
+        // FAIL-SAFE: Disable memory fallback in production.
+        if (isProduction) {
+          logger.warn(`[CacheService] Redis down. Skipping set for ${trimmedKey} to prevent inconsistency.`);
+          return;
+        }
+
+        // CAP SIZE to prevent OOM
+        if (memoryCache.size >= MAX_MEMORY_ITEMS) {
+          const firstKey = memoryCache.keys().next().value;
+          if (firstKey) memoryCache.delete(firstKey);
+        }
+
         memoryCache.set(trimmedKey, {
           value: serialized,
           expires: Date.now() + (ttl * 1000)
@@ -128,23 +146,40 @@ export class CacheService {
         await client.set(trimmedKey, serialized);
       }
     } catch (error) {
-      logger.error(`Error setting cache key ${trimmedKey}:`, error);
+      logger.error(`[CacheService] Error setting key ${trimmedKey}:`, error);
     }
   }
 
   static async del(key: string): Promise<void> {
     if (!key?.trim()) return;
     const trimmedKey = key.trim();
+    const isProduction = process.env.NODE_ENV === 'production';
     
     try {
       const client = await getRedisClient();
       if (!client || client.status !== 'ready') {
-        memoryCache.delete(trimmedKey);
+        if (!isProduction) memoryCache.delete(trimmedKey);
         return;
       }
       await client.del(trimmedKey);
     } catch (error) {
-      logger.error(`Error deleting cache key ${trimmedKey}:`, error);
+      logger.error(`[CacheService] Error deleting key ${trimmedKey}:`, error);
+    }
+  }
+
+  /**
+   * Atomic increment for a key
+   */
+  static async incrBy(key: string, amount: number): Promise<number> {
+    if (!key?.trim()) return 0;
+    const trimmedKey = key.trim();
+    try {
+      const client = await getRedisClient();
+      if (!client || client.status !== 'ready') return 0;
+      return await client.incrby(trimmedKey, amount);
+    } catch (error) {
+      logger.error(`[CacheService] Error incrementing key ${trimmedKey}:`, error);
+      return 0;
     }
   }
 
@@ -205,9 +240,18 @@ export class CacheService {
   static async invalidatePattern(pattern: string): Promise<void> {
     try {
       const client = await getRedisClient();
+      
+      // OPTIMIZATION: If pattern starts with '*', it's O(N) in Redis.
+      // Warn in development, but in production we must handle it carefully or refactor.
+      if (pattern.startsWith('*') && process.env.NODE_ENV !== 'production') {
+        logger.warn(`[CacheService] High-cost invalidation pattern: ${pattern}. Consider using a prefix-based pattern (e.g. user:123:*) for O(1) matching in clusters.`);
+      }
+
       if (!client || client.status !== 'ready') {
+        // Memory cache invalidation
+        const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
         for (const key of memoryCache.keys()) {
-          if (new RegExp(pattern.replace(/\*/g, '.*')).test(key)) {
+          if (regexPattern.test(key)) {
             memoryCache.delete(key);
           }
         }
@@ -217,7 +261,7 @@ export class CacheService {
       // Use SCAN instead of KEYS for production safety (non-blocking)
       const stream = client.scanStream({
         match: pattern,
-        count: 100 // Process in chunks
+        count: 500 // Process in bigger chunks for performance
       });
 
       stream.on('data', async (keys: string[]) => {
@@ -226,7 +270,10 @@ export class CacheService {
           stream.pause();
           try {
             const currentClient = await getRedisClient();
-            if (currentClient) await currentClient.del(...keys);
+            if (currentClient) {
+               // Use pipeline/batch for deletion if count is high, but del with args is usually fine for small chunks
+               await currentClient.del(...keys);
+            }
           } catch (delError) {
             logger.error(`Error deleting keys in pattern ${pattern}:`, delError);
           }

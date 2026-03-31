@@ -10,6 +10,7 @@ interface RateLimitConfig {
   windowMs: number;        // Time window in milliseconds
   maxAttempts: number;     // Maximum attempts allowed in the window
   lockoutMs?: number;      // Lockout duration in milliseconds (optional)
+  failClosed?: boolean;    // Whether to block requests if Redis is unavailable
 }
 
 // Rate limit check result

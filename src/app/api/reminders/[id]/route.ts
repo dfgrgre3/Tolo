@@ -1,85 +1,78 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
+import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { successResponse, notFoundResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-	try {
-		const { id } = await params;
+  return opsWrapper(req, async (request) => {
+    return withAuth(request, async (authUser) => {
+      try {
+        const { id } = await params;
+        const body = await request.json();
 
-		// Authenticate user
-		const userId = req.headers.get("x-user-id");
-		if (!userId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
-		const authUser = { userId };
+        // 1. Whitelist allowed fields to prevent mass assignment
+        const allowedFields = ['title', 'description', 'scheduledAt', 'completed', 'priority'];
+        const updates: Record<string, unknown> = {};
 
-		const body = await req.json();
+        for (const field of allowedFields) {
+          if (field in body) {
+            if (field === 'scheduledAt' && typeof body[field] === 'string') {
+              updates[field] = new Date(body[field]);
+            } else {
+              updates[field] = body[field];
+            }
+          }
+        }
 
-		// Validate that the reminder belongs to the authenticated user
-		const existingReminder = await prisma.reminder.findFirst({
-			where: {
-				id,
-				userId: authUser.userId
-			}
-		});
+        // Prevent changing userId through mass assignment
+        if ('userId' in body) {
+          return badRequestResponse('Cannot change reminder ownership');
+        }
 
-		if (!existingReminder) {
-			return NextResponse.json({ error: 'Reminder not found' }, { status: 404 });
-		}
+        // 2. Optimized Update: Single DB roundtrip for ownership check + update
+        const { count } = await prisma.reminder.updateMany({
+          where: { 
+            id, 
+            userId: authUser.userId 
+          },
+          data: updates as any
+        });
 
-		// Whitelist allowed fields to prevent mass assignment
-		const allowedFields = ['title', 'description', 'scheduledAt', 'completed', 'priority'];
-		const updates: Record<string, unknown> = {};
+        if (count === 0) {
+          return notFoundResponse('Reminder not found or unauthorized');
+        }
 
-		for (const field of allowedFields) {
-			if (field in body) {
-				if (field === 'scheduledAt' && typeof body[field] === 'string') {
-					updates[field] = new Date(body[field]);
-				} else {
-					updates[field] = body[field];
-				}
-			}
-		}
-
-		// Prevent changing userId through mass assignment
-		if ('userId' in body) {
-			return NextResponse.json({ error: 'Cannot change reminder ownership' }, { status: 400 });
-		}
-
-		const reminder = await prisma.reminder.update({ where: { id }, data: updates as any });
-		return NextResponse.json(reminder);
-	} catch (e: unknown) {
-		const errorMessage = e instanceof Error ? e.message : "Server error";
-		return NextResponse.json({ error: errorMessage }, { status: 500 });
-	}
+        const updated = await prisma.reminder.findUnique({ where: { id } });
+        return successResponse(updated);
+      } catch (e: unknown) {
+        return handleApiError(e);
+      }
+    });
+  });
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-	try {
-		const { id } = await params;
+  return opsWrapper(req, async (request) => {
+    return withAuth(request, async (authUser) => {
+      try {
+        const { id } = await params;
 
-		// Authenticate user
-		const userId = req.headers.get("x-user-id");
-		if (!userId) {
-			return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-		}
-		const authUser = { userId };
+        // Optimized Delete: Atomic deletion with ownership check
+        const { count } = await prisma.reminder.deleteMany({
+          where: { 
+            id, 
+            userId: authUser.userId 
+          }
+        });
 
-		// Validate that the reminder belongs to the authenticated user before deletion
-		const existingReminder = await prisma.reminder.findFirst({
-			where: {
-				id,
-				userId: authUser.userId
-			}
-		});
+        if (count === 0) {
+          return notFoundResponse('Reminder not found or unauthorized');
+        }
 
-		if (!existingReminder) {
-			return NextResponse.json({ error: 'Reminder not found' }, { status: 404 });
-		}
-
-		await prisma.reminder.delete({ where: { id } });
-		return NextResponse.json({ ok: true });
-	} catch (e: unknown) {
-		const errorMessage = e instanceof Error ? e.message : "Server error";
-		return NextResponse.json({ error: errorMessage }, { status: 500 });
-	}
+        return successResponse({ ok: true });
+      } catch (e: unknown) {
+        return handleApiError(e);
+      }
+    });
+  });
 }

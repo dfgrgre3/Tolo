@@ -72,6 +72,10 @@ class RedisServiceWrapper {
     return UnifiedCache.invalidatePattern(pattern);
   }
 
+  async incrBy(key: string, amount: number): Promise<number> {
+    return UnifiedCache.incrBy(key, amount);
+  }
+
   async getClient() {
     return getRedisClient();
   }

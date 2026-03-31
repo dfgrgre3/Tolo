@@ -124,8 +124,8 @@ class UnifiedLogger {
     this.initializing = true;
 
     try {
-      // Initialize ELK logger (server-side only)
-      if (this.config.enableELK && isServer) {
+      // Initialize ELK logger (server-side only, exclude Edge)
+      if (this.config.enableELK && isServer && process.env.NEXT_RUNTIME !== 'edge') {
         try {
           const { elkLogger } = await import('./elk-logger');
           this.elkLogger = elkLogger;

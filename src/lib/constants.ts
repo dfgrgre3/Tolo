@@ -1,4 +1,4 @@
-import { UserRole, TaskStatus, FocusStrategy, Difficulty, NotificationType } from '@prisma/client';
+import { UserRole, TaskStatus, FocusStrategy, Difficulty, NotificationType } from '@/types/enums';
 
 /**
  * Enums from Prisma mapping

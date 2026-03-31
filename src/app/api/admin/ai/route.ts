@@ -728,7 +728,7 @@ export async function GET(request: NextRequest) {
         name: subject.nameAr || subject.name,
       })),
       summary: {
-        highRiskCount: riskStudents.filter((student) => student.riskLevel === 'CRITICAL').length,
+        highRiskCount: riskStudents.filter((student: any) => student.riskLevel === 'CRITICAL').length,
         reviewPendingCount: reviewQueue.filter((item: any) => item.status === "pending_review").length,
         pendingGradingCount: 1,
         aiBriefing: summaryText,
