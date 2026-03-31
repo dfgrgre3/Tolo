@@ -15,7 +15,7 @@ import {
   Zap, 
   Sword, 
   Shield, 
-  Clock, 
+  Clock as LucideClock, 
   Play, 
   BookOpen,
   Star,
@@ -26,7 +26,8 @@ import {
   Smartphone,
   ChevronRight,
   TrendingUp,
-  Award
+  Award,
+  Bot as LucideBot
 } from "lucide-react";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -35,12 +36,16 @@ import { Card, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+import dynamic from "next/dynamic";
+
 // Import custom components
-import { AnnouncementTicker } from "./components/announcement-ticker";
-import { StatsGrid } from "./components/stats-grid";
-import { QuestCard } from "./components/quest-card";
-import { LeaderboardCard } from "./components/leaderboard-card";
-import { QuickActions } from "./components/quick-actions";
+const AnnouncementTicker = dynamic(() => import("./components/announcement-ticker").then(mod => mod.AnnouncementTicker), { ssr: false });
+const StatsGrid = dynamic(() => import("./components/stats-grid").then(mod => mod.StatsGrid), { ssr: true });
+const QuestCard = dynamic(() => import("./components/quest-card").then(mod => mod.QuestCard), { ssr: false });
+const LeaderboardCard = dynamic(() => import("./components/leaderboard-card").then(mod => mod.LeaderboardCard), { ssr: false });
+const QuickActions = dynamic(() => import("./components/quick-actions").then(mod => mod.QuickActions), { ssr: false });
+import { Clock } from "./components/clock";
+// Removed redundant Bot import to favor local custom SVG if needed, or aliased below
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5",
@@ -101,15 +106,13 @@ export default function DashboardPage() {
     userId: user?.id || "" 
   });
   const [mounted, setMounted] = useState(false);
-  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
     setMounted(true);
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
   }, []);
 
-  if (isAuthLoading || isGamificationLoading || !mounted) {
+  // Performance Optimization: Defer rendering but allow SSR skeleton
+  if (isAuthLoading || isGamificationLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="relative h-24 w-24">
@@ -127,17 +130,6 @@ export default function DashboardPage() {
   const userXP = userProgress?.totalXP || user?.totalXP || 0;
   const nextLevelXP = userLevel * 1000;
   const xpPercentage = Math.min((userXP % nextLevelXP) / (nextLevelXP / 100), 100);
-  
-  const formattedTime = currentTime.toLocaleTimeString('ar-EG', { 
-    hour: '2-digit', 
-    minute: '2-digit'
-  });
-
-  const formattedDate = currentTime.toLocaleDateString('ar-EG', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long'
-  });
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-primary overflow-x-hidden">
@@ -171,10 +163,7 @@ export default function DashboardPage() {
                   <Sparkles className="h-4 w-4 animate-pulse" />
                   <span>القائد العام للمنصة</span>
                 </motion.div>
-                <div className="text-gray-400 text-sm font-bold flex items-center gap-2 bg-white/5 px-4 py-2 rounded-full">
-                  <Calendar className="w-4 h-4 text-primary" />
-                  {formattedDate} | {formattedTime}
-                </div>
+                <Clock />
               </div>
 
               <h1 className="text-5xl md:text-8xl font-black tracking-tight leading-none">

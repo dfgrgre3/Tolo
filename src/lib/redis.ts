@@ -1,39 +1,32 @@
-// This file is now a unified wrapper around ioredis to prevent dependency redundancy
-import { redisClient as ioredis, CacheService as UnifiedCache } from './cache';
-import { logger } from '@/lib/logger';
+import * as cache from './cache';
 
-// Re-export the raw client for advanced usage (e.g. rate limiting)
-export const redis = ioredis;
+// Explicit re-exports for static analysis and backward compatibility
+export const redis = cache.redis;
+export const redisClient = cache.redisClient;
+export const getRedisClient = cache.getRedisClient;
+
+import { logger } from '@/lib/logger';
+import type { Redis } from 'ioredis';
+
+const UnifiedCache = cache.CacheService;
 
 // Legacy RedisClient type for backward compatibility
-export type RedisClient = typeof ioredis;
+export type RedisClient = Redis;
 
 class RedisServiceWrapper {
-  private client = ioredis;
-
-  constructor() {
-    // Connection handling is managed in cache-service-unified.ts
-  }
+  private _legacyClient: any = null; // Used for backward compatibility sync checks if needed
 
   async connectRedis() {
-    // ioredis handles connection automatically, but we keep this for compat
-    if (this.client.status === 'ready') return;
-    try {
-      await this.client.connect();
-    } catch (e) {
-      if ((e as any).message !== 'Redis is already connecting/connected') {
-        logger.error('Failed to connect to Redis:', e);
-      }
-    }
+    return getRedisClient();
   }
 
   async init() {
     if (process.env.NODE_ENV !== 'test') {
-      await this.connectRedis();
+      await getRedisClient();
     }
   }
 
-  // Delegate all methods to UnifiedCache where possible or implement shim
+  // Delegate all methods to UnifiedCache where possible
   async get<T>(key: string): Promise<T | null> {
     return UnifiedCache.get<T>(key);
   }
@@ -47,7 +40,9 @@ class RedisServiceWrapper {
   }
 
   async exists(key: string): Promise<boolean> {
-    const res = await this.client.exists(key);
+    const client = await getRedisClient();
+    if (!client) return false;
+    const res = await client.exists(key);
     return res > 0;
   }
 
@@ -65,7 +60,8 @@ class RedisServiceWrapper {
   }
 
   async flushAll(): Promise<void> {
-    await this.client.flushall();
+    const client = await getRedisClient();
+    if (client) await client.flushall();
   }
 
   async getOrSet<T>(key: string, fetchFn: () => Promise<T>, ttl: number = 3600): Promise<T> {
@@ -76,18 +72,18 @@ class RedisServiceWrapper {
     return UnifiedCache.invalidatePattern(pattern);
   }
 
-  getClient() {
-    return this.client;
+  async getClient() {
+    return getRedisClient();
   }
 
-  isConnected(): boolean {
-    return this.client.status === 'ready';
+  async isConnected(): Promise<boolean> {
+    const client = await getRedisClient();
+    return client?.status === 'ready';
   }
 
   async ensureConnected(): Promise<boolean> {
-    if (this.isConnected()) return true;
-    await this.connectRedis();
-    return this.isConnected();
+    const client = await getRedisClient();
+    return client?.status === 'ready';
   }
 }
 
@@ -95,11 +91,5 @@ const redisService = new RedisServiceWrapper();
 
 // Backward-compatible named export
 export const CacheService = redisService;
-
-// Export getRedisClient function
-export async function getRedisClient() {
-  await redisService.ensureConnected();
-  return redisService.getClient();
-}
 
 export default redisService;

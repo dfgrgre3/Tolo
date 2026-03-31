@@ -4,24 +4,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { motion } from "framer-motion";
 
 import {
   Target,
-
   CheckCircle2,
-
   Clock,
   Flame,
   TrendingUp,
   Trophy,
   Zap,
-  BookOpen } from
-'lucide-react';
+  BookOpen,
+  Sword,
+  ShieldAlert,
+  Star
+} from 'lucide-react';
 import { formatTime } from '../utils/timeUtils';
 import type { Task, Reminder, StudySession, TimeStats } from '../types';
 import QuickActions from './QuickActions';
 import UpcomingTasksCard from './UpcomingTasksCard';
 import UpcomingRemindersCard from './UpcomingRemindersCard';
+import CircularProgress from './CircularProgress';
 
 interface DashboardTabProps {
   stats: TimeStats;
@@ -50,108 +53,134 @@ export default function DashboardTab({
   onToggleUpcomingReminders,
   onTimerToggle
 }: DashboardTabProps) {
-  const upcomingTasks = tasks.
-  filter((task) =>
-  task.dueAt &&
-  new Date(task.dueAt) > new Date() && (
-  showCompletedTasks || task.status !== 'COMPLETED')
-  ).
-  sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime()).
-  slice(0, 5);
+  const upcomingTasks = tasks
+    .filter((task) =>
+      task.dueAt &&
+      new Date(task.dueAt) > new Date() &&
+      (showCompletedTasks || task.status !== 'COMPLETED')
+    )
+    .sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime())
+    .slice(0, 5);
 
-  const recentSessions = studySessions.
-  sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()).
-  slice(0, 3);
+  const recentSessions = studySessions
+    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+    .slice(0, 3);
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/30 border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">المهام المكتملة</CardTitle>
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <span className="text-2xl font-bold">{stats.completedTasks}</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              من أصل {tasks.length} مهمة
-            </p>
-            <Progress
-              value={tasks.length ? Math.round(stats.completedTasks / tasks.length * 100) : 0}
-              className="mt-2 h-1.5" />
-            
-          </CardContent>
-        </Card>
+    <div className="space-y-8 animate-in fade-in duration-700">
+      
+      {/* RPG Stats Indicators */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, staggerChildren: 0.1 }}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+      >
+        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+          <Card className="h-full bg-background/30 backdrop-blur-2xl border border-blue-500/20 shadow-[0_8px_32px_rgba(59,130,246,0.15)] relative overflow-hidden group rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/20 rounded-full blur-3xl group-hover:bg-blue-500/30 transition-colors" />
+            <CardHeader className="pb-2 text-center relative z-10">
+              <CardTitle className="text-sm font-bold text-blue-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                <Sword className="h-4 w-4" /> معدل الإنجاز
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
+              <CircularProgress 
+                value={tasks.length ? Math.round((stats.completedTasks / tasks.length) * 100) : 0} 
+                max={100}
+                colorClass="text-blue-500"
+                icon={<CheckCircle2 className="h-6 w-6" />}
+                label={`${stats.completedTasks} مهمة مكتملة`}
+                sublabel={`من أصل ${tasks.length} مهام المسجلة`}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/30 border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">ساعات الدراسة</CardTitle>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-orange-500" />
-              <span className="text-2xl font-bold">{stats.studyHours}</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              هذا الأسبوع
-            </p>
-            <Progress
-              value={Math.min(100, stats.weeklyGoalProgress)}
-              className="mt-2 h-1.5" />
-            
-          </CardContent>
-        </Card>
+        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+          <Card className="h-full bg-background/30 backdrop-blur-2xl border border-orange-500/20 shadow-[0_8px_32px_rgba(249,115,22,0.15)] relative overflow-hidden group rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-orange-500/20 rounded-full blur-3xl group-hover:bg-orange-500/30 transition-colors" />
+            <CardHeader className="pb-2 text-center relative z-10">
+              <CardTitle className="text-sm font-bold text-orange-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                <BookOpen className="h-4 w-4" /> تقدم الدراسة
+              </CardTitle>
+            </CardHeader>
+             <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
+               <CircularProgress 
+                 value={Math.round(stats.weeklyGoalProgress)} 
+                 max={100}
+                 colorClass="text-orange-500"
+                 icon={<Star className="h-6 w-6" />}
+                 label="الهدف الأسبوعي"
+                 sublabel={`${stats.studyHours} ساعات متراكمة`}
+               />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/30 border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">الانضباط</CardTitle>
-            <div className="flex items-center gap-2">
-              <Target className="h-5 w-5 text-purple-500" />
-              <span className="text-2xl font-bold">{stats.disciplineScore}%</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              استمرارية وتحقيق الأهداف
-            </p>
-            <Progress
-              value={stats.disciplineScore}
-              className="mt-2 h-1.5 bg-purple-300" />
-            
-          </CardContent>
-        </Card>
+        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+          <Card className="h-full bg-background/30 backdrop-blur-2xl border border-purple-500/20 shadow-[0_8px_32px_rgba(168,85,247,0.15)] relative overflow-hidden group rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl group-hover:bg-purple-500/30 transition-colors" />
+            <CardHeader className="pb-2 text-center relative z-10">
+              <CardTitle className="text-sm font-bold text-purple-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                <ShieldAlert className="h-4 w-4" /> الانضباط
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
+               <CircularProgress 
+                 value={stats.disciplineScore} 
+                 max={100}
+                 colorClass="text-purple-500"
+                 icon={<Target className="h-6 w-6" />}
+                 label="القوة والثبات"
+                 sublabel="استمرارية وتحقيق الأهداف"
+               />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950/30 dark:to-emerald-900/30 border-0">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">الإتقان</CardTitle>
-            <div className="flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-emerald-500" />
-              <span className="text-2xl font-bold">{stats.masteryScore}%</span>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-muted-foreground">
-              كفاءة الدراسة والتركيز
-            </p>
-            <Progress
-              value={stats.masteryScore}
-              className="mt-2 h-1.5 bg-emerald-300" />
-            
-          </CardContent>
-        </Card>
-      </div>
+        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+          <Card className="h-full bg-background/30 backdrop-blur-2xl border border-emerald-500/20 shadow-[0_8px_32px_rgba(16,185,129,0.15)] relative overflow-hidden group rounded-3xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/20 rounded-full blur-3xl group-hover:bg-emerald-500/30 transition-colors" />
+            <CardHeader className="pb-2 text-center relative z-10">
+              <CardTitle className="text-sm font-bold text-emerald-400 uppercase tracking-widest flex items-center justify-center gap-2">
+                <Trophy className="h-4 w-4" /> الإتقان
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
+               <CircularProgress 
+                 value={stats.masteryScore} 
+                 max={100}
+                 colorClass="text-emerald-500"
+                 icon={<Trophy className="h-6 w-6" />}
+                 label="السيطرة التامة"
+                 sublabel="كفاءة الدراسة والتركيز الفائق"
+               />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
+      {/* Main Boards */}
+      <motion.div 
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.2 }}
+        className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+      >
+        <div className="lg:col-span-2 space-y-8">
+          
+          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>الإجراءات السريعة</span>
+              <CardTitle className="flex items-center gap-2 text-xl font-bold">
+                 <Zap className="h-6 w-6 text-amber-500 fill-amber-500/20" /> الإجراءات السريعة
               </CardTitle>
               <CardDescription>
-                ابدأ المهام أو مؤقت الدراسة بنقرة واحدة
+                الوصول السريع للأدوات الاستراتيجية
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -169,14 +198,12 @@ export default function DashboardTab({
                       onTimerToggle(undefined);
                       return;
                     case 'set-goal':
-                      // Goals not implemented yet - show tasks instead
                       onTabChange('tasks');
                       return;
                     case 'view-schedule':
                       onTabChange('schedule');
                       return;
                     case 'view-analytics':
-                      // Analytics shown on dashboard tab
                       return;
                     case 'view-history':
                       onTabChange('history');
@@ -185,86 +212,89 @@ export default function DashboardTab({
                       return;
                   }
                 }} />
-              
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
               <div>
-                <CardTitle>المهام القادمة</CardTitle>
-                <CardDescription>المهام التي يجب إنجازها قريباً</CardDescription>
+                <CardTitle className="text-xl font-bold flex items-center gap-2">
+                  <Sword className="h-5 w-5 text-indigo-400" /> ساحة القتال القادمة
+                </CardTitle>
+                <CardDescription>المهام المنتظرة قريباً</CardDescription>
               </div>
               <Button
                 variant="outline"
                 size="sm"
+                className="rounded-full shadow-sm hover:shadow-md transition-shadow"
                 onClick={onToggleCompletedTasks}>
-                
-                {showCompletedTasks ? 'إخفاء المكتملة' : 'عرض المكتملة'}
+                {showCompletedTasks ? 'إخفاء المهام المنجزة' : 'عرض السجل المكتمل'}
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <UpcomingTasksCard
                 tasks={upcomingTasks}
                 showCompleted={showCompletedTasks}
                 onToggleView={onToggleCompletedTasks}
                 onTabChange={onTabChange}
                 onTimerToggle={onTimerToggle} />
-              
             </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Flame className="h-5 w-5 text-orange-500" />
-                متوالية الالتزام
+        {/* Side Panel */}
+        <div className="space-y-8">
+          
+          <Card className="bg-gradient-to-b from-orange-500/10 to-transparent border-orange-500/20 rounded-3xl backdrop-blur-xl shadow-[0_0_30px_rgba(249,115,22,0.1)] relative overflow-hidden group">
+            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-orange-400 to-red-600 top-0 w-full animate-pulse opacity-50"></div>
+            <CardHeader className="text-center pb-2 pt-8">
+              <div className="mx-auto w-16 h-16 bg-orange-500/20 rounded-full flex items-center justify-center mb-2 shadow-[0_0_20px_rgba(249,115,22,0.5)] group-hover:scale-110 transition-transform">
+                 <Flame className="h-8 w-8 text-orange-500 drop-shadow-md" />
+              </div>
+              <CardTitle className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-500">
+                شعلة الحماس
               </CardTitle>
-              <CardDescription>
-                عدد الأيام المتتالية التي تحقق فيها أهدافك
-              </CardDescription>
+              <CardDescription className="text-orange-200/60 font-medium">أيام الالتزام المستمر</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center justify-center">
-                <div className="text-center">
-                  <div className="text-4xl font-bold text-orange-500">{stats.streakDays}</div>
-                  <div className="text-sm text-muted-foreground">يوم</div>
+              <div className="flex flex-col items-center justify-center pb-4">
+                <div className="text-6xl font-black text-orange-500 drop-shadow-[0_0_20px_rgba(249,115,22,0.6)] group-hover:drop-shadow-[0_0_30px_rgba(249,115,22,0.8)] transition-all">
+                   {stats.streakDays}
                 </div>
+                <div className="text-sm font-bold text-orange-300 tracking-wider">أيام</div>
               </div>
-              <div className="mt-4 space-y-2">
-                <div className="flex items-center text-sm">
-                  <Zap className="h-4 w-4 text-yellow-500 ml-2" />
-                  <span>التركيز: {stats.focusScore}%</span>
+              
+              <div className="bg-background/40 rounded-2xl p-4 mt-2 space-y-3 border border-orange-500/10">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-yellow-500" /> طاقة التركيز</div>
+                  <Badge variant="outline" className="bg-yellow-500/10 text-yellow-500 border-yellow-500/20">{stats.focusScore}%</Badge>
                 </div>
-                <div className="flex items-center text-sm">
-                  <TrendingUp className="h-4 w-4 text-blue-500 ml-2" />
-                  <span>الكفاءة: {stats.studyEfficiency}%</span>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2"><TrendingUp className="h-4 w-4 text-emerald-500" /> معدل الكفاءة</div>
+                  <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20">{stats.studyEfficiency}%</Badge>
                 </div>
-                <div className="flex items-center text-sm">
-                  <Clock className="h-4 w-4 text-purple-500 ml-2" />
-                  <span>البومودورو: {stats.pomodoroSessions}</span>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-purple-500" /> جلسات الإنجاز</div>
+                  <Badge variant="outline" className="bg-purple-500/10 text-purple-500 border-purple-500/20">{stats.pomodoroSessions} جلسة</Badge>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <div>
-                <CardTitle>التذكيرات القادمة</CardTitle>
-                <CardDescription>تذكيراتك في الـ 24 ساعة القادمة</CardDescription>
-              </div>
+          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+            <CardHeader className="flex flex-row items-center justify-between border-b border-white/5 pb-4">
+               <CardTitle className="text-lg font-bold flex items-center gap-2">
+                 <ShieldAlert className="h-5 w-5 text-rose-400" /> التنبيهات المنتظرة
+               </CardTitle>
               <Button
-                variant="outline"
+                variant="ghost"
                 size="sm"
+                className="text-xs h-7"
                 onClick={onToggleUpcomingReminders}>
-                
-                {showUpcomingRemindersOnly ? 'إظهار الكل' : 'القادمة فقط'}
+                {showUpcomingRemindersOnly ? 'عرض الكل' : 'القادمة فقط'}
               </Button>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               <UpcomingRemindersCard
                 reminders={reminders.filter((r) => {
                   const now = new Date();
@@ -274,47 +304,50 @@ export default function DashboardTab({
                 showUpcomingOnly={showUpcomingRemindersOnly}
                 onToggleView={onToggleUpcomingReminders}
                 onTabChange={onTabChange} />
-              
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>جلسات الدراسة الأخيرة</CardTitle>
-              <CardDescription>سجل جلساتك الدراسية الأخيرة</CardDescription>
+          <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
+            <CardHeader className="border-b border-white/5 pb-4">
+              <CardTitle className="text-lg font-bold">مخطوطات السجل القديم</CardTitle>
+              <CardDescription>أحدث جلسات التركيز المكتملة</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-6">
               {recentSessions.length > 0 ?
-              <div className="space-y-4">
+                <div className="space-y-4">
                   {recentSessions.map((session, index) =>
-                <div
-                  key={`${session.id}-${index}`}
-                  className="flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-colors">
-                  
+                    <div
+                      key={`${session.id}-${index}`}
+                      className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-white/5 hover:bg-muted/40 transition-colors group">
+                      
                       <div className="flex-1 min-w-0">
-                        <div className="font-medium truncate">
+                        <div className="font-medium truncate text-foreground/90 group-hover:text-primary transition-colors">
                           {session.taskId ?
-                      tasks.find((t) => t.id === session.taskId)?.title || 'جلسة مذاكرة' :
-                      'جلسة مذاكرة'}
+                            tasks.find((t) => t.id === session.taskId)?.title || 'جلسة تدريب مكثفة' :
+                            'تحصيل علمي'}
                         </div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                          <Clock className="h-3 w-3" />
-                          {formatTime(session.durationMin * 60)} • {new Date(session.startTime).toLocaleDateString('ar-SA')}
+                        <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1.5 font-medium">
+                          <Clock className="h-3 w-3 text-primary/70" />
+                          <span className="bg-background/50 px-2 py-0.5 rounded-md">{formatTime(session.durationMin * 60)}</span>
+                          <span className="opacity-50">•</span>
+                          <span>{new Date(session.startTime).toLocaleDateString('ar-SA')}</span>
                         </div>
                       </div>
-                      <Badge variant="secondary" className="ml-2">
+                      <Badge variant="default" className="ml-3 bg-primary/20 text-primary border-primary/20 group-hover:bg-primary group-hover:text-primary-foreground shadow-sm transition-all h-8 px-3">
                         {Math.floor(session.durationMin)} د
                       </Badge>
                     </div>
-                )}
+                  )}
                 </div> :
-
-              <p className="text-center text-muted-foreground py-4">لا توجد جلسات بعد</p>
+                <div className="text-center text-muted-foreground py-8 bg-muted/10 rounded-2xl border border-dashed border-white/10">
+                  <Clock className="h-8 w-8 mx-auto mb-3 opacity-20" />
+                  <p>لا توجد مخطوطات تدريبية بعد</p>
+                </div>
               }
             </CardContent>
           </Card>
         </div>
-      </div>
-    </div>);
-
+      </motion.div>
+    </div>
+  );
 }

@@ -1,136 +1,118 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { userService } from "@/modules/users/user.service";
+import { rateLimit } from "@/lib/middleware/rate-limiter";
 import { logger } from '@/lib/logger';
-import { successResponse, unauthorizedResponse, notFoundResponse, createErrorResponse, withAuth, handleApiError } from '@/lib/api-utils';
+import { 
+  successResponse, 
+  createErrorResponse, 
+  withAuth, 
+  handleApiError, 
+  notFoundResponse 
+} from '@/lib/api-utils';
 
-// GET user by ID
+/**
+ * GET user by ID
+ * Optimized with Redis Caching and Rate Limiting
+ */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return opsWrapper(request, async (req) => {
-    return withAuth(request, async (authUser) => {
-      try {
-        const { id } = await params;
+  // 1. Rate Limiting (Distributed)
+  const { success, headers } = await rateLimit(request);
+  if (!success) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers });
+  }
 
-        // Users can only view their own profile
-        if (authUser.userId !== id) {
-          return createErrorResponse("Access denied", 403);
-        }
+  return withAuth(request, async (authUser) => {
+    try {
+      const { id } = await params;
 
-        const user = await prisma.user.findUnique({
-          where: { id },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            username: true,
-            phone: true,
-            role: true,
-            avatar: true,
-            emailVerified: true,
-            twoFactorEnabled: true,
-            createdAt: true,
-            level: true,
-            totalXP: true
-          }
-        });
-
-        if (!user) {
-          return notFoundResponse("المستخدم غير موجود");
-        }
-
-        // Transform to match User interface
-        const userResponse = {
-          ...user,
-          emailVerified: user.emailVerified ?? false,
-          twoFactorEnabled: user.twoFactorEnabled ?? false,
-          xp: user.totalXP,
-          role: user.role || "USER"
-        };
-
-        return successResponse(userResponse);
-      } catch (error) {
-        logger.error("Error fetching user:", error);
-        return handleApiError(error);
+      // Access Control: Users only view their own profile
+      if (authUser.userId !== id) {
+        return createErrorResponse("Access denied", 403);
       }
-    });
+
+      // 2. Optimized Lookup (Service with Redis Fallback)
+      const user = await userService.getProfile(id);
+
+      if (!user) {
+        return notFoundResponse("المستخدم غير موجود");
+      }
+
+      const res = successResponse(user);
+      Object.entries(headers).forEach(([k, v]) => res.headers.set(k, v));
+      return res;
+    } catch (error) {
+      logger.error("Error fetching user:", error);
+      return handleApiError(error);
+    }
   });
 }
 
-// PATCH update user profile
+/**
+ * PATCH update user profile
+ * Handles Smart Cache Invalidation
+ */
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return opsWrapper(request, async (req) => {
-    return withAuth(request, async (authUser) => {
-      try {
-        const { id } = await params;
+  return withAuth(request, async (authUser) => {
+    try {
+      const { id } = await params;
 
-        if (authUser.userId !== id) {
-          return createErrorResponse("Access denied", 403);
-        }
-
-        const { name, email } = await req.json();
-
-        // Validate that name does not contain email addresses
-        if (name && typeof name === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) {
-          return createErrorResponse("Name cannot be an email address", 400);
-        }
-
-        const updatedUser = await prisma.user.update({
-          where: { id },
-          data: {
-            ...(name && { name }),
-            ...(email && { email })
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            avatar: true,
-            createdAt: true
-          }
-        });
-
-        return successResponse(updatedUser);
-      } catch (error) {
-        logger.error("Error updating user:", error);
-        return handleApiError(error);
+      if (authUser.userId !== id) {
+        return createErrorResponse("Access denied", 403);
       }
-    });
+
+      const { name, email } = await request.json();
+
+      // Validation
+      if (name && typeof name === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(name)) {
+        return createErrorResponse("Name cannot be an email address", 400);
+      }
+
+      // 3. Update via Service (Invalidates Redis Automatically)
+      const updatedUser = await userService.updateProfile(id, {
+        ...(name && { name }),
+        ...(email && { email })
+      });
+
+      return successResponse(updatedUser);
+    } catch (error) {
+      logger.error("Error updating user:", error);
+      return handleApiError(error);
+    }
   });
 }
 
-// DELETE user account
+/**
+ * DELETE user account
+ * Implements consistent Soft Delete pattern
+ */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  return opsWrapper(request, async (req) => {
-    return withAuth(request, async (authUser) => {
-      try {
-        const { id } = await params;
+  return withAuth(request, async (authUser) => {
+    try {
+      const { id } = await params;
 
-        if (authUser.userId !== id) {
-          return createErrorResponse("Access denied", 403);
-        }
-
-        // Delete user account and all related data
-        // Note: This will cascade delete related records based on Prisma schema
-        await prisma.user.delete({
-          where: { id }
-        });
-
-        return successResponse({
-          message: "تم حذف الحساب بنجاح"
-        });
-      } catch (error) {
-        logger.error("Error deleting user:", error);
-        return handleApiError(error);
+      if (authUser.userId !== id) {
+        return createErrorResponse("Access denied", 403);
       }
-    });
+
+      // 4. Soft Delete via Service
+      await userService.softDelete(id);
+
+      return successResponse({
+        message: "تم تعطيل الحساب بنجاح (Soft Delete)"
+      });
+    } catch (error) {
+      logger.error("Error soft-deleting user:", error);
+      return handleApiError(error);
+    }
   });
 }
+

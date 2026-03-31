@@ -43,7 +43,7 @@ const prismaClientSingleton = () => {
 };
 
 const globalForPrisma = globalThis as unknown as {
-    prisma: any;
+    prisma: PrismaClient;
 };
 
 export const prisma = globalForPrisma.prisma ?? prismaClientSingleton();

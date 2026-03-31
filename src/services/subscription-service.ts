@@ -64,7 +64,7 @@ export class SubscriptionService {
       select: {
         name: true,
         email: true,
-        balance: true,
+        wallet: { select: { balance: true } },
         additionalAiCredits: true,
         additionalExamCredits: true,
         subscriptions: {
@@ -104,7 +104,7 @@ export class SubscriptionService {
     return {
       name: user.name,
       email: user.email,
-      balance: user.balance,
+      balance: user.wallet?.balance || 0,
       additionalAiCredits: user.additionalAiCredits,
       additionalExamCredits: user.additionalExamCredits,
       activeSubscription,
@@ -292,19 +292,15 @@ export class SubscriptionService {
         });
       }
 
-      if (payment.balanceUsed && payment.balanceUsed > 0) {
-        await tx.user.update({
-          where: { id: payment.userId },
-          data: { balance: { decrement: payment.balanceUsed } },
+        await tx.userWallet.update({
+          where: { userId: payment.userId },
+          data: { balance: { decrement: payment.balanceUsed ?? undefined } },
         });
-      }
 
-      if (payment.creditAmount && payment.creditAmount > 0) {
-        await tx.user.update({
-          where: { id: payment.userId },
-          data: { balance: { increment: payment.creditAmount } },
+        await tx.userWallet.update({
+          where: { userId: payment.userId },
+          data: { balance: { increment: payment.creditAmount ?? undefined } },
         });
-      }
 
       return updatedPayment;
     });
@@ -355,44 +351,28 @@ export class SubscriptionService {
   static async handleSubscriptionLifecycle() {
     const now = new Date();
 
-    const toGracePeriod = await prisma.subscription.findMany({
+    const movedToGrace = await prisma.subscription.updateMany({
       where: {
         status: 'ACTIVE',
         endDate: { lt: now },
       },
-      include: { user: true, plan: true },
+      data: {
+        status: 'GRACE_PERIOD',
+        gracePeriodEndDate: new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000), // 3 days
+      },
     });
 
-    for (const sub of toGracePeriod) {
-      const graceEnd = new Date(sub.endDate);
-      graceEnd.setDate(graceEnd.getDate() + 3);
-
-      await prisma.subscription.update({
-        where: { id: sub.id },
-        data: {
-          status: 'GRACE_PERIOD',
-          gracePeriodEndDate: graceEnd,
-        },
-      });
-    }
-
-    const toExpired = await prisma.subscription.findMany({
+    const fullyExpired = await prisma.subscription.updateMany({
       where: {
         status: 'GRACE_PERIOD',
         gracePeriodEndDate: { lt: now },
       },
+      data: { status: 'EXPIRED' },
     });
 
-    for (const sub of toExpired) {
-      await prisma.subscription.update({
-        where: { id: sub.id },
-        data: { status: 'EXPIRED' },
-      });
-    }
-
     return {
-      movedToGrace: toGracePeriod.length,
-      fullyExpired: toExpired.length,
+      movedToGrace: movedToGrace.count,
+      fullyExpired: fullyExpired.count,
     };
   }
 }

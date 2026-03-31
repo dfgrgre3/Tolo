@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react';
 import dynamic from 'next/dynamic';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Settings, Filter, Search, BarChart3, Play, Pause } from 'lucide-react';
@@ -212,60 +213,78 @@ export default function TimeManagementPage() {
 
   return (
     <ComponentErrorBoundary onError={fetchData}>
-      <div className="container mx-auto p-4 rtl" dir="rtl">
-      <div className="mb-6 animate-in fade-in slide-in-from-top-4 duration-500">
-        <TimeManagementHeader
-          isTimerRunning={isTimerRunning}
-          onTimerToggle={() => handleTimerToggle()}
-          onRefresh={fetchData}
-          quickStats={quickStats}
-          subjects={subjects}
-          userId={userId || undefined}
-          onTaskCreate={handleTaskCreate}
-        />
-      </div>
+      {/* Premium Background Layer */}
+      <div className="min-h-screen bg-[#050B14] relative overflow-hidden">
+        {/* Animated Deep Space / RPG Glowing Orbs Background */}
+        <div className="absolute top-0 right-0 w-[80%] h-[60%] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from- emerald-900/20 via-background to-background pointer-events-none" />
+        <div className="absolute top-1/4 left-0 w-[50%] h-[50%] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-900/10 via-background to-background pointer-events-none opacity-60 dark:opacity-40 animate-pulse duration-10000" />
+        
+        <div className="absolute bottom-[-10%] left-[-5%] w-[40%] h-[40%] bg-emerald-500/5 blur-[120px] rounded-full pointer-events-none animate-pulse duration-5000" />
+        <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none animate-pulse duration-7000 delay-1000" />
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-1 md:gap-2 mb-6 bg-muted/50 p-1 rounded-lg">
-          <TabsTrigger 
-            value="dashboard"
-            className="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-          >
-            لوحة التحكم
-          </TabsTrigger>
-          <TabsTrigger 
-            value="schedule"
-            className="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-          >
-            الجدول الأسبوعي
-          </TabsTrigger>
-          <TabsTrigger 
-            value="tasks"
-            className="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-          >
-            إدارة المهام
-          </TabsTrigger>
-          <TabsTrigger 
-            value="tracker"
-            className="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-          >
-            مؤقت الوقت
-          </TabsTrigger>
-          <TabsTrigger 
-            value="history"
-            className="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-          >
-            سجل المذاكرة
-          </TabsTrigger>
-          <TabsTrigger 
-            value="reminders"
-            className="data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all"
-          >
-            التذكيرات
-          </TabsTrigger>
-        </TabsList>
+        <div className="container mx-auto p-4 md:p-6 lg:p-8 rtl relative z-10" dir="rtl">
+        <motion.div 
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="mb-8"
+        >
+          <TimeManagementHeader
+            isTimerRunning={isTimerRunning}
+            onTimerToggle={() => handleTimerToggle()}
+            onRefresh={fetchData}
+            quickStats={quickStats}
+            fullStats={stats}
+            subjects={subjects}
+            userId={userId || undefined}
+            onTaskCreate={handleTaskCreate}
+          />
+        </motion.div>
 
-        <TabsContent value="dashboard" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* RPG Style Glassmorphic Floating Tabs */}
+          <div className="sticky top-4 z-40 mb-8 max-w-5xl mx-auto">
+            <TabsList className="flex w-full overflow-x-auto hide-scrollbar sm:grid sm:grid-cols-3 md:grid-cols-6 h-auto p-2 gap-2 bg-background/50 backdrop-blur-2xl border border-white/10 dark:border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.2)] rounded-3xl w-full">
+              {[
+                { id: "dashboard", label: "لوحة القيادة", icon: "🌌" },
+                { id: "schedule", label: "خريطة الأسبوع", icon: "🗺️" },
+                { id: "tasks", label: "سجل المهام", icon: "📜" },
+                { id: "tracker", label: "بؤرة التركيز", icon: "🔮" },
+                { id: "history", label: "موسوعة السجل", icon: "📚" },
+                { id: "reminders", label: "أجراس التنبيه", icon: "🔔" }
+              ].map((tab) => (
+                <TabsTrigger 
+                  key={tab.id}
+                  value={tab.id}
+                  className="relative px-2 py-3 sm:py-3.5 text-sm sm:text-sm font-bold transition-all duration-300 rounded-2xl whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald-400 hover:bg-muted/30 w-full group overflow-hidden"
+                >
+                  {activeTab === tab.id && (
+                     <motion.div
+                       layoutId="activeTabIndicator"
+                       className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 z-0 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]"
+                       transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                     />
+                  )}
+                  <span className="relative z-10 flex items-center justify-center gap-2 drop-shadow-sm">
+                    <span className="opacity-70 group-hover:opacity-100 group-data-[state=active]:opacity-100 transition-opacity text-lg">{tab.icon}</span>
+                    <span className="group-data-[state=active]:text-shadow-[0_0_8px_rgba(16,185,129,0.8)]">{tab.label}</span>
+                  </span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
+
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, scale: 0.98, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.98, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className="mt-6"
+            >
+          {/* End of Custom TabsList implementation, remaining is TabsContent */}
+            <TabsContent value="dashboard" className="space-y-6 mt-0">
           <div className="flex justify-between items-center mb-4 gap-2">
             <LazyKeyboardShortcutsHelp />
             <div className="flex gap-2">
@@ -315,7 +334,7 @@ export default function TimeManagementPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="schedule" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <TabsContent value="schedule" className="mt-0">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold">الجدول الأسبوعي</h2>
@@ -335,7 +354,7 @@ export default function TimeManagementPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="tasks" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <TabsContent value="tasks" className="mt-0">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold">إدارة المهام</h2>
@@ -382,7 +401,7 @@ export default function TimeManagementPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="tracker" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <TabsContent value="tracker" className="mt-0">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold">مؤقت الوقت</h2>
@@ -423,7 +442,7 @@ export default function TimeManagementPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="history" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <TabsContent value="history" className="mt-0">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold">سجل المذاكرة</h2>
@@ -457,7 +476,7 @@ export default function TimeManagementPage() {
           )}
         </TabsContent>
 
-        <TabsContent value="reminders" className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+        <TabsContent value="reminders" className="mt-0">
           <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h2 className="text-2xl font-bold">التذكيرات</h2>
@@ -492,7 +511,10 @@ export default function TimeManagementPage() {
           )}
         </TabsContent>
 
-      </Tabs>
+            </motion.div>
+          </AnimatePresence>
+        </Tabs>
+        </div>
       </div>
     </ComponentErrorBoundary>
   );

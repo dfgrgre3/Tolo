@@ -1,9 +1,4 @@
-// This file must only run on the server - prevent browser bundling
-if (typeof window !== 'undefined') {
-  throw new Error('cache.ts can only be used on the server');
-}
-
-import Redis from 'ioredis';
+import type { Redis } from 'ioredis';
 import { logger } from '@/lib/logger';
 
 // --- Types & Config ---
@@ -27,52 +22,60 @@ const memoryCache = new Map<string, { value: string; expires: number }>();
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 
-// Create the client with lazyConnect to prevent immediate connection attempts
-export const redisClient = new Redis(redisUrl, {
-  maxRetriesPerRequest: 1,
-  connectTimeout: 2000,
-  reconnectOnError: () => false,
-  enableOfflineQueue: false,
-  keepAlive: 1,
-  lazyConnect: true,
-  retryStrategy: (times) => {
-    if (isRedisDisabled || times > 1) return null; // Stop retrying
-    return 2000;
+// Singleton instance
+let _redisClient: Redis | null = null;
+
+/**
+ * Lazy-load the Redis client only on the server.
+ * This prevents ioredis from being evaluated in browser/edge environments.
+ */
+export async function getRedisClient(): Promise<Redis | null> {
+  if (isRedisDisabled || typeof window !== 'undefined' || process.env.NEXT_RUNTIME === 'edge') return null;
+  
+  if (!_redisClient) {
+    try {
+      const { default: Redis } = await import('ioredis');
+      _redisClient = new Redis(redisUrl, {
+        maxRetriesPerRequest: 1,
+        connectTimeout: 2000,
+        reconnectOnError: () => false,
+        enableOfflineQueue: false,
+        keepAlive: 1,
+        lazyConnect: true,
+        retryStrategy: (times) => {
+          if (times > 1) return null;
+          return 2000;
+        }
+      });
+
+      _redisClient.on('connect', () => {
+        logger.info('Connected to Redis');
+      });
+
+      _redisClient.on('error', (err: any) => {
+        if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
+           // Silent fail as we have memory fallback
+        } else {
+           logger.error('Redis error:', err);
+        }
+      });
+    } catch (e) {
+      logger.error('Failed to initialize Redis client:', e);
+      return null;
+    }
   }
-});
+  return _redisClient;
+}
+
+// Export a proxy as 'redisClient' to maintain backward compatibility with existing imports
+// but delay the initialization until a property is accessed.
+export const redisClient: Redis = new Proxy({} as Redis, {
+  get: (target, prop) => {
+    throw new Error(`Direct access to redisClient is deprecated. Use getRedisClient() or CacheService. Methods accessed: ${String(prop)}`);
+  }
+}) as any;
 
 export const redis = redisClient;
-
-let isRedisAvailable = false;
-let redisErrorCount = 0;
-
-if (!isRedisDisabled) {
-  redisClient.on('connect', () => {
-    redisErrorCount = 0;
-    isRedisAvailable = true;
-    logger.info('Connected to Redis');
-  });
-
-  redisClient.on('ready', () => {
-    isRedisAvailable = true;
-  });
-
-  redisClient.on('error', (err: any) => {
-    redisErrorCount++;
-    isRedisAvailable = false;
-    
-    // Only log the first error unless it's not a connection error
-    if (redisErrorCount === 1) {
-      if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
-        logger.warn('Redis is not available. Falling back to memory cache.');
-      } else {
-        logger.error('Redis error:', err);
-      }
-    }
-  });
-} else {
-  isRedisAvailable = false;
-}
 
 // --- Core Cache Service ---
 
@@ -82,7 +85,8 @@ export class CacheService {
     const trimmedKey = key.trim();
     
     try {
-      if (!isRedisAvailable) {
+      const client = await getRedisClient();
+      if (!client || client.status !== 'ready') {
         const item = memoryCache.get(trimmedKey);
         if (item && item.expires > Date.now()) {
           return JSON.parse(item.value) as T;
@@ -91,7 +95,7 @@ export class CacheService {
         return null;
       }
 
-      const data = await redisClient.get(trimmedKey);
+      const data = await client.get(trimmedKey);
       if (data) {
         return JSON.parse(data) as T;
       }
@@ -108,8 +112,9 @@ export class CacheService {
     
     try {
       const serialized = JSON.stringify(value);
+      const client = await getRedisClient();
       
-      if (!isRedisAvailable) {
+      if (!client || client.status !== 'ready') {
         memoryCache.set(trimmedKey, {
           value: serialized,
           expires: Date.now() + (ttl * 1000)
@@ -118,9 +123,9 @@ export class CacheService {
       }
 
       if (ttl > 0) {
-        await redisClient.setex(trimmedKey, ttl, serialized);
+        await client.setex(trimmedKey, ttl, serialized);
       } else {
-        await redisClient.set(trimmedKey, serialized);
+        await client.set(trimmedKey, serialized);
       }
     } catch (error) {
       logger.error(`Error setting cache key ${trimmedKey}:`, error);
@@ -132,11 +137,12 @@ export class CacheService {
     const trimmedKey = key.trim();
     
     try {
-      if (!isRedisAvailable) {
+      const client = await getRedisClient();
+      if (!client || client.status !== 'ready') {
         memoryCache.delete(trimmedKey);
         return;
       }
-      await redisClient.del(trimmedKey);
+      await client.del(trimmedKey);
     } catch (error) {
       logger.error(`Error deleting cache key ${trimmedKey}:`, error);
     }
@@ -145,14 +151,15 @@ export class CacheService {
   static async mget<T>(keys: string[]): Promise<(T | null)[]> {
     if (!keys?.length) return [];
     try {
-      if (!isRedisAvailable) {
+      const client = await getRedisClient();
+      if (!client || client.status !== 'ready') {
         return keys.map(k => {
           const item = memoryCache.get(k.trim());
           if (item && item.expires > Date.now()) return JSON.parse(item.value) as T;
           return null;
         });
       }
-      const data = await redisClient.mget(keys.map(k => k.trim()));
+      const data = await client.mget(keys.map(k => k.trim()));
       return data.map(item => item ? JSON.parse(item) as T : null);
     } catch (error) {
       logger.error('Error in mget:', error);
@@ -163,14 +170,15 @@ export class CacheService {
   static async mset<T>(keyValuePairs: [string, T][], ttl: number = 3600): Promise<void> {
     if (!keyValuePairs?.length) return;
     try {
-      if (!isRedisAvailable) {
+      const client = await getRedisClient();
+      if (!client || client.status !== 'ready') {
         const now = Date.now();
         keyValuePairs.forEach(([k, v]) => {
           memoryCache.set(k.trim(), { value: JSON.stringify(v), expires: now + (ttl * 1000) });
         });
         return;
       }
-      const pipeline = redisClient.pipeline();
+      const pipeline = client.pipeline();
       keyValuePairs.forEach(([k, v]) => {
         pipeline.setex(k.trim(), ttl, JSON.stringify(v));
       });
@@ -183,11 +191,12 @@ export class CacheService {
   static async mdel(keys: string[]): Promise<void> {
     if (!keys?.length) return;
     try {
-      if (!isRedisAvailable) {
+      const client = await getRedisClient();
+      if (!client || client.status !== 'ready') {
         keys.forEach(k => memoryCache.delete(k.trim()));
         return;
       }
-      await redisClient.del(...keys.map(k => k.trim()));
+      await client.del(...keys.map(k => k.trim()));
     } catch (error) {
       logger.error('Error in mdel:', error);
     }
@@ -195,7 +204,8 @@ export class CacheService {
 
   static async invalidatePattern(pattern: string): Promise<void> {
     try {
-      if (!isRedisAvailable) {
+      const client = await getRedisClient();
+      if (!client || client.status !== 'ready') {
         for (const key of memoryCache.keys()) {
           if (new RegExp(pattern.replace(/\*/g, '.*')).test(key)) {
             memoryCache.delete(key);
@@ -205,7 +215,7 @@ export class CacheService {
       }
 
       // Use SCAN instead of KEYS for production safety (non-blocking)
-      const stream = redisClient.scanStream({
+      const stream = client.scanStream({
         match: pattern,
         count: 100 // Process in chunks
       });
@@ -215,7 +225,8 @@ export class CacheService {
           // Pause stream while deleting to avoid overwhelming Redis
           stream.pause();
           try {
-            await redisClient.del(...keys);
+            const currentClient = await getRedisClient();
+            if (currentClient) await currentClient.del(...keys);
           } catch (delError) {
             logger.error(`Error deleting keys in pattern ${pattern}:`, delError);
           }
@@ -266,7 +277,8 @@ export class CacheService {
 
   static async flushAll(): Promise<void> {
     try {
-      if (isRedisAvailable) await redisClient.flushall();
+      const client = await getRedisClient();
+      if (client) await client.flushall();
       memoryCache.clear();
       logger.warn('All cache flushed');
     } catch (error) {

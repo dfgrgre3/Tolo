@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Play, 
   Pause, 
@@ -87,64 +88,117 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
 
   const currentProgress = 100 - (timeLeft / currentPhaseDuration * 100);
 
+  const strokeDasharray = 2 * Math.PI * 120; // radius is 120
+  const strokeDashoffset = strokeDasharray - (currentProgress / 100) * strokeDasharray;
+
+  // Visual themes for states
+  const stateThemes = {
+    work: { color: "text-rose-500", shadow: "drop-shadow-[0_0_20px_rgba(244,63,94,0.6)]", bg: "bg-rose-500", border: "border-rose-500/30" },
+    shortBreak: { color: "text-teal-500", shadow: "drop-shadow-[0_0_20px_rgba(20,184,166,0.6)]", bg: "bg-teal-500", border: "border-teal-500/30" },
+    longBreak: { color: "text-violet-500", shadow: "drop-shadow-[0_0_20px_rgba(139,92,246,0.6)]", bg: "bg-violet-500", border: "border-violet-500/30" }
+  };
+
+  const currentTheme = stateThemes[currentPomodoroState] || { color: "text-primary", shadow: "drop-shadow-md", bg: "bg-primary", border: "border-primary/30" };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2">
-        <Card className="bg-gradient-to-br from-primary/5 to-secondary/5 border-primary/20">
-          <CardHeader className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
+        <Card className={`relative overflow-hidden bg-background/60 backdrop-blur-xl border ${currentTheme.border} shadow-2xl transition-colors duration-700`}>
+          {/* Subtle background glow based on state */}
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 ${currentTheme.bg} rounded-full blur-[150px] opacity-10 pointer-events-none transition-all duration-1000`} />
+          
+          <CardHeader className="text-center pb-2 relative z-10">
+            <motion.div 
+              key={currentPomodoroState}
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className={`flex items-center justify-center gap-2 mb-2 ${currentTheme.color}`}
+            >
               {getTimerIcon()}
-              <CardTitle className="text-2xl">متتبع الوقت</CardTitle>
-            </div>
-            <CardDescription>
-              {getTimerLabel()} - {activeTaskId ? `المهمة: ${tasks.find(t => t.id === activeTaskId)?.title || 'غير محددة'}` : 'اختر مهمة للبدء'}
+              <CardTitle className="text-2xl font-bold">متتبع الوقت</CardTitle>
+            </motion.div>
+            <CardDescription className="text-base font-medium">
+              {getTimerLabel()}
+              {activeTaskId && (
+                <span className="block mt-1 text-foreground/80">
+                  المهمة: {tasks.find(t => t.id === activeTaskId)?.title || 'غير محددة'}
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col items-center py-6">
-            <div className="text-5xl font-mono font-bold mb-6 tabular-nums">
-              {formatTimeDisplay(timeLeft)}
-            </div>
+          <CardContent className="flex flex-col items-center py-8 relative z-10">
             
-            <div className="w-full max-w-md mb-6">
-              <div className="flex justify-between text-sm text-muted-foreground mb-1">
-                <span>0%</span>
-                <span>{Math.round(currentProgress)}%</span>
-                <span>100%</span>
+            {/* Glowing Circular Timer */}
+            <div className="relative flex items-center justify-center mb-10 mt-4 group">
+              <svg width="280" height="280" className="-rotate-90 transform">
+                {/* Background Track */}
+                <circle 
+                  cx="140" cy="140" r="120" 
+                  fill="none" stroke="currentColor" 
+                  strokeWidth="8" 
+                  className="text-muted/30"
+                />
+                {/* Progress Ring */}
+                <motion.circle 
+                  cx="140" cy="140" r="120" 
+                  fill="none" stroke="currentColor" 
+                  strokeWidth="12" 
+                  strokeLinecap="round"
+                  strokeDasharray={strokeDasharray}
+                  strokeDashoffset={strokeDashoffset}
+                  className={`${currentTheme.color} ${currentTheme.shadow} transition-all duration-1000 ease-linear`}
+                />
+              </svg>
+              {/* Inner Time Display */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-6xl font-mono font-black tabular-nums tracking-tighter ${currentTheme.color} ${currentTheme.shadow}`}>
+                  {formatTimeDisplay(timeLeft)}
+                </span>
+                <span className="text-sm font-medium text-muted-foreground mt-2">
+                  {Math.round(currentProgress)}%
+                </span>
               </div>
-              <Progress value={currentProgress} className="h-2.5" />
             </div>
             
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-4 sm:gap-6 w-full max-w-md">
+              <Button onClick={resetTimer} variant="outline" size="icon" className="h-14 w-14 rounded-full bg-background/50 backdrop-blur hover:scale-110 active:scale-95 transition-all">
+                <RotateCcw className="h-6 w-6" />
+              </Button>
+              
               <Button 
                 onClick={toggleTimer}
                 size="lg"
-                className={`px-8 py-6 text-lg ${
+                className={`flex-1 h-16 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-95 hover:scale-105 hover:shadow-xl ${
                   isRunning 
-                    ? 'bg-red-600 hover:bg-red-700' 
-                    : 'bg-green-600 hover:bg-green-700'
+                    ? 'bg-red-500/10 text-red-500 hover:bg-red-500/20 shadow-red-500/20 border border-red-500/30' 
+                    : `bg-green-500/10 text-green-500 hover:bg-green-500/20 shadow-green-500/20 border border-green-500/30`
                 }`}
               >
-                {isRunning ? (
-                  <>
-                    <Pause className="h-5 w-5 ml-2" />
-                    إيقاف
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-5 w-5 ml-2" />
-                    تشغيل
-                  </>
-                )}
+                <AnimatePresence mode="popLayout">
+                  <motion.div
+                    key={isRunning ? 'pause' : 'play'}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    exit={{ y: -20, opacity: 0 }}
+                    className="flex items-center justify-center gap-2"
+                  >
+                    {isRunning ? (
+                      <>
+                        <Pause className="h-6 w-6 fill-current" />
+                        إيقاف مؤقت
+                      </>
+                    ) : (
+                      <>
+                        <Play className="h-6 w-6 fill-current" />
+                        بدء الجلسة
+                      </>
+                    )}
+                  </motion.div>
+                </AnimatePresence>
               </Button>
               
-              <Button onClick={resetTimer} variant="outline" size="lg" className="px-6">
-                <RotateCcw className="h-5 w-5 ml-2" />
-                تعييد
-              </Button>
-              
-              <Button onClick={skipCurrentPhase} variant="outline" size="lg" className="px-6">
-                <Timer className="h-5 w-5 ml-2" />
-                تخطي
+              <Button onClick={skipCurrentPhase} variant="outline" size="icon" className="h-14 w-14 rounded-full bg-background/50 backdrop-blur hover:scale-110 active:scale-95 transition-all">
+                <Timer className="h-6 w-6" />
               </Button>
             </div>
             

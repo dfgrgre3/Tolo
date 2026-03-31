@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -28,7 +28,7 @@ import {
   Loader2,
   GraduationCap,
 } from "lucide-react";
-import { CourseVideoPlayer } from "@/components/video/CourseVideoPlayer";
+import { CourseVideoPlayer, type CourseVideoPlayerApi } from "@/components/video/CourseVideoPlayer";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -77,6 +77,8 @@ export default function AdvancedLearningHub() {
   const params = useParams();
   const router = useRouter();
   const courseId = params.courseId as string;
+
+  const playerApiRef = useRef<CourseVideoPlayerApi | null>(null);
 
   const [course, setCourse] = useState<Course | null>(null);
   const [chapters, setChapters] = useState<Chapter[]>([]);
@@ -156,6 +158,16 @@ export default function AdvancedLearningHub() {
       setSavingNote(false);
     }
   };
+
+  const handleInsertTimestamp = useCallback(() => {
+    if (playerApiRef.current) {
+      const time = playerApiRef.current.getCurrentTime();
+      const minutes = Math.floor(time / 60);
+      const seconds = Math.floor(time % 60);
+      const formatted = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+      setNoteContent(prev => prev + (prev.endsWith('\n') || prev === '' ? '' : '\n') + `[${formatted}] `);
+    }
+  }, []);
 
   const postQuestion = async () => {
     if (!activeLesson || !newQuestion.trim()) return;
@@ -416,38 +428,41 @@ export default function AdvancedLearningHub() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => router.push("/courses")}
+              onClick={() => router.push("/academy")}
               className="gap-1.5 text-xs font-medium text-gray-500 hover:text-gray-700"
             >
               <ArrowRight className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">خروج</span>
+              <span className="hidden sm:inline">خروج للأكاديمية</span>
             </Button>
           </div>
         </header>
 
         {/* Main content area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-5xl mx-auto p-4 lg:p-8 space-y-8">
-            {/* Video/Content player */}
-            <div className="rounded-2xl overflow-hidden border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/60 shadow-sm">
-              {activeLesson?.videoUrl && activeLesson.type === "VIDEO" ? (
-                <CourseVideoPlayer
-                  courseId={courseId}
-                  lessonId={activeLesson.id}
-                  lessonTitle={activeLesson.name}
-                  videoUrl={activeLesson.videoUrl}
-                  alreadyCompleted={activeLesson.completed}
-                  onLessonAutoComplete={() => handleLessonComplete(activeLesson.id)}
-                />
-              ) : (
-                <div className="aspect-video flex items-center justify-center bg-gray-50 dark:bg-gray-800/50 p-8 text-center">
-                  <div className="space-y-3">
-                    <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto" />
-                    <h3 className="text-sm font-medium text-gray-500">محتوى نصي - لا يوجد فيديو لهذا الدرس</h3>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="flex-1 overflow-y-auto bg-black">
+          {/* Theater Video Area */}
+          <div className="w-full bg-black relative">
+            {activeLesson?.videoUrl && activeLesson.type === "VIDEO" ? (
+              <CourseVideoPlayer
+                courseId={courseId}
+                lessonId={activeLesson.id}
+                lessonTitle={activeLesson.name}
+                videoUrl={activeLesson.videoUrl}
+                alreadyCompleted={activeLesson.completed}
+                onLessonAutoComplete={() => handleLessonComplete(activeLesson.id)}
+                onNextVideo={() => navigateLesson("next")}
+                playerApiRef={playerApiRef}
+                className="w-full rounded-none border-0 shadow-none max-h-[40vh] md:max-h-[60vh] lg:max-h-[80vh] object-contain bg-black"
+              />
+            ) : (
+              <div className="aspect-video w-full max-h-[40vh] md:max-h-[60vh] flex flex-col items-center justify-center bg-gray-900 border-b border-white/5 text-center px-4">
+                <FileText className="w-16 h-16 text-gray-600 mb-4" />
+                <h3 className="text-xl font-bold text-white">محتوى نصي</h3>
+                <p className="text-sm text-gray-400 mt-2 max-w-sm">هذا الدرس لا يحتوي على فيديو. قم بمراجعة وتصفح المحتوى والمرفقات بالأسفل.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="max-w-6xl mx-auto p-4 lg:p-8 space-y-8 bg-white dark:bg-[#0B0D14] min-h-screen rounded-t-3xl -mt-6 relative z-10 shadow-[0_-15px_40px_rgba(0,0,0,0.5)] border-t border-gray-100 dark:border-white/5">
 
             {/* Lesson header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -627,11 +642,18 @@ export default function AdvancedLearningHub() {
                       placeholder="سجل أهم النقاط والملاحظات من هذا الدرس..."
                       className="w-full min-h-[300px] bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-white/10 rounded-xl p-5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed focus:outline-none focus:ring-2 focus:ring-primary/20 resize-y"
                     />
-                    <div className="flex justify-end">
+                    <div className="flex justify-between items-center bg-gray-50 dark:bg-gray-800/50 p-2 rounded-xl border border-gray-200 dark:border-white/5 mt-2">
+                      <Button
+                        onClick={handleInsertTimestamp}
+                        variant="ghost"
+                        className="gap-2 rounded-xl h-9 px-4 font-bold text-xs text-primary hover:bg-primary/10"
+                      >
+                         <Clock className="h-3.5 w-3.5" /> أضف الطابع الزمني 
+                      </Button>
                       <Button
                         onClick={saveNote}
                         disabled={savingNote}
-                        className="gap-2 bg-primary text-white rounded-xl h-10 px-6 font-bold text-sm"
+                        className="gap-2 bg-primary text-white rounded-xl h-9 px-6 font-bold text-xs shadow-lg shadow-primary/20 hover:bg-primary/90"
                       >
                         {savingNote && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                         حفظ الملاحظات

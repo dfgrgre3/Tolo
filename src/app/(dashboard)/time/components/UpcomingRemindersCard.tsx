@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, Eye, EyeOff } from 'lucide-react';
+import { motion } from "framer-motion";
 import type { Reminder } from '../types';
 
 interface UpcomingRemindersCardProps {
@@ -20,10 +21,10 @@ export default function UpcomingRemindersCard({
   onTabChange
 }: UpcomingRemindersCardProps) {
   return (
-    <Card className="border-2 border-primary/10 shadow-md hover:shadow-lg transition-shadow">
-      <CardHeader className="flex flex-row justify-between items-center bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10">
-        <CardTitle className="flex items-center">
-          <div className="p-1.5 rounded-lg bg-primary/10 dark:bg-primary/20 ml-2">
+    <Card className="border-white/10 shadow-xl bg-background/60 backdrop-blur-xl relative overflow-hidden h-full">
+      <CardHeader className="flex flex-row justify-between items-center bg-gradient-to-r from-primary/5 to-transparent dark:from-primary/10 relative z-10 border-b border-primary/10">
+        <CardTitle className="flex items-center text-lg">
+          <div className="p-2 rounded-lg bg-primary/10 dark:bg-primary/20 ml-2 shadow-[0_0_10px_rgba(var(--primary),0.2)]">
             <Bell className="h-5 w-5 text-primary" />
           </div>
           التذكيرات القادمة
@@ -37,8 +38,19 @@ export default function UpcomingRemindersCard({
           {showUpcomingOnly ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
         </Button>
       </CardHeader>
-      <CardContent className="p-4">
-        <div className="space-y-3 max-h-80 overflow-y-auto">
+      <CardContent className="p-4 relative z-10">
+        <motion.div 
+          className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar"
+          initial="hidden"
+          animate="visible"
+          variants={{
+            hidden: { opacity: 0 },
+            visible: {
+              opacity: 1,
+              transition: { staggerChildren: 0.1 }
+            }
+          }}
+        >
           {reminders
             .filter(reminder => {
               if (!showUpcomingOnly) return true;
@@ -46,22 +58,27 @@ export default function UpcomingRemindersCard({
             })
             .sort((a, b) => new Date(a.remindAt).getTime() - new Date(b.remindAt).getTime())
             .slice(0, 5)
-            .map((reminder, index) => {
+            .map((reminder) => {
               const isUpcoming = new Date(reminder.remindAt) > new Date();
               return (
-                <div 
+                <motion.div 
                   key={reminder.id} 
-                  className="flex items-center justify-between p-4 bg-gradient-to-r from-gray-50/50 to-gray-100/30 dark:from-gray-800/50 dark:to-gray-700/30 rounded-lg hover:from-gray-100 hover:to-gray-200 dark:hover:from-gray-700 dark:hover:to-gray-600 cursor-pointer transition-all duration-200 hover:shadow-md hover:scale-[1.02] border border-gray-200/50 dark:border-gray-700/50"
+                  variants={{
+                    hidden: { x: 20, opacity: 0 },
+                    visible: { x: 0, opacity: 1 }
+                  }}
+                  whileHover={{ scale: 1.02 }}
+                  className="group flex items-center justify-between p-4 bg-background/50 backdrop-blur-sm rounded-xl cursor-pointer transition-all duration-300 border border-white/5 hover:border-yellow-500/30 hover:shadow-[0_0_15px_rgba(234,179,8,0.15)] relative overflow-hidden"
                   onClick={() => onTabChange("reminders")}
-                  style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="flex-1">
-                    <p className="font-semibold text-base mb-1">{reminder.title}</p>
+                  <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="flex-1 relative z-10">
+                    <p className="font-semibold text-base mb-1 group-hover:text-yellow-500 transition-colors">{reminder.title}</p>
                     {reminder.message && (
                       <p className="text-sm text-muted-foreground mb-1 line-clamp-1">{reminder.message}</p>
                     )}
-                    <p className="text-sm text-muted-foreground flex items-center gap-1">
-                      <span>⏰</span>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1.5 font-medium mt-1">
+                      <span className="text-yellow-500/70">⏰</span>
                       {new Date(reminder.remindAt).toLocaleString('ar-EG', {
                         weekday: 'short',
                         year: 'numeric',
@@ -74,11 +91,13 @@ export default function UpcomingRemindersCard({
                   </div>
                   <Badge 
                     variant={isUpcoming ? "default" : "outline"}
-                    className={`font-medium ${isUpcoming ? 'bg-yellow-500 hover:bg-yellow-600' : ''}`}
+                    className={`font-medium tracking-wide relative z-10 ${
+                      isUpcoming ? 'bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]' : ''
+                    }`}
                   >
-                    {isUpcoming ? 'قادم' : 'منتهي'}
+                    {isUpcoming ? 'مهمة قادمة' : 'منتهي'}
                   </Badge>
-                </div>
+                </motion.div>
               );
             })}
           {reminders
@@ -86,17 +105,20 @@ export default function UpcomingRemindersCard({
               if (!showUpcomingOnly) return true;
               return new Date(reminder.remindAt) > new Date();
             }).length === 0 && (
-            <div className="text-center py-8">
-              <div className="mb-2 text-4xl">🔔</div>
-              <p className="text-muted-foreground font-medium">
-                {showUpcomingOnly ? 'لا توجد تذكيرات قادمة' : 'لا توجد تذكيرات'}
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+              className="text-center py-10 flex flex-col items-center"
+            >
+              <div className="mb-4 text-5xl opacity-50 grayscale">🔔</div>
+              <p className="text-muted-foreground font-semibold text-lg">
+                {showUpcomingOnly ? 'لا توجد تذكيرات قادمة' : 'لا يوجد سجل تذكيرات'}
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                {showUpcomingOnly ? 'جميع التذكيرات قد انتهت' : 'قم بإنشاء تذكير جديد'}
+                {showUpcomingOnly ? 'جميع تذكيراتك استُكملت' : 'قم بإنشاء تذكير جديد'}
               </p>
-            </div>
+            </motion.div>
           )}
-        </div>
+        </motion.div>
       </CardContent>
     </Card>
   );

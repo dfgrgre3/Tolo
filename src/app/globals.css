@@ -196,6 +196,29 @@
   @apply relative overflow-hidden rounded-[2.5rem] border border-black/[0.03] bg-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.05)] backdrop-blur-2xl ring-1 ring-black/[0.05];
 }
 
+.dark .rpg-glass-premium {
+  @apply relative overflow-hidden bg-black/40 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl ring-1 ring-white/10;
+  background-image: 
+    radial-gradient(at 0% 0%, hsla(26, 100%, 50%, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, hsla(234, 100%, 40%, 0.1) 0px, transparent 50%);
+}
+
+.custom-scrollbar-premium::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar-premium::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar-premium::-webkit-scrollbar-thumb {
+  @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+}
+
+.shadow-inner-premium {
+  box-shadow: inset 0 2px 20px 0 rgba(0, 0, 0, 0.4);
+}
+
 .rpg-card {
   @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] backdrop-blur-md transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-primary/40 hover:scale-[1.01];
 }
