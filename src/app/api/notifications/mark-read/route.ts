@@ -1,9 +1,9 @@
-
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
+import redisService from '@/lib/redis';
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
             where: {
               userId,
               isRead: false,
+              isDeleted: false,
             },
             data: {
               isRead: true,
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
                 in: notificationIds,
               },
               userId,
+              isDeleted: false,
             },
             data: {
               isRead: true,
@@ -45,12 +47,14 @@ export async function POST(request: NextRequest) {
           updatedCount = result.count;
         }
 
-        // Get remaining unread count
+        // Invalidate unread count cache
+        await redisService.del(`user:${userId}:notifications:unread_count`).catch((err: any) => 
+            logger.error('Failed to invalidate notification count cache after mark-read:', err)
+        );
+
+        // Optional: Return new count (will be fetched from DB on cache miss)
         const unreadCount = await prisma.notification.count({
-          where: {
-            userId,
-            isRead: false,
-          },
+            where: { userId, isRead: false, isDeleted: false }
         });
 
         return successResponse({

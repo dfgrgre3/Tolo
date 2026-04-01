@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { withAuth, successResponse, handleApiError, unauthorizedResponse } from '@/lib/api-utils';
+import { withAuth, successResponse, handleApiError, unauthorizedResponse, badRequestResponse } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 
 // GET messages between two users
@@ -13,37 +13,45 @@ export async function GET(
     return withAuth(req, async ({ userId }) => {
       try {
         const { senderId, receiverId } = await params;
+        const { searchParams } = new URL(req.url);
+        const before = searchParams.get("before");
+        const limitParam = searchParams.get("limit") || "50";
+        const limit = Number.parseInt(limitParam, 10);
 
-        // Ensure the authenticated user is either the sender or receiver
         if (userId !== senderId && userId !== receiverId) {
           return unauthorizedResponse('You can only view your own messages');
         }
 
-        const messages = await prisma.message.findMany({
+        if (Number.isNaN(limit) || limit < 1 || limit > 100) {
+          return badRequestResponse("Invalid limit parameter");
+        }
+
+        const fetchedMessages = await prisma.message.findMany({
           where: {
             OR: [
               { senderId, receiverId },
               { senderId: receiverId, receiverId: senderId }
             ]
           },
-          orderBy: {
-            createdAt: "asc"
-          }
+          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+          take: limit + 1,
+          ...(before
+            ? {
+                cursor: { id: before },
+                skip: 1,
+              }
+            : {}),
         });
 
-        // Mark messages as read
-        await prisma.message.updateMany({
-          where: {
-            senderId: receiverId,
-            receiverId: senderId,
-            isRead: false
-          },
-          data: {
-            isRead: true
-          }
-        });
+        const hasMore = fetchedMessages.length > limit;
+        const messagesWindow = hasMore ? fetchedMessages.slice(0, limit) : fetchedMessages;
+        const messages = messagesWindow.reverse();
 
-        return successResponse(messages);
+        return successResponse({
+          messages,
+          hasMore,
+          nextCursor: hasMore ? messages[0]?.id ?? null : null,
+        });
       } catch (error) {
         logger.error("Error fetching messages:", error);
         return handleApiError(error);

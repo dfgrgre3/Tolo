@@ -4,7 +4,8 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, handleApiError, unauthorizedResponse } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 
-// GET all conversations for a user
+// GET /api/chat/conversations/[userId]
+// High-performance rewrite to avoid N+1 queries and memory exhaustion
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
@@ -18,80 +19,93 @@ export async function GET(
           return unauthorizedResponse('You can only view your own conversations');
         }
 
-        // Get all messages where the user is either sender or receiver
-        const messages = await prisma.message.findMany({
+        // 1. Get unique conversation partners with their last message date
+        // Note: Using raw SQL or complex group by is usually better, 
+        // but we can optimize with Prisma by fetching the latest messages first
+        const recentMessages = await prisma.message.findMany({
           where: {
             OR: [
               { senderId: userId },
               { receiverId: userId }
             ]
           },
-          orderBy: {
-            createdAt: "desc"
+          orderBy: { createdAt: 'desc' },
+          take: 500, // Safety boundary for performance
+          select: {
+            senderId: true,
+            receiverId: true,
+            content: true,
+            createdAt: true,
+            isRead: true,
+            id: true
           }
         });
 
-        // Group messages by conversation partner and get the latest message for each
-        const conversationMap = new Map<string, {
-          id: string;
-          userId: string;
-          name: string | null;
-          avatar: string | null;
-          lastSeen: Date | null;
-          lastMessage: string;
-          lastMessageTime: Date;
-          unreadCount: number;
-          isOnline: boolean;
-        }>();
-
-        for (const message of messages) {
-          const partnerId = message.senderId === userId ? message.receiverId : message.senderId;
-
-          if (!conversationMap.has(partnerId)) {
-            // Get partner info
-            const partner = await prisma.user.findUnique({
-              where: { id: partnerId },
-              select: {
-                id: true,
-                name: true,
-                avatar: true,
-                lastLogin: true
-              }
+        const partnersMap = new Map<string, any>();
+        
+        for (const msg of recentMessages) {
+          const partnerId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+          if (!partnersMap.has(partnerId)) {
+            partnersMap.set(partnerId, {
+              lastMessage: msg.content,
+              lastMessageTime: msg.createdAt,
+              // We'll count unread properly in a batch later
+              unreadCount: 0 
             });
-
-            if (partner) {
-              // Count unread messages
-              const unreadCount = await prisma.message.count({
-                where: {
-                  senderId: partnerId,
-                  receiverId: userId,
-                  isRead: false
-                }
-              });
-
-              conversationMap.set(partnerId, {
-                id: `conv-${userId}-${partnerId}`,
-                userId: partnerId,
-                name: partner.name,
-                avatar: partner.avatar,
-                lastSeen: partner.lastLogin,
-                lastMessage: message.content,
-                lastMessageTime: message.createdAt,
-                unreadCount,
-                isOnline: false // This would be determined by a real-time system
-              });
-            }
           }
         }
 
-        // Convert map to array and sort by last message time
-        const conversations = Array.from(conversationMap.values()).sort((a, b) =>
+        const partnerIds = Array.from(partnersMap.keys());
+
+        if (partnerIds.length === 0) {
+          return successResponse([]);
+        }
+
+        // 2. Batch fetch ALL partners info in ONE query
+        const partners = await prisma.user.findMany({
+          where: { id: { in: partnerIds } },
+          select: {
+            id: true,
+            name: true,
+            avatar: true,
+            lastLogin: true
+          }
+        });
+
+        // 3. Batch fetch ALL unread counts for these partners in ONE query
+        const unreadCounts = await prisma.message.groupBy({
+          by: ['senderId'],
+          where: {
+            receiverId: userId,
+            senderId: { in: partnerIds },
+            isRead: false
+          },
+          _count: { id: true }
+        });
+
+        const unreadMap = new Map(unreadCounts.map(u => [u.senderId, u._count.id]));
+
+        // 4. Assemble final list
+        const conversations = partners.map(partner => {
+          const stats = partnersMap.get(partner.id);
+          return {
+            id: `conv-${userId}-${partner.id}`,
+            userId: partner.id,
+            name: partner.name,
+            avatar: partner.avatar,
+            lastSeen: partner.lastLogin,
+            lastMessage: stats.lastMessage,
+            lastMessageTime: stats.lastMessageTime,
+            unreadCount: unreadMap.get(partner.id) || 0,
+            isOnline: false 
+          };
+        }).sort((a, b) => 
           new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
         );
 
         return successResponse(conversations);
       } catch (error: unknown) {
-        logger.error("Error fetching conversations:", error);
+        logger.error("Critical Error fetching conversations:", error);
         return handleApiError(error);
       }
     });

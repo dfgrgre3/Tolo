@@ -52,15 +52,14 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Validate Session in Database
-        const session = await prisma.session.findFirst({
+        const session = await prisma.session.findUnique({
             where: {
                 id: payload.sessionId,
-                isActive: true,
             },
             include: { user: true },
         });
 
-        if (!session || session.expiresAt < new Date()) {
+        if (!session || !session.isActive || session.expiresAt < new Date()) {
             clearAuthCookies(cookieStore);
             return NextResponse.json(
                 { error: 'Session expired. Please login again.' },

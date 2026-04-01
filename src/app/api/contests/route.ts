@@ -2,12 +2,20 @@ import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { handleApiError, successResponse, badRequestResponse, withAuth, notFoundResponse } from '@/lib/api-utils';
+import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
 
 // GET all contests
 export async function GET(request: NextRequest) {
-  return opsWrapper(request, async () => {
+  return opsWrapper(request, async (req) => {
     try {
+      const { searchParams } = new URL(req.url);
+      const limit = parseInt(searchParams.get('limit') || '20', 10);
+      const cursor = searchParams.get('cursor');
+
+      if (Number.isNaN(limit) || limit < 1 || limit > 100) {
+        return badRequestResponse("Invalid limit parameter");
+      }
+
       const contests = await prisma.contest.findMany({
         include: {
           organizer: {
@@ -21,13 +29,27 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        orderBy: {
-          startDate: "asc"
-        }
+        orderBy: [
+          {
+            startDate: "asc"
+          },
+          {
+            id: "desc"
+          }
+        ],
+        take: limit + 1,
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {}),
       });
 
-      // Transform the data to match the frontend structure
-      const transformedContests = contests.map((contest: any) => ({
+      const hasMore = contests.length > limit;
+      const pageContests = hasMore ? contests.slice(0, limit) : contests;
+
+      const transformedContests = pageContests.map((contest: any) => ({
         id: contest.id,
         title: contest.title,
         description: contest.description,
@@ -36,12 +58,16 @@ export async function GET(request: NextRequest) {
         endDate: contest.endDate.toISOString(),
         prize: contest.prizes,
         category: contest.category,
-        organizerName: contest.organizer?.name || "نظام ثنوي",
+        organizerName: contest.organizer?.name || "ظ†ط¸ط§ظ… ط«ظ†ظˆظٹ",
         tags: contest.tags,
         questionsCount: contest._count?.questions || 0
       }));
 
-      return successResponse(transformedContests);
+      return successResponse({
+        contests: transformedContests,
+        hasMore,
+        nextCursor: hasMore ? transformedContests[transformedContests.length - 1]?.id ?? null : null,
+      });
     } catch (error: unknown) {
       logger.error("Error fetching contests:", error);
       return handleApiError(error);
@@ -66,7 +92,7 @@ export async function POST(request: NextRequest) {
         } = await req.json();
 
         if (!title || !description || !startDate || !endDate) {
-          return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها");
+          return badRequestResponse("ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§");
         }
 
         const newContest = await prisma.contest.create({
@@ -90,7 +116,6 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        // Transform the data to match the frontend structure
         const transformedContest = {
           id: newContest.id,
           title: newContest.title,
@@ -100,7 +125,7 @@ export async function POST(request: NextRequest) {
           endDate: newContest.endDate.toISOString(),
           prize: newContest.prizes,
           category: newContest.category,
-          organizerName: newContest.organizer?.name || "أنت",
+          organizerName: newContest.organizer?.name || "ط£ظ†طھ",
           tags: newContest.tags,
           questionsCount: 0
         };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { getOrSetEnhanced } from "@/lib/cache-service-unified";
+import { getOrSetSubject, invalidateEducationalContent, invalidateEducationalContentPattern } from "@/lib/educational-cache-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -14,14 +14,11 @@ export async function GET(
       const { id } = await params;
 
       // Try to get from cache first
-      const subject = await getOrSetEnhanced(
-        `subject:${id}`,
-        async () => {
-          return await prisma.subject.findUnique({
-            where: { id }
-          });
-        }
-      );
+      const subject = await getOrSetSubject(id, async () => {
+        return await prisma.subject.findUnique({
+          where: { id }
+        });
+      }) as any;
 
       if (!subject) {
         return NextResponse.json(
@@ -136,6 +133,10 @@ export async function DELETE(
         });
       });
 
+      // Clear Caches
+      await invalidateEducationalContent(`subject:${id}`);
+      await invalidateEducationalContentPattern('courses:list:*');
+
       return NextResponse.json(
         { message: "تم حذف المادة بنجاح" },
         { status: 200 }
@@ -211,6 +212,10 @@ export async function PUT(
         where: { id },
         data
       });
+
+      // Clear Caches
+      await invalidateEducationalContent(`subject:${id}`);
+      await invalidateEducationalContentPattern('courses:list:*');
 
       return NextResponse.json(updatedSubject);
     } catch (error) {

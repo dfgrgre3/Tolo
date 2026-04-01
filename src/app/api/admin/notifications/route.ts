@@ -5,13 +5,19 @@ import { prisma } from "@/lib/db";
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    const limit = parseInt(searchParams.get("limit") || "20", 10);
+    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const cursor = searchParams.get("cursor");
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
-    const skip = (page - 1) * limit;
+    if (Number.isNaN(limit) || limit < 1 || limit > 100) {
+      return NextResponse.json({ error: "Invalid limit parameter" }, { status: 400 });
+    }
 
-    // Get admin user IDs first
+    if (!cursor && (Number.isNaN(offset) || offset < 0)) {
+      return NextResponse.json({ error: "Invalid offset parameter" }, { status: 400 });
+    }
+
     const adminUsers = await prisma.user.findMany({
       where: { role: "ADMIN" },
       select: { id: true },
@@ -21,14 +27,22 @@ export async function GET(request: NextRequest) {
     const where = {
       userId: { in: adminIds },
       ...(unreadOnly ? { isRead: false } : {}),
+      isDeleted: false,
     };
 
-    const [notifications, total, unreadCount] = await Promise.all([
+    const [fetchedNotifications, total, unreadCount] = await Promise.all([
       prisma.notification.findMany({
         where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: "desc" },
+        ...(cursor
+          ? {
+              cursor: { id: cursor },
+              skip: 1,
+            }
+          : {
+              skip: offset,
+            }),
+        take: limit + 1,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         include: {
           user: {
             select: { id: true, name: true, email: true },
@@ -37,24 +51,28 @@ export async function GET(request: NextRequest) {
       }),
       prisma.notification.count({ where }),
       prisma.notification.count({
-        where: { userId: { in: adminIds }, isRead: false },
+        where: { userId: { in: adminIds }, isRead: false, isDeleted: false },
       }),
     ]);
+
+    const hasMore = fetchedNotifications.length > limit;
+    const notifications = hasMore ? fetchedNotifications.slice(0, limit) : fetchedNotifications;
 
     return NextResponse.json({
       notifications,
       pagination: {
-        page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit),
+        offset: cursor ? undefined : offset,
+        hasMore,
+        nextCursor: hasMore ? notifications[notifications.length - 1]?.id ?? null : null,
       },
       unreadCount,
     });
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return NextResponse.json(
-      { error: "حدث خطأ أثناء جلب الإشعارات" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ" },
       { status: 500 }
     );
   }
@@ -67,7 +85,6 @@ export async function PATCH(request: NextRequest) {
     const { notificationId, markAllRead } = body;
 
     if (markAllRead) {
-      // Get admin user IDs first
       const adminUsers = await prisma.user.findMany({
         where: { role: "ADMIN" },
         select: { id: true },
@@ -75,10 +92,10 @@ export async function PATCH(request: NextRequest) {
       const adminIds = adminUsers.map((u: any) => u.id);
 
       await prisma.notification.updateMany({
-        where: { userId: { in: adminIds }, isRead: false },
+        where: { userId: { in: adminIds }, isRead: false, isDeleted: false },
         data: { isRead: true },
       });
-      return NextResponse.json({ success: true, message: "تم تحديد جميع الإشعارات كمقروءة" });
+      return NextResponse.json({ success: true, message: "طھظ… طھط­ط¯ظٹط¯ ط¬ظ…ظٹط¹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ظƒظ…ظ‚ط±ظˆط،ط©" });
     }
 
     if (notificationId) {
@@ -89,11 +106,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ error: "معرف الإشعار مطلوب" }, { status: 400 });
+    return NextResponse.json({ error: "ظ…ط¹ط±ظپ ط§ظ„ط¥ط´ط¹ط§ط± ظ…ط·ظ„ظˆط¨" }, { status: 400 });
   } catch (error) {
     console.error("Error updating notification:", error);
     return NextResponse.json(
-      { error: "حدث خطأ أثناء تحديث الإشعار" },
+      { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ط¯ظٹط« ط§ظ„ط¥ط´ط¹ط§ط±" },
       { status: 500 }
     );
   }

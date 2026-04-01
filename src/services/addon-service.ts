@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/db';
-import { logger } from '@/lib/logger';
 import { AddonType } from '@prisma/client';
 
 export class AddonService {
@@ -15,20 +14,25 @@ export class AddonService {
 
     const user = await prisma.user.findUnique({
       where: { id: userId },
+      include: { wallet: true },
     });
 
     if (!user) throw new Error('User not found');
 
-    if (user.balance < addon.price) {
+    if ((user.wallet?.balance ?? 0) < addon.price) {
       throw new Error('رصيد الحساب غير كافٍ لشراء هذه الإضافة.');
     }
 
     // 1. Transaction to deduct balance and add credits
     return await prisma.$transaction(async (tx: any) => {
       // Deduct balance
-      await tx.user.update({
-        where: { id: userId },
-        data: { balance: { decrement: addon.price } }
+      await tx.userWallet.upsert({
+        where: { userId },
+        update: { balance: { decrement: addon.price } },
+        create: {
+          userId,
+          balance: 0,
+        }
       });
 
       // Increment credits based on type

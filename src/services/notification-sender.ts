@@ -8,6 +8,7 @@ import { prisma } from '@/lib/db';
 import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { logger } from '@/lib/logger';
+import redisService from '@/lib/redis';
 
 // ==============================
 // إرسال إشعار عبر البريد الإلكتروني
@@ -183,6 +184,11 @@ export async function sendMultiChannelNotification(
                         isRead: false,
                     },
                 });
+
+                // Invalidate unread count cache
+                await redisService.del(`user:${userId}:notifications:unread_count`).catch((err: any) => 
+                    logger.error('Failed to invalidate notification count cache:', err)
+                );
             } catch (error) {
                 logger.error('خطأ في إنشاء إشعار التطبيق:', error);
             }

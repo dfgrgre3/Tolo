@@ -36,10 +36,12 @@ spec:
                 secretKeyRef:
                   name: thanawy-secrets
                   key: REDIS_URL
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=512"
           resources:
             requests:
-              cpu: "100m"
+              cpu: "250m"
               memory: "256Mi"
             limits:
-              cpu: "250m"
-              memory: "512Mi"
+              cpu: "1000m"
+              memory: "1Gi"

@@ -292,15 +292,27 @@ export class SubscriptionService {
         });
       }
 
-        await tx.userWallet.update({
+      if ((payment.balanceUsed ?? 0) > 0) {
+        await tx.userWallet.upsert({
           where: { userId: payment.userId },
-          data: { balance: { decrement: payment.balanceUsed ?? undefined } },
+          update: { balance: { decrement: payment.balanceUsed ?? 0 } },
+          create: {
+            userId: payment.userId,
+            balance: 0,
+          },
         });
+      }
 
-        await tx.userWallet.update({
+      if ((payment.creditAmount ?? 0) > 0) {
+        await tx.userWallet.upsert({
           where: { userId: payment.userId },
-          data: { balance: { increment: payment.creditAmount ?? undefined } },
+          update: { balance: { increment: payment.creditAmount ?? 0 } },
+          create: {
+            userId: payment.userId,
+            balance: payment.creditAmount ?? 0,
+          },
         });
+      }
 
       return updatedPayment;
     });
