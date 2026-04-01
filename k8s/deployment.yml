@@ -5,7 +5,14 @@ metadata:
   labels:
     app: thanawy
 spec:
-  replicas: 1
+  replicas: 3
+  revisionHistoryLimit: 3
+  minReadySeconds: 10
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
   selector:
     matchLabels:
       app: thanawy
@@ -16,6 +23,7 @@ spec:
     spec:
       # Security: Disable automounting of service account token to reduce attack surface
       automountServiceAccountToken: false
+      terminationGracePeriodSeconds: 60
       containers:
         - name: thanawy-container
           image: thanawy-app:latest
@@ -39,6 +47,11 @@ spec:
                 secretKeyRef:
                   name: thanawy-secrets
                   key: DATABASE_URL
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: thanawy-secrets
+                  key: REDIS_URL
             - name: JWT_SECRET
               valueFrom:
                 secretKeyRef:
@@ -46,25 +59,38 @@ spec:
                   key: JWT_SECRET
             - name: NEXT_PUBLIC_APP_NAME
               value: "Thanawy"
+            - name: NODE_OPTIONS
+              value: "--max-old-space-size=1024"
           resources:
             requests:
-              cpu: "250m"
-              memory: "512Mi"
+              cpu: "500m"
+              memory: "768Mi"
               # Reliability: Specify storage request to ensure sufficient disk space
               ephemeral-storage: "1Gi"
             limits:
-              cpu: "500m"
-              memory: "1Gi"
+              cpu: "2000m"
+              memory: "2Gi"
               ephemeral-storage: "2Gi"
           readinessProbe:
             httpGet:
-              path: /healthz
+              path: /api/readyz
               port: 3000
-            initialDelaySeconds: 10
+            initialDelaySeconds: 15
             periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 6
           livenessProbe:
             httpGet:
-              path: /healthz
+              path: /api/healthz
               port: 3000
-            initialDelaySeconds: 20
+            initialDelaySeconds: 30
+            periodSeconds: 15
+            timeoutSeconds: 3
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /api/healthz
+              port: 3000
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 18

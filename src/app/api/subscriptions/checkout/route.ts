@@ -49,7 +49,9 @@ export async function POST(req: Request) {
         email: true,
         name: true,
         phone: true,
-        balance: true,
+        wallet: {
+          select: { balance: true },
+        },
       },
     });
 
@@ -91,7 +93,7 @@ export async function POST(req: Request) {
     }
 
     if (paymentMethod === 'internal_wallet') {
-      if (user.balance < finalPrice) {
+      if ((user.wallet?.balance ?? 0) < finalPrice) {
         return NextResponse.json(
           { error: 'رصيد الحساب غير كافٍ. يرجى شحن الرصيد أولاً.' },
           { status: 400 }
@@ -113,9 +115,13 @@ export async function POST(req: Request) {
         provider: 'INTERNAL',
       });
 
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { balance: { decrement: finalPrice } },
+      await prisma.userWallet.upsert({
+        where: { userId: user.id },
+        update: { balance: { decrement: finalPrice } },
+        create: {
+          userId: user.id,
+          balance: 0,
+        },
       });
 
       await SubscriptionService.activateSubscriptionPayment(payment.id, {

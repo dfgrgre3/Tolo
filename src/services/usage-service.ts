@@ -1,6 +1,4 @@
 import { prisma } from '@/lib/db';
-import { SubscriptionService } from './subscription-service';
-import { logger } from '@/lib/logger';
 
 export class UsageService {
   /**
@@ -11,6 +9,7 @@ export class UsageService {
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
+        wallet: true,
         subscriptions: {
           where: { status: 'ACTIVE' },
           include: { plan: true },
@@ -53,21 +52,27 @@ export class UsageService {
       // 3. Beyond plan limit? Check if extra usage is allowed (Hybrid Model)
       const extraPrice = activeSub.plan.extraExamPrice || 0;
       if (extraPrice > 0) {
-        if (user.balance >= extraPrice) {
-          await prisma.user.update({
-            where: { id: userId },
-            data: { balance: { decrement: extraPrice } }
-          });
+        if ((user.wallet?.balance ?? 0) >= extraPrice) {
+          await prisma.$transaction(async (tx) => {
+            await tx.userWallet.upsert({
+              where: { userId },
+              update: { balance: { decrement: extraPrice } },
+              create: {
+                userId,
+                balance: 0,
+              },
+            });
 
-          await prisma.payment.create({
-            data: {
-              userId,
-              amount: extraPrice,
-              status: 'SUCCESS',
-              provider: 'USAGE_FEE',
-              paymentMethod: 'wallet',
-              paymentData: `Extra exam fee for user ${userId}`
-            }
+            await tx.payment.create({
+              data: {
+                userId,
+                amount: extraPrice,
+                status: 'SUCCESS',
+                provider: 'USAGE_FEE',
+                paymentMethod: 'wallet',
+                paymentData: `Extra exam fee for user ${userId}`
+              }
+            });
           });
 
           return { allowed: true, method: 'BALANCE_DEDUCTION', price: extraPrice };

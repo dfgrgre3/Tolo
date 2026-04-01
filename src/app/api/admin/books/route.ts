@@ -9,12 +9,19 @@ export async function GET(request: NextRequest) {
     return withAdmin(req, async () => {
       try {
         const searchParams = req.nextUrl.searchParams;
-        const page = parseInt(searchParams.get("page") || "1");
-        const limit = parseInt(searchParams.get("limit") || "10");
+        const limit = parseInt(searchParams.get("limit") || "10", 10);
+        const offset = parseInt(searchParams.get("offset") || "0", 10);
+        const cursor = searchParams.get("cursor");
         const search = searchParams.get("search") || "";
         const subjectId = searchParams.get("subjectId");
 
-        const skip = (page - 1) * limit;
+        if (Number.isNaN(limit) || limit < 1 || limit > 100) {
+          return NextResponse.json({ error: "Invalid limit parameter" }, { status: 400 });
+        }
+
+        if (!cursor && (Number.isNaN(offset) || offset < 0)) {
+          return NextResponse.json({ error: "Invalid offset parameter" }, { status: 400 });
+        }
 
         const where = {
           AND: [
@@ -30,12 +37,19 @@ export async function GET(request: NextRequest) {
           ],
         };
 
-        const [books, total] = await Promise.all([
+        const [fetchedBooks, total] = await Promise.all([
           prisma.book.findMany({
             where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
+            ...(cursor
+              ? {
+                  cursor: { id: cursor },
+                  skip: 1,
+                }
+              : {
+                  skip: offset,
+                }),
+            take: limit + 1,
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
             include: {
               subject: {
                 select: { id: true, name: true, nameAr: true },
@@ -48,13 +62,17 @@ export async function GET(request: NextRequest) {
           prisma.book.count({ where }),
         ]);
 
+        const hasMore = fetchedBooks.length > limit;
+        const books = hasMore ? fetchedBooks.slice(0, limit) : fetchedBooks;
+
         return NextResponse.json({
           books,
           pagination: {
-            page,
             limit,
             total,
-            totalPages: Math.ceil(total / limit),
+            offset: cursor ? undefined : offset,
+            hasMore,
+            nextCursor: hasMore ? books[books.length - 1]?.id ?? null : null,
           },
         });
       } catch (error) {
@@ -74,7 +92,7 @@ export async function POST(request: NextRequest) {
 
         if (!title || !author || !subjectId) {
           return NextResponse.json(
-            { error: "العنوان والمؤلف والمادة مطلوبون" },
+            { error: "ط§ظ„ط¹ظ†ظˆط§ظ† ظˆط§ظ„ظ…ط¤ظ„ظپ ظˆط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨ظˆظ†" },
             { status: 400 }
           );
         }
@@ -118,7 +136,7 @@ export async function DELETE(request: NextRequest) {
 
         if (!id) {
           return NextResponse.json(
-            { error: "معرف الكتاب مطلوب" },
+            { error: "ظ…ط¹ط±ظپ ط§ظ„ظƒطھط§ط¨ ظ…ط·ظ„ظˆط¨" },
             { status: 400 }
           );
         }

@@ -50,6 +50,7 @@ const PUBLIC_AUTH_API_ROUTES = [
 export default async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl;
+    const isApiRoute = pathname.startsWith('/api/');
     
     // 1. Traceability: Generate or propagate Request ID
     let requestId = request.headers.get('x-request-id');
@@ -77,6 +78,7 @@ export default async function middleware(request: NextRequest) {
     };
 
     const isPublicAuthRoute = isAuthPublicRoute(pathname);
+    const isPublicPage = !isApiRoute && !isPublicAuthRoute;
 
     // Default response with headers
     const passthroughResponse = decorateResponse(NextResponse.next({
@@ -96,43 +98,68 @@ export default async function middleware(request: NextRequest) {
 
     // -- RATE LIMITING --
     // Run for all routes except static assets to prevent abuse
-    if (!isStaticAsset) {
-      const { apiRateLimiter, authRateLimiter } = await import('@/lib/rate-limit-unified');
-      const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown';
-      const isAuthApi = pathname.startsWith('/api/auth');
-      
-      const result = isAuthApi 
-        ? await authRateLimiter.check(ip, pathname) 
-        : await apiRateLimiter.check(ip, pathname);
-      
-      const headers = {
-        'X-RateLimit-Limit': (isAuthApi ? 5 : 100).toString(),
-        'X-RateLimit-Remaining': result.remaining.toString(),
-        'X-RateLimit-Reset': result.resetTime.toString(),
-      };
-
-      if (!result.allowed) {
-        logger.warn(`Rate limit exceeded for [${isAuthApi ? 'AUTH' : 'API'}] - IP: ${ip} on ${pathname}`);
-        return withSecurityHeaders(NextResponse.json(
-          { 
-            error: 'Too Many Requests', 
-            message: result.lockedUntil ? 'Your account is temporarily locked due to too many failed attempts.' : 'Slow down, you are hitting the API too fast.'
-          },
-          { 
-            status: 429,
-            headers: {
-              ...headers,
-              'Retry-After': Math.ceil((result.resetTime - Date.now()) / 1000).toString()
-            }
-          }
-        ));
-      }
-
-      // Inject Rate Limit headers into request for downstream use IF needed
-      Object.entries(headers).forEach(([k, v]) => requestHeaders.set(k.toLowerCase(), v));
+    // -- AUTHENTICATION & IDENTITY EXTRACTION --
+    const token = request.cookies.get('access_token')?.value;
+    const hasRefreshToken = Boolean(request.cookies.get('refresh_token')?.value);
+    let payload: TokenPayload | null = null;
+    
+    if (token) {
+      payload = await TokenService.verifyToken<TokenPayload>(token);
     }
 
-    if (isStaticAsset || isPublicAuthApiRoute) {
+    // -- RATE LIMITING --
+    // Run for all sub-requests except static assets to prevent abuse.
+    // Enhanced: Use UserID for logged-in users, Fallback to IP.
+    if (!isStaticAsset && isApiRoute) {
+      try {
+        const { apiRateLimiter, authRateLimiter } = await import('@/lib/rate-limit-unified');
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown';
+        
+        // Identity-based rate limiting (Strategic for 1M+ users)
+        const identifier = payload?.userId || ip;
+        const isAuthApi = pathname.startsWith('/api/auth');
+        
+        // Wrap check with a safety timeout to prevent middleware hanging
+        const checkPromise = isAuthApi 
+          ? authRateLimiter.check(identifier, pathname) 
+          : apiRateLimiter.check(identifier, pathname);
+          
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+        const result = await Promise.race([checkPromise, timeoutPromise]);
+        
+        if (result) {
+          const headers = {
+            'X-RateLimit-Limit': (isAuthApi ? (payload ? 20 : 5) : 100).toString(),
+            'X-RateLimit-Remaining': result.remaining.toString(),
+            'X-RateLimit-Reset': result.resetTime.toString(),
+          };
+
+          if (!result.allowed) {
+            logger.warn(`Rate limit exceeded for [${isAuthApi ? 'AUTH' : 'API'}] - ID: ${identifier} on ${pathname}`);
+            return withSecurityHeaders(NextResponse.json(
+              { 
+                error: 'Too Many Requests', 
+                message: result.lockedUntil ? 'Your account is temporarily locked due to too many failed attempts.' : 'Slow down, you are hitting the API too fast.'
+              },
+              { 
+                status: 429,
+                headers: {
+                  ...headers,
+                  'Retry-After': Math.ceil((result.resetTime - Date.now()) / 1000).toString()
+                }
+              }
+            ));
+          }
+
+          // Inject Rate Limit headers into request for downstream use
+          Object.entries(headers).forEach(([k, v]) => requestHeaders.set(k.toLowerCase(), v));
+        }
+      } catch (rlError) {
+        logger.error('Rate limit system error:', rlError);
+      }
+    }
+
+    if (isStaticAsset || isPublicAuthApiRoute || isPublicPage) {
       return passthroughResponse;
     }
 
@@ -141,11 +168,8 @@ export default async function middleware(request: NextRequest) {
     const isTeacherRoute = TEACHER_ROUTES.some((prefix) => pathname.startsWith(prefix));
     const requiresAuth = isProtected || isAdminRoute || isTeacherRoute;
 
-    const token = request.cookies.get('access_token')?.value;
-    const hasRefreshToken = Boolean(request.cookies.get('refresh_token')?.value);
-
-    if (!token) {
-      if (isPublicAuthRoute) {
+    if (!payload) {
+      if (isAuthPublicRoute(pathname)) {
         return passthroughResponse;
       }
 
@@ -157,64 +181,44 @@ export default async function middleware(request: NextRequest) {
       return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
     }
 
-    // Verification phase using Unified TokenService
-    const payload = await TokenService.verifyToken<TokenPayload>(token);
+    // -- User is AUTHENTICATED --
 
-    if (payload) {
-      // -- User is AUTHENTICATED --
-
-      // If on a public auth route (login/register), redirect to authenticated home
-      if (isPublicAuthRoute) {
-        const requestedRedirect = sanitizeRedirectPath(
-          request.nextUrl.searchParams.get('redirect'),
-          DEFAULT_AUTHENTICATED_ROUTE
-        );
-        return withSecurityHeaders(NextResponse.redirect(new URL(requestedRedirect, request.url)));
-      }
-
-      // RBAC: Check for roles
-      if (isAdminRoute && payload.role !== 'ADMIN') {
-        return handleForbidden(request, pathname);
-      }
-
-      if (isTeacherRoute && payload.role !== 'TEACHER' && payload.role !== 'ADMIN') {
-        return handleForbidden(request, pathname);
-      }
-
-      // Header Injection: Prepare request headers for Route Handlers
-      const authHeaders = new Headers(request.headers);
-      authHeaders.set('x-user-id', payload.userId);
-      authHeaders.set('x-user-role', payload.role);
-      
-      if (payload.permissions && Array.isArray(payload.permissions)) {
-        authHeaders.set('x-user-permissions', payload.permissions.join(','));
-      }
-
-      if (payload.sessionId) {
-        authHeaders.set('x-session-id', payload.sessionId);
-      }
-
-      const authenticatedResponse = decorateResponse(NextResponse.next({
-        request: {
-          headers: authHeaders,
-        },
-      }));
-
-      return authenticatedResponse;
+    // If on a public auth route (login/register), redirect to authenticated home
+    if (isAuthPublicRoute(pathname)) {
+      const requestedRedirect = sanitizeRedirectPath(
+        request.nextUrl.searchParams.get('redirect'),
+        DEFAULT_AUTHENTICATED_ROUTE
+      );
+      return withSecurityHeaders(NextResponse.redirect(new URL(requestedRedirect, request.url)));
     }
 
-    // -- User Token is INVALID or EXPIRED --
-
-    if (isPublicAuthRoute) {
-      return passthroughResponse;
+    // RBAC: Check for roles
+    if (isAdminRoute && payload.role !== 'ADMIN') {
+      return handleForbidden(request, pathname);
     }
 
-    // Permit navigation if refresh token exists (for silent refresh fallback in handlers)
-    if (hasRefreshToken && requiresAuth) {
-      return passthroughResponse;
+    if (isTeacherRoute && payload.role !== 'TEACHER' && payload.role !== 'ADMIN') {
+      return handleForbidden(request, pathname);
     }
 
-    return requiresAuth ? handleUnauthorized(request, pathname) : passthroughResponse;
+    // Header Injection: Prepare request headers for Route Handlers
+    const authHeaders = new Headers(request.headers);
+    authHeaders.set('x-user-id', payload.userId as string);
+    authHeaders.set('x-user-role', payload.role as string);
+    
+    if (payload.permissions && Array.isArray(payload.permissions)) {
+      authHeaders.set('x-user-permissions', payload.permissions.join(','));
+    }
+
+    if (payload.sessionId) {
+      authHeaders.set('x-session-id', payload.sessionId as string);
+    }
+
+    return decorateResponse(NextResponse.next({
+      request: {
+        headers: authHeaders,
+      },
+    }));
   } catch (error) {
     console.error('Middleware Error:', error);
     
@@ -303,6 +307,16 @@ function addSecurityHeaders(response: NextResponse) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    '/api/:path*',
+    '/admin/:path*',
+    '/teacher/:path*',
+    '/user/:path*',
+    '/settings/:path*',
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/reset-password',
+    '/verify-email',
+    '/admin-login',
   ],
 };

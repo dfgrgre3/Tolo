@@ -207,15 +207,14 @@ export class SessionService {
      * Validate that a session is active and not expired.
      */
     static async validateSession(sessionId: string) {
-        const session = await prisma.session.findFirst({
+        const session = await prisma.session.findUnique({
             where: {
                 id: sessionId,
-                isActive: true,
             },
             include: { user: true },
         });
 
-        if (!session || session.expiresAt < new Date()) {
+        if (!session || !session.isActive || session.expiresAt < new Date()) {
             return null;
         }
 

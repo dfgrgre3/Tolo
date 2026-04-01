@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { CacheService as LegacyCacheService } from '@/lib/redis';
 import { CacheService } from '@/lib/cache-service-unified';
@@ -6,29 +6,51 @@ import { startOfWeek } from 'date-fns';
 import { gamificationService } from '@/services/gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { successResponse, unauthorizedResponse, badRequestResponse, withAuth, handleApiError } from '@/lib/api-utils';
+import { successResponse, badRequestResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async (authUser) => {
       try {
         const { searchParams } = new URL(req.url);
-        const limit = searchParams.get('limit') || '10';
-        const offset = searchParams.get('offset') || '0';
+        const limit = parseInt(searchParams.get('limit') || '10', 10);
+        const offset = parseInt(searchParams.get('offset') || '0', 10);
+        const cursor = searchParams.get('cursor');
 
-        // Use cache key based on user and parameters
-        const cacheKey = `study_sessions_${authUser.userId}_limit_${limit}_offset_${offset}`;
+        if (Number.isNaN(limit) || limit < 1 || limit > 100) {
+          return badRequestResponse('Invalid limit parameter');
+        }
 
-        const sessions = await LegacyCacheService.getOrSet(cacheKey, async () => {
-          return await prisma.studySession.findMany({
+        if (!cursor && (Number.isNaN(offset) || offset < 0)) {
+          return badRequestResponse('Invalid offset parameter');
+        }
+
+        const cacheKey = cursor
+          ? `study_sessions_${authUser.userId}_cursor_${cursor}_limit_${limit}`
+          : `study_sessions_${authUser.userId}_limit_${limit}_offset_${offset}`;
+
+        const payload = await LegacyCacheService.getOrSet(cacheKey, async () => {
+          const fetchedSessions = await prisma.studySession.findMany({
             where: {
               userId: authUser.userId,
             },
-            take: parseInt(limit),
-            skip: parseInt(offset),
-            orderBy: {
-              startTime: 'desc',
-            },
+            take: limit + 1,
+            ...(cursor
+              ? {
+                  cursor: { id: cursor },
+                  skip: 1,
+                }
+              : {
+                  skip: offset,
+                }),
+            orderBy: [
+              {
+                startTime: 'desc',
+              },
+              {
+                id: 'desc',
+              }
+            ],
             select: {
               id: true,
               userId: true,
@@ -50,9 +72,18 @@ export async function GET(request: NextRequest) {
               }
             }
           });
-        }, 300); // Cache for 5 minutes
 
-        return successResponse(sessions);
+          const hasMore = fetchedSessions.length > limit;
+          const sessions = hasMore ? fetchedSessions.slice(0, limit) : fetchedSessions;
+
+          return {
+            sessions,
+            hasMore,
+            nextCursor: hasMore ? sessions[sessions.length - 1]?.id ?? null : null,
+          };
+        }, 300);
+
+        return successResponse(payload);
       } catch (error) {
         logger.error('Error fetching study sessions:', error);
         return handleApiError(error);
@@ -85,35 +116,30 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Trigger gamification for study session completion
         try {
-          const updatedProgress = await gamificationService.updateUserProgress(
+          await gamificationService.updateUserProgress(
             authUser.userId,
             'study_session_completed',
             { duration: body.durationMin || 0 }
           );
-
-          // Achievements logic remains but only using local state/database
         } catch (gamificationError) {
           logger.error('Error updating gamification:', gamificationError);
         }
 
-        // Send study session finished notification
         try {
           const { sendMultiChannelNotification } = await import('@/services/notification-sender');
           await sendMultiChannelNotification({
             userId: authUser.userId,
-            title: 'انتهت جلسة المذاكرة',
-            message: `لقد أتممت ${body.durationMin || 0} دقيقة من المذاكرة المركزة. تابع التقدم!`,
+            title: 'ط§ظ†طھظ‡طھ ط¬ظ„ط³ط© ط§ظ„ظ…ط°ط§ظƒط±ط©',
+            message: `ظ„ظ‚ط¯ ط£طھظ…ظ…طھ ${body.durationMin || 0} ط¯ظ‚ظٹظ‚ط© ظ…ظ† ط§ظ„ظ…ط°ط§ظƒط±ط© ط§ظ„ظ…ط±ظƒط²ط©. طھط§ط¨ط¹ ط§ظ„طھظ‚ط¯ظ…!`,
             type: 'success',
-            icon: '⌛',
+            icon: 'âŒ›',
             channels: ['app']
           });
         } catch (notificationError) {
           logger.error('Failed to send study session notification:', notificationError);
         }
 
-        // Invalidate caches
         await LegacyCacheService.invalidatePattern(`study_sessions_${authUser.userId}*`);
         const weekStart = startOfWeek(new Date(), { weekStartsOn: 6 });
         await CacheService.del(`analytics:weekly:${authUser.userId}:${weekStart.toISOString()}`);

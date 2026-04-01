@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { prisma, Prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
@@ -15,23 +15,7 @@ export async function POST(request: NextRequest) {
           return badRequestResponse("All fields are required");
         }
 
-        // Check if users exist
-        const sender = await prisma.user.findUnique({
-          where: { id: userId }
-        });
-
-        if (!sender) {
-          return notFoundResponse("Sender not found");
-        }
-
-        const receiver = await prisma.user.findUnique({
-          where: { id: receiverId }
-        });
-
-        if (!receiver) {
-          return notFoundResponse("Receiver not found");
-        }
-
+        // High-performance creation: skip redundant lookups, rely on DB Foreign Keys
         const newMessage = await prisma.message.create({
           data: {
             senderId: userId,
@@ -42,7 +26,12 @@ export async function POST(request: NextRequest) {
         });
 
         return successResponse(newMessage, undefined, 201);
-      } catch (error) {
+      } catch (err: unknown) {
+        const error = err as any;
+        // Handle specifically missing foreign key (user not found)
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+          return notFoundResponse("Recipient or sender account not valid.");
+        }
         logger.error("Error creating message:", error);
         return handleApiError(error);
       }

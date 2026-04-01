@@ -137,6 +137,13 @@ model User {
   @@index([lastLogin])
   @@index([emailVerified])
   @@index([isDeleted, role])
+  @@index([emailVerificationToken])
+  @@index([resetToken])
+  @@index([magicLinkToken])
+  @@index([phoneVerificationOTP])
+  @@index([referralCode])
+  @@index([name])
+  @@index([username])
 }
 
 model UserXP {
@@ -227,6 +234,7 @@ model StudySession {
   @@index([subjectId, isDeleted])
   @@index([taskId])
   @@index([status, startTime(sort: Desc)])
+  @@index([userId, startTime(sort: Desc), id(sort: Desc)])
 }
 
 model Task {
@@ -325,6 +333,7 @@ model Book {
 
   @@index([subjectId])
   @@index([uploaderId])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model BookReview {
@@ -375,6 +384,8 @@ model Exam {
   results   ExamResult[]
 
   @@index([subjectId])
+  @@index([subjectId, year(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
+  @@index([year(sort: Desc), createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model ExamResult {
@@ -411,6 +422,8 @@ model Session {
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, isActive, expiresAt(sort: Desc)])
+  @@index([isActive, expiresAt])
 }
 
 model SecurityLog {
@@ -427,6 +440,7 @@ model SecurityLog {
   user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model Achievement {
@@ -523,6 +537,8 @@ model Notification {
   @@index([userId, isRead])
   @@index([createdAt(sort: Desc)])
   @@index([isDeleted])
+  @@index([userId, isDeleted, createdAt(sort: Desc)])
+  @@index([userId, isDeleted, isRead, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model Season {
@@ -703,6 +719,9 @@ model LeaderboardEntry {
 
   @@unique([userId, type, period, subjectId, levelRange, seasonId])
   @@index([userId])
+  @@index([totalXP(sort: Desc)])
+  @@index([type, period, totalXP(sort: Desc)])
+  @@index([subjectId, type, period, totalXP(sort: Desc)])
 }
 
 model SentimentAnalysis {
@@ -873,6 +892,7 @@ model Subject {
   @@index([instructorName])
   @@index([enrolledCount(sort: Desc)])
   @@index([rating(sort: Desc)])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model Topic {
@@ -984,6 +1004,10 @@ model Message {
   @@index([senderId])
   @@index([receiverId])
   @@index([senderId, receiverId])
+  @@index([senderId, receiverId, createdAt(sort: Desc)])
+  @@index([receiverId, isRead, createdAt(sort: Desc)])
+  @@index([senderId, receiverId, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([receiverId, senderId, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model Announcement {
@@ -1123,6 +1147,8 @@ model Contest {
   questions   ContestQuestion[]
   organizerId String?
   organizer   User?             @relation("ContestOrganizer", fields: [organizerId], references: [id])
+
+  @@index([startDate, id(sort: Desc)])
 }
 
 model ContestQuestion {
@@ -1192,9 +1218,9 @@ model Schedule {
   subject     Subject? @relation(fields: [subjectId], references: [id])
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, active], name: "userId_active")
   @@index([userId])
   @@index([subjectId])
+  @@index([userId, active, startTime])
 }
 
 model UserGrade {
@@ -1464,6 +1490,8 @@ model Subscription {
   @@index([userId])
   @@index([planId])
   @@index([status])
+  @@index([userId, status, endDate(sort: Desc)])
+  @@index([status, gracePeriodEndDate])
 }
 
 model Payment {
@@ -1497,6 +1525,9 @@ model Payment {
   @@index([subscriptionId])
   @@index([status])
   @@index([transactionId])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([subscriptionId, status, createdAt(sort: Desc)])
+  @@index([orderId])
 }
 
 model Coupon {

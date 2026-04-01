@@ -18,7 +18,7 @@ export class XPRepository {
    * Atomic update of XP stats using upsert.
    * This avoids race conditions and ensures the row exists.
    */
-  async updateStats(data: XPUpdateData) {
+  async updateStats(data: XPUpdateData, tx: any = prisma) {
     const { userId, amount, type } = data;
     
     // Map the internal type to the correct Prisma field
@@ -34,7 +34,7 @@ export class XPRepository {
     const specificField = fieldMap[type] || 'studyXP';
 
     try {
-      return await prisma.userXP.upsert({
+      return await tx.userXP.upsert({
         where: { userId },
         create: {
           userId,
@@ -61,9 +61,9 @@ export class XPRepository {
   /**
    * Updates only the level field in the split table.
    */
-  async updateLevel(userId: string, newLevel: number) {
+  async updateLevel(userId: string, newLevel: number, tx: any = prisma) {
     try {
-      return await prisma.userXP.update({
+      return await tx.userXP.update({
         where: { userId },
         data: { level: newLevel },
         select: { level: true }

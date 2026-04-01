@@ -48,15 +48,14 @@ export async function GET(req: NextRequest) {
         }
 
         // Validate session in DB
-        const session = await prisma.session.findFirst({
+        const session = await prisma.session.findUnique({
             where: {
                 id: payload.sessionId as string,
-                isActive: true,
             },
             include: { user: true },
         });
 
-        if (!session || session.expiresAt < new Date()) {
+        if (!session || !session.isActive || session.expiresAt < new Date()) {
             cookieStore.delete('access_token');
             cookieStore.delete('refresh_token');
             cookieStore.delete('session_id');

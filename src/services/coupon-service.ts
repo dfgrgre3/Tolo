@@ -1,5 +1,4 @@
 import { prisma } from '@/lib/db';
-import { DiscountType } from '@prisma/client';
 
 export class CouponService {
   /**
@@ -104,19 +103,19 @@ export class CouponService {
    * Apply referral balance as an automatic discount (Affiliate Integration)
    */
   static async applyReferralBalance(userId: string, currentAmount: number) {
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
+    const wallet = await prisma.userWallet.findUnique({
+        where: { userId },
         select: { balance: true }
     });
 
-    if (!user || user.balance <= 0) return { discountUsed: 0, finalAmount: currentAmount };
+    if (!wallet || wallet.balance <= 0) return { discountUsed: 0, finalAmount: currentAmount };
 
-    const discountToApply = Math.min(user.balance, currentAmount);
+    const discountToApply = Math.min(wallet.balance, currentAmount);
     
     return {
         discountUsed: discountToApply,
         finalAmount: currentAmount - discountToApply,
-        remainingBalance: user.balance - discountToApply
+        remainingBalance: wallet.balance - discountToApply
     };
   }
 }

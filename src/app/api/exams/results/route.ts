@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from '@/lib/db';
 import { gamificationService } from "@/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -16,16 +17,35 @@ export async function GET(req: NextRequest) {
   return opsWrapper(req, async (request) => {
     return withAuth(request, async (authUser) => {
       try {
-        const results = await prisma.examResult.findMany({
-          where: { userId: authUser.userId },
-          include: {
-            exam: {
-              include: { subject: { select: { nameAr: true, name: true } } }
-            }
-          },
-          orderBy: { takenAt: "desc" }
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20")));
+        const skip = (page - 1) * limit;
+
+        const [results, total] = await Promise.all([
+          prisma.examResult.findMany({
+            where: { userId: authUser.userId },
+            include: {
+              exam: {
+                include: { subject: { select: { nameAr: true, name: true } } }
+              }
+            },
+            orderBy: { takenAt: "desc" },
+            take: limit,
+            skip: skip
+          }),
+          prisma.examResult.count({ where: { userId: authUser.userId } })
+        ]);
+
+        return successResponse({
+          results,
+          pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit)
+          }
         });
-        return successResponse(results);
       } catch (e: unknown) {
         return handleApiError(e);
       }
@@ -46,7 +66,6 @@ export async function POST(req: NextRequest) {
 
         const { examId, score, takenAt, teacherId } = validation.data;
 
-        // 1. Fetch exam with subject info for verification
         const exam = await prisma.exam.findUnique({
           where: { id: examId },
           include: { subject: true }
@@ -56,7 +75,6 @@ export async function POST(req: NextRequest) {
           return badRequestResponse("الامتحان غير موجود");
         }
 
-        // 2. SECURITY: Verify student enrollment in the subject (Prevent IDOR)
         const enrollment = await prisma.subjectEnrollment.findUnique({
           where: {
             userId_subjectId: {
@@ -70,36 +88,30 @@ export async function POST(req: NextRequest) {
           return forbiddenResponse("يجب الاشتراك في المادة أولاً لتسجيل نتيجة الامتحان");
         }
 
-        // 3. IDEMPOTENCY: Check if user already submitted this exam
-        const existingResult = await prisma.examResult.findFirst({
-          where: {
-            userId: authUser.userId,
-            examId
+        let result;
+        try {
+          result = await prisma.examResult.create({
+            data: {
+              userId: authUser.userId,
+              examId,
+              score,
+              takenAt: takenAt ? new Date(takenAt) : new Date(),
+              teacherId
+            },
+            include: {
+              exam: true
+            }
+          });
+        } catch (error) {
+          if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+            return badRequestResponse("لقد قمت بتسجيل نتيجة هذا الامتحان مسبقاً");
           }
-        });
-
-        if (existingResult) {
-          return badRequestResponse("لقد قمت بتسجيل نتيجة هذا الامتحان مسبقاً");
+          throw error;
         }
 
-        const result = await prisma.examResult.create({
-          data: {
-            userId: authUser.userId,
-            examId,
-            score,
-            takenAt: takenAt ? new Date(takenAt) : new Date(),
-            teacherId
-          },
-          include: {
-            exam: true
-          }
-        });
-
-        // Trigger gamification for exam completion
         try {
           await gamificationService.updateUserProgress(authUser.userId, 'exam_completed', { score });
         } catch (gamificationError) {
-          // Log but don't fail the request
           console.error('Gamification update failed:', gamificationError);
         }
 

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -25,49 +26,60 @@ export class ReferralService {
   static async processReferralReward(userId: string, paymentAmount: number) {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { referredById: true, referralRewards: true }
+      select: { referredById: true }
     });
 
     if (!user?.referredById) return;
-
-    // Check if reward already exists for this referred user
-    const existingReward = await prisma.referralReward.findUnique({
-      where: { referredId: userId }
-    });
-
-    if (existingReward) return;
+    const referrerId = user.referredById;
 
     // Reward amount (fixed e.g., 20 EGP)
     const REWARD_AMOUNT = 20;
 
-    // 1. Create Referral Reward record
-    const reward = await prisma.referralReward.create({
-      data: {
-        referrerId: user.referredById,
-        referredId: userId,
-        amount: REWARD_AMOUNT,
-        status: 'PAID'
+    try {
+      return await prisma.$transaction(async (tx) => {
+        const reward = await tx.referralReward.create({
+          data: {
+            referrerId,
+            referredId: userId,
+            amount: REWARD_AMOUNT,
+            status: 'PAID'
+          }
+        });
+
+        await tx.userWallet.upsert({
+          where: { userId: referrerId },
+          update: { balance: { increment: REWARD_AMOUNT } },
+          create: {
+            userId: referrerId,
+            balance: REWARD_AMOUNT,
+          },
+        });
+
+        await tx.payment.create({
+          data: {
+            userId: referrerId,
+            amount: REWARD_AMOUNT,
+            status: 'SUCCESS',
+            provider: 'REFERRAL_BONUS',
+            paymentMethod: 'system',
+            paymentData: `Referral reward for referred user ${userId}, source payment ${paymentAmount}`,
+            referralRewardId: reward.id,
+          }
+        });
+
+        return reward;
+      });
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        return prisma.referralReward.findUnique({
+          where: { referredId: userId },
+        });
       }
-    });
 
-    // 2. Add to Referrer's balance
-    await prisma.user.update({
-      where: { id: user.referredById },
-      data: { balance: { increment: REWARD_AMOUNT } }
-    });
-
-    // 3. Create a Payment record for the bonus (for history)
-    await prisma.payment.create({
-      data: {
-        userId: user.referredById,
-        amount: REWARD_AMOUNT,
-        status: 'SUCCESS',
-        provider: 'REFERRAL_BONUS',
-        paymentMethod: 'system',
-        referralRewardId: reward.id,
-      }
-    });
-
-    return reward;
+      throw error;
+    }
   }
 }

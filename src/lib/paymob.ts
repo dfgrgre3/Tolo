@@ -1,3 +1,5 @@
+import { createHmac } from 'crypto';
+
 export interface PaymobAuthResponse {
   token: string;
 }
@@ -23,9 +25,6 @@ export class PaymobService {
     this.hmacSecret = process.env.PAYMOB_HMAC_SECRET || '';
   }
 
-  /**
-   * Step 1: Authentication
-   */
   async authenticate(): Promise<string> {
     try {
       const response = await fetch(`${this.apiUrl}/auth/tokens`, {
@@ -33,10 +32,10 @@ export class PaymobService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ api_key: this.apiKey }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Auth failed');
-      
+
       return data.token;
     } catch (error: any) {
       console.error('Paymob Auth Error:', error.message);
@@ -44,9 +43,6 @@ export class PaymobService {
     }
   }
 
-  /**
-   * Step 2: Order Registration
-   */
   async registerOrder(token: string, amountCents: number, merchantOrderId: string): Promise<number> {
     try {
       const response = await fetch(`${this.apiUrl}/ecommerce/orders`, {
@@ -61,10 +57,10 @@ export class PaymobService {
           items: [],
         }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Order registration failed');
-      
+
       return data.id;
     } catch (error: any) {
       console.error('Paymob Order Error:', error.message);
@@ -72,9 +68,6 @@ export class PaymobService {
     }
   }
 
-  /**
-   * Step 3: Payment Key Generation
-   */
   async generatePaymentKey(
     token: string,
     orderId: number,
@@ -115,10 +108,10 @@ export class PaymobService {
           integration_id: integrationId,
         }),
       });
-      
+
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Payment key generation failed');
-      
+
       return data.token;
     } catch (error: any) {
       console.error('Paymob Payment Key Error:', error.message);
@@ -127,11 +120,55 @@ export class PaymobService {
   }
 
   /**
-   * Verify HMAC for callback security
+   * Verify HMAC for callback security.
+   * Uses the transaction object fields commonly included by Paymob processed callbacks.
    */
   verifyHmac(data: any, hmac: string): boolean {
-    // Implementation of HMAC verification
-    return true; 
+    if (!this.hmacSecret || !hmac || !data) {
+      return false;
+    }
+
+    const source = data.obj ?? data;
+    const order = source.order ?? {};
+    const billingData = source.source_data ?? {};
+
+    const parts = [
+      source.amount_cents,
+      source.created_at,
+      source.currency,
+      source.error_occured,
+      source.has_parent_transaction,
+      source.id,
+      source.integration_id,
+      source.is_3d_secure,
+      source.is_auth,
+      source.is_capture,
+      source.is_refunded,
+      source.is_standalone_payment,
+      source.is_voided,
+      order.id,
+      order.merchant_order_id ?? source.merchant_order_id,
+      source.owner,
+      source.pending,
+      billingData.pan,
+      billingData.sub_type,
+      billingData.type,
+      source.success,
+    ];
+
+    const payload = parts
+      .map((value) => {
+        if (value === null || value === undefined) return '';
+        if (typeof value === 'boolean') return value ? 'true' : 'false';
+        return String(value);
+      })
+      .join('');
+
+    const digest = createHmac('sha512', this.hmacSecret)
+      .update(payload)
+      .digest('hex');
+
+    return digest.toLowerCase() === hmac.toLowerCase();
   }
 }
 

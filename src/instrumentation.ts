@@ -22,6 +22,8 @@ export async function register() {
         })
         .catch(err => logger.error('DB Partitions: Automated management failed.', err));
 
+      await import('./modules/notifications/notification.worker');
+
       // 3. Global Console Bridge (Ensures all errors are captured by Unified Logger)
       if (process.env.NODE_ENV === 'production') {
         const originalError = console.error;

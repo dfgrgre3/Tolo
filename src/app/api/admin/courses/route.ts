@@ -76,19 +76,27 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("غير مسموح لك بالوصول إلى إدارة الدورات");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط¥ط¯ط§ط±ط© ط§ظ„ط¯ظˆط±ط§طھ");
       }
 
       try {
         const searchParams = req.nextUrl.searchParams;
-        const page = Number.parseInt(searchParams.get("page") || "1", 10);
         const limit = Number.parseInt(searchParams.get("limit") || "10", 10);
+        const offset = Number.parseInt(searchParams.get("offset") || "0", 10);
+        const cursor = searchParams.get("cursor");
         const search = searchParams.get("search") || "";
         const isActive = searchParams.get("isActive");
         const isPublished = searchParams.get("isPublished");
         const categoryId = searchParams.get("categoryId");
         const instructorId = searchParams.get("instructorId");
-        const skip = (page - 1) * limit;
+
+        if (Number.isNaN(limit) || limit < 1 || limit > 100) {
+          return badRequestResponse("Invalid limit parameter");
+        }
+
+        if (!cursor && (Number.isNaN(offset) || offset < 0)) {
+          return badRequestResponse("Invalid offset parameter");
+        }
 
         const where = {
           AND: [
@@ -108,12 +116,19 @@ export async function GET(request: NextRequest) {
           ],
         };
 
-        const [courses, total] = await Promise.all([
+        const [fetchedCourses, total] = await Promise.all([
           prisma.subject.findMany({
             where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
+            ...(cursor
+              ? {
+                  cursor: { id: cursor },
+                  skip: 1,
+                }
+              : {
+                  skip: offset,
+                }),
+            take: limit + 1,
+            orderBy: [{ createdAt: "desc" }, { id: "desc" }],
             include: {
               _count: {
                 select: {
@@ -128,13 +143,17 @@ export async function GET(request: NextRequest) {
           prisma.subject.count({ where }),
         ]);
 
+        const hasMore = fetchedCourses.length > limit;
+        const courses = hasMore ? fetchedCourses.slice(0, limit) : fetchedCourses;
+
         return successResponse({
           courses,
           pagination: {
-            page,
             limit,
             total,
-            totalPages: Math.ceil(total / limit),
+            offset: cursor ? undefined : offset,
+            hasMore,
+            nextCursor: hasMore ? courses[courses.length - 1]?.id ?? null : null,
           },
         });
       } catch (error) {
@@ -149,7 +168,7 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("غير مسموح لك بإنشاء دورات");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط¥ظ†ط´ط§ط، ط¯ظˆط±ط§طھ");
       }
 
       try {
@@ -164,7 +183,7 @@ export async function POST(request: NextRequest) {
           data: validation.data,
         });
 
-        return successResponse({ course }, "تم إنشاء الدورة بنجاح", 201);
+        return successResponse({ course }, "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­", 201);
       } catch (error) {
         logger.error("Error creating admin course", error);
         return handleApiError(error);
@@ -177,7 +196,7 @@ export async function PATCH(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("غير مسموح لك بتحديث الدورات");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط­ط¯ظٹط« ط§ظ„ط¯ظˆط±ط§طھ");
       }
 
       try {
@@ -185,7 +204,7 @@ export async function PATCH(request: NextRequest) {
         const { id, ...data } = body;
 
         if (!id) {
-          return badRequestResponse("معرف الدورة مطلوب");
+          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ط¯ظˆط±ط© ظ…ط·ظ„ظˆط¨");
         }
 
         const validation = courseSchema.partial().safeParse(normalizeCoursePayload(data));
@@ -198,7 +217,7 @@ export async function PATCH(request: NextRequest) {
           data: validation.data,
         });
 
-        return successResponse({ course }, "تم تحديث الدورة بنجاح");
+        return successResponse({ course }, "طھظ… طھط­ط¯ظٹط« ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­");
       } catch (error) {
         logger.error("Error updating admin course", error);
         return handleApiError(error);
@@ -211,7 +230,7 @@ export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("غير مسموح لك بحذف الدورات");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط­ط°ظپ ط§ظ„ط¯ظˆط±ط§طھ");
       }
 
       try {
@@ -219,7 +238,7 @@ export async function DELETE(request: NextRequest) {
         const id = typeof body?.id === "string" ? body.id : "";
 
         if (!id) {
-          return badRequestResponse("معرف الدورة مطلوب");
+          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ط¯ظˆط±ط© ظ…ط·ظ„ظˆط¨");
         }
 
         const enrollmentsCount = await prisma.subjectEnrollment.count({
@@ -228,7 +247,7 @@ export async function DELETE(request: NextRequest) {
 
         if (enrollmentsCount > 0) {
           return badRequestResponse(
-            `لا يمكن حذف هذه الدورة لوجود ${enrollmentsCount} طالب مشترك بها. يرجى إلغاء تفعيل الدورة بدلاً من حذفها.`
+            `ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط© ظ„ظˆط¬ظˆط¯ ${enrollmentsCount} ط·ط§ظ„ط¨ ظ…ط´طھط±ظƒ ط¨ظ‡ط§. ظٹط±ط¬ظ‰ ط¥ظ„ط؛ط§ط، طھظپط¹ظٹظ„ ط§ظ„ط¯ظˆط±ط© ط¨ط¯ظ„ط§ظ‹ ظ…ظ† ط­ط°ظپظ‡ط§.`
           );
         }
 
@@ -236,12 +255,12 @@ export async function DELETE(request: NextRequest) {
           where: { id },
         });
 
-        return successResponse({ success: true }, "تم حذف الدورة بنجاح");
+        return successResponse({ success: true }, "طھظ… ط­ط°ظپ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­");
       } catch (error: any) {
         logger.error("Error deleting admin course", error);
 
         if (error?.code === "P2003") {
-          return badRequestResponse("تعذر حذف الدورة لوجود سجلات مرتبطة بها في قاعدة البيانات.");
+          return badRequestResponse("طھط¹ط°ط± ط­ط°ظپ ط§ظ„ط¯ظˆط±ط© ظ„ظˆط¬ظˆط¯ ط³ط¬ظ„ط§طھ ظ…ط±طھط¨ط·ط© ط¨ظ‡ط§ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ.");
         }
 
         return handleApiError(error);

@@ -26,6 +26,25 @@ const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 // Singleton instance
 let _redisClient: Redis | null = null;
 
+async function ensureRedisReady(client: Redis | null): Promise<Redis | null> {
+  if (!client) return null;
+
+  if (client.status === 'ready') {
+    return client;
+  }
+
+  if (client.status === 'wait') {
+    try {
+      await client.connect();
+    } catch (error) {
+      logger.warn('[CacheService] Redis connect attempt failed:', error);
+      return null;
+    }
+  }
+
+  return client.status === 'ready' ? client : null;
+}
+
 /**
  * Lazy-load the Redis client only on the server.
  * This prevents ioredis from being evaluated in browser/edge environments.
@@ -65,7 +84,7 @@ export async function getRedisClient(): Promise<Redis | null> {
       return null;
     }
   }
-  return _redisClient;
+  return ensureRedisReady(_redisClient);
 }
 
 // Export a proxy as 'redisClient' to maintain backward compatibility with existing imports
@@ -88,7 +107,7 @@ export class CacheService {
     
     try {
       const client = await getRedisClient();
-      if (!client || client.status !== 'ready') {
+      if (!client) {
         // FAIL-SAFE: Disable memory fallback in production to prevent Inconsistency.
         if (isProduction) return null;
 
@@ -119,8 +138,8 @@ export class CacheService {
     try {
       const serialized = JSON.stringify(value);
       const client = await getRedisClient();
-      
-      if (!client || client.status !== 'ready') {
+
+      if (!client) {
         // FAIL-SAFE: Disable memory fallback in production.
         if (isProduction) {
           logger.warn(`[CacheService] Redis down. Skipping set for ${trimmedKey} to prevent inconsistency.`);
@@ -157,7 +176,7 @@ export class CacheService {
     
     try {
       const client = await getRedisClient();
-      if (!client || client.status !== 'ready') {
+      if (!client) {
         if (!isProduction) memoryCache.delete(trimmedKey);
         return;
       }
@@ -175,7 +194,7 @@ export class CacheService {
     const trimmedKey = key.trim();
     try {
       const client = await getRedisClient();
-      if (!client || client.status !== 'ready') return 0;
+      if (!client) return 0;
       return await client.incrby(trimmedKey, amount);
     } catch (error) {
       logger.error(`[CacheService] Error incrementing key ${trimmedKey}:`, error);
@@ -187,7 +206,7 @@ export class CacheService {
     if (!keys?.length) return [];
     try {
       const client = await getRedisClient();
-      if (!client || client.status !== 'ready') {
+      if (!client) {
         return keys.map(k => {
           const item = memoryCache.get(k.trim());
           if (item && item.expires > Date.now()) return JSON.parse(item.value) as T;
@@ -206,7 +225,7 @@ export class CacheService {
     if (!keyValuePairs?.length) return;
     try {
       const client = await getRedisClient();
-      if (!client || client.status !== 'ready') {
+      if (!client) {
         const now = Date.now();
         keyValuePairs.forEach(([k, v]) => {
           memoryCache.set(k.trim(), { value: JSON.stringify(v), expires: now + (ttl * 1000) });
@@ -227,7 +246,7 @@ export class CacheService {
     if (!keys?.length) return;
     try {
       const client = await getRedisClient();
-      if (!client || client.status !== 'ready') {
+      if (!client) {
         keys.forEach(k => memoryCache.delete(k.trim()));
         return;
       }

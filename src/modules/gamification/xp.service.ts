@@ -2,6 +2,7 @@ import { xpRepository, XPUpdateData } from './xp.repository';
 import { logger } from '@/lib/logger';
 import { gamificationQueue, enqueueJob } from '@/lib/queue';
 import redisService from '@/lib/redis';
+import { prisma } from '@/lib/db';
 
 import { achievementService } from '@/services/gamification/achievement-service';
 
@@ -76,16 +77,28 @@ export class XPService {
     const { userId, amount } = data;
     
     try {
-        // 1. Atomic DB Update in split table
-        const stats = await xpRepository.updateStats(data);
-        
-        // 2. Level calculation logic
-        const currentLevel = stats.level;
-        const newLevel = this.calculateLevel(stats.totalXP);
-        
-        if (newLevel > currentLevel) {
-          await xpRepository.updateLevel(userId, newLevel);
+        // Atomic DB Update in a Transaction
+        const { stats, levelUp, newLevel } = await prisma.$transaction(async (tx) => {
+          // 1. Atomic XP Update
+          const currentStats = await xpRepository.updateStats(data, tx);
           
+          // 2. Level calculation logic within the lock
+          const currentLevel = currentStats.level;
+          const calculatedLevel = this.calculateLevel(currentStats.totalXP);
+          
+          const isLevelUp = calculatedLevel > currentLevel;
+          
+          if (isLevelUp) {
+            await xpRepository.updateLevel(userId, calculatedLevel, tx);
+          }
+
+          return { stats: currentStats, levelUp: isLevelUp, newLevel: calculatedLevel };
+        }, {
+          isolationLevel: 'ReadCommitted', // Default for PG, sufficient for row-level increment
+          timeout: 5000
+        });
+        
+        if (levelUp) {
           // Enqueue secondary events (notifications, achievements check)
           await enqueueJob(gamificationQueue, 'CHECK_ACHIEVEMENTS', { userId });
           logger.info(`[XPService] User ${userId} leveled up to ${newLevel}`);
@@ -95,7 +108,7 @@ export class XPService {
         await redisService.del(`user:${userId}:profile`);
         await redisService.set(`user:${userId}:xp`, stats.totalXP, 3600);
         
-        return { success: true, levelUp: newLevel > currentLevel };
+        return { success: true, levelUp };
     } catch (error) {
         logger.error(`[XPService] Critical failure in processXPUpdate:`, error);
         throw error;

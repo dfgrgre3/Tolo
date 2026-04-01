@@ -1,12 +1,37 @@
 import { Queue, Worker, Job, QueueOptions, WorkerOptions } from 'bullmq';
-import { redisClient } from '../cache';
 import { logger } from '../logger';
 
-const redisConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
-  port: parseInt(process.env.REDIS_PORT || '6379'),
-  password: process.env.REDIS_PASSWORD,
-};
+const redisUrl = process.env.REDIS_URL;
+const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
+
+const redisConnection = redisUrl && !isRedisDisabled
+  ? (() => {
+      try {
+        const url = new URL(redisUrl);
+        return {
+          host: url.hostname,
+          port: Number(url.port || '6379'),
+          username: url.username || undefined,
+          password: url.password || undefined,
+          db: url.pathname ? Number(url.pathname.replace('/', '') || '0') : 0,
+          tls: url.protocol === 'rediss:' ? {} : undefined,
+          maxRetriesPerRequest: null,
+          enableOfflineQueue: false,
+          connectTimeout: 5000, // 5 second hard timeout for boot survival
+        };
+      } catch (err) {
+        logger.error('[BullMQ] Invalid REDIS_URL, falling back to localhost:', err);
+        return { host: 'localhost', port: 6379, maxRetriesPerRequest: null, enableOfflineQueue: false };
+      }
+    })()
+  : {
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379', 10),
+      password: process.env.REDIS_PASSWORD,
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: false,
+      connectTimeout: isRedisDisabled ? 100 : 5000,
+    };
 
 /**
  * Enhanced BullMQ wrapper for the modular monolith
