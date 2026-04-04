@@ -69,8 +69,8 @@ export default function PhoneVerificationModal({
       setStep('OTP');
       setCountdown(60);
       toast.success('تم إرسال رمز التحقق إلى هاتفك');
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'فشل إرسال رمز التحقق');
       setStep('IDLE');
     }
   };
@@ -104,8 +104,8 @@ export default function PhoneVerificationModal({
         setStep('IDLE');
         setOtp(['', '', '', '', '', '']);
       }, 2000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'كود التحقق غير صحيح');
       setStep('OTP');
     }
   };

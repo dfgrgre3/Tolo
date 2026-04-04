@@ -12,6 +12,7 @@ import { AchievementTable } from "./AchievementTable";
 import { AchievementFormDialog } from "./AchievementFormDialog";
 import { Achievement } from "./types";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 export default function AdminAchievementsPage() {
   const [achievements, setAchievements] = React.useState<Achievement[]>([]);
@@ -33,7 +34,7 @@ export default function AdminAchievementsPage() {
       const data = await response.json();
       setAchievements(data.achievements || []);
     } catch (error) {
-      console.error("Error fetching achievements:", error);
+      logger.error("Error fetching achievements:", error);
       toast.error("حدث خطأ أثناء جلب الإنجازات. يرجى المحاولة مرة أخرى.");
       setAchievements([]);
     } finally {
@@ -71,7 +72,7 @@ export default function AdminAchievementsPage() {
         toast.error("حدث خطأ أثناء حذف الإنجاز");
       }
     } catch (error) {
-      console.error("Error deleting achievement:", error);
+      logger.error("Error deleting achievement:", error);
       toast.error("حدث خطأ أثناء حذف الإنجاز");
     } finally {
       setDeleteDialog({ open: false, id: null });

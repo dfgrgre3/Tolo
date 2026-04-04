@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { logger } from '@/lib/logger';
 
 async function getUserId(): Promise<string | null> {
 	try {
@@ -13,7 +14,7 @@ async function getUserId(): Promise<string | null> {
 		const data = await res.json();
 		return data.user.id;
 	} catch (error) {
-		console.error("Error getting user ID:", error);
+		logger.error("Error getting user ID:", error);
 		return null;
 	}
 }
@@ -72,7 +73,7 @@ export default function NotificationsClient() {
 				try {
 					const res = await fetch(`/api/reminders?userId=${encodeURIComponent(userId)}`);
 					if (!res.ok) {
-						console.warn("Failed to load reminders:", res.status);
+						logger.warn("Failed to load reminders:", res.status);
 						return;
 					}
 
@@ -115,7 +116,7 @@ export default function NotificationsClient() {
 						timersRef.current.push({ id: r.id, occurrence: next.toISOString(), timer });
 					}
 				} catch (error) {
-					console.warn("Error in loadAndSchedule:", error);
+					logger.warn("Error in loadAndSchedule:", error);
 				}
 			};
 

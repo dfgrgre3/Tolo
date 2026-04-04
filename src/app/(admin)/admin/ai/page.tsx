@@ -127,7 +127,7 @@ export default function AdminAIPage() {
       setTitle("");
       setPrompt("");
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const reviewMutation = useMutation({
@@ -145,11 +145,11 @@ export default function AdminAIPage() {
       toast.success(variables.decision === "approve" ? "تم الاعتماد وتشغيل المحتوى" : "تم رفض المحتوى");
       queryClient.invalidateQueries({ queryKey: ["admin", "ai_state"] });
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const actionMutation = useMutation({
-    mutationFn: async ({ type, params }: { type: string; params: any }) => {
+    mutationFn: async ({ type, params }: { type: string; params: Record<string, unknown> }) => {
       const response = await fetch("/api/admin/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -163,7 +163,7 @@ export default function AdminAIPage() {
       toast.success(data.message || "تم تنفيذ الإجراء بنجاح");
       queryClient.invalidateQueries({ queryKey: ["admin", "ai_state"] });
     },
-    onError: (err: any) => toast.error(err.message),
+    onError: (err: Error) => toast.error(err.message),
   });
 
   const pendingItems = data?.reviewQueue?.filter((i) => i.status === "pending_review") || [];

@@ -31,6 +31,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 interface UserDetails {
   id: string;
@@ -150,7 +151,7 @@ export default function UserDetailPage() {
           router.push("/admin/users");
         }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        logger.error("Error fetching user:", error);
         toast.error("حدث خطأ أثناء جلب بيانات المستخدم");
       } finally {
         setLoading(false);
@@ -177,7 +178,7 @@ export default function UserDetailPage() {
         toast.error("حدث خطأ أثناء تحديث دور المستخدم");
       }
     } catch (error) {
-      console.error("Error updating user role:", error);
+      logger.error("Error updating user role:", error);
       toast.error("حدث خطأ أثناء تحديث دور المستخدم");
     }
   };

@@ -15,7 +15,6 @@ export async function GET(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
 		try {
 			// Authenticate user via middleware
-			// Authenticate user via middleware
 			const authUserId = request.headers.get("x-user-id");
 			if (!authUserId) {
 				return createStandardErrorResponse('Unauthorized', 'Unauthorized', 401);
@@ -71,7 +70,6 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
 	return opsWrapper(req, async (request) => {
 		try {
-			// Authenticate user via middleware
 			// Authenticate user via middleware
 			const authUserId = request.headers.get("x-user-id");
 			if (!authUserId) {
@@ -199,12 +197,12 @@ export async function POST(req: NextRequest) {
 									// If creation fails due to duplicate, try to update instead
 									const error = err as { code?: string; message?: string };
 									if (error?.code === 'P2002' || error?.message?.includes('Unique constraint') || error?.message?.includes('UNIQUE constraint')) {
-										const existing = await prisma.subjectEnrollment.findFirst({
+										const existingEnrollmentCheck = await prisma.subjectEnrollment.findFirst({
 											where: { userId: targetUserId, subjectId: s.subject }
 										});
-										if (existing) {
+										if (existingEnrollmentCheck) {
 											return prisma.subjectEnrollment.update({
-												where: { id: existing.id },
+												where: { id: existingEnrollmentCheck.id },
 												data: { targetWeeklyHours: hours }
 											});
 										}
@@ -231,7 +229,7 @@ export async function POST(req: NextRequest) {
 					// Don't throw - user settings were updated successfully
 					// Just log the error
 					if (process.env.NODE_ENV === 'development') {
-						const error = subjectError as any;
+						const error = subjectError as { message?: string; code?: string; stack?: string };
 						logger.error("Subject enrollment error details:", {
 							message: error?.message,
 							code: error?.code,

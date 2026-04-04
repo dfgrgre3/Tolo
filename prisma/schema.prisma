@@ -75,6 +75,9 @@ model User {
   referredById                  String?
   additionalAiCredits           Int                   @default(0)
   additionalExamCredits         Int                   @default(0)
+  monthlyExamCount              Int                   @default(0)
+  monthlyAiMessageCount         Int                   @default(0)
+  lastUsageReset                DateTime              @default(now())
   aiChatMessages                AiChatMessage[]
   aiGeneratedContent            AiGeneratedContent[]
   aiGeneratedExams              AiGeneratedExam[]
@@ -130,6 +133,7 @@ model User {
   reports                       ContentReport[]       @relation("UserReports")
   teacherProfile                Teacher?
   progress                      TopicProgress[]
+  eventParticipations           EventAttendee[]
   isDeleted                     Boolean               @default(false)
   deletedAt                     DateTime?
 
@@ -1122,6 +1126,7 @@ model EventAttendee {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
   @@index([eventId])

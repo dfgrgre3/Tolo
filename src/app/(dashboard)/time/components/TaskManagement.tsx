@@ -324,14 +324,14 @@ export default function TaskManagement({
       
       setTasks(prev => prev.filter(t => t.id !== taskId));
       onTaskDelete?.(taskId);
-    } catch (error) {
-      logger.error("Error deleting task:", error);
+    } catch (error: unknown) {
+      logger.error("Error deleting task:", error instanceof Error ? error.message : String(error));
     }
   }, [onTaskDelete]);
 
   const handleStatusChange = async (taskId: string, status: string) => {
     try {
-      const updateData: any = { status };
+      const updateData: Partial<Task> = { status: status as any };
       if (status === 'COMPLETED') {
         updateData.completedAt = new Date().toISOString();
         updateData.actualTime = timerSeconds > 0 ? Math.round(timerSeconds / 60) : undefined;
@@ -576,7 +576,7 @@ export default function TaskManagement({
                   <FormField
                     control={form.control}
                     name="title"
-                    render={({ field }: { field: any }) => (
+                    render={({ field }) => (
                       <FormItem>
                         <FormLabel>العنوان *</FormLabel>
                         <FormControl>
@@ -590,7 +590,7 @@ export default function TaskManagement({
                   <FormField
                     control={form.control}
                     name="description"
-                    render={({ field }: { field: any }) => (
+                    render={({ field }) => (
                       <FormItem>
                         <FormLabel>الوصف</FormLabel>
                         <FormControl>
@@ -605,7 +605,7 @@ export default function TaskManagement({
                     <FormField
                       control={form.control}
                       name="subject"
-                      render={({ field }: { field: any }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>المادة</FormLabel>
                           <Select value={field.value || ''} onValueChange={field.onChange}>
@@ -630,7 +630,7 @@ export default function TaskManagement({
                     <FormField
                       control={form.control}
                       name="priority"
-                      render={({ field }: { field: any }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>الأولوية</FormLabel>
                           <Select value={field.value || ''} onValueChange={field.onChange}>
@@ -656,7 +656,7 @@ export default function TaskManagement({
                     <FormField
                       control={form.control}
                       name="dueAt"
-                      render={({ field }: { field: any }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>تاريخ الاستحقاق</FormLabel>
                           <FormControl>
@@ -670,7 +670,7 @@ export default function TaskManagement({
                     <FormField
                       control={form.control}
                       name="estimatedTime"
-                      render={({ field }: { field: any }) => (
+                      render={({ field }) => (
                         <FormItem>
                           <FormLabel>الوقت المتوقع (دقيقة)</FormLabel>
                           <FormControl>
@@ -692,7 +692,7 @@ export default function TaskManagement({
                   <FormField
                     control={form.control}
                     name="tags"
-                    render={({ field }: { field: any }) => (
+                    render={({ field }) => (
                       <FormItem>
                         <FormLabel>العلامات</FormLabel>
                         <FormControl>

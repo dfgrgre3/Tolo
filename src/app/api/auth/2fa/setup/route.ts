@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-utils';
 import { TwoFactorService } from '@/services/auth/two-factor-service';
 import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/auth/2fa/setup
@@ -29,7 +30,7 @@ export async function GET(req: NextRequest) {
 
             return NextResponse.json({ secret, qrCode });
         } catch (error) {
-            console.error('[2FA_SETUP_ERROR]', error);
+            logger.error('[2FA_SETUP_ERROR]', error);
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
     });

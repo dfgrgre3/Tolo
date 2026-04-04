@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
         history
     });
   } catch (error) {
-    console.error('Fetch Referrals Error:', error);
+    logger.error('Fetch Referrals Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

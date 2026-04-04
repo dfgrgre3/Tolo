@@ -2,8 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import {
-
-
   XAxis,
   YAxis,
   CartesianGrid,
@@ -41,6 +39,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { logger } from '@/lib/logger';
 
 const LOCAL_USER_KEY = "tw_user_id";
 
@@ -64,17 +63,39 @@ const STYLES = {
   goldText: "rpg-gold-text font-black"
 };
 
+interface StudyStat {
+  day: string;
+  minutes: number;
+  target: number;
+}
+
+interface SubjectSkill {
+  subject: string;
+  level: number;
+}
+
+interface ProgressPoint {
+  month: string;
+  xp: number;
+}
+
 // --- Data for Visualization ---
-const studyStats: any[] = [];
+const studyStats: StudyStat[] = [];
+const subjectSkills: SubjectSkill[] = [];
+const progressPath: ProgressPoint[] = [];
 
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    value: number | string;
+    name?: string;
+    dataKey?: string | number;
+    color?: string;
+  }>;
+  label?: string;
+}
 
-const subjectSkills: any[] = [];
-
-
-const progressPath: any[] = [];
-
-
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-black/80 backdrop-blur-xl border border-white/10 p-3 rounded-xl shadow-2xl text-xs sm:text-sm">
@@ -82,7 +103,6 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="text-primary">{`الدقائق: ${payload[0].value} دقيقة`}</p>
         {payload[1] && <p className="text-amber-500">{`الهدف: ${payload[1].value} دقيقة`}</p>}
       </div>);
-
   }
   return null;
 };
@@ -99,8 +119,8 @@ export default function ProgressPage() {
         const res = await fetch(`/api/progress/summary?userId=${userId}`);
         const data = await res.json();
         setSummary(data);
-      } catch (err) {
-        console.error("Failed to fetch summary", err);
+      } catch (err: unknown) {
+        logger.error("Failed to fetch summary", err instanceof Error ? err.message : String(err));
       } finally {
         setIsLoading(false);
       }
@@ -123,10 +143,10 @@ export default function ProgressPage() {
         
         {/* --- Header Section --- */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col md:flex-row items-center justify-between gap-6">
-          
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="flex flex-col md:flex-row items-center justify-between gap-6">
+  
           <div className="space-y-4 text-center md:text-right">
              <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-blue-400">
                 <Map className="w-4 h-4" />
@@ -155,18 +175,18 @@ export default function ProgressPage() {
         {/* --- Stats Grid --- */}
         <div className="grid gap-6 md:grid-cols-4">
            {[
-          { label: "إجمالي وقت التدريب", value: summary?.totalMinutes ?? 0, unit: "دقيقة", icon: Clock, color: "text-blue-400" },
-          { label: "النشاط المستمر", value: summary?.streakDays ?? 0, unit: "يوم", icon: Flame, color: "text-orange-400" },
-          { label: "معدل التركيز", value: summary?.averageFocus ?? 0, unit: "%", icon: Brain, color: "text-purple-400" },
-          { label: "المهمات المنجزة", value: summary?.tasksCompleted ?? 0, unit: "مهمة", icon: Target, color: "text-emerald-400" }].
-          map((stat, idx) =>
-          <motion.div
-            key={idx}
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: idx * 0.1 }}
-            className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all cursor-default"}>
-            
+  { label: "إجمالي وقت التدريب", value: summary?.totalMinutes ?? 0, unit: "دقيقة", icon: Clock, color: "text-blue-400" },
+  { label: "النشاط المستمر", value: summary?.streakDays ?? 0, unit: "يوم", icon: Flame, color: "text-orange-400" },
+  { label: "معدل التركيز", value: summary?.averageFocus ?? 0, unit: "%", icon: Brain, color: "text-purple-400" },
+  { label: "المهمات المنجزة", value: summary?.tasksCompleted ?? 0, unit: "مهمة", icon: Target, color: "text-emerald-400" }].
+  map((stat, idx) =>
+  <motion.div
+    key={idx}
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ delay: idx * 0.1 }}
+    className={STYLES.glass + " p-6 group hover:border-primary/50 transition-all cursor-default"}>
+    
                 <div className="flex items-start justify-between">
                    <div className={`p-3 rounded-2xl bg-white/5 border border-white/10 ${stat.color} group-hover:scale-110 transition-transform`}>
                       <stat.icon className="w-6 h-6" />
@@ -181,7 +201,7 @@ export default function ProgressPage() {
                    </div>
                 </div>
              </motion.div>
-          )}
+  )}
         </div>
 
         {/* --- Main Content Tabs --- */}
@@ -398,4 +418,3 @@ export default function ProgressPage() {
       </div>
    );
 }
-

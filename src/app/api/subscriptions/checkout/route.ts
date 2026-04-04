@@ -9,6 +9,7 @@ import {
   type BillingCycle,
 } from '@/services/subscription-service';
 import { getRequestUserId } from '@/lib/request-auth';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -256,7 +257,7 @@ export async function POST(req: Request) {
       billingCycle,
     });
   } catch (error: any) {
-    console.error('Checkout Error:', error);
+    logger.error('Checkout Error:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

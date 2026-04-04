@@ -173,7 +173,7 @@ export async function POST(req: NextRequest) {
                 channels: ['app', 'email']
             });
         } catch (notificationError) {
-            console.error('Failed to send welcome notification:', notificationError);
+            logger.error('Failed to send welcome notification:', notificationError);
         }
 
         // Increment rate limiter

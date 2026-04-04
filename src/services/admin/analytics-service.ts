@@ -194,4 +194,94 @@ export class AnalyticsService {
 
     return { success: false, message: "إجراء غير معروف" };
   }
+
+  /**
+   * Get the most popular subjects based on exam usage
+   */
+  static async getSubjectPopularity(days: number = 30) {
+    const events = await prisma.analyticsEvent.findMany({
+      where: {
+        type: { startsWith: 'EXAM_' },
+        createdAt: { gte: subDays(now(), days) }
+      },
+      select: { metadata: true }
+    });
+
+    const subjectCounts: Record<string, number> = {};
+    events.forEach(event => {
+      try {
+        const meta = event.metadata ? JSON.parse(event.metadata) : {};
+        if (meta.subjectId) {
+          subjectCounts[meta.subjectId] = (subjectCounts[meta.subjectId] || 0) + 1;
+        }
+      } catch (e) {}
+    });
+
+    // Map to subject names if possible
+    const subjectIds = Object.keys(subjectCounts);
+    const subjects = await prisma.subject.findMany({
+      where: { id: { in: subjectIds } },
+      select: { id: true, name: true }
+    });
+
+    return subjects.map(s => ({
+      name: s.name,
+      count: subjectCounts[s.id]
+    })).sort((a, b) => b.count - a.count);
+  }
+
+  /**
+   * Identify peak usage hours for AI and Exams
+   */
+  static async getPeakUsageHours() {
+    const events = await prisma.analyticsEvent.findMany({
+      where: {
+        createdAt: { gte: subDays(now(), 7) }
+      },
+      select: { createdAt: true, type: true }
+    });
+
+    const hourlyStats: Record<number, { exams: number; ai: number }> = {};
+    for (let i = 0; i < 24; i++) hourlyStats[i] = { exams: 0, ai: 0 };
+
+    events.forEach(event => {
+      const hour = new Date(event.createdAt).getHours();
+      if (event.type.startsWith('EXAM_')) hourlyStats[hour].exams++;
+      if (event.type.startsWith('AI_')) hourlyStats[hour].ai++;
+    });
+
+    return Object.entries(hourlyStats).map(([hour, stats]) => ({
+      hour: parseInt(hour),
+      ...stats
+    }));
+  }
+
+  /**
+   * Daily usage trends for the last 14 days
+   */
+  static async getUsageTrends(days: number = 14) {
+    const events = await prisma.analyticsEvent.findMany({
+      where: {
+        createdAt: { gte: subDays(now(), days) }
+      },
+      select: { createdAt: true, type: true }
+    });
+
+    const dailyStats: Record<string, { exams: number; ai: number }> = {};
+    
+    events.forEach(event => {
+      const date = new Date(event.createdAt).toISOString().split('T')[0];
+      if (!dailyStats[date]) dailyStats[date] = { exams: 0, ai: 0 };
+      
+      if (event.type.startsWith('EXAM_')) dailyStats[date].exams++;
+      if (event.type.startsWith('AI_')) dailyStats[date].ai++;
+    });
+
+    return Object.entries(dailyStats)
+      .map(([date, stats]) => ({ date, ...stats }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+  }
 }
+
+// Helper
+function now() { return new Date(); }

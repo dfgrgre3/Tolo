@@ -20,6 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 // Types
 interface ContestQuestion {
@@ -68,7 +69,7 @@ export default function ContestsPage() {
         const data = await res.json();
         setContests(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error("Failed to fetch contests", error);
+        logger.error("Failed to fetch contests", error);
       } finally {
         setLoading(false);
       }
@@ -94,7 +95,7 @@ export default function ContestsPage() {
         });
         setActiveLobby({ ...activeLobby, status: "IN_PROGRESS" });
       } catch (e) {
-        console.error(e);
+        logger.error(e);
       }
     }
   };
@@ -109,7 +110,7 @@ export default function ContestsPage() {
         });
         setActiveLobby({ ...activeLobby, status: "FINISHED" });
       } catch (e) {
-        console.error(e);
+        logger.error(e);
       }
     }
   };

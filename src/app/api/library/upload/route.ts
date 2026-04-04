@@ -7,6 +7,7 @@ import { ensureUser } from "@/lib/user-utils";
 import { promises as fs } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 // POST upload a new book file
 export async function POST(request: NextRequest) {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
         message: "Book uploaded successfully"
       }, undefined, 201);
     } catch (error: any) {
-      console.error("Upload error:", error);
+      logger.error("Upload error:", error);
       return handleApiError(error);
     }
   });
@@ -145,7 +146,7 @@ export async function DELETE(request: NextRequest) {
         try {
           await fs.unlink(filePath);
         } catch (err) {
-          console.error("Error deleting book file:", err);
+          logger.error("Error deleting book file:", err);
           // Continue even if file deletion fails
         }
       }
@@ -155,7 +156,7 @@ export async function DELETE(request: NextRequest) {
         try {
           await fs.unlink(coverPath);
         } catch (err) {
-          console.error("Error deleting cover file:", err);
+          logger.error("Error deleting cover file:", err);
           // Continue even if file deletion fails
         }
       }

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { logger } from '@/lib/logger';
 
 interface ReferralStats {
   referralCode: string;
@@ -37,7 +38,7 @@ export default function ReferralsPage() {
           setStats(data);
         }
       } catch (err) {
-        console.error(err);
+        logger.error(err);
       } finally {
         setLoading(false);
       }

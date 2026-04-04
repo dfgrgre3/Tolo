@@ -3,28 +3,30 @@ import { writeFile } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('🔄 Simple upload endpoint called');
+    logger.info('🔄 Simple upload endpoint called');
     
     const data = await request.formData();
     const fileEntry = data.get('file');
 
     if (!(fileEntry instanceof Blob)) {
-      console.log('❌ No file uploaded');
+      logger.info('❌ No file uploaded');
       return NextResponse.json(
         { error: 'No file uploaded' },
         { status: 400 }
       );
     }
 
-    console.log(`📁 File received: ${fileEntry.name} (${fileEntry.size} bytes)`);
+    const file = fileEntry as unknown as File;
+    logger.info(`📁 File received: ${file.name || 'blob'} (${file.size} bytes)`);
 
-    const buffer = Buffer.from(await fileEntry.arrayBuffer());
+    const buffer = Buffer.from(await file.arrayBuffer());
 
     // إنشاء اسم ملف فريد
-    const originalName = (fileEntry as any).name || 'upload';
+    const originalName = file.name || 'upload';
     const fileName = `${uuidv4()}-${originalName}`;
     const uploadsDir = join(process.cwd(), 'public', 'uploads');
     const filePath = join(uploadsDir, fileName);
@@ -32,12 +34,12 @@ export async function POST(request: NextRequest) {
     // التأكد من وجود مجلد الرفع
     if (!existsSync(uploadsDir)) {
       mkdirSync(uploadsDir, { recursive: true });
-      console.log('📁 Created uploads directory');
+      logger.info('📁 Created uploads directory');
     }
 
     // حفظ الملف على القرص
     await writeFile(filePath, buffer);
-    console.log(`✅ File saved: ${filePath}`);
+    logger.info(`✅ File saved: ${filePath}`);
 
     // رابط الملف
     const fileUrl = `/uploads/${fileName}`;
@@ -47,12 +49,13 @@ export async function POST(request: NextRequest) {
       fileUrl,
       fileName: originalName,
       fileSize: buffer.length,
-      fileType: fileEntry.type
+      fileType: file.type
     });
-  } catch (error) {
-    console.error('❌ Upload error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    logger.error('❌ Upload error:', { error: errorMessage });
     return NextResponse.json(
-      { error: 'فشل رفع الملف', details: (error as any).message },
+      { error: 'فشل رفع الملف', details: errorMessage },
       { status: 500 }
     );
   }

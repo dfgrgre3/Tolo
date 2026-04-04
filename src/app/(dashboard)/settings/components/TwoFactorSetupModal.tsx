@@ -50,8 +50,8 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
       }
       const data = await res.json();
       setSetupData(data);
-    } catch (error: any) {
-      toast.error(error.message || 'فشل في تحميل بيانات الإعداد');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'فشل في تحميل بيانات الإعداد');
       onClose();
     } finally {
       setIsLoading(false);
@@ -99,8 +99,8 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
 
       setStep('recovery');
       toast.success('تم تفعيل المصادقة الثنائية بنجاح!');
-    } catch (error: any) {
-      toast.error(error.message || 'فشل في التحقق من الرمز');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'فشل في التحقق من الرمز');
     } finally {
       setIsVerifying(false);
     }

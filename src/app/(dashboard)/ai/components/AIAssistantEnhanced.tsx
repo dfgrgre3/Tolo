@@ -16,6 +16,42 @@ interface Message {
   };
 }
 
+interface SpeechRecognitionEvent extends Event {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: string;
+}
+
+interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  onend: () => void;
+  start: () => void;
+  stop: () => void;
+}
+
+declare global {
+  interface Window {
+    webkitSpeechRecognition: {
+      new (): SpeechRecognition;
+    };
+    SpeechRecognition: {
+      new (): SpeechRecognition;
+    };
+  }
+}
+
 interface AIAssistantEnhancedProps {
   initialMessage?: string;
   placeholder?: string;
@@ -43,24 +79,24 @@ export default function AIAssistantEnhanced({
   const [isListening, setIsListening] = useState(false);
   const [sentimentAlert, setSentimentAlert] = useState<{sentiment: string;suggestions?: string[];} | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Initialize speech recognition
   useEffect(() => {
     if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-      const SpeechRecognition = (window as any).webkitSpeechRecognition || (window as any).SpeechRecognition;
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
       const recognition = new SpeechRecognition();
       recognition.lang = 'ar-SA';
       recognition.continuous = false;
       recognition.interimResults = false;
 
-      recognition.onresult = (event: any) => {
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
         const transcript = event.results[0][0].transcript;
         setInput(transcript);
         setIsListening(false);
       };
 
-      recognition.onerror = (event: any) => {
+      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
         logger.error('Speech recognition error:', event.error);
         setIsListening(false);
       };
@@ -158,8 +194,8 @@ export default function AIAssistantEnhanced({
         sentiment: data.sentiment
       };
       setMessages((prev) => [...prev, assistantMessage]);
-    } catch (error) {
-      logger.error('Error sending message:', error);
+    } catch (error: unknown) {
+      logger.error('Error sending message:', error instanceof Error ? error.message : String(error));
 
       // Add error message
       const errorMessage: Message = {
@@ -298,7 +334,7 @@ export default function AIAssistantEnhanced({
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value)}
             placeholder={placeholder}
             className="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             disabled={isLoading} />

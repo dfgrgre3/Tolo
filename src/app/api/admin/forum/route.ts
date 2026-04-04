@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // GET /api/admin/forum - Get all forum posts
 export async function GET(request: NextRequest) {
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching forum posts:", error);
+    logger.error("Error fetching forum posts:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء جلب مواضيع المنتدى" },
       { status: 500 }
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ post });
   } catch (error) {
-    console.error("Error creating forum post:", error);
+    logger.error("Error creating forum post:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء إنشاء الموضوع" },
       { status: 500 }
@@ -142,7 +143,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ post });
   } catch (error) {
-    console.error("Error updating forum post:", error);
+    logger.error("Error updating forum post:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء تحديث الموضوع" },
       { status: 500 }
@@ -169,7 +170,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting forum post:", error);
+    logger.error("Error deleting forum post:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء حذف الموضوع" },
       { status: 500 }

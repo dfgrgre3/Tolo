@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useFormPersistence as useSessionPersistence } from '@/hooks/use-form-persistence';
+import { logger } from '@/lib/logger';
 
 interface ContactFormData {
   name: string;
@@ -46,7 +47,7 @@ export default function ContactPage() {
   // إرسال النموذج
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('إرسال البيانات:', formData);
+    logger.info('إرسال البيانات:', formData);
 
     // مسح البيانات بعد الإرسال الناجح
     clearFormData();

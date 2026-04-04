@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { prisma } from "@/lib/db";
+import { prisma, Prisma } from "@/lib/db";
 import { gamificationService } from "@/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -37,34 +37,39 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         // 1. Pre-validation and whitelist (Compute only)
         const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subjectId'];
-        const updates: Record<string, unknown> = {};
+        const updates: Prisma.TaskUpdateInput = {};
 
-        for (const field of allowedFields) {
-          if (field in data) {
-            if (field === 'dueAt' && typeof data[field] === 'string') {
-              updates[field] = new Date(data[field]);
-            } else if (field === 'completedAt' && data[field] === true) {
-              updates[field] = new Date();
-            } else if (field === 'completedAt' && data[field] === false) {
-              updates[field] = null;
-            } else if (field === 'priority' && typeof data[field] === 'number') {
-              updates[field] = data[field];
-            } else if (field === 'description' && data[field] === '') {
-              updates[field] = null;
-            } else {
-              updates[field] = data[field];
-            }
+        if ('title' in data) updates.title = data.title;
+        if ('description' in data) updates.description = data.description === '' ? null : data.description;
+        if ('status' in data) updates.status = data.status;
+        if ('priority' in data) updates.priority = data.priority;
+        
+        if ('dueAt' in data) {
+          updates.dueAt = data.dueAt ? new Date(data.dueAt) : null;
+        }
+
+        if ('completedAt' in data) {
+          if (data.completedAt === true) {
+            updates.completedAt = new Date();
+          } else if (data.completedAt === false) {
+            updates.completedAt = null;
+          } else if (data.completedAt instanceof Date || typeof data.completedAt === 'string') {
+            updates.completedAt = new Date(data.completedAt);
           }
         }
 
-        if ('subject' in data) updates.subjectId = data.subject ? SUBJECT_ID_MAP[data.subject] || data.subject : null;
+        if ('subjectId' in data) {
+          updates.subject = data.subjectId ? { connect: { id: data.subjectId } } : { disconnect: true };
+        } else if ('subject' in data) {
+          const subjectId = data.subject ? SUBJECT_ID_MAP[data.subject] || data.subject : null;
+          updates.subject = subjectId ? { connect: { id: subjectId } } : { disconnect: true };
+        }
 
         if ('userId' in data) {
           return badRequestResponse('Cannot change task ownership');
         }
 
         // 2. Combined Ownership Check and Fetch
-        // We use findFirst to ensure the user owns the task before updating.
         const existingTask = await prisma.task.findFirst({
           where: { id, userId: authUser.userId },
           select: { status: true, completedAt: true }
@@ -77,13 +82,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         // 3. Perform update (O(1) by primary key)
         const updatedTask = await prisma.task.update({
           where: { id },
-          data: updates as any,
+          data: updates,
         });
 
         // 4. Post-update logic (Gamification)
-        // Check if task was just completed
-        const isCompleting = (updates['status'] === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED) ||
-          (updates['completedAt'] !== undefined && !existingTask.completedAt);
+        const isCompleting = (data.status === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED) ||
+          (updates.completedAt !== undefined && updates.completedAt !== null && !existingTask.completedAt);
 
         if (isCompleting) {
           try {

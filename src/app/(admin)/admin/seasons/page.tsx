@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface Season {
   id: string;
@@ -95,7 +96,7 @@ export default function AdminSeasonsPage() {
       const data = await response.json();
       setSeasons(data.seasons || []);
     } catch (error) {
-      console.error("Error fetching seasons:", error);
+      logger.error("Error fetching seasons:", error);
       toast.error("حدث خطأ في استدعاء سجلات الملاحم");
     } finally {
       setLoading(false);
@@ -151,7 +152,7 @@ export default function AdminSeasonsPage() {
         toast.error("فشل في حفظ الموسم");
       }
     } catch (error) {
-      console.error("Error saving season:", error);
+      logger.error("Error saving season:", error);
       toast.error("خطأ في الاتصال بالسجلات");
     }
   };
@@ -173,7 +174,7 @@ export default function AdminSeasonsPage() {
         toast.error("فشل في الإتلاف");
       }
     } catch (error) {
-      console.error("Error deleting season:", error);
+      logger.error("Error deleting season:", error);
       toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });

@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ error: 'Payload too large', code: 'PAYLOAD_TOO_LARGE' }, { status: 413 });
         }
 
-        let body: any;
+        let body: unknown;
         try {
             body = JSON.parse(rawBody);
         } catch {
@@ -180,7 +180,7 @@ export async function POST(req: NextRequest) {
             },
             { status: 200 }
         );
-    } catch (error) {
+    } catch (error: unknown) {
         return handleApiError(error);
     }
 }

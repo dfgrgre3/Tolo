@@ -3,11 +3,22 @@ import DataPartitioningService from '@/lib/data-partitioning-service'
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
-import { successResponse, unauthorizedResponse, forbiddenResponse, withAdmin, handleApiError } from '@/lib/api-utils';
+import { successResponse, withAdmin, handleApiError } from '@/lib/api-utils';
+
+interface PartitionInfo {
+  tableName: string;
+  partitions: string[];
+  count: number;
+}
+
+interface MaintenanceAction {
+  tableName: string;
+  recommendedActions?: string[];
+}
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    return withAdmin(request, async (authUser) => {
+    return withAdmin(request, async () => {
       try {
         const { searchParams } = new URL(req.url)
         const action = searchParams.get('action')
@@ -26,11 +37,9 @@ export async function GET(request: NextRequest) {
               error: 'Invalid action. Use: health, info, efficiency, or check_size'
             }, { status: 400 })
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Database partitions API error:', error)
-        return NextResponse.json({
-          error: 'Internal server error'
-        }, { status: 500 })
+        return handleApiError(error);
       }
     });
   });
@@ -38,9 +47,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
-    return withAdmin(request, async (authUser) => {
+    return withAdmin(request, async () => {
       try {
-        const body = await req.json()
+        const body = (await req.json()) as { action?: string; tableName?: string; startDate?: string; endDate?: string };
         const { action, tableName, startDate, endDate } = body
 
         switch (action) {
@@ -63,11 +72,9 @@ export async function POST(request: NextRequest) {
               error: 'Invalid action. Use: create_partitions, cleanup, or maintain'
             }, { status: 400 })
         }
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Database partitions POST API error:', error)
-        return NextResponse.json({
-          error: 'Internal server error'
-        }, { status: 500 })
+        return handleApiError(error);
       }
     });
   });
@@ -100,9 +107,9 @@ async function checkAndExtendPartitions() {
     return NextResponse.json({
       success: true,
       triggeredActions: result.triggeredActions,
-      ...((result as any).errors && { errors: (result as any).errors })
+      ...(result.errors && { errors: result.errors })
     })
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to check and extend partitions:', error)
     return NextResponse.json({
       error: `Failed to check and extend partitions: ${error}`
@@ -117,7 +124,7 @@ async function createPartitions(tableName: string, startDate: Date, endDate: Dat
       success: true,
       message: `Partitions created successfully for ${tableName}`
     })
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to create partitions:', error)
     return NextResponse.json({
       error: `Failed to create partitions: ${error}`
@@ -131,9 +138,9 @@ async function cleanupPartitions() {
     return NextResponse.json({
       success: true,
       deletedPartitions: result.deletedPartitions,
-      ...((result as any).error && { warnings: [(result as any).error] })
+      ...(result.error && { warnings: [result.error] })
     })
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to cleanup partitions:', error)
     return NextResponse.json({
       error: `Failed to cleanup partitions: ${error}`
@@ -177,7 +184,7 @@ async function maintainPartitions() {
       actionsPerformed,
       healthReport: health
     })
-  } catch (error) {
+  } catch (error: unknown) {
     logger.error('Failed to perform partition maintenance:', error)
     return NextResponse.json({
       error: `Failed to perform partition maintenance: ${error}`

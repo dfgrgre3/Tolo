@@ -67,7 +67,7 @@ export function BlockFormDialog({
               <label className="block text-sm font-medium mb-1">النوع</label>
               <Select 
                 value={formData.type} 
-                onValueChange={(value: any) => onFormDataChange({ type: value })}
+                onValueChange={(value: string) => onFormDataChange({ type: value as TimeBlock['type'] })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -161,7 +161,7 @@ export function BlockFormDialog({
               <label className="block text-sm font-medium mb-1">الأولوية</label>
               <Select 
                 value={formData.priority} 
-                onValueChange={(value: any) => onFormDataChange({ priority: value })}
+                onValueChange={(value: string) => onFormDataChange({ priority: value as TimeBlock['priority'] })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -219,7 +219,7 @@ export function BlockFormDialog({
             {formData.isRecurring && (
               <Select 
                 value={formData.recurringPattern} 
-                onValueChange={(value: any) => onFormDataChange({ recurringPattern: value })}
+                onValueChange={(value: string) => onFormDataChange({ recurringPattern: value as TimeBlock['recurringPattern'] })}
               >
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />

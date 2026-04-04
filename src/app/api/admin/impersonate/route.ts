@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { TokenService } from "@/services/auth/token-service";
 import { cookies } from "next/headers";
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Impersonation error:", error);
+    logger.error("Impersonation error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
@@ -108,7 +109,7 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Stop impersonation error:", error);
+    logger.error("Stop impersonation error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

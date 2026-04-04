@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { CouponService } from '@/services/coupon-service';
 import { getRequestUserId } from '@/lib/request-auth';
+import { logger } from '@/lib/logger';
+
+interface CouponValidateRequest {
+  code: string;
+  amount: number;
+}
 
 export async function POST(req: Request) {
   try {
@@ -9,7 +15,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { code, amount } = await req.json();
+    const body = (await req.json()) as CouponValidateRequest;
+    const { code, amount } = body;
 
     if (!code) {
       return NextResponse.json({ error: 'يرجى إدخال كود الخصم' }, { status: 400 });
@@ -23,14 +30,15 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
         success: true,
-        couponCode: result.coupon.code,
+        couponCode: result.coupon?.code,
         discountAmount: result.discountAmount,
         finalAmount: result.finalAmount,
-        description: result.coupon.description,
+        description: result.coupon?.description,
     });
 
-  } catch (error: any) {
-    console.error('Coupon Validate Error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+    logger.error('Coupon Validate Error:', { error: errorMessage });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook لتأخير تحديث القيمة (Debouncing)
@@ -62,7 +63,7 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
  * ```tsx
  * function Component() {
  *   const handleSearch = useDebouncedCallback((term: string) => {
- *     console.log('Searching for:', term);
+ *     logger.info('Searching for:', term);
  *   }, 500);
  * 
  *   return (

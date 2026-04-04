@@ -16,9 +16,13 @@ interface SecurityEvent {
   eventType: string;
   ip: string;
   userAgent: string;
-  deviceInfo?: any;
+  deviceInfo?: {
+    browser?: string;
+    os?: string;
+    device?: string;
+  };
   location?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   riskLevel?: 'low' | 'medium' | 'high' | 'critical';
 }
@@ -27,7 +31,7 @@ interface SecurityLogsProps {
   userId: string;
 }
 
-const eventTypeLabels: Record<string, { label: string; color: string; icon: any }> = {
+const eventTypeLabels: Record<string, { label: string; color: string; icon: React.ElementType }> = {
   LOGIN_SUCCESS: { label: 'تسجيل دخول ناجح', color: 'bg-green-100 text-green-800', icon: CheckCircle2 },
   LOGIN_FAILED: { label: 'محاولة تسجيل دخول فاشلة', color: 'bg-red-100 text-red-800', icon: XCircle },
   LOGIN_NEW_DEVICE: { label: 'تسجيل دخول من جهاز جديد', color: 'bg-yellow-100 text-yellow-800', icon: AlertTriangle },

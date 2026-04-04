@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // GET /api/admin/contests - Get all contests
 export async function GET(request: NextRequest) {
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching contests:", error);
+    logger.error("Error fetching contests:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء جلب المسابقات" },
       { status: 500 }
@@ -62,7 +63,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting contest:", error);
+    logger.error("Error deleting contest:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء حذف المسابقة" },
       { status: 500 }

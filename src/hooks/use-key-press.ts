@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook لاكتشاف ضغط مفتاح معين
@@ -13,7 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
  *   const [query, setQuery] = useState('');
  * 
  *   useKeyPress('Enter', () => {
- *     console.log('Searching for:', query);
+ *     logger.info('Searching for:', query);
  *   });
  * 
  *   return (
@@ -101,7 +102,7 @@ export function useKeyPress(
  * 
  *   useEffect(() => {
  *     if (pressedKeys.has('Control') && pressedKeys.has('Shift') && pressedKeys.has('s')) {
- *       console.log('Ctrl + Shift + S pressed!');
+ *       logger.info('Ctrl + Shift + S pressed!');
  *     }
  *   }, [pressedKeys]);
  * 

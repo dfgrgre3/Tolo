@@ -203,6 +203,6 @@ export function sanitizeTranslations(translations: unknown): Translations {
  * };
  * 
  * const t = createTranslator(translations);
- * console.log(t('auth.login.title')); // 'تسجيل الدخول'
- * console.log(t('auth.login.missing', 'Default')); // 'Default'
+ * logger.info(t('auth.login.title')); // 'تسجيل الدخول'
+ * logger.info(t('auth.login.missing', 'Default')); // 'Default'
  */

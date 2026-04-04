@@ -9,7 +9,8 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const { receiverId, content } = await req.json();
+        const body = await req.json() as { receiverId?: string; content?: string };
+        const { receiverId, content } = body;
 
         if (!receiverId || !content) {
           return badRequestResponse("All fields are required");
@@ -27,13 +28,12 @@ export async function POST(request: NextRequest) {
 
         return successResponse(newMessage, undefined, 201);
       } catch (err: unknown) {
-        const error = err as any;
         // Handle specifically missing foreign key (user not found)
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+        if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2003') {
           return notFoundResponse("Recipient or sender account not valid.");
         }
-        logger.error("Error creating message:", error);
-        return handleApiError(error);
+        logger.error("Error creating message:", err);
+        return handleApiError(err);
       }
     });
   });

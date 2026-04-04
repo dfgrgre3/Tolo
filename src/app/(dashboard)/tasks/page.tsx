@@ -30,6 +30,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { safeFetch } from '@/lib/safe-client-utils';
+import { logger } from '@/lib/logger';
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -85,7 +86,7 @@ export default function TasksPage() {
 
       setTasks(Array.isArray(data) ? data : []);
     } catch (error) {
-      console.error('Error fetching tasks:', error);
+      logger.error('Error fetching tasks:', error);
       toast.error(error instanceof Error ? error.message : 'فشل في جلب المهام');
     } finally {
       setLoading(false);
@@ -159,7 +160,7 @@ export default function TasksPage() {
       setIsAddDialogOpen(false);
       toast.success('تمت إضافة المهمة بنجاح');
     } catch (error) {
-      console.error('Error adding task:', error);
+      logger.error('Error adding task:', error);
       toast.error(error instanceof Error ? error.message : 'حدث خطأ أثناء إضافة المهمة');
     }
   };
@@ -193,7 +194,7 @@ export default function TasksPage() {
       setIsEditDialogOpen(false);
       toast.success('تم تحديث المهمة بنجاح');
     } catch (error) {
-      console.error('Error updating task:', error);
+      logger.error('Error updating task:', error);
       toast.error(error instanceof Error ? error.message : 'حدث خطأ أثناء تحديث المهمة');
     }
   };
@@ -224,7 +225,7 @@ export default function TasksPage() {
       setTasks(tasks.map((task) => task.id === id ? updatedTask : task));
       toast.success(`تم ${newStatus === 'COMPLETED' ? 'إكمال' : 'إعادة فتح'} المهمة بنجاح`);
     } catch (error) {
-      console.error('Error updating task status:', error);
+      logger.error('Error updating task status:', error);
       toast.error(error instanceof Error ? error.message : 'حدث خطأ أثناء تحديث حالة المهمة');
     }
   };
@@ -240,7 +241,7 @@ export default function TasksPage() {
       setTasks(tasks.filter((task) => task.id !== id));
       toast.success('تم حذف المهمة بنجاح');
     } catch (error) {
-      console.error('Error deleting task:', error);
+      logger.error('Error deleting task:', error);
       toast.error(error instanceof Error ? error.message : 'حدث خطأ أثناء حذف المهمة');
     }
   };

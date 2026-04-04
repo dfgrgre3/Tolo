@@ -4,6 +4,7 @@ import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { fetchSettingsPreferences, saveSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
 import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/settings-preferences';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook to synchronize settings between localStorage and server
@@ -23,7 +24,7 @@ export function useSettingsSync() {
           await saveSettingsPreferences(pendingChangesRef.current);
           pendingChangesRef.current = null;
         } catch (error) {
-          console.error('Auto-save failed:', error);
+          logger.error('Auto-save failed:', error);
           toast.error('فشل حفظ الإعدادات تلقائياً');
         }
       }
@@ -45,7 +46,7 @@ export function useSettingsSync() {
 
       return serverPreferences;
     } catch (error) {
-      console.error('Settings sync error:', error);
+      logger.error('Settings sync error:', error);
       return null;
     }
   }, [queueAutoSave]);
@@ -63,7 +64,7 @@ export function useSettingsSync() {
           await saveSettingsPreferences(pendingChangesRef.current);
           pendingChangesRef.current = null;
         } catch (error) {
-          console.error('Auto-save failed:', error);
+          logger.error('Auto-save failed:', error);
           toast.error('فشل حفظ الإعدادات تلقائياً');
         }
       }
@@ -79,7 +80,7 @@ export function useSettingsSync() {
       await saveSettingsPreferences(patch);
       return true;
     } catch (error) {
-      console.error('Immediate save failed:', error);
+      logger.error('Immediate save failed:', error);
       toast.error('فشل حفظ الإعدادات');
       return false;
     }

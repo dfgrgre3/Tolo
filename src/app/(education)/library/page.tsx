@@ -20,6 +20,7 @@ import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { logger } from '@/lib/logger';
 
 type Book = {
   id: string;
@@ -86,7 +87,7 @@ export default function LibraryPage() {
         setCategories(Array.isArray(catData) ? catData : []);
         setBooks(Array.isArray(bookData) ? bookData : []);
       } catch (error) {
-        console.error("Failed to fetch library data", error);
+        logger.error("Failed to fetch library data", error);
       } finally {
         setLoading(false);
       }
@@ -155,8 +156,9 @@ export default function LibraryPage() {
         tags: [],
         tagInput: ""
       });
-    } catch (error: any) {
-      toast.error(error.message || "حدث خطأ أثناء الرفع");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "حدث خطأ أثناء الرفع";
+      toast.error(errorMessage);
     } finally {
       setUploading(false);
     }
@@ -255,7 +257,7 @@ export default function LibraryPage() {
                  {["newest", "popular", "rated"].map((s) => (
                    <button
                      key={s}
-                     onClick={() => setSortBy(s as any)}
+                     onClick={() => setSortBy(s as "newest" | "popular" | "rated")}
                      className={`px-4 py-2 rounded-xl transition-all ${sortBy === s ? 'bg-white/10 text-white shadow-lg' : 'hover:text-white'}`}
                    >
                      {s === "newest" ? "الأحدث" : s === "popular" ? "الأكثر تداولاً" : "الأعلى رتبة"}

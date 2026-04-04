@@ -119,7 +119,7 @@ export default function CourseDetailPage() {
               description: subject.description || "لا يوجد وصف متاح لهذه الدورة.",
               instructor: subject.instructorName || "المنصة التعليمية",
               subject: subject.nameAr || subject.name,
-              level: subject.level as any || "INTERMEDIATE",
+              level: (subject.level as Course['level']) || "INTERMEDIATE",
               duration: subject.durationHours || 0,
               thumbnailUrl: subject.thumbnailUrl || undefined,
               price: subject.price || 0,
@@ -145,7 +145,7 @@ export default function CourseDetailPage() {
           const rawLessons = Array.isArray(data) ? data : data.lessons ?? [];
           const progressMap = data.progress || {};
 
-          const normalized = rawLessons.map((l: any, i: number) => ({
+          const normalized = rawLessons.map((l: { id: string; title?: string; name?: string; description?: string; content?: string; videoUrl?: string; duration?: number; order?: number; completed?: boolean; progress?: number; }, i: number) => ({
             id: l.id,
             title: l.title || l.name || `الدرس ${i + 1}`,
             description: l.description || undefined,
@@ -456,7 +456,7 @@ export default function CourseDetailPage() {
             ].map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
+                onClick={() => setActiveTab(tab.key as "curriculum" | "overview" | "reviews")}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
                   activeTab === tab.key

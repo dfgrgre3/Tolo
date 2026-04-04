@@ -4,6 +4,19 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 
+interface UserSummary {
+  id: string;
+  name: string | null;
+  avatar: string | null;
+}
+
+interface EventAttendeeResponse {
+  id: string;
+  name: string;
+  avatar: string | null;
+  joinedAt: string;
+}
+
 // GET all attendees for an event
 export async function GET(
   request: NextRequest,
@@ -12,48 +25,57 @@ export async function GET(
   return opsWrapper(request, async (req) => {
     try {
       const { id } = await params;
+      
+      // Pagination
+      const page = parseInt(req.nextUrl.searchParams.get("page") || "1");
+      const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50");
+      const skip = (page - 1) * limit;
 
       // Check if event exists
       const event = await prisma.event.findUnique({
-        where: { id }
+        where: { id },
+        select: { id: true }
       });
 
       if (!event) {
         return notFoundResponse("المناسبة غير موجودة");
       }
 
+      // Fetch attendees with user details in a single query (JOIN)
       const attendees = await prisma.eventAttendee.findMany({
         where: { eventId: id },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              avatar: true
+            }
+          }
+        },
         orderBy: {
           createdAt: "asc"
+        },
+        skip,
+        take: limit
+      });
+
+      // Transform the data efficiently
+      const transformedAttendees = attendees.map((a): EventAttendeeResponse => ({
+        id: a.user.id,
+        name: a.user.name || 'Unknown',
+        avatar: a.user.avatar,
+        joinedAt: a.createdAt.toISOString()
+      }));
+
+      return successResponse({
+        attendees: transformedAttendees,
+        pagination: {
+          page,
+          limit,
+          count: transformedAttendees.length
         }
       });
-
-      // Fetch user details manually since relation is missing
-      const userIds = attendees.map((a: any) => a.userId);
-      const users = await prisma.user.findMany({
-        where: { id: { in: userIds } },
-        select: {
-          id: true,
-          name: true,
-          avatar: true
-        }
-      });
-
-      const userMap = new Map(users.map((u: any) => [u.id, u] as [string, any]));
-
-      // Transform the data to match the frontend structure
-      const transformedAttendees = attendees.map((attendee: any) => {
-        const user = userMap.get(attendee.userId) as any;
-        return {
-          id: user?.id || attendee.userId,
-          name: user?.name || 'Unknown',
-          avatar: user?.avatar || null,
-          joinedAt: attendee.createdAt.toISOString()
-        };
-      });
-
-      return successResponse(transformedAttendees);
     } catch (error: unknown) {
       logger.error("Error fetching event attendees:", error);
       return handleApiError(error);
@@ -71,63 +93,58 @@ export async function POST(
       try {
         const { id } = await params;
 
-        // Check if event exists
-        const event = await prisma.event.findUnique({
-          where: { id },
-          include: {
-            _count: {
-              select: { attendees: true }
+        // Use a transaction to prevent race conditions when checking maxAttendees
+        const result = await prisma.$transaction(async (tx) => {
+          // 1. Check if event exists and get current attendee count
+          const event = await tx.event.findUnique({
+            where: { id },
+            include: {
+              _count: {
+                select: { attendees: true }
+              }
             }
+          });
+
+          if (!event) return { error: "NOT_FOUND" };
+
+          // 2. Check if limit reached
+          if (event.maxAttendees && event._count.attendees >= event.maxAttendees) {
+            return { error: "LIMIT_REACHED" };
           }
-        });
 
-        if (!event) {
-          return notFoundResponse("المناسبة غير موجودة");
-        }
+          // 3. Check for existing attendance
+          const existing = await tx.eventAttendee.findUnique({
+            where: { eventId_userId: { eventId: id, userId } }
+          });
 
-        // Check if max attendees limit reached
-        if (event.maxAttendees && event._count.attendees >= event.maxAttendees) {
-          return badRequestResponse("وصل الحد الأقصى للمشاركين");
-        }
+          if (existing) return { error: "ALREADY_JOINED" };
 
-        // Check if user is already attending
-        const existingAttendance = await prisma.eventAttendee.findUnique({
-          where: {
-            eventId_userId: {
-              eventId: id,
-              userId
+          // 4. Create attendance and return it with user details
+          return await tx.eventAttendee.create({
+            data: { eventId: id, userId },
+            include: {
+              user: {
+                select: { id: true, name: true, avatar: true }
+              }
             }
-          }
+          });
         });
 
-        if (existingAttendance) {
-          return badRequestResponse("المستخدم مشارك بالفعل");
+        if ('error' in result) {
+          if (result.error === "NOT_FOUND") return notFoundResponse("المناسبة غير موجودة");
+          if (result.error === "LIMIT_REACHED") return badRequestResponse("وصل الحد الأقصى للمشاركين");
+          if (result.error === "ALREADY_JOINED") return badRequestResponse("المستخدم مشارك بالفعل");
         }
 
-        // Add attendee
-        const newAttendee = await prisma.eventAttendee.create({
-          data: {
-            eventId: id,
-            userId
-          }
-        });
+        const attendee = result as any; // Typed via include above
+        const response: EventAttendeeResponse = {
+          id: attendee.user.id,
+          name: attendee.user.name || 'Unknown',
+          avatar: attendee.user.avatar,
+          joinedAt: attendee.createdAt.toISOString()
+        };
 
-        // Fetch user details
-        const user = await prisma.user.findUnique({
-          where: { id: userId },
-          select: {
-            id: true,
-            name: true,
-            avatar: true
-          }
-        });
-
-        return successResponse({
-          id: user?.id || userId,
-          name: user?.name || 'Unknown',
-          avatar: user?.avatar || null,
-          joinedAt: newAttendee.createdAt.toISOString()
-        }, undefined, 201);
+        return successResponse(response, undefined, 201);
       } catch (error: unknown) {
         logger.error("Error joining event:", error);
         return handleApiError(error);
@@ -146,21 +163,7 @@ export async function DELETE(
       try {
         const { id } = await params;
 
-        // Check if attendance exists
-        const attendance = await prisma.eventAttendee.findUnique({
-          where: {
-            eventId_userId: {
-              eventId: id,
-              userId
-            }
-          }
-        });
-
-        if (!attendance) {
-          return notFoundResponse("المستخدم غير مشارك في هذه المناسبة");
-        }
-
-        // Remove attendee
+        // Delete directly to save a query. Prisma will throw if not found.
         await prisma.eventAttendee.delete({
           where: {
             eventId_userId: {
@@ -172,6 +175,11 @@ export async function DELETE(
 
         return successResponse({ success: true });
       } catch (error: unknown) {
+        // Handle record not found as 404
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
+          return notFoundResponse("المستخدم غير مشارك في هذه المناسبة");
+        }
+        
         logger.error("Error leaving event:", error);
         return handleApiError(error);
       }

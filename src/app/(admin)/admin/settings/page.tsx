@@ -17,7 +17,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
+import { useForm, Path } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { SettingsSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 const settingsSchema = z.object({
   siteName: z.string().min(1, "اسم الموقع مطلوب"),
@@ -140,8 +141,9 @@ export default function AdminSettingsPage() {
         ...settings,
         siteKeywords: settings.siteKeywords?.join(", ") || "",
       });
-    } catch (_error) {
+    } catch (err: unknown) {
       toast.error("حدث خطأ أثناء جلب مرسوم الإعدادات");
+      logger.error(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }
@@ -170,8 +172,9 @@ export default function AdminSettingsPage() {
       } else {
         toast.error("فشل في ختم المرسوم");
       }
-    } catch (_error) {
+    } catch (err: unknown) {
       toast.error("خطأ في الاتصال بالسيرفر الملكي");
+      logger.error(err instanceof Error ? err.message : String(err));
     } finally {
       setSaving(false);
     }
@@ -193,8 +196,9 @@ export default function AdminSettingsPage() {
         });
         toast.success("تمت العودة للقيم الأساسية للمملكة");
       }
-    } catch (_error) {
+    } catch (err: unknown) {
       toast.error("فشل في استعادة القيم الأصلية");
+      logger.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -365,7 +369,7 @@ export default function AdminSettingsPage() {
                   <FormField
                     key={feature.key}
                     control={form.control}
-                    name={`features.${feature.key}` as any}
+                    name={`features.${feature.key}` as Path<SettingsFormValues>}
                     render={({ field }) => (
                       <AdminCard variant="glass" className="p-6 transition-all hover:border-primary/30">
                         <div className="flex items-center justify-between">
@@ -413,7 +417,7 @@ export default function AdminSettingsPage() {
                     <FormField
                       key={field.key}
                       control={form.control}
-                      name={`gamification.${field.key}` as any}
+                      name={`gamification.${field.key}` as Path<SettingsFormValues>}
                       render={({ field: inputField }) => (
                         <FormItem className="text-center group">
                           <div className={`mx-auto p-4 rounded-3xl bg-${field.color}-500/5 border border-${field.color}-500/10 group-hover:scale-110 transition-transform mb-4`}>
@@ -425,6 +429,7 @@ export default function AdminSettingsPage() {
                               type="number" 
                               className="h-14 rounded-2xl border-white/10 bg-white/5 text-center font-black text-xl" 
                               {...inputField} 
+                              value={typeof inputField.value === 'number' || typeof inputField.value === 'string' ? inputField.value : ""}
                               onChange={(e) => inputField.onChange(parseInt(e.target.value) || 0)}
                             />
                           </FormControl>
@@ -489,7 +494,7 @@ export default function AdminSettingsPage() {
   );
 }
 
-function IconButton({ icon: Icon, onClick, title }: { icon: any, onClick?: () => void, title?: string }) {
+function IconButton({ icon: Icon, onClick, title }: { icon: React.ElementType, onClick?: () => void, title?: string }) {
   return (
     <button 
       type="button"

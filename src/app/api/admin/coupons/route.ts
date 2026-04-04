@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { DiscountType } from '@prisma/client';
+import { logger } from '@/lib/logger';
 
 // GET all coupons for admin
 export async function GET(req: Request) {
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json(coupons);
   } catch (error) {
-    console.error('Admin Fetch Coupons Error:', error);
+    logger.error('Admin Fetch Coupons Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -63,7 +64,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json(coupon);
   } catch (error: any) {
-    console.error('Admin Create Coupon Error:', error);
+    logger.error('Admin Create Coupon Error:', error);
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
   }
 }

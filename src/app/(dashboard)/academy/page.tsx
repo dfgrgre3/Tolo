@@ -28,6 +28,7 @@ import { Button } from "../../../components/ui/button";
 import { Progress } from "../../../components/ui/progress";
 import { Badge } from "../../../components/ui/badge";
 import { useAuth } from "../../../contexts/auth-context";
+import { logger } from '@/lib/logger';
 
 export default function GamifiedCoursesDashboard() {
   const router = useRouter();
@@ -51,7 +52,7 @@ export default function GamifiedCoursesDashboard() {
           setCourses(fetchedCourses);
         }
       } catch (err) {
-        console.error("Failed to load dashboard courses", err);
+        logger.error("Failed to load dashboard courses", err);
       } finally {
         setLoading(false);
       }

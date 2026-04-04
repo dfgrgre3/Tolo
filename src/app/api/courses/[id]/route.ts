@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { prisma, Prisma } from "@/lib/db";
 import { getOrSetSubject, invalidateEducationalContent, invalidateEducationalContentPattern } from "@/lib/educational-cache-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -18,9 +18,9 @@ export async function GET(
         return await prisma.subject.findUnique({
           where: { id }
         });
-      }) as any;
+      }) as { id: string } | null;
 
-      if (!subject) {
+      if (!subject || !('id' in subject)) {
         return NextResponse.json(
           { error: "المادة غير موجودة" },
           { status: 404 }
@@ -45,8 +45,9 @@ export async function GET(
         subject,
         enrollment
       });
-    } catch (error) {
-      logger.error("Error fetching subject:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+      logger.error("Error fetching subject:", { error: errorMessage });
       return NextResponse.json(
         { error: "حدث خطأ أثناء معالجة الطلب" },
         { status: 500 }
@@ -65,11 +66,11 @@ export async function DELETE(
       const { id } = await params;
 
       // Check if subject exists
-      const subject = await prisma.subject.findUnique({
+      const subjectResult = await prisma.subject.findUnique({
         where: { id }
       });
 
-      if (!subject) {
+      if (!subjectResult) {
         return NextResponse.json(
           { error: "المادة غير موجودة" },
           { status: 404 }
@@ -77,7 +78,7 @@ export async function DELETE(
       }
 
       // Delete related data in order to avoid foreign key constraints
-      await prisma.$transaction(async (tx: any) => {
+      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         // Delete enrollments first
         await tx.subjectEnrollment.deleteMany({
           where: { subjectId: id }
@@ -141,22 +142,23 @@ export async function DELETE(
         { message: "تم حذف المادة بنجاح" },
         { status: 200 }
       );
-    } catch (error) {
-      logger.error("Error deleting subject:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error deleting subject:", { error: errorMessage });
 
       // Handle specific foreign key constraint errors
       if (error instanceof Error) {
-        const errorMessage = error.message.toLowerCase();
+        const errorMessageLower = error.message.toLowerCase();
         const { id } = await params; // Re-deconstruct params here for error handling
 
-        if (errorMessage.includes('foreign key constraint') ||
-          errorMessage.includes('violates foreign key') ||
-          errorMessage.includes('still referenced')) {
+        if (errorMessageLower.includes('foreign key constraint') ||
+          errorMessageLower.includes('violates foreign key') ||
+          errorMessageLower.includes('still referenced')) {
 
           // Try to identify what's blocking the deletion
           let blockingInfo = "";
           try {
-            const blockingData = await prisma.$transaction(async (tx: any) => {
+            const blockingData = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
               const enrollments = await tx.subjectEnrollment.count({ where: { subjectId: id } });
               const studySessions = await tx.studySession.count({ where: { subjectId: id } });
               const tasks = await tx.task.count({ where: { subjectId: id } });
@@ -218,8 +220,9 @@ export async function PUT(
       await invalidateEducationalContentPattern('courses:list:*');
 
       return NextResponse.json(updatedSubject);
-    } catch (error) {
-      logger.error("Error updating subject:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error("Error updating subject:", { error: errorMessage });
       return NextResponse.json(
         { error: "حدث خطأ أثناء معالجة الطلب" },
         { status: 500 }

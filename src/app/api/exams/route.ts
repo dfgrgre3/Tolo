@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { prisma, Prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
 
@@ -15,14 +15,14 @@ export async function GET(request: NextRequest) {
         const year = searchParams.get('year');
 
         if (Number.isNaN(limit) || limit < 1 || limit > 100) {
-          return badRequestResponse("ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ‡ظˆ 100");
+          return badRequestResponse("الحد الأقصى هو 100");
         }
 
         if (!cursor && (Number.isNaN(offset) || offset < 0)) {
           return badRequestResponse("Invalid offset parameter");
         }
 
-        const where: any = {};
+        const where: Prisma.ExamWhereInput = {};
         if (subjectId) where.subjectId = subjectId;
         if (year) where.year = parseInt(year, 10);
 
@@ -60,9 +60,14 @@ export async function GET(request: NextRequest) {
             nextCursor: hasMore ? exams[exams.length - 1]?.id ?? null : null,
           }
         });
-      } catch (error) {
+      } catch (error: unknown) {
+        logger.error('Exams API Error:', error);
         return handleApiError(error);
       }
     });
   });
 }
+
+const logger = {
+  error: (msg: string, err: any) => console.error(msg, err)
+};

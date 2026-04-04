@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // GET /api/admin/seasons - Get all seasons
 export async function GET(request: NextRequest) {
@@ -34,7 +35,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching seasons:", error);
+    logger.error("Error fetching seasons:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء جلب المواسم" },
       { status: 500 }
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(season);
   } catch (error) {
-    console.error("Error creating season:", error);
+    logger.error("Error creating season:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء إنشاء الموسم" },
       { status: 500 }
@@ -95,7 +96,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting season:", error);
+    logger.error("Error deleting season:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء حذف الموسم" },
       { status: 500 }

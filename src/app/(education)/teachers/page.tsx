@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { logger } from '@/lib/logger';
 
 type Teacher = {id: string;name: string;subject: string;onlineUrl?: string | null;};
 type Lesson = {id: string;title: string;location: string;startTime: string;endTime: string;teacher: Teacher;};
@@ -97,7 +98,7 @@ export default function TeachersPage() {
         body: JSON.stringify({ userId, plan })
       }).then((r) => r.json());
       setSchedule(s);
-    } catch (err) {console.error(err);}
+    } catch (err) {logger.error(err);}
     setTeacherId("");setTitle("");setLocation("");setStartTime("");setEndTime("");
   }
 

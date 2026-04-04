@@ -41,6 +41,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 const userEditSchema = z.object({
   name: z.string().min(2, "الاسم يجب أن يكون حرفين على الأقل"),
@@ -165,7 +166,7 @@ export default function UserEditPage() {
           router.push("/admin/users");
         }
       } catch (error) {
-        console.error("Error fetching user:", error);
+        logger.error("Error fetching user:", error);
         toast.error("حدث خطأ أثناء جلب بيانات المستخدم");
       } finally {
         setLoading(false);
@@ -192,7 +193,7 @@ export default function UserEditPage() {
         toast.error(error.error || "حدث خطأ أثناء تحديث بيانات المستخدم");
       }
     } catch (error) {
-      console.error("Error updating user:", error);
+      logger.error("Error updating user:", error);
       toast.error("حدث خطأ أثناء تحديث بيانات المستخدم");
     } finally {
       setSaving(false);

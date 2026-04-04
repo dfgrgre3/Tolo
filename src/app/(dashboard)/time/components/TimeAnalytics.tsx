@@ -303,7 +303,7 @@ const TimeAnalytics = ({ tasks, studySessions, reminders: _reminders }: TimeAnal
 };
 
 // Helper function to calculate streak
-function calculateStreak(studySessions: any[]): number {
+function calculateStreak(studySessions: StudySession[]): number {
   let streak = 0;
   const today = new Date();
   const sessionDates = [...new Set(studySessions.map(s => new Date(s.startTime).toDateString()))];

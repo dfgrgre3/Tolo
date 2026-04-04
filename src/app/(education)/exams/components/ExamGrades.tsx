@@ -311,7 +311,7 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
             notes: newExamResult.notes
           })
         },
-        { success: false, examResult: null as any }
+        { success: false, examResult: null as unknown as ExamResult }
       );
 
       if (responseError || !data?.success) {

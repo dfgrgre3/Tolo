@@ -174,7 +174,7 @@ export default function InfrastructurePage() {
   );
 }
 
-function StatsCard({ title, value, icon: Icon, color }: { title: string, value: string, icon: any, color: string }) {
+function StatsCard({ title, value, icon: Icon, color }: { title: string, value: string, icon: React.ComponentType<{ className?: string }>, color: string }) {
   return (
     <motion.div 
       whileHover={{ y: -5 }} 
@@ -191,7 +191,7 @@ function StatsCard({ title, value, icon: Icon, color }: { title: string, value: 
   );
 }
 
-function QueueCard({ name, stats, icon: Icon }: { name: string, stats: any, icon: any }) {
+function QueueCard({ name, stats, icon: Icon }: { name: string, stats: { active: number; waiting: number; failed: number; completed: number }, icon: React.ComponentType<{ className?: string }> }) {
    return (
       <div className={STYLES.glass + " space-y-6"}>
          <div className="flex items-center justify-between">

@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Send, Target, Sparkles, Gift, BellRing, Users, MailOpen } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 export default function MarketingPage() {
   const [audience, setAudience] = React.useState("challenge_winners");
@@ -39,8 +40,8 @@ export default function MarketingPage() {
         const res = await fetch("/api/marketing");
         const data = await res.json();
         if (data.stats) setStats(data.stats);
-      } catch (error) {
-        console.error("Failed to fetch marketing stats", error);
+      } catch (error: unknown) {
+        logger.error("Failed to fetch marketing stats", error instanceof Error ? error.message : String(error));
       } finally {
         setLoading(false);
       }
@@ -72,8 +73,8 @@ export default function MarketingPage() {
       } else {
         toast.error("حدث خطأ أثناء إطلاق الحملة");
       }
-    } catch (error) {
-      console.error(error);
+    } catch (error: unknown) {
+      logger.error("حدث خطأ أثناء إطلاق الحملة", error instanceof Error ? error.message : String(error));
       toast.error("حدث خطأ أثناء إطلاق الحملة");
     } finally {
       setIsSending(false);
@@ -183,7 +184,7 @@ export default function MarketingPage() {
                       type="number" 
                       placeholder="مثال: 500" 
                       value={rewardValue} 
-                      onChange={(e: any) => setRewardValue(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRewardValue(e.target.value)}
                       className="bg-background h-12 text-center text-lg font-black text-amber-500" 
                     />
                  </div>
@@ -198,7 +199,7 @@ export default function MarketingPage() {
                   <SearchInput 
                     placeholder="مثال: غنيمة أسطورية لمعركتك القادمة!" 
                     value={title} 
-                    onChange={(e: any) => setTitle(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
                     className="bg-background h-12 font-bold" 
                   />
                </div>
@@ -209,7 +210,7 @@ export default function MarketingPage() {
                     placeholder="اكتب رسالتك الموجهة للمحاربين بثقة وحماس..." 
                     className="min-h-[140px] resize-none bg-background rounded-xl p-4 border-border font-medium"
                     value={content}
-                    onChange={(e) => setContent(e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setContent(e.target.value)}
                   />
                </div>
 

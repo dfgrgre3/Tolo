@@ -1,4 +1,6 @@
 // Performance monitoring configuration
+import { logger } from '@/lib/logger';
+
 // Lazy load logger to prevent server-side bundling issues
 // This file must be safe for both client and server execution
 
@@ -18,22 +20,22 @@ let loggerInstance: Logger | null = null;
 const createConsoleLogger = () => ({
   info: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.info) {
-      console.info(...args);
+      logger.info(...args);
     }
   },
   warn: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.warn) {
-      console.warn(...args);
+      logger.warn(...args);
     }
   },
   error: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.error) {
-      console.error(...args);
+      logger.error(...args);
     }
   },
   debug: (...args: unknown[]) => {
     if (typeof console !== 'undefined' && console.debug) {
-      console.debug(...args);
+      logger.debug(...args);
     }
   },
 });

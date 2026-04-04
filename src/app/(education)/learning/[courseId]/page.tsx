@@ -71,6 +71,15 @@ type Course = {
   rating: number;
 };
 
+type Question = {
+  id: string;
+  content: string;
+  createdAt: string;
+  user?: {
+    name: string;
+  };
+};
+
 type TabKey = "content" | "resources" | "qna" | "notes";
 
 export default function AdvancedLearningHub() {
@@ -87,7 +96,7 @@ export default function AdvancedLearningHub() {
   const [loading, setLoading] = useState(true);
   const [noteContent, setNoteContent] = useState("");
   const [savingNote, setSavingNote] = useState(false);
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [newQuestion, setNewQuestion] = useState("");
   const [addingQuestion, setAddingQuestion] = useState(false);
   const [activeTab, setActiveTab] = useState<TabKey>("content");
@@ -210,7 +219,7 @@ export default function AdvancedLearningHub() {
       await fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: true, subject: (course as any)?.name }),
+        body: JSON.stringify({ completed: true, subject: course?.nameAr || course?.name }),
       });
 
       setChapters((prev) =>

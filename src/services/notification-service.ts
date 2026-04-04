@@ -387,19 +387,24 @@ export function sendTemplatedNotification(
     return Promise.resolve({ success: false, error: 'Template not found' });
   }
 
-  // Type-safe dynamic function call
-  const notification = (template as (...args: unknown[]) => ReturnType<typeof template>)(...args);
+  // Type-safe dynamic function call with controlled cast
+  const notification = (template as (...args: unknown[]) => Record<string, unknown>)(...args);
 
-  // Safely extract optional properties
+  // Safely extract properties with type assertion
   const options: { actionUrl?: string; icon?: string } = {};
-  if ('actionUrl' in notification && notification.actionUrl) {
+  if (typeof notification.actionUrl === 'string') {
     options.actionUrl = notification.actionUrl;
   }
-  if ('icon' in notification && notification.icon) {
+  if (typeof notification.icon === 'string') {
     options.icon = notification.icon;
   }
 
-  return sendNotification(notification.title, notification.message, notification.type, options);
+  return sendNotification(
+    String(notification.title || ''),
+    String(notification.message || ''),
+    (notification.type as NotificationType) || 'info', 
+    options
+  );
 }
 
 export const notificationService = {

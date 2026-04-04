@@ -3,9 +3,8 @@ import { writeFile } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { withAdmin, handleApiError } from '@/lib/api-utils';
+import { withAdmin } from '@/lib/api-utils';
 
 // Constants for security limits
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
@@ -32,7 +31,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 2. Security: MIME type validation (Simple check - for production use 'file-type' library)
+      // 2. Security: MIME type validation
       if (!ALLOWED_MIME_TYPES.includes(fileEntry.type)) {
         logger.warn(`Rejected upload with invalid MIME type: ${fileEntry.type} from admin ${authUser.userId}`);
         return NextResponse.json(
@@ -41,7 +40,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // 3. Security: File Size limit to prevent Disk Filling attacks
+      // 3. Security: File Size limit
       if (fileEntry.size > MAX_FILE_SIZE) {
         return NextResponse.json(
           { error: `حجم الملف كبير جدًا. الحد الأقصى هو ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
@@ -52,8 +51,8 @@ export async function POST(request: NextRequest) {
       const buffer = Buffer.from(await fileEntry.arrayBuffer());
 
       // 4. Filename sanitization
-      // We ignore the original filename for the actual storage to prevent directory traversal
-      const originalName = (fileEntry as any).name || 'upload';
+      const file = fileEntry as unknown as File;
+      const originalName = file.name || 'upload';
       const extension = originalName.split('.').pop() || '';
       const safeFileName = `${uuidv4()}.${extension}`;
       
@@ -76,14 +75,15 @@ export async function POST(request: NextRequest) {
         fileUrl,
         fileName: originalName,
         fileSize: buffer.length,
-        fileType: fileEntry.type
+        fileType: file.type
       });
-    } catch (error: any) {
-      logger.error('Error uploading file:', error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      logger.error('Error uploading file:', { error: errorMessage });
       return NextResponse.json(
         {
           error: 'فشل رفع الملف نتيجة خطأ داخلي.',
-          details: process.env.NODE_ENV === 'development' ? error.message : undefined
+          details: process.env.NODE_ENV === 'development' ? errorMessage : undefined
         },
         { status: 500 }
       );

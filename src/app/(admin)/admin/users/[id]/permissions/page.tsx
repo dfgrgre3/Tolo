@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DEFAULT_ROLE_PERMISSIONS, PERMISSIONS } from "@/lib/permissions";
+import { logger } from '@/lib/logger';
 
 const permissionGroups = [
   {
@@ -168,7 +169,7 @@ export default function UserPermissionsPage() {
         setUser(data);
         setSelectedPermissions(data.permissions ?? []);
       } catch (error) {
-        console.error("Error fetching user permissions:", error);
+        logger.error("Error fetching user permissions:", error);
         toast.error("حدث خطأ أثناء تحميل الصلاحيات");
       } finally {
         setIsLoading(false);
@@ -206,7 +207,7 @@ export default function UserPermissionsPage() {
       toast.success("تم تحديث الصلاحيات");
       router.push(`/admin/users/${userId}`);
     } catch (error) {
-      console.error("Error saving permissions:", error);
+      logger.error("Error saving permissions:", error);
       toast.error("حدث خطأ أثناء حفظ الصلاحيات");
     } finally {
       setIsSaving(false);

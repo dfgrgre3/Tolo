@@ -36,5 +36,5 @@ export interface User {
     questXP: number;
     seasonXP: number;
 
-    [key: string]: any;
+    [key: string]: unknown;
 }

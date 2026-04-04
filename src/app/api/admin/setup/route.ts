@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { PasswordService } from "@/services/auth/password-service";
+import { logger } from '@/lib/logger';
 
 // POST /api/admin/setup - Create admin user
 export async function POST(request: NextRequest) {
@@ -103,7 +104,7 @@ export async function POST(request: NextRequest) {
       user: admin,
     });
   } catch (error) {
-    console.error("Error creating admin:", error);
+    logger.error("Error creating admin:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء إنشاء مستخدم Admin" },
       { status: 500 }

@@ -3,11 +3,27 @@ import { withAdmin, handleApiError, successResponse, badRequestResponse } from "
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { sendMultiChannelNotification } from "@/services/notification-sender";
 
+interface BulkMessageRequest {
+  userIds: string[];
+  title: string;
+  message: string;
+  type?: "success" | "error" | "info" | "warning";
+  channels?: ('app' | 'email' | 'sms')[];
+  actionUrl?: string;
+}
+
+interface BulkMessageResult {
+  userId: string;
+  status: "success" | "error";
+  data?: unknown;
+  error?: string;
+}
+
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req: NextRequest) => {
     return withAdmin(req, async () => {
       try {
-        const body = await req.json();
+        const body = (await req.json()) as BulkMessageRequest;
         const { userIds, title, message, type = "info", channels = ["app"], actionUrl } = body;
 
         if (!userIds || !Array.isArray(userIds) || userIds.length === 0) {
@@ -23,7 +39,7 @@ export async function POST(request: NextRequest) {
         }
 
         // إرسال الإشعارات لجميع المستخدمين المحددين
-        const results = await Promise.all(
+        const results: BulkMessageResult[] = await Promise.all(
           userIds.map(async (userId) => {
             try {
               return {
@@ -34,11 +50,11 @@ export async function POST(request: NextRequest) {
                   title,
                   message,
                   type,
-                  channels: channels as any,
+                  channels: channels,
                   actionUrl,
                 }),
               };
-            } catch (error) {
+            } catch (error: unknown) {
               return {
                 userId,
                 status: "error",
@@ -56,7 +72,7 @@ export async function POST(request: NextRequest) {
           `تمت معالجة الإرسال لـ ${userIds.length} محارب`,
           201
         );
-      } catch (error) {
+      } catch (error: unknown) {
         return handleApiError(error);
       }
     });

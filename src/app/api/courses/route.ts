@@ -1,4 +1,4 @@
-import { CategoryType } from "@prisma/client";
+import { CategoryType, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from "@/lib/logger";
@@ -14,6 +14,17 @@ import { getOrSetEducationalContent, invalidateEducationalContentPattern } from 
 
 const SORT_OPTIONS = ["newest", "popular", "rated", "price-low", "price-high"] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
+
+interface CourseCreateRequest {
+  name?: string;
+  nameAr?: string;
+  code?: string;
+  description?: string;
+  type?: string;
+  color?: string;
+  icon?: string;
+  isActive?: boolean;
+}
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -33,7 +44,7 @@ export async function GET(request: NextRequest) {
       const authenticatedUserId = req.headers.get("x-user-id")?.trim() || null;
 
       // 2. Construct Prisma Query
-      const where: any = {
+      const where: Prisma.SubjectWhereInput = {
         isActive: true,
       };
 
@@ -54,7 +65,7 @@ export async function GET(request: NextRequest) {
           where.level = prismaLevel;
       }
 
-      const orderBy: any = {};
+      const orderBy: Prisma.SubjectOrderByWithRelationInput = {};
       switch (sort) {
         case "popular":
           orderBy.enrolledCount = "desc";
@@ -163,7 +174,7 @@ export async function GET(request: NextRequest) {
           filters: { search, category: category || "ALL", level: level || "ALL", sort },
         },
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Courses API Critical Error:", error);
       return NextResponse.json(
         { error: "An unexpected error occurred while fetching courses." },
@@ -186,16 +197,7 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        const body = (await req.json()) as {
-          name?: string;
-          nameAr?: string;
-          code?: string;
-          description?: string;
-          type?: string;
-          color?: string;
-          icon?: string;
-          isActive?: boolean;
-        };
+        const body = (await req.json()) as CourseCreateRequest;
 
         const name = body.name?.trim();
         const nameAr = body.nameAr?.trim() || null;
@@ -260,7 +262,7 @@ export async function POST(request: NextRequest) {
         // Invalidate Courses List Cache
         await invalidateEducationalContentPattern('courses:list:*');
 
-        const course = mapSubjectToCourse(createdSubject, {
+        const course = mapSubjectToCourse(createdSubject as any, {
           lessonsCount: 0,
           enrolled: false,
         });
@@ -272,7 +274,7 @@ export async function POST(request: NextRequest) {
           },
           { status: 201 }
         );
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error("Failed to create course", error);
         return NextResponse.json(
           {

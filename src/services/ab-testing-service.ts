@@ -1,4 +1,5 @@
 import { Experiment, CreateExperimentData } from "../types/ab-testing";
+import { logger } from '@/lib/logger';
 
 const API_BASE_URL = '/api/ab-testing';
 
@@ -25,7 +26,7 @@ export const abTestingService = {
       const result = await response.json();
       return result.data;
     } catch (error) {
-      console.error('Error fetching experiments:', error);
+      logger.error('Error fetching experiments:', error);
       throw error;
     }
   },
@@ -50,7 +51,7 @@ export const abTestingService = {
       const result = await response.json();
       return result.data;
     } catch (error) {
-      console.error('Error creating experiment:', error);
+      logger.error('Error creating experiment:', error);
       throw error;
     }
   },
@@ -75,7 +76,7 @@ export const abTestingService = {
       const result = await response.json();
       return result.data;
     } catch (error) {
-      console.error('Error updating experiment status:', error);
+      logger.error('Error updating experiment status:', error);
       throw error;
     }
   },
@@ -100,7 +101,7 @@ export const abTestingService = {
       const result = await response.json();
       return result.data;
     } catch (error) {
-      console.error('Error declaring winner:', error);
+      logger.error('Error declaring winner:', error);
       throw error;
     }
   },

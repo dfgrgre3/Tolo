@@ -380,7 +380,7 @@ export default function AdminTeachersPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="rounded-xl border-white/10">
-                          {subjects.map((subject: any) =>
+                          {subjects.map((subject: {id: string; name: string; nameAr: string | null}) =>
                         <SelectItem key={subject.id} value={subject.id} className="font-bold py-2">
                               {subject.nameAr || subject.name}
                             </SelectItem>

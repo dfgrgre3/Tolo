@@ -144,7 +144,7 @@ export default function DevicesPage() {
       payload.sessions.map(mapSessionToDevice) :
       [];
       setDevices(mapped);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'فشل تحميل الأجهزة المتصلة';
       toast.error(message);
       setDevices([]);
@@ -176,7 +176,7 @@ export default function DevicesPage() {
 
       setDevices((prev) => prev.filter((device) => device.id !== deviceId));
       toast.success('تم تسجيل خروج الجهاز بنجاح');
-    } catch (error: any) {
+    } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'فشل إنهاء الجلسة';
       toast.error(message);
     } finally {

@@ -54,7 +54,7 @@ interface ActivityFeedProps {
   className?: string;
 }
 
-const activityConfig = {
+const activityConfig: Record<ActivityItem["type"], { icon: React.ElementType; color: string; bg: string; label: string }> = {
   user: { icon: Users, color: "text-blue-500", bg: "bg-blue-500/10", label: "مستخدم جديد" },
   exam: { icon: Target, color: "text-green-500", bg: "bg-green-500/10", label: "امتحان" },
   achievement: { icon: Award, color: "text-yellow-500", bg: "bg-yellow-500/10", label: "إنجاز" },

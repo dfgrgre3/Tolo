@@ -256,10 +256,10 @@ export default function NotificationsPage() {
                                       if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
                                         window.location.href = parsed.href;
                                       } else {
-                                        console.warn('Blocked unsafe redirect:', notification.actionUrl);
+                                        logger.warn('Blocked unsafe redirect:', notification.actionUrl);
                                       }
                                     } catch {
-                                      console.warn('Invalid URL for redirect:', notification.actionUrl);
+                                      logger.warn('Invalid URL for redirect:', notification.actionUrl);
                                     }
                                   }
                                 }}

@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface Reward {
   id: string;
@@ -119,7 +120,7 @@ export default function AdminRewardsPage() {
       const data = await response.json();
       setRewards(data.rewards || []);
     } catch (_error) {
-      console.error("Error fetching rewards:", _error);
+      logger.error("Error fetching rewards:", _error);
       toast.error("حدث خطأ في فتح الخزينة");
     } finally {
       setLoading(false);

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { gamificationService } from '@/services/gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
@@ -8,8 +8,8 @@ export async function GET(request: NextRequest) {
     return withAuth(req, async (authUser) => {
       try {
         const { searchParams } = new URL(req.url);
-        const type = searchParams.get('type') as any || 'global';
-        const limit = parseInt(searchParams.get('limit') || '50');
+        const type = (searchParams.get('type') || 'global') as 'global' | 'subject' | 'season';
+        const limit = parseInt(searchParams.get('limit') || '50', 10);
         const seasonId = searchParams.get('seasonId') || undefined;
         const subjectId = searchParams.get('subjectId') || undefined;
 
@@ -38,10 +38,9 @@ export async function GET(request: NextRequest) {
           lastUpdated: new Date().toISOString()
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         return handleApiError(error);
       }
     });
   });
 }
-

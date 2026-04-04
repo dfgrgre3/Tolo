@@ -5,6 +5,7 @@
 
 import { toast } from 'sonner';
 import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
+import { logger } from '@/lib/logger';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -159,9 +160,9 @@ class ErrorService {
           ? 'color: white; background: red; font-weight: bold; padding: 2px 5px;'
           : 'color: orange; font-weight: bold;';
         console.group(`%c ERROR [${logEntry.severity.toUpperCase()}] %c ${logEntry.message}`, style, 'font-weight: normal;');
-        console.log('Source:', logEntry.source);
-        console.log('Context:', context);
-        console.log('Stack:', logEntry.stack);
+        logger.info('Source:', logEntry.source);
+        logger.info('Context:', context);
+        logger.info('Stack:', logEntry.stack);
         console.groupEnd();
       }
     }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // GET /api/admin/challenges - Get all challenges
 export async function GET(request: NextRequest) {
@@ -49,7 +50,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching challenges:", error);
+    logger.error("Error fetching challenges:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء جلب التحديات" },
       { status: 500 }
@@ -94,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(challenge);
   } catch (error) {
-    console.error("Error creating challenge:", error);
+    logger.error("Error creating challenge:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء إنشاء التحدي" },
       { status: 500 }
@@ -121,7 +122,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting challenge:", error);
+    logger.error("Error deleting challenge:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء حذف التحدي" },
       { status: 500 }

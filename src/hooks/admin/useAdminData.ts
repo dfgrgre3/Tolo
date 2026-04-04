@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { toast } from "sonner";
+import { logger } from '@/lib/logger';
 
 // Types
 interface FetchState<T> {
@@ -385,7 +386,7 @@ export function useAdminDashboard() {
         setStats(data);
       }
     } catch (error) {
-      console.error("Error fetching dashboard stats:", error);
+      logger.error("Error fetching dashboard stats:", error);
     } finally {
       setLoading(false);
     }

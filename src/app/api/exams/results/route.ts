@@ -5,6 +5,7 @@ import { gamificationService } from "@/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, handleApiError, forbiddenResponse } from '@/lib/api-utils';
 import { z } from "zod";
+import { logger } from '@/lib/logger';
 
 const resultSchema = z.object({
   examId: z.string().min(1, "معرف الامتحان مطلوب"),
@@ -112,7 +113,7 @@ export async function POST(req: NextRequest) {
         try {
           await gamificationService.updateUserProgress(authUser.userId, 'exam_completed', { score });
         } catch (gamificationError) {
-          console.error('Gamification update failed:', gamificationError);
+          logger.error('Gamification update failed:', gamificationError);
         }
 
         return successResponse(result, "تم حفظ نتيجة الامتحان بنجاح", 201);

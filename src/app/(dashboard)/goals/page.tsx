@@ -91,7 +91,7 @@ export default function GoalsPage() {
             map((tab) =>
             <button
               key={tab.key}
-              onClick={() => setFilter(tab.key as any)}
+              onClick={() => setFilter(tab.key as 'all' | 'active' | 'completed')}
               className={`px-6 py-2 rounded-md font-medium transition-all ${
               filter === tab.key ?
               'bg-emerald-600 text-white shadow-md' :

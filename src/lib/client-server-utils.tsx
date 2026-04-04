@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useClientEffect } from '@/hooks/use-client-effect';
+import { logger } from '@/lib/logger';
 
 type Logger = {
   info: (message: string, context?: unknown) => void;
@@ -64,10 +65,10 @@ async function getLogger(): Promise<Logger> {
     } catch (_error) {
       // Fallback to console if logger fails to load
       loggerInstance = {
-        info: (message: string) => console.info(message),
-        warn: (message: string) => console.warn(message),
-        error: (message: string) => console.error(message),
-        debug: (message: string) => console.debug(message),
+        info: (message: string) => logger.info(message),
+        warn: (message: string) => logger.warn(message),
+        error: (message: string) => logger.error(message),
+        debug: (message: string) => logger.debug(message),
       };
     }
   }
@@ -136,7 +137,7 @@ export function useBrowserAPI<T>(
           logger.warn('Failed to access browser API:', error);
         }
       }).catch(() => {
-        console.warn('Failed to access browser API:', error);
+        logger.warn('Failed to access browser API:', error);
       });
       setIsReady(true);
     }
@@ -219,7 +220,7 @@ export function useProgressiveEnhancement<T>(
             logger.error('Progressive enhancement failed:', error);
           }
         }).catch(() => {
-          console.error('Progressive enhancement failed:', error);
+          logger.error('Progressive enhancement failed:', error);
         });
         options?.onError?.(error as Error);
       }
@@ -275,7 +276,7 @@ export function useClientOnlyEffect(
         if (logger) {
           logger.error('Client-only effect failed:', error);
         } else {
-          console.error('Client-only effect failed:', error);
+          logger.error('Client-only effect failed:', error);
         }
         options?.onError?.(error as Error);
       }
@@ -289,7 +290,7 @@ export function useClientOnlyEffect(
           getLogger().then(logger => {
             logger.error('Client-only effect cleanup failed:', error);
           }).catch(() => {
-            console.error('Client-only effect cleanup failed:', error);
+            logger.error('Client-only effect cleanup failed:', error);
           });
         }
         cleanupRef.current = undefined;
@@ -321,7 +322,7 @@ export async function safeDynamicImport<T>(
           logger.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
         }
       }).catch(() => {
-        console.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
+        logger.warn(`Dynamic import failed (attempt ${attempt}/${retries}):`, error);
       });
 
       if (attempt === retries) {
@@ -504,7 +505,7 @@ export const clientServerPerf = {
         getLogger().then(logger => {
           logger.warn('Performance measurement failed:', error);
         }).catch(() => {
-          console.warn('Performance measurement failed:', error);
+          logger.warn('Performance measurement failed:', error);
         });
       }
     }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
@@ -8,6 +8,29 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
+
+interface TestGenerationRequest {
+  subject: string;
+  difficulty?: string;
+  questionCount?: number;
+  questionTypes: string[];
+  timeLimit?: number;
+  lesson?: string;
+}
+
+interface AIQuestionInput {
+  question: string;
+  type: string;
+  options?: string[];
+  correctAnswer: string | number;
+  explanation?: string;
+  points?: number;
+}
+
+interface AIGeneratedTest {
+  title: string;
+  questions: AIQuestionInput[];
+}
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -22,7 +45,8 @@ export async function POST(request: NextRequest) {
           return rateLimitResult;
         }
 
-        const { subject, difficulty, questionCount, questionTypes, timeLimit, lesson } = await req.json();
+        const body = (await req.json()) as TestGenerationRequest;
+        const { subject, difficulty, questionCount, questionTypes, timeLimit, lesson } = body;
 
         if (!subject) {
           return badRequestResponse('Subject is required');
@@ -43,7 +67,7 @@ export async function POST(request: NextRequest) {
 
       التفاصيل:
       - عدد الأسئلة: ${questionCount || 10}
-      - مستوى الصعوبة: ${getDifficultyName(difficulty)}
+      - مستوى الصعوبة: ${getDifficultyName(difficulty || 'medium')}
       - أنواع الأسئلة: ${questionTypes.map((t: string) => getQuestionTypeName(t)).join(', ')}
       - المدة الزمنية: ${timeLimit || 30} دقيقة
 
@@ -85,7 +109,7 @@ export async function POST(request: NextRequest) {
           throw new Error("Empty response from AI");
         }
 
-        const generatedTest = JSON.parse(responseContent);
+        const generatedTest = JSON.parse(responseContent) as AIGeneratedTest;
 
         // Look up subject in database
         const dbSubject = await prisma.subject.findFirst({
@@ -113,8 +137,6 @@ export async function POST(request: NextRequest) {
           }
         });
 
-
-
         // Create questions in database
         for (const q of generatedTest.questions) {
           await prisma.aiQuestion.create({
@@ -136,7 +158,7 @@ export async function POST(request: NextRequest) {
         });
 
         return successResponse({ test: examWithQuestions });
-      } catch (error) {
+      } catch (error: unknown) {
         logger.error('Error generating test:', error);
         return handleApiError(error);
       }

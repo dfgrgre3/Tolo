@@ -25,9 +25,9 @@ export interface DeviceFingerprint {
     userAgent?: string;
     timezone?: string;
     language?: string;
-    screen?: any;
+    screen?: unknown;
     platform?: string;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface DeviceInfo {

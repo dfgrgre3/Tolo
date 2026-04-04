@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { StudySession } from '../types';
 import { TimeSettingsData } from '../components/TimeSettings';
+import { logger } from '@/lib/logger';
 
 export function usePomodoroTimer(
   userId: string,
@@ -56,7 +57,7 @@ export function usePomodoroTimer(
       setPomodoroCount(newPomodoroCount);
 
       if (settings.soundEnabled && audioRef.current) {
-        audioRef.current.play().catch(e => console.log("Audio play failed:", e));
+        audioRef.current.play().catch(e => logger.info("Audio play failed:", e));
       }
 
       if (activeTaskId) {

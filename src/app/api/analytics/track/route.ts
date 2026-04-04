@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   try {
@@ -22,7 +23,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true });
 
   } catch (error) {
-    console.error('Analytics Track Error:', error);
+    logger.error('Analytics Track Error:', error);
     return NextResponse.json({ success: false }); // Silently fail for analytics
   }
 }

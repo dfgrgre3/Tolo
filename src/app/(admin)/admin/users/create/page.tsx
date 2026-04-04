@@ -18,7 +18,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";import { logger } from '@/lib/logger';
+
 import {
   Select,
   SelectContent,
@@ -81,7 +82,7 @@ export default function CreateUserPage() {
       toast.success("تم إنشاء المستخدم بنجاح");
       router.push(`/admin/users/${payload.data?.id ?? payload.id}`);
     } catch (error) {
-      console.error("Error creating user:", error);
+      logger.error("Error creating user:", error);
       toast.error("حدث خطأ أثناء إنشاء المستخدم");
     } finally {
       setIsSubmitting(false);

@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from '@/lib/db';
+import { prisma, Prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { 
   handleApiError, 
@@ -8,6 +8,18 @@ import {
   withAuth 
 } from '@/lib/api-utils';
 import { ERROR_CODES } from '@/lib/error-codes';
+import { logger } from '@/lib/logger';
+
+interface BookCreateRequest {
+  title: string;
+  author: string;
+  description: string;
+  subject?: string;
+  subjectId?: string;
+  coverUrl?: string;
+  downloadUrl: string;
+  tags?: string[] | string;
+}
 
 // GET all books
 export async function GET(request: NextRequest) {
@@ -17,7 +29,7 @@ export async function GET(request: NextRequest) {
       const subjectId = searchParams.get('subjectId');
       const search = searchParams.get('search');
 
-      const where: any = {};
+      const where: Prisma.BookWhereInput = {};
       
       if (subjectId) {
         where.subjectId = subjectId;
@@ -65,7 +77,8 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const { title, author, description, subject, subjectId, coverUrl, downloadUrl, tags } = await req.json();
+        const body = (await req.json()) as BookCreateRequest;
+        const { title, author, description, subject, subjectId, coverUrl, downloadUrl, tags } = body;
 
         const finalSubjectId = subjectId || subject;
 
@@ -79,10 +92,10 @@ export async function POST(request: NextRequest) {
             author,
             description,
             subjectId: finalSubjectId,
-            coverUrl,
+            coverUrl: coverUrl || null,
             downloadUrl,
             uploaderId: userId,
-            tags: (Array.isArray(tags) ? tags : (tags ? [tags] : [])) as any // Suppressing TS error until prisma generate is run
+            tags: Array.isArray(tags) ? tags : (tags ? [tags] : [])
           }
         });
 
@@ -96,8 +109,8 @@ export async function POST(request: NextRequest) {
             type: 'success',
             icon: '📚'
           });
-        } catch (notificationError) {
-          console.error('Failed to send book upload notification:', notificationError);
+        } catch (notificationError: unknown) {
+          logger.error('Failed to send book upload notification:', notificationError);
         }
 
         return successResponse(newBook, undefined, 201);

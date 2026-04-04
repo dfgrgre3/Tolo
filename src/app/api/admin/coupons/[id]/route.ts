@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -7,7 +8,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     await prisma.coupon.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Delete Coupon Error:', error);
+    logger.error('Delete Coupon Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -30,7 +31,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     return NextResponse.json(coupon);
   } catch (error) {
-    console.error('Update Coupon Error:', error);
+    logger.error('Update Coupon Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

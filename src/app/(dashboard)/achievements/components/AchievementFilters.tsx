@@ -72,7 +72,7 @@ export function AchievementFilters({ filters, onFiltersChange }: AchievementFilt
 						{['all', 'earned', 'locked'].map((status) => (
 							<button
 								key={status}
-								onClick={() => onFiltersChange({ status: status as any })}
+								onClick={() => onFiltersChange({ status: status as 'all' | 'earned' | 'locked' })}
 								className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all duration-300 relative ${
 									filters.status === status
 										? 'text-foreground shadow-sm'

@@ -532,7 +532,7 @@ export default function DashboardPage() {
   );
 }
 
-function Bot(props: any) {
+function Bot(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

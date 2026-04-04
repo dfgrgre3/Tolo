@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request, { params }: { params: Promise<{ orderId: string }> }) {
   try {
@@ -24,7 +25,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ orderId:
 
     return NextResponse.json(payment);
   } catch (error) {
-    console.error('Fetch Payment Error:', error);
+    logger.error('Fetch Payment Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

@@ -139,7 +139,7 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 
 }
 
-function LayoutGrid(props: any) {
+function LayoutGrid(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

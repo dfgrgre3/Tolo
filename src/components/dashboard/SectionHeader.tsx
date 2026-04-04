@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Plus, Filter, Search } from 'lucide-react';
 import { Input } from '../ui/input';
+import { logger } from '@/lib/logger';
 
 /**
  * خصائص مكون رأس القسم
@@ -46,7 +47,7 @@ export interface SectionHeaderProps {
  *   description="إدارة مهامك اليومية"
  *   showAddButton
  *   addButtonText="إضافة مهمة"
- *   onAdd={() => console.log('Add task')}
+ *   onAdd={() => logger.info('Add task')}
  * />
  * ```
  */

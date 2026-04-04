@@ -1,4 +1,5 @@
 import { createHmac } from 'crypto';
+import { logger } from '@/lib/logger';
 
 export interface PaymobAuthResponse {
   token: string;
@@ -38,7 +39,7 @@ export class PaymobService {
 
       return data.token;
     } catch (error: any) {
-      console.error('Paymob Auth Error:', error.message);
+      logger.error('Paymob Auth Error:', error.message);
       throw new Error('Failed to authenticate with Paymob');
     }
   }
@@ -63,7 +64,7 @@ export class PaymobService {
 
       return data.id;
     } catch (error: any) {
-      console.error('Paymob Order Error:', error.message);
+      logger.error('Paymob Order Error:', error.message);
       throw new Error('Failed to register order with Paymob');
     }
   }
@@ -114,7 +115,7 @@ export class PaymobService {
 
       return data.token;
     } catch (error: any) {
-      console.error('Paymob Payment Key Error:', error.message);
+      logger.error('Paymob Payment Key Error:', error.message);
       throw new Error('Failed to generate payment key');
     }
   }

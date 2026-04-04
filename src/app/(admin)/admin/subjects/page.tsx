@@ -156,7 +156,7 @@ export default function AdminSubjectsPage() {
         color: subject.color || "#6366f1",
         type: subject.type || "COURSE",
         isActive: subject.isActive,
-        level: (subject.level as any) || "MEDIUM",
+        level: (subject.level as "EASY" | "MEDIUM" | "HARD" | "EXPERT") || "MEDIUM",
         price: subject.price || 0,
         requirements: subject.requirements || "",
         instructorName: subject.instructorName || "",
