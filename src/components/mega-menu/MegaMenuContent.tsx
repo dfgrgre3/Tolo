@@ -29,6 +29,7 @@ import { MegaMenuGrid } from "./MegaMenuGrid";
 
 
 import dynamic from "next/dynamic";
+import { logger } from '@/lib/logger';
 
 // Dynamic load AI Suggestions with error handling to avoid ChunkLoadError crashing the UI
 const AiSuggestions = dynamic(
@@ -37,7 +38,7 @@ const AiSuggestions = dynamic(
 			const mod = await import("./AiSuggestions");
 			return { default: mod.AiSuggestions };
 		} catch (err) {
-			console.error("ChunkLoadError in AiSuggestions:", err);
+			logger.error("ChunkLoadError in AiSuggestions:", err);
 			// Fallback to a null component to avoid crashing the whole menu
 			return { default: () => null };
 		}

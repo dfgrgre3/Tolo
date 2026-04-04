@@ -47,6 +47,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
+import { logger } from '@/lib/logger';
 
 interface ForumCategory {
   id: string;
@@ -124,7 +125,7 @@ export default function AdminForumPage() {
       setPosts(postsData.posts || []);
       setCategories(categoriesData.categories || []);
     } catch (error) {
-      console.error("Error fetching forum posts:", error);
+      logger.error("Error fetching forum posts:", error);
       toast.error("حدث خطأ أثناء جلب مواضيع المنتدى");
     } finally {
       setLoading(false);
@@ -178,7 +179,7 @@ export default function AdminForumPage() {
         toast.error("حدث خطأ أثناء حفظ الموضوع");
       }
     } catch (error) {
-      console.error("Error saving forum post:", error);
+      logger.error("Error saving forum post:", error);
       toast.error("حدث خطأ أثناء حفظ الموضوع");
     }
   };
@@ -200,7 +201,7 @@ export default function AdminForumPage() {
         toast.error("حدث خطأ أثناء حذف الموضوع");
       }
     } catch (error) {
-      console.error("Error deleting forum post:", error);
+      logger.error("Error deleting forum post:", error);
       toast.error("حدث خطأ أثناء حذف الموضوع");
     } finally {
       setDeleteDialog({ open: false, id: null });

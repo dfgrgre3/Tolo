@@ -5,16 +5,26 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 
+interface AnnouncementResponse {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: string;
+  priority: string;
+  isActive: boolean;
+}
+
 // GET all announcements with caching
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
       const limit = parseInt(searchParams.get('limit') || '10');
-      const category = searchParams.get('category');
+      const categoryRaw = searchParams.get('category');
+      const category = categoryRaw ? parseInt(categoryRaw, 10) : null;
 
       // Create cache key based on parameters
-      const cacheKey = `announcements_${category ? `category_${category}_` : ''}limit_${limit}`;
+      const cacheKey = `announcements_${category !== null ? `category_${category}_` : ''}limit_${limit}`;
 
       // Use distributed cache with fallback to database query
       const announcements = await CacheService.getOrSet(
@@ -24,7 +34,7 @@ export async function GET(request: NextRequest) {
             take: limit,
             where: {
               isActive: true,
-              ...(category && { priority: category })
+              ...(category !== null && { priority: category })
             },
             orderBy: {
               createdAt: "desc"
@@ -32,12 +42,12 @@ export async function GET(request: NextRequest) {
           });
 
           // Transform the data to match the frontend structure
-          return announcements.map((announcement: any) => ({
+          return announcements.map((announcement): AnnouncementResponse => ({
             id: announcement.id,
             title: announcement.title,
             content: announcement.content,
             createdAt: announcement.createdAt.toISOString(),
-            priority: announcement.priority,
+            priority: announcement.priority.toString(),
             isActive: announcement.isActive
           }));
         },
@@ -56,13 +66,14 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
+      const body = await req.json() as { title?: string; content?: string; priority?: number };
       const {
         title,
         content,
         priority
-      } = await req.json();
+      } = body;
 
-      if (!title || !content || !priority) {
+      if (!title || !content || priority === undefined) {
         return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها");
       }
 
@@ -75,12 +86,12 @@ export async function POST(request: NextRequest) {
       });
 
       // Transform the data to match the frontend structure
-      const transformedAnnouncement = {
+      const transformedAnnouncement: AnnouncementResponse = {
         id: newAnnouncement.id,
         title: newAnnouncement.title,
         content: newAnnouncement.content,
         createdAt: newAnnouncement.createdAt.toISOString(),
-        priority: newAnnouncement.priority,
+        priority: newAnnouncement.priority.toString(),
         isActive: newAnnouncement.isActive
       };
 
@@ -94,4 +105,3 @@ export async function POST(request: NextRequest) {
     }
   });
 }
-

@@ -10,10 +10,29 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 import { logger } from '@/lib/logger';
 
+type AIContentType = 'summary' | 'flashcard' | 'study_plan' | 'practice_question';
+
+interface GenerateContentRequest {
+  type: AIContentType;
+  text?: string;
+  subject?: string;
+  maxLength?: number;
+  count?: number;
+  subjects?: string[];
+  duration?: number;
+  hoursPerDay?: number;
+  topic?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+}
+
+interface UserPayload {
+  userId: string;
+}
+
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken: UserPayload = { userId: "default-user" };
       if (!decodedToken) {
         return NextResponse.json(
           { error: "غير مصرح" },
@@ -22,7 +41,8 @@ export async function POST(request: NextRequest) {
       }
 
       const userId = decodedToken.userId;
-      const { type, ...params } = await req.json();
+      const body = await req.json() as GenerateContentRequest;
+      const { type, ...params } = body;
 
       if (!type) {
         return NextResponse.json(
@@ -106,8 +126,9 @@ export async function POST(request: NextRequest) {
         success: true,
         content: result
       });
-    } catch (error) {
-      logger.error("Error generating content:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+      logger.error("Error generating content:", { error: errorMessage });
       return NextResponse.json(
         { error: "فشل في إنشاء المحتوى" },
         { status: 500 }
@@ -119,7 +140,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const decodedToken: any = { userId: "default-user" };
+      const decodedToken: UserPayload = { userId: "default-user" };
       if (!decodedToken) {
         return NextResponse.json(
           { error: "غير مصرح" },
@@ -129,7 +150,7 @@ export async function GET(request: NextRequest) {
 
       const userId = decodedToken.userId;
       const { searchParams } = new URL(req.url);
-      const type = searchParams.get('type') as any;
+      const type = searchParams.get('type') as AIContentType | undefined;
       const limit = parseInt(searchParams.get('limit') || '20');
 
       const content = await getUserGeneratedContent(userId, type, limit);
@@ -139,8 +160,9 @@ export async function GET(request: NextRequest) {
         content,
         count: content.length
       });
-    } catch (error) {
-      logger.error("Error fetching content:", error);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+      logger.error("Error fetching content:", { error: errorMessage });
       return NextResponse.json(
         { error: "فشل في جلب المحتوى", content: [] },
         { status: 500 }

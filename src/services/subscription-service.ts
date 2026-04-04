@@ -89,12 +89,12 @@ export class SubscriptionService {
     if (!user) return null;
 
     const totalSpent = user.payments
-      .filter((payment: (typeof user.payments)[number]) => payment.status === 'SUCCESS')
-      .reduce((sum: number, payment: (typeof user.payments)[number]) => sum + payment.amount, 0);
+      .filter((payment) => payment.status === 'SUCCESS')
+      .reduce((sum, payment) => sum + payment.amount, 0);
 
     const activeSubscription =
       user.subscriptions.find(
-        (subscription: (typeof user.subscriptions)[number]) =>
+        (subscription) =>
           subscription.status === 'ACTIVE' ||
           (subscription.status === 'GRACE_PERIOD' &&
             subscription.gracePeriodEndDate &&
@@ -112,9 +112,9 @@ export class SubscriptionService {
       stats: {
         totalSpent,
         paymentCount: user.payments.length,
-        successCount: user.payments.filter((payment: (typeof user.payments)[number]) => payment.status === 'SUCCESS').length,
-        pendingCount: user.payments.filter((payment: (typeof user.payments)[number]) => payment.status === 'PENDING').length,
-        failedCount: user.payments.filter((payment: (typeof user.payments)[number]) => payment.status === 'FAILED').length,
+        successCount: user.payments.filter((p) => p.status === 'SUCCESS').length,
+        pendingCount: user.payments.filter((p) => p.status === 'PENDING').length,
+        failedCount: user.payments.filter((p) => p.status === 'FAILED').length,
       },
     };
   }

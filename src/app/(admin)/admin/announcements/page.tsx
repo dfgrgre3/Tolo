@@ -180,7 +180,7 @@ export default function AdminAnnouncementsPage() {
     }
   };
 
-  const typeConfig: Record<string, { label: string, color: "blue" | "green" | "yellow" | "red" | "purple" | "default", icon: any }> = {
+  const typeConfig: Record<string, { label: string, color: "blue" | "green" | "yellow" | "red" | "purple" | "default", icon: React.ComponentType<{ className?: string }> }> = {
     INFO: { label: "بلاغ عام", color: "blue", icon: Info },
     SUCCESS: { label: "بشرى سارة", color: "green", icon: CheckCircle },
     WARNING: { label: "تنبيه هام", color: "yellow", icon: AlertTriangle },

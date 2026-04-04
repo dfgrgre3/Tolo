@@ -231,7 +231,7 @@ export default function AdminCouponsPage() {
                    <label className="block text-xs font-bold text-gray-500 mb-2 uppercase tracking-wider">نوع الخصم</label>
                    <select
                   value={newCoupon.discountType}
-                  onChange={(e) => setNewCoupon({ ...newCoupon, discountType: e.target.value as any })}
+                  onChange={(e) => setNewCoupon({ ...newCoupon, discountType: e.target.value as "PERCENTAGE" | "FIXED" })}
                   className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-blue-500 outline-none transition-all">
                   
                        <option value="PERCENTAGE">نسبة مئوية (%)</option>

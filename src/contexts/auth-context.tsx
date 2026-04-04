@@ -6,6 +6,7 @@ import { clearUserId } from '@/lib/user-utils';
 import { sanitizeRedirectPath } from '@/services/auth/navigation';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 
+import { logger } from '@/lib/logger';
 
 /**
  * AuthContext - Client-side authentication state management.
@@ -206,7 +207,7 @@ export function AuthProvider({
             }
             return false;
         } catch (error) {
-            console.error('refreshUser error:', error);
+            logger.error('refreshUser error:', error);
             if (clearOnFailure) {
                 setUser(null);
                 clearUserId();

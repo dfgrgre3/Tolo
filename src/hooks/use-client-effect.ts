@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, DependencyList } from 'react';
+import { logger } from '@/lib/logger';
 
 // Lazy load logger to prevent server-only bundling issues
 let loggerInstance: unknown = null;
@@ -12,10 +13,10 @@ async function getLogger() {
     } catch {
       // Fallback to console if logger fails to load
       loggerInstance = {
-        info: (...args: unknown[]) => console.info(...args),
-        warn: (...args: unknown[]) => console.warn(...args),
-        error: (...args: unknown[]) => console.error(...args),
-        debug: (...args: unknown[]) => console.debug(...args),
+        info: (...args: unknown[]) => logger.info(...args),
+        warn: (...args: unknown[]) => logger.warn(...args),
+        error: (...args: unknown[]) => logger.error(...args),
+        debug: (...args: unknown[]) => logger.debug(...args),
       };
     }
   }
@@ -79,7 +80,7 @@ export function useClientEffect(
       getLogger().then(logger => {
         logger.error('useClientEffect: Error in effect function:', error);
       }).catch(() => {
-        console.error('useClientEffect: Error in effect function:', error);
+        logger.error('useClientEffect: Error in effect function:', error);
       });
       if (options?.errorBoundary) {
         // Could integrate with error reporting service here
@@ -95,7 +96,7 @@ export function useClientEffect(
           getLogger().then(logger => {
             logger.error('useClientEffect: Error in cleanup function:', error);
           }).catch(() => {
-            console.error('useClientEffect: Error in cleanup function:', error);
+            logger.error('useClientEffect: Error in cleanup function:', error);
           });
         }
         cleanupRef.current = undefined;

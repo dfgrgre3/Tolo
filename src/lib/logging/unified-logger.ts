@@ -11,6 +11,7 @@
  */
 
 import { getRequestContext } from './correlation';
+import { logger } from '@/lib/logger';
 
 // Types
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -256,16 +257,16 @@ class UnifiedLogger {
         // Fallback to console if winston fails
         switch (level) {
           case 'debug':
-            if (process.env.NODE_ENV === 'development') console.debug(fullMessage);
+            if (process.env.NODE_ENV === 'development') logger.debug(fullMessage);
             break;
           case 'info':
-            console.info(fullMessage);
+            logger.info(fullMessage);
             break;
           case 'warn':
-            console.warn(fullMessage);
+            logger.warn(fullMessage);
             break;
           case 'error':
-            console.error(fullMessage);
+            logger.error(fullMessage);
             break;
         }
       }
@@ -274,17 +275,17 @@ class UnifiedLogger {
       switch (level) {
         case 'debug':
           if (process.env.NODE_ENV === 'development') {
-            console.debug(fullMessage);
+            logger.debug(fullMessage);
           }
           break;
         case 'info':
-          console.info(fullMessage);
+          logger.info(fullMessage);
           break;
         case 'warn':
-          console.warn(fullMessage);
+          logger.warn(fullMessage);
           break;
         case 'error':
-          console.error(fullMessage);
+          logger.error(fullMessage);
           break;
       }
     }

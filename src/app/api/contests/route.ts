@@ -4,6 +4,31 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { handleApiError, successResponse, badRequestResponse, withAuth } from '@/lib/api-utils';
 
+interface ContestResponse {
+  id: string;
+  title: string;
+  description: string | null;
+  imageUrl: string | null;
+  startDate: string;
+  endDate: string;
+  prize: string | null;
+  category: string | null;
+  organizerName: string;
+  tags: string[];
+  questionsCount: number;
+}
+
+interface ContestCreateRequest {
+  title: string;
+  description: string;
+  imageUrl?: string;
+  startDate: string;
+  endDate: string;
+  prize?: string;
+  category?: string;
+  tags?: string[];
+}
+
 // GET all contests
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -49,7 +74,7 @@ export async function GET(request: NextRequest) {
       const hasMore = contests.length > limit;
       const pageContests = hasMore ? contests.slice(0, limit) : contests;
 
-      const transformedContests = pageContests.map((contest: any) => ({
+      const transformedContests = pageContests.map((contest): ContestResponse => ({
         id: contest.id,
         title: contest.title,
         description: contest.description,
@@ -58,7 +83,7 @@ export async function GET(request: NextRequest) {
         endDate: contest.endDate.toISOString(),
         prize: contest.prizes,
         category: contest.category,
-        organizerName: contest.organizer?.name || "ظ†ط¸ط§ظ… ط«ظ†ظˆظٹ",
+        organizerName: contest.organizer?.name || "نظام ثناوي",
         tags: contest.tags,
         questionsCount: contest._count?.questions || 0
       }));
@@ -80,6 +105,7 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req: NextRequest) => {
     return withAuth(req, async ({ userId }) => {
       try {
+        const body = (await req.json()) as ContestCreateRequest;
         const {
           title,
           description,
@@ -89,21 +115,21 @@ export async function POST(request: NextRequest) {
           prize,
           category,
           tags
-        } = await req.json();
+        } = body;
 
         if (!title || !description || !startDate || !endDate) {
-          return badRequestResponse("ط¬ظ…ظٹط¹ ط§ظ„ط­ظ‚ظˆظ„ ط§ظ„ظ…ط·ظ„ظˆط¨ط© ظٹط¬ط¨ ظ…ظ„ط¤ظ‡ط§");
+          return badRequestResponse("جميع الحقول المطلوبة يجب ملؤها");
         }
 
         const newContest = await prisma.contest.create({
           data: {
             title,
             description,
-            imageUrl,
+            imageUrl: imageUrl || null,
             startDate: new Date(startDate),
             endDate: new Date(endDate),
-            prizes: prize,
-            category,
+            prizes: prize || null,
+            category: category || null,
             tags: Array.isArray(tags) ? tags : [],
             organizerId: userId
           },
@@ -116,7 +142,7 @@ export async function POST(request: NextRequest) {
           }
         });
 
-        const transformedContest = {
+        const transformedContest: ContestResponse = {
           id: newContest.id,
           title: newContest.title,
           description: newContest.description,
@@ -125,7 +151,7 @@ export async function POST(request: NextRequest) {
           endDate: newContest.endDate.toISOString(),
           prize: newContest.prizes,
           category: newContest.category,
-          organizerName: newContest.organizer?.name || "ط£ظ†طھ",
+          organizerName: newContest.organizer?.name || "أنت",
           tags: newContest.tags,
           questionsCount: 0
         };

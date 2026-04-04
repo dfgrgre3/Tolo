@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/logger';
+
 import { 
   XAxis, 
   YAxis, 
@@ -46,7 +48,7 @@ export default function AdminRevenueDashboard() {
           setStats(data);
         }
       } catch (err) {
-        console.error(err);
+        logger.error(err instanceof Error ? err.message : String(err));
       } finally {
         setLoading(false);
       }
@@ -208,8 +210,17 @@ export default function AdminRevenueDashboard() {
   );
 }
 
-function StatCard({ title, value, icon, trend, trendUp, color }: any) {
-  const colorMap: any = {
+interface StatCardProps {
+  title: string;
+  value: string;
+  icon: React.ReactNode;
+  trend: string;
+  trendUp: boolean;
+  color: 'blue' | 'green' | 'purple' | 'orange';
+}
+
+function StatCard({ title, value, icon, trend, trendUp, color }: StatCardProps) {
+  const colorMap: Record<StatCardProps['color'], string> = {
     blue: 'text-blue-500 bg-blue-500/10',
     green: 'text-green-500 bg-green-500/10',
     purple: 'text-purple-500 bg-purple-500/10',

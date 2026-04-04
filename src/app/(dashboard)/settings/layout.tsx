@@ -164,7 +164,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     user.name,
     user.email,
     user.phone,
-    (user as any).school || (user as any).bio,
+    user.school || user.bio,
     user.avatar,
   ].filter(Boolean).length * 20; // 0-100
 

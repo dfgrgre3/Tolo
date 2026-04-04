@@ -36,7 +36,7 @@ interface SecurityLog {
   metadata: string | null;
 }
 
-const EVENT_LABELS: Record<string, {label: string;color: string;icon: any;}> = {
+const EVENT_LABELS: Record<string, {label: string;color: string;icon: React.ElementType;}> = {
   LOGIN_SUCCESS: { label: 'تسجيل دخول ناجح', color: 'text-green-400', icon: CheckCircle2 },
   LOGIN_FAILED: { label: 'محاولة دخول فاشلة', color: 'text-red-400', icon: XCircle },
   LOGOUT: { label: 'تسجيل خروج', color: 'text-slate-400', icon: Info },
@@ -60,8 +60,9 @@ export default function SecurityLogsPage() {
       if (!res.ok) throw new Error('Failed to fetch logs');
       const data = await res.json();
       setLogs(data.logs || []);
-    } catch (_error) {
+    } catch (err: unknown) {
       toast.error('فشل تحميل سجل النشاطات');
+      console.error(err instanceof Error ? err.message : String(err));
     } finally {
       setIsLoading(false);
     }

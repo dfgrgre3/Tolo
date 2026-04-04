@@ -49,6 +49,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { SearchInput } from "@/components/admin/ui/admin-input";
+import { logger } from '@/lib/logger';
 
 interface Event {
   id: string;
@@ -119,7 +120,7 @@ export default function AdminEventsPage() {
       const data = await response.json();
       setEvents(data.data?.events || []);
     } catch (error) {
-      console.error("Error fetching events:", error);
+      logger.error("Error fetching events:", error);
       toast.error("حدث خطأ أثناء جلب الأحداث");
     } finally {
       setLoading(false);
@@ -179,7 +180,7 @@ export default function AdminEventsPage() {
         toast.error("حدث خطأ أثناء حفظ الحدث");
       }
     } catch (error) {
-      console.error("Error saving event:", error);
+      logger.error("Error saving event:", error);
       toast.error("حدث خطأ أثناء حفظ الحدث");
     }
   };
@@ -201,7 +202,7 @@ export default function AdminEventsPage() {
         toast.error("حدث خطأ أثناء حذف الحدث");
       }
     } catch (error) {
-      console.error("Error deleting event:", error);
+      logger.error("Error deleting event:", error);
       toast.error("حدث خطأ أثناء حذف الحدث");
     } finally {
       setDeleteDialog({ open: false, id: null });

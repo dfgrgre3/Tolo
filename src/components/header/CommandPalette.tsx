@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 // import removed
 import { safeGetItem } from "@/lib/safe-client-utils";
+import { logger } from '@/lib/logger';
 
 interface CommandItem {
 	id: string;
@@ -81,7 +82,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 			};
 
 			recognitionInstance.onerror = (event: any) => {
-				console.error('Speech recognition error:', event.error);
+				logger.error('Speech recognition error:', event.error);
 				setIsListening(false);
 			};
 

@@ -23,7 +23,7 @@ interface UserModel {
   name: string | null;
   username: string | null;
   avatar: string | null;
-  role: string;
+  role: "ADMIN" | "TEACHER" | "STUDENT" | "MODERATOR" | "USER";
   permissions: string[];
   emailVerified: boolean | null;
   createdAt: string;
@@ -97,8 +97,9 @@ export default function AdminUsersPage() {
       } else {
         toast.error("فشل في حذف السجل");
       }
-    } catch (_error) {
+    } catch (err: unknown) {
       toast.error("خطأ في الاتصال بالخادم");
+      console.error(err instanceof Error ? err.message : String(err));
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -157,7 +158,7 @@ export default function AdminUsersPage() {
     {
       accessorKey: "role",
       header: "الرتبة العسكرية",
-      cell: ({ row }) => <RoleBadge role={row.original.role as any} />,
+      cell: ({ row }) => <RoleBadge role={row.original.role} />,
     },
     {
       accessorKey: "totalXP",

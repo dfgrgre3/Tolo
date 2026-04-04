@@ -40,7 +40,7 @@ export class GamificationService {
 
   // ===== Progress & XP (Delegated to XPService) =====
   
-  async addXP(userId: string, amount: number, type?: any): Promise<void> {
+  async addXP(userId: string, amount: number, type?: 'study' | 'task' | 'exam' | 'challenge' | 'quest' | 'season'): Promise<void> {
     // Invalidate cache before adding XP
     await redisService.del(`user:${userId}:gamification:progress`);
     return xpService.addXP(userId, amount, type);
@@ -96,7 +96,7 @@ export class GamificationService {
         level,
         nextLevelXP: xpForNextLevel,
         progressToNextLevel: ((totalXP - xpForCurrentLevel) / (xpForNextLevel - xpForCurrentLevel)) * 100,
-        achievements: user.achievements.map((a: any) => a.achievementKey),
+        achievements: user.achievements.map((a: { achievementKey: string }) => a.achievementKey),
         currentStreak: user.activity?.currentStreak || 0,
         longestStreak: user.activity?.longestStreak || 0,
         studyXP: user.xp?.studyXP || 0,
@@ -108,12 +108,12 @@ export class GamificationService {
         totalStudyTime: user.activity?.totalStudyTime || 0,
         tasksCompleted: user.activity?.tasksCompleted || 0,
         examsPassed: user.activity?.examsPassed || 0,
-        customGoals: user.customGoals as any[] || []
+        customGoals: user.customGoals as unknown as CustomGoal[] || []
       };
     }, 600); // 10 minutes cache
   }
 
-  async updateUserProgress(userId: string, action: string, data: any): Promise<UserProgress> {
+  async updateUserProgress(userId: string, action: string, data: Record<string, unknown>): Promise<UserProgress> {
     try {
       // Invalidate cache immediately on action
       await redisService.del(`user:${userId}:gamification:progress`);
@@ -153,7 +153,7 @@ export class GamificationService {
     return progressionService.getActiveSeason();
   }
 
-  async getActiveChallenges(type?: any): Promise<Challenge[]> {
+  async getActiveChallenges(type?: string): Promise<Challenge[]> {
     return progressionService.getActiveChallenges(type);
   }
 
@@ -163,13 +163,13 @@ export class GamificationService {
 
   // ===== Leaderboards (Delegated to LeaderboardService) =====
 
-  async getLeaderboard(type?: any, limit?: number, options?: any): Promise<LeaderboardEntry[]> {
+  async getLeaderboard(type?: string, limit?: number, options?: Record<string, unknown>): Promise<LeaderboardEntry[]> {
     return leaderboardService.getLeaderboard(type, limit, options);
   }
 
   // ===== Custom Goals (Delegated to ProgressionService) =====
 
-  async createCustomGoal(userId: string, data: any): Promise<CustomGoal> {
+  async createCustomGoal(userId: string, data: Record<string, unknown>): Promise<CustomGoal> {
     return progressionService.createCustomGoal(userId, data);
   }
 
@@ -181,7 +181,7 @@ export class GamificationService {
     return progressionService.deleteCustomGoal(goalId);
   }
 
-  async updateQuestProgress(userId: string, questId: string, progress: number): Promise<any> {
+  async updateQuestProgress(userId: string, questId: string, progress: number): Promise<unknown> {
     return progressionService.updateQuestProgress(userId, questId, progress);
   }
 
@@ -189,7 +189,7 @@ export class GamificationService {
     return progressionService.getAvailableRewards(limit);
   }
 
-  async claimReward(userId: string, rewardId: string): Promise<any> {
+  async claimReward(userId: string, rewardId: string): Promise<unknown> {
     return progressionService.claimReward(userId, rewardId);
   }
 }

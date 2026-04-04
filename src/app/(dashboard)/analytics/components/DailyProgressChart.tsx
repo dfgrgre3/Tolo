@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '@/lib/logger';
 
 /**
  * بيانات نقطة في الرسم البياني
@@ -79,7 +80,7 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
         link.href = canvas.toDataURL('image/png');
         link.click();
       } catch (error) {
-        console.error('فشل تصدير الرسم البياني:', error);
+        logger.error('فشل تصدير الرسم البياني:', error);
       }
     }
   };

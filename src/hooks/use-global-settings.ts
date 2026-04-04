@@ -12,6 +12,7 @@
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { logger } from '@/lib/logger';
 
 export function useGlobalSettings() {
   const { user, isLoading } = useAuth();
@@ -100,7 +101,7 @@ export function useGlobalSettings() {
         applyColors(primaryColor, accentColor);
       }
     } catch (err) {
-      console.warn('[useGlobalSettings] Failed to apply from localStorage:', err);
+      logger.warn('[useGlobalSettings] Failed to apply from localStorage:', err);
     }
   }, [applyTheme, applyFontSize, applyColors]);
 
@@ -143,7 +144,7 @@ export function useGlobalSettings() {
 
       settingsLoadedRef.current = true;
     } catch (err) {
-      console.warn('[useGlobalSettings] Failed to load server settings:', err);
+      logger.warn('[useGlobalSettings] Failed to load server settings:', err);
     }
   }, [user?.id, applyTheme, applyFontSize, applyColors, applyLanguage, applyNumberFormat, applyReducedMotion, applyHighContrast, applyCompactMode]);
 

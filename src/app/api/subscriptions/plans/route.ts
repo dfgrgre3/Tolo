@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
+import { SubscriptionPlan } from '@prisma/client';
 
 export async function GET() {
   try {
@@ -10,7 +12,7 @@ export async function GET() {
 
     // If no plans in DB, return some defaults (or seed them)
     if (plans.length === 0) {
-      plans = [
+      const defaultPlans: Partial<SubscriptionPlan>[] = [
         {
           id: 'basic-plan',
           name: 'الباقة الأساسية',
@@ -41,12 +43,14 @@ export async function GET() {
           createdAt: new Date(),
           updatedAt: new Date(),
         }
-      ] as any;
+      ];
+      return NextResponse.json(defaultPlans);
     }
 
     return NextResponse.json(plans);
-  } catch (error) {
-    console.error('Fetch Plans Error:', error);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+    logger.error('Fetch Plans Error:', { error: errorMessage });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

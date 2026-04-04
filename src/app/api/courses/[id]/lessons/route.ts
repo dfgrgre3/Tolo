@@ -1,9 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { getOrSetEnhanced } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
+
+interface SubTopic {
+  id: string;
+  name: string;
+  description: string | null;
+  topicId: string;
+  order: number;
+}
 
 // GET lessons for a course (now topics for a subject)
 export async function GET(
@@ -44,12 +52,12 @@ export async function GET(
             ]
           });
         }
-      );
+      ) as unknown as SubTopic[];
 
       // If userId is provided, get progress information
-      let lessonProgress = {};
+      let lessonProgress: Record<string, boolean> = {};
       if (userId && Array.isArray(lessons)) {
-        const lessonIds = (lessons as any[]).map((lesson: any) => lesson.id);
+        const lessonIds = lessons.map((lesson) => lesson.id);
         const progressRecords = await prisma.topicProgress.findMany({
           where: {
             userId,
@@ -57,7 +65,7 @@ export async function GET(
           }
         });
 
-        lessonProgress = progressRecords.reduce((acc: any, progress: any) => {
+        lessonProgress = progressRecords.reduce((acc, progress) => {
           acc[progress.subTopicId] = progress.completed;
           return acc;
         }, {} as Record<string, boolean>);
@@ -67,7 +75,7 @@ export async function GET(
         lessons,
         progress: lessonProgress
       });
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error fetching subject lessons:", error);
       return handleApiError(error);
     }
@@ -82,7 +90,8 @@ export async function POST(
   return opsWrapper(request, async (req) => {
     try {
       const { id } = await params;
-      const { title, description, topicId, order } = await req.json();
+      const body = (await req.json()) as { title?: string; description?: string; topicId?: string; order?: string | number };
+      const { title, description, topicId, order } = body;
 
       // Check if subject exists
       const subject = await prisma.subject.findUnique({
@@ -93,18 +102,22 @@ export async function POST(
         return badRequestResponse("المادة غير موجودة", "SUBJECT_NOT_FOUND");
       }
 
+      if (!title || !topicId) {
+        return badRequestResponse("العنوان والموضوع مطلوبان");
+      }
+
       // Create subtopic
       const newLesson = await prisma.subTopic.create({
         data: {
           name: title,
-          description,
+          description: description || null,
           topicId,
           order: Number(order) || 0
         }
       });
 
       return successResponse(newLesson, "تمت إضافة المخطوطة بنجاح", 201);
-    } catch (error) {
+    } catch (error: unknown) {
       logger.error("Error creating lesson:", error);
       return handleApiError(error);
     }

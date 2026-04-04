@@ -484,7 +484,7 @@ export default function AdminCoursesPage() {
     }
   };
 
-  const handleDuplicate = async (course: any) => {
+  const handleDuplicate = async (course: Course) => {
     try {
       const response = await fetch("/api/admin/courses/duplicate", {
         method: "POST",
@@ -495,8 +495,8 @@ export default function AdminCoursesPage() {
       if (!response.ok) throw new Error(result.message || "فشل الاستنساخ");
       toast.success(result.message || "تم استنساخ الدورة بنجاح");
       await refetch();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
     }
   };
 
@@ -513,8 +513,8 @@ export default function AdminCoursesPage() {
       toast.success(result.message);
       setSelectedIds([]);
       await refetch();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "حدث خطأ غير متوقع");
     }
   };
 

@@ -20,6 +20,7 @@ import {
 import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { logger } from '@/lib/logger';
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -75,7 +76,7 @@ export default function ForumPage() {
         setCategories(Array.isArray(catData) ? catData : []);
         setPosts(Array.isArray(postData) ? postData : []);
       } catch (error) {
-        console.error("Failed to fetch forum data", error);
+        logger.error("Failed to fetch forum data", error);
       } finally {
         setLoading(false);
       }

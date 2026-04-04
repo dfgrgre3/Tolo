@@ -405,7 +405,7 @@ export default function AdminExamsPage() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="rounded-xl border-white/10">
-                            {subjects.map((subject: any) => (
+                            {subjects.map((subject: Subject) => (
                               <SelectItem key={subject.id} value={subject.id} className="font-bold">
                                 {subject.nameAr || subject.name}
                               </SelectItem>

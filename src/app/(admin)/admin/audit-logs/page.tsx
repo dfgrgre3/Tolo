@@ -20,6 +20,7 @@ import {
   AlertTriangle, Monitor, Info, History, UserX, UserCheck, Key, Lock, Unlock, Mail, Scan, RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface AuditLog {
   id: string;
@@ -108,7 +109,7 @@ export default function AdminAuditLogsPage() {
       setLogs(data.logs || []);
       setEventTypes(data.eventTypes || []);
     } catch (error) {
-      console.error("Error fetching audit logs:", error);
+      logger.error("Error fetching audit logs:", error);
     } finally {
       setLoading(false);
     }

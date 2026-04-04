@@ -22,7 +22,7 @@ const subjectSchema = z.object({
   type: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
   isPublished: z.boolean().default(false),
-  level: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]).default("MEDIUM"),
+  level: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).default("BEGINNER"),
   price: z.number().min(0).optional().default(0),
   durationHours: z.number().min(0).optional().default(0),
   requirements: z.string().optional().nullable(),
@@ -36,34 +36,34 @@ const subjectSchema = z.object({
 
 type CurriculumLesson = {
   id: string;
-  name: string;
+  title: string;
   order: number;
   type: string;
   videoUrl: string | null;
-  duration: number;
+  durationMinutes: number;
   isFree: boolean;
   description: string | null;
 };
 
 type CurriculumTopic = {
   id: string;
-  name: string;
+  title: string;
   order: number;
   subTopics: CurriculumLesson[];
 };
 
 type CurriculumTopicInput = {
   id: string;
-  name: string;
+  title: string;
   subTopics?: CurriculumLessonInput[];
 };
 
 type CurriculumLessonInput = {
   id: string;
-  name: string;
+  title: string;
   type?: string;
   videoUrl?: string | null;
-  duration?: number;
+  durationMinutes?: number;
   isFree?: boolean;
   description?: string | null;
 };
@@ -124,19 +124,20 @@ export async function GET(request: NextRequest) {
               thumbnailUrl: subject.thumbnailUrl,
               trailerUrl: subject.trailerUrl,
             },
-            curriculum: includeCurriculum
-              ? (subject.topics as CurriculumTopic[]).map((topic: CurriculumTopic) => ({
+            curriculum: (includeCurriculum && subject.topics)
+              ? (subject.topics as unknown as CurriculumTopic[]).map((topic) => ({
                 id: topic.id,
-                name: topic.name,
+                title: topic.title,
                 order: topic.order,
-                subTopics: topic.subTopics.map((subTopic: CurriculumLesson) => ({
+                subTopics: (topic.subTopics as unknown as CurriculumLesson[]).map((subTopic) => ({
                   id: subTopic.id,
-                  name: subTopic.name,
+                  title: subTopic.title,
                   order: subTopic.order,
                   type: subTopic.type,
                   videoUrl: subTopic.videoUrl,
-                  duration: subTopic.duration,
+                  durationMinutes: subTopic.durationMinutes,
                   isFree: subTopic.isFree,
+                  order_sub: subTopic.order,
                   description: subTopic.description,
                 })),
               }))
@@ -277,18 +278,18 @@ export async function PUT(request: NextRequest) {
           return badRequestResponse("بيانات المنهج غير صالحة");
         }
 
-        await prisma.$transaction(async (tx: any) => {
+        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           const existingTopics = await tx.topic.findMany({
             where: { subjectId: id },
             select: { id: true },
           });
-          const existingTopicIds = existingTopics.map((topic: { id: string }) => topic.id);
+          const existingTopicIds = existingTopics.map((topic) => topic.id);
 
           const receivedTopicIds = (curriculum as CurriculumTopicInput[])
-            .filter((chapter: CurriculumTopicInput) => !chapter.id.startsWith("new-"))
-            .map((chapter: CurriculumTopicInput) => chapter.id);
+            .filter((chapter) => !chapter.id.startsWith("new-"))
+            .map((chapter) => chapter.id);
 
-          const topicsToDelete = existingTopicIds.filter((topicId: string) => !receivedTopicIds.includes(topicId));
+          const topicsToDelete = existingTopicIds.filter((topicId) => !receivedTopicIds.includes(topicId));
           if (topicsToDelete.length > 0) {
             await tx.topic.deleteMany({
               where: { id: { in: topicsToDelete } },
@@ -300,14 +301,14 @@ export async function PUT(request: NextRequest) {
               ? await tx.topic.create({
                 data: {
                   subjectId: id,
-                  name: chapter.name,
+                  title: chapter.title,
                   order: topicOrder,
                 },
               })
               : await tx.topic.update({
                 where: { id: chapter.id },
                 data: {
-                  name: chapter.name,
+                  title: chapter.title,
                   order: topicOrder,
                 },
               });
@@ -316,14 +317,14 @@ export async function PUT(request: NextRequest) {
               where: { topicId: topic.id },
               select: { id: true },
             });
-            const existingSubTopicIds = existingSubTopics.map((subTopic: { id: string }) => subTopic.id);
+            const existingSubTopicIds = existingSubTopics.map((subTopic) => subTopic.id);
 
             const receivedSubTopicIds = (chapter.subTopics || [])
-              .filter((lesson: CurriculumLessonInput) => !lesson.id.startsWith("new-"))
-              .map((lesson: CurriculumLessonInput) => lesson.id);
+              .filter((lesson) => !lesson.id.startsWith("new-"))
+              .map((lesson) => lesson.id);
 
             const subTopicsToDelete = existingSubTopicIds.filter(
-              (subTopicId: string) => !receivedSubTopicIds.includes(subTopicId)
+              (subTopicId) => !receivedSubTopicIds.includes(subTopicId)
             );
             if (subTopicsToDelete.length > 0) {
               await tx.subTopic.deleteMany({
@@ -334,11 +335,11 @@ export async function PUT(request: NextRequest) {
             for (const [lessonOrder, lesson] of (chapter.subTopics || []).entries()) {
               const lessonData = {
                 topicId: topic.id,
-                name: lesson.name,
+                title: lesson.title,
                 order: lessonOrder,
                 type: (lesson.type || "VIDEO") as LessonType,
                 videoUrl: lesson.videoUrl || null,
-                duration: lesson.duration || 0,
+                durationMinutes: lesson.durationMinutes || 0,
                 isFree: lesson.isFree || false,
                 description: lesson.description || null,
               };
@@ -395,11 +396,14 @@ export async function DELETE(request: NextRequest) {
         });
 
         return successResponse({ success: true }, "تم حذف الدورة بنجاح");
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+        const errorCode = (error as { code?: string }).code;
+        
         logger.error('Error deleting course:', error);
         
         // التقاط أخطاء Prisma المحددة
-        if (error.code === 'P2003') {
+        if (errorCode === 'P2003') {
           return badRequestResponse("فشل الحذف بسبب وجود قيود (Constraints) في قاعدة البيانات. هناك سجلات أخرى مرتبطة بهذه المادة تمنع حذفها.");
         }
         

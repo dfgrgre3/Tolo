@@ -34,6 +34,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Achievement, rarityOptions, categoryOptions, difficultyOptions } from "./types";
+import { logger } from '@/lib/logger';
 
 const achievementSchema = z.object({
   key: z.string().min(1, "المفتاح مطلوب"),
@@ -124,7 +125,7 @@ export function AchievementFormDialog({
         toast.error("حدث خطأ أثناء حفظ الإنجاز");
       }
     } catch (error) {
-      console.error("Error saving achievement:", error);
+      logger.error("Error saving achievement:", error);
       toast.error("حدث خطأ أثناء حفظ الإنجاز");
     }
   };

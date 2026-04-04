@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 export function UserMenu() {
   const { user, logout } = useAuth();
@@ -56,7 +57,7 @@ export function UserMenu() {
     try {
       await logout();
     } catch (error) {
-      console.error("Logout failed:", error);
+      logger.error("Logout failed:", error);
     } finally {
       setIsLoggingOut(false);
     }

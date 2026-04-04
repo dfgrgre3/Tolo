@@ -5,6 +5,8 @@
  * This file uses 'any' types intentionally to avoid build errors
  * when optional OpenTelemetry packages are not installed.
  */
+import { logger } from '@/lib/logger';
+
 
  
 
@@ -50,13 +52,13 @@ export async function initializeTracer(): Promise<void> {
     const sdkBaseModule = await import('@opentelemetry/sdk-trace-base' as any).catch(() => null);
 
     if (!apiModule || !resourcesModule || !sdkNodeModule || !sdkBaseModule) {
-      console.warn('[Tracing] OpenTelemetry packages not available, disabling tracing');
+      logger.warn('[Tracing] OpenTelemetry packages not available, disabling tracing');
       return;
     }
 
     const jaegerModule = await import('@opentelemetry/exporter-jaeger' as any).catch(() => null);
     if (!jaegerModule) {
-      console.warn('[Tracing] Jaeger exporter not available, disabling tracing');
+      logger.warn('[Tracing] Jaeger exporter not available, disabling tracing');
       return;
     }
 
@@ -107,9 +109,9 @@ export async function initializeTracer(): Promise<void> {
     }
 
     _tracer = trace.getTracer(SERVICE_NAME);
-    console.info('[Tracing] Jaeger tracing initialized successfully');
+    logger.info('[Tracing] Jaeger tracing initialized successfully');
   } catch (error: unknown) {
-    console.warn('[Tracing] Failed to initialize Jaeger tracing:', (error as any)?.message || String(error));
+    logger.warn('[Tracing] Failed to initialize Jaeger tracing:', (error as any)?.message || String(error));
   }
 }
 
@@ -197,6 +199,6 @@ export async function shutdownTracer(): Promise<void> {
 // Auto-initialize only when explicitly enabled
 if (isServer && JAEGER_ENABLED) {
   initializeTracer().catch((error) => {
-    console.warn('[Tracing] Auto-init failed:', error);
+    logger.warn('[Tracing] Auto-init failed:', error);
   });
 }

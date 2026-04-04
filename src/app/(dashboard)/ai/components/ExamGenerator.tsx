@@ -108,7 +108,7 @@ export default function ExamGenerator({
           if (retryCount < 2) {
             setTimeout(() => {
               setRetryCount((prev) => prev + 1);
-              handleSubmit(e as any);
+              handleSubmit(e);
             }, 2000);
           }
         }
@@ -123,8 +123,8 @@ export default function ExamGenerator({
       } else {
         setError('لم يتم إنشاء الامتحان. يرجى المحاولة مرة أخرى.');
       }
-    } catch (err) {
-      logger.error('Error generating exam:', err);
+    } catch (err: unknown) {
+      logger.error('Error generating exam:', err instanceof Error ? err.message : String(err));
       setError(err instanceof Error ? err.message : 'حدث خطأ غير معروف');
     } finally {
       setIsGenerating(false);
@@ -186,8 +186,8 @@ export default function ExamGenerator({
         setQuestionCount(10);
         setSaveSuccess(false);
       }, 2000);
-    } catch (err) {
-      logger.error('Error saving exam:', err);
+    } catch (err: unknown) {
+      logger.error('Error saving exam:', err instanceof Error ? err.message : String(err));
       setSaveError(err instanceof Error ? err.message : 'حدث خطأ أثناء حفظ الامتحان');
     } finally {
       setIsSaving(false);

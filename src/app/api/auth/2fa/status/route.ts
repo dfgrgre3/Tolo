@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-utils';
 import prisma from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/auth/2fa/status
@@ -27,7 +28,7 @@ export async function GET(req: NextRequest) {
                 hasRecoveryCodes: !!user.recoveryCodes
             });
         } catch (error) {
-            console.error('[2FA_STATUS_ERROR]', error);
+            logger.error('[2FA_STATUS_ERROR]', error);
             return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
         }
     });

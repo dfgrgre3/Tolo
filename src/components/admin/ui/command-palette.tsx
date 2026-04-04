@@ -32,7 +32,8 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { usePremiumSounds } from "@/hooks/use-premium-sounds";
+import { usePremiumSounds } from "@/hooks/use-premium-sounds";import { logger } from '@/lib/logger';
+
 import {
   Dialog,
   DialogContent,
@@ -119,7 +120,7 @@ export function CommandPalette() {
           setSearchResults(data.results || []);
         }
       } catch (err) {
-        console.error("CommandPalette Search Error:", err);
+        logger.error("CommandPalette Search Error:", err);
       } finally {
         setLoading(false);
       }

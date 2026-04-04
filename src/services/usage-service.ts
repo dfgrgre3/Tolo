@@ -1,15 +1,51 @@
 import { prisma } from '@/lib/db';
+import { logger } from '@/lib/logger';
 
 export class UsageService {
+
+  /**
+   * Helper: Get standardized Start of Month in UTC
+   */
+  private static getStartOfMonth() {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+  }
+
+  /**
+   * Helper: Atomic Monthly Reset
+   * Ensures counters are reset only once per month, even with concurrent requests.
+   */
+  private static async syncMonthlyReset(userId: string) {
+    const startOfMonth = this.getStartOfMonth();
+    
+    await prisma.user.updateMany({
+      where: { 
+        id: userId, 
+        OR: [
+          { lastUsageReset: { lt: startOfMonth } },
+          { lastUsageReset: null }
+        ]
+      },
+      data: {
+        monthlyExamCount: 0,
+        monthlyAiMessageCount: 0,
+        lastUsageReset: startOfMonth
+      }
+    });
+  }
+
   /**
    * Check and deduct exam usage
-   * Returns { allowed: boolean, reason?: string }
+   * Optimized for high concurrency and low latency.
    */
-  static async useExam(userId: string) {
+  static async useExam(userId: string, subjectId?: string) {
+    // 1. Atomic Reset (FIRE FIRST to ensure consistency)
+    await this.syncMonthlyReset(userId);
+
+    // 2. Fetch User & Active Subscription (Optimized: No Wallet Fetch)
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: {
-        wallet: true,
         subscriptions: {
           where: { status: 'ACTIVE' },
           include: { plan: true },
@@ -20,48 +56,47 @@ export class UsageService {
 
     if (!user) throw new Error('User not found');
 
-    const activeSub = user.subscriptions[0];
-    
-    // 1. Check direct additional credits
-    if (user.additionalExamCredits > 0) {
-      await prisma.user.update({
-        where: { id: userId },
-        data: { additionalExamCredits: { decrement: 1 } }
-      });
+    // 3. Check direct additional credits (Atomic Update)
+    const creditUpdate = await prisma.user.updateMany({
+      where: { id: userId, additionalExamCredits: { gt: 0 } },
+      data: { additionalExamCredits: { decrement: 1 } }
+    });
+
+    if (creditUpdate.count > 0) {
+      this.trackUsage(userId, 'EXAM_CREDIT_USED', { subjectId }); // FIRE AND FORGET
       return { allowed: true, method: 'CREDIT' };
     }
 
-    // 2. If subscribed, check plan limits
+    const activeSub = user.subscriptions[0];
+    
+    // 4. If subscribed, check plan limits
     if (activeSub && activeSub.plan.examLimit) {
-      // Calculate exams taken this month
-      const startOfMonth = new Date();
-      startOfMonth.setDate(1);
-      startOfMonth.setHours(0, 0, 0, 0);
-
-      const examsTaken = await prisma.examResult.count({
-        where: {
-          userId,
-          takenAt: { gte: startOfMonth }
-        }
+      const limit = activeSub.plan.examLimit;
+      
+      // ATOMIC QUOTA CHECK & INCREMENT (The "Memory Cache" check is removed for safety)
+      const updateResult = await prisma.user.updateMany({
+        where: { id: userId, monthlyExamCount: { lt: limit } },
+        data: { monthlyExamCount: { increment: 1 } }
       });
 
-      if (examsTaken < activeSub.plan.examLimit) {
+      if (updateResult.count > 0) {
+        this.trackUsage(userId, 'EXAM_PLAN_USED', { subjectId }); // FIRE AND FORGET
+        this.checkThresholds(userId, 'EXAM', limit); // FIRE AND FORGET
         return { allowed: true, method: 'PLAN_LIMIT' };
       }
 
-      // 3. Beyond plan limit? Check if extra usage is allowed (Hybrid Model)
+      // 5. Hybrid Model: Check if extra usage is allowed (Requires Wallet Balance)
       const extraPrice = activeSub.plan.extraExamPrice || 0;
       if (extraPrice > 0) {
-        if ((user.wallet?.balance ?? 0) >= extraPrice) {
+        try {
           await prisma.$transaction(async (tx) => {
-            await tx.userWallet.upsert({
-              where: { userId },
-              update: { balance: { decrement: extraPrice } },
-              create: {
-                userId,
-                balance: 0,
-              },
+            // Atomic decrement with balance check in DATABASE
+            const walletUpdate = await tx.userWallet.updateMany({
+              where: { userId, balance: { gte: extraPrice } },
+              data: { balance: { decrement: extraPrice } }
             });
+
+            if (walletUpdate.count === 0) throw new Error('INSUFFICIENT_BALANCE');
 
             await tx.payment.create({
               data: {
@@ -75,18 +110,18 @@ export class UsageService {
             });
           });
 
+          this.trackUsage(userId, 'EXAM_WALLET_PAID', { price: extraPrice, subjectId }); // FIRE AND FORGET
           return { allowed: true, method: 'BALANCE_DEDUCTION', price: extraPrice };
-        } else {
-          return { allowed: false, reason: 'INSUFFICIENT_BALANCE', required: extraPrice };
+        } catch (error: unknown) {
+          if (error instanceof Error && error.message === 'INSUFFICIENT_BALANCE') {
+            return { allowed: false, reason: 'INSUFFICIENT_BALANCE', required: extraPrice };
+          }
+          throw error;
         }
       }
     }
 
-    // 4. Default for free users or no limits set
-    if (!activeSub) {
-        return { allowed: false, reason: 'NO_ACTIVE_SUBSCRIPTION' };
-    }
-
+    if (!activeSub) return { allowed: false, reason: 'NO_ACTIVE_SUBSCRIPTION' };
     return { allowed: false, reason: 'LIMIT_REACHED' };
   }
 
@@ -94,45 +129,100 @@ export class UsageService {
    * Check AI Message Usage
    */
   static async useAiMessage(userId: string) {
-    const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          subscriptions: {
-            where: { status: 'ACTIVE' },
-            include: { plan: true },
-            take: 1
-          }
-        }
-      });
-  
-      if (!user) throw new Error('User not found');
+    await this.syncMonthlyReset(userId);
 
-      if (user.additionalAiCredits > 0) {
-        await prisma.user.update({
-            where: { id: userId },
-            data: { additionalAiCredits: { decrement: 1 } }
-        });
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        subscriptions: {
+          where: { status: 'ACTIVE' },
+          include: { plan: true },
+          take: 1
+        }
+      }
+    });
+
+    if (!user) throw new Error('User not found');
+
+    // 1. Atomic decrement for AI Credits
+    const creditUpdate = await prisma.user.updateMany({
+      where: { id: userId, additionalAiCredits: { gt: 0 } },
+      data: { additionalAiCredits: { decrement: 1 } }
+    });
+
+    if (creditUpdate.count > 0) {
+      this.trackUsage(userId, 'AI_CREDIT_USED'); // FIRE AND FORGET
+      return { allowed: true };
+    }
+
+    const activeSub = user.subscriptions[0];
+    if (activeSub && activeSub.plan.aiMessageLimit) {
+      const limit = activeSub.plan.aiMessageLimit;
+
+      const updateResult = await prisma.user.updateMany({
+        where: { id: userId, monthlyAiMessageCount: { lt: limit } },
+        data: { monthlyAiMessageCount: { increment: 1 } }
+      });
+
+      if (updateResult.count > 0) {
+        this.trackUsage(userId, 'AI_PLAN_USED'); // FIRE AND FORGET
+        this.checkThresholds(userId, 'AI', limit); // FIRE AND FORGET
         return { allowed: true };
       }
+    }
 
-      const activeSub = user.subscriptions[0];
-      if (activeSub && activeSub.plan.aiMessageLimit) {
-        const startOfMonth = new Date();
-        startOfMonth.setDate(1);
-        startOfMonth.setHours(0, 0, 0, 0);
+    return { allowed: false, reason: 'AI_LIMIT_REACHED' };
+  }
 
-        const messagesSent = await prisma.aiChatMessage.count({
-            where: {
-                userId,
-                createdAt: { gte: startOfMonth }
-            }
-        });
+  /**
+   * FIRE AND FORGET: Threshold Tracking & Notifications
+   */
+  private static async checkThresholds(userId: string, type: 'EXAM' | 'AI', limit: number) {
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { monthlyExamCount: true, monthlyAiMessageCount: true }
+      }) as { monthlyExamCount: number; monthlyAiMessageCount: number } | null;
 
-        if (messagesSent < activeSub.plan.aiMessageLimit) {
-            return { allowed: true };
-        }
+      if (!user) return;
+
+      const current = type === 'EXAM' ? user.monthlyExamCount : user.monthlyAiMessageCount;
+      const threshold = Math.floor(limit * 0.9);
+
+      if (current === threshold) {
+        const title = type === 'EXAM' ? 'تحذير: باقة الامتحانات' : 'تحذير: باقة الـ AI';
+        const message = `لقد استهلكت %90 من باقتك (${current}/${limit}).`;
+        this.notifyUser(userId, title, message);
       }
+    } catch (err: unknown) {
+      logger.error('Threshold check failed:', err instanceof Error ? err.message : String(err));
+    }
+  }
 
-      return { allowed: false, reason: 'AI_LIMIT_REACHED' };
+  /**
+   * FIRE AND FORGET: Log Analytics Events
+   */
+  private static async trackUsage(userId: string, type: string, metadata?: object) {
+    prisma.analyticsEvent.create({
+      data: {
+        userId,
+        type,
+        metadata: metadata ? JSON.stringify(metadata) : undefined
+      }
+    }).catch(err => logger.error(`Analytics failed for ${userId}:`, err instanceof Error ? err.message : String(err)));
+  }
+
+  /**
+   * FIRE AND FORGET: Send In-App Notification
+   */
+  private static async notifyUser(userId: string, title: string, message: string) {
+    prisma.notification.create({
+      data: {
+        userId,
+        title,
+        message,
+        type: 'WARNING'
+      }
+    }).catch(err => logger.error(`Notification failed for ${userId}:`, err instanceof Error ? err.message : String(err)));
   }
 }

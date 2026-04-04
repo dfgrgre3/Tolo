@@ -5,6 +5,7 @@ import { ReferralService } from '@/services/referral-service';
 import { NotificationQueueService } from '@/services/notification-queue-service';
 import { sendMultiChannelNotification } from '@/services/notification-sender';
 import { SubscriptionService } from '@/services/subscription-service';
+import { logger } from '@/lib/logger';
 
 async function enqueueNotification(
   paymentId: string,
@@ -23,7 +24,7 @@ async function enqueueNotification(
       { jobId }
     );
   } catch (queueError) {
-    console.error('Notification queue enqueue failed, falling back to sync send:', queueError);
+    logger.error('Notification queue enqueue failed, falling back to sync send:', queueError);
     await sendMultiChannelNotification(payload);
   }
 }
@@ -118,7 +119,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ message: 'Webhook processed' }, { status: 200 });
   } catch (error: any) {
-    console.error('Paymob Webhook Error:', error);
+    logger.error('Paymob Webhook Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

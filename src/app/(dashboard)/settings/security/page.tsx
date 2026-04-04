@@ -30,6 +30,16 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/auth-context';
 import { DeleteAccountDialog, TwoFactorSetupModal, PhoneVerificationModal } from '../components';
 import { useRouter } from 'next/navigation';
+import { logger } from '@/lib/logger';
+
+interface SecurityLog {
+  id: string;
+  eventType: string;
+  createdAt: string;
+  ip: string;
+  userAgent: string;
+  location: string | null;
+}
 
 export default function SecurityPage() {
   const { logout, user, refreshUser } = useAuth();
@@ -53,7 +63,7 @@ export default function SecurityPage() {
 
 
   // Security Logs State
-  const [recentLogs, setRecentLogs] = useState<any[]>([]);
+  const [recentLogs, setRecentLogs] = useState<SecurityLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
 
   const EVENT_LABELS: Record<string, string> = {
@@ -76,7 +86,7 @@ export default function SecurityPage() {
         setIs2FAEnabled(data.enabled);
       }
     } catch (_err) {
-      console.error('Failed to fetch 2FA status');
+      logger.error('Failed to fetch 2FA status');
     } finally {
       setIsLoading2FA(false);
     }
@@ -91,7 +101,7 @@ export default function SecurityPage() {
       const data = await res.json();
       setRecentLogs(data.logs || []);
     } catch (_err) {
-      console.error('Failed to fetch logs');
+      logger.error('Failed to fetch logs');
     } finally {
       setIsLoadingLogs(false);
     }
@@ -128,8 +138,8 @@ export default function SecurityPage() {
       toast.success('تم تغيير كلمة المرور بنجاح');
       setIsChangingPassword(false);
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'فشل تغيير كلمة المرور');
     } finally {
       setIsLoading(false);
     }
@@ -149,8 +159,8 @@ export default function SecurityPage() {
           const error = await res.json();
           throw new Error(error.error || 'فشل في تعطيل المصادقة الثنائية');
         }
-      } catch (error: any) {
-        toast.error(error.message);
+      } catch (error: unknown) {
+        toast.error(error instanceof Error ? error.message : 'فشل في تعطيل المصادقة الثنائية');
       } finally {
         setIsDisabling2FA(false);
       }
@@ -189,7 +199,7 @@ export default function SecurityPage() {
         toast.error(errorData.error || "حدث خطأ أثناء حذف الحساب");
       }
     } catch (error) {
-      console.error("Error deleting account:", error);
+      logger.error("Error deleting account:", error);
       toast.error("حدث خطأ أثناء حذف الحساب");
     }
   };

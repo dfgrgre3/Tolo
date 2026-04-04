@@ -146,8 +146,9 @@ export default function AdminDashboardPage() {
     if (savedOrder) {
       try {
         setWidgetOrder(JSON.parse(savedOrder));
-      } catch (_e) {
+      } catch (err: unknown) {
         // Layout order not present or malformed
+        console.error(err instanceof Error ? err.message : String(err));
       }
     }
   }, []);
@@ -459,7 +460,7 @@ export default function AdminDashboardPage() {
            <ActivityFeed
               activities={data.recentActivity.map((item: { type: string; id: string; time: Date; title: string | null }) => ({
                 id: item.id,
-                type: item.type as any,
+                type: item.type as "user" | "exam" | "achievement" | "challenge" | "post" | "comment",
                 title: item.title || "تحرك عسكري جديد",
                 timestamp: new Date(item.time),
               }))}

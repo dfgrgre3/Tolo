@@ -113,7 +113,7 @@ export default async function middleware(request: NextRequest) {
     if (!isStaticAsset && isApiRoute) {
       try {
         const { apiRateLimiter, authRateLimiter } = await import('@/lib/rate-limit-unified');
-        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as any).ip || 'unknown';
+        const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || (request as { ip?: string }).ip || 'unknown';
         
         // Identity-based rate limiting (Strategic for 1M+ users)
         const identifier = payload?.userId || ip;
@@ -219,8 +219,9 @@ export default async function middleware(request: NextRequest) {
         headers: authHeaders,
       },
     }));
-  } catch (error) {
-    console.error('Middleware Error:', error);
+  } catch (error: unknown) {
+    const errorLog = error instanceof Error ? error.message : 'Unknown middleware error';
+    logger.error('Middleware Error:', errorLog);
     
     // Fallback for API routes to always return JSON
     if (request.nextUrl.pathname.startsWith('/api/')) {

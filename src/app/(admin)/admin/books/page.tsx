@@ -182,8 +182,9 @@ export default function AdminBooksPage() {
       } else {
         toast.error("فشل في حفظ الكتاب");
       }
-    } catch (_error) {
+    } catch (err: unknown) {
       toast.error("خطأ في الاتصال");
+      console.error(err instanceof Error ? err.message : String(err));
     }
   };
 
@@ -202,8 +203,9 @@ export default function AdminBooksPage() {
       } else {
         toast.error("فشل في الحذف");
       }
-    } catch (_error) {
+    } catch (err: unknown) {
       toast.error("خطأ في الاتصال");
+      console.error(err instanceof Error ? err.message : String(err));
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
@@ -396,7 +398,7 @@ export default function AdminBooksPage() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="rounded-xl border-white/10">
-                          {subjects.map((subject: any) => (
+                          {subjects.map((subject: Subject) => (
                             <SelectItem key={subject.id} value={subject.id}>
                               {subject.nameAr || subject.name}
                             </SelectItem>

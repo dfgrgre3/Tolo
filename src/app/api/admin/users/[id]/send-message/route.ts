@@ -1,7 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { withAdmin, handleApiError, successResponse, badRequestResponse } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { sendMultiChannelNotification } from "@/services/notification-sender";
+
+interface NotificationRequest {
+  title: string;
+  message: string;
+  type?: "info" | "success" | "warning" | "error";
+  channels?: ("app" | "email" | "sms")[];
+}
 
 export async function POST(
   request: NextRequest,
@@ -16,7 +23,7 @@ export async function POST(
           return badRequestResponse("معرف المستخدم مطلوب");
         }
 
-        const body = await req.json();
+        const body = (await req.json()) as NotificationRequest;
         const { title, message, type = "info", channels = ["app"] } = body;
 
         if (!title || !message) {
@@ -33,20 +40,17 @@ export async function POST(
           title,
           message,
           type,
-          channels: channels as any,
+          channels: channels,
         });
 
         const hasSuccess = results.app || (results.email && results.email.success) || (results.sms && results.sms.success);
 
         if (!hasSuccess) {
-           return NextResponse.json(
-             { error: "تعذر إرسال الرسالة عبر أي من القنوات المحددة" },
-             { status: 500 }
-           );
+           return successResponse(results, "تعذر إرسال الرسالة عبر أي من القنوات المحددة", 500);
         }
 
         return successResponse(results, "تم إرسال الرسالة الملكية بنجاح", 201);
-      } catch (error) {
+      } catch (error: unknown) {
         return handleApiError(error);
       }
     });

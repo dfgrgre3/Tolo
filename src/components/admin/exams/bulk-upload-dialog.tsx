@@ -12,6 +12,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { logger } from '@/lib/logger';
 
 interface BulkUploadDialogProps {
   open: boolean;
@@ -84,7 +85,7 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
         }
       } catch (err) {
         toast.error("خطأ في قراءة ملف البيانات.");
-        console.error(err);
+        logger.error(err);
       }
     };
     reader.readAsText(selectedFile);

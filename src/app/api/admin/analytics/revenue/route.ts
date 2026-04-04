@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -93,7 +94,7 @@ export async function GET(req: Request) {
     });
 
   } catch (error) {
-    console.error('Admin Revenue Stats Error:', error);
+    logger.error('Admin Revenue Stats Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

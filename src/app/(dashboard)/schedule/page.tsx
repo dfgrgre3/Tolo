@@ -64,9 +64,9 @@ const BookOpenIcon = BookOpen;
 const RefreshCwIcon = RefreshCw;
 const UsersIcon = Users;
 
-function BookOpen(props: any) {return <Sparkles {...props} />;}
-function RefreshCw(props: any) {return <Zap {...props} />;}
-function Users(props: any) {return <Sword {...props} />;}
+function BookOpen(props: React.SVGProps<SVGSVGElement>) {return <Sparkles {...props} />;}
+function RefreshCw(props: React.SVGProps<SVGSVGElement>) {return <Zap {...props} />;}
+function Users(props: React.SVGProps<SVGSVGElement>) {return <Sword {...props} />;}
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -106,14 +106,14 @@ const DraggableBlock = memo(({
 }: {block: PlanBlock;dayKey: string;index: number;onRemove: (dayKey: string, blockId: string) => void;onOpenLinked: (block: PlanBlock) => void;}) => {
   // Drag functionality removed for now
   const isDragging = false;
-  const drag = (ref: any) => {};
+  const drag = (_node: HTMLLIElement | null) => {};
 
   const typeOpt = typeOptions.find((o) => o.value === block.type) || typeOptions[0];
   const Icon = typeOpt.icon;
 
   return (
     <motion.li
-      ref={drag as any}
+      ref={drag}
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05 }}

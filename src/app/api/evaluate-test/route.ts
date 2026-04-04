@@ -11,6 +11,26 @@ const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
   : null;
 
+interface TestAnswer {
+  questionId: string;
+  value: string;
+}
+
+interface TestEvaluationRequest {
+  testId: string;
+  answers: TestAnswer[];
+  timeSpent: number;
+}
+
+interface AIQuestion {
+  id: string;
+  question: string;
+  options: any;
+  correctAnswer: string;
+  explanation: string | null;
+  points: number;
+}
+
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
@@ -21,7 +41,8 @@ export async function POST(request: NextRequest) {
           return rateLimitResult;
         }
 
-        const { testId, answers, timeSpent } = await req.json();
+        const body = (await req.json()) as TestEvaluationRequest;
+        const { testId, answers, timeSpent } = body;
 
         if (!testId || !answers) {
           return badRequestResponse('Test ID and answers are required');
@@ -47,7 +68,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Prepare answers and questions for AI evaluation
-        const questionsForEvaluation = test.questions.map((q: any) => ({
+        const questionsForEvaluation = test.questions.map((q): AIQuestion => ({
           id: q.id,
           question: q.question,
           options: q.options && typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
@@ -56,7 +77,7 @@ export async function POST(request: NextRequest) {
           points: q.points
         }));
 
-        const userAnswersForEvaluation = answers.map((a: { questionId: string; value: string }) => ({
+        const userAnswersForEvaluation = answers.map((a: TestAnswer) => ({
           questionId: a.questionId,
           value: a.value
         }));
@@ -132,7 +153,7 @@ export async function POST(request: NextRequest) {
         let score = 0;
         let totalPoints = 0;
 
-        test.questions.forEach((question: any) => {
+        test.questions.forEach((question) => {
           totalPoints += question.points;
           const result = evaluation.detailedResults.find((r: { questionId: string; isCorrect: boolean }) => r.questionId === question.id);
           if (result && result.isCorrect) {
@@ -141,7 +162,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Save test result to database
-        const testResult = await prisma.testResult.create({
+        await prisma.testResult.create({
           data: {
             userId: user.id,
             examId: testId,

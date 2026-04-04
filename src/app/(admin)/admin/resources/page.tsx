@@ -45,6 +45,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface Subject {
   id: string;
@@ -120,7 +121,7 @@ export default function AdminResourcesPage() {
       const data = await response.json();
       setResources(data.resources || []);
     } catch (error) {
-      console.error("Error fetching resources:", error);
+      logger.error("Error fetching resources:", error);
       toast.error("حدث خطأ في استدعاء سجلات الأرشيف");
     } finally {
       setLoading(false);
@@ -133,7 +134,7 @@ export default function AdminResourcesPage() {
       const data = await response.json();
       setSubjects(data.subjects || []);
     } catch (error) {
-      console.error("Error fetching subjects:", error);
+      logger.error("Error fetching subjects:", error);
     }
   }, []);
 
@@ -189,7 +190,7 @@ export default function AdminResourcesPage() {
         toast.error("فشل في تدوين المورد");
       }
     } catch (error) {
-      console.error("Error saving resource:", error);
+      logger.error("Error saving resource:", error);
       toast.error("خطأ في الاتصال بالأرشيف");
     }
   };
@@ -211,7 +212,7 @@ export default function AdminResourcesPage() {
         toast.error("فشل في الإتلاف");
       }
     } catch (error) {
-      console.error("Error deleting resource:", error);
+      logger.error("Error deleting resource:", error);
       toast.error("خطأ في الاتصال");
     } finally {
       setDeleteDialog({ open: false, id: null });

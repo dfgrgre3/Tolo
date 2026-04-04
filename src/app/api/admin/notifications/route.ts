@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // GET /api/admin/notifications - Get admin notifications
 export async function GET(request: NextRequest) {
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
       unreadCount,
     });
   } catch (error) {
-    console.error("Error fetching notifications:", error);
+    logger.error("Error fetching notifications:", error);
     return NextResponse.json(
       { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ" },
       { status: 500 }
@@ -108,7 +109,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ error: "ظ…ط¹ط±ظپ ط§ظ„ط¥ط´ط¹ط§ط± ظ…ط·ظ„ظˆط¨" }, { status: 400 });
   } catch (error) {
-    console.error("Error updating notification:", error);
+    logger.error("Error updating notification:", error);
     return NextResponse.json(
       { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ط¯ظٹط« ط§ظ„ط¥ط´ط¹ط§ط±" },
       { status: 500 }

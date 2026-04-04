@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
 
 				// Process subject data
 				const bySubject: Record<string, number> = {};
-				sessions.forEach((s: any) => {
+				sessions.forEach((s) => {
 					const subject = s.subjectId || 'Unknown';
 					const duration = s.durationMin || 0;
 					bySubject[subject] = (bySubject[subject] || 0) + duration;
@@ -52,13 +52,13 @@ export async function GET(req: NextRequest) {
 
 				const byDay = days.map((d) => {
 					const total = sessions
-						.filter((s: any) => {
+						.filter((s) => {
 							if (!s.startTime) return false;
 							const sessionDate = startOfDay(new Date(s.startTime));
 							const dayDate = startOfDay(d);
 							return sessionDate.getTime() === dayDate.getTime();
 						})
-						.reduce((a: number, s: any) => a + (s.durationMin || 0), 0);
+						.reduce((a: number, s) => a + (s.durationMin || 0), 0);
 					return { date: d, minutes: total };
 				});
 

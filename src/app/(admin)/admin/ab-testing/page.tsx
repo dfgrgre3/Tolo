@@ -12,6 +12,7 @@ import { FiltersBar } from "@/components/ab-testing/filters-bar";
 import { EmptyState } from "@/components/ab-testing/empty-state";
 import { abTestingService } from "@/services/ab-testing-service";
 import { Experiment, CreateExperimentData } from "@/types/ab-testing";
+import { logger } from '@/lib/logger';
 
 export default function ABTestingPage() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);
@@ -54,7 +55,7 @@ export default function ABTestingPage() {
       setExperiments(data);
       setError(null);
     } catch (err) {
-      console.error("Error loading experiments:", err);
+      logger.error("Error loading experiments:", err);
       setError("فشل تحميل تجارب A/B");
     } finally {
       setLoading(false);
@@ -67,7 +68,7 @@ export default function ABTestingPage() {
 
       setExperiments((prev) => [newExp, ...prev]);
     } catch (err) {
-      console.error("Error creating experiment:", err);
+      logger.error("Error creating experiment:", err);
       alert("فشل إنشاء تجربة جديدة");
     }
   };
@@ -81,7 +82,7 @@ export default function ABTestingPage() {
       )
       );
     } catch (err) {
-      console.error("Error updating experiment status:", err);
+      logger.error("Error updating experiment status:", err);
       alert("فشل تحديث حالة التجربة");
     }
   };
@@ -95,7 +96,7 @@ export default function ABTestingPage() {
       )
       );
     } catch (err) {
-      console.error("Error declaring winner:", err);
+      logger.error("Error declaring winner:", err);
       alert("فشل إعلان الفائز");
     }
   };

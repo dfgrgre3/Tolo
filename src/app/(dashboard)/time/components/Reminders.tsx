@@ -776,7 +776,7 @@ export default function Reminders({
                     <label htmlFor="reminder-type" className="block text-sm font-medium mb-1">النوع</label>
                     <Select 
                       value={formData.type} 
-                      onValueChange={(value: any) => setFormData(prev => ({ ...prev, type: value }))}
+                      onValueChange={(value: NonNullable<Reminder['type']>) => setFormData(prev => ({ ...prev, type: value }))}
                     >
                       <SelectTrigger id="reminder-type">
                         <SelectValue />
@@ -822,7 +822,7 @@ export default function Reminders({
                     <label htmlFor="reminder-priority" className="block text-sm font-medium mb-1">الأولوية</label>
                     <Select 
                       value={formData.priority} 
-                      onValueChange={(value: any) => setFormData(prev => ({ ...prev, priority: value }))}
+                      onValueChange={(value: NonNullable<Reminder['priority']>) => setFormData(prev => ({ ...prev, priority: value }))}
                     >
                       <SelectTrigger id="reminder-priority">
                         <SelectValue />
@@ -916,7 +916,7 @@ export default function Reminders({
                         <label htmlFor="recurring-pattern" className="block text-sm font-medium mb-1">النمط</label>
                         <Select 
                           value={formData.recurringPattern} 
-                          onValueChange={(value: any) => setFormData(prev => ({ ...prev, recurringPattern: value }))}
+                          onValueChange={(value: NonNullable<Reminder['recurringPattern']>) => setFormData(prev => ({ ...prev, recurringPattern: value }))}
                         >
                           <SelectTrigger id="recurring-pattern">
                             <SelectValue />
@@ -1019,7 +1019,7 @@ export default function Reminders({
             </div>
             
             <div className="flex flex-wrap gap-2">
-              <Select value={filter} onValueChange={(value: any) => setFilter(value)}>
+              <Select value={filter} onValueChange={(value: typeof filter) => setFilter(value)}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
@@ -1067,7 +1067,7 @@ export default function Reminders({
                 {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
               </Button>
               
-              <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+              <Select value={sortBy} onValueChange={(value: typeof sortBy) => setSortBy(value)}>
                 <SelectTrigger className="w-[120px]">
                   <SelectValue />
                 </SelectTrigger>

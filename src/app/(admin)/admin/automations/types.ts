@@ -2,9 +2,9 @@ export interface Rule {
   id: string;
   name: string;
   triggerType: string;
-  conditions: any;
+  conditions: Record<string, unknown>;
   actionType: string;
-  actionData: any;
+  actionData: Record<string, unknown>;
   isActive: boolean;
   isNew?: boolean;
 }

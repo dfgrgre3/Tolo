@@ -44,6 +44,7 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { motion } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface Subject {
   id: string;
@@ -148,7 +149,7 @@ export default function AdminChallengesPage() {
       setChallenges(challengesData.challenges || []);
       setSubjects(subjectsData.subjects || []);
     } catch (error) {
-      console.error("Error fetching challenges:", error);
+      logger.error("Error fetching challenges:", error);
       toast.error("حدث خطأ في استدعاء سجلات المبارزات");
     } finally {
       setLoading(false);

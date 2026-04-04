@@ -337,7 +337,7 @@ export default function AchievementsPage() {
 	);
 }
 
-function ListFilter(props: any) {
+function ListFilter(props: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       {...props}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // System settings stored in a key-value format
 // We'll use a simple approach with a settings table or config file
@@ -84,7 +85,7 @@ export async function GET() {
   try {
     return NextResponse.json({ settings: currentSettings });
   } catch (error) {
-    console.error("Error fetching settings:", error);
+    logger.error("Error fetching settings:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء جلب الإعدادات" },
       { status: 500 }
@@ -125,7 +126,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ settings: currentSettings, success: true });
   } catch (error) {
-    console.error("Error updating settings:", error);
+    logger.error("Error updating settings:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء تحديث الإعدادات" },
       { status: 500 }
@@ -145,7 +146,7 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json({ error: "إجراء غير معروف" }, { status: 400 });
   } catch (error) {
-    console.error("Error resetting settings:", error);
+    logger.error("Error resetting settings:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء إعادة تعيين الإعدادات" },
       { status: 500 }

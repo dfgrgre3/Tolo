@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { logger } from '@/lib/logger';
 
 // GET /api/admin/resources - Get all resources
 export async function GET(request: NextRequest) {
@@ -56,7 +57,7 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error("Error fetching resources:", error);
+    logger.error("Error fetching resources:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء جلب الموارد" },
       { status: 500 }
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(resource);
   } catch (error) {
-    console.error("Error creating resource:", error);
+    logger.error("Error creating resource:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء إنشاء المورد" },
       { status: 500 }
@@ -138,7 +139,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json(resource);
   } catch (error) {
-    console.error("Error updating resource:", error);
+    logger.error("Error updating resource:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء تحديث المورد" },
       { status: 500 }
@@ -173,7 +174,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Error deleting resource:", error);
+    logger.error("Error deleting resource:", error);
     return NextResponse.json(
       { error: "حدث خطأ أثناء حذف المورد" },
       { status: 500 }

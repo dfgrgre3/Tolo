@@ -130,7 +130,7 @@ function StatBadge({
 
 
 
-}: {icon: any;value: string | number;label: string;color: string;}) {
+}: {icon: React.ElementType; value: string | number; label: string; color: string;}) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
@@ -168,7 +168,7 @@ function ProfileInput({
 
 
 
-}: {id: string;label: string;icon?: any;value: string;onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;disabled?: boolean;type?: string;placeholder?: string;hint?: string;required?: boolean;}) {
+}: {id: string; label: string; icon?: React.ElementType; value: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; disabled?: boolean; type?: string; placeholder?: string; hint?: string; required?: boolean;}) {
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="flex items-center gap-1.5 text-sm font-semibold text-slate-300">
@@ -227,7 +227,7 @@ function ProfileSelect({
 
 
 
-}: {id: string;label: string;icon?: any;value: string;onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;disabled?: boolean;options: {value: string;label: string;}[];}) {
+}: {id: string; label: string; icon?: React.ElementType; value: string; onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void; disabled?: boolean; options: {value: string; label: string;}[];}) {
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="text-sm font-semibold text-slate-300">{label}</label>
@@ -378,8 +378,8 @@ export default function ProfileSettingsPage() {
       toast.success('تم حفظ التغييرات بنجاح ✓');
       setIsEditing(false);
       setHasChanges(false);
-    } catch (error: any) {
-      toast.error(error.message || 'حدث خطأ أثناء الحفظ');
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'حدث خطأ أثناء الحفظ');
     } finally {
       setIsSaving(false);
     }

@@ -11,6 +11,7 @@ import { UserRole, UserStatus } from "@/types/enums";
 import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { logger } from '@/lib/logger';
 
 interface HomeClientProps {
   summary: ProgressSummary | null;
@@ -63,7 +64,7 @@ export function HomeClient({ summary }: HomeClientProps) {
         }
       } catch (err) {
         if (cancelled) return;
-        console.error("Failed to fetch performance metrics", err);
+        logger.error("Failed to fetch performance metrics", err);
       } finally {
         if (!cancelled) {
           setMetricsLoading(false);

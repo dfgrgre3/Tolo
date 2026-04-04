@@ -496,8 +496,8 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch (error) {
-      logger.error('Error exporting data:', error);
+    } catch (error: unknown) {
+      logger.error('Error exporting data:', error instanceof Error ? error.message : String(error));
     }
   }, [filteredSessions, stats, chartData, timePeriod, selectedSubject, selectedMood, searchQuery]);
 
@@ -1015,7 +1015,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
             
             <div className="flex justify-between items-center mt-4">
               <div className="flex gap-2">
-                <Select value={sortBy} onValueChange={(value: any) => setSortBy(value)}>
+                <Select value={sortBy} onValueChange={(value: string) => setSortBy(value as any)}>
                   <SelectTrigger className="w-[120px]">
                     <SelectValue />
                   </SelectTrigger>

@@ -2,6 +2,7 @@
 
 import { fetchSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
 import type { SettingsPreferences } from '@/types/settings-preferences';
+import { logger } from '@/lib/logger';
 
 /**
  * Global settings initializer that runs on app startup
@@ -35,7 +36,7 @@ class SettingsInitializer {
         this.initialized = true;
         return;
       }
-      console.error('Settings initialization failed:', error);
+      logger.error('Settings initialization failed:', error);
       // Still mark as initialized to prevent repeated failures
       this.initialized = true;
     }

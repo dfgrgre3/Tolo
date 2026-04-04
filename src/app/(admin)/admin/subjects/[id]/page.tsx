@@ -28,6 +28,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { formatNumber } from "@/lib/utils";
 
+import { logger } from '@/lib/logger';
 
 interface SubjectDetails {
   id: string;
@@ -132,7 +133,7 @@ export default function SubjectDetailPage() {
           router.push("/admin/subjects");
         }
       } catch (error) {
-        console.error("Error fetching subject:", error);
+        logger.error("Error fetching subject:", error);
         toast.error("حدث خطأ أثناء جلب بيانات المادة");
       } finally {
         setLoading(false);

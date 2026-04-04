@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendMultiChannelNotification } from '@/services/notification-sender';
+import { logger } from '@/lib/logger';
 
 /**
  * CRON Job to check for subscriptions expiring in 3 days.
@@ -42,7 +43,7 @@ export async function GET(req: Request) {
       }
     });
 
-    console.log(`[CRON] Found ${expiringSubscriptions.length} subscriptions expiring in 3 days.`);
+    logger.info(`[CRON] Found ${expiringSubscriptions.length} subscriptions expiring in 3 days.`);
 
     // Send notifications
     const results = await Promise.all(expiringSubscriptions.map(async (sub: any) => {
@@ -64,7 +65,7 @@ export async function GET(req: Request) {
     });
 
   } catch (error: any) {
-    console.error('CRON check-expiries Error:', error);
+    logger.error('CRON check-expiries Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
