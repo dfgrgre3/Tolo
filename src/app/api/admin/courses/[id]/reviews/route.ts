@@ -72,12 +72,12 @@ export async function GET(
         });
 
         const ratingDistribution: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-        distribution.forEach((d) => {
+        distribution.forEach((d: { rating: number; _count: { rating: number } }) => {
           ratingDistribution[d.rating] = d._count.rating;
         });
 
         return successResponse({
-          reviews: reviews.map((r) => ({
+          reviews: reviews.map((r: any) => ({
             id: r.id,
             userId: r.userId,
             userName: r.user.name || "مستخدم",

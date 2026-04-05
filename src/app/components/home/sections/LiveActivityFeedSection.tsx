@@ -96,8 +96,12 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
       const userId = getSafeUserId();
       
       try {
+        const notificationsUrl = userId 
+          ? `/api/notifications?userId=${encodeURIComponent(userId)}` 
+          : '/api/notifications';
+
         const { data, error } = await safeFetch<NotificationsApiResponse | Notification[]>(
-          `/api/notifications${userId ? `?userId=${userId}` : ''}`,
+          notificationsUrl,
           undefined,
           null
         );
@@ -117,8 +121,18 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
 
           setActivities(transformedActivities);
         } else {
+          // If there's a network error (like Failed to fetch), don't attempt the second request
+          if (error && (error.message.includes('Failed to fetch') || error.name === 'AbortError')) {
+            if (activities.length === 0) setActivities([]);
+            return;
+          }
+
+          const sessionsUrl = userId 
+            ? `/api/study-sessions?userId=${encodeURIComponent(userId)}` 
+            : '/api/study-sessions';
+
           const { data: sessionsData } = await safeFetch<StudySessionsApiResponse | StudySession[]>(
-            `/api/study-sessions${userId ? `?userId=${userId}` : ''}`,
+            sessionsUrl,
             undefined,
             null
           );

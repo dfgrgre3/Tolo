@@ -28,19 +28,30 @@ export class PaymobService {
 
   async authenticate(): Promise<string> {
     try {
+      const { CacheService } = await import('@/lib/cache');
+      const cacheKey = 'external:paymob:auth_token';
+      
+      // Attempt to retrieve from cache first (High Scalability)
+      const cachedToken = await CacheService.get<string>(cacheKey);
+      if (cachedToken) return cachedToken;
+
       const response = await fetch(`${this.apiUrl}/auth/tokens`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ api_key: this.apiKey }),
+        signal: AbortSignal.timeout(5000), // 5s hard timeout
       });
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Auth failed');
 
+      // Cache the token for 1 hour (usually valid for 24h)
+      await CacheService.set(cacheKey, data.token, 3600);
+
       return data.token;
     } catch (error: any) {
       logger.error('Paymob Auth Error:', error.message);
-      throw new Error('Failed to authenticate with Paymob');
+      throw new Error('Failed to authenticate with Paymob (External API Timeout or Error)');
     }
   }
 
@@ -57,7 +68,9 @@ export class PaymobService {
           merchant_order_id: merchantOrderId,
           items: [],
         }),
+        signal: AbortSignal.timeout(5000),
       });
+
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Order registration failed');
@@ -108,7 +121,9 @@ export class PaymobService {
           currency: "EGP",
           integration_id: integrationId,
         }),
+        signal: AbortSignal.timeout(5000),
       });
+
 
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || 'Payment key generation failed');

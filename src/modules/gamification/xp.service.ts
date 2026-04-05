@@ -2,7 +2,7 @@ import { xpRepository, XPUpdateData } from './xp.repository';
 import { logger } from '@/lib/logger';
 import { gamificationQueue, enqueueJob } from '@/lib/queue';
 import redisService from '@/lib/redis';
-import { prisma } from '@/lib/db';
+import { prisma, Prisma } from '@/lib/db';
 
 import { achievementService } from '@/services/gamification/achievement-service';
 
@@ -78,7 +78,7 @@ export class XPService {
     
     try {
         // Atomic DB Update in a Transaction
-        const { stats, levelUp, newLevel } = await prisma.$transaction(async (tx) => {
+        const { stats, levelUp, newLevel } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           // 1. Atomic XP Update
           const currentStats = await xpRepository.updateStats(data, tx);
           
@@ -104,7 +104,20 @@ export class XPService {
           logger.info(`[XPService] User ${userId} leveled up to ${newLevel}`);
         }
 
-        // 3. Cache Invalidation
+        // 3. Real-Time Leaderboard Synchronization (Redis ZSET)
+        // High Performance: ZADD/ZINCRBY in Redis is O(log N), allowing sub-millisecond ranking for 10M+ users.
+        const redis = await redisService.getClient();
+        if (redis) {
+          // Update Global Leaderboard
+          await redis.zadd('leaderboard:global', stats.totalXP, userId);
+          
+          // Update Type-specific Leaderboards (Optional: only if type is relevant for a split leaderboard)
+          if (data.type === 'study' || data.type === 'task') {
+             await redis.zincrby(`leaderboard:type:${data.type}`, amount, userId);
+          }
+        }
+
+        // 4. Cache Invalidation
         await redisService.del(`user:${userId}:profile`);
         await redisService.set(`user:${userId}:xp`, stats.totalXP, 3600);
         

@@ -373,18 +373,19 @@ export default function Header() {
         {/* Breadcrumbs */}
         {!isShrunk && <MemoizedHeaderBreadcrumbs />}
 
-        {/* Mobile Menu */}
-        <HeaderMobileMenuEnhanced
-          key={pathname || "root"}
-          isMobileMenuOpen={isMobileMenuOpen}
-          setIsMobileMenuOpen={setIsMobileMenuOpen}
-          isActiveRoute={isActiveRoute}
-          mounted={mounted}
-        />
-
-        {/* Command Palette */}
-        <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
       </motion.header>
+
+      {/* Mobile Menu */}
+      <HeaderMobileMenuEnhanced
+        key={pathname || "root"}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+        isActiveRoute={isActiveRoute}
+        mounted={mounted}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette open={isCommandPaletteOpen} onOpenChange={setIsCommandPaletteOpen} />
     </>
   );
 }

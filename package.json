@@ -38,6 +38,7 @@
     "prisma:db:pull": "npx prisma db pull",
     "prisma:seed": "tsx prisma/seed/main.ts",
     "worker:gamification": "tsx scripts/run-gamification-worker.ts",
+    "worker:all": "tsx scripts/run-app-workers.ts",
     "audit": "tsx scripts/master-audit.ts",
     "check:env": "tsx scripts/check-environment.ts",
     "check:db-conflicts": "node scripts/check-db-conflicts.js",
@@ -46,6 +47,9 @@
     "check:errors": "tsx scripts/comprehensive-error-check.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1024.0",
+    "@aws-sdk/lib-storage": "^3.1024.0",
+    "@aws-sdk/s3-request-presigner": "^3.1024.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
@@ -63,6 +67,7 @@
     "@opentelemetry/sdk-trace-node": "^2.5.1",
     "@opentelemetry/semantic-conventions": "^1.40.0",
     "@prisma/client": "^6.19.2",
+    "@prisma/extension-read-replicas": "^0.5.0",
     "@prisma/instrumentation": "^7.4.2",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -93,6 +98,7 @@
     "clsx": "^2.1.1",
     "countup.js": "^2.10.0",
     "date-fns": "^4.1.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.35.0",
     "html2canvas": "^1.4.1",
     "ioredis": "^5.6.0",
@@ -125,7 +131,6 @@
     "uuid": "^11.1.0",
     "winston": "^3.17.0",
     "winston-elasticsearch": "^0.11.0",
-    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {

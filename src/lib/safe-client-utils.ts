@@ -694,7 +694,7 @@ export async function safeFetch<T = any>(
 
     // فقط في وضع التطوير نُظهر تفاصيل الأخطاء غير المتوقعة
     if (process.env.NODE_ENV === 'development' && normalizedError.name !== 'AbortError') {
-      logger.error('[Development] Fetch error:', normalizedError);
+      logger.error(`[Development] Fetch error for URL: ${url}`, normalizedError);
     }
 
     return {

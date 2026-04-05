@@ -173,7 +173,10 @@ export default function CourseDetailPage() {
   }, [courseId, userId, router]);
 
   const handleEnroll = async () => {
-    if (!userId || !courseId) return;
+    if (!userId || !courseId) {
+      router.push("/login?redirect=/courses/" + courseId);
+      return;
+    }
     setEnrolling(true);
     try {
       const res = await fetch(`/api/courses/${courseId}/enroll`, {
@@ -182,8 +185,15 @@ export default function CourseDetailPage() {
         body: JSON.stringify({ subject: courseId }),
       });
       if (res.ok) {
+        const data = await res.json();
+        if (data.requiresPayment) {
+          router.push(`/courses/${courseId}/checkout`);
+          return;
+        }
         if (course) setCourse({ ...course, enrolled: true, progress: 0 });
       }
+    } catch (err) {
+      logger.error("Error enclosing handleEnroll", err);
     } finally {
       setEnrolling(false);
     }

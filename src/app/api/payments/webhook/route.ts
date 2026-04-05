@@ -78,44 +78,129 @@ export async function POST(req: Request) {
     const isSuccess = data?.success === true;
     const statusKey = isSuccess ? 'success' : 'failed';
 
+    let target = 'SUBSCRIPTION';
+    let subjectId: string | null = null;
+    let courseName = 'الدورة';
+    if (payment.paymentData) {
+      try {
+        const pd = JSON.parse(payment.paymentData);
+        if (pd.target === 'COURSE') {
+          target = 'COURSE';
+          subjectId = pd.subjectId;
+        }
+      } catch (e) {}
+    }
+
     if (isSuccess) {
-      await SubscriptionService.activateSubscriptionPayment(payment.id, {
-        transactionId: data?.id?.toString?.() ?? null,
-        orderId: reportedOrderId ?? payment.orderId ?? null,
-        paymentData: JSON.stringify(data),
-      });
+      if (target === 'COURSE' && subjectId) {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'SUCCESS',
+            transactionId: data?.id?.toString?.() ?? null
+          }
+        });
+
+        await prisma.subjectEnrollment.upsert({
+          where: {
+            userId_subjectId: {
+              userId: payment.userId,
+              subjectId
+            }
+          },
+          create: {
+            userId: payment.userId,
+            subjectId,
+            targetWeeklyHours: 0
+          },
+          update: {}
+        });
+
+        // Notify for course
+        const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+        if (subject) courseName = subject.nameAr || subject.name;
+        
+        await enqueueNotification(payment.id, statusKey, 'course-payment-success', {
+          userId: payment.userId,
+          title: 'تم الانضمام للدورة بنجاح',
+          message: `تم تأكيد دفع مبلغ ${payment.amount} ج.م لتسجيلك في دورة "${courseName}". ابدأ التعلم الآن!`,
+          type: 'success',
+          icon: 'success',
+          channels: ['app', 'email'],
+          actionUrl: `/courses/${subjectId}`,
+        });
+
+      } else {
+        await SubscriptionService.activateSubscriptionPayment(payment.id, {
+          transactionId: data?.id?.toString?.() ?? null,
+          orderId: reportedOrderId ?? payment.orderId ?? null,
+          paymentData: JSON.stringify(data),
+        });
+
+        await enqueueNotification(payment.id, statusKey, 'payment-status', {
+          userId: payment.userId,
+          title: 'تم تأكيد اشتراكك بنجاح',
+          message: `تم تفعيل اشتراكك بقيمة ${payment.amount} ج.م ويمكنك الآن الوصول إلى المزايا المدفوعة.`,
+          type: 'success',
+          icon: 'success',
+          channels: ['app', 'email'],
+          actionUrl: '/dashboard/subscription',
+        });
+      }
 
       await ReferralService.processReferralReward(payment.userId, payment.amount);
     } else {
-      await SubscriptionService.failSubscriptionPayment(payment.id, {
-        transactionId: data?.id?.toString?.() ?? null,
-        paymentData: JSON.stringify(data),
-        errorMessage: data?.txn_response_code?.toString?.() ?? 'PAYMENT_FAILED',
-      });
+      if (target === 'COURSE') {
+        await prisma.payment.update({
+          where: { id: payment.id },
+          data: {
+            status: 'FAILED',
+            errorMessage: data?.txn_response_code?.toString?.() ?? 'PAYMENT_FAILED',
+            transactionId: data?.id?.toString?.() ?? null
+          }
+        });
 
-      await enqueueNotification(payment.id, statusKey, 'payment-warning', {
-        userId: payment.userId,
-        title: 'ظ…ط´ظƒظ„ط© ظپظٹ ط³ط¯ط§ط¯ ط§ظ„ط§ط´طھط±ط§ظƒ',
-        message:
-          'ظپط´ظ„طھ ط¹ظ…ظ„ظٹط© ط§ظ„ط¯ظپط¹ ط§ظ„ط®ط§طµط© ط¨ط§ط´طھط±ط§ظƒظƒ. ظٹظ…ظƒظ†ظƒ ط¥ط¹ط§ط¯ط© ط§ظ„ظ…ط­ط§ظˆظ„ط© ط£ظˆ ط§ط®طھظٹط§ط± ظˆط³ظٹظ„ط© ط¯ظپط¹ ظ…ط®طھظ„ظپط©.',
-        type: 'warning',
-        icon: 'warning',
-        channels: ['app', 'email'],
-        actionUrl: '/billing',
-      });
+        const subject = subjectId ? await prisma.subject.findUnique({ where: { id: subjectId } }) : null;
+        if (subject) courseName = subject.nameAr || subject.name;
+
+        await enqueueNotification(payment.id, statusKey, 'course-payment-failed', {
+          userId: payment.userId,
+          title: 'فشلت عملية الدفع',
+          message: `تعذر إتمام الدفع بقيمة ${payment.amount} ج.م لدورة "${courseName}". راجع وسيلة الدفع أو أعد المحاولة.`,
+          type: 'error',
+          icon: 'error',
+          channels: ['app', 'email'],
+          actionUrl: subjectId ? `/courses/${subjectId}/checkout` : '/courses',
+        });
+      } else {
+        await SubscriptionService.failSubscriptionPayment(payment.id, {
+          transactionId: data?.id?.toString?.() ?? null,
+          paymentData: JSON.stringify(data),
+          errorMessage: data?.txn_response_code?.toString?.() ?? 'PAYMENT_FAILED',
+        });
+
+        await enqueueNotification(payment.id, statusKey, 'payment-warning', {
+          userId: payment.userId,
+          title: 'مشكلة في سداد الاشتراك',
+          message:
+            'فشلت عملية الدفع الخاصة باشتراكك. يمكنك إعادة المحاولة أو اختيار وسيلة دفع مختلفة.',
+          type: 'warning',
+          icon: 'warning',
+          channels: ['app', 'email'],
+          actionUrl: '/billing',
+        });
+        
+        await enqueueNotification(payment.id, statusKey, 'payment-status', {
+          userId: payment.userId,
+          title: 'فشلت عملية الدفع',
+          message: `تعذر إتمام الدفع بقيمة ${payment.amount} ج.م. راجع وسيلة الدفع أو أعد المحاولة.`,
+          type: 'error',
+          icon: 'error',
+          channels: ['app', 'email'],
+          actionUrl: '/billing',
+        });
+      }
     }
-
-    await enqueueNotification(payment.id, statusKey, 'payment-status', {
-      userId: payment.userId,
-      title: isSuccess ? 'طھظ… طھط£ظƒظٹط¯ ط§ط´طھط±ط§ظƒظƒ ط¨ظ†ط¬ط§ط­' : 'ظپط´ظ„طھ ط¹ظ…ظ„ظٹط© ط§ظ„ط¯ظپط¹',
-      message: isSuccess
-        ? `طھظ… طھظپط¹ظٹظ„ ط§ط´طھط±ط§ظƒظƒ ط¨ظ‚ظٹظ…ط© ${payment.amount} ط¬.ظ… ظˆظٹظ…ظƒظ†ظƒ ط§ظ„ط¢ظ† ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط§ظ„ظ…ط²ط§ظٹط§ ط§ظ„ظ…ط¯ظپظˆط¹ط©.`
-        : `طھط¹ط°ط± ط¥طھظ…ط§ظ… ط§ظ„ط¯ظپط¹ ط¨ظ‚ظٹظ…ط© ${payment.amount} ط¬.ظ…. ط±ط§ط¬ط¹ ظˆط³ظٹظ„ط© ط§ظ„ط¯ظپط¹ ط£ظˆ ط£ط¹ط¯ ط§ظ„ظ…ط­ط§ظˆظ„ط©.`,
-      type: isSuccess ? 'success' : 'error',
-      icon: isSuccess ? 'success' : 'error',
-      channels: ['app', 'email'],
-      actionUrl: isSuccess ? '/dashboard/subscription' : '/billing',
-    });
 
     return NextResponse.json({ message: 'Webhook processed' }, { status: 200 });
   } catch (error: any) {
@@ -130,6 +215,32 @@ export async function GET(req: Request) {
   const merchantOrderId = searchParams.get('merchant_order_id');
 
   const baseUrl = process.env.NEXTAUTH_URL || 'http://localhost:3000';
+  let target = 'SUBSCRIPTION';
+  let subjectId = null;
+
+  if (merchantOrderId) {
+    try {
+      const payment = await prisma.payment.findUnique({
+        where: { id: merchantOrderId },
+        select: { paymentData: true },
+      });
+      if (payment?.paymentData) {
+        const pd = JSON.parse(payment.paymentData);
+        if (pd.target === 'COURSE') {
+          target = 'COURSE';
+          subjectId = pd.subjectId;
+        }
+      }
+    } catch(e) {}
+  }
+
+  if (target === 'COURSE' && subjectId) {
+    if (success === 'true') {
+      return NextResponse.redirect(`${baseUrl}/courses/${subjectId}?payment_success=true`);
+    }
+    return NextResponse.redirect(`${baseUrl}/courses/${subjectId}/checkout?payment_error=true`);
+  }
+
   if (success === 'true') {
     return NextResponse.redirect(`${baseUrl}/dashboard/subscription/success?order_id=${merchantOrderId}`);
   }

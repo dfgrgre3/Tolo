@@ -1,5 +1,5 @@
 import { Worker, Job, WorkerOptions } from 'bullmq';
-import { redisClient } from '../cache';
+import { queueConnection } from '../queue';
 import { logger } from '../logger';
 
 /**
@@ -30,7 +30,7 @@ export abstract class BaseWorker<T = any> {
                 }
             },
             {
-                connection: redisClient as any,
+                connection: queueConnection,
                 concurrency: 5,
                 ...options,
             }

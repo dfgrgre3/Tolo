@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DATABASE_URL_DIRECT")
 }
 
 enum Level {
@@ -148,6 +149,8 @@ model User {
   @@index([referralCode])
   @@index([name])
   @@index([username])
+  @@index([isDeleted, status, role])
+  @@index([createdAt(sort: Desc)])
 }
 
 model UserXP {
@@ -202,7 +205,8 @@ model SubjectEnrollment {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
   paymentStatus     PaymentStatus @default(PENDING)
-  progress          Int           @default(0)
+  progress              Int           @default(0)
+  completedLessonsCount Int           @default(0)
   subject           Subject       @relation(fields: [subjectId], references: [id])
   user              User          @relation(fields: [userId], references: [id], onDelete: NoAction)
   isDeleted         Boolean       @default(false)
@@ -891,11 +895,11 @@ model Subject {
   topics     Topic[]
   userGrades UserGrade[]
 
-  @@index([categoryId])
-  @@index([isActive, createdAt(sort: Desc)])
-  @@index([instructorName])
-  @@index([enrolledCount(sort: Desc)])
-  @@index([rating(sort: Desc)])
+  @@index([categoryId, isActive])
+  @@index([isActive, level, createdAt(sort: Desc)])
+  @@index([isActive, enrolledCount(sort: Desc)])
+  @@index([isActive, rating(sort: Desc)])
+  @@index([isActive, price, id])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
 }
 

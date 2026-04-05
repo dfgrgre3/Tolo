@@ -1,5 +1,5 @@
 import { Worker, Job } from 'bullmq';
-import { redisClient } from '@/lib/cache';
+import { queueConnection } from '@/lib/queue';
 import { xpService } from '@/modules/gamification/xp.service';
 import { logger } from '@/lib/logger';
 
@@ -20,7 +20,7 @@ export class GamificationWorker {
         throw error; // Let BullMQ handle retries
       }
     }, {
-      connection: redisClient as any,
+      connection: queueConnection,
       concurrency: 5,
     });
 

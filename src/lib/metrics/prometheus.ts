@@ -39,6 +39,10 @@ let _authOperationsTotal: Counter = createStub();
 
 let _activeUsers: Gauge = createStub();
 let _errorsTotal: Counter = createStub();
+let _cacheHitsTotal: Counter = createStub();
+let _cacheMissesTotal: Counter = createStub();
+let _circuitBreakerState: Gauge = createStub();
+let _queueLatency: Histogram = createStub();
 
 // Initialize only on server
 if (isServer) {
@@ -132,6 +136,35 @@ if (isServer) {
       labelNames: ['type', 'route'],
       registers: [_register],
     });
+
+    _cacheHitsTotal = new Counter({
+      name: 'cache_hits_total',
+      help: 'Total number of cache hits',
+      labelNames: ['cache_type'],
+      registers: [_register],
+    });
+
+    _cacheMissesTotal = new Counter({
+      name: 'cache_misses_total',
+      help: 'Total number of cache misses',
+      labelNames: ['cache_type'],
+      registers: [_register],
+    });
+
+    _circuitBreakerState = new Gauge({
+      name: 'circuit_breaker_state',
+      help: 'State of circuit breakers (0=closed, 1=open, 2=half-open)',
+      labelNames: ['name'],
+      registers: [_register],
+    });
+
+    _queueLatency = new Histogram({
+      name: 'queue_latency_seconds',
+      help: 'Time jobs spend in queue before processing',
+      labelNames: ['queue_name', 'job_type'],
+      buckets: [0.1, 0.5, 1, 5, 10, 30, 60],
+      registers: [_register],
+    });
   } catch {
     // prom-client not available, use stubs
   }
@@ -151,6 +184,10 @@ export const authLoginsTotal = _authLoginsTotal;
 export const authOperationsTotal = _authOperationsTotal;
 export const activeUsers = _activeUsers;
 export const errorsTotal = _errorsTotal;
+export const cacheHitsTotal = _cacheHitsTotal;
+export const cacheMissesTotal = _cacheMissesTotal;
+export const circuitBreakerState = _circuitBreakerState;
+export const queueLatency = _queueLatency;
 
 /**
  * تصدير المقاييس بصيغة Prometheus
@@ -256,6 +293,35 @@ export function setDbConnections(count: number): void {
 export function setActiveUsers(count: number): void {
   if (!isServer) return;
   _activeUsers.set(count);
+}
+
+/**
+ * تتبع نجاح/فشل التخزين المؤقت
+ */
+export function trackCache(type: string, hit: boolean): void {
+  if (!isServer) return;
+  if (hit) {
+    _cacheHitsTotal.inc({ cache_type: type });
+  } else {
+    _cacheMissesTotal.inc({ cache_type: type });
+  }
+}
+
+/**
+ * تحديث حالة قاطع الدائرة
+ */
+export function setCircuitBreaker(name: string, state: 'closed' | 'open' | 'half-open'): void {
+  if (!isServer) return;
+  const val = state === 'closed' ? 0 : state === 'open' ? 1 : 2;
+  _circuitBreakerState.set({ name }, val);
+}
+
+/**
+ * تتبع زمن انتظار المهام في الطابور
+ */
+export function trackQueueLatency(queueName: string, jobType: string, latencyMs: number): void {
+  if (!isServer) return;
+  _queueLatency.observe({ queue_name: queueName, job_type: jobType }, latencyMs / 1000);
 }
 
 /**

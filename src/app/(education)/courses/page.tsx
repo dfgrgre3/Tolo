@@ -274,11 +274,18 @@ export default function CoursesPage({
     try {
       const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "POST" });
       if (res.ok) {
+        const data = await res.json();
+        if (data.requiresPayment) {
+          router.push(`/courses/${courseId}/checkout`);
+          return;
+        }
         toast.success("تم التسجيل في الدورة بنجاح!");
         setRefreshKey(k => k + 1);
       } else {
         toast.error("فشل التسجيل");
       }
+    } catch (err) {
+      toast.error("حدث خطأ أثناء التسجيل");
     } finally {
       setEnrollingId(null);
     }

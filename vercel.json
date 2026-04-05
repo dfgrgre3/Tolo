@@ -5,11 +5,19 @@
   "framework": "nextjs",
   "outputDirectory": ".next",
   "regions": [
+    "cai1",
+    "fra1",
     "iad1"
   ],
   "functions": {
     "src/app/api/**/*.ts": {
       "maxDuration": 60
+    },
+    "src/app/api/courses/[id]/checkout/route.ts": {
+      "maxDuration": 120
+    },
+    "src/app/api/payments/**/*.ts": {
+      "maxDuration": 120
     }
   },
   "headers": [

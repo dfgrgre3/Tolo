@@ -110,7 +110,7 @@ export function RuleCard({
                 <SearchInput
                   type="number"
                   className="h-12 w-24 border-none bg-card text-center text-lg font-black shadow-sm ring-1 ring-border"
-                  value={rule.conditions?.value || 0}
+                  value={((rule.conditions?.value as number | undefined) ?? 0).toString()}
                   onChange={(e) =>
                     onUpdate(rule.id, {
                       conditions: {
@@ -159,7 +159,7 @@ export function RuleCard({
                   <SearchInput
                     type="number"
                     className="w-full border-border bg-background text-center text-lg font-black"
-                    value={rule.actionData?.xpAmount || 0}
+                    value={((rule.actionData?.xpAmount as number | undefined) ?? 0).toString()}
                     onChange={(e) =>
                       onUpdate(rule.id, {
                         actionData: {
@@ -178,7 +178,7 @@ export function RuleCard({
                 <input
                   className="flex h-11 w-full rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                   placeholder="سيصل التنبيه لمركز إشعارات المحارب..."
-                  value={rule.actionData?.message || ""}
+                  value={(rule.actionData?.message as string | undefined) || ""}
                   onChange={(e) =>
                     onUpdate(rule.id, {
                       actionData: {

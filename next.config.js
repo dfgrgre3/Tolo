@@ -79,6 +79,7 @@ const nextConfig = {
     'openai',
     'twilio',
     '@prisma/client',
+    'bullmq',
   ],
 
   // Optimize package imports - reduces bundle size significantly
@@ -135,6 +136,9 @@ const nextConfig = {
         'winston': false,
         'winston-elasticsearch': false,
         'undici': false,
+        'ioredis': false,
+        'redis-errors': false,
+        'bullmq': false,
       };
     } else {
       // Server-side alias
@@ -242,5 +246,8 @@ const nextConfig = {
 
   productionBrowserSourceMaps: false,
 };
+
+// Add allowed origin for remote development HMR
+nextConfig.allowedDevOrigins = ['192.168.1.15', 'localhost'];
 
 module.exports = nextConfig;

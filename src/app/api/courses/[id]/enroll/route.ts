@@ -1,9 +1,10 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
+import { SubscriptionService } from '@/services/subscription-service';
 
 // POST to enroll in a subject
 export async function POST(
@@ -21,6 +22,26 @@ export async function POST(
 
         if (!user) {
           return notFoundResponse("المستخدم غير موجود");
+        }
+
+        const subject = await prisma.subject.findUnique({
+          where: { id },
+          select: { price: true }
+        });
+
+        if (!subject) {
+          return notFoundResponse("الدورة غير موجودة");
+        }
+
+        const activeSub = await SubscriptionService.checkActiveSubscription(userId);
+
+        // If course is paid and user has no active subscription, do not enroll automatically
+        if (subject.price && subject.price > 0 && !activeSub) {
+          return NextResponse.json({
+            requiresPayment: true,
+            message: "هذه الدورة مدفوعة، يرجى إتمام عملية الدفع أو الاشتراك في باقة الأسابيع السحرية",
+            price: subject.price
+          });
         }
 
         let enrollment;

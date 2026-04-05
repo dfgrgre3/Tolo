@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
+import { CacheService } from '@/lib/cache';
 
 export class UsageService {
 
@@ -42,17 +43,20 @@ export class UsageService {
     // 1. Atomic Reset (FIRE FIRST to ensure consistency)
     await this.syncMonthlyReset(userId);
 
-    // 2. Fetch User & Active Subscription (Optimized: No Wallet Fetch)
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        subscriptions: {
-          where: { status: 'ACTIVE' },
-          include: { plan: true },
-          take: 1
+    // 2. Fetch User & Active Subscription (Optimized with Redis Caching)
+    const cacheKey = `user:${userId}:usage-meta`;
+    const user = await CacheService.getOrSet(cacheKey, async () => {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          subscriptions: {
+            where: { status: 'ACTIVE' },
+            include: { plan: true },
+            take: 1
+          }
         }
-      }
-    });
+      });
+    }, 300); // 5 min cache
 
     if (!user) throw new Error('User not found');
 
@@ -131,16 +135,20 @@ export class UsageService {
   static async useAiMessage(userId: string) {
     await this.syncMonthlyReset(userId);
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        subscriptions: {
-          where: { status: 'ACTIVE' },
-          include: { plan: true },
-          take: 1
+    // 1. Fetch User & Active Subscription (Cached)
+    const cacheKey = `user:${userId}:usage-meta`;
+    const user = await CacheService.getOrSet(cacheKey, async () => {
+      return prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          subscriptions: {
+            where: { status: 'ACTIVE' },
+            include: { plan: true },
+            take: 1
+          }
         }
-      }
-    });
+      });
+    }, 300);
 
     if (!user) throw new Error('User not found');
 
