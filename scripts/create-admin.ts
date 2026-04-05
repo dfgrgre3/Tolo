@@ -52,8 +52,12 @@ async function main() {
       role: 'ADMIN',
       emailVerified: true,
       twoFactorEnabled: false,
-      totalXP: 1000,
-      level: 10,
+      xp: {
+        create: {
+          totalXP: 1000,
+          level: 10,
+        }
+      },
     },
   });
 

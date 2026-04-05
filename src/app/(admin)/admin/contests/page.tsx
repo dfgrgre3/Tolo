@@ -20,7 +20,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 // Types
 interface ContestQuestion {
@@ -69,7 +69,7 @@ export default function ContestsPage() {
         const data = await res.json();
         setContests(Array.isArray(data) ? data : []);
       } catch (error) {
-        logger.error("Failed to fetch contests", error);
+        logger.error("Failed to fetch contests", error as Error);
       } finally {
         setLoading(false);
       }
@@ -95,7 +95,7 @@ export default function ContestsPage() {
         });
         setActiveLobby({ ...activeLobby, status: "IN_PROGRESS" });
       } catch (e) {
-        logger.error(e);
+        logger.error(String(e));
       }
     }
   };
@@ -110,7 +110,7 @@ export default function ContestsPage() {
         });
         setActiveLobby({ ...activeLobby, status: "FINISHED" });
       } catch (e) {
-        logger.error(e);
+        logger.error(String(e));
       }
     }
   };
@@ -138,7 +138,7 @@ export default function ContestsPage() {
     setShowConfig(false);
   };
 
-  const currentQuestion = activeLobby?.questions[activeLobby.currentQuestion - 1];
+  const currentQuestion = activeLobby && activeLobby.currentQuestion > 0 ? activeLobby.questions[activeLobby.currentQuestion - 1] : undefined;
 
   return (
     <div className="space-y-8 pb-10">
@@ -200,7 +200,7 @@ export default function ContestsPage() {
                                <div className="flex items-center gap-1">
                                   <Timer className="w-3 h-3" />
                                   <span>{contest.questionsCount} سؤال</span>
-                               </div>
+                                </div>
                                <div className="flex items-center gap-1">
                                   <Users className="w-3 h-3" />
                                   <span>{contest.participantsCount || 0} مشارك</span>
@@ -316,7 +316,7 @@ export default function ContestsPage() {
                              <div className="bg-background px-4 py-2 rounded-2xl border font-black text-sm text-muted-foreground shadow-sm">
                              سؤال {activeLobby.currentQuestion} من {activeLobby.totalQuestions}
                              <div className="flex items-center gap-2 mr-2">
-                                <AdminButton size="sm" variant="ghost" icon={ChevronRight} onClick={() => setActiveLobby({...activeLobby, currentQuestion: Math.min(activeLobby.currentQuestion + 1, activeLobby.totalQuestions)})}>
+                                 <AdminButton size="sm" variant="ghost" icon={ChevronRight} onClick={() => setActiveLobby(prev => prev ? {...prev, currentQuestion: Math.min(prev.currentQuestion + 1, prev.totalQuestions)} : null)}>
                                   السؤال التالي
                                 </AdminButton>
                              </div>

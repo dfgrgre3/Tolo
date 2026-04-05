@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError } from '@/lib/api-utils';
-import { redisClient } from "@/lib/cache";
+import { getRedisClient } from "@/lib/cache";
 import { gamificationQueue, notificationQueue, analyticsQueue } from "@/lib/queue";
 import { prisma } from "@/lib/db";
 
@@ -28,7 +28,8 @@ export async function GET(request: NextRequest) {
         ]);
 
         // 2. Redis Stats
-        const redisInfo = await redisClient.info();
+        const client = await getRedisClient();
+        const redisInfo = client ? await client.info() : "";
         // Extract used_memory_human from info string
         const memoryMatch = redisInfo.match(/used_memory_human:(\d+\.?\d*\S+)/);
         const usedMemory = memoryMatch ? memoryMatch[1] : 'Unknown';

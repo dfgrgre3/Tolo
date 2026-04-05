@@ -79,7 +79,7 @@ export async function GET(
           prisma.subjectEnrollment.count({ where }),
         ]);
 
-        const students = enrollments.map((enrollment) => ({
+        const students = enrollments.map((enrollment: any) => ({
           id: enrollment.id,
           userId: enrollment.userId,
           name: enrollment.user.name || "بدون اسم",

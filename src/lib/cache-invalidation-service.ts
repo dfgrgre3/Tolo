@@ -4,22 +4,23 @@ import { logger } from '@/lib/logger';
 export { CachePrefixes };
 
 export async function invalidateUserCache(userId: string): Promise<void> {
-  // OPTIMIZATION: Try known prefixes first to avoid O(N) scan in Redis clusters.
-  const commonPatterns = [
+  // OPTIMIZATION: Use prefix-based patterns only for O(log N) performance in Redis clusters.
+  // The legacy catch-all `*:userId:*` is removed as it causes O(N) full keyspace scans
+  // which become devastating at scale (millions of keys).
+  const knownPrefixes = [
     `user:${userId}:*`,
     `profile:${userId}:*`,
     `tasks:${userId}:*`,
     `progress:${userId}:*`,
-    `sessions:${userId}:*`
+    `sessions:${userId}:*`,
+    `analytics:user:${userId}:*`,
+    `api_v1:courses:public*`,  // Invalidate public course cache on enrollment changes
   ];
   
-  for (const pattern of commonPatterns) {
-    await CacheService.invalidatePattern(pattern);
-  }
-
-  // FAIL-SAFE: The legacy catch-all pattern (O(N) in Redis)
-  // Ensure we don't miss any keys following odd patterns.
-  await CacheService.invalidatePattern(`*:${userId}:*`);
+  // Execute all invalidations in parallel (each uses SCAN with prefix = efficient)
+  await Promise.allSettled(
+    knownPrefixes.map(pattern => CacheService.invalidatePattern(pattern))
+  );
 }
 
 export async function invalidateUserDataCache(userId: string, dataType: string): Promise<void> {

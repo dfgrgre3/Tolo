@@ -4,12 +4,10 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
 import { ERROR_CODES } from '@/lib/error-codes';
 import { ensureUser } from "@/lib/user-utils";
-import { promises as fs } from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
+import { StorageService } from '@/lib/storage';
 
-// POST upload a new book file
+// POST upload a new book file (Refactored for S3/CloudFront)
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
@@ -19,7 +17,6 @@ export async function POST(request: NextRequest) {
         return badRequestResponse("Authorization token required", ERROR_CODES.UNAUTHORIZED);
       }
       
-      // ensureUser() in this project returns a local user id (guest/user identifier)
       const userId = await ensureUser();
       if (!userId) {
         return badRequestResponse("Invalid or expired token", ERROR_CODES.UNAUTHORIZED);
@@ -41,10 +38,6 @@ export async function POST(request: NextRequest) {
         return badRequestResponse("Missing required fields", ERROR_CODES.MISSING_PARAMETER);
       }
 
-      // Ensure upload directory exists
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'books');
-      await fs.mkdir(uploadDir, { recursive: true });
-
       // Process tags
       let tags: string[] = [];
       if (tagsString) {
@@ -54,30 +47,21 @@ export async function POST(request: NextRequest) {
             tags = [tagsString];
           }
         } catch {
-          tags = [tagsString]; // Fallback to single tag
+          tags = [tagsString];
         }
       }
 
-      // Generate unique filenames
-      const fileExtension = path.extname(bookFile.name);
-      const fileName = `${uuidv4()}${fileExtension}`;
-      const filePath = path.join(uploadDir, fileName);
+      // 1. Upload book file to S3
+      const fileExtension = bookFile.name.split('.').pop() || 'pdf';
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExtension}`;
+      const downloadUrl = await StorageService.uploadFile(bookFile, fileName, bookFile.type, 'books');
 
-      // Write book file
-      const bytes = await bookFile.arrayBuffer();
-      await fs.writeFile(filePath, Buffer.from(bytes));
-
-      // Handle cover image if provided
+      // 2. Handle cover image if provided (to S3)
       let coverUrl: string | null = null;
       if (coverFile) {
-        const coverExtension = path.extname(coverFile.name);
-        const coverFileName = `${uuidv4()}_cover${coverExtension}`;
-        const coverFilePath = path.join(uploadDir, coverFileName);
-        
-        const coverBytes = await coverFile.arrayBuffer();
-        await fs.writeFile(coverFilePath, Buffer.from(coverBytes));
-        
-        coverUrl = `/uploads/books/${coverFileName}`;
+        const coverExtension = coverFile.name.split('.').pop() || 'jpg';
+        const coverFileName = `${Date.now()}_cover.${coverExtension}`;
+        coverUrl = await StorageService.uploadFile(coverFile, coverFileName, coverFile.type, 'books/covers');
       }
 
       // Create book record in database
@@ -88,7 +72,7 @@ export async function POST(request: NextRequest) {
           description,
           subjectId,
           coverUrl,
-          downloadUrl: `/uploads/books/${fileName}`,
+          downloadUrl,
           tags,
         }
       });
@@ -98,7 +82,7 @@ export async function POST(request: NextRequest) {
         title: newBook.title,
         downloadUrl: newBook.downloadUrl,
         coverUrl: newBook.coverUrl,
-        message: "Book uploaded successfully"
+        message: "Book uploaded successfully to cloud storage"
       }, undefined, 201);
     } catch (error: any) {
       logger.error("Upload error:", error);
@@ -107,7 +91,7 @@ export async function POST(request: NextRequest) {
   });
 }
 
-// DELETE remove a book
+// DELETE remove a book (Cleanup S3)
 export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
@@ -138,27 +122,13 @@ export async function DELETE(request: NextRequest) {
         return badRequestResponse("Book not found", ERROR_CODES.NOT_FOUND);
       }
 
-      // Book model does not store uploader/owner info; at this point we only require authentication.
-
-      // Delete files from filesystem
+      // Delete files from S3 using CloudFront URLs recorded in DB
       if (book.downloadUrl) {
-        const filePath = path.join(process.cwd(), 'public', book.downloadUrl);
-        try {
-          await fs.unlink(filePath);
-        } catch (err) {
-          logger.error("Error deleting book file:", err);
-          // Continue even if file deletion fails
-        }
+        await StorageService.deleteFile(book.downloadUrl);
       }
 
       if (book.coverUrl) {
-        const coverPath = path.join(process.cwd(), 'public', book.coverUrl);
-        try {
-          await fs.unlink(coverPath);
-        } catch (err) {
-          logger.error("Error deleting cover file:", err);
-          // Continue even if file deletion fails
-        }
+        await StorageService.deleteFile(book.coverUrl);
       }
 
       // Delete book from database
@@ -166,7 +136,7 @@ export async function DELETE(request: NextRequest) {
         where: { id: bookId as string }
       });
 
-      return successResponse({ message: "Book deleted successfully" });
+      return successResponse({ message: "Book and associated cloud files deleted successfully" });
     } catch (error: unknown) {
       return handleApiError(error);
     }

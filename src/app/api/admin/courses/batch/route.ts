@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
               _count: true,
             });
 
-            const enrolledIds = enrolledCourses.map((e) => e.subjectId);
+            const enrolledIds = enrolledCourses.map((e: { subjectId: string }) => e.subjectId);
             const deletableIds = ids.filter((id) => !enrolledIds.includes(id));
 
             if (deletableIds.length === 0) {

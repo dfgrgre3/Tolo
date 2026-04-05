@@ -5,7 +5,7 @@ import { SecurityLogger, SecurityEventType } from './security-logger';
 import { TwoFactorService } from './two-factor-service';
 import { logger } from '@/lib/logger';
 import { randomBytes, createHash } from 'crypto';
-import { emailService } from '@/services/email-service';
+import { NotificationQueueService } from '@/services/notification-queue-service';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -417,8 +417,15 @@ export class AuthService {
                 userAgent,
             });
 
-            // 6. Send verification email
-            await emailService.sendVerificationEmail(normalizedEmail, verifyToken);
+            // 6. Enqueue verification email (Background Step for Scalability)
+            await NotificationQueueService.enqueue({
+                userId: user.id,
+                title: 'تفعيل حسابك في منصة تولو',
+                message: `مرحباً ${username || normalizedEmail.split('@')[0]}! يرجى تفعيل حسابك لإكمال عملية التسجيل.`, // The worker will handle the template
+                type: 'success',
+                channels: ['email'],
+                actionUrl: `/verify-email?token=${verifyToken}`
+            });
 
             return {
                 success: true,
@@ -528,9 +535,16 @@ export class AuthService {
                 userAgent,
             });
 
-            // 4. Send password reset email
-            await emailService.sendPasswordResetLink(normalizedEmail, resetToken);
-            logger.info('[PASSWORD_RESET_LINK_SENT]', { email: normalizedEmail });
+            // 4. Enqueue password reset email (Background Step)
+            await NotificationQueueService.enqueue({
+                userId: user.id,
+                title: 'إعادة تعيين كلمة المرور - منصة تولو',
+                message: 'لقد تلقينا طلباً لإعادة تعيين كلمة المرور الخاصة بك.',
+                type: 'warning',
+                channels: ['email'],
+                actionUrl: `/reset-password?token=${resetToken}`
+            });
+            logger.info('[PASSWORD_RESET_JOB_ENQUEUED]', { email: normalizedEmail });
 
             return { success: true };
         } catch (error) {
@@ -614,8 +628,15 @@ export class AuthService {
                 },
             });
 
-            // 4. Send verification email
-            await emailService.sendVerificationEmail(normalizedEmail, verifyToken);
+            // 4. Enqueue verification email (Background)
+            await NotificationQueueService.enqueue({
+                userId: user.id,
+                title: 'تفعيل حسابك في منصة تولو',
+                message: 'يرجى تفعيل حسابك لإكمال عملية التسجيل.',
+                type: 'success',
+                channels: ['email'],
+                actionUrl: `/verify-email?token=${verifyToken}`
+            });
 
             return { success: true };
         } catch (error) {
@@ -827,8 +848,15 @@ export class AuthService {
                 }
             });
 
-            // Send email
-            await emailService.sendMagicLink(normalizedEmail, magicToken);
+            // Send email (Background)
+            await NotificationQueueService.enqueue({
+                userId: user.id,
+                title: 'رابط الدخول السريع - منصة تولو',
+                message: 'استخدم الرابط التالي لتسجيل الدخول مباشرة إلى حسابك.',
+                type: 'info',
+                channels: ['email'],
+                actionUrl: `/api/auth/magic-link/verify?token=${magicToken}`
+            });
 
             await SecurityLogger.log({
                 userId: user.id,

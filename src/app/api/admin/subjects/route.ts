@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { LessonType } from "@prisma/client";
+import { LessonType, Prisma } from "@prisma/client";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import {
   badRequestResponse,
@@ -283,13 +283,13 @@ export async function PUT(request: NextRequest) {
             where: { subjectId: id },
             select: { id: true },
           });
-          const existingTopicIds = existingTopics.map((topic) => topic.id);
+          const existingTopicIds = existingTopics.map((topic: { id: string }) => topic.id);
 
           const receivedTopicIds = (curriculum as CurriculumTopicInput[])
-            .filter((chapter) => !chapter.id.startsWith("new-"))
-            .map((chapter) => chapter.id);
+            .filter((chapter: CurriculumTopicInput) => !chapter.id.startsWith("new-"))
+            .map((chapter: CurriculumTopicInput) => chapter.id);
 
-          const topicsToDelete = existingTopicIds.filter((topicId) => !receivedTopicIds.includes(topicId));
+          const topicsToDelete = existingTopicIds.filter((topicId: string) => !receivedTopicIds.includes(topicId));
           if (topicsToDelete.length > 0) {
             await tx.topic.deleteMany({
               where: { id: { in: topicsToDelete } },
@@ -317,14 +317,14 @@ export async function PUT(request: NextRequest) {
               where: { topicId: topic.id },
               select: { id: true },
             });
-            const existingSubTopicIds = existingSubTopics.map((subTopic) => subTopic.id);
+            const existingSubTopicIds = existingSubTopics.map((subTopic: { id: string }) => subTopic.id);
 
             const receivedSubTopicIds = (chapter.subTopics || [])
-              .filter((lesson) => !lesson.id.startsWith("new-"))
-              .map((lesson) => lesson.id);
+              .filter((lesson: CurriculumLessonInput) => !lesson.id.startsWith("new-"))
+              .map((lesson: CurriculumLessonInput) => lesson.id);
 
             const subTopicsToDelete = existingSubTopicIds.filter(
-              (subTopicId) => !receivedSubTopicIds.includes(subTopicId)
+              (subTopicId: string) => !receivedSubTopicIds.includes(subTopicId)
             );
             if (subTopicsToDelete.length > 0) {
               await tx.subTopic.deleteMany({

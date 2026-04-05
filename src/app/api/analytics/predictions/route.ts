@@ -24,11 +24,19 @@ export async function GET(request: NextRequest) {
       const user = await prisma.user.findUnique({
         where: { id: userId as string },
         select: {
-          totalXP: true,
-          level: true,
-          totalStudyTime: true,
-          tasksCompleted: true,
-          currentStreak: true,
+          xp: {
+            select: {
+              totalXP: true,
+              level: true,
+            }
+          },
+          activity: {
+            select: {
+              totalStudyTime: true,
+              tasksCompleted: true,
+              currentStreak: true,
+            }
+          }
         }
       });
 
@@ -36,20 +44,26 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'User not found' }, { status: 404 });
       }
 
+      const tasksCompleted = user.activity?.tasksCompleted || 0;
+      const totalXP = user.xp?.totalXP || 0;
+      const currentStreak = user.activity?.currentStreak || 0;
+      const level = user.xp?.level || 1;
+      const totalStudyTime = user.activity?.totalStudyTime || 0;
+
       // Base prediction on real user data
-      const xpPerTask = user.tasksCompleted > 0 ? user.totalXP / user.tasksCompleted : 50;
-      const confidence = Math.min(95, 60 + (user.currentStreak * 2));
+      const xpPerTask = tasksCompleted > 0 ? totalXP / tasksCompleted : 50;
+      const confidence = Math.min(95, 60 + (currentStreak * 2));
 
       const predictions = [
         {
           period: "الأسبوع القادم",
-          predictedScore: Math.min(100, 70 + (user.level * 2)),
+          predictedScore: Math.min(100, 70 + (level * 2)),
           confidence,
           milestones: [
-            { date: new Date(Date.now() + 7 * 86400000).toISOString(), goal: `الوصول إلى مستوى ${user.level + 1}`, status: "upcoming" },
+            { date: new Date(Date.now() + 7 * 86400000).toISOString(), goal: `الوصول إلى مستوى ${level + 1}`, status: "upcoming" },
             { date: new Date(Date.now() + 3 * 86400000).toISOString(), goal: "إكمال 5 مهام جديدة", status: "upcoming" },
           ],
-          recommendations: user.totalStudyTime < 100 
+          recommendations: totalStudyTime < 100 
             ? ["تحتاج إلى زيادة وقت المذاكرة اليومي بمقدار 15 دقيقة", "ابدأ بمهام صغيرة لزيادة الزخم"]
             : ["استمر في هذا الأداء الرائع!", "حاول تنويع المواد الدراسية لتجنب الملل"]
         }

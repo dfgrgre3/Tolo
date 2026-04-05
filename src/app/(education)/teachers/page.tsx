@@ -10,24 +10,15 @@ import {
   Clock,
   Plus,
   ExternalLink,
-
-
-
-
-
-
   Calendar,
-
-
   Flame } from
-
 "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 type Teacher = {id: string;name: string;subject: string;onlineUrl?: string | null;};
 type Lesson = {id: string;title: string;location: string;startTime: string;endTime: string;teacher: Teacher;};
@@ -98,7 +89,7 @@ export default function TeachersPage() {
         body: JSON.stringify({ userId, plan })
       }).then((r) => r.json());
       setSchedule(s);
-    } catch (err) {logger.error(err);}
+    } catch (err) {logger.error(String(err));}
     setTeacherId("");setTitle("");setLocation("");setStartTime("");setEndTime("");
   }
 
@@ -272,7 +263,7 @@ export default function TeachersPage() {
                                     </div>
                                     <div className="space-y-1">
                                        <h4 className="text-xl font-black text-white group-hover:text-primary transition-colors">{l.title}</h4>
-                                       <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-gray-500">
+                                       <div className="flex wrap items-center gap-4 text-xs font-bold text-gray-500">
                                           <div className="flex items-center gap-2">
                                              <UserCheck className="w-4 h-4 text-primary/70" />
                                              <span className="text-primary-light">{l.teacher.name}</span>

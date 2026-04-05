@@ -24,7 +24,8 @@ const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 
 // Singleton instance
-let _redisClient: Redis | null = null;
+const globalForRedis = globalThis as unknown as { _redisClient?: Redis | null };
+let _redisClient: Redis | null = globalForRedis._redisClient || null;
 
 async function ensureRedisReady(client: Redis | null): Promise<Redis | null> {
   if (!client) return null;
@@ -42,7 +43,7 @@ async function ensureRedisReady(client: Redis | null): Promise<Redis | null> {
     }
   }
 
-  return client.status === 'ready' ? client : null;
+  return (client.status as string) === 'ready' ? client : null;
 }
 
 /**
@@ -56,20 +57,21 @@ export async function getRedisClient(): Promise<Redis | null> {
     try {
       const { default: Redis } = await import('ioredis');
       _redisClient = new Redis(redisUrl, {
-        maxRetriesPerRequest: 1,
+        maxRetriesPerRequest: null, // Let commands queue instead of failing fast, middleware handles timeout
         connectTimeout: 2000,
         reconnectOnError: () => false,
-        enableOfflineQueue: false,
         keepAlive: 1,
         lazyConnect: true,
         retryStrategy: (times) => {
-          if (times > 1) return null;
-          return 2000;
+          return Math.min(times * 100, 3000); // Retry indefinitely up to 3s between attempts
         }
       });
 
       _redisClient.on('connect', () => {
         logger.info('Connected to Redis');
+        // Note: maxmemory-policy should be configured at the Redis server level.
+        // Managed Redis services (Upstash, Railway, etc.) don't support CONFIG SET.
+        // Ensure your Redis provider is configured with 'noeviction' policy.
       });
 
       _redisClient.on('error', (err: any) => {
@@ -97,32 +99,40 @@ export const redisClient: Redis = new Proxy({} as Redis, {
 
 export const redis = redisClient;
 
-// --- Core Cache Service ---
+import { trackCache } from '@/lib/metrics/prometheus';
 
 export class CacheService {
   static async get<T>(key: string): Promise<T | null> {
     if (!key?.trim()) return null;
     const trimmedKey = key.trim();
-    const isProduction = process.env.NODE_ENV === 'production';
     
+    // Tier 1: In-Memory (Sub-millisecond access)
+    const l1Item = memoryCache.get(trimmedKey);
+    if (l1Item && l1Item.expires > Date.now()) {
+      trackCache('memory_l1', true);
+      return JSON.parse(l1Item.value) as T;
+    }
+
     try {
+      // Tier 2: Redis (Global cache)
       const client = await getRedisClient();
       if (!client) {
-        // FAIL-SAFE: Disable memory fallback in production to prevent Inconsistency.
-        if (isProduction) return null;
-
-        const item = memoryCache.get(trimmedKey);
-        if (item && item.expires > Date.now()) {
-          return JSON.parse(item.value) as T;
-        }
-        memoryCache.delete(trimmedKey);
+        trackCache('memory_l1', false);
         return null;
       }
 
       const data = await client.get(trimmedKey);
       if (data) {
-        return JSON.parse(data) as T;
+        trackCache('redis_l2', true);
+        const parsed = JSON.parse(data) as T;
+        
+        // Populate L1 cache on hit (Cache Promotion)
+        this.setL1(trimmedKey, data, 5); // 5s L1 TTL
+        
+        return parsed;
       }
+
+      trackCache('redis_l2', false);
       return null;
     } catch (error) {
       logger.error(`[CacheService] Error getting key ${trimmedKey}:`, error);
@@ -130,34 +140,31 @@ export class CacheService {
     }
   }
 
+  private static setL1(key: string, serializedValue: string, ttlSeconds: number) {
+    if (memoryCache.size >= MAX_MEMORY_ITEMS) {
+      const firstKey = memoryCache.keys().next().value;
+      if (firstKey) memoryCache.delete(firstKey);
+    }
+    
+    memoryCache.set(key, {
+      value: serializedValue,
+      expires: Date.now() + (ttlSeconds * 1000)
+    });
+  }
+
   static async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
     if (!key?.trim()) return;
     const trimmedKey = key.trim();
-    const isProduction = process.env.NODE_ENV === 'production';
     
     try {
       const serialized = JSON.stringify(value);
+      
+      // Update L1
+      this.setL1(trimmedKey, serialized, Math.min(ttl, 5)); // Max 5s for L1
+
+      // Update Tier 2 (Redis)
       const client = await getRedisClient();
-
-      if (!client) {
-        // FAIL-SAFE: Disable memory fallback in production.
-        if (isProduction) {
-          logger.warn(`[CacheService] Redis down. Skipping set for ${trimmedKey} to prevent inconsistency.`);
-          return;
-        }
-
-        // CAP SIZE to prevent OOM
-        if (memoryCache.size >= MAX_MEMORY_ITEMS) {
-          const firstKey = memoryCache.keys().next().value;
-          if (firstKey) memoryCache.delete(firstKey);
-        }
-
-        memoryCache.set(trimmedKey, {
-          value: serialized,
-          expires: Date.now() + (ttl * 1000)
-        });
-        return;
-      }
+      if (!client) return;
 
       if (ttl > 0) {
         await client.setex(trimmedKey, ttl, serialized);

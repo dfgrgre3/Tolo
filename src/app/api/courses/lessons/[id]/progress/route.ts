@@ -4,6 +4,7 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, badRequestResponse, handleApiError, ApiError, withAuth } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 import { Prisma } from "@prisma/client";
+import { EducationalCache } from "@/lib/cache";
 
 // POST to update lesson progress
 export async function POST(
@@ -22,17 +23,20 @@ export async function POST(
 
         // Use transaction for consistency and to prevent race conditions
         const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-          // Check if lesson exists
+          // Check if lesson exists and get subject details
           const lesson = await tx.subTopic.findUnique({
             where: { id },
-            include: { topic: { include: { subject: true } } }
+            select: { 
+              id: true,
+              topic: { select: { subjectId: true } }
+            }
           });
 
           if (!lesson) {
              throw new ApiError("الدرس غير موجود", 404);
           }
 
-          const subjectId = lesson.topic.subject.id;
+          const subjectId = lesson.topic.subjectId;
 
           // Check existing progress for idempotency
           const existingProgress = await tx.topicProgress.findUnique({
@@ -52,9 +56,7 @@ export async function POST(
                 subTopicId: id
               }
             },
-            update: {
-              completed
-            },
+            update: { completed },
             create: {
               userId,
               subTopicId: id,
@@ -62,49 +64,70 @@ export async function POST(
             }
           });
 
-          // Award XP and update enrollment ONLY if this is the first time the lesson is completed
+          // Optimized Progress Calculation
+          const isMarkedCompleted = completed === true;
           const wasNotCompletedBefore = !existingProgress || !existingProgress.completed;
+          const wasCompletedBefore = existingProgress && existingProgress.completed;
+
+          let updatedEnrollment;
           
-          if (completed && wasNotCompletedBefore) {
-            // Award XP (10 XP per lesson) using separate UserXP model
+          if (isMarkedCompleted && wasNotCompletedBefore) {
+            // New completion: Increment counter
+            updatedEnrollment = (await tx.subjectEnrollment.update({
+              where: { userId_subjectId: { userId, subjectId } },
+              data: { completedLessonsCount: { increment: 1 } } as any
+            })) as any;
+            
+            // Award XP
             await tx.userXP.upsert({
               where: { userId },
               update: { totalXP: { increment: 10 } },
               create: { userId, totalXP: 10 }
             });
-
-            // Recalculate progress using optimized count queries
-            const totalSubTopicsCount = await tx.subTopic.count({
-              where: { topic: { subjectId } }
-            });
-
-            const completedSubTopicsCount = await tx.topicProgress.count({
-              where: { 
-                userId, 
-                completed: true, 
-                subTopic: { topic: { subjectId } } 
-              }
-            });
-
-            const progressPercentage = Math.round((completedSubTopicsCount / totalSubTopicsCount) * 100);
-
-            // Update Subject Enrollment progress
-            await tx.subjectEnrollment.update({
+          } else if (!isMarkedCompleted && wasCompletedBefore) {
+            // Un-completion: Decrement counter
+            updatedEnrollment = (await tx.subjectEnrollment.update({
               where: { userId_subjectId: { userId, subjectId } },
-              data: { progress: progressPercentage }
+              data: { completedLessonsCount: { decrement: 1 } } as any
+            })) as any;
+          } else {
+            // No change in completion status
+            updatedEnrollment = await tx.subjectEnrollment.findUnique({
+               where: { userId_subjectId: { userId, subjectId } }
             });
+          }
 
-            // Generate Certificate if 100%
-            if (progressPercentage === 100) {
-              await tx.subjectCertificate.upsert({
-                where: { subjectId_userId: { subjectId, userId } },
-                update: {},
-                create: {
-                  subjectId,
-                  userId,
-                  certUrl: `/certificates/${userId}_${subjectId}.pdf` 
-                }
+          if (updatedEnrollment) {
+            // Recalculate percentage using cached total count
+            const totalCountKey = `subject:${subjectId}:totalSubTopics`;
+            const totalSubTopicsCount = await EducationalCache.getOrSet(totalCountKey, async () => {
+              return await prisma.subTopic.count({
+                where: { topic: { subjectId } }
               });
+            }, 3600); // Cache for 1 hour
+
+            const progressPercentage = totalSubTopicsCount > 0 
+              ? Math.min(100, Math.round(((updatedEnrollment as any).completedLessonsCount / (totalSubTopicsCount as number)) * 100))
+              : 0;
+
+            if (progressPercentage !== updatedEnrollment.progress) {
+              await tx.subjectEnrollment.update({
+                where: { id: updatedEnrollment.id },
+                data: { progress: progressPercentage }
+              });
+              
+              if (progressPercentage === 100) {
+                 // Certificate trigger (optimistic)
+                 await tx.subjectCertificate.upsert({
+                   where: { subjectId_userId: { subjectId, userId } },
+                   update: {},
+                   create: {
+                     subjectId,
+                     userId,
+                     certUrl: `/certificates/${userId}_${subjectId}.pdf` 
+                   }
+                 });
+              }
             }
           }
 

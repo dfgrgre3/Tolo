@@ -8,6 +8,7 @@ import {
     handleApiError,
 } from '@/lib/api-utils';
 import { SecurityLogger } from '@/services/auth/security-logger';
+import { logger } from '@/lib/logger';
 
 /**
  * Registration Schema with strong password policy.

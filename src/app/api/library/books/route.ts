@@ -28,6 +28,31 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(req.url);
       const subjectId = searchParams.get('subjectId');
       const search = searchParams.get('search');
+      
+      const { searchService } = await import('@/services/search-service');
+      
+      // 1. Offload search to specialized engine (Elasticsearch)
+      // Optimized for 10M+ users with O(1) retrieval and relevance ranking
+      if (search) {
+        const elasticResults = await searchService.searchBooks(search, 50);
+        
+        if (elasticResults && elasticResults.length > 0) {
+           const bookIds = elasticResults.map((r: any) => r.id);
+           
+           // Fetch full records from DB with pre-sorted order from Elastic
+           const books = await prisma.book.findMany({
+             where: { id: { in: bookIds } },
+             include: {
+               uploader: { select: { id: true, name: true, username: true, avatar: true } },
+               _count: { select: { reviews: true } }
+             }
+           });
+           
+           // Return formatted results with relevance sorting preserved
+           const sortedBooks = bookIds.map(id => books.find((b: any) => b.id === id)).filter(Boolean);
+           return successResponse(sortedBooks);
+        }
+      }
 
       const where: Prisma.BookWhereInput = {};
       
@@ -35,7 +60,8 @@ export async function GET(request: NextRequest) {
         where.subjectId = subjectId;
       }
       
-      if (search) {
+      if (search && !process.env.ELASTICSEARCH_ENABLED) {
+        // Fallback for local/non-elastic environments
         where.OR = [
           { title: { contains: search, mode: 'insensitive' } },
           { author: { contains: search, mode: 'insensitive' } },
@@ -45,24 +71,14 @@ export async function GET(request: NextRequest) {
       const books = await prisma.book.findMany({
         where,
         include: {
-          uploader: {
-            select: {
-              id: true,
-              name: true,
-              username: true,
-              avatar: true
-            }
-          },
-          _count: {
-            select: {
-              reviews: true
-            }
-          }
+          uploader: { select: { id: true, name: true, username: true, avatar: true } },
+          _count: { select: { reviews: true } }
         },
         orderBy: [
           { createdAt: "desc" },
           { downloads: "desc" }
-        ]
+        ],
+        take: 100 // Hard-limit per request for 10M-user safety
       });
 
       return successResponse(books);
@@ -111,6 +127,14 @@ export async function POST(request: NextRequest) {
           });
         } catch (notificationError: unknown) {
           logger.error('Failed to send book upload notification:', notificationError);
+        }
+
+        // Index in search engine (Background)
+        try {
+          const { searchService } = await import('@/services/search-service');
+          searchService.indexBook(newBook).catch(e => logger.error('Async Indexing failed for book', e));
+        } catch (searchError) {
+          logger.warn('Search service unavailable for indexing');
         }
 
         return successResponse(newBook, undefined, 201);

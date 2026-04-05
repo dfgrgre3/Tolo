@@ -1,8 +1,10 @@
 import { CategoryType, Prisma } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { logger } from "@/lib/logger";
 import { withAuth } from "@/lib/api-utils";
+import { ApiCache } from "@/lib/api-cache";
+import { prisma } from "@/lib/db";
+import { getOrSetEducationalContent, invalidateEducationalContentPattern } from "@/lib/educational-cache-service";
+import { logger } from "@/lib/logger";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import {
   getSubjectLessonCounts,
@@ -10,7 +12,6 @@ import {
   mapSubjectToCourse,
   resolveCourseLevel,
 } from "@/lib/courses/course-service";
-import { getOrSetEducationalContent, invalidateEducationalContentPattern } from "@/lib/educational-cache-service";
 
 const SORT_OPTIONS = ["newest", "popular", "rated", "price-low", "price-high"] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
@@ -27,10 +28,23 @@ interface CourseCreateRequest {
 }
 
 export async function GET(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
+  const { searchParams } = new URL(request.url);
+  const authenticatedUserId = request.headers.get("x-user-id")?.trim() || null;
+
+  // Use Global API Cache for Guest users (High Traffic / SEO Bots)
+  if (!authenticatedUserId) {
+    const cacheKey = ApiCache.generateKey('courses:public', searchParams);
+    return ApiCache.wrap(cacheKey, () => handleGetCourses(request, null) as Promise<NextResponse<any>>, { ttl: 600 });
+  }
+
+  return handleGetCourses(request, authenticatedUserId);
+}
+
+async function handleGetCourses(req: NextRequest, authenticatedUserId: string | null): Promise<NextResponse> {
+  return opsWrapper(req, async (req) => {
     try {
       const { searchParams } = new URL(req.url);
-      
+
       // 1. Parse Pagination and Filters
       const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
       const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") || "12")));
@@ -40,8 +54,6 @@ export async function GET(request: NextRequest) {
       const category = searchParams.get("category");
       const level = searchParams.get("level");
       const sort = (searchParams.get("sort") || "newest") as SortOption;
-
-      const authenticatedUserId = req.headers.get("x-user-id")?.trim() || null;
 
       // 2. Construct Prisma Query
       const where: Prisma.SubjectWhereInput = {
@@ -61,8 +73,8 @@ export async function GET(request: NextRequest) {
       }
 
       if (level && level !== "ALL" && level !== "") {
-          const prismaLevel = resolveCourseLevel(level);
-          where.level = prismaLevel;
+        const prismaLevel = resolveCourseLevel(level);
+        where.level = prismaLevel;
       }
 
       const orderBy: Prisma.SubjectOrderByWithRelationInput = {};
@@ -86,7 +98,7 @@ export async function GET(request: NextRequest) {
 
       // 3. Execute Database Queries in Parallel (with Caching for Base Data)
       const cacheKey = `courses:list:p${page}:l${limit}:s${search}:c${category}:lv${level}:so${sort}`;
-      
+
       const baseData = await getOrSetEducationalContent(cacheKey, async () => {
         const [subjects, totalCount, courseCategories] = await Promise.all([
           prisma.subject.findMany({
@@ -109,16 +121,16 @@ export async function GET(request: NextRequest) {
           }),
         ]);
 
-        const subjectIds = subjects.map((s) => s.id);
+        const subjectIds = subjects.map((s: { id: string }) => s.id);
         const lessonCounts = await getSubjectLessonCounts(subjectIds);
 
         return { subjects, totalCount, courseCategories, lessonCounts };
       }, 600); // 10 minutes cache for list
 
       const { subjects, totalCount, courseCategories, lessonCounts } = baseData;
-      const subjectIds = subjects.map((s) => s.id);
-      
-      const categoryMap = new Map(courseCategories.map(c => [c.id, c]));
+      const subjectIds = subjects.map((s: { id: string }) => s.id);
+
+      const categoryMap = new Map<string, { id: string; name: string; icon: string | null }>(courseCategories.map((c: { id: string; name: string; icon: string | null }) => [c.id, c]));
 
       let enrollmentMap = new Map<string, boolean>();
       let progressMap = new Map<string, number>();
@@ -128,19 +140,21 @@ export async function GET(request: NextRequest) {
           where: { userId: authenticatedUserId, subjectId: { in: subjectIds } },
           select: { subjectId: true },
         });
-        
-        enrollmentMap = new Map(enrollments.map(e => [e.subjectId, true]));
-        
+
+        enrollmentMap = new Map(
+          enrollments.map((enrollment: { subjectId: string }) => [enrollment.subjectId, true])
+        );
+
         const enrolledIds = Array.from(enrollmentMap.keys());
         if (enrolledIds.length > 0) {
           const progressBySubject = await getSubjectProgressMap(authenticatedUserId, enrolledIds);
-          progressMap = new Map(enrolledIds.map(id => [id, progressBySubject[id]?.percentage ?? 0]));
+          progressMap = new Map(enrolledIds.map((id) => [id, progressBySubject[id]?.percentage ?? 0]));
         }
       }
 
       // 5. Map to CourseSummary
-      const courseList = subjects.map((subject) => {
-        const course = mapSubjectToCourse(subject as any, {
+      const courseList = (subjects as any[]).map((subject) => {
+        const course = mapSubjectToCourse(subject, {
           lessonsCount: lessonCounts[subject.id] ?? 0,
           enrolled: enrollmentMap.has(subject.id),
           progress: progressMap.get(subject.id),
@@ -155,13 +169,13 @@ export async function GET(request: NextRequest) {
 
       // 6. Final Category Stats (Using separate query or summary if needed)
       // For performance, we skip building categories from the entire list if not requested
-      const categories = courseCategories.map(cat => ({
+      const categories = courseCategories.map((cat: { id: string; name: string; icon: string | null }) => ({
         id: cat.id,
         name: cat.name,
         icon: cat.icon || "BookOpen",
       }));
 
-      return NextResponse.json({
+      const response = NextResponse.json({
         courses: courseList,
         categories,
         pagination: {
@@ -174,15 +188,29 @@ export async function GET(request: NextRequest) {
           filters: { search, category: category || "ALL", level: level || "ALL", sort },
         },
       });
+
+      // 7. CDN Caching Strategy (Strategic for 1M+ users)
+      if (authenticatedUserId) {
+        // Private data per user - no CDN caching
+        response.headers.set("Cache-Control", "private, no-cache, no-store, max-age=0, must-revalidate");
+      } else {
+        // Public data - allow CDN to cache and serve (Cloudflare/Vercel Edge)
+        // Cache for 10 minutes, with 30 minutes of stale-while-revalidate protection
+        response.headers.set("Cache-Control", "public, s-maxage=600, stale-while-revalidate=1800");
+        response.headers.set("Vary", "Accept-Encoding"); // Avoid caching based on auth cookies for public guests
+      }
+
+      return response;
     } catch (error: unknown) {
       logger.error("Courses API Critical Error:", error);
       return NextResponse.json(
-        { error: "An unexpected error occurred while fetching courses." },
+        { error: (error as Error).message || "An unexpected error occurred while fetching courses." },
         { status: 500 }
       );
     }
   });
 }
+
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {

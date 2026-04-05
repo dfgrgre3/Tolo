@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
           });
 
           const headers = ["الاسم", "البريد الإلكتروني", "الهاتف", "المستوى", "XP", "التقدم%", "تاريخ التسجيل", "آخر دخول"];
-          const rows = enrollments.map((e) => [
+          const rows = enrollments.map((e: any) => [
             escapeCsvField(e.user.name),
             escapeCsvField(e.user.email),
             escapeCsvField(e.user.phone),
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
             escapeCsvField(e.user.lastLogin?.toISOString().split("T")[0]),
           ]);
 
-          const csv = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+          const csv = "\uFEFF" + [headers.join(","), ...rows.map((r: any) => r.join(","))].join("\n");
 
           return new NextResponse(csv, {
             status: 200,
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
           EXPERT: "خبير",
         };
 
-        const rows = courses.map((c) => [
+        const rows = courses.map((c: any) => [
           escapeCsvField(c.id),
           escapeCsvField(c.nameAr),
           escapeCsvField(c.name),
@@ -123,7 +123,7 @@ export async function GET(request: NextRequest) {
           escapeCsvField(c.updatedAt.toISOString().split("T")[0]),
         ]);
 
-        const csv = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+        const csv = "\uFEFF" + [headers.join(","), ...rows.map((r: string[]) => r.join(","))].join("\n");
 
         return new NextResponse(csv, {
           status: 200,

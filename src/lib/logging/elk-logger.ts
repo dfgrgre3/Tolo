@@ -48,19 +48,9 @@ const jsonFormat = winston.format.combine(
   })
 );
 
-// Console transport للتطوير
-const consoleTransport = new winston.transports.Console({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
-    winston.format.errors({ stack: true }),
-    winston.format.colorize(),
-    winston.format.printf(({ timestamp, level, message, ...meta }) => {
-      const metaString = Object.keys(meta).length ? JSON.stringify(meta, null, 2) : '';
-      return `${timestamp} [${level}]: ${message}${metaString ? '\n' + metaString : ''}`;
-    })
-  ),
-});
+// NOTE: Console transport removed to avoid duplicate logging.
+// The unified-logger already handles console output via its own winston instance.
+// Having a console transport here caused every log to appear twice.
 
 // Elasticsearch transport
 let elasticsearchTransport: ElasticsearchTransport | null = null;
@@ -91,7 +81,7 @@ if (process.env.ELASTICSEARCH_ENABLED !== 'false') {
 }
 
 // إنشاء Winston logger
-const transports: winston.transport[] = [consoleTransport];
+const transports: winston.transport[] = [];
 
 if (elasticsearchTransport) {
   transports.push(elasticsearchTransport);

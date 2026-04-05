@@ -79,15 +79,15 @@ export async function GET(
           },
           curriculum: typedSubject.topics.map((topic: CurriculumTopic) => ({
             id: topic.id,
-            name: topic.name,
+            name: topic.title,
             order: topic.order,
             subTopics: topic.subTopics.map((subTopic: CurriculumSubTopic) => ({
               id: subTopic.id,
-              name: subTopic.name,
+              name: subTopic.title,
               order: subTopic.order,
               type: subTopic.type,
               videoUrl: subTopic.videoUrl,
-              duration: subTopic.duration,
+              duration: subTopic.durationMinutes,
               isFree: subTopic.isFree,
               description: subTopic.description,
             })),
@@ -141,14 +141,14 @@ export async function PUT(
               ? await tx.topic.create({
                   data: {
                     subjectId: id,
-                    name: topicInput.name,
+                    title: topicInput.name,
                     order: topicOrder,
                   },
                 })
               : await tx.topic.update({
                   where: { id: topicInput.id },
                   data: {
-                    name: topicInput.name,
+                    title: topicInput.name,
                     order: topicOrder,
                   },
                 });
@@ -174,11 +174,11 @@ export async function PUT(
             for (const [lessonOrder, lesson] of (topicInput.subTopics || []).entries()) {
               const lessonData = {
                 topicId: topic.id,
-                name: lesson.name,
+                title: lesson.name,
                 order: lessonOrder,
                 type: (lesson.type || "VIDEO") as LessonType,
                 videoUrl: lesson.videoUrl || null,
-                duration: lesson.duration || 0,
+                durationMinutes: lesson.duration || 0,
                 isFree: lesson.isFree || false,
                 description: lesson.description || null,
               };
@@ -216,15 +216,15 @@ export async function PUT(
             curriculum:
               typedUpdatedSubject?.topics.map((topic: CurriculumTopic) => ({
                 id: topic.id,
-                name: topic.name,
+                name: topic.title,
                 order: topic.order,
                 subTopics: topic.subTopics.map((subTopic: CurriculumSubTopic) => ({
                   id: subTopic.id,
-                  name: subTopic.name,
+                  name: subTopic.title,
                   order: subTopic.order,
                   type: subTopic.type,
                   videoUrl: subTopic.videoUrl,
-                  duration: subTopic.duration,
+                  duration: subTopic.durationMinutes,
                   isFree: subTopic.isFree,
                   description: subTopic.description,
                 })),

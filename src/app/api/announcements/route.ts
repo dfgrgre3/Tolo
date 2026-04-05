@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
+import { Announcement } from '@prisma/client';
 import { CacheService } from "@/lib/cache-service-unified";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
       const announcements = await CacheService.getOrSet(
         cacheKey,
         async () => {
-          const announcements = await prisma.announcement.findMany({
+          const items = await prisma.announcement.findMany({
             take: limit,
             where: {
               isActive: true,
@@ -42,13 +43,13 @@ export async function GET(request: NextRequest) {
           });
 
           // Transform the data to match the frontend structure
-          return announcements.map((announcement): AnnouncementResponse => ({
-            id: announcement.id,
-            title: announcement.title,
-            content: announcement.content,
-            createdAt: announcement.createdAt.toISOString(),
-            priority: announcement.priority.toString(),
-            isActive: announcement.isActive
+          return items.map((item: Announcement): AnnouncementResponse => ({
+            id: item.id,
+            title: item.title,
+            content: item.content,
+            createdAt: item.createdAt.toISOString(),
+            priority: item.priority.toString(),
+            isActive: item.isActive
           }));
         },
         600 // Cache for 10 minutes

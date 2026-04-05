@@ -203,15 +203,33 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
   );
 }
 
-// Standardized success response helper
+// Standardized success response helper with payload shredding for 10M+ users
 export function successResponse<T>(
   data: T,
   message?: string,
-  status: number = 200
+  status: number = 200,
+  fields?: string[] // Optional: list of fields to include (shredding)
 ): NextResponse<APISuccess<T>> {
+  let finalData = data;
+  
+  // Payload Shredding: Only include requested fields to save bandwidth
+  if (fields && fields.length > 0 && typeof data === 'object' && data !== null) {
+    if (Array.isArray(data)) {
+      finalData = data.map(item => {
+        const shredded: any = {};
+        fields.forEach(f => { if (item[f] !== undefined) shredded[f] = item[f]; });
+        return shredded;
+      }) as any;
+    } else {
+      const shredded: any = {};
+      fields.forEach(f => { if ((data as any)[f] !== undefined) shredded[f] = (data as any)[f]; });
+      finalData = shredded as T;
+    }
+  }
+
   return NextResponse.json(
     {
-      data,
+      data: finalData,
       message,
       status
     },

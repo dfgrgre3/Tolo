@@ -83,10 +83,10 @@ export async function GET(
           _count: { id: true }
         });
 
-        const unreadMap = new Map(unreadCounts.map(u => [u.senderId, u._count.id]));
+        const unreadMap = new Map(unreadCounts.map((u: { senderId: string; _count: { id: number } }) => [u.senderId, u._count.id]));
 
         // 4. Assemble final list
-        const conversations = partners.map(partner => {
+        const conversations = partners.map((partner: { id: string; name: string | null; avatar: string | null; lastLogin: Date | null }) => {
           const stats = partnersMap.get(partner.id);
           return {
             id: `conv-${userId}-${partner.id}`,
@@ -99,7 +99,7 @@ export async function GET(
             unreadCount: unreadMap.get(partner.id) || 0,
             isOnline: false 
           };
-        }).sort((a, b) => 
+        }).sort((a: { lastMessageTime: Date | string }, b: { lastMessageTime: Date | string }) => 
           new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
         );
 

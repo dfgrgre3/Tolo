@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/db';
 import { PaymentStatus, Prisma, SubscriptionStatus } from '@prisma/client';
+import { CacheService, InvalidationService } from '@/lib/cache';
 
 export type BillingCycle = 'monthly' | 'yearly';
 
@@ -17,22 +18,26 @@ export function getSubscriptionEndDate(cycle: BillingCycle, planInterval: string
 
 export class SubscriptionService {
   static async checkActiveSubscription(userId: string) {
-    return prisma.subscription.findFirst({
-      where: {
-        userId,
-        OR: [
-          { status: 'ACTIVE', endDate: { gt: new Date() } },
-          { status: 'GRACE_PERIOD', gracePeriodEndDate: { gt: new Date() } },
-        ],
-      },
-      include: {
-        plan: true,
-        payments: {
-          orderBy: { createdAt: 'desc' },
-          take: 1,
+    const cacheKey = `user:${userId}:subscription`;
+    
+    return CacheService.getOrSet(cacheKey, async () => {
+      return prisma.subscription.findFirst({
+        where: {
+          userId,
+          OR: [
+            { status: 'ACTIVE', endDate: { gt: new Date() } },
+            { status: 'GRACE_PERIOD', gracePeriodEndDate: { gt: new Date() } },
+          ],
         },
-      },
-    });
+        include: {
+          plan: true,
+          payments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      });
+    }, 600); // Cache for 10 minutes
   }
 
   static async cancelSubscription(subscriptionId: string, tx?: Prisma.TransactionClient) {
@@ -43,6 +48,9 @@ export class SubscriptionService {
         status: 'CANCELLED',
         gracePeriodEndDate: null,
       },
+    }).then(async (res) => {
+      await InvalidationService.invalidateUser(res.userId);
+      return res;
     });
   }
 
@@ -283,6 +291,8 @@ export class SubscriptionService {
             gracePeriodEndDate: null,
           },
         });
+
+        await InvalidationService.invalidateUser(payment.userId);
       }
 
       if (payment.couponId) {

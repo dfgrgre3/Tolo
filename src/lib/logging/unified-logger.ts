@@ -11,9 +11,7 @@
  */
 
 import { getRequestContext } from './correlation';
-import { logger } from '@/lib/logger';
-
-// Types
+// Types
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 export type LogContext = Record<string, any>;
 export type LoggableContext = LogContext | unknown;
@@ -257,16 +255,16 @@ class UnifiedLogger {
         // Fallback to console if winston fails
         switch (level) {
           case 'debug':
-            if (process.env.NODE_ENV === 'development') logger.debug(fullMessage);
+            if (process.env.NODE_ENV === 'development') console.debug(fullMessage);
             break;
           case 'info':
-            logger.info(fullMessage);
+            console.info(fullMessage);
             break;
           case 'warn':
-            logger.warn(fullMessage);
+            console.warn(fullMessage);
             break;
           case 'error':
-            logger.error(fullMessage);
+            console.error(fullMessage);
             break;
         }
       }
@@ -275,17 +273,17 @@ class UnifiedLogger {
       switch (level) {
         case 'debug':
           if (process.env.NODE_ENV === 'development') {
-            logger.debug(fullMessage);
+            console.debug(fullMessage);
           }
           break;
         case 'info':
-          logger.info(fullMessage);
+          console.info(fullMessage);
           break;
         case 'warn':
-          logger.warn(fullMessage);
+          console.warn(fullMessage);
           break;
         case 'error':
-          logger.error(fullMessage);
+          console.error(fullMessage);
           break;
       }
     }
@@ -523,9 +521,7 @@ export function getLogger(): UnifiedLogger {
   return loggerInstance;
 }
 
-// Export singleton instance
-export const logger = getLogger();
-
-// Export default
-export default logger;
-
+// Create and export instances
+const defaultLogger = getLogger();
+export { defaultLogger as logger };
+export default defaultLogger;

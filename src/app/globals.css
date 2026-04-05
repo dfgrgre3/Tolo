@@ -183,9 +183,9 @@
 .mesh-gradient {
   background-color: hsla(234, 66%, 8%, 1);
   background-image:
-    radial-gradient(closest-side at 0% 0%, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%),
-    radial-gradient(closest-side at 50% 0%, hsla(234, 100%, 40%, 0.15) 0px, transparent 50%),
-    radial-gradient(closest-side at 100% 0%, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%);
+    radial-gradient(closest-side at 0 0, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%),
+    radial-gradient(closest-side at 50% 0, hsla(234, 100%, 40%, 0.15) 0px, transparent 50%),
+    radial-gradient(closest-side at 100% 0, hsla(26, 100%, 50%, 0.1) 0px, transparent 50%);
 }
 
 .dark .rpg-glass {
@@ -199,8 +199,8 @@
 .dark .rpg-glass-premium {
   @apply relative overflow-hidden bg-black/40 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl ring-1 ring-white/10;
   background-image: 
-    radial-gradient(at 0% 0%, hsla(26, 100%, 50%, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, hsla(234, 100%, 40%, 0.1) 0px, transparent 50%);
+    radial-gradient(closest-side at 0 0, hsla(26, 100%, 50%, 0.15) 0px, transparent 50%),
+    radial-gradient(closest-side at 100% 100%, hsla(234, 100%, 40%, 0.1) 0px, transparent 50%);
 }
 
 .custom-scrollbar-premium::-webkit-scrollbar {

@@ -1,6 +1,11 @@
 import { Queue, QueueOptions } from 'bullmq';
-import { redisClient } from './cache';
+import Redis from 'ioredis';
 import { logger } from './logger';
+
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+export const queueConnection = new Redis(redisUrl, {
+  maxRetriesPerRequest: null,
+});
 
 /**
  * --- QUEUE ARCHITECTURE ---
@@ -14,7 +19,7 @@ import { logger } from './logger';
  */
 
 const defaultQueueOptions: QueueOptions = {
-  connection: redisClient as any,
+  connection: queueConnection,
   defaultJobOptions: {
     attempts: 3,
     backoff: {

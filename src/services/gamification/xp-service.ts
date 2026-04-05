@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { xpService as modularXPService } from '@/modules/gamification/xp.service';
 import { logger } from '@/lib/logger';
 

@@ -1,5 +1,6 @@
 import { Queue, Worker, Job, QueueOptions, WorkerOptions } from 'bullmq';
 import { logger } from '../logger';
+import { trackQueueLatency } from '@/lib/metrics/prometheus';
 
 const redisUrl = process.env.REDIS_URL;
 const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
@@ -16,12 +17,16 @@ const redisConnection = redisUrl && !isRedisDisabled
           db: url.pathname ? Number(url.pathname.replace('/', '') || '0') : 0,
           tls: url.protocol === 'rediss:' ? {} : undefined,
           maxRetriesPerRequest: null,
-          enableOfflineQueue: false,
           connectTimeout: 5000, // 5 second hard timeout for boot survival
+          // Skip BullMQ's internal Redis version & eviction policy check.
+          // Managed Redis providers (Upstash, Railway, etc.) often report
+          // volatile-lru but don't allow CONFIG SET to change it, causing
+          // repeated console.warn spam. Configure at the provider level instead.
+          skipVersionCheck: true,
         };
       } catch (err) {
         logger.error('[BullMQ] Invalid REDIS_URL, falling back to localhost:', err);
-        return { host: 'localhost', port: 6379, maxRetriesPerRequest: null, enableOfflineQueue: false };
+        return { host: 'localhost', port: 6379, maxRetriesPerRequest: null, enableOfflineQueue: false, skipVersionCheck: true };
       }
     })()
   : {
@@ -29,8 +34,8 @@ const redisConnection = redisUrl && !isRedisDisabled
       port: parseInt(process.env.REDIS_PORT || '6379', 10),
       password: process.env.REDIS_PASSWORD,
       maxRetriesPerRequest: null,
-      enableOfflineQueue: false,
       connectTimeout: isRedisDisabled ? 100 : 5000,
+      skipVersionCheck: true,
     };
 
 /**
@@ -59,16 +64,19 @@ export class BullQueue<T = any> {
     logger.info(`Queue [${name}] initialized`);
   }
 
-  async addJob(type: string, data: T, jobId?: string): Promise<Job<T, any, string>> {
-    try {
-      const job = await this.queue.add(type as any, data as any, { jobId });
-      logger.debug(`Job ${job.id} added to ${this.name}`);
-      return job as any;
-    } catch (error) {
-      logger.error(`Failed to add job to ${this.name}:`, error);
-      throw error;
-    }
-  }
+  async addJob(type: string, data: T, options?: { jobId?: string, priority?: number }): Promise<Job<T, any, string>> {
+     try {
+       const job = await this.queue.add(type as any, data as any, { 
+         jobId: options?.jobId,
+         priority: options?.priority // Higher number = Lower priority (BullMQ default)
+       });
+       logger.debug(`Job ${job.id} added to ${this.name} with priority ${options?.priority || 'default'}`);
+       return job as any;
+     } catch (error) {
+       logger.error(`Failed to add job to ${this.name}:`, error);
+       throw error;
+     }
+   }
 
   getInternalQueue() {
     return this.queue;
@@ -87,12 +95,18 @@ export abstract class BaseWorker<T = any> {
     this.worker = new Worker(
       name,
       async (job: Job<T, any, string>) => {
+        // Track the latency (time spent in queue)
+        if (job.timestamp && job.processedOn) {
+          const latency = job.processedOn - job.timestamp;
+          trackQueueLatency(this.name, job.name || 'default', latency);
+        }
+        
         logger.debug(`Processing job ${job.id} on ${this.name}`);
         return this.process(job);
       },
       {
         connection: redisConnection,
-        concurrency: 5,
+        concurrency: options?.concurrency || 20, // Increased default concurrency for 10M-user throughput
         ...options,
       }
     );
@@ -116,6 +130,15 @@ export abstract class BaseWorker<T = any> {
 }
 
 // Singleton instances for common queues
+export const highPriorityQueue = new BullQueue('high-priority'); // For OTP, Password Resets, Verification
 export const gamificationQueue = new BullQueue('gamification');
 export const notificationQueue = new BullQueue('notifications');
 export const analyticsQueue = new BullQueue('analytics');
+export const referralQueue = new BullQueue('referrals');
+export const bulkSyncQueue = new BullQueue('bulk-sync', { // Low priority for massive data operations
+  defaultJobOptions: { 
+    priority: 100, 
+    attempts: 5,
+    backoff: { type: 'exponential', delay: 5000 }
+  } 
+});

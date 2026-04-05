@@ -3,6 +3,7 @@ import { SessionService } from '@/services/auth/session-service';
 import { handleApiError, extractClientInfo } from '@/lib/api-utils';
 import { SecurityLogger, SecurityEventType } from '@/services/auth/security-logger';
 
+type SessionItem = Awaited<ReturnType<typeof SessionService.getActiveSessions>>[number];
 /**
  * GET /api/auth/sessions
  * Returns all active sessions for the current user.
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
         const sessions = await SessionService.getActiveSessions(userId);
         
         // Parse deviceInfo if it's stored as JSON string
-        const parsedSessions = sessions.map(session => ({
+        const parsedSessions = sessions.map((session: SessionItem) => ({
             ...session,
             deviceInfo: session.deviceInfo ? JSON.parse(session.deviceInfo) : null,
             isCurrent: session.id === (req.cookies.get('session_id')?.value || '')
@@ -79,7 +80,7 @@ export async function DELETE(req: NextRequest) {
 
         // Verify the session belongs to the user
         const sessions = await SessionService.getActiveSessions(userId);
-        const sessionExists = sessions.find(s => s.id === sessionIdToRevoke);
+        const sessionExists = sessions.find((s: SessionItem) => s.id === sessionIdToRevoke);
 
         if (!sessionExists) {
             return NextResponse.json({ error: 'Session not found or already revoked' }, { status: 404 });
