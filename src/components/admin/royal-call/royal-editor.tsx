@@ -28,7 +28,7 @@ const TYPE_CONFIG = [
   { value: "error" as const, label: "خطر", color: "rose" },
 ];
 
-export function RoyalEditor({ formData, updateField, isArabic, smsInfo }: RoyalEditorProps) {
+export function RoyalEditor({ formData, updateField, isArabic: _isArabic, smsInfo }: RoyalEditorProps) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

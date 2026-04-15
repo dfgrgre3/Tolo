@@ -127,12 +127,12 @@ export function ActivityHeatmap({
   const gridData = React.useMemo(() => generateGridData(), [generateGridData]);
 
   // Get months for header
-  const getMonthLabels = () => {
+  const monthLabels = React.useMemo(() => {
     const months: Array<{ month: string; colSpan: number }> = [];
     let currentMonth = -1;
     let colSpan = 0;
 
-    gridData.forEach((week, index) => {
+    gridData.forEach((week) => {
       const date = new Date(week[0].date);
       const month = date.getMonth();
       
@@ -152,9 +152,7 @@ export function ActivityHeatmap({
     }
 
     return months;
-  };
-
-  const monthLabels = React.useMemo(() => getMonthLabels(), [gridData]);
+  }, [gridData]);
 
   // Calculate total activity
   const totalActivity = React.useMemo(() => {

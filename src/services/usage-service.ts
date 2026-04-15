@@ -93,7 +93,7 @@ export class UsageService {
       const extraPrice = activeSub.plan.extraExamPrice || 0;
       if (extraPrice > 0) {
         try {
-          await prisma.$transaction(async (tx) => {
+          await (prisma as any).$transaction(async (tx: any) => {
             // Atomic decrement with balance check in DATABASE
             const walletUpdate = await tx.userWallet.updateMany({
               where: { userId, balance: { gte: extraPrice } },
@@ -202,7 +202,7 @@ export class UsageService {
         const message = `لقد استهلكت %90 من باقتك (${current}/${limit}).`;
         this.notifyUser(userId, title, message);
       }
-    } catch (err: unknown) {
+    } catch (err: any) {
       logger.error('Threshold check failed:', err instanceof Error ? err.message : String(err));
     }
   }
@@ -217,7 +217,7 @@ export class UsageService {
         type,
         metadata: metadata ? JSON.stringify(metadata) : undefined
       }
-    }).catch(err => logger.error(`Analytics failed for ${userId}:`, err instanceof Error ? err.message : String(err)));
+    }).catch((err: any) => logger.error(`Analytics failed for ${userId}:`, err instanceof Error ? err.message : String(err)));
   }
 
   /**

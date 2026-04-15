@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
           case "delete":
             // Check for enrollments before deleting
-            const enrolledCourses = await prisma.subjectEnrollment.groupBy({
+            const enrolledCourses = await (prisma.subjectEnrollment as any).groupBy({
               by: ["subjectId"],
               where: { subjectId: { in: ids } },
               _count: true,
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
             if (deletableIds.length === 0) {
               return badRequestResponse(
-                "جميع الدورات المحددة مرتبطة بطلاب ولا يمكن حذفها. يرجى إلغاء تفعيلها بدلاً من الحذف."
+                "جميع الدورات المحددة مرتبطة بطلاب ولا يمكن حذفها. يرجى إلغاء تفعيلها بدلًا من الحذف."
               );
             }
 
@@ -121,3 +121,5 @@ export async function POST(request: NextRequest) {
     })
   );
 }
+
+

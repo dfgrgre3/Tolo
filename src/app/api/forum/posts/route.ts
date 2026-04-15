@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!user) {
-          return badRequestResponse("المستخدم غير موجود", "USER_NOT_FOUND");
+          return badRequestResponse("المستخدم غير موجود", "USER_NOT_FOUND" as any);
         }
 
         // Check if category exists
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (!category) {
-          return badRequestResponse("التصنيف غير موجود", "CATEGORY_NOT_FOUND");
+          return badRequestResponse("التصنيف غير موجود", "CATEGORY_NOT_FOUND" as any);
         }
 
         const newPost = await prisma.forumPost.create({

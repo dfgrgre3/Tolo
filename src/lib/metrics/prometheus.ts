@@ -9,10 +9,10 @@
 const isServer = typeof window === 'undefined';
 
 // Lazy-loaded prom-client types
-type Registry = any;
-type Counter = any;
-type Histogram = any;
-type Gauge = any;
+export type Registry = any;
+export type Counter = any;
+export type Histogram = any;
+export type Gauge = any;
 
 // Stub implementations for client-side (tree-shaken in production)
 const createStub = () => ({

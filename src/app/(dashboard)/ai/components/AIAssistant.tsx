@@ -49,17 +49,18 @@ export default function AIAssistant({
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    // إضافة رسالة المستخدم
-    const userMessage: Message = {
-      role: 'user',
-      content: input,
-      timestamp: new Date()
-    };
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
     try {
+      const newUserMessage: Message = {
+        role: 'user',
+        content: input.trim(),
+        timestamp: new Date()
+      };
+      
+      const updatedMessages = [...messages, newUserMessage];
+      setMessages(updatedMessages);
+      setInput('');
+      setIsLoading(true);
+
       // إرسال الطلب إلى واجهة برمجة التطبيقات
       const response = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -67,16 +68,18 @@ export default function AIAssistant({
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          messages: messages.map((msg) => ({
+          messages: updatedMessages.map((msg) => ({
             role: msg.role,
             content: msg.content
           })),
-          provider: 'gemini' // استخدام Gemini كخيار افتراضي
+          provider: 'openrouter' // استخدام OpenRouter كخيار افتراضي (Qwen)
         })
       });
 
       if (!response.ok) {
-        throw new Error('فشلت عملية الاتصال بالمساعد الذكي');
+        const errorData = await response.json().catch(() => ({}));
+        logger.error('API Error Response:', errorData);
+        throw new Error(errorData.error || 'فشلت عملية الاتصال بالمساعد الذكي');
       }
 
       const data = await response.json();
@@ -94,7 +97,7 @@ export default function AIAssistant({
       // إضافة رسالة خطأ
       const errorMessage: Message = {
         role: 'assistant',
-        content: 'عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى لاحقاً.',
+        content: error instanceof Error ? `خطأ: ${error.message}` : 'عذراً، حدث خطأ أثناء معالجة طلبك. يرجى المحاولة مرة أخرى لاحقاً.',
         timestamp: new Date()
       };
       setMessages((prev) => [...prev, errorMessage]);
@@ -120,7 +123,7 @@ export default function AIAssistant({
           <h3 className="font-bold text-lg text-gray-800">{title}</h3>
           <div className="ml-auto flex items-center gap-1 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
             <Zap className="h-3 w-3" />
-            <span>Gemini 2.0 Flash</span>
+            <span>Qwen 3.6 Plus</span>
           </div>
         </div>
       </div>

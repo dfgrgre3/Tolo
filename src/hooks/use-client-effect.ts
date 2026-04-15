@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState, DependencyList } from 'react';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // Lazy load logger to prevent server-only bundling issues
 let loggerInstance: unknown = null;
@@ -13,10 +14,10 @@ async function getLogger() {
     } catch {
       // Fallback to console if logger fails to load
       loggerInstance = {
-        info: (...args: unknown[]) => logger.info(...args),
-        warn: (...args: unknown[]) => logger.warn(...args),
-        error: (...args: unknown[]) => logger.error(...args),
-        debug: (...args: unknown[]) => logger.debug(...args),
+        info: (...args: unknown[]) => void 0,
+        warn: (...args: unknown[]) => void 0,
+        error: (...args: unknown[]) => void 0,
+        debug: (...args: unknown[]) => void 0,
       };
     }
   }
@@ -102,7 +103,7 @@ export function useClientEffect(
         cleanupRef.current = undefined;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return { isHydrated: isHydratedRef.current, hasRun: hasRunRef.current };
@@ -156,7 +157,7 @@ export function useClientEffectSafe(
       };
     }
     return () => window.clearTimeout(runTimer);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isHydrated, ...(deps || [])]);
 
   return { isHydrated, hasRun };
@@ -175,7 +176,7 @@ export function useClientLayoutEffect(effect: () => void | (() => void), deps?: 
     if (typeof window !== 'undefined' && typeof effect === 'function') {
       return effect();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
 

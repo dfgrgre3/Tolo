@@ -226,57 +226,15 @@ async function getPublishedEntityDetail(entityType: string, entityId: string) {
   return null;
 }
 
+import { AIService } from "@/lib/ai/ai-service";
+import { logger } from "@/lib/logger";
+
 async function callAdminAI(prompt: string, responseFormat: "text" | "json" = "text") {
-  const provider = getDefaultProvider();
-  const providerKey = provider === AI_PROVIDERS.OPENAI ? "OPENAI" : "GEMINI";
-
-  if (!validateApiKey(providerKey)) {
-    throw new Error("AI provider is not configured");
-  }
-
-  if (provider === AI_PROVIDERS.OPENAI) {
-    const response = await fetch(provider.baseUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${provider.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [{ role: "user", content: prompt }],
-        temperature: 0.4,
-        max_tokens: 1800,
-        ...(responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to call AI provider");
-    }
-
-    const data = await response.json();
-    return String(data.choices?.[0]?.message?.content || "");
-  }
-
-  const response = await fetch(`${provider.baseUrl}${provider.model}:generateContent?key=${provider.apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ role: "user", parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 1800,
-        responseMimeType: responseFormat === "json" ? "application/json" : "text/plain",
-      },
-    }),
+  return AIService.call(prompt, {
+    temperature: 0.4,
+    maxTokens: 1800,
+    responseFormat,
   });
-
-  if (!response.ok) {
-    throw new Error("Failed to call AI provider");
-  }
-
-  const data = await response.json();
-  return String(data.candidates?.[0]?.content?.parts?.[0]?.text || "");
 }
 
 function parseLooseJson<T>(value: string): T {
@@ -593,7 +551,10 @@ async function getReviewQueue(limit = 8) {
 
 async function generateAdminCopilotReply(prompt: string) {
   const provider = getDefaultProvider();
-  const providerKey = provider === AI_PROVIDERS.OPENAI ? "OPENAI" : "GEMINI";
+  let providerKey = 'OPENROUTER';
+  if (provider === AI_PROVIDERS.OPENAI) providerKey = 'OPENAI';
+  else if (provider === AI_PROVIDERS.GEMINI) providerKey = 'GEMINI';
+  else providerKey = 'OPENROUTER';
 
   const riskStudents = await getRiskStudents(5);
   const reviewQueue = await getReviewQueue(5);
@@ -633,67 +594,24 @@ ${JSON.stringify(context)}
 - لا تدّع تنفيذ إجراء فعلي ما لم يُذكر ذلك بوضوح.
 - إذا كان الطلب يتعلق بامتحان أو محتوى، ذكّر بمرحلة المراجعة البشرية قبل النشر.`;
 
-  if (provider === AI_PROVIDERS.OPENAI) {
-    const response = await fetch(provider.baseUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${provider.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: provider.model,
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.4,
-        max_tokens: 700,
-      }),
+  try {
+    const aiMessage = await AIService.call(prompt, {
+      systemMessage: systemPrompt,
+      temperature: 0.4,
+      maxTokens: 700,
     });
 
-    if (!response.ok) {
-      throw new Error("Failed to generate admin copilot response");
-    }
-
-    const data = await response.json();
     return {
-      message: data.choices?.[0]?.message?.content || "تعذر إنشاء الرد.",
+      message: aiMessage || "تعذر إنشاء الرد.",
       actions: [
         "راجع التوصيات المرتبطة بالطلاب مرتفعي المخاطرة.",
         "اعتمد أو ارفض المحتوى قبل النشر.",
       ],
     };
-  }
-
-  const response = await fetch(`${provider.baseUrl}${provider.model}:generateContent?key=${provider.apiKey}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [
-        {
-          role: "user",
-          parts: [{ text: `${systemPrompt}\n\nالطلب: ${prompt}` }],
-        },
-      ],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 700,
-      },
-    }),
-  });
-
-  if (!response.ok) {
+  } catch (error) {
+    logger.error("Error generating admin copilot response:", error);
     throw new Error("Failed to generate admin copilot response");
   }
-
-  const data = await response.json();
-  return {
-    message: data.candidates?.[0]?.content?.parts?.[0]?.text || "تعذر إنشاء الرد.",
-    actions: [
-      "راجع التوصيات المرتبطة بالطلاب مرتفعي المخاطرة.",
-      "اعتمد أو ارفض المحتوى قبل النشر.",
-    ],
-  };
 }
 
 export async function GET(request: NextRequest) {

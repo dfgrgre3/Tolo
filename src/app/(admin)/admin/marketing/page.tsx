@@ -25,8 +25,6 @@ export default function MarketingPage() {
   const [title, setTitle] = React.useState("🎁 هدية من القيادة العُليا");
   const [content, setContent] = React.useState("أيها المحارب المغوار، لقد أثبت كفاءتك في المعارك السابقة. تقديراً لجهودك، أرسلنا لك هذه الغنيمة لترفع من تصنيفك. استمر في القتال!");
   const [isSending, setIsSending] = React.useState(false);
-  const [loading, setLoading] = React.useState(true);
-  
   const [stats, setStats] = React.useState({
     delivered: 0,
     opened: "0%",
@@ -35,15 +33,12 @@ export default function MarketingPage() {
 
   React.useEffect(() => {
     const fetchStats = async () => {
-      setLoading(true);
       try {
         const res = await fetch("/api/marketing");
-        const data = await res.json();
-        if (data.stats) setStats(data.stats);
+        const result = await res.json();
+        if (result.stats) setStats(result.stats);
       } catch (error: unknown) {
         logger.error("Failed to fetch marketing stats", error instanceof Error ? error.message : String(error));
-      } finally {
-        setLoading(false);
       }
     };
     fetchStats();
@@ -68,8 +63,7 @@ export default function MarketingPage() {
       if (res.ok) {
         toast.success("تم إطلاق حملة الغنائم بنجاح لكافة المحاربين المستهدفين!");
         // Refresh stats
-        const data = await res.json();
-        // Update stats locally or re-fetch
+        await res.json();
       } else {
         toast.error("حدث خطأ أثناء إطلاق الحملة");
       }

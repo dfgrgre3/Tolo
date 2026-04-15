@@ -35,32 +35,9 @@ export function HydrationFix() {
     // Run immediately on mount
     cleanAllElements();
 
-    // Use MutationObserver for continuous cleaning
-    const target = document.body || document.documentElement;
-    if (target && typeof MutationObserver !== 'undefined') {
-      const observer = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-          if (mutation.type === 'childList') {
-            mutation.addedNodes.forEach((node) => {
-              if (node.nodeType === 1) {
-                removeExtensionAttributes(node as Element);
-              }
-            });
-          } else if (mutation.type === 'attributes' && mutation.target.nodeType === 1) {
-            removeExtensionAttributes(mutation.target as Element);
-          }
-        });
-      });
-
-      observer.observe(target, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: attributesToRemove
-      });
-
-      return () => observer.disconnect();
-    }
+    // Run again after a short delay to catch any late injections during initial load
+    const timer = setTimeout(cleanAllElements, 1000);
+    return () => clearTimeout(timer);
   }, []);
 
   return null;

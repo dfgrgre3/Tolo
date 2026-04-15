@@ -14,7 +14,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface ReferralStats {
   referralCode: string;
@@ -29,22 +30,22 @@ export default function ReferralsPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch('/api/users/referrals');
-        if (res.ok) {
-          const data = await res.json();
-          setStats(data);
-        }
-      } catch (err) {
-        logger.error(err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchStats();
-  }, []);
+   useEffect(() => {
+     async function fetchStats() {
+       try {
+         const res = await fetch('/api/users/referrals');
+         if (res.ok) {
+           const data = await res.json();
+           setStats(data);
+         }
+       } catch (err) {
+         logger.error("Error: " + (err instanceof Error ? err.message : String(err)));
+       } finally {
+         setLoading(false);
+       }
+     }
+     fetchStats();
+   }, []);
 
   const copyCode = () => {
     if (stats?.referralCode) {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma, Prisma } from "@/lib/db";
 import { LessonType } from "@prisma/client";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -29,7 +29,7 @@ export async function POST(
   return opsWrapper(request, async (req) => {
     return withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بتعديل المنهج");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ†ظ‡ط¬");
       }
 
       try {
@@ -38,11 +38,11 @@ export async function POST(
         const { curriculum } = body;
 
         if (!Array.isArray(curriculum)) {
-          return badRequestResponse("بيانات المنهج غير صالحة");
+          return badRequestResponse("ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†ظ‡ط¬ ط؛ظٹط± طµط§ظ„ط­ط©");
         }
 
         // Use a transaction to ensure data integrity
-        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        await (prisma as any).$transaction(async (tx: any) => {
           // Get existing topic IDs to know what to delete
           const existingTopics = await tx.topic.findMany({
             where: { subjectId },
@@ -71,7 +71,7 @@ export async function POST(
               topic = await tx.topic.create({
                 data: {
                   subjectId,
-                  name: chapter.name,
+                  title: chapter.name,
                   order: topicOrder,
                 },
               });
@@ -79,7 +79,7 @@ export async function POST(
               topic = await tx.topic.update({
                 where: { id: chapter.id },
                 data: {
-                  name: chapter.name,
+                  title: chapter.name,
                   order: topicOrder,
                 },
               });
@@ -110,7 +110,7 @@ export async function POST(
               const isNewLesson = lesson.id.startsWith("new-");
               const lessonData = {
                 topicId: topic.id,
-                name: lesson.name,
+                title: lesson.name,
                 order: lessonOrder,
                 type: lesson.type || LessonType.VIDEO,
                 videoUrl: lesson.videoUrl || null,
@@ -131,7 +131,7 @@ export async function POST(
           }
         });
 
-        return successResponse({ success: true }, "تم حفظ المنهج بنجاح");
+        return successResponse({ success: true }, "طھظ… ط­ظپط¸ ط§ظ„ظ…ظ†ظ‡ط¬ ط¨ظ†ط¬ط§ط­");
       } catch (error: unknown) {
         logger.error("Error saving curriculum:", error);
         return handleApiError(error);
@@ -163,3 +163,4 @@ export async function GET(
     }
   });
 }
+

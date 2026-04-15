@@ -1,8 +1,8 @@
 'use client';
 
 import { fetchSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
-import type { SettingsPreferences } from '@/types/settings-preferences';
-import { logger } from '@/lib/logger';
+import type { SettingsPreferences, LanguageSettingsPreference, AppearanceSettingsPreference } from '@/types/settings-preferences';
+import { logger } from '@/lib/logger';
 
 /**
  * Global settings initializer that runs on app startup
@@ -26,8 +26,8 @@ class SettingsInitializer {
       const serverPreferences = await fetchSettingsPreferences();
 
       // Apply all settings to ensure consistency
-      this.applyLanguageSettings(serverPreferences.language);
-      this.applyAppearanceSettings(serverPreferences.appearance);
+      this.applyLanguageSettings((serverPreferences as any).language);
+      this.applyAppearanceSettings((serverPreferences as any).appearance);
 
       this.initialized = true;
     } catch (error) {
@@ -42,7 +42,7 @@ class SettingsInitializer {
     }
   }
 
-  private applyLanguageSettings(language: any): void {
+  private applyLanguageSettings(language: LanguageSettingsPreference): void {
     if (!language) return;
 
     const langMap: Record<string, 'rtl' | 'ltr'> = {
@@ -68,7 +68,7 @@ class SettingsInitializer {
     localStorage.setItem('timezone', language.timezone);
   }
 
-  private applyAppearanceSettings(appearance: any): void {
+  private applyAppearanceSettings(appearance: AppearanceSettingsPreference): void {
     if (!appearance) return;
 
     // Apply theme
@@ -89,7 +89,7 @@ class SettingsInitializer {
   async syncSettings(): Promise<void> {
     this.initialized = false;
     this.initPromise = null;
-    return this.initialize();
+    await this.initialize();
   }
 }
 

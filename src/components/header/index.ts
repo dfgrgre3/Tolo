@@ -1,4 +1,6 @@
 export { HeaderLogo } from "./HeaderLogo";
+export { default } from "./Header";
+
 export { HeaderSearch } from "./HeaderSearch";
 export { HeaderNavigation } from "./HeaderNavigation";
 

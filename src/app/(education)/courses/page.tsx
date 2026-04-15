@@ -239,6 +239,14 @@ export default function CoursesPage({
   }, [filteredCourses, sortBy]);
 
   const featuredCourses = useMemo(() => {
+    // Priority 1: Courses manually marked as featured in database
+    // Priority 2: Fallback to highest rated courses
+    const allFeatured = courses.filter(c => (c as any).isFeatured);
+    
+    if (allFeatured.length > 0) {
+      return allFeatured.slice(0, 6);
+    }
+
     const source = showEnrolledOnly ? courses.filter((course) => course.enrolled) : courses;
     return [...source]
       .sort((a, b) => (b.rating || 0) - (a.rating || 0))

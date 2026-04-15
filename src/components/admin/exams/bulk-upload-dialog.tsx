@@ -6,13 +6,14 @@ import {
 } from "@/components/ui/dialog";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { Input } from "@/components/ui/input";
-import { Upload, FileText, Check, X, AlertTriangle, PlayCircle, Clock, Target } from "lucide-react";
+import { Upload, FileText, Check, AlertTriangle, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface BulkUploadDialogProps {
   open: boolean;
@@ -83,9 +84,9 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
         } else {
           toast.error("تنسيق الملف غير مدعوم. يرجى استخدام CSV أو JSON.");
         }
-      } catch (err) {
+      } catch (_err) {
         toast.error("خطأ في قراءة ملف البيانات.");
-        logger.error(err);
+        logger.error("Error: " + String(err));
       }
     };
     reader.readAsText(selectedFile);
@@ -120,7 +121,7 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
         const err = await response.json();
         toast.error(err.error || "فشل في عملية الرفع الجماعي.");
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("خطأ في الاتصال بالخادم.");
     } finally {
       setLoading(false);

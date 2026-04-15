@@ -1,28 +1,6 @@
 "use client";
-
-import * as React from "react";
 import { cn } from "@/lib/utils";
-import { AdminCard } from "../ui/admin-card";
-import { Input } from "@/components/ui/input";
-import {
-  Search,
-  Users,
-  BookOpen,
-  FileText,
-  Trophy,
-  Calendar,
-  MessageSquare,
-  X,
-  Loader2,
-  ArrowRight,
-  Command,
-} from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Search, Command } from "lucide-react";
 
 interface SearchResult {
   id: string;
@@ -41,15 +19,6 @@ interface GlobalSearchProps {
   shortcut?: string;
   onFocus?: () => void;
 }
-
-const typeConfig = {
-  user: { icon: Users, label: "مستخدم", color: "text-blue-500" },
-  subject: { icon: BookOpen, label: "مادة", color: "text-green-500" },
-  exam: { icon: FileText, label: "امتحان", color: "text-purple-500" },
-  challenge: { icon: Trophy, label: "تحدي", color: "text-orange-500" },
-  event: { icon: Calendar, label: "حدث", color: "text-cyan-500" },
-  post: { icon: MessageSquare, label: "منشور", color: "text-pink-500" },
-};
 
 export function GlobalSearch({
   className,

@@ -18,7 +18,6 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Shield,
   FileText,
   Gift,
   Target,
@@ -29,12 +28,10 @@ import {
   BarChart3,
   Monitor,
   ScrollText,
-  Sparkles,
   Home,
   GraduationCap,
   Search,
   Keyboard,
-  Plus,
   Star,
   StarOff,
   Zap,
@@ -48,12 +45,9 @@ import {
   Split,
   Workflow,
   PlayCircle,
-  ShieldCheck,
-  Lock
+  ShieldCheck
 } from "lucide-react";
-import { IconButton, AdminButton } from "@/components/admin/ui/admin-button";
-import { SearchInput } from "@/components/admin/ui/admin-input";
-import { AdminBadge } from "@/components/admin/ui/admin-badge";
+import { IconButton } from "@/components/admin/ui/admin-button";
 import {
   Tooltip,
   TooltipContent,
@@ -332,7 +326,7 @@ const quickActions: QuickAction[] = [
 ];
 
 function SidebarNavLink({ item, pathname, collapsed }: SidebarNavLinkProps) {
-  const isActive = pathname === item.href;
+  const isActive = pathname === item.href || pathname?.startsWith(`${item.href}/`);
   const Icon = item.icon;
 
   const linkContent = (
@@ -440,6 +434,21 @@ export function AdminSidebar() {
 
   const [bookmarks, setBookmarks] = React.useState<BookmarkItem[]>([]);
 
+  React.useEffect(() => {
+    const savedState = window.localStorage.getItem("admin-sidebar-collapsed");
+    if (savedState) {
+      setCollapsed(savedState === "true");
+    }
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((previous) => {
+      const next = !previous;
+      window.localStorage.setItem("admin-sidebar-collapsed", String(next));
+      return next;
+    });
+  };
+
   const removeBookmark = (id: string) => {
     const bookmark = bookmarks.find(b => b.id === id);
     setBookmarks(prev => prev.filter(b => b.id !== id));
@@ -461,7 +470,7 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        "flex h-screen flex-col border-l bg-card/80 backdrop-blur-xl transition-all duration-300 ease-in-out",
+        "flex h-screen flex-col border-l border-border/60 bg-card/80 backdrop-blur-xl transition-all duration-300 ease-in-out",
         collapsed ? "w-[72px]" : "w-[260px]"
       )}
     >
@@ -497,11 +506,20 @@ export function AdminSidebar() {
             icon={collapsed ? ChevronLeft : ChevronRight}
             label={collapsed ? "توسيع" : "طي"}
             variant="ghost"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleCollapsed}
             className={collapsed ? "mx-auto" : ""}
           />
         </div>
       </div>
+
+      {!collapsed && user && (
+        <div className="border-b px-3 py-3">
+          <div className="rounded-2xl border border-primary/10 bg-gradient-to-br from-primary/10 via-background to-background p-3">
+            <p className="text-[11px] font-black text-foreground">{user.name || "Admin"}</p>
+            <p className="mt-1 text-[11px] text-muted-foreground">{user.email || "admin@tolo.com"}</p>
+          </div>
+        </div>
+      )}
 
       {/* Quick Actions */}
       {!collapsed && filteredQuickActions.length > 0 && (

@@ -18,6 +18,7 @@ import { motion } from "framer-motion";
 import { SystemPulse } from "@/components/admin/dashboard/system-pulse";
 import { DraggableDashboard } from "@/components/admin/dashboard/draggable-dashboard";
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
+import { useAuth } from "@/contexts/auth-context";
 
 const UserGrowthChart = dynamic(() => import("@/components/admin/dashboard/user-growth-chart").then(mod => mod.UserGrowthChart), {
   ssr: false,
@@ -137,6 +138,7 @@ const quickActionsConfig = [
 export default function AdminDashboardPage() {
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("week");
   const { playSound } = usePremiumSounds();
+  const { fetchWithAuth } = useAuth();
   
   // Persistence for layout
   const [widgetOrder, setWidgetOrder] = React.useState<string[]>([]);
@@ -161,7 +163,7 @@ export default function AdminDashboardPage() {
   const { data, isLoading: loading, error: queryError, refetch, isFetching } = useQuery({
     queryKey: ['admin', 'dashboard', timeFilter],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/dashboard?period=${timeFilter}`);
+      const response = await fetchWithAuth(`/api/admin/dashboard?period=${timeFilter}`);
       const dashboardData = await response.json();
       if (!response.ok) {
         throw new Error(dashboardData.error || "Failed to fetch dashboard data");

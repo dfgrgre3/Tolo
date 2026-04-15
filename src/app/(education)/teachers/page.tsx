@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
 
 type Teacher = {id: string;name: string;subject: string;onlineUrl?: string | null;};
 type Lesson = {id: string;title: string;location: string;startTime: string;endTime: string;teacher: Teacher;};
@@ -51,43 +52,48 @@ export default function TeachersPage() {
   useEffect(() => {
     (async () => {
       setIsLoading(true);
-      const ts = await fetch("/api/teachers").then((r) => r.json());
-      setTeachers(ts);
-      setIsLoading(false);
+      try {
+        const ts = await apiClient.get<Teacher[]>("/teachers");
+        setTeachers(ts);
+      } catch (err) {
+        logger.error("Failed to fetch teachers:", err);
+      } finally {
+        setIsLoading(false);
+      }
     })();
   }, []);
 
   useEffect(() => {
     if (!userId) return;
     (async () => {
-      const ls = await fetch(`/api/lessons?userId=${userId}`).then((r) => r.json());
-      setLessons(ls);
-      const sch = await fetch(`/api/schedule?userId=${userId}`).then((r) => r.json());
-      setSchedule(sch);
+      try {
+        const ls = await apiClient.get<Lesson[]>(`/lessons?userId=${userId}`);
+        setLessons(ls);
+        const sch = await apiClient.get<Schedule>(`/schedule?userId=${userId}`);
+        setSchedule(sch);
+      } catch (err) {
+        logger.error("Failed to fetch user data:", err);
+      }
     })();
   }, [userId]);
 
   async function addLesson(e: React.FormEvent) {
     e.preventDefault();
     if (!userId || !teacherId || !title || !location || !startTime || !endTime) return;
-    const res = await fetch("/api/lessons", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, teacherId, title, location, startTime, endTime })
-    });
-    const newLesson = await res.json();
-    setLessons((l) => [...l, newLesson]);
+    try {
+      const newLesson = await apiClient.post<Lesson>("/lessons", { userId, teacherId, title, location, startTime, endTime });
+      setLessons((l) => [...l, newLesson]);
+    } catch (err) {
+      logger.error("Failed to add lesson:", err);
+      return;
+    }
 
     try {
       const plan = schedule?.planJson ? JSON.parse(schedule.planJson) : {};
       const dayKey = new Date(startTime).toLocaleDateString("en-CA");
       plan[dayKey] = plan[dayKey] || [];
       plan[dayKey].push({ type: "lesson", title, location, startTime, endTime, teacherId });
-      const s = await fetch("/api/schedule", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, plan })
-      }).then((r) => r.json());
+      const s = await apiClient.post<Schedule>("/schedule", { userId, plan });
       setSchedule(s);
     } catch (err) {logger.error(String(err));}
     setTeacherId("");setTitle("");setLocation("");setStartTime("");setEndTime("");

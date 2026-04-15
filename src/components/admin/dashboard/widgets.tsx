@@ -5,27 +5,21 @@ import Link from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
 import { AdminCard } from "../ui/admin-card";
 import { AdminButton, IconButton } from "../ui/admin-button";
-import { AdminBadge, StatusBadge, CountBadge } from "../ui/admin-badge";
+import { AdminBadge, CountBadge } from "../ui/admin-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   TrendingUp,
-  TrendingDown,
   Users,
-  BookOpen,
   Trophy,
   Target,
   Clock,
   Calendar,
-  Bell,
   FileText,
-  Zap,
   Award,
   MessageSquare,
   Activity,
   ChevronLeft,
-  MoreHorizontal,
   Sparkles,
-  ArrowUpRight,
   RefreshCw,
 } from "lucide-react";
 
@@ -353,7 +347,7 @@ export function UpcomingEvents({
         {displayEvents.length === 0 ? (
           <div className="text-center py-10 text-gray-500 font-bold italic">لا توجد تحركات مرتقبة في الأفق...</div>
         ) : (
-          displayEvents.map((event, index) => {
+          displayEvents.map((event) => {
             const config = eventConfig[event.type];
             const Icon = config.icon;
             const eventDate = new Date(event.date);
@@ -522,7 +516,7 @@ export function ProgressOverview({
       </div>
 
       <div className="space-y-8">
-        {items.map((item, index) => {
+        {items.map((item) => {
           const percentage = Math.min(100, Math.round((item.current / item.target) * 100));
           const color = item.color || "blue";
 

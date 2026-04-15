@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { type Notification, type NotificationType } from '@/types/notification';
+import { type Notification, type UINotificationType } from '@/types/notification';
 import { logger } from '@/lib/logger';
 import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { toast } from 'sonner';

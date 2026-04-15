@@ -3,7 +3,7 @@
 import * as React from "react";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { Split, BarChart3, TrendingUp, Activity, Users, Eye, Target } from "lucide-react";
+import { Split, BarChart3, TrendingUp, Activity, Users, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Experiment } from "@/types/ab-testing";

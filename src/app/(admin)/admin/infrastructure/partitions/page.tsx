@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Database, 
@@ -8,23 +8,19 @@ import {
   ShieldAlert, 
   Activity, 
   Layers, 
-  Calendar, 
   RefreshCw, 
   ChevronRight, 
-  AlertTriangle,
   Zap,
   HardDrive,
-  BarChart3,
   Server,
   Terminal,
   Shield
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { logger } from "@/lib/logger";
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/5 bg-card/40 shadow-2xl backdrop-blur-3xl ring-1 ring-white/5",
@@ -40,8 +36,6 @@ interface PartitionHealth {
 }
 
 export default function PartitionsHealthPage() {
-  const [activeTab, setActiveTab] = useState("all");
-  
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ['admin', 'infrastructure', 'partitions'],
     queryFn: async () => {

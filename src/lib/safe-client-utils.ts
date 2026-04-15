@@ -472,12 +472,18 @@ function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
 
 async function refreshAuthSession(): Promise<boolean> {
   try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
+
     const refreshResponse = await fetch('/api/auth/refresh', {
       method: 'POST',
       credentials: 'include',
+      signal: controller.signal,
     });
+    
+    clearTimeout(timeout);
     return refreshResponse.ok;
-  } catch {
+  } catch (error) {
     return false;
   }
 }

@@ -1,16 +1,18 @@
 import { Client } from '@elastic/elasticsearch';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/db';
+import { BaseService } from '@/lib/base-service';
 
 /**
  * GlobalSearchService - High-performance search for 10M+ records.
  * Powered by Elasticsearch to offload expensive ILIKE queries from PostgreSQL.
  */
-export class GlobalSearchService {
+export class GlobalSearchService extends BaseService {
   private static instance: GlobalSearchService;
   private client: Client | null = null;
 
   private constructor() {
+    super('GlobalSearchService', { failureThreshold: 10 });
     this.initializeClient();
   }
 
@@ -43,9 +45,9 @@ export class GlobalSearchService {
    * Search for books with ranking and relevance.
    */
   async searchBooks(query: string, limit: number = 20) {
-    if (!this.client || !query) return null;
+    return this.runProtected('searchBooks', async () => {
+      if (!this.client || !query) return [];
 
-    try {
       const response = await this.client.search({
         index: 'thanawy-books',
         body: {
@@ -65,10 +67,36 @@ export class GlobalSearchService {
         ...hit._source,
         score: hit._score,
       }));
-    } catch (error) {
-      logger.error('Elasticsearch search error:', error);
-      return null; // Fallback to DB
-    }
+    }, () => []);
+  }
+
+  /**
+   * Search for courses.
+   */
+  async searchCourses(query: string, limit: number = 20) {
+    return this.runProtected('searchCourses', async () => {
+      if (!this.client || !query) return [];
+
+      const response = await this.client.search({
+        index: 'thanawy-courses',
+        body: {
+          query: {
+            multi_match: {
+              query,
+              fields: ['title^3', 'description^2', 'subjectName', 'tags'],
+              fuzziness: 'AUTO',
+            },
+          },
+          size: limit,
+        },
+      });
+
+      return response.hits.hits.map((hit: any) => ({
+        id: hit._id,
+        ...hit._source,
+        score: hit._score,
+      }));
+    }, () => []);
   }
 
   /**
@@ -97,8 +125,32 @@ export class GlobalSearchService {
   }
 
   /**
+   * Index or Update a course.
+   */
+  async indexCourse(course: any) {
+    if (!this.client) return;
+
+    try {
+      await this.client.index({
+        index: 'thanawy-courses',
+        id: course.id,
+        body: {
+          title: course.title,
+          description: course.description,
+          subjectName: course.subject?.name,
+          teacherName: course.teacher?.name,
+          tags: course.tags,
+          price: course.price,
+          createdAt: course.createdAt,
+        },
+      });
+    } catch (error) {
+      logger.error(`Failed to index course ${course.id}:`, error);
+    }
+  }
+
+  /**
    * Bulk Sync Books from DB to Elasticsearch.
-   * Useful for initial migration or periodic reconciliation.
    */
   async bulkSyncBooks() {
     if (!this.client) return;
@@ -132,3 +184,4 @@ export class GlobalSearchService {
 
 export const searchService = GlobalSearchService.getInstance();
 export default searchService;
+

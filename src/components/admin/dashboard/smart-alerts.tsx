@@ -12,8 +12,6 @@ import {
   Info,
   TrendingUp,
   TrendingDown,
-  Users,
-  Activity,
   X,
   Bell,
 } from "lucide-react";

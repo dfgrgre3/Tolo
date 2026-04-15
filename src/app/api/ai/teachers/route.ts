@@ -47,10 +47,10 @@ export async function POST(request: NextRequest) {
       try {
         localTeachers = await prisma.teacher.findMany({
           where: {
-            subjectId: subject as string,
+            subjects: { some: { id: subject as string } }
           },
           include: {
-            subject: true
+            subjects: true
           }
         });
       } catch (dbError) {
@@ -138,29 +138,20 @@ export async function POST(request: NextRequest) {
               const teachersData = JSON.parse(teachersContent);
               aiTeachers = teachersData.teachers || [];
 
-              // 7?8~7? 7?88&7?7?7?8y8  7?87?7?7? 8~8y 87?7?7?7? 7?87?8y7?8 7?7?
+              // 7?8~7? 7?8 8&7?7?7?8y8  7?8 7?7?7? 8~8y 8 7?7?7?7? 7?8 7?8y7?8 7?7?
               for (const teacher of aiTeachers) {
                 try {
-                  await prisma.teacher.upsert({
-                    where: {
-                      // 7?7?7?7?7?7?8& 7?7?8& 7?88&7?7?7? 8?7?88&7?7?7? 8?8&8~7?7?7? 8~7?8y7?
-                      name_subject: {
-                        name: teacher.name,
-                        subjectId: teacher.subjectId || teacher.subject
-                      }
-                    },
-                    update: {
-                      onlineUrl: teacher.url,
-                      rating: teacher.rating,
-                      notes: teacher.description
-                    },
-                    create: {
+                  await prisma.teacher.create({
+                    data: {
+                      userId: 'ai-system-user', // Fallback or logic to find/create system user
                       name: teacher.name,
-                      subjectId: teacher.subjectId || teacher.subject,
                       onlineUrl: teacher.url,
                       rating: teacher.rating,
-                      notes: teacher.description
-                    }
+                      notes: teacher.description,
+                      subjects: {
+                        connect: { id: teacher.subjectId || teacher.subject }
+                      }
+                    } as any
                   });
                 } catch (dbError) {
                   logger.error("Error saving teacher to database:", dbError);

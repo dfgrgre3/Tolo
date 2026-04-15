@@ -95,22 +95,10 @@ export function opsWrapper<T extends NextResponse>(
     return Promise.race([handlerPromise, timeoutPromise]);
   };
 
-  try {
-    return opsMiddleware(request, handlerWithTimeout) as Promise<T>;
-  } catch (error) {
-    // Fallback error handling if middleware fails
-    return Promise.resolve(
-      NextResponse.json(
-        { 
-          error: 'Middleware error', 
-          code: 'MIDDLEWARE_ERROR',
-          ...(process.env.NODE_ENV === 'development' && { 
-            details: error instanceof Error ? error.message : 'Unknown error' 
-          })
-        },
-        { status: 500 }
-      ) as T
-    );
-  }
+  return opsMiddleware(request, handlerWithTimeout).catch((error) => {
+    // Standardized global error handling for all ops-wrapped routes
+    const { handleError } = require('../error-handler');
+    return handleError(error);
+  }) as Promise<T>;
 }
 

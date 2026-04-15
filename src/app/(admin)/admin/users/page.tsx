@@ -6,9 +6,9 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { RoleBadge, StatusBadge } from "@/components/admin/ui/admin-badge";
-import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
+import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search, Send, CheckSquare } from "lucide-react";
+import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search, Send } from "lucide-react";
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
@@ -275,7 +275,7 @@ export default function AdminUsersPage() {
               label: "حذف السجلات", 
               icon: UserPlus, 
               variant: "destructive",
-              onClick: (rows) => toast.warning("يرجى حذف كل مستخدم على حدة لضمان السلامة") 
+              onClick: (_rows) => toast.warning("يرجى حذف كل مستخدم على حدة لضمان السلامة") 
             },
           ]}
           totalRows={data?.data?.pagination?.total || 0}

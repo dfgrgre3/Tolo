@@ -43,7 +43,7 @@ async function getCourseCategories() {
         name: "asc",
       },
     }),
-    prisma.subject.groupBy({
+    (prisma.subject as any).groupBy({
       by: ["categoryId"],
       where: {
         categoryId: {

@@ -55,7 +55,6 @@ export async function GET(
               select: {
                 id: true,
                 title: true,
-                difficulty: true,
                 isActive: true,
                 _count: {
                   select: {
@@ -66,7 +65,7 @@ export async function GET(
             },
             enrollments: {
               orderBy: [
-                { user: { totalXP: "desc" } },
+                { user: { xp: { totalXP: "desc" } } },
                 { createdAt: "desc" },
               ],
               take: 10,
@@ -77,8 +76,13 @@ export async function GET(
                     name: true,
                     email: true,
                     avatar: true,
-                    totalXP: true,
-                    level: true,
+                    avatar: true,
+                    xp: {
+                      select: {
+                        totalXP: true,
+                        level: true,
+                      }
+                    }
                   },
                 },
               },
@@ -114,8 +118,7 @@ export async function GET(
           type: subject.type ?? "CORE",
           icon: subject.icon,
           color: subject.color,
-          gradeLevel: subject.gradeLevel,
-          educationType: subject.educationType,
+          level: subject.level,
           createdAt: subject.createdAt.toISOString(),
           updatedAt: subject.updatedAt.toISOString(),
           _count: subject._count,
@@ -127,24 +130,21 @@ export async function GET(
               chapters: book._count.progresses,
             },
           })),
-          exams: subject.exams.map((exam: { id: string; title: string; difficulty: string; isActive: boolean; _count: { results: number } }) => ({
+          exams: subject.exams.map((exam: any) => ({
             id: exam.id,
             title: exam.title,
             duration: 0,
-            difficulty: exam.difficulty,
             isActive: exam.isActive,
             _count: exam._count,
           })),
-          topStudents: subject.enrollments.map((enrollment: {
-            user: {
-              id: string;
-              name: string | null;
-              email: string;
-              avatar: string | null;
-              totalXP: number;
-              level: number;
-            };
-          }) => enrollment.user),
+          topStudents: subject.enrollments.map((enrollment: any) => ({
+            id: enrollment.user.id,
+            name: enrollment.user.name,
+            email: enrollment.user.email,
+            avatar: enrollment.user.avatar,
+            totalXP: enrollment.user.xp?.totalXP || 0,
+            level: enrollment.user.xp?.level || 1,
+          })),
           recentActivity: subject.studySessions.map((session: {
             id: string;
             createdAt: Date;

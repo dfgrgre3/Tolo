@@ -9,6 +9,9 @@ import nodemailer from 'nodemailer';
 import twilio from 'twilio';
 import { logger } from '@/lib/logger';
 import redisService from '@/lib/redis';
+import { Transporter } from 'nodemailer';
+
+let transporter: Transporter | null = null;
 
 // ==============================
 // إرسال إشعار عبر البريد الإلكتروني
@@ -36,16 +39,18 @@ export async function sendEmailNotification(options: {
             return { success: true, simulated: true };
         }
 
-        // إنشاء ناقل البريد الإلكتروني
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: process.env.SMTP_SECURE === 'true',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS,
-            },
-        });
+        // استخدام ناقل بريد إلكتروني واحد (Singleton) لتحسين الأداء
+        if (!transporter) {
+            transporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST,
+                port: parseInt(process.env.SMTP_PORT || '587'),
+                secure: process.env.SMTP_SECURE === 'true',
+                auth: {
+                    user: process.env.SMTP_USER,
+                    pass: process.env.SMTP_PASS,
+                },
+            });
+        }
 
         // تحضير محتوى البريد الإلكتروني
         const emailText = text || (html ? html.replace(/<[^>]*>/g, '') : '');

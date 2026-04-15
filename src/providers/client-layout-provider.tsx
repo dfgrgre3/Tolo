@@ -84,9 +84,10 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
     }
 
     // Save scroll on beforeunload or path change
+    let scrollTimeout: NodeJS.Timeout;
     const onScroll = () => {
-      // Debounce slightly or just use passive
-      saveScrollPosition();
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(saveScrollPosition, 150);
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });

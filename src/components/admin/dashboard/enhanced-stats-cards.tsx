@@ -3,7 +3,7 @@
 import * as React from "react";
 import { cn, formatNumber } from "@/lib/utils";
 import { AdminCard } from "../ui/admin-card";
-import { TrendingUp, TrendingDown, Minus, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Minus, ArrowUpRight, ArrowDownRight } from "lucide-react";
 
 interface StatItem {
   title: string;

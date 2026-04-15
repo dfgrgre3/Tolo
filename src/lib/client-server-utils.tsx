@@ -8,7 +8,8 @@
 
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { useClientEffect } from '@/hooks/use-client-effect';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 type Logger = {
   info: (message: string, context?: unknown) => void;
@@ -272,12 +273,12 @@ export function useClientOnlyEffect(
           cleanupRef.current = result;
         }
       } catch (error) {
-        const logger = await getLogger().catch(() => null);
-        if (logger) {
-          logger.error('Client-only effect failed:', error);
-        } else {
-          logger.error('Client-only effect failed:', error);
-        }
+         const asyncLogger = await getLogger().catch(() => null);
+         if (asyncLogger) {
+           asyncLogger.error('Client-only effect failed:', error);
+         } else {
+           (await getLogger()).error('Client-only effect failed: ' + String(error));
+         }
         options?.onError?.(error as Error);
       }
     })();

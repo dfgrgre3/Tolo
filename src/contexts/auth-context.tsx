@@ -6,7 +6,7 @@ import { clearUserId } from '@/lib/user-utils';
 import { sanitizeRedirectPath } from '@/services/auth/navigation';
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
 
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 /**
  * AuthContext - Client-side authentication state management.
@@ -102,11 +102,16 @@ export function AuthProvider({
 
         refreshPromise.current = (async () => {
             try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
                 const response = await fetch('/api/auth/refresh', {
                     method: 'POST',
                     credentials: 'include',
+                    signal: controller.signal,
                 });
 
+                clearTimeout(timeout);
                 return response.ok;
             } catch {
                 return false;
@@ -158,7 +163,7 @@ export function AuthProvider({
         }
 
         return response;
-    }, [refreshToken, router]);
+    }, [refreshToken, router, setUser]);
 
     /**
      * Fetch current user profile from the server.
@@ -173,22 +178,33 @@ export function AuthProvider({
                 await refreshPromise.current;
             }
 
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 10000);
+
             const response = await fetch('/api/auth/me', {
                 credentials: 'include',
                 cache: 'no-store',
+                signal: controller.signal,
             });
 
             // If it returns 401, it might be because the access token is expired
             // but the server-side /api/auth/me didn't auto-refresh (or failed).
             // We should try one explicit refresh if we haven't already.
             if (response.status === 401) {
+                clearTimeout(timeout);
                 const refreshed = await refreshToken();
                 if (refreshed) {
                     // Retry getting user with new tokens
+                    const retryController = new AbortController();
+                    const retryTimeout = setTimeout(() => retryController.abort(), 10000);
+
                     const retryResponse = await fetch('/api/auth/me', {
                         credentials: 'include',
                         cache: 'no-store',
+                        signal: retryController.signal,
                     });
+
+                    clearTimeout(retryTimeout);
                     if (retryResponse.ok) {
                         const data = await retryResponse.json();
                         setUser(data.user);
@@ -196,11 +212,13 @@ export function AuthProvider({
                     }
                 }
             } else if (response.ok) {
+                clearTimeout(timeout);
                 const data = await response.json();
                 setUser(data.user);
                 return true;
             }
 
+            clearTimeout(timeout);
             if (clearOnFailure) {
                 setUser(null);
                 clearUserId();
@@ -214,7 +232,7 @@ export function AuthProvider({
             }
             return false;
         }
-    }, [refreshToken]);
+    }, [refreshToken, setUser]);
 
     /**
      * Login function - authenticates with the API and updates state.
@@ -284,7 +302,7 @@ export function AuthProvider({
         } catch {
             return { success: false, error: 'Network error. Please try again.' };
         }
-    }, [delay, refreshUser]);
+    }, [delay, refreshUser, setUser]);
 
     /**
      * Verify 2FA token and complete login.
@@ -329,7 +347,7 @@ export function AuthProvider({
         } catch {
             return { success: false, error: 'Network error. Please try again.' };
         }
-    }, [delay, refreshUser]);
+    }, [delay, refreshUser, setUser]);
 
     /**
      * Register function - creates account via API.
@@ -424,7 +442,7 @@ export function AuthProvider({
         } catch {
             return { success: false, error: 'Network error. Please try again.' };
         }
-    }, [delay, login, refreshUser]);
+    }, [delay, login, refreshUser, setUser]);
 
     /**
      * Logout function - clears session and redirects to login.
@@ -435,6 +453,7 @@ export function AuthProvider({
                 method: 'POST',
                 credentials: 'include',
                 cache: 'no-store',
+                signal: AbortSignal.timeout(5000), // 5s timeout for logout
             });
         } catch {
             // Even if API call fails, clear local state
@@ -444,7 +463,7 @@ export function AuthProvider({
         clearUserId();
         router.replace('/login');
         router.refresh();
-    }, [router]);
+    }, [router, setUser]);
 
     // Check auth state on mount
     useEffect(() => {
@@ -462,7 +481,7 @@ export function AuthProvider({
         return () => {
             mounted = false;
         };
-    }, [refreshUser]);
+    }, [refreshUser, setIsLoading]);
 
     const value: AuthContextType = {
         user,

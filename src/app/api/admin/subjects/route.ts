@@ -13,7 +13,7 @@ import {
 import { logger } from '@/lib/logger';
 
 const subjectSchema = z.object({
-  name: z.string().min(1, "اسم المادة مطلوب"),
+  name: z.string().min(1, "ط§ط³ظ… ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨"),
   nameAr: z.string().optional().nullable(),
   code: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بالوصول إلى إدارة المواد");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظˆط§ط¯");
       }
 
       try {
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
           });
 
           if (!subject) {
-            return badRequestResponse("المادة غير موجودة");
+            return badRequestResponse("ط§ظ„ظ…ط§ط¯ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
           }
 
           return successResponse({
@@ -124,8 +124,8 @@ export async function GET(request: NextRequest) {
               thumbnailUrl: subject.thumbnailUrl,
               trailerUrl: subject.trailerUrl,
             },
-            curriculum: (includeCurriculum && subject.topics)
-              ? (subject.topics as unknown as CurriculumTopic[]).map((topic) => ({
+            curriculum: (includeCurriculum && (subject as any).topics)
+              ? ((subject as any).topics as unknown as CurriculumTopic[]).map((topic) => ({
                 id: topic.id,
                 title: topic.title,
                 order: topic.order,
@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
                   order: subTopic.order,
                   type: subTopic.type,
                   videoUrl: subTopic.videoUrl,
-                  durationMinutes: subTopic.durationMinutes,
+                  durationMinutes: (subTopic as any).durationMinutes || 0,
                   isFree: subTopic.isFree,
                   order_sub: subTopic.order,
                   description: subTopic.description,
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بإنشاء مواد");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط¥ظ†ط´ط§ط، ظ…ظˆط§ط¯");
       }
 
       try {
@@ -223,7 +223,7 @@ export async function POST(request: NextRequest) {
           data: validation.data,
         });
 
-        return successResponse(subject, "تمت إضافة المادة بنجاح", 201);
+        return successResponse(subject, "طھظ…طھ ط¥ط¶ط§ظپط© ط§ظ„ظ…ط§ط¯ط© ط¨ظ†ط¬ط§ط­", 201);
       } catch (error) {
         return handleApiError(error);
       }
@@ -235,7 +235,7 @@ export async function PATCH(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بتحديث المواد");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط­ط¯ظٹط« ط§ظ„ظ…ظˆط§ط¯");
       }
 
       try {
@@ -243,7 +243,7 @@ export async function PATCH(request: NextRequest) {
         const { id, ...data } = body;
 
         if (!id) {
-          return badRequestResponse("معرف المادة مطلوب");
+          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨");
         }
 
         const subject = await prisma.subject.update({
@@ -251,7 +251,7 @@ export async function PATCH(request: NextRequest) {
           data,
         });
 
-        return successResponse(subject, "تم تحديث المادة بنجاح");
+        return successResponse(subject, "طھظ… طھط­ط¯ظٹط« ط§ظ„ظ…ط§ط¯ط© ط¨ظ†ط¬ط§ط­");
       } catch (error) {
         return handleApiError(error);
       }
@@ -263,7 +263,7 @@ export async function PUT(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بتعديل المنهج");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ†ظ‡ط¬");
       }
 
       try {
@@ -271,14 +271,14 @@ export async function PUT(request: NextRequest) {
         const { id, curriculum } = body;
 
         if (!id) {
-          return badRequestResponse("معرف المادة مطلوب");
+          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨");
         }
 
         if (!Array.isArray(curriculum)) {
-          return badRequestResponse("بيانات المنهج غير صالحة");
+          return badRequestResponse("ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†ظ‡ط¬ ط؛ظٹط± طµط§ظ„ط­ط©");
         }
 
-        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        await (prisma as any).$transaction(async (tx: any) => {
           const existingTopics = await tx.topic.findMany({
             where: { subjectId: id },
             select: { id: true },
@@ -356,7 +356,7 @@ export async function PUT(request: NextRequest) {
           }
         });
 
-        return successResponse({ success: true }, "تم حفظ المنهج بنجاح");
+        return successResponse({ success: true }, "طھظ… ط­ظپط¸ ط§ظ„ظ…ظ†ظ‡ط¬ ط¨ظ†ط¬ط§ط­");
       } catch (error) {
         return handleApiError(error);
       }
@@ -368,7 +368,7 @@ export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بحذف المواد");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط­ط°ظپ ط§ظ„ظ…ظˆط§ط¯");
       }
 
       try {
@@ -376,35 +376,35 @@ export async function DELETE(request: NextRequest) {
         const { id } = body;
 
         if (!id) {
-          return badRequestResponse("معرف المادة مطلوب");
+          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨");
         }
 
-        // 1. التحقق من وجود مشتركين (أهم فحص)
+        // 1. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ…ط´طھط±ظƒظٹظ† (ط£ظ‡ظ… ظپط­طµ)
         const enrollmentsCount = await prisma.subjectEnrollment.count({
           where: { subjectId: id }
         });
 
         if (enrollmentsCount > 0) {
-          return badRequestResponse(`لا يمكن حذف هذه الدورة لوجود ${enrollmentsCount} طالب مشترك بها. القواعد تمنع حذف البيانات المرتبطة بسجلات مالية أو طلابية. يرجى إلغاء تفعيل الدورة بدلاً من حذفها.`);
+          return badRequestResponse(`ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط© ظ„ظˆط¬ظˆط¯ ${enrollmentsCount} ط·ط§ظ„ط¨ ظ…ط´طھط±ظƒ ط¨ظ‡ط§. ط§ظ„ظ‚ظˆط§ط¹ط¯ طھظ…ظ†ط¹ ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±طھط¨ط·ط© ط¨ط³ط¬ظ„ط§طھ ظ…ط§ظ„ظٹط© ط£ظˆ ط·ظ„ط§ط¨ظٹط©. ظٹط±ط¬ظ‰ ط¥ظ„ط؛ط§ط، طھظپط¹ظٹظ„ ط§ظ„ط¯ظˆط±ط© ط¨ط¯ظ„ط§ظ‹ ظ…ظ† ط­ط°ظپظ‡ط§.`);
         }
 
-        // 2. التحقق من وجود بيانات أخرى قد تمنع الحذف (مثل الامتحانات أو الكتب إذا لم تكن Cascade)
-        // ملاحظة: معظم العلاقات الأخرى مرتبطة بـ Cascade في Schema
+        // 2. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ط¨ظٹط§ظ†ط§طھ ط£ط®ط±ظ‰ ظ‚ط¯ طھظ…ظ†ط¹ ط§ظ„ط­ط°ظپ (ظ…ط«ظ„ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط£ظˆ ط§ظ„ظƒطھط¨ ط¥ط°ط§ ظ„ظ… طھظƒظ† Cascade)
+        // ظ…ظ„ط§ط­ط¸ط©: ظ…ط¹ط¸ظ… ط§ظ„ط¹ظ„ط§ظ‚ط§طھ ط§ظ„ط£ط®ط±ظ‰ ظ…ط±طھط¨ط·ط© ط¨ظ€ Cascade ظپظٹ Schema
         
         await prisma.subject.delete({
           where: { id },
         });
 
-        return successResponse({ success: true }, "تم حذف الدورة بنجاح");
+        return successResponse({ success: true }, "طھظ… ط­ط°ظپ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­");
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
+        const errorMessage = error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ";
         const errorCode = (error as { code?: string }).code;
         
         logger.error('Error deleting course:', error);
         
-        // التقاط أخطاء Prisma المحددة
+        // ط§ظ„طھظ‚ط§ط· ط£ط®ط·ط§ط، Prisma ط§ظ„ظ…ط­ط¯ط¯ط©
         if (errorCode === 'P2003') {
-          return badRequestResponse("فشل الحذف بسبب وجود قيود (Constraints) في قاعدة البيانات. هناك سجلات أخرى مرتبطة بهذه المادة تمنع حذفها.");
+          return badRequestResponse("ظپط´ظ„ ط§ظ„ط­ط°ظپ ط¨ط³ط¨ط¨ ظˆط¬ظˆط¯ ظ‚ظٹظˆط¯ (Constraints) ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظ‡ظ†ط§ظƒ ط³ط¬ظ„ط§طھ ط£ط®ط±ظ‰ ظ…ط±طھط¨ط·ط© ط¨ظ‡ط°ظ‡ ط§ظ„ظ…ط§ط¯ط© طھظ…ظ†ط¹ ط­ط°ظپظ‡ط§.");
         }
         
         return handleApiError(error);
@@ -412,3 +412,5 @@ export async function DELETE(request: NextRequest) {
     })
   );
 }
+
+

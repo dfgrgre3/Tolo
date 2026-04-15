@@ -22,6 +22,10 @@ export async function GET(req: NextRequest) {
 
       // 2. Setup Redis Sub for this specific user
       const redis = await redisService.getClient();
+      if (!redis) {
+        controller.close();
+        return;
+      }
       const sub = redis.duplicate();
       const userChannel = `user:${userId}:events`;
 

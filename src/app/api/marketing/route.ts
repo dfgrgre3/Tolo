@@ -9,9 +9,9 @@ export async function GET(request: NextRequest) {
     try {
       const stats = await prisma.marketingCampaign.aggregate({
         _sum: {
-          sentCount: true,
-          openCount: true,
-          claimCount: true
+          deliveredCount: true,
+          openedCount: true,
+          claimedCount: true
         }
       });
 
@@ -20,8 +20,8 @@ export async function GET(request: NextRequest) {
         take: 5
       });
 
-      const totalSent = stats._sum.sentCount || 0;
-      const totalOpen = stats._sum.openCount || 0;
+      const totalSent = stats._sum.deliveredCount || 0;
+      const totalOpen = stats._sum.openedCount || 0;
       
       const ctr = totalSent > 0 ? ((totalOpen / totalSent) * 100).toFixed(1) + "%" : "0%";
 
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         stats: {
           delivered: totalSent,
           opened: ctr,
-          lootsClaimed: stats._sum.claimCount || 0
+          lootsClaimed: stats._sum.claimedCount || 0
         },
         recentCampaigns: campaigns
       });
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
             rewardType: data.rewardType,
             rewardValue: parseFloat(data.rewardValue) || 0,
             status: "SENT", // Simulating immediate send for now
-            sentCount: 450, // Mock count of recipients
+            deliveredCount: 450, // Mock count of recipients
           }
         });
 

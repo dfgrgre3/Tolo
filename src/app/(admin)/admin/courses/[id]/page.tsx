@@ -6,7 +6,6 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
@@ -27,10 +26,8 @@ import {
   Edit,
   Trash2,
   BookOpen,
-  TrendingUp,
   Layers,
   Eye,
-  Award,
   Search,
   ChevronLeft,
   ChevronRight,
@@ -61,6 +58,7 @@ interface Course {
   categoryId: string | null;
   thumbnailUrl: string | null;
   trailerUrl: string | null;
+  trailerDurationMinutes?: number | null;
   isActive: boolean;
   isPublished: boolean;
   durationHours: number;
@@ -113,12 +111,10 @@ interface Review {
   createdAt: string;
 }
 
-// ─── Style Maps ──────────────────────────────────────────────
 const levelConfig: Record<string, { label: string; color: string; bg: string; border: string; gradient: string }> = {
-  EASY: { label: "مبتدئ", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", gradient: "from-emerald-500/20 to-emerald-500/5" },
-  MEDIUM: { label: "متوسط", color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20", gradient: "from-sky-500/20 to-sky-500/5" },
-  HARD: { label: "متقدم", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20", gradient: "from-amber-500/20 to-amber-500/5" },
-  EXPERT: { label: "خبير", color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20", gradient: "from-rose-500/20 to-rose-500/5" },
+  BEGINNER: { label: "مبتدئ", color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20", gradient: "from-emerald-500/20 to-emerald-500/5" },
+  INTERMEDIATE: { label: "متوسط", color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20", gradient: "from-sky-500/20 to-sky-500/5" },
+  ADVANCED: { label: "متقدم", color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20", gradient: "from-amber-500/20 to-amber-500/5" },
 };
 
 // ─── Mini Components ────────────────────────────────────────
@@ -221,13 +217,21 @@ export default function CourseDetailsPage() {
   });
 
   // ─── Data Fetching ──────────────────────────────────────
-  const { data: course, isLoading, refetch } = useQuery({
+  const { data: course, isLoading, error: courseError } = useQuery({
     queryKey: ["admin", "course", courseId],
     queryFn: async () => {
       const response = await fetch(`/api/admin/courses/${courseId}`);
       const result = await response.json();
-      return result.data?.course as Course;
+      if (!response.ok) {
+        throw new Error(result.error || result.message || "Failed to fetch course");
+      }
+      if (!result.data?.course) {
+        throw new Error("Course data not found");
+      }
+      return result.data.course as Course;
     },
+    enabled: !!courseId,
+    retry: 1,
   });
 
   const { data: stats } = useQuery({
@@ -235,9 +239,16 @@ export default function CourseDetailsPage() {
     queryFn: async () => {
       const response = await fetch(`/api/admin/courses/${courseId}/stats`);
       const result = await response.json();
-      return result.data?.stats as CourseStats;
+      if (!response.ok) {
+        throw new Error(result.error || result.message || "Failed to fetch stats");
+      }
+      if (!result.data?.stats) {
+        throw new Error("Stats data not found");
+      }
+      return result.data.stats as CourseStats;
     },
     enabled: !!course,
+    retry: 1,
   });
 
   const { data: studentsData } = useQuery({
@@ -247,9 +258,16 @@ export default function CourseDetailsPage() {
       if (studentSearch) params.set("search", studentSearch);
       const response = await fetch(`/api/admin/courses/${courseId}/students?${params}`);
       const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || result.message || "Failed to fetch students");
+      }
+      if (result.data === undefined) {
+        throw new Error("Students data not found");
+      }
       return result.data as { students: Student[]; pagination: { total: number; totalPages: number } };
     },
-    enabled: activeTab === "students",
+    enabled: activeTab === "students" && !!courseId,
+    retry: 1,
   });
 
   const { data: reviewsData } = useQuery({
@@ -257,6 +275,12 @@ export default function CourseDetailsPage() {
     queryFn: async () => {
       const response = await fetch(`/api/admin/courses/${courseId}/reviews?page=${reviewPage}&limit=10`);
       const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || result.message || "Failed to fetch reviews");
+      }
+      if (result.data === undefined) {
+        throw new Error("Reviews data not found");
+      }
       return result.data as {
         reviews: Review[];
         averageRating: number;
@@ -264,7 +288,8 @@ export default function CourseDetailsPage() {
         pagination: { total: number; totalPages: number };
       };
     },
-    enabled: activeTab === "reviews",
+    enabled: activeTab === "reviews" && !!courseId,
+    retry: 1,
   });
 
   // ─── Handlers ──────────────────────────────────────────
@@ -311,31 +336,39 @@ export default function CourseDetailsPage() {
     );
   }
 
-  if (!course) {
+  if (courseError || !course) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 text-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-muted/50 mb-4">
-          <BookOpen className="h-10 w-10 text-muted-foreground/30" />
+      <div className="flex flex-col items-center justify-center h-96 text-center gap-6">
+        <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-destructive/10 text-destructive animate-bounce">
+          <BookOpen className="h-10 w-10" />
         </div>
-        <h3 className="text-xl font-black text-muted-foreground">الدورة غير موجودة</h3>
-        <p className="text-sm text-muted-foreground mt-2 max-w-sm">
-          يرجى التحقق من المعرف المدخل والمحاولة مرة أخرى أو العودة لقائمة الدورات.
-        </p>
-        <AdminButton className="mt-6" onClick={() => router.push("/admin/courses")}>
-          العودة للدورات
-        </AdminButton>
+        <div className="space-y-2">
+          <h2 className="text-xl font-black">الدورة غير موجودة أو تعذر تحميلها</h2>
+          <p className="text-sm text-muted-foreground font-medium max-w-sm">
+            {courseError ? (courseError as Error).message : "يرجى التحقق من المعرف المدخل والمحاولة مرة أخرى أو العودة لقائمة الدورات."}
+          </p>
+        </div>
+        <div className="flex gap-4">
+          <AdminButton variant="outline" className="rounded-xl px-8" onClick={() => router.push("/admin/courses")}>
+            العودة للدورات
+          </AdminButton>
+          <AdminButton className="rounded-xl px-8" onClick={() => window.location.reload()}>
+            إعادة المحاولة
+          </AdminButton>
+        </div>
       </div>
     );
   }
 
-  const level = course.level || "MEDIUM";
-  const lc = levelConfig[level] || levelConfig.MEDIUM;
+  const level = course.level || "INTERMEDIATE";
+  const lc = levelConfig[level] || levelConfig.INTERMEDIATE;
   const totalStudents = stats?.enrollmentCount || course._count.enrollments || 0;
   const totalLessons = stats?.totalLessons || 0;
   const totalDuration = stats?.totalDuration || 0;
   const avgRating = stats?.avgRating || course.rating || 0;
   const totalReviews = stats?.reviewCount || course._count.reviews || 0;
   const estimatedRevenue = totalStudents * (course.price || 0);
+  const trailerDurationMinutes = course.trailerDurationMinutes || 0;
 
   return (
     <div className="space-y-8 pb-20" dir="rtl">
@@ -408,6 +441,14 @@ export default function CourseDetailsPage() {
                   <Clock className="h-4 w-4 text-slate-400" />
                   <span className="font-bold">{course.durationHours} ساعة</span>
                 </div>
+                {trailerDurationMinutes > 0 && (
+                  <div className="flex items-center gap-2">
+                    <PlayCircle className="h-4 w-4 text-cyan-400" />
+                    <span className="font-bold text-cyan-300">
+                      فيديو المقدمة {trailerDurationMinutes} دقيقة
+                    </span>
+                  </div>
+                )}
                 {avgRating > 0 && (
                   <div className="flex items-center gap-1.5">
                     <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -446,6 +487,7 @@ export default function CourseDetailsPage() {
         <StatMiniCard icon={Users} label="الطلاب المسجلين" value={totalStudents} color="bg-blue-500/20" subtext="إجمالي الملتحقين" />
         <StatMiniCard icon={Layers} label="الوحدات التعليمية" value={course._count.topics} color="bg-violet-500/20" subtext={`${totalLessons} درس`} />
         <StatMiniCard icon={Clock} label="مدة المحتوى" value={`${totalDuration} د`} color="bg-cyan-500/20" subtext={`${course.durationHours} ساعة تقريباً`} />
+        <StatMiniCard icon={PlayCircle} label="مدة فيديو المقدمة" value={trailerDurationMinutes > 0 ? `${trailerDurationMinutes} د` : "—"} color="bg-sky-500/20" subtext={trailerDurationMinutes > 0 ? "مدة محفوظة" : "غير محددة"} />
         <StatMiniCard icon={Star} label="متوسط التقييم" value={avgRating > 0 ? avgRating.toFixed(1) : "—"} color="bg-amber-500/20" subtext={`${totalReviews} تقييم`} />
         <StatMiniCard icon={DollarSign} label="الإيرادات التقديرية" value={`${estimatedRevenue.toLocaleString()}`} color="bg-emerald-500/20" subtext="EGP" />
         <StatMiniCard icon={Target} label="معدل الإكمال" value={totalStudents > 0 ? "65%" : "—"} color="bg-rose-500/20" subtext="متوسط تقدم الطلاب" />
@@ -562,6 +604,7 @@ export default function CourseDetailsPage() {
                     { icon: GraduationCap, label: "المحاضر", value: course.instructorName || "غير محدد" },
                     { icon: DollarSign, label: "السعر", value: course.price ? `${course.price} EGP` : "مجاني" },
                     { icon: Clock, label: "المدة", value: `${course.durationHours} ساعة` },
+                    { icon: PlayCircle, label: "فيديو المقدمة", value: trailerDurationMinutes > 0 ? `${trailerDurationMinutes} دقيقة` : "غير محددة" },
                     { icon: Layers, label: "الوحدات", value: `${course._count.topics} وحدة` },
                     { icon: Users, label: "الملتحقون", value: `${totalStudents} طالب` },
                     { icon: CalendarDays, label: "تاريخ الإنشاء", value: new Date(course.createdAt).toLocaleDateString("ar-EG") },

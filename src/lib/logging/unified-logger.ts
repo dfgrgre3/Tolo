@@ -224,10 +224,9 @@ class UnifiedLogger {
     if (!this.config.enableConsole) return;
 
     const formattedMessage = this.formatMessage(level, message, context);
-    const contextStr = context ? ` ${JSON.stringify(context)}` : '';
     const errorStr = error instanceof Error ? `\nError: ${error.message}${error.stack ? `\n${error.stack}` : ''}` : error ? `\nError: ${String(error)}` : '';
 
-    const fullMessage = formattedMessage + contextStr + errorStr;
+    const fullMessage = formattedMessage + errorStr;
 
     if (isServer) {
       // Use winston on server-side

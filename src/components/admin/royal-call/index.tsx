@@ -11,7 +11,7 @@ import { RoyalChannels } from "./royal-channels";
 import { RoyalTemplates } from "./royal-templates";
 import { RoyalPreview } from "./royal-preview";
 import { RoyalAudience } from "./royal-audience";
-import { UserModel, RoyalMessageFormData, MessageTemplate, MessageType } from "./types";
+import { UserModel, RoyalMessageFormData, MessageTemplate } from "./types";
 
 interface RoyalCallModalProps {
   open: boolean;
@@ -139,7 +139,7 @@ export function RoyalCallModal({ open, onOpenChange, users }: RoyalCallModalProp
       } else {
         toast.error(data.error || "تعثر وصول المرسوم للجيش");
       }
-    } catch (error) {
+    } catch (_error) {
       toast.error("حدث عطل في أبراج الاتصال الإمبراطورية");
     } finally {
       setIsSending(false);

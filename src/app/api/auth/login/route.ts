@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/services/auth/auth-service';
 import { SecurityLogger } from '@/services/auth/security-logger';
 import { z } from 'zod';
@@ -122,7 +122,7 @@ export async function POST(req: NextRequest) {
             rememberMe,
             ip,
             userAgent,
-            location,
+            location: location || undefined,
         });
 
         if (!result.success) {
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
         }
 
         const cookieStore = await cookies();
-        // rememberMe=true → 30 days, default → 7 days (ensures sessions survive browser restarts)
+        // rememberMe=true �  30 days, default �  7 days (ensures sessions survive browser restarts)
         const refreshMaxAge = rememberMe ? 30 * 24 * 60 * 60 : 7 * 24 * 60 * 60;
         const isProduction = process.env.NODE_ENV === 'production';
 
@@ -184,3 +184,4 @@ export async function POST(req: NextRequest) {
         return handleApiError(error);
     }
 }
+

@@ -1,5 +1,6 @@
 import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
 import { prisma } from '@/lib/db';
+import { AIService } from './ai-service';
 
 import { logger } from '@/lib/logger';
 

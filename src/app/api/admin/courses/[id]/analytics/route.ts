@@ -29,7 +29,13 @@ export async function GET(
 
         const course = await prisma.subject.findUnique({
           where: { id },
-          select: { id: true, name: true, price: true },
+          select: {
+            id: true,
+            name: true,
+            nameAr: true,
+            price: true,
+            trailerDurationMinutes: true,
+          },
         });
 
         if (!course) {
@@ -159,6 +165,11 @@ export async function GET(
         }));
 
         return successResponse({
+          course: {
+            id: course.id,
+            name: course.nameAr || course.name,
+            trailerDurationMinutes: course.trailerDurationMinutes || 0,
+          },
           enrollmentTrends,
           totalEnrollments,
           revenue: {

@@ -6,23 +6,23 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
-  BookOpen,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock,
   DollarSign,
+  ExternalLink,
   FileText,
   Globe,
   GraduationCap,
   Image as ImageIcon,
   Layout,
   LayoutGrid,
+  Layers,
   Loader2,
   Rocket,
   Save,
   Search,
-  Settings,
   Sparkles,
   Trophy,
   Video,
@@ -56,26 +56,33 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 const courseSchema = z.object({
-  name: z.string().min(1, "اسم الدورة بالإنجليزية مطلوب"),
+  name: z.string().min(1, "اسم الدورة بالإتجليزية مطلوب"),
   nameAr: z.string().min(1, "اسم الدورة بالعربية مطلوب"),
   code: z.string().optional().nullable(),
-  price: z.coerce.number().min(0, "السعر يجب أن يكون صفرًا أو أكثر"),
-  level: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]),
+  price: z.coerce.number().min(0, "السعر يجب أن يكون صفراً أو أكثر"),
+  level: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]),
   instructorName: z.string().optional().nullable(),
   instructorId: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   isActive: z.boolean(),
   isPublished: z.boolean(),
-  durationHours: z.coerce.number().min(0, "عدد الساعات يجب أن يكون صفرًا أو أكثر"),
+  durationHours: z.coerce
+    .number()
+    .min(0, "عدد الساعات يجب أن يكون صفراً أو أكثر"),
   requirements: z.string().optional().nullable(),
   learningObjectives: z.string().optional().nullable(),
   thumbnailUrl: z.string().optional().nullable(),
   trailerUrl: z.string().optional().nullable(),
-  // SEO Fields (optional for now as DB might not have them, but useful for frontend)
+  trailerDurationMinutes: z.coerce.number().min(0).optional().nullable(),
   seoTitle: z.string().optional().nullable(),
   seoDescription: z.string().optional().nullable(),
   slug: z.string().optional().nullable(),
+  isFeatured: z.boolean().default(false),
+  language: z.string().nullable().default("ar"),
+  coursePrerequisites: z.string().optional().nullable(),
+  targetAudience: z.string().optional().nullable(),
+  whatYouLearn: z.string().optional().nullable(),
 });
 
 type CourseFormValues = z.infer<typeof courseSchema>;
@@ -85,6 +92,22 @@ interface CourseEditorProps {
   courseId?: string;
   categories?: any[];
   teachers?: any[];
+  allCourses?: Array<{ id: string; name: string; nameAr?: string | null }>;
+}
+
+interface CurriculumStats {
+  chaptersCount: number;
+  lessonsCount: number;
+  freeLessonsCount: number;
+  totalDurationMinutes: number;
+}
+
+interface UploadedVideoMetadata {
+  durationSeconds?: number;
+  durationMinutes?: number;
+  fileName?: string;
+  fileSize?: number;
+  fileType?: string;
 }
 
 export function CourseEditor({
@@ -92,19 +115,34 @@ export function CourseEditor({
   courseId,
   categories = [],
   teachers = [],
+  allCourses = [],
 }: CourseEditorProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = React.useState("general");
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [curriculumStats, setCurriculumStats] = React.useState<CurriculumStats | null>(null);
+  const [isCurriculumLoading, setIsCurriculumLoading] = React.useState(false);
+  const [uploadedTrailerMeta, setUploadedTrailerMeta] =
+    React.useState<UploadedVideoMetadata | null>(null);
+
+  const toMultiline = React.useCallback((value?: string[] | string | null) => {
+    if (Array.isArray(value)) {
+      return value.join("\n");
+    }
+
+    return value || "";
+  }, []);
 
   const form = useForm<CourseFormValues>({
-    resolver: zodResolver(courseSchema),
+    resolver: zodResolver(courseSchema) as any,
     defaultValues: {
       name: initialData?.name || "",
       nameAr: initialData?.nameAr || "",
       code: initialData?.code || "",
       price: initialData?.price || 0,
-      level: (initialData?.level as "EASY" | "MEDIUM" | "HARD" | "EXPERT") || "MEDIUM",
+      level:
+        (initialData?.level as "BEGINNER" | "INTERMEDIATE" | "ADVANCED") ||
+        "INTERMEDIATE",
       instructorName: initialData?.instructorName || "",
       instructorId: initialData?.instructorId || "",
       categoryId: initialData?.categoryId || "",
@@ -116,11 +154,58 @@ export function CourseEditor({
       learningObjectives: initialData?.learningObjectives || "",
       thumbnailUrl: initialData?.thumbnailUrl || "",
       trailerUrl: initialData?.trailerUrl || "",
+      trailerDurationMinutes: initialData?.trailerDurationMinutes || 0,
       seoTitle: initialData?.seoTitle || "",
       seoDescription: initialData?.seoDescription || "",
       slug: initialData?.slug || "",
+      isFeatured: initialData?.isFeatured ?? false,
+      language: initialData?.language || "ar",
+      coursePrerequisites: toMultiline(initialData?.coursePrerequisites),
+      targetAudience: toMultiline(initialData?.targetAudience),
+      whatYouLearn:
+        toMultiline(initialData?.whatYouLearn) ||
+        toMultiline(initialData?.learningObjectives),
     },
   });
+
+  React.useEffect(() => {
+    if (!courseId) {
+      setCurriculumStats(null);
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchCurriculumStats = async () => {
+      setIsCurriculumLoading(true);
+      try {
+        const response = await fetch(`/api/admin/courses/${courseId}/curriculum`);
+        const result = await response.json();
+
+        if (!response.ok) {
+          throw new Error(result?.message || result?.error || "تعذر تحميل بيانات المنهج");
+        }
+
+        if (isMounted) {
+          setCurriculumStats(result.data?.stats || null);
+        }
+      } catch {
+        if (isMounted) {
+          setCurriculumStats(null);
+        }
+      } finally {
+        if (isMounted) {
+          setIsCurriculumLoading(false);
+        }
+      }
+    };
+
+    void fetchCurriculumStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [courseId]);
 
   const onSubmit = async (values: CourseFormValues) => {
     setIsSubmitting(true);
@@ -132,27 +217,30 @@ export function CourseEditor({
         body: JSON.stringify({
           ...(isEdit ? { id: initialData.id } : {}),
           ...values,
+          coursePrerequisites: values.coursePrerequisites || values.requirements || "",
+          targetAudience: values.targetAudience || "",
+          whatYouLearn: values.whatYouLearn || values.learningObjectives || "",
         }),
       });
 
       const result = await response.json();
       if (response.ok) {
-        toast.success(isEdit ? "تم تحديث الدورة بنجاح" : "تم إنشاء الدورة بنجاح");
+        toast.success(
+          isEdit ? "تم تحديث الدورة بنجاح" : "تم إنشاء الدورة بنجاح",
+        );
+        const createdCourseId = result?.data?.course?.id;
         router.refresh();
+        if (!isEdit && createdCourseId) {
+          router.push(`/admin/courses/${createdCourseId}/curriculum`);
+        }
       } else {
-        throw new Error(result.message || "حدث خطأ ما");
+        throw new Error(result?.error || result?.message || "فشل حفظ الدورة");
       }
     } catch (error: any) {
       toast.error(error.message || "فشل حفظ الدورة");
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handlePublish = async () => {
-    form.setValue("isPublished", !form.watch("isPublished"));
-    const data = form.getValues();
-    await onSubmit(data);
   };
 
   const nextTab = (current: string) => {
@@ -171,11 +259,28 @@ export function CourseEditor({
     }
   };
 
+  const trailerUrl = form.watch("trailerUrl");
+  const trailerDurationMinutes = form.watch("trailerDurationMinutes");
+  const isDirectVideo =
+    !!trailerUrl &&
+    (/^\/uploads\//.test(trailerUrl) ||
+      /\.(mp4|webm|ogg|mov|avi|mkv|mpeg)(\?.*)?$/i.test(trailerUrl));
+  const youtubeMatch = trailerUrl?.match(
+    /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&?/]+)/i,
+  );
+  const youtubeEmbedUrl = youtubeMatch
+    ? `https://www.youtube.com/embed/${youtubeMatch[1]}`
+    : null;
+
   const control = form.control as any;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-8" dir="rtl">
+      <form
+        onSubmit={form.handleSubmit(onSubmit as any)}
+        className="space-y-8"
+        dir="rtl"
+      >
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 sticky top-0 z-20 bg-background/80 backdrop-blur-md py-4 border-b border-border/50 px-1">
           <div className="flex items-center gap-4">
             <AdminButton
@@ -189,7 +294,9 @@ export function CourseEditor({
             </AdminButton>
             <div>
               <h1 className="text-xl font-black">
-                {courseId ? "تعديل الدورة التعليمية" : "إنشاء دورة تعليمية جديدة"}
+                {courseId
+                  ? "تعديل الدورة التعليمية"
+                  : "إنشاء دورة تعليمية جديدة"}
               </h1>
               <p className="text-xs text-muted-foreground font-medium">
                 {form.watch("nameAr") || "دورة غير معنونة"}
@@ -203,7 +310,7 @@ export function CourseEditor({
                 "h-9 px-3 font-bold",
                 form.watch("isPublished")
                   ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
-                  : "border-orange-500/20 bg-orange-500/10 text-orange-500"
+                  : "border-orange-500/20 bg-orange-500/10 text-orange-500",
               )}
             >
               {form.watch("isPublished") ? "منشورة" : "مسودة"}
@@ -268,7 +375,9 @@ export function CourseEditor({
                     {form.watch("thumbnailUrl") ? (
                       <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     ) : (
-                      <Badge variant="outline" className="h-4 px-1 text-[8px]">ناقص</Badge>
+                      <Badge variant="outline" className="h-4 px-1 text-[8px]">
+                        ناقص
+                      </Badge>
                     )}
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
@@ -276,19 +385,74 @@ export function CourseEditor({
                     {form.watch("trailerUrl") ? (
                       <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     ) : (
-                      <Badge variant="outline" className="h-4 px-1 text-[8px]">ناقص</Badge>
+                      <Badge variant="outline" className="h-4 px-1 text-[8px]">
+                        ناقص
+                      </Badge>
                     )}
                   </div>
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-muted-foreground">الوصف التفصيلي</span>
-                    {form.watch("description")?.length && (form.watch("description")?.length ?? 0) > 50 ? (
+                    <span className="text-muted-foreground">
+                      الوصف التفصيلي
+                    </span>
+                    {form.watch("description")?.length &&
+                    (form.watch("description")?.length ?? 0) > 50 ? (
                       <CheckCircle2 className="h-3 w-3 text-emerald-500" />
                     ) : (
-                      <Badge variant="outline" className="h-4 px-1 text-[8px]">قصير جداً</Badge>
+                      <Badge variant="outline" className="h-4 px-1 text-[8px]">
+                        قصير جداً
+                      </Badge>
                     )}
                   </div>
                 </div>
               </AdminCard>
+
+              {courseId ? (
+                <AdminCard className="p-4 bg-slate-950 border-primary/20 text-white">
+                  <div className="mb-3 flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-primary" />
+                    <h4 className="text-sm font-bold">ربط الدورة بالمحتوى</h4>
+                  </div>
+
+                  <div className="mb-4 grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <p className="text-[10px] text-slate-400">الفصول</p>
+                      <p className="mt-1 text-xl font-black">
+                        {isCurriculumLoading ? "..." : curriculumStats?.chaptersCount ?? 0}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <p className="text-[10px] text-slate-400">الدروس</p>
+                      <p className="mt-1 text-xl font-black">
+                        {isCurriculumLoading ? "..." : curriculumStats?.lessonsCount ?? 0}
+                      </p>
+                    </div>
+                  </div>
+
+                  <p className="text-xs leading-6 text-slate-300">
+                    اربط بيانات الدورة بالمحتوى التعليمي من خلال صفحة المنهج حتى تظهر الفصول والدروس بشكل صحيح للطلاب داخل صفحة الدورة والتعلم.
+                  </p>
+
+                  <div className="mt-4 flex flex-col gap-2">
+                    <AdminButton
+                      type="button"
+                      className="w-full justify-between"
+                      onClick={() => router.push(`/admin/courses/${courseId}/curriculum`)}
+                    >
+                      إدارة المنهج الدراسي
+                      <Layers className="h-4 w-4" />
+                    </AdminButton>
+                    <AdminButton
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-between border-white/15 bg-transparent text-white hover:bg-white/10"
+                      onClick={() => router.push(`/admin/courses/${courseId}`)}
+                    >
+                      صفحة تفاصيل الدورة
+                      <ExternalLink className="h-4 w-4" />
+                    </AdminButton>
+                  </div>
+                </AdminCard>
+              ) : null}
             </aside>
 
             <div className="flex-1">
@@ -306,9 +470,15 @@ export function CourseEditor({
                         name="nameAr"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">اسم الدورة بالعربية</FormLabel>
+                            <FormLabel className="font-bold">
+                              اسم الدورة بالعربية
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="مثال: الرياضيات المتقدمة للصف الثالث الثانوي" className="h-12 rounded-xl" />
+                              <Input
+                                {...field}
+                                placeholder="مثال: الرياضيات المتقدمة للصف الثالث الثانوي"
+                                className="h-12 rounded-xl"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -319,9 +489,16 @@ export function CourseEditor({
                         name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">اسم الدورة بالإنجليزية</FormLabel>
+                            <FormLabel className="font-bold">
+                              اسم الدورة بالإتجليزية
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} placeholder="Example: Advanced Mathematics" className="h-12 rounded-xl" dir="ltr" />
+                              <Input
+                                {...field}
+                                placeholder="Example: Advanced Mathematics"
+                                className="h-12 rounded-xl"
+                                dir="ltr"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -335,9 +512,16 @@ export function CourseEditor({
                         name="code"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">كود الدورة (اختياري)</FormLabel>
+                            <FormLabel className="font-bold">
+                              كود الدورة (اختياري)
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} value={field.value || ""} placeholder="MATH-301" className="h-12 rounded-xl" />
+                              <Input
+                                {...field}
+                                value={field.value || ""}
+                                placeholder="MATH-301"
+                                className="h-12 rounded-xl"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -349,7 +533,10 @@ export function CourseEditor({
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel className="font-bold">التصنيف</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || ""}
+                            >
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl">
                                   <SelectValue placeholder="اختر تصنيف" />
@@ -372,18 +559,52 @@ export function CourseEditor({
                         name="level"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">مستوى التعقيد</FormLabel>
-                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormLabel className="font-bold">
+                              مستوى التعقيد
+                            </FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl">
                                   <SelectValue />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
-                                <SelectItem value="EASY">مبتدئ / أساسي</SelectItem>
-                                <SelectItem value="MEDIUM">متوسط / عادي</SelectItem>
-                                <SelectItem value="HARD">متقدم / احترافي</SelectItem>
-                                <SelectItem value="EXPERT">خبير / متخصص</SelectItem>
+                                <SelectItem value="BEGINNER">
+                                  مبتدئ / أساسي
+                                </SelectItem>
+                                <SelectItem value="INTERMEDIATE">
+                                  متوسط / عادي
+                                </SelectItem>
+                                <SelectItem value="ADVANCED">
+                                  متقدم / احترافي
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={control}
+                        name="language"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-bold">لغة الدورة</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value || "ar"}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-12 rounded-xl">
+                                  <SelectValue />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="ar">العربية</SelectItem>
+                                <SelectItem value="en">English</SelectItem>
                               </SelectContent>
                             </Select>
                             <FormMessage />
@@ -397,7 +618,9 @@ export function CourseEditor({
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold">وصف الدورة</FormLabel>
+                          <FormLabel className="font-bold">
+                            وصف الدورة
+                          </FormLabel>
                           <FormControl>
                             <Textarea
                               {...field}
@@ -417,7 +640,12 @@ export function CourseEditor({
                 </AdminCard>
 
                 <div className="flex justify-end gap-3">
-                  <AdminButton type="button" variant="outline" onClick={() => nextTab("general")} className="h-12 rounded-xl px-8 font-black gap-3">
+                  <AdminButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => nextTab("general")}
+                    className="h-12 rounded-xl px-8 font-black gap-3"
+                  >
                     التالي: التفاصيل والأسعار
                     <ChevronLeft className="h-4 w-4" />
                   </AdminButton>
@@ -438,14 +666,22 @@ export function CourseEditor({
                         name="price"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">سعر الدورة (EGP)</FormLabel>
+                            <FormLabel className="font-bold">
+                              سعر الدورة (EGP)
+                            </FormLabel>
                             <FormControl>
                               <div className="relative">
-                                <Input {...field} type="number" className="h-12 rounded-xl pr-12" />
+                                <Input
+                                  {...field}
+                                  type="number"
+                                  className="h-12 rounded-xl pr-12"
+                                />
                                 <DollarSign className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               </div>
                             </FormControl>
-                            <FormDescription className="text-[10px]">اترك السعر 0 لجعل الدورة مجانية.</FormDescription>
+                            <FormDescription className="text-[10px]">
+                              اترك السعر 0 لجعل الدورة مجانية.
+                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
@@ -455,10 +691,16 @@ export function CourseEditor({
                         name="durationHours"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">إجمالي الساعات التقريبي</FormLabel>
+                            <FormLabel className="font-bold">
+                              إجمالي الساعات التقريبي
+                            </FormLabel>
                             <FormControl>
                               <div className="relative">
-                                <Input {...field} type="number" className="h-12 rounded-xl pr-12" />
+                                <Input
+                                  {...field}
+                                  type="number"
+                                  className="h-12 rounded-xl pr-12"
+                                />
                                 <Clock className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                               </div>
                             </FormControl>
@@ -473,8 +715,13 @@ export function CourseEditor({
                       name="instructorId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold">المحاضر / المدرس المسئول</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value || ""}>
+                          <FormLabel className="font-bold">
+                            المحاضر / المدرس المسئول
+                          </FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            defaultValue={field.value || ""}
+                          >
                             <FormControl>
                               <SelectTrigger className="h-12 rounded-xl">
                                 <SelectValue placeholder="اختر مدرساً" />
@@ -507,7 +754,9 @@ export function CourseEditor({
                       name="requirements"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold">متطلبات الدورة</FormLabel>
+                          <FormLabel className="font-bold">
+                            متطلبات الدورة
+                          </FormLabel>
                           <FormControl>
                             <Textarea
                               {...field}
@@ -526,7 +775,9 @@ export function CourseEditor({
                       name="learningObjectives"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold">ماذا ستتعلم؟ (الأهداف)</FormLabel>
+                          <FormLabel className="font-bold">
+                            ماذا ستتعلم؟ (الأهداف)
+                          </FormLabel>
                           <FormControl>
                             <Textarea
                               {...field}
@@ -539,15 +790,124 @@ export function CourseEditor({
                         </FormItem>
                       )}
                     />
+
+                    <FormField
+                      control={control}
+                      name="targetAudience"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">
+                            الفئة المستهدفة
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="ضع كل فئة مستهدفة في سطر مستقل"
+                              className="min-h-[100px] rounded-2xl"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            مثال: طلاب الصف الثالث الثانوي، طلاب المراجعة النهائية.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="coursePrerequisites"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold flex items-center justify-between">
+                            <span>المتطلبات والترابط التعليمي</span>
+                            <Badge variant="outline" className="text-[9px] font-black h-4 px-1">جديد</Badge>
+                          </FormLabel>
+                          <div className="space-y-4">
+                            <Select
+                              onValueChange={(val) => {
+                                const current = field.value ? field.value.split("\n") : [];
+                                if (!current.includes(val)) {
+                                  field.onChange([...current, val].join("\n"));
+                                }
+                              }}
+                            >
+                              <FormControl>
+                                <SelectTrigger className="h-12 rounded-xl border-primary/20 bg-primary/5">
+                                  <SelectValue placeholder="اختر دورة لربطها كمتطلب..." />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {allCourses
+                                  .filter(c => c.id !== courseId)
+                                  .map((c) => (
+                                  <SelectItem key={c.id} value={c.nameAr || c.name}>
+                                    {c.nameAr || c.name}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+
+                            <FormControl>
+                              <Textarea
+                                {...field}
+                                value={field.value || ""}
+                                placeholder="ضع كل متطلب في سطر مستقل ليُحفظ بشكل منظم"
+                                className="min-h-[120px] rounded-2xl bg-muted/20 border-border/40 focus:border-primary/40 transition-all font-medium py-4"
+                              />
+                            </FormControl>
+                          </div>
+                          <FormDescription className="text-[10px] leading-relaxed">
+                            اربط هذه الدورة بدورات أخرى في الموقع لتحسين تجربة الطالب وتوجيهه للمسار الصحيح.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={control}
+                      name="whatYouLearn"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel className="font-bold">
+                            ماذا سيتعلم الطالب
+                          </FormLabel>
+                          <FormControl>
+                            <Textarea
+                              {...field}
+                              value={field.value || ""}
+                              placeholder="ضع كل فائدة أو مهارة في سطر مستقل"
+                              className="min-h-[100px] rounded-2xl"
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            يدعم بناء محتوى تسويقي وتعليمي أكثر دقة بدون تغيير التصميم.
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </AdminCard>
 
                 <div className="flex justify-between">
-                  <AdminButton type="button" variant="outline" onClick={() => prevTab("details")} className="h-12 rounded-xl px-8 font-black gap-3">
+                  <AdminButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => prevTab("details")}
+                    className="h-12 rounded-xl px-8 font-black gap-3"
+                  >
                     <ChevronRight className="h-4 w-4" />
                     السابق
                   </AdminButton>
-                  <AdminButton type="button" variant="outline" onClick={() => nextTab("details")} className="h-12 rounded-xl px-8 font-black gap-3">
+                  <AdminButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => nextTab("details")}
+                    className="h-12 rounded-xl px-8 font-black gap-3"
+                  >
                     التالي: الوسائط وصور العرض
                     <ChevronLeft className="h-4 w-4" />
                   </AdminButton>
@@ -559,12 +919,16 @@ export function CourseEditor({
                   <div className="grid gap-6">
                     <div className="flex items-center gap-3 pb-2 border-b">
                       <ImageIcon className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-black">غلاف الدورة والمعاينة</h3>
+                      <h3 className="text-lg font-black">
+                        غلاف الدورة والمعاينة
+                      </h3>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-8">
                       <div className="space-y-4">
-                        <Label className="font-black">الصورة المصغرة (Thumbnail)</Label>
+                        <Label className="font-black">
+                          الصورة المصغرة (Thumbnail)
+                        </Label>
                         <div className="relative aspect-video rounded-3xl overflow-hidden border border-dashed border-border/60 bg-muted/40 group">
                           {form.watch("thumbnailUrl") ? (
                             <img
@@ -575,7 +939,9 @@ export function CourseEditor({
                           ) : (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
                               <ImageIcon className="h-12 w-12 mb-2 opacity-20" />
-                              <span className="text-xs font-bold">لم يتم اختيار صورة بعد</span>
+                              <span className="text-xs font-bold">
+                                لم يتم اختيار صورة بعد
+                              </span>
                             </div>
                           )}
                         </div>
@@ -593,17 +959,40 @@ export function CourseEditor({
                       </div>
 
                       <div className="space-y-4">
-                        <Label className="font-black">فيديو المقدمة (Trailer URL)</Label>
+                        <Label className="font-black">
+                          فيديو المقدمة (Trailer URL)
+                        </Label>
                         <div className="relative aspect-video rounded-3xl overflow-hidden border border-dashed border-border/60 bg-muted/40 group">
-                          {form.watch("trailerUrl") ? (
-                            <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                              <Video className="h-12 w-12 text-primary animate-pulse" />
-                              <span className="absolute bottom-4 left-4 text-[10px] text-white/50">{form.watch("trailerUrl")}</span>
-                            </div>
+                          {trailerUrl ? (
+                            isDirectVideo ? (
+                              <video
+                                src={trailerUrl}
+                                controls
+                                preload="metadata"
+                                className="h-full w-full bg-black object-contain"
+                              />
+                            ) : youtubeEmbedUrl ? (
+                              <iframe
+                                src={youtubeEmbedUrl}
+                                title="Trailer Preview"
+                                className="h-full w-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            ) : (
+                              <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                                <Video className="h-12 w-12 text-primary animate-pulse" />
+                                <span className="absolute bottom-4 left-4 text-[10px] text-white/50">
+                                  {trailerUrl}
+                                </span>
+                              </div>
+                            )
                           ) : (
                             <div className="absolute inset-0 flex flex-col items-center justify-center text-muted-foreground">
                               <Video className="h-12 w-12 mb-2 opacity-20" />
-                              <span className="text-xs font-bold">رابط الفيديو الدعائي</span>
+                              <span className="text-xs font-bold">
+                                رابط الفيديو الدعائي
+                              </span>
                             </div>
                           )}
                         </div>
@@ -611,7 +1000,7 @@ export function CourseEditor({
                           control={control}
                           name="trailerUrl"
                           render={({ field }) => (
-                            <FormItem>
+                            <FormItem className="space-y-4">
                               <FormControl>
                                 <Input
                                   {...field}
@@ -620,6 +1009,41 @@ export function CourseEditor({
                                   className="h-12 rounded-xl"
                                 />
                               </FormControl>
+
+                              <AdminUpload
+                                accept="video/*"
+                                label="رفع فيديو المقدمة من الكمبيوتر"
+                                maxSize={100 * 1024} // 100GB support
+                                onUploadComplete={(url, metadata) => {
+                                  field.onChange(url);
+                                  setUploadedTrailerMeta(metadata || null);
+                                  form.setValue(
+                                    "trailerDurationMinutes",
+                                    metadata?.durationMinutes || 0,
+                                  );
+                                }}
+                              />
+
+                              {uploadedTrailerMeta?.durationMinutes || trailerDurationMinutes ? (
+                                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 text-sm">
+                                  <div className="flex items-center gap-2 font-bold text-primary">
+                                    <Clock className="h-4 w-4" />
+                                    <span>
+                                      مدة الفيديو المستخرجة: {uploadedTrailerMeta?.durationMinutes || trailerDurationMinutes} دقيقة
+                                    </span>
+                                  </div>
+                                  {uploadedTrailerMeta?.fileName ? (
+                                    <p className="mt-2 text-xs text-muted-foreground">
+                                      {uploadedTrailerMeta.fileName}
+                                    </p>
+                                  ) : null}
+                                </div>
+                              ) : null}
+
+                              <FormDescription>
+                                يمكنك كتابة رابط خارجي أو رفع فيديو مباشر من الكمبيوتر، وسيتم حفظ مدة الفيديو تلقائياً عند توفرها.
+                              </FormDescription>
+
                               <FormMessage />
                             </FormItem>
                           )}
@@ -630,12 +1054,22 @@ export function CourseEditor({
                 </AdminCard>
 
                 <div className="flex justify-between">
-                  <AdminButton type="button" variant="outline" onClick={() => prevTab("media")} className="h-12 rounded-xl px-8 font-black gap-3">
+                  <AdminButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => prevTab("media")}
+                    className="h-12 rounded-xl px-8 font-black gap-3"
+                  >
                     <ChevronRight className="h-4 w-4" />
                     السابق
                   </AdminButton>
-                  <AdminButton type="button" variant="outline" onClick={() => nextTab("media")} className="h-12 rounded-xl px-8 font-black gap-3">
-                    التالي: تحسين المحركات (SEO)
+                  <AdminButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => nextTab("media")}
+                    className="h-12 rounded-xl px-8 font-black gap-3"
+                  >
+                    التالي: تهيئة محركات البحث (SEO)
                     <ChevronLeft className="h-4 w-4" />
                   </AdminButton>
                 </div>
@@ -646,7 +1080,9 @@ export function CourseEditor({
                   <div className="grid gap-6">
                     <div className="flex items-center gap-3 pb-2 border-b">
                       <Globe className="h-5 w-5 text-primary" />
-                      <h3 className="text-lg font-black">تهيئة محركات البحث والتسويق</h3>
+                      <h3 className="text-lg font-black">
+                        تهيئة محركات البحث والتسويق
+                      </h3>
                     </div>
 
                     <FormField
@@ -654,7 +1090,9 @@ export function CourseEditor({
                       name="slug"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel className="font-bold">رابط الصفحة (Slug)</FormLabel>
+                          <FormLabel className="font-bold">
+                            رابط الصفحة (Slug)
+                          </FormLabel>
                           <FormControl>
                             <div className="relative">
                               <Input
@@ -669,7 +1107,9 @@ export function CourseEditor({
                               </div>
                             </div>
                           </FormControl>
-                          <FormDescription className="text-[10px]">اترك الحقل فارغاً سيتم إنتاجه من الاسم تلقائياً.</FormDescription>
+                          <FormDescription className="text-[10px]">
+                            اترك الحقل فارغاً سيتم إنتاجه من الاسم تلقائياً.
+                          </FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -681,9 +1121,15 @@ export function CourseEditor({
                         name="seoTitle"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">عنوان الصفحة (Meta Title)</FormLabel>
+                            <FormLabel className="font-bold">
+                              عنوان الصفحة (Meta Title)
+                            </FormLabel>
                             <FormControl>
-                              <Input {...field} value={field.value || ""} className="h-12 rounded-xl" />
+                              <Input
+                                {...field}
+                                value={field.value || ""}
+                                className="h-12 rounded-xl"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -694,9 +1140,15 @@ export function CourseEditor({
                         name="seoDescription"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="font-bold">وصف محركات البحث (Meta Description)</FormLabel>
+                            <FormLabel className="font-bold">
+                              وصف محركات البحث (Meta Description)
+                            </FormLabel>
                             <FormControl>
-                              <Textarea {...field} value={field.value || ""} className="min-h-[80px] rounded-xl" />
+                              <Textarea
+                                {...field}
+                                value={field.value || ""}
+                                className="min-h-[80px] rounded-xl"
+                              />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -711,13 +1163,18 @@ export function CourseEditor({
                       </h4>
                       <div className="space-y-1">
                         <div className="text-blue-500 text-lg font-medium hover:underline cursor-pointer">
-                          {form.watch("seoTitle") || form.watch("nameAr") || "عنوان الدورة يظهر هنا"}
+                          {form.watch("seoTitle") ||
+                            form.watch("nameAr") ||
+                            "عنوان الدورة يظهر هنا"}
                         </div>
                         <div className="text-emerald-700 text-xs">
-                          https://thanawy.com/courses/{form.watch("slug") || "course-url"}
+                          https://thanawy.com/courses/
+                          {form.watch("slug") || "course-url"}
                         </div>
                         <div className="text-muted-foreground text-sm line-clamp-2">
-                          {form.watch("seoDescription") || form.watch("description") || "وصف الدورة يظهر هنا في نتائج البحث لجذب الطلاب للنقر والدخول..."}
+                          {form.watch("seoDescription") ||
+                            form.watch("description") ||
+                            "وصف الدورة يظهر هنا في نتائج البحث لجذب الطلاب للنقر والدخول..."}
                         </div>
                       </div>
                     </div>
@@ -727,16 +1184,18 @@ export function CourseEditor({
                 <AdminCard className="p-6 bg-slate-900 border-primary/20">
                   <div className="flex items-center justify-between gap-6 overflow-hidden relative">
                     <div className="absolute -right-10 -bottom-10 h-64 w-64 bg-primary/20 rounded-full blur-[100px] pointer-events-none" />
-                    
+
                     <div className="space-y-4 relative z-10">
                       <div className="flex items-center gap-3">
                         <Rocket className="h-6 w-6 text-primary" />
-                        <h3 className="text-lg font-black text-white">حالة النشر والظهور</h3>
+                        <h3 className="text-lg font-black text-white">
+                          حالة النشر والظهور
+                        </h3>
                       </div>
                       <p className="text-sm text-slate-400 max-w-md">
                         عند تفعيل النشر، ستظهر الدورة لجميع الطلاب في المتجر التعليمي. تأكد من أن جميع الوحدات التعليمية جاهزة.
                       </p>
-                      
+
                       <div className="flex items-center gap-8">
                         <FormField
                           control={control}
@@ -750,7 +1209,27 @@ export function CourseEditor({
                                   className="data-[state=checked]:bg-emerald-500"
                                 />
                               </FormControl>
-                              <FormLabel className="text-white font-bold cursor-pointer">نشر الدورة فوراً</FormLabel>
+                              <FormLabel className="text-white font-bold cursor-pointer">
+                                نشر الدورة فوراً
+                              </FormLabel>
+                            </FormItem>
+                          )}
+                        />
+                        <FormField
+                          control={control}
+                          name="isFeatured"
+                          render={({ field }) => (
+                            <FormItem className="flex items-center gap-3 space-y-0">
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                  className="data-[state=checked]:bg-amber-500"
+                                />
+                              </FormControl>
+                              <FormLabel className="text-white font-bold cursor-pointer">
+                                تمييز الدورة
+                              </FormLabel>
                             </FormItem>
                           )}
                         />
@@ -766,7 +1245,9 @@ export function CourseEditor({
                                   className="data-[state=checked]:bg-primary"
                                 />
                               </FormControl>
-                              <FormLabel className="text-white font-bold cursor-pointer">تفعيل الدورة (Active)</FormLabel>
+                              <FormLabel className="text-white font-bold cursor-pointer">
+                                تفعيل الدورة (Active)
+                              </FormLabel>
                             </FormItem>
                           )}
                         />
@@ -775,14 +1256,19 @@ export function CourseEditor({
 
                     <div className="hidden md:block relative z-10">
                       <div className="h-32 w-32 rounded-3xl border border-white/10 bg-white/5 flex items-center justify-center backdrop-blur-3xl shadow-2xl rotate-12">
-                         <Trophy className="h-12 w-12 text-primary" />
+                        <Trophy className="h-12 w-12 text-primary" />
                       </div>
                     </div>
                   </div>
                 </AdminCard>
 
                 <div className="flex justify-between">
-                  <AdminButton type="button" variant="outline" onClick={() => prevTab("seo")} className="h-12 rounded-xl px-8 font-black gap-3">
+                  <AdminButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => prevTab("seo")}
+                    className="h-12 rounded-xl px-8 font-black gap-3"
+                  >
                     <ChevronRight className="h-4 w-4" />
                     السابق
                   </AdminButton>
@@ -808,8 +1294,19 @@ export function CourseEditor({
   );
 }
 
-const Label = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <label className={cn("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70", className)}>
+const Label = ({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
+  <label
+    className={cn(
+      "text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70",
+      className,
+    )}
+  >
     {children}
   </label>
 );

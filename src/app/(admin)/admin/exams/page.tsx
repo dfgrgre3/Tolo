@@ -4,7 +4,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
+import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { 
   Plus, ExternalLink, Target, 
   FileText, Eye, Calendar, Users, Trophy, Search, UploadCloud, Hammer, Send

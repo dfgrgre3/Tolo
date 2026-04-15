@@ -65,7 +65,7 @@ export async function GET(
           }
         });
 
-        lessonProgress = progressRecords.reduce((acc, progress) => {
+        lessonProgress = progressRecords.reduce((acc: Record<string, boolean>, progress: any) => {
           acc[progress.subTopicId] = progress.completed;
           return acc;
         }, {} as Record<string, boolean>);
@@ -109,7 +109,7 @@ export async function POST(
       // Create subtopic
       const newLesson = await prisma.subTopic.create({
         data: {
-          name: title,
+          title: title,
           description: description || null,
           topicId,
           order: Number(order) || 0

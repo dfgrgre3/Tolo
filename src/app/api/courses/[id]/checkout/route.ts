@@ -24,14 +24,14 @@ export async function POST(
 
     const { id } = await params;
 
-    // ─── IDEMPOTENCY: Prevent double-payment on retry/multi-click ───
+    // ������ IDEMPOTENCY: Prevent double-payment on retry/multi-click ������
     const dedupKey = RequestDeduplication.checkoutKey(userId, id);
     const dedupResult = await RequestDeduplication.acquire(dedupKey);
 
     if (dedupResult.isDuplicate) {
       logger.warn(`[Checkout] Duplicate request blocked: user=${userId}, course=${id}, status=${dedupResult.existingStatus}`);
       return NextResponse.json({
-        error: 'هذا الطلب قيد المعالجة بالفعل. يرجى الانتظار.',
+        error: 'ظ‡ط°ط§ ط§ظ„ط·ظ„ط¨ ظ‚ظٹط¯ ط§ظ„ظ…ط¹ط§ظ„ط¬ط© ط¨ط§ظ„ظپط¹ظ„. ظٹط±ط¬ظ‰ ط§ظ„ط§ظ†طھط¸ط§ط±.',
         code: 'DUPLICATE_REQUEST',
       }, { status: 409 });
     }
@@ -71,7 +71,7 @@ export async function POST(
     });
 
     if (enrollment) {
-      return NextResponse.json({ error: 'أنت مسجل بالفعل في هذه الدورة' }, { status: 400 });
+      return NextResponse.json({ error: 'ط£ظ†طھ ظ…ط³ط¬ظ„ ط¨ط§ظ„ظپط¹ظ„ ظپظٹ ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط©' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
@@ -116,13 +116,13 @@ export async function POST(
     if (paymentMethod === 'internal_wallet') {
       if ((user.wallet?.balance ?? 0) < finalPrice) {
         return NextResponse.json(
-          { error: 'رصيد الحساب غير كافٍ. يرجى شحن الرصيد أولاً.' },
+          { error: 'ط±طµظٹط¯ ط§ظ„ط­ط³ط§ط¨ ط؛ظٹط± ظƒط§ظپظچ. ظٹط±ط¬ظ‰ ط´ط­ظ† ط§ظ„ط±طµظٹط¯ ط£ظˆظ„ط§ظ‹.' },
           { status: 400 }
         );
       }
 
       // Create Payment and Enrollment
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await (prisma as any).$transaction(async (tx: any) => {
         // Create payment tracking record
         await tx.payment.create({
           data: {
@@ -177,6 +177,8 @@ export async function POST(
         icon: 'book',
         channels: ['app', 'email'],
         actionUrl: `/courses/${course.id}`,
+      }, { 
+        jobId: `course-enrollment:${user.id}:${course.id}` 
       });
 
       // Mark checkout as completed (idempotency)
@@ -190,7 +192,7 @@ export async function POST(
 
     // If completely free
     if (finalPrice <= 0) {
-      await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      await (prisma as any).$transaction(async (tx: any) => {
         await tx.payment.create({
           data: {
             userId: user.id,
@@ -224,7 +226,7 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        message: 'تم تسجيلك في الدورة بنجاح.',
+        message: 'طھظ… طھط³ط¬ظٹظ„ظƒ ظپظٹ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­.',
         finalAmount: 0,
       });
     }
@@ -312,3 +314,4 @@ export async function POST(
     return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
   }
 }
+

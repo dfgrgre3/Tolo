@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { LessonType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -23,6 +23,7 @@ type CurriculumLessonInput = {
 type CurriculumTopicInput = {
   id: string;
   name: string;
+  description?: string | null;
   subTopics?: CurriculumLessonInput[];
 };
 
@@ -39,6 +40,36 @@ type CurriculumSubject = Prisma.SubjectGetPayload<{
 type CurriculumTopic = CurriculumSubject["topics"][number];
 type CurriculumSubTopic = CurriculumTopic["subTopics"][number];
 
+function normalizeText(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function getCurriculumStats(topics: CurriculumTopic[]) {
+  const lessonsCount = topics.reduce((sum, topic) => sum + topic.subTopics.length, 0);
+  const freeLessonsCount = topics.reduce(
+    (sum, topic) => sum + topic.subTopics.filter((subTopic) => subTopic.isFree).length,
+    0
+  );
+  const totalDurationMinutes = topics.reduce(
+    (sum, topic) =>
+      sum +
+      topic.subTopics.reduce(
+        (lessonSum, subTopic) => lessonSum + (subTopic.durationMinutes || 0),
+        0
+      ),
+    0
+  );
+
+  return {
+    chaptersCount: topics.length,
+    lessonsCount,
+    freeLessonsCount,
+    totalDurationMinutes,
+  };
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -46,7 +77,7 @@ export async function GET(
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بالوصول إلى منهج الدورة");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ظ…ظ†ظ‡ط¬ ط§ظ„ط¯ظˆط±ط©");
       }
 
       try {
@@ -66,10 +97,12 @@ export async function GET(
         });
 
         if (!subject) {
-          return badRequestResponse("الدورة غير موجودة");
+          return badRequestResponse("ط§ظ„ط¯ظˆط±ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
         }
 
         const typedSubject = subject as CurriculumSubject;
+
+        const stats = getCurriculumStats(typedSubject.topics);
 
         return successResponse({
           course: {
@@ -77,10 +110,12 @@ export async function GET(
             name: typedSubject.name,
             nameAr: typedSubject.nameAr,
           },
+          stats,
           curriculum: typedSubject.topics.map((topic: CurriculumTopic) => ({
             id: topic.id,
             name: topic.title,
             order: topic.order,
+            description: topic.description,
             subTopics: topic.subTopics.map((subTopic: CurriculumSubTopic) => ({
               id: subTopic.id,
               name: subTopic.title,
@@ -107,7 +142,7 @@ export async function PUT(
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك بتعديل منهج الدورة");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط¹ط¯ظٹظ„ ظ…ظ†ظ‡ط¬ ط§ظ„ط¯ظˆط±ط©");
       }
 
       try {
@@ -116,10 +151,10 @@ export async function PUT(
         const curriculum = body?.curriculum;
 
         if (!Array.isArray(curriculum)) {
-          return badRequestResponse("بيانات المنهج غير صالحة");
+          return badRequestResponse("ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†ظ‡ط¬ ط؛ظٹط± طµط§ظ„ط­ط©");
         }
 
-        await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        await (prisma as any).$transaction(async (tx: any) => {
           const existingTopics = await tx.topic.findMany({
             where: { subjectId: id },
             select: { id: true },
@@ -142,6 +177,7 @@ export async function PUT(
                   data: {
                     subjectId: id,
                     title: topicInput.name,
+                    description: normalizeText(topicInput.description),
                     order: topicOrder,
                   },
                 })
@@ -149,6 +185,7 @@ export async function PUT(
                   where: { id: topicInput.id },
                   data: {
                     title: topicInput.name,
+                    description: normalizeText(topicInput.description),
                     order: topicOrder,
                   },
                 });
@@ -195,6 +232,29 @@ export async function PUT(
           }
         });
 
+        const refreshedSubject = await prisma.subject.findUnique({
+          where: { id },
+          include: {
+            topics: {
+              include: {
+                subTopics: true,
+              },
+            },
+          },
+        });
+
+        const refreshedTopics = (refreshedSubject?.topics || []) as CurriculumTopic[];
+        const refreshedStats = getCurriculumStats(refreshedTopics);
+
+        await prisma.subject.update({
+          where: { id },
+          data: {
+            videoCount: refreshedStats.lessonsCount,
+            durationHours: Math.ceil(refreshedStats.totalDurationMinutes / 60),
+            lastContentUpdate: new Date(),
+          },
+        });
+
         const updatedSubject = await prisma.subject.findUnique({
           where: { id },
           include: {
@@ -211,13 +271,17 @@ export async function PUT(
 
         const typedUpdatedSubject = updatedSubject as CurriculumSubject | null;
 
+        const updatedStats = getCurriculumStats((typedUpdatedSubject?.topics || []) as CurriculumTopic[]);
+
         return successResponse(
           {
+            stats: updatedStats,
             curriculum:
               typedUpdatedSubject?.topics.map((topic: CurriculumTopic) => ({
                 id: topic.id,
                 name: topic.title,
                 order: topic.order,
+                description: topic.description,
                 subTopics: topic.subTopics.map((subTopic: CurriculumSubTopic) => ({
                   id: subTopic.id,
                   name: subTopic.title,
@@ -230,7 +294,7 @@ export async function PUT(
                 })),
               })) || [],
           },
-          "تم حفظ منهج الدورة بنجاح"
+          "طھظ… ط­ظپط¸ ظ…ظ†ظ‡ط¬ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­"
         );
       } catch (error) {
         return handleApiError(error);
@@ -238,3 +302,4 @@ export async function PUT(
     })
   );
 }
+

@@ -19,16 +19,20 @@ import {
   Target,
   TrendingUp,
   Users,
-  Zap,
 } from "lucide-react";
 
-// ─── Types ─────────────────────────────────────────────────
+// أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Types أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
 interface EnrollmentTrend {
   date: string;
   count: number;
 }
 
 interface AnalyticsData {
+  course: {
+    id: string;
+    name: string;
+    trailerDurationMinutes: number;
+  };
   enrollmentTrends: EnrollmentTrend[];
   totalEnrollments: number;
   revenue: {
@@ -63,8 +67,14 @@ interface AnalyticsData {
   }>;
 }
 
-// ─── CSS Mini Chart Components ────────────────────────────
-function SparklineChart({ data, color = "hsl(var(--primary))" }: { data: number[]; color?: string }) {
+// أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ CSS Mini Chart Components أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
+function SparklineChart({
+  data,
+  color = "hsl(var(--primary))",
+}: {
+  data: number[];
+  color?: string;
+}) {
   if (!data.length) return null;
   const max = Math.max(...data, 1);
   const width = 100;
@@ -78,9 +88,19 @@ function SparklineChart({ data, color = "hsl(var(--primary))" }: { data: number[
   const fillPoints = `0,${height} ${points} ${(data.length - 1) * step},${height}`;
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-12" preserveAspectRatio="none">
+    <svg
+      viewBox={`0 0 ${width} ${height}`}
+      className="w-full h-12"
+      preserveAspectRatio="none"
+    >
       <defs>
-        <linearGradient id={`grad-${color.replace(/[^a-zA-Z0-9]/g, "")}`} x1="0" x2="0" y1="0" y2="1">
+        <linearGradient
+          id={`grad-${color.replace(/[^a-zA-Z0-9]/g, "")}`}
+          x1="0"
+          x2="0"
+          y1="0"
+          y2="1"
+        >
           <stop offset="0%" style={{ stopColor: color, stopOpacity: 0.3 }} />
           <stop offset="100%" style={{ stopColor: color, stopOpacity: 0 }} />
         </linearGradient>
@@ -119,7 +139,10 @@ function BarChart({
       {data.map((val, i) => {
         const barHeight = (val / max) * 100;
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-1 group cursor-pointer">
+          <div
+            key={i}
+            className="flex-1 flex flex-col items-center gap-1 group cursor-pointer"
+          >
             <span className="text-[9px] font-bold text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity tabular-nums">
               {val}
             </span>
@@ -155,7 +178,22 @@ function DonutChart({
   const total = segments.reduce((sum, s) => sum + s.value, 0) || 1;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  let offset = 0;
+  const segmentOffsets = segments.reduce<number[]>(
+    (offsets, segment, index) => {
+      if (index === 0) {
+        offsets.push(0);
+        return offsets;
+      }
+
+      const previousTotal = segments
+        .slice(0, index)
+        .reduce((sum, currentSegment) => sum + currentSegment.value, 0);
+
+      offsets.push((previousTotal / total) * circumference);
+      return offsets;
+    },
+    [],
+  );
 
   return (
     <div className="relative" style={{ width: size, height: size }}>
@@ -172,8 +210,7 @@ function DonutChart({
         />
         {segments.map((segment, i) => {
           const dashLength = (segment.value / total) * circumference;
-          const dashOffset = -offset;
-          offset += dashLength;
+          const dashOffset = -segmentOffsets[i];
 
           return (
             <circle
@@ -194,13 +231,21 @@ function DonutChart({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-2xl font-black">{total}</span>
-        <span className="text-[9px] font-bold text-muted-foreground">إجمالي</span>
+        <span className="text-[9px] font-bold text-muted-foreground">
+          TOTAL
+        </span>
       </div>
     </div>
   );
 }
 
-function HorizontalBar({ label, value, max, color, suffix }: {
+function HorizontalBar({
+  label,
+  value,
+  max,
+  color,
+  suffix,
+}: {
   label: string;
   value: number;
   max: number;
@@ -213,7 +258,8 @@ function HorizontalBar({ label, value, max, color, suffix }: {
       <div className="flex items-center justify-between text-xs">
         <span className="font-bold truncate">{label}</span>
         <span className="font-black tabular-nums text-muted-foreground">
-          {value}{suffix}
+          {value}
+          {suffix}
         </span>
       </div>
       <div className="h-2.5 rounded-full bg-muted/40 overflow-hidden">
@@ -226,59 +272,105 @@ function HorizontalBar({ label, value, max, color, suffix }: {
   );
 }
 
-// ─── Main Component ──────────────────────────────────────
+// أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Main Component أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
 export default function CourseAnalyticsPage() {
   const router = useRouter();
   const params = useParams();
   const courseId = params.id as string;
 
-  const { data: analytics, isLoading } = useQuery({
+  const {
+    data: analytics,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ["admin", "course-analytics", courseId],
     queryFn: async () => {
       const response = await fetch(`/api/admin/courses/${courseId}/analytics`);
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || result.message || "Failed to fetch analytics",
+        );
+      }
+
+      if (result.data === undefined) {
+        throw new Error("No data received from analytics API");
+      }
+
       return result.data as AnalyticsData;
     },
+    enabled: !!courseId,
+    retry: 1,
   });
 
   const handleExportStudents = () => {
-    window.open(`/api/admin/courses/export?type=students&courseId=${courseId}`, "_blank");
+    window.open(
+      `/api/admin/courses/export?type=students&courseId=${courseId}`,
+      "_blank",
+    );
   };
 
-  // ─── Loading ──────────────────────────────────────────
+  // أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Error أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-6 text-center">
+        <div className="h-20 w-20 rounded-3xl bg-destructive/10 flex items-center justify-center text-destructive animate-bounce">
+          <BarChart3 className="h-10 w-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-xl font-black">
+            ط¸ظ¾ط·آ´ط¸â€‍ ط·ع¾ط·آ­ط¸â€¦ط¸ظ¹ط¸â€‍
+            ط·آ§ط¸â€‍ط·ع¾ط·آ­ط¸â€‍ط¸ظ¹ط¸â€‍ط·آ§ط·ع¾
+          </h2>
+          <p className="text-sm text-muted-foreground font-medium max-w-sm">
+            {(error as Error).message ||
+              "ط·آ­ط·آ¯ط·آ« ط·آ®ط·آ·ط·آ£ ط·ط›ط¸ظ¹ط·آ± ط¸â€¦ط·ع¾ط¸ث†ط¸â€ڑط·آ¹ ط·آ£ط·آ«ط¸â€ ط·آ§ط·طŒ ط·آ¬ط¸â€‍ط·آ¨ ط·آ§ط¸â€‍ط·آ¨ط¸ظ¹ط·آ§ط¸â€ ط·آ§ط·ع¾ ط¸â€¦ط¸â€  ط·آ§ط¸â€‍ط·آ®ط·آ§ط·آ¯ط¸â€¦"}
+          </p>
+        </div>
+        <AdminButton
+          variant="outline"
+          className="rounded-xl px-8"
+          onClick={() => window.location.reload()}
+        >
+          ط·آ¥ط·آ¹ط·آ§ط·آ¯ط·آ© ط·آ§ط¸â€‍ط¸â€¦ط·آ­ط·آ§ط¸ث†ط¸â€‍ط·آ©
+        </AdminButton>
+      </div>
+    );
+  }
+
+  // أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Loading أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬
   if (isLoading || !analytics) {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="flex flex-col items-center gap-4">
           <div className="relative h-16 w-16">
             <div className="absolute inset-0 animate-spin rounded-full border-4 border-transparent border-t-primary" />
-            <div className="absolute inset-2 animate-spin rounded-full border-4 border-transparent border-b-primary/30" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
+            <div
+              className="absolute inset-2 animate-spin rounded-full border-4 border-transparent border-b-primary/30"
+              style={{
+                animationDirection: "reverse",
+                animationDuration: "1.5s",
+              }}
+            />
           </div>
-          <p className="text-sm font-bold text-muted-foreground animate-pulse">جاري تحميل التحليلات...</p>
+          <p className="text-sm font-bold text-muted-foreground animate-pulse">
+            ط·آ¬ط·آ§ط·آ±ط¸ظ¹ ط·ع¾ط·آ­ط¸â€¦ط¸ظ¹ط¸â€‍
+            ط·آ§ط¸â€‍ط·ع¾ط·آ­ط¸â€‍ط¸ظ¹ط¸â€‍ط·آ§ط·ع¾...
+          </p>
         </div>
       </div>
     );
   }
 
-  const totalProgressStudents =
-    analytics.progressDistribution.notStarted +
-    analytics.progressDistribution.inProgress +
-    analytics.progressDistribution.halfWay +
-    analytics.progressDistribution.completed;
-
-  const maxComparisonEnrollments = Math.max(
-    ...analytics.comparison.map((c) => c.enrollments),
-    1
-  );
-
   const maxContentDuration = Math.max(
     ...analytics.contentPerformance.map((c) => c.totalDuration),
-    1
+    1,
   );
 
   return (
     <div className="space-y-8 pb-20" dir="rtl">
-      {/* ─── Header ──────────────────────────────────────── */}
+      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Header أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <AdminButton
@@ -290,25 +382,36 @@ export default function CourseAnalyticsPage() {
             <ArrowRight className="h-5 w-5" />
           </AdminButton>
           <div>
-            <h1 className="text-2xl font-black">تحليلات الدورة التعليمية</h1>
+            <h1 className="text-2xl font-black">
+              ط·ع¾ط·آ­ط¸â€‍ط¸ظ¹ط¸â€‍ط·آ§ط·ع¾ ط·آ§ط¸â€‍ط·آ¯ط¸ث†ط·آ±ط·آ©
+              ط·آ§ط¸â€‍ط·ع¾ط·آ¹ط¸â€‍ط¸ظ¹ط¸â€¦ط¸ظ¹ط·آ©
+            </h1>
             <p className="text-xs text-muted-foreground font-medium">
-              إحصائيات وبيانات تفصيلية عن أداء الدورة
+              {analytics.course.name}
             </p>
           </div>
         </div>
-        <AdminButton variant="outline" className="gap-2 rounded-xl" onClick={handleExportStudents}>
+        <AdminButton
+          variant="outline"
+          className="gap-2 rounded-xl"
+          onClick={handleExportStudents}
+        >
           <Download className="h-4 w-4" />
-          تصدير بيانات الطلاب
+          ط·ع¾ط·آµط·آ¯ط¸ظ¹ط·آ± ط·آ¨ط¸ظ¹ط·آ§ط¸â€ ط·آ§ط·ع¾
+          ط·آ§ط¸â€‍ط·آ·ط¸â€‍ط·آ§ط·آ¨
         </AdminButton>
       </div>
 
-      {/* ─── Quick Stats ─────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Quick Stats أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         <AdminCard className="relative overflow-hidden p-5 group">
           <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-blue-500/20 blur-3xl opacity-20 group-hover:opacity-40 transition" />
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">إجمالي التسجيلات</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                ط·آ¥ط·آ¬ط¸â€¦ط·آ§ط¸â€‍ط¸ظ¹
+                ط·آ§ط¸â€‍ط·ع¾ط·آ³ط·آ¬ط¸ظ¹ط¸â€‍ط·آ§ط·ع¾
+              </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-500/10">
                 <Users className="h-5 w-5 text-blue-500" />
               </div>
@@ -325,16 +428,20 @@ export default function CourseAnalyticsPage() {
           <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-emerald-500/20 blur-3xl opacity-20 group-hover:opacity-40 transition" />
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">إجمالي الإيرادات</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                ط·آ¥ط·آ¬ط¸â€¦ط·آ§ط¸â€‍ط¸ظ¹ ط·آ§ط¸â€‍ط·آ¥ط¸ظ¹ط·آ±ط·آ§ط·آ¯ط·آ§ط·ع¾
+              </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10">
                 <DollarSign className="h-5 w-5 text-emerald-500" />
               </div>
             </div>
             <p className="text-3xl font-black text-emerald-500">
-              {analytics.revenue.total.toLocaleString()} <span className="text-sm">EGP</span>
+              {analytics.revenue.total.toLocaleString()}{" "}
+              <span className="text-sm">EGP</span>
             </p>
             <p className="text-[11px] text-muted-foreground">
-              آخر 30 يوم: {analytics.revenue.recent30Days.toLocaleString()} EGP
+              ط·آ¢ط·آ®ط·آ± 30 ط¸ظ¹ط¸ث†ط¸â€¦:{" "}
+              {analytics.revenue.recent30Days.toLocaleString()} EGP
             </p>
           </div>
         </AdminCard>
@@ -343,13 +450,17 @@ export default function CourseAnalyticsPage() {
           <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-amber-500/20 blur-3xl opacity-20 group-hover:opacity-40 transition" />
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">متوسط التقييم</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                ط¸â€¦ط·ع¾ط¸ث†ط·آ³ط·آ· ط·آ§ط¸â€‍ط·ع¾ط¸â€ڑط¸ظ¹ط¸ظ¹ط¸â€¦
+              </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10">
                 <Star className="h-5 w-5 text-amber-500" />
               </div>
             </div>
             <div className="flex items-baseline gap-2">
-              <p className="text-3xl font-black">{analytics.avgRating > 0 ? analytics.avgRating : "—"}</p>
+              <p className="text-3xl font-black">
+                {analytics.avgRating > 0 ? analytics.avgRating : "أ¢â‚¬â€‌"}
+              </p>
               <div className="flex gap-0.5">
                 {[1, 2, 3, 4, 5].map((s) => (
                   <Star
@@ -358,13 +469,15 @@ export default function CourseAnalyticsPage() {
                       "h-3 w-3",
                       s <= Math.round(analytics.avgRating)
                         ? "fill-amber-400 text-amber-400"
-                        : "text-muted-foreground/20"
+                        : "text-muted-foreground/20",
                     )}
                   />
                 ))}
               </div>
             </div>
-            <p className="text-[11px] text-muted-foreground">{analytics.reviewCount} تقييم</p>
+            <p className="text-[11px] text-muted-foreground">
+              {analytics.reviewCount} ط·ع¾ط¸â€ڑط¸ظ¹ط¸ظ¹ط¸â€¦
+            </p>
           </div>
         </AdminCard>
 
@@ -372,7 +485,9 @@ export default function CourseAnalyticsPage() {
           <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-violet-500/20 blur-3xl opacity-20 group-hover:opacity-40 transition" />
           <div className="relative space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">متوسط التقدم</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                ط¸â€¦ط·ع¾ط¸ث†ط·آ³ط·آ· ط·آ§ط¸â€‍ط·ع¾ط¸â€ڑط·آ¯ط¸â€¦
+              </p>
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10">
                 <Target className="h-5 w-5 text-violet-500" />
               </div>
@@ -386,9 +501,33 @@ export default function CourseAnalyticsPage() {
             </div>
           </div>
         </AdminCard>
+
+        <AdminCard className="relative overflow-hidden p-5 group">
+          <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-cyan-500/20 blur-3xl opacity-20 group-hover:opacity-40 transition" />
+          <div className="relative space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60">
+                مدة فيديو المقدمة
+              </p>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10">
+                <Clock className="h-5 w-5 text-cyan-500" />
+              </div>
+            </div>
+            <p className="text-3xl font-black">
+              {analytics.course.trailerDurationMinutes > 0
+                ? analytics.course.trailerDurationMinutes
+                : "—"}
+            </p>
+            <p className="text-[11px] text-muted-foreground">
+              {analytics.course.trailerDurationMinutes > 0
+                ? "دقيقة"
+                : "لا توجد مدة محفوظة"}
+            </p>
+          </div>
+        </AdminCard>
       </div>
 
-      {/* ─── Enrollment Trends + Progress Distribution ───── */}
+      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Enrollment Trends + Progress Distribution أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
       <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
         <AdminCard className="p-6">
           <div className="flex items-center justify-between mb-6">
@@ -397,12 +536,20 @@ export default function CourseAnalyticsPage() {
                 <TrendingUp className="h-5 w-5 text-blue-500" />
               </div>
               <div>
-                <h3 className="font-black">اتجاه التسجيلات</h3>
-                <p className="text-[11px] text-muted-foreground">آخر 30 يوم</p>
+                <h3 className="font-black">
+                  ط·آ§ط·ع¾ط·آ¬ط·آ§ط¸â€، ط·آ§ط¸â€‍ط·ع¾ط·آ³ط·آ¬ط¸ظ¹ط¸â€‍ط·آ§ط·ع¾
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  ط·آ¢ط·آ®ط·آ± 30 ط¸ظ¹ط¸ث†ط¸â€¦
+                </p>
               </div>
             </div>
-            <Badge variant="outline" className="rounded-full px-3 font-bold text-xs">
-              {analytics.enrollmentTrends.reduce((s, t) => s + t.count, 0)} تسجيل
+            <Badge
+              variant="outline"
+              className="rounded-full px-3 font-bold text-xs"
+            >
+              {analytics.enrollmentTrends.reduce((s, t) => s + t.count, 0)}{" "}
+              ط·ع¾ط·آ³ط·آ¬ط¸ظ¹ط¸â€‍
             </Badge>
           </div>
           <BarChart
@@ -419,40 +566,81 @@ export default function CourseAnalyticsPage() {
               <Target className="h-5 w-5 text-violet-500" />
             </div>
             <div>
-              <h3 className="font-black">توزيع التقدم</h3>
-              <p className="text-[11px] text-muted-foreground">حالة تقدم الطلاب</p>
+              <h3 className="font-black">
+                ط·ع¾ط¸ث†ط·آ²ط¸ظ¹ط·آ¹ ط·آ§ط¸â€‍ط·ع¾ط¸â€ڑط·آ¯ط¸â€¦
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                ط·آ­ط·آ§ط¸â€‍ط·آ© ط·ع¾ط¸â€ڑط·آ¯ط¸â€¦ ط·آ§ط¸â€‍ط·آ·ط¸â€‍ط·آ§ط·آ¨
+              </p>
             </div>
           </div>
 
           <div className="flex items-center justify-center mb-6">
             <DonutChart
               segments={[
-                { value: analytics.progressDistribution.completed, color: "#10b981", label: "مكتمل" },
-                { value: analytics.progressDistribution.halfWay, color: "#3b82f6", label: "نصف الطريق" },
-                { value: analytics.progressDistribution.inProgress, color: "#f59e0b", label: "قيد التعلم" },
-                { value: analytics.progressDistribution.notStarted, color: "#6b7280", label: "لم يبدأ" },
+                {
+                  value: analytics.progressDistribution.completed,
+                  color: "#10b981",
+                  label: "ط¸â€¦ط¸ئ’ط·ع¾ط¸â€¦ط¸â€‍",
+                },
+                {
+                  value: analytics.progressDistribution.halfWay,
+                  color: "#3b82f6",
+                  label: "ط¸â€ ط·آµط¸ظ¾ ط·آ§ط¸â€‍ط·آ·ط·آ±ط¸ظ¹ط¸â€ڑ",
+                },
+                {
+                  value: analytics.progressDistribution.inProgress,
+                  color: "#f59e0b",
+                  label: "ط¸â€ڑط¸ظ¹ط·آ¯ ط·آ§ط¸â€‍ط·ع¾ط·آ¹ط¸â€‍ط¸â€¦",
+                },
+                {
+                  value: analytics.progressDistribution.notStarted,
+                  color: "#6b7280",
+                  label: "ط¸â€‍ط¸â€¦ ط¸ظ¹ط·آ¨ط·آ¯ط·آ£",
+                },
               ]}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: "مكتمل", value: analytics.progressDistribution.completed, color: "bg-emerald-500" },
-              { label: "نصف الطريق", value: analytics.progressDistribution.halfWay, color: "bg-blue-500" },
-              { label: "قيد التعلم", value: analytics.progressDistribution.inProgress, color: "bg-amber-500" },
-              { label: "لم يبدأ", value: analytics.progressDistribution.notStarted, color: "bg-gray-500" },
+              {
+                label: "ط¸â€¦ط¸ئ’ط·ع¾ط¸â€¦ط¸â€‍",
+                value: analytics.progressDistribution.completed,
+                color: "bg-emerald-500",
+              },
+              {
+                label: "ط¸â€ ط·آµط¸ظ¾ ط·آ§ط¸â€‍ط·آ·ط·آ±ط¸ظ¹ط¸â€ڑ",
+                value: analytics.progressDistribution.halfWay,
+                color: "bg-blue-500",
+              },
+              {
+                label: "ط¸â€ڑط¸ظ¹ط·آ¯ ط·آ§ط¸â€‍ط·ع¾ط·آ¹ط¸â€‍ط¸â€¦",
+                value: analytics.progressDistribution.inProgress,
+                color: "bg-amber-500",
+              },
+              {
+                label: "ط¸â€‍ط¸â€¦ ط¸ظ¹ط·آ¨ط·آ¯ط·آ£",
+                value: analytics.progressDistribution.notStarted,
+                color: "bg-gray-500",
+              },
             ].map((item) => (
-              <div key={item.label} className="flex items-center gap-2 text-[11px]">
+              <div
+                key={item.label}
+                className="flex items-center gap-2 text-[11px]"
+              >
                 <div className={cn("h-2.5 w-2.5 rounded-full", item.color)} />
                 <span className="font-bold">{item.label}</span>
-                <span className="font-black text-muted-foreground mr-auto tabular-nums">{item.value}</span>
+                <span className="font-black text-muted-foreground mr-auto tabular-nums">
+                  {item.value}
+                </span>
               </div>
             ))}
           </div>
         </AdminCard>
       </div>
 
-      {/* ─── Rating Distribution + Revenue ─────────────── */}
+      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Rating Distribution + Revenue أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
       <div className="grid gap-6 lg:grid-cols-2">
         <AdminCard className="p-6">
           <div className="flex items-center gap-3 mb-6">
@@ -460,14 +648,22 @@ export default function CourseAnalyticsPage() {
               <Star className="h-5 w-5 text-amber-500" />
             </div>
             <div>
-              <h3 className="font-black">توزيع التقييمات</h3>
-              <p className="text-[11px] text-muted-foreground">{analytics.reviewCount} تقييم إجمالي</p>
+              <h3 className="font-black">
+                ط·ع¾ط¸ث†ط·آ²ط¸ظ¹ط·آ¹ ط·آ§ط¸â€‍ط·ع¾ط¸â€ڑط¸ظ¹ط¸ظ¹ط¸â€¦ط·آ§ط·ع¾
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                {analytics.reviewCount} ط·ع¾ط¸â€ڑط¸ظ¹ط¸ظ¹ط¸â€¦
+                ط·آ¥ط·آ¬ط¸â€¦ط·آ§ط¸â€‍ط¸ظ¹
+              </p>
             </div>
           </div>
           <div className="space-y-3">
             {[5, 4, 3, 2, 1].map((r) => {
               const count = analytics.ratingDistribution[r] || 0;
-              const maxRating = Math.max(...Object.values(analytics.ratingDistribution), 1);
+              const maxRating = Math.max(
+                ...Object.values(analytics.ratingDistribution),
+                1,
+              );
               const barColors: Record<number, string> = {
                 5: "#10b981",
                 4: "#84cc16",
@@ -490,7 +686,9 @@ export default function CourseAnalyticsPage() {
                       }}
                     />
                   </div>
-                  <span className="w-8 text-left text-xs font-black tabular-nums">{count}</span>
+                  <span className="w-8 text-left text-xs font-black tabular-nums">
+                    {count}
+                  </span>
                 </div>
               );
             })}
@@ -503,42 +701,67 @@ export default function CourseAnalyticsPage() {
               <DollarSign className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
-              <h3 className="font-black">تفاصيل الإيرادات</h3>
-              <p className="text-[11px] text-muted-foreground">ملخص مالي للدورة</p>
+              <h3 className="font-black">
+                ط·ع¾ط¸ظ¾ط·آ§ط·آµط¸ظ¹ط¸â€‍ ط·آ§ط¸â€‍ط·آ¥ط¸ظ¹ط·آ±ط·آ§ط·آ¯ط·آ§ط·ع¾
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                ط¸â€¦ط¸â€‍ط·آ®ط·آµ ط¸â€¦ط·آ§ط¸â€‍ط¸ظ¹ ط¸â€‍ط¸â€‍ط·آ¯ط¸ث†ط·آ±ط·آ©
+              </p>
             </div>
           </div>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-2xl bg-emerald-500/5 border border-emerald-500/10 p-4">
-                <p className="text-[10px] font-bold text-muted-foreground">الإيرادات الإجمالية</p>
-                <p className="text-2xl font-black text-emerald-500 mt-1">{analytics.revenue.total.toLocaleString()}</p>
+                <p className="text-[10px] font-bold text-muted-foreground">
+                  ط·آ§ط¸â€‍ط·آ¥ط¸ظ¹ط·آ±ط·آ§ط·آ¯ط·آ§ط·ع¾
+                  ط·آ§ط¸â€‍ط·آ¥ط·آ¬ط¸â€¦ط·آ§ط¸â€‍ط¸ظ¹ط·آ©
+                </p>
+                <p className="text-2xl font-black text-emerald-500 mt-1">
+                  {analytics.revenue.total.toLocaleString()}
+                </p>
                 <p className="text-[10px] text-muted-foreground">EGP</p>
               </div>
               <div className="rounded-2xl bg-blue-500/5 border border-blue-500/10 p-4">
-                <p className="text-[10px] font-bold text-muted-foreground">آخر 30 يوم</p>
-                <p className="text-2xl font-black text-blue-500 mt-1">{analytics.revenue.recent30Days.toLocaleString()}</p>
+                <p className="text-[10px] font-bold text-muted-foreground">
+                  ط·آ¢ط·آ®ط·آ± 30 ط¸ظ¹ط¸ث†ط¸â€¦
+                </p>
+                <p className="text-2xl font-black text-blue-500 mt-1">
+                  {analytics.revenue.recent30Days.toLocaleString()}
+                </p>
                 <p className="text-[10px] text-muted-foreground">EGP</p>
               </div>
             </div>
             <div className="rounded-2xl bg-muted/20 border p-4 flex items-center justify-between">
               <div>
-                <p className="text-[10px] font-bold text-muted-foreground">سعر الدورة</p>
-                <p className="text-lg font-black mt-1">{analytics.revenue.pricePerStudent} EGP</p>
+                <p className="text-[10px] font-bold text-muted-foreground">
+                  ط·آ³ط·آ¹ط·آ± ط·آ§ط¸â€‍ط·آ¯ط¸ث†ط·آ±ط·آ©
+                </p>
+                <p className="text-lg font-black mt-1">
+                  {analytics.revenue.pricePerStudent} EGP
+                </p>
               </div>
               <div className="text-left">
-                <p className="text-[10px] font-bold text-muted-foreground">عدد الطلاب</p>
-                <p className="text-lg font-black mt-1">{analytics.totalEnrollments}</p>
+                <p className="text-[10px] font-bold text-muted-foreground">
+                  ط·آ¹ط·آ¯ط·آ¯ ط·آ§ط¸â€‍ط·آ·ط¸â€‍ط·آ§ط·آ¨
+                </p>
+                <p className="text-lg font-black mt-1">
+                  {analytics.totalEnrollments}
+                </p>
               </div>
               <div className="text-left">
-                <p className="text-[10px] font-bold text-muted-foreground">متوسط لكل طالب</p>
-                <p className="text-lg font-black mt-1">{analytics.revenue.pricePerStudent} EGP</p>
+                <p className="text-[10px] font-bold text-muted-foreground">
+                  ط¸â€¦ط·ع¾ط¸ث†ط·آ³ط·آ· ط¸â€‍ط¸ئ’ط¸â€‍ ط·آ·ط·آ§ط¸â€‍ط·آ¨
+                </p>
+                <p className="text-lg font-black mt-1">
+                  {analytics.revenue.pricePerStudent} EGP
+                </p>
               </div>
             </div>
           </div>
         </AdminCard>
       </div>
 
-      {/* ─── Content Performance ─────────────────────────── */}
+      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Content Performance أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
       <AdminCard className="p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
@@ -546,8 +769,14 @@ export default function CourseAnalyticsPage() {
               <Layers className="h-5 w-5 text-violet-500" />
             </div>
             <div>
-              <h3 className="font-black">أداء المحتوى</h3>
-              <p className="text-[11px] text-muted-foreground">تفاصيل الوحدات التعليمية والدروس</p>
+              <h3 className="font-black">
+                ط·آ£ط·آ¯ط·آ§ط·طŒ ط·آ§ط¸â€‍ط¸â€¦ط·آ­ط·ع¾ط¸ث†ط¸â€°
+              </h3>
+              <p className="text-[11px] text-muted-foreground">
+                ط·ع¾ط¸ظ¾ط·آ§ط·آµط¸ظ¹ط¸â€‍ ط·آ§ط¸â€‍ط¸ث†ط·آ­ط·آ¯ط·آ§ط·ع¾
+                ط·آ§ط¸â€‍ط·ع¾ط·آ¹ط¸â€‍ط¸ظ¹ط¸â€¦ط¸ظ¹ط·آ©
+                ط¸ث†ط·آ§ط¸â€‍ط·آ¯ط·آ±ط¸ث†ط·آ³
+              </p>
             </div>
           </div>
         </div>
@@ -561,27 +790,36 @@ export default function CourseAnalyticsPage() {
                 value={topic.totalDuration}
                 max={maxContentDuration}
                 color={`hsl(${(i * 40 + 200) % 360}, 70%, 55%)`}
-                suffix={` د — ${topic.lessonsCount} درس`}
+                suffix={` ط·آ¯ أ¢â‚¬â€‌ ${topic.lessonsCount} ط·آ¯ط·آ±ط·آ³`}
               />
             ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <BookOpen className="h-10 w-10 text-muted-foreground/20 mb-3" />
-            <p className="text-sm font-bold text-muted-foreground">لم يتم إضافة محتوى بعد</p>
+            <p className="text-sm font-bold text-muted-foreground">
+              ط¸â€‍ط¸â€¦ ط¸ظ¹ط·ع¾ط¸â€¦ ط·آ¥ط·آ¶ط·آ§ط¸ظ¾ط·آ©
+              ط¸â€¦ط·آ­ط·ع¾ط¸ث†ط¸â€° ط·آ¨ط·آ¹ط·آ¯
+            </p>
           </div>
         )}
       </AdminCard>
 
-      {/* ─── Comparison with Other Courses ────────────────── */}
+      {/* أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ Comparison with Other Courses أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬أ¢â€‌â‚¬ */}
       <AdminCard className="p-6">
         <div className="flex items-center gap-3 mb-6">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-500/10">
             <BarChart3 className="h-5 w-5 text-cyan-500" />
           </div>
           <div>
-            <h3 className="font-black">مقارنة مع الدورات الأخرى</h3>
-            <p className="text-[11px] text-muted-foreground">ترتيب حسب عدد التسجيلات</p>
+            <h3 className="font-black">
+              ط¸â€¦ط¸â€ڑط·آ§ط·آ±ط¸â€ ط·آ© ط¸â€¦ط·آ¹
+              ط·آ§ط¸â€‍ط·آ¯ط¸ث†ط·آ±ط·آ§ط·ع¾ ط·آ§ط¸â€‍ط·آ£ط·آ®ط·آ±ط¸â€°
+            </h3>
+            <p className="text-[11px] text-muted-foreground">
+              ط·ع¾ط·آ±ط·ع¾ط¸ظ¹ط·آ¨ ط·آ­ط·آ³ط·آ¨ ط·آ¹ط·آ¯ط·آ¯
+              ط·آ§ط¸â€‍ط·ع¾ط·آ³ط·آ¬ط¸ظ¹ط¸â€‍ط·آ§ط·ع¾
+            </p>
           </div>
         </div>
 
@@ -596,34 +834,48 @@ export default function CourseAnalyticsPage() {
                     "flex items-center gap-3 rounded-xl p-3 transition-all",
                     course.isCurrent
                       ? "bg-primary/5 border border-primary/20 ring-1 ring-primary/10"
-                      : "bg-muted/10 hover:bg-muted/20"
+                      : "bg-muted/10 hover:bg-muted/20",
                   )}
                 >
                   <span className="text-xs font-black text-muted-foreground w-6 text-center tabular-nums">
                     #{i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className={cn("text-sm font-bold truncate", course.isCurrent && "text-primary")}>
+                    <div
+                      className={cn(
+                        "text-sm font-bold truncate",
+                        course.isCurrent && "text-primary",
+                      )}
+                    >
                       {course.name}
                       {course.isCurrent && (
                         <Badge className="mr-2 rounded-full px-2 h-4 text-[8px] font-bold bg-primary/10 text-primary border-primary/20">
-                          الدورة الحالية
+                          ط·آ§ط¸â€‍ط·آ¯ط¸ث†ط·آ±ط·آ©
+                          ط·آ§ط¸â€‍ط·آ­ط·آ§ط¸â€‍ط¸ظ¹ط·آ©
                         </Badge>
                       )}
-                    </p>
+                    </div>
                   </div>
                   <div className="flex items-center gap-4 text-xs">
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Users className="h-3 w-3" />
-                      <span className="font-bold tabular-nums">{course.enrollments}</span>
+                      <span className="font-bold tabular-nums">
+                        {course.enrollments}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 text-muted-foreground">
                       <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-                      <span className="font-bold tabular-nums">{course.rating > 0 ? course.rating.toFixed(1) : "—"}</span>
+                      <span className="font-bold tabular-nums">
+                        {course.rating > 0
+                          ? course.rating.toFixed(1)
+                          : "أ¢â‚¬â€‌"}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1 text-emerald-500">
                       <DollarSign className="h-3 w-3" />
-                      <span className="font-bold tabular-nums">{course.price}</span>
+                      <span className="font-bold tabular-nums">
+                        {course.price}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -632,7 +884,10 @@ export default function CourseAnalyticsPage() {
         ) : (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <BarChart3 className="h-10 w-10 text-muted-foreground/20 mb-3" />
-            <p className="text-sm font-bold text-muted-foreground">لا توجد بيانات مقارنة متاحة</p>
+            <p className="text-sm font-bold text-muted-foreground">
+              ط¸â€‍ط·آ§ ط·ع¾ط¸ث†ط·آ¬ط·آ¯ ط·آ¨ط¸ظ¹ط·آ§ط¸â€ ط·آ§ط·ع¾
+              ط¸â€¦ط¸â€ڑط·آ§ط·آ±ط¸â€ ط·آ© ط¸â€¦ط·ع¾ط·آ§ط·آ­ط·آ©
+            </p>
           </div>
         )}
       </AdminCard>

@@ -123,6 +123,7 @@ export default function LandingPage() {
               <motion.div
                 key={i}
                 {...scrollVariants.fadeUp}
+                viewport={{ once: true, margin: "-100px" }}
                 transition={{ delay: i * 0.1 }}
                 className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-10 group hover:border-primary/50 transition-all cursor-default"
               >
@@ -223,6 +224,7 @@ export default function LandingPage() {
                  <motion.div
                    key={i}
                    {...scrollVariants.scaleUp}
+                   viewport={{ once: true, margin: "-50px" }}
                    transition={{ delay: feat.delay || 0 }}
                    className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-8 text-center group flex flex-col items-center gap-6 hover:bg-card/60 transition-all"
                  >
@@ -241,6 +243,7 @@ export default function LandingPage() {
          {/* Final Call to Action - The Coliseum */}
          <motion.div 
            {...scrollVariants.fadeUp}
+           viewport={{ once: true }}
            className="relative p-20 rounded-[4rem] bg-gradient-to-br from-primary/10 via-purple-600/5 to-transparent border border-white/10 overflow-hidden text-center group"
          >
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">

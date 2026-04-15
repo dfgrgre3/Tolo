@@ -9,58 +9,58 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { HeaderLogo } from "./header/HeaderLogo";
-import { HeaderSearch } from "./header/HeaderSearch";
-import { HeaderNavigation } from "./header/HeaderNavigation";
-import { HeaderNotifications } from "./header/HeaderNotifications";
+import { HeaderLogo } from "./HeaderLogo";
+import { HeaderSearch } from "./HeaderSearch";
+import { HeaderNavigation } from "./HeaderNavigation";
+import { HeaderNotifications } from "./HeaderNotifications";
 // import removed
 
-import { HeaderBreadcrumbs } from "./header/HeaderBreadcrumbs";
+import { HeaderBreadcrumbs } from "./HeaderBreadcrumbs";
 // import removed
-import { useMegaMenuState } from "./header/useMegaMenuState";
-import ProgressIndicator from "./header/ProgressIndicator";
+import { useMegaMenuState } from "./useMegaMenuState";
+import ProgressIndicator from "./ProgressIndicator";
 import { useHeaderKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { useAuth } from "@/contexts/auth-context";
-import { UserMenu } from "./header/UserMenu";
+import { UserMenu } from "./UserMenu";
 import { LogIn, UserPlus } from "lucide-react";
 import { buildLoginUrl } from "@/services/auth/navigation";
 
 // Dynamic imports for better performance
 const CommandPalette = dynamic(
-  () => import("./header/CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
+  () => import("./CommandPalette").then((mod) => ({ default: mod.CommandPalette })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
 const QuickActions = dynamic(
-  () => import("./header/QuickActions").then((mod) => ({ default: mod.QuickActions })).catch(() => ({ default: () => null })),
+  () => import("./QuickActions").then((mod) => ({ default: mod.QuickActions })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
 const ActivityWidget = dynamic(
-  () => import("./header/ActivityWidget").then((mod) => ({ default: mod.ActivityWidget })).catch(() => ({ default: () => null })),
+  () => import("./ActivityWidget").then((mod) => ({ default: mod.ActivityWidget })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
 const ContextualHelp = dynamic(
-  () => import("./header/ContextualHelp").then((mod) => ({ default: mod.ContextualHelp })).catch(() => ({ default: () => null })),
+  () => import("./ContextualHelp").then((mod) => ({ default: mod.ContextualHelp })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
 const SmartNavigationSuggestions = dynamic(
-  () => import("./header/SmartNavigationSuggestions").then((mod) => ({ default: mod.SmartNavigationSuggestions })).catch(() => ({ default: () => null })),
+  () => import("./SmartNavigationSuggestions").then((mod) => ({ default: mod.SmartNavigationSuggestions })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
 // Enhanced mobile menu
 const HeaderMobileMenuEnhanced = dynamic(
-  () => import("./header/HeaderMobileMenuEnhanced").then((mod) => ({ default: mod.HeaderMobileMenuEnhanced })).catch(() => ({ default: () => null })),
+  () => import("./HeaderMobileMenuEnhanced").then((mod) => ({ default: mod.HeaderMobileMenuEnhanced })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 
 // Reading progress bar
 const ReadingProgressBar = dynamic(
-  () => import("./header/ReadingProgressBar").then((mod) => ({ default: mod.ReadingProgressBar })).catch(() => ({ default: () => null })),
+  () => import("./ReadingProgressBar").then((mod) => ({ default: mod.ReadingProgressBar })).catch(() => ({ default: () => null })),
   { ssr: false, loading: () => null }
 );
 

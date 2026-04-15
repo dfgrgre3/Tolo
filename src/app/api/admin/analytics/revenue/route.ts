@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { startOfDay, endOfDay, startOfMonth, endOfMonth, subMonths } from 'date-fns';
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
 export async function GET(req: Request) {
   try {
@@ -48,7 +48,7 @@ export async function GET(req: Request) {
     }
 
     // --- Top Selling Plans ---
-    const topPlansRaw = await prisma.payment.groupBy({
+    const topPlansRaw = await (prisma.payment as any).groupBy({
         by: ['subscriptionId'],
         where: { status: 'SUCCESS', subscriptionId: { not: null } },
         _count: { id: true },

@@ -36,9 +36,25 @@ export interface PrivacySettingsPreference {
 
 
 
+export interface LanguageSettingsPreference {
+  language: string;
+  direction: 'rtl' | 'ltr';
+  numberFormat: 'arabic' | 'western';
+  timezone: string;
+}
+
+export interface AppearanceSettingsPreference {
+  theme: 'light' | 'dark' | 'system';
+  fontSize: 'small' | 'medium' | 'large';
+  highContrast: boolean;
+  reduceMotion: boolean;
+}
+
 export interface SettingsPreferences {
   notifications: NotificationSettingsPreference;
   privacy: PrivacySettingsPreference;
+  language: LanguageSettingsPreference;
+  appearance: AppearanceSettingsPreference;
 }
 
 export interface SettingsPreferencesPatch {
@@ -80,6 +96,20 @@ export const DEFAULT_PRIVACY_SETTINGS: PrivacySettingsPreference = {
   dataCollection: true,
   personalization: true,
   analytics: false,
+};
+
+export const DEFAULT_LANGUAGE_SETTINGS: LanguageSettingsPreference = {
+  language: 'ar',
+  direction: 'rtl',
+  numberFormat: 'western',
+  timezone: 'UTC',
+};
+
+export const DEFAULT_APPEARANCE_SETTINGS: AppearanceSettingsPreference = {
+  theme: 'dark',
+  fontSize: 'medium',
+  highContrast: false,
+  reduceMotion: false,
 };
 
 

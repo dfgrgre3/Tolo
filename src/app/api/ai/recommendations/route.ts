@@ -1,81 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getHybridRecommendations, trackInteraction } from "@/lib/ai/ml-recommendations";
-import { opsWrapper } from "@/lib/middleware/ops-middleware";
-
+import { getHybridRecommendations } from "@/lib/ai/ml-recommendations";
+import { successResponse, handleApiError, opsWrapper } from "@/lib/api-utils";
 import { logger } from '@/lib/logger';
 
+/**
+ * GET /api/ai/recommendations
+ * Fetch personalized AI recommendations for the current user.
+ * 
+ * Note: This route is set to public in middleware to allow graceful handling
+ * of stale sessions or guest users, but it still prefers authenticated context.
+ */
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     try {
-      const decodedToken: any = { userId: "default-user" };
-      if (!decodedToken) {
+      const userId = req.headers.get('x-user-id');
+      
+      if (!userId || userId === 'anonymous') {
+        // Return 401 with a friendly JSON body instead of a raw middleware block
         return NextResponse.json(
-          { error: "غير مصرح" },
+          { 
+            success: false, 
+            error: "Authentication required for personalized recommendations",
+            recommendations: [] 
+          },
           { status: 401 }
         );
       }
 
-      const userId = decodedToken.userId;
-      const { searchParams } = new URL(req.url);
-      const limit = parseInt(searchParams.get('limit') || '10');
+      const { searchParams } = new URL(request.url);
+      const limit = parseInt(searchParams.get('limit') || '6');
 
       const recommendations = await getHybridRecommendations(userId, limit);
 
-      return NextResponse.json({
+      return successResponse({
         success: true,
         recommendations,
         count: recommendations.length
       });
     } catch (error) {
-      logger.error("Error fetching recommendations:", error);
-      return NextResponse.json(
-        { error: "فشل في جلب التوصيات", recommendations: [] },
-        { status: 500 }
-      );
+      logger.error("Error fetching AI recommendations:", error);
+      return handleApiError(error);
     }
   });
 }
-
-export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
-    try {
-      const decodedToken: any = { userId: "default-user" };
-      if (!decodedToken) {
-        return NextResponse.json(
-          { error: "غير مصرح" },
-          { status: 401 }
-        );
-      }
-
-      const userId = decodedToken.userId;
-      const { type, itemType, itemId, metadata } = await req.json();
-
-      if (!type || !itemType || !itemId) {
-        return NextResponse.json(
-          { error: "معاملات مطلوبة: type, itemType, itemId" },
-          { status: 400 }
-        );
-      }
-
-      await trackInteraction(
-        userId,
-        type,
-        itemType,
-        itemId,
-        metadata
-      );
-
-      return NextResponse.json({
-        success: true,
-        message: "تم تسجيل التفاعل بنجاح"
-      });
-    } catch (error) {
-      logger.error("Error tracking interaction:", error);
-      return NextResponse.json(
-        { error: "فشل في تسجيل التفاعل" },
-        { status: 500 }
-      );
-    }
-  });
-}
-

@@ -32,14 +32,26 @@ const MAX_SAMPLES = 100;
 export class DatabaseHealthMonitor {
   private static checkInterval: ReturnType<typeof setInterval> | null = null;
   private static lastHealth: DbHealthStatus | null = null;
+  private static startedAt: number = 0;
+  /** Grace period after startup to avoid false positives from cold connection pools */
+  private static STARTUP_GRACE_MS = 60_000;
+
+  /**
+   * Start periodic health monitoring
+   */
+  private static isChecking = false;
 
   /**
    * Start periodic health monitoring
    */
   static start(intervalMs: number = 30_000): void {
     if (this.checkInterval) return;
+    this.startedAt = Date.now();
 
     this.checkInterval = setInterval(async () => {
+      if (this.isChecking) return;
+      this.isChecking = true;
+
       try {
         const health = await this.check();
         this.lastHealth = health;
@@ -47,16 +59,31 @@ export class DatabaseHealthMonitor {
         // Cache the health status for the /api/healthz endpoint
         await CacheService.set('system:db_health', health, 60);
 
-        // Alert on degraded health
+        const inGracePeriod = Date.now() - this.startedAt < this.STARTUP_GRACE_MS;
+
+        // Alert on degraded health (skip alerts during startup grace period)
         if (!health.healthy) {
-          logger.error('[DBHealth] Database health degraded:', health);
+          if (inGracePeriod) {
+            logger.info(`[DBHealth] Startup warmup — latency ${health.latencyMs}ms (grace period, not alerting)`);
+          } else {
+            logger.error(`[DBHealth] Database health degraded: ${JSON.stringify(health)}`);
+            if (health.latencyMs > 1000 && process.env.NODE_ENV === 'development') {
+              logger.warn('[DBHealth] High latency detected in development. Ensure .env uses 127.0.0.1 instead of localhost.');
+            }
+          }
         } else if (health.poolUtilization > 0.8) {
           logger.warn(`[DBHealth] Pool utilization high: ${(health.poolUtilization * 100).toFixed(1)}%`);
-        } else if (health.latencyMs > 500) {
+        } else if (health.latencyMs > 300 && !inGracePeriod) {
           logger.warn(`[DBHealth] Query latency elevated: ${health.latencyMs}ms`);
         }
-      } catch (error) {
-        logger.error('[DBHealth] Health check failed:', error);
+      } catch (error: any) {
+        logger.error('[DBHealth] Health check failed:', {
+          message: error?.message || 'Unknown error',
+          code: error?.code,
+          stack: error?.stack
+        });
+      } finally {
+        this.isChecking = false;
       }
     }, intervalMs);
 
