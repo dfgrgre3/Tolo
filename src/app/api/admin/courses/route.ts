@@ -21,7 +21,7 @@ const courseSchema = z.object({
   type: z.string().optional().nullable(),
   isActive: z.boolean().default(true),
   isPublished: z.boolean().default(false),
-  level: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]).default("MEDIUM"),
+  level: z.enum(["BEGINNER", "INTERMEDIATE", "ADVANCED"]).default("BEGINNER"),
   price: z.number().min(0).default(0),
   durationHours: z.number().min(0).default(0),
   requirements: z.string().optional().nullable(),
@@ -31,9 +31,15 @@ const courseSchema = z.object({
   categoryId: z.string().optional().nullable(),
   thumbnailUrl: z.string().optional().nullable(),
   trailerUrl: z.string().optional().nullable(),
+  trailerDurationMinutes: z.number().min(0).optional().nullable(),
   seoTitle: z.string().optional().nullable(),
   seoDescription: z.string().optional().nullable(),
   slug: z.string().optional().nullable(),
+  isFeatured: z.boolean().optional().default(false),
+  language: z.string().optional().nullable(),
+  coursePrerequisites: z.array(z.string()).optional().default([]),
+  targetAudience: z.array(z.string()).optional().default([]),
+  whatYouLearn: z.array(z.string()).optional().default([]),
 });
 
 function ensureAdmin(userRole: string) {
@@ -50,6 +56,24 @@ function normalizeOptionalString(value: unknown): string | null | undefined {
 }
 
 function normalizeCoursePayload(payload: Record<string, unknown>) {
+  const normalizeStringArray = (value: unknown): string[] | undefined => {
+    if (value === undefined) return undefined;
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => (typeof item === "string" ? item.trim() : ""))
+        .filter(Boolean);
+    }
+
+    if (typeof value === "string") {
+      return value
+        .split(/\r?\n|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+
+    return undefined;
+  };
+
   return {
     ...payload,
     name: typeof payload.name === "string" ? payload.name.trim() : payload.name,
@@ -66,17 +90,63 @@ function normalizeCoursePayload(payload: Record<string, unknown>) {
     categoryId: normalizeOptionalString(payload.categoryId),
     thumbnailUrl: normalizeOptionalString(payload.thumbnailUrl),
     trailerUrl: normalizeOptionalString(payload.trailerUrl),
+    trailerDurationMinutes:
+      payload.trailerDurationMinutes === undefined || payload.trailerDurationMinutes === null
+        ? payload.trailerDurationMinutes
+        : Number(payload.trailerDurationMinutes),
     seoTitle: normalizeOptionalString(payload.seoTitle),
     seoDescription: normalizeOptionalString(payload.seoDescription),
     slug: normalizeOptionalString(payload.slug),
+    language: normalizeOptionalString(payload.language),
+    coursePrerequisites: normalizeStringArray(payload.coursePrerequisites),
+    targetAudience: normalizeStringArray(payload.targetAudience),
+    whatYouLearn: normalizeStringArray(payload.whatYouLearn),
   };
+}
+
+function slugify(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9\u0600-\u06FF]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .replace(/-{2,}/g, "-");
+}
+
+async function generateUniqueSlug(baseValue: string, excludedId?: string) {
+  const fallbackBase = slugify(baseValue) || `course-${Date.now()}`;
+  let slug = fallbackBase;
+  let counter = 1;
+
+  while (true) {
+    const existing = await prisma.subject.findFirst({
+      where: {
+        slug,
+        ...(excludedId
+          ? {
+            NOT: {
+              id: excludedId,
+            },
+          }
+          : {}),
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return slug;
+    }
+
+    counter += 1;
+    slug = `${fallbackBase}-${counter}`;
+  }
 }
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط¥ط¯ط§ط±ط© ط§ظ„ط¯ظˆط±ط§طھ");
+        return forbiddenResponse("غير مسموح لك بالوصول إلى إدارة الدورات");
       }
 
       try {
@@ -89,6 +159,7 @@ export async function GET(request: NextRequest) {
         const isPublished = searchParams.get("isPublished");
         const categoryId = searchParams.get("categoryId");
         const instructorId = searchParams.get("instructorId");
+        const level = searchParams.get("level");
 
         if (Number.isNaN(limit) || limit < 1 || limit > 100) {
           return badRequestResponse("Invalid limit parameter");
@@ -102,17 +173,18 @@ export async function GET(request: NextRequest) {
           AND: [
             search
               ? {
-                  OR: [
-                    { name: { contains: search, mode: "insensitive" as const } },
-                    { nameAr: { contains: search, mode: "insensitive" as const } },
-                    { code: { contains: search, mode: "insensitive" as const } },
-                  ],
-                }
+                OR: [
+                  { name: { contains: search, mode: "insensitive" as const } },
+                  { nameAr: { contains: search, mode: "insensitive" as const } },
+                  { code: { contains: search, mode: "insensitive" as const } },
+                ],
+              }
               : {},
             isActive !== null ? { isActive: isActive === "true" } : {},
             isPublished !== null ? { isPublished: isPublished === "true" } : {},
             categoryId ? { categoryId } : {},
             instructorId ? { instructorId } : {},
+            level && level !== "ALL" ? { level: level as "BEGINNER" | "INTERMEDIATE" | "ADVANCED" } : {},
           ],
         };
 
@@ -121,12 +193,12 @@ export async function GET(request: NextRequest) {
             where,
             ...(cursor
               ? {
-                  cursor: { id: cursor },
-                  skip: 1,
-                }
+                cursor: { id: cursor },
+                skip: 1,
+              }
               : {
-                  skip: offset,
-                }),
+                skip: offset,
+              }),
             take: limit + 1,
             orderBy: [{ createdAt: "desc" }, { id: "desc" }],
             include: {
@@ -168,7 +240,7 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط¥ظ†ط´ط§ط، ط¯ظˆط±ط§طھ");
+        return forbiddenResponse("غير مسموح لك بإنشاء دورات");
       }
 
       try {
@@ -179,11 +251,32 @@ export async function POST(request: NextRequest) {
           return badRequestResponse(validation.error.errors[0]?.message || "Invalid course payload");
         }
 
+        const existingCode = validation.data.code
+          ? await prisma.subject.findFirst({
+            where: { code: validation.data.code },
+            select: { id: true },
+          })
+          : null;
+
+        if (existingCode) {
+          return badRequestResponse("كود الدورة مستخدم بالفعل");
+        }
+
+        const generatedSlug = await generateUniqueSlug(
+          validation.data.slug || validation.data.nameAr || validation.data.name ||
+        );
+
         const course = await prisma.subject.create({
-          data: validation.data,
+          data: {
+            ...validation.data,
+            level: validation.data.level,
+            slug: generatedSlug,
+            language: validation.data.language || "ar",
+            lastContentUpdate: new Date(),
+          },
         });
 
-        return successResponse({ course }, "طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­", 201);
+        return successResponse({ course }, "تم إنشاء الدورة بنجاح", 201);
       } catch (error) {
         logger.error("Error creating admin course", error);
         return handleApiError(error);
@@ -196,7 +289,7 @@ export async function PATCH(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط­ط¯ظٹط« ط§ظ„ط¯ظˆط±ط§طھ");
+        return forbiddenResponse("غير مسموح لك بتحديث الدورات");
       }
 
       try {
@@ -204,7 +297,7 @@ export async function PATCH(request: NextRequest) {
         const { id, ...data } = body;
 
         if (!id) {
-          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ط¯ظˆط±ط© ظ…ط·ظ„ظˆط¨");
+          return badRequestResponse("معرف الدورة مطلوب");
         }
 
         const validation = courseSchema.partial().safeParse(normalizeCoursePayload(data));
@@ -212,12 +305,44 @@ export async function PATCH(request: NextRequest) {
           return badRequestResponse(validation.error.errors[0]?.message || "Invalid course payload");
         }
 
+        if (validation.data.code) {
+          const existingCode = await prisma.subject.findFirst({
+            where: {
+              code: validation.data.code,
+              NOT: { id },
+            },
+            select: { id: true },
+          });
+
+          if (existingCode) {
+            return badRequestResponse("كود الدورة مستخدم بالفعل");
+          }
+        }
+
+        const updateData = { ...validation.data } as Record<string, unknown>;
+
+        if (
+          validation.data.slug !== undefined ||
+          validation.data.name !== undefined ||
+          validation.data.nameAr !== undefined
+        ) {
+          const slugSource =
+            validation.data.slug ||
+            validation.data.nameAr ||
+            validation.data.name ||
+            id;
+
+          updateData.slug = await generateUniqueSlug(slugSource, id);
+        }
+
+        updateData.lastContentUpdate = new Date();
+
         const course = await prisma.subject.update({
           where: { id },
-          data: validation.data,
+          data: updateData as any,
         });
 
-        return successResponse({ course }, "طھظ… طھط­ط¯ظٹط« ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­");
+        return successResponse({ course }, "تم تحديث الدورة بنجاح");
       } catch (error) {
         logger.error("Error updating admin course", error);
         return handleApiError(error);
@@ -230,7 +355,7 @@ export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط­ط°ظپ ط§ظ„ط¯ظˆط±ط§طھ");
+        return forbiddenResponse("غير مسموح لك بحذف الدورات");
       }
 
       try {
@@ -238,7 +363,7 @@ export async function DELETE(request: NextRequest) {
         const id = typeof body?.id === "string" ? body.id : "";
 
         if (!id) {
-          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ط¯ظˆط±ط© ظ…ط·ظ„ظˆط¨");
+          return badRequestResponse("معرف الدورة مطلوب");
         }
 
         const enrollmentsCount = await prisma.subjectEnrollment.count({
@@ -247,7 +372,7 @@ export async function DELETE(request: NextRequest) {
 
         if (enrollmentsCount > 0) {
           return badRequestResponse(
-            `ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط© ظ„ظˆط¬ظˆط¯ ${enrollmentsCount} ط·ط§ظ„ط¨ ظ…ط´طھط±ظƒ ط¨ظ‡ط§. ظٹط±ط¬ظ‰ ط¥ظ„ط؛ط§ط، طھظپط¹ظٹظ„ ط§ظ„ط¯ظˆط±ط© ط¨ط¯ظ„ط§ظ‹ ظ…ظ† ط­ط°ظپظ‡ط§.`
+            `لا يمكن حذف هذه الدورة لوجود ${enrollmentsCount} طالب مشترك بها. يرجى إلغاء تفعيل الدورة بدلاً من حذفها.`
           );
         }
 
@@ -255,12 +380,12 @@ export async function DELETE(request: NextRequest) {
           where: { id },
         });
 
-        return successResponse({ success: true }, "طھظ… ط­ط°ظپ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­");
+        return successResponse({ success: true }, "تم حذف الدورة بنجاح");
       } catch (error: any) {
         logger.error("Error deleting admin course", error);
 
         if (error?.code === "P2003") {
-          return badRequestResponse("طھط¹ط°ط± ط­ط°ظپ ط§ظ„ط¯ظˆط±ط© ظ„ظˆط¬ظˆط¯ ط³ط¬ظ„ط§طھ ظ…ط±طھط¨ط·ط© ط¨ظ‡ط§ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ.");
+          return badRequestResponse("تعذر حذف الدورة لوجود سجلات مرتبطة بها في قاعدة البيانات.");
         }
 
         return handleApiError(error);

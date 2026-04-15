@@ -48,10 +48,27 @@ class ApiClient {
             const response = await fetch(endpoint.startsWith('http') ? endpoint : `/api${endpoint}`, {
                 ...customOptions,
                 headers,
+                credentials: 'include', // Ensure cookies are sent (access_token)
                 signal: controller.signal,
             });
 
             clearTimeout(id);
+
+            // Handle 401 Unauthorized - Attempt Token Refresh
+            if (response.status === 401 && !endpoint.includes('/auth/refresh') && !endpoint.includes('/auth/login')) {
+                const refreshed = await this.refreshToken();
+                if (refreshed) {
+                    // Retry original request one more time
+                    return this.request<T>(endpoint, options, retryCount);
+                }
+                
+                // If refresh failed, reset auth state (if in browser)
+                if (typeof window !== 'undefined') {
+                    import('@/lib/auth/auth-store').then(({ useAuthStore }) => {
+                        useAuthStore.getState().reset();
+                    }).catch(() => {});
+                }
+            }
 
             if (!response.ok) {
                 let errorMessage = `Server error: ${response.statusText}`;
@@ -84,6 +101,8 @@ class ApiClient {
         } catch (error: unknown) {
             clearTimeout(id);
 
+            if (error instanceof ApiError) throw error;
+
             const errName = (error as { name?: string })?.name;
             const errMsg = (error as { message?: string })?.message;
 
@@ -100,6 +119,28 @@ class ApiClient {
 
             throw error;
         }
+    }
+
+    private refreshPromise: Promise<boolean> | null = null;
+
+    private async refreshToken(): Promise<boolean> {
+        if (this.refreshPromise) return this.refreshPromise;
+
+        this.refreshPromise = (async () => {
+            try {
+                const response = await fetch('/api/auth/refresh', {
+                    method: 'POST',
+                    credentials: 'include',
+                });
+                return response.ok;
+            } catch {
+                return false;
+            } finally {
+                this.refreshPromise = null;
+            }
+        })();
+
+        return this.refreshPromise;
     }
 
     public get<T>(endpoint: string, options?: FetchOptions): Promise<T> {

@@ -97,8 +97,19 @@ export async function GET(request: NextRequest) {
           ),
         ]);
 
+        // Flatten users for frontend consistency
+        const flattenedUsers = users.map((u: any) => ({
+          ...u,
+          totalXP: u.xp?.totalXP || 0,
+          level: u.xp?.level || 1,
+          currentStreak: u.activity?.currentStreak || 0,
+          // Remove relation objects to keep response clean
+          xp: undefined,
+          activity: undefined,
+        }));
+
         return successResponse({
-          users,
+          users: flattenedUsers,
           summary: {
             totalUsers: total,
             totalAdmins,

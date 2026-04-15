@@ -152,7 +152,7 @@ export async function POST(req: NextRequest) {
             referredByCode,
             ip,
             userAgent,
-            location,
+            location: location || undefined,
         });
 
         if (!result.success) {
@@ -160,21 +160,6 @@ export async function POST(req: NextRequest) {
                 { error: result.error },
                 { status: result.statusCode || 500 }
             );
-        }
-
-        // Send welcome notification
-        try {
-            const { sendMultiChannelNotification } = await import('@/services/notification-sender');
-            await sendMultiChannelNotification({
-                userId: result.user?.id as string,
-                title: 'أهلاً بك في تولو!',
-                message: `مرحباً ${username || email}! يسعدنا انضمامك إلينا.`,
-                type: 'success',
-                icon: '👋',
-                channels: ['app', 'email']
-            });
-        } catch (notificationError) {
-            logger.error('Failed to send welcome notification:', notificationError);
         }
 
         // Increment rate limiter
@@ -193,3 +178,4 @@ export async function POST(req: NextRequest) {
         return handleApiError(error);
     }
 }
+

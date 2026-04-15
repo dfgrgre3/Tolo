@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import {
   forbiddenResponse,
@@ -21,7 +21,7 @@ export async function GET(
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("غير مسموح لك بالوصول");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„");
       }
 
       try {
@@ -37,7 +37,7 @@ export async function GET(
         });
 
         if (!course) {
-          return notFoundResponse("الدورة غير موجودة");
+          return notFoundResponse("ط§ظ„ط¯ظˆط±ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
         }
 
         const [reviews, total, avgResult] = await Promise.all([
@@ -65,7 +65,7 @@ export async function GET(
         ]);
 
         // Calculate rating distribution
-        const distribution = await prisma.subjectReview.groupBy({
+        const distribution = await (prisma.subjectReview as any).groupBy({
           by: ["rating"],
           where: { subjectId: id },
           _count: { rating: true },
@@ -80,7 +80,7 @@ export async function GET(
           reviews: reviews.map((r: any) => ({
             id: r.id,
             userId: r.userId,
-            userName: r.user.name || "مستخدم",
+            userName: r.user.name || "ظ…ط³طھط®ط¯ظ…",
             userEmail: r.user.email,
             userAvatar: r.user.avatar,
             rating: r.rating,
@@ -103,3 +103,4 @@ export async function GET(
     })
   );
 }
+

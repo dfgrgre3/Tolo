@@ -5,7 +5,7 @@ const args = process.argv.slice(2);
 const rootArg = args.find((arg) => !arg.startsWith('--'));
 const ROOT = rootArg ? path.resolve(rootArg) : process.cwd();
 const DRY_RUN = args.includes('--dry-run');
-const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.css', '.html', '.txt']);
+const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.css', '.html', '.txt', '.ps1']);
 const EXCLUDE_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'build', 'coverage', '.turbo', '.venv']);
 const EXCLUDE_FILES = new Set([path.resolve(__filename)]);
 const MOJIBAKE_PATTERNS = [

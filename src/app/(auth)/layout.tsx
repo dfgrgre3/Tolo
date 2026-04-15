@@ -27,7 +27,7 @@ export default function AuthLayout({
         <div className="text-center mb-10">
           <Link href="/" className="flex flex-col items-center gap-4 hover:scale-105 transition-transform duration-300">
             <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-white border border-white/20 shadow-2xl">
-              <Image src="/logo-tolo.jpg" alt="TOLO" fill className="object-cover" />
+              <Image src="/logo-tolo.jpg" alt="TOLO" fill sizes="80px" className="object-cover" />
             </div>
             <h1 className={`${cairo.className} text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-orange-500 to-amber-500 tracking-tighter`}>
               TOLO

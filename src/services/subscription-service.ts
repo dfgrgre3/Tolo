@@ -48,7 +48,7 @@ export class SubscriptionService {
         status: 'CANCELLED',
         gracePeriodEndDate: null,
       },
-    }).then(async (res) => {
+    }).then(async (res: any) => {
       await InvalidationService.invalidateUser(res.userId);
       return res;
     });
@@ -97,12 +97,12 @@ export class SubscriptionService {
     if (!user) return null;
 
     const totalSpent = user.payments
-      .filter((payment) => payment.status === 'SUCCESS')
-      .reduce((sum, payment) => sum + payment.amount, 0);
+      .filter((payment: any) => payment.status === 'SUCCESS')
+      .reduce((sum: number, payment: any) => sum + payment.amount, 0);
 
     const activeSubscription =
       user.subscriptions.find(
-        (subscription) =>
+        (subscription: any) =>
           subscription.status === 'ACTIVE' ||
           (subscription.status === 'GRACE_PERIOD' &&
             subscription.gracePeriodEndDate &&
@@ -120,9 +120,9 @@ export class SubscriptionService {
       stats: {
         totalSpent,
         paymentCount: user.payments.length,
-        successCount: user.payments.filter((p) => p.status === 'SUCCESS').length,
-        pendingCount: user.payments.filter((p) => p.status === 'PENDING').length,
-        failedCount: user.payments.filter((p) => p.status === 'FAILED').length,
+        successCount: user.payments.filter((p: any) => p.status === 'SUCCESS').length,
+        pendingCount: user.payments.filter((p: any) => p.status === 'PENDING').length,
+        failedCount: user.payments.filter((p: any) => p.status === 'FAILED').length,
       },
     };
   }
@@ -201,7 +201,7 @@ export class SubscriptionService {
     const startDate = new Date();
     const endDate = getSubscriptionEndDate(billingCycle, planInterval);
 
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return (prisma as any).$transaction(async (tx: any) => {
       const subscription = await tx.subscription.create({
         data: {
           userId,
@@ -242,7 +242,7 @@ export class SubscriptionService {
       paymentData?: string | null;
     }
   ) {
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return (prisma as any).$transaction(async (tx: any) => {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
       });
@@ -336,7 +336,7 @@ export class SubscriptionService {
       errorMessage?: string | null;
     }
   ) {
-    return prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    return (prisma as any).$transaction(async (tx: any) => {
       const payment = await tx.payment.findUnique({
         where: { id: paymentId },
       });

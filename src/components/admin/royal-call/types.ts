@@ -1,4 +1,4 @@
-import { MessageSquareText, Zap, Users, Shield, Book, Skull, Award } from "lucide-react";
+import { MessageSquareText, Shield, Book, Skull, Award } from "lucide-react";
 
 export type MessageType = "info" | "success" | "warning" | "error";
 

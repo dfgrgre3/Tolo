@@ -3,6 +3,7 @@ import { TokenService } from './token-service';
 import { logger } from '@/lib/logger';
 import { createHash } from 'crypto';
 import { CacheService, getRedisClient } from '@/lib/cache';
+import { redisCircuitBreaker } from '@/lib/circuit-breaker';
 
 /**
  * SessionService - Centralized session lifecycle management.
@@ -95,8 +96,8 @@ export class SessionService {
             data: { refreshToken: this.hashRefreshToken(refreshToken) },
         });
 
-        // Optional: Pre-populate cache (Optimistic Caching)
-        await CacheService.set(`session:${session.id}`, { ...session, user: { id: userId, role } }, 300);
+        // Optional: Pre-populate cache (Optimistic Caching) - 1 hour TTL
+        await CacheService.set(`session:${session.id}`, { ...session, user: { id: userId, role } }, 3600);
 
         return { session, accessToken, refreshToken };
     }
@@ -143,8 +144,8 @@ export class SessionService {
                 return null;
             }
 
-            // Populate Cache (Cache-Aside) - 5 minutes TTL
-            await CacheService.set(cacheKey, session, 300);
+            // Populate Cache (Cache-Aside) - 1 hour TTL
+            await CacheService.set(cacheKey, session, 3600);
             this.updateLastAccessed(sessionId);
 
             return session;
@@ -152,7 +153,15 @@ export class SessionService {
             logger.error('[SESSION_VALIDATION_ERROR]', { sessionId, error });
             return prisma.session.findUnique({
                 where: { id: sessionId },
-                include: { user: true },
+                include: { 
+                    user: {
+                        select: {
+                            id: true,
+                            role: true,
+                            status: true,
+                        }
+                    }
+                },
             });
         }
     }
@@ -165,6 +174,9 @@ export class SessionService {
         const syncKey = `session:sync:${sessionId}`;
         
         try {
+            if (redisCircuitBreaker.getState() === 'OPEN') {
+                throw new Error('Circuit Open');
+            }
             const redis = await getRedisClient();
             if (redis) {
                 // EX NX: Set only if not exists (throttle)
@@ -175,14 +187,14 @@ export class SessionService {
             }
 
             // Sync to DB (Fire and Forget)
-            prisma.session.update({
+            prisma.session.updateMany({
                 where: { id: sessionId },
                 data: { lastAccessed: new Date() },
             }).catch(() => { /* handled */ });
             
         } catch (error) {
             // Fallback (Safe): Update DB if Redis fails
-            prisma.session.update({
+            prisma.session.updateMany({
                 where: { id: sessionId },
                 data: { lastAccessed: new Date() },
             }).catch(() => {});
@@ -252,15 +264,40 @@ export class SessionService {
         });
     }
 
+    private static recentlyRotatedStore = new Map<string, { sessionId: string; expires: number }>();
+
     static async markTokenAsRotated(oldTokenHash: string, sessionId: string) {
+        // 1. Update Process-Local Store (Always works even if Redis is down)
+        this.recentlyRotatedStore.set(oldTokenHash, { 
+            sessionId, 
+            expires: Date.now() + 60_000 // 60s grace period for concurrent requests
+        });
+
+        // Cleanup local store periodically (1% chance per call)
+        if (Math.random() < 0.01) {
+            const now = Date.now();
+            for (const [key, val] of this.recentlyRotatedStore.entries()) {
+                if (val.expires < now) this.recentlyRotatedStore.delete(key);
+            }
+        }
+
+        // 2. Update Shared Redis Cache (For multi-instance scalability)
         try {
             await CacheService.set(`rotated:${oldTokenHash}`, { sessionId, timestamp: Date.now() }, 30);
         } catch (error) {
-            logger.error('Failed to mark token as rotated:', error);
+            // Log but don't fail, the local store will handle same-instance concurrent requests
+            logger.warn('[SessionService] Redis markTokenAsRotated failed, using local fallback');
         }
     }
 
     static async isRecentlyRotated(tokenHash: string, sessionId: string): Promise<boolean> {
+        // 1. Check Process-Local Store first (O(1) and Most Reliable)
+        const localData = this.recentlyRotatedStore.get(tokenHash);
+        if (localData && localData.expires > Date.now()) {
+            return localData.sessionId === sessionId;
+        }
+
+        // 2. Check Shared Redis Cache
         try {
             const data = await CacheService.get<{ sessionId: string; timestamp: number }>(`rotated:${tokenHash}`);
             return !!data && data.sessionId === sessionId;

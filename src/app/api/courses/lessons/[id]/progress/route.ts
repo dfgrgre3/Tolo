@@ -1,10 +1,11 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, badRequestResponse, handleApiError, ApiError, withAuth } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 import { Prisma } from "@prisma/client";
 import { EducationalCache } from "@/lib/cache";
+import { handleLessonCompletion } from "@/lib/courses/course-integration-service";
 
 // POST to update lesson progress
 export async function POST(
@@ -18,11 +19,11 @@ export async function POST(
         const { completed, subject } = await req.json();
 
         if (completed === undefined || !subject) {
-          return badRequestResponse("حالة الإكمال والمادة مطلوبة");
+          return badRequestResponse("ط­ط§ظ„ط© ط§ظ„ط¥ظƒظ…ط§ظ„ ظˆط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨ط©");
         }
 
         // Use transaction for consistency and to prevent race conditions
-        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const result = await (prisma as any).$transaction(async (tx: any) => {
           // Check if lesson exists and get subject details
           const lesson = await tx.subTopic.findUnique({
             where: { id },
@@ -33,7 +34,7 @@ export async function POST(
           });
 
           if (!lesson) {
-             throw new ApiError("الدرس غير موجود", 404);
+             throw new ApiError("ط§ظ„ط¯ط±ط³ ط؛ظٹط± ظ…ظˆط¬ظˆط¯", 404);
           }
 
           const subjectId = lesson.topic.subjectId;
@@ -70,6 +71,7 @@ export async function POST(
           const wasCompletedBefore = existingProgress && existingProgress.completed;
 
           let updatedEnrollment;
+          let integrationResult = null;
           
           if (isMarkedCompleted && wasNotCompletedBefore) {
             // New completion: Increment counter
@@ -78,12 +80,8 @@ export async function POST(
               data: { completedLessonsCount: { increment: 1 } } as any
             })) as any;
             
-            // Award XP
-            await tx.userXP.upsert({
-              where: { userId },
-              update: { totalXP: { increment: 10 } },
-              create: { userId, totalXP: 10 }
-            });
+            // Full integration: XP, achievements, notifications, certificates
+            integrationResult = await handleLessonCompletion(userId, id, subjectId, tx);
           } else if (!isMarkedCompleted && wasCompletedBefore) {
             // Un-completion: Decrement counter
             updatedEnrollment = (await tx.subjectEnrollment.update({
@@ -115,26 +113,25 @@ export async function POST(
                 where: { id: updatedEnrollment.id },
                 data: { progress: progressPercentage }
               });
-              
-              if (progressPercentage === 100) {
-                 // Certificate trigger (optimistic)
-                 await tx.subjectCertificate.upsert({
-                   where: { subjectId_userId: { subjectId, userId } },
-                   update: {},
-                   create: {
-                     subjectId,
-                     userId,
-                     certUrl: `/certificates/${userId}_${subjectId}.pdf` 
-                   }
-                 });
-              }
             }
           }
 
-          return progressRecord;
+          return { 
+            progress: progressRecord, 
+            integration: integrationResult 
+          };
         });
 
-        return successResponse(result);
+        return successResponse({
+          ...result.progress,
+          ...(result.integration ? {
+            xpAwarded: result.integration.xpAwarded,
+            courseProgress: result.integration.courseProgress,
+            isChapterComplete: result.integration.isChapterComplete,
+            isCourseComplete: result.integration.isCourseComplete,
+            certificateCreated: result.integration.certificateCreated,
+          } : {}),
+        });
       } catch (error) {
         if (error instanceof ApiError) {
            return handleApiError(error);
@@ -173,3 +170,4 @@ export async function GET(
     });
   });
 }
+

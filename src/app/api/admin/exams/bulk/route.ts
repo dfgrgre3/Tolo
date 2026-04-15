@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
@@ -7,28 +7,28 @@ import { Prisma } from "@prisma/client";
 
 
 const questionSchema = z.object({
-  question: z.string().min(1, "السؤال مطلوب"),
-  options: z.array(z.string()).min(2, "يجب وجود خيارين على الأقل"),
-  correctAnswer: z.string().min(1, "الإجابة الصحيحة مطلوبة"),
+  question: z.string().min(1, "ط§ظ„ط³ط¤ط§ظ„ ظ…ط·ظ„ظˆط¨"),
+  options: z.array(z.string()).min(2, "ظٹط¬ط¨ ظˆط¬ظˆط¯ ط®ظٹط§ط±ظٹظ† ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„"),
+  correctAnswer: z.string().min(1, "ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط© ظ…ط·ظ„ظˆط¨ط©"),
   explanation: z.string().optional(),
   points: z.number().default(1),
   order: z.number().optional(),
 });
 
 const bulkExamSchema = z.object({
-  title: z.string().min(1, "عنوان الامتحان مطلوب"),
-  subjectId: z.string().min(1, "معرف المادة مطلوب"),
+  title: z.string().min(1, "ط¹ظ†ظˆط§ظ† ط§ظ„ط§ظ…طھط­ط§ظ† ظ…ط·ظ„ظˆط¨"),
+  subjectId: z.string().min(1, "ظ…ط¹ط±ظپ ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨"),
   duration: z.number().default(60),
   year: z.number().default(new Date().getFullYear()),
   difficulty: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]).default("MEDIUM"),
-  questions: z.array(questionSchema).min(1, "يجب وجود سؤال واحد على الأقل"),
+  questions: z.array(questionSchema).min(1, "ظٹط¬ط¨ ظˆط¬ظˆط¯ ط³ط¤ط§ظ„ ظˆط§ط­ط¯ ط¹ظ„ظ‰ ط§ظ„ط£ظ‚ظ„"),
 });
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("غير مسموح لك برفع امتحانات جماعية");
+        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط±ظپط¹ ط§ظ…طھط­ط§ظ†ط§طھ ط¬ظ…ط§ط¹ظٹط©");
       }
 
       try {
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
         const { title, subjectId, duration, year, difficulty, questions } = validation.data;
 
         // Create the interactive exam with its questions in a transaction
-        const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const result = await (prisma as any).$transaction(async (tx: any) => {
           const exam = await tx.aiGeneratedExam.create({
 
             data: {
@@ -72,10 +72,12 @@ export async function POST(request: NextRequest) {
           return exam;
         });
 
-        return successResponse(result, `تم رفع ${questions.length} سؤال بنجاح وتكوين الاختبار الملكي.`, 201);
+        return successResponse(result, `طھظ… ط±ظپط¹ ${questions.length} ط³ط¤ط§ظ„ ط¨ظ†ط¬ط§ط­ ظˆطھظƒظˆظٹظ† ط§ظ„ط§ط®طھط¨ط§ط± ط§ظ„ظ…ظ„ظƒظٹ.`, 201);
       } catch (error) {
         return handleApiError(error);
       }
     });
   });
 }
+
+

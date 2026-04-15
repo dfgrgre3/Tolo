@@ -35,13 +35,16 @@ export class RequestDeduplication {
         const result = await client.set(fullKey, 'PROCESSING', 'EX', DEDUP_TTL, 'NX');
 
         if (result === 'OK') {
+          logger.debug(`[Dedup] Lock acquired for key: ${key}`);
           return { isDuplicate: false };
         }
 
         // Key exists - this is a duplicate request
         const existingStatus = await client.get(fullKey);
-        logger.warn(`[Dedup] Duplicate request detected: ${key}, status: ${existingStatus}`);
+        logger.warn(`[Dedup] Duplicate request detected for key: ${key}. Status: ${existingStatus}`);
         return { isDuplicate: true, existingStatus: existingStatus || 'PROCESSING' };
+      } else {
+        logger.warn(`[Dedup] Redis NOT ready. Using local fallback for key: ${key}. Status: ${client?.status}`);
       }
     } catch (error) {
       logger.error(`[Dedup] Redis error for key ${key}:`, error);

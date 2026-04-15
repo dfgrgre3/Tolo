@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
+import { apiClient } from "@/lib/api/api-client";
 import {
   Plus, GraduationCap, MessageCircle, Star, Users, School, Hammer, Send, Globe
 } from "lucide-react";
@@ -73,22 +74,20 @@ export default function AdminTeachersPage() {
     open: false,
     id: null
   });
-  const [searchTerm, setSearchTerm] = React.useState("");
-  const deferredSearch = React.useDeferredValue(searchTerm);
+  const deferredSearch = React.useDeferredValue("");
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin", "teachers"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/teachers");
-      return (await response.json()) as TeachersResponse;
+      const data = await apiClient.get<TeachersResponse>("/admin/teachers");
+      return data;
     }
   });
 
   const { data: subjects = [] } = useQuery({
     queryKey: ["admin", "subjects-list"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/subjects?limit=100");
-      const result = (await response.json()) as SubjectsListResponse;
+      const result = await apiClient.get<SubjectsListResponse>("/admin/subjects?limit=100");
       return result.data?.subjects || [];
     }
   });
@@ -140,21 +139,15 @@ export default function AdminTeachersPage() {
 
   const handleSubmit = async (values: TeacherFormValues) => {
     try {
-      const method = editingTeacher ? "PATCH" : "POST";
-      const body = editingTeacher ? { ...values, id: editingTeacher.id } : values;
-      const response = await fetch("/api/admin/teachers", {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-
-      if (response.ok) {
-        toast.success(editingTeacher ? "تم تحديث رتبة المعلم" : "تم تعيين قائد علمي جديد");
-        setDialogOpen(false);
-        refetch();
+      if (editingTeacher) {
+        await apiClient.patch("/admin/teachers", { ...values, id: editingTeacher.id });
       } else {
-        toast.error("فشل في حفظ بيانات المعلم");
+        await apiClient.post("/admin/teachers", values);
       }
+
+      toast.success(editingTeacher ? "تم تحديث رتبة المعلم" : "تم تعيين قائد علمي جديد");
+      setDialogOpen(false);
+      refetch();
     } catch (_error) {
       toast.error("خطأ في الاتصال");
     }
@@ -163,18 +156,9 @@ export default function AdminTeachersPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch("/api/admin/teachers", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: deleteDialog.id })
-      });
-
-      if (response.ok) {
-        toast.success("تم عزل المعلم من هيئة التدريس");
-        refetch();
-      } else {
-        toast.error("فشل في العزل");
-      }
+      await apiClient.delete("/admin/teachers", { body: JSON.stringify({ id: deleteDialog.id }) });
+      toast.success("تم عزل المعلم من هيئة التدريس");
+      refetch();
     } catch (_error) {
       toast.error("خطأ في الاتصال");
     } finally {

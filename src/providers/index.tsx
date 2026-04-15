@@ -5,7 +5,6 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { WebSocketProvider } from '@/contexts/websocket-context';
 import ClientLayoutProvider from '@/providers/client-layout-provider';
 import { NotificationsProvider } from '@/providers/notifications-provider';
-import { ThemeProvider } from '@/providers/theme-provider';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { Toaster } from 'sonner';
@@ -56,14 +55,8 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
         <ClientLayoutProvider>
           <HydrationFix />
           <QueryClientProvider client={queryClient}>
-            <ThemeProvider
-              attribute="class"
-              defaultTheme="light"
-              enableSystem={false}
-              disableTransitionOnChange
-            >
-              <AuthProvider initialAuthHint={initialAuthHint}>
-                <GlobalSettingsApplier>
+            <AuthProvider initialAuthHint={initialAuthHint}>
+              <GlobalSettingsApplier>
                   <WebSocketProvider>
                     <NotificationsProvider>
                       <TooltipProvider>
@@ -75,8 +68,7 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
                   </WebSocketProvider>
                 </GlobalSettingsApplier>
               </AuthProvider>
-            </ThemeProvider>
-          </QueryClientProvider>
+            </QueryClientProvider>
         </ClientLayoutProvider>
       </Suspense>
     </ErrorBoundary>

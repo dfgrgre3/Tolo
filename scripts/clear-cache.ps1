@@ -13,14 +13,14 @@ if (Test-Path .next) {
     Remove-Item -Recurse -Force .next
     Write-Host "Successfully .next directory cleared" -ForegroundColor Green
 } else {
-    Write-Host "✓ .next directory doesn't exist" -ForegroundColor Green
+    Write-Host "Done: .next directory doesn't exist" -ForegroundColor Green
 }
 
 # Clear node_modules/.cache if it exists
 if (Test-Path "node_modules\.cache") {
     Write-Host "Removing node_modules/.cache..." -ForegroundColor Yellow
     Remove-Item -Recurse -Force "node_modules\.cache"
-    Write-Host "✓ node_modules/.cache cleared" -ForegroundColor Green
+    Write-Host "Done: node_modules/.cache cleared" -ForegroundColor Green
 }
 
 # Clear Next.js cache directory (specifically)
@@ -30,7 +30,7 @@ if (Test-Path ".next\cache") {
 }
 
 # End of script
-Write-Host "`n✓ Cache cleared successfully!" -ForegroundColor Green
+Write-Host "`nCache cleared successfully!" -ForegroundColor Green
 Write-Host "Next steps:" -ForegroundColor Cyan
 Write-Host "1. Clear your browser cache" -ForegroundColor White
 Write-Host "2. Restart the dev server: npm run dev" -ForegroundColor White

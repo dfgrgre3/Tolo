@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
+import { SWRegistration } from '@/components/sw-registration';
 import './globals.css';
 
 const alexandria = Alexandria({
@@ -22,6 +23,7 @@ export const viewport = {
 };
 
 import { cookies } from 'next/headers';
+import { ThemeProvider } from '@/providers/theme-provider';
 
 export default async function RootLayout({
   children,
@@ -32,7 +34,7 @@ export default async function RootLayout({
   const hasAuthToken = cookieStore.has('refresh_token') || cookieStore.has('session_id');
 
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang="ar" dir="rtl" suppressHydrationWarning data-scroll-behavior="smooth">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -41,7 +43,15 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
       <body className={alexandria.variable}>
-        <GlobalProviders initialAuthHint={hasAuthToken}>{children}</GlobalProviders>
+        <SWRegistration />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <GlobalProviders initialAuthHint={hasAuthToken}>{children}</GlobalProviders>
+        </ThemeProvider>
       </body>
     </html>
   );

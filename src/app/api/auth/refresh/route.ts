@@ -56,7 +56,19 @@ export async function POST(req: NextRequest) {
             where: {
                 id: payload.sessionId,
             },
-            include: { user: true },
+            select: {
+                id: true,
+                userId: true,
+                isActive: true,
+                expiresAt: true,
+                refreshToken: true,
+                user: {
+                    select: {
+                        id: true,
+                        role: true,
+                    }
+                }
+            },
         });
 
         if (!session || !session.isActive || session.expiresAt < new Date()) {

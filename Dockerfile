@@ -39,7 +39,10 @@ ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV HOSTNAME "0.0.0.0"
 ENV PORT 3000
-ENV NODE_OPTIONS="--max-old-space-size=1536"
+# Increased from 1536MB to 4096MB for production workloads
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Graceful shutdown timeout
+ENV GRACEFUL_SHUTDOWN_TIMEOUT 60000
 # Uncomment the following line in case you want to disable telemetry during runtime.
 RUN apk add --no-cache wget dumb-init
 

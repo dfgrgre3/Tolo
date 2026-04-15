@@ -25,7 +25,7 @@ export function StatsCard({
   icon: Icon,
   trend,
   className,
-  gradient,
+  gradient: _gradient,
 }: StatsCardProps) {
   const [isVisible, setIsVisible] = React.useState(false);
   const cardRef = React.useRef<HTMLDivElement>(null);

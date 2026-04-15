@@ -5,7 +5,7 @@ import { trackQueueLatency } from '@/lib/metrics/prometheus';
 const redisUrl = process.env.REDIS_URL;
 const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 
-const redisConnection = redisUrl && !isRedisDisabled
+export const redisConnection = redisUrl && !isRedisDisabled
   ? (() => {
       try {
         const url = new URL(redisUrl);
@@ -55,10 +55,24 @@ export class BullQueue<T = any> {
           type: 'exponential',
           delay: 1000,
         },
-        removeOnComplete: true,
-        removeOnFail: false,
+        removeOnComplete: {
+          count: 1000, // Keep last 1000 jobs for deduplication
+          age: 3600,  // Keep for 1 hour
+        },
+        removeOnFail: {
+          count: 5000,
+        },
       },
       ...options,
+    });
+
+    this.queue.on('error', (err: any) => {
+      const msg = err?.message || err?.code || String(err);
+      if (msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT') || msg.includes('ENOTFOUND')) {
+        // Suppress expected Redis network timeout errors to avoid log spam or unhandled crashes
+      } else {
+        logger.error(`[BullMQ Queue - ${name}] Error:`, err);
+      }
     });
 
     logger.info(`Queue [${name}] initialized`);
@@ -115,6 +129,15 @@ export abstract class BaseWorker<T = any> {
       logger.error(`Job ${job?.id} failed on ${this.name}:`, err);
     });
 
+    this.worker.on('error', (err: any) => {
+      const msg = err?.message || err?.code || String(err);
+      if (msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT') || msg.includes('ENOTFOUND')) {
+        // Suppress expected redis network timeout errors to avoid log spam
+      } else {
+        logger.error(`[BullMQ Worker - ${this.name}] Error:`, err);
+      }
+    });
+
     this.worker.on('completed', (job) => {
       logger.debug(`Job ${job.id} completed on ${this.name}`);
     });
@@ -129,16 +152,41 @@ export abstract class BaseWorker<T = any> {
   }
 }
 
-// Singleton instances for common queues
-export const highPriorityQueue = new BullQueue('high-priority'); // For OTP, Password Resets, Verification
-export const gamificationQueue = new BullQueue('gamification');
-export const notificationQueue = new BullQueue('notifications');
-export const analyticsQueue = new BullQueue('analytics');
-export const referralQueue = new BullQueue('referrals');
-export const bulkSyncQueue = new BullQueue('bulk-sync', { // Low priority for massive data operations
+// Singleton management for HMR support
+const globalForQueues = globalThis as unknown as {
+  queues: Record<string, BullQueue>;
+};
+
+if (!globalForQueues.queues) {
+  globalForQueues.queues = {};
+}
+
+function getOrCreateQueue<T>(name: string, options?: any): BullQueue<T> {
+  if (process.env.NODE_ENV !== 'production') {
+    if (!globalForQueues.queues[name]) {
+      globalForQueues.queues[name] = new BullQueue(name, options);
+    }
+    return globalForQueues.queues[name] as BullQueue<T>;
+  }
+  return new BullQueue(name, options);
+}
+
+export const highPriorityQueue = getOrCreateQueue('high-priority');
+export const gamificationQueue = getOrCreateQueue('gamification');
+export const notificationQueue = getOrCreateQueue('notifications');
+export const analyticsQueue = getOrCreateQueue('analytics');
+export const referralQueue = getOrCreateQueue('referrals');
+export const bulkSyncQueue = getOrCreateQueue('bulk-sync', {
   defaultJobOptions: { 
     priority: 100, 
     attempts: 5,
     backoff: { type: 'exponential', delay: 5000 }
   } 
 });
+
+/**
+ * Compatibility helper for the old queue system
+ */
+export const enqueueJob = async (queue: BullQueue, type: string, payload: any, options: { jobId?: string; priority?: number } = {}) => {
+  return queue.addJob(type, payload, options);
+};

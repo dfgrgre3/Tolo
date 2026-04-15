@@ -17,14 +17,15 @@ export class AddonService {
       include: { wallet: true },
     });
 
+
     if (!user) throw new Error('User not found');
 
     if ((user.wallet?.balance ?? 0) < addon.price) {
-      throw new Error('رصيد الحساب غير كافٍ لشراء هذه الإضافة.');
+      throw new Error('ط±طµظٹط¯ ط§ظ„ط­ط³ط§ط¨ ط؛ظٹط± ظƒط§ظپظچ ظ„ط´ط±ط§ط، ظ‡ط°ظ‡ ط§ظ„ط¥ط¶ط§ظپط©.');
     }
 
     // 1. Transaction to deduct balance and add credits
-    return await prisma.$transaction(async (tx: any) => {
+    return await (prisma as any).$transaction(async (tx: any) => {
       // Deduct balance
       await tx.userWallet.upsert({
         where: { userId },
@@ -74,3 +75,4 @@ export class AddonService {
     });
   }
 }
+

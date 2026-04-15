@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
           const newTopic = await prisma.topic.create({
             data: {
               subjectId: duplicated.id,
-              name: topic.name,
+              title: topic.title,
               description: topic.description,
               order: topic.order,
             },
@@ -113,12 +113,12 @@ export async function POST(request: NextRequest) {
             await prisma.subTopic.create({
               data: {
                 topicId: newTopic.id,
-                name: subTopic.name,
+                title: subTopic.title,
                 description: subTopic.description,
                 content: subTopic.content,
                 videoUrl: subTopic.videoUrl,
                 order: subTopic.order,
-                duration: subTopic.duration,
+                durationMinutes: (subTopic as any).durationMinutes || 0,
                 isFree: subTopic.isFree,
                 type: subTopic.type,
               },

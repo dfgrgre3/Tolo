@@ -4,7 +4,7 @@ import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { AdminCard, AdminStatsCard } from "@/components/admin/ui/admin-card";
+import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,

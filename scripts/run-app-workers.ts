@@ -3,7 +3,7 @@ import { NotificationQueueService } from '../src/services/notification-queue-ser
 import { ReferralQueueService } from '../src/services/referral-queue-service';
 import { logger } from '../src/lib/logger';
 import { Worker, Job } from 'bullmq';
-import { queueConnection } from '../src/lib/queue';
+import { redisConnection } from '../src/lib/queue/bullmq';
 
 /**
  * Universal Worker Runner for High Scalability
@@ -24,7 +24,7 @@ async function main() {
       throw error;
     }
   }, {
-    connection: queueConnection,
+    connection: redisConnection,
     concurrency: 10, // Higher concurrency for notifications
   });
 

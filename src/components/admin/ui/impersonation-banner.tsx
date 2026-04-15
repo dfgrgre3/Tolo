@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { User, LogOut, ShieldAlert } from "lucide-react";
+import { LogOut, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -35,7 +35,7 @@ export function ImpersonationBanner() {
       } else {
         toast.error("فشل إيقاف المحاكاة");
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("حدث خطأ ما");
     }
   };

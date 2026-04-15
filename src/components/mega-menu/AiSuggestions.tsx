@@ -123,6 +123,15 @@ export const AiSuggestions = memo(function AiSuggestions({
 
     try {
       const response = await fetch(`/api/ai/recommendations?limit=6&force=${forceRefresh}`);
+      
+      if (response.status === 401) {
+        // Session expired or unauthorized - handle gracefully
+        logger.debug('User unauthorized for AI recommendations');
+        setRecommendations([]);
+        setIsLoading(false);
+        return;
+      }
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

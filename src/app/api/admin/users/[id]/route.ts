@@ -37,21 +37,6 @@ export async function GET(
             createdAt: true,
             updatedAt: true,
             lastLogin: true,
-            totalXP: true,
-            level: true,
-            currentStreak: true,
-            longestStreak: true,
-            totalStudyTime: true,
-            tasksCompleted: true,
-            examsPassed: true,
-            pomodoroSessions: true,
-            deepWorkSessions: true,
-            studyXP: true,
-            taskXP: true,
-            examXP: true,
-            challengeXP: true,
-            questXP: true,
-            seasonXP: true,
             gradeLevel: true,
             educationType: true,
             section: true,
@@ -62,6 +47,29 @@ export async function GET(
             country: true,
             dateOfBirth: true,
             gender: true,
+            xp: {
+              select: {
+                totalXP: true,
+                level: true,
+                studyXP: true,
+                taskXP: true,
+                examXP: true,
+                challengeXP: true,
+                questXP: true,
+                seasonXP: true,
+              }
+            },
+            activity: {
+              select: {
+                currentStreak: true,
+                longestStreak: true,
+                totalStudyTime: true,
+                tasksCompleted: true,
+                examsPassed: true,
+                pomodoroSessions: true,
+                deepWorkSessions: true,
+              }
+            },
             _count: {
               select: {
                 tasks: true,
@@ -132,7 +140,28 @@ export async function GET(
           return notFoundResponse("المستخدم غير موجود");
         }
 
-        return NextResponse.json(user);
+        // Flatten the response because frontend expects these fields at the top level
+        const { xp, activity, ...rest } = user as any;
+        const flattenedUser = {
+          ...rest,
+          totalXP: xp?.totalXP || 0,
+          level: xp?.level || 1,
+          studyXP: xp?.studyXP || 0,
+          taskXP: xp?.taskXP || 0,
+          examXP: xp?.examXP || 0,
+          challengeXP: xp?.challengeXP || 0,
+          questXP: xp?.questXP || 0,
+          seasonXP: xp?.seasonXP || 0,
+          currentStreak: activity?.currentStreak || 0,
+          longestStreak: activity?.longestStreak || 0,
+          totalStudyTime: activity?.totalStudyTime || 0,
+          tasksCompleted: activity?.tasksCompleted || 0,
+          examsPassed: activity?.examsPassed || 0,
+          pomodoroSessions: activity?.pomodoroSessions || 0,
+          deepWorkSessions: activity?.deepWorkSessions || 0,
+        };
+
+        return NextResponse.json(flattenedUser);
       } catch (error) {
         return handleApiError(error);
       }
@@ -209,7 +238,7 @@ export async function PATCH(
             ...(typeof body.twoFactorEnabled === "boolean" && {
               twoFactorEnabled: body.twoFactorEnabled,
             }),
-          },
+          } as any,
           select: {
             id: true,
             email: true,

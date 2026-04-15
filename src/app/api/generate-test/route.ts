@@ -1,4 +1,4 @@
-import { NextRequest } from 'next/server';
+﻿import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 
@@ -63,34 +63,34 @@ export async function POST(request: NextRequest) {
 
         // Create prompt for AI to generate test
         const prompt = `
-      قم بإنشاء اختبار في مادة ${getSubjectName(subject)}${lesson ? ` حول موضوع ${lesson}` : ''}.
+      ظ‚ظ… ط¨ط¥ظ†ط´ط§ط، ط§ط®طھط¨ط§ط± ظپظٹ ظ…ط§ط¯ط© ${getSubjectName(subject)}${lesson ? ` ط­ظˆظ„ ظ…ظˆط¶ظˆط¹ ${lesson}` : ''}.
 
-      التفاصيل:
-      - عدد الأسئلة: ${questionCount || 10}
-      - مستوى الصعوبة: ${getDifficultyName(difficulty || 'medium')}
-      - أنواع الأسئلة: ${questionTypes.map((t: string) => getQuestionTypeName(t)).join(', ')}
-      - المدة الزمنية: ${timeLimit || 30} دقيقة
+      ط§ظ„طھظپط§طµظٹظ„:
+      - ط¹ط¯ط¯ ط§ظ„ط£ط³ط¦ظ„ط©: ${questionCount || 10}
+      - ظ…ط³طھظˆظ‰ ط§ظ„طµط¹ظˆط¨ط©: ${getDifficultyName(difficulty || 'medium')}
+      - ط£ظ†ظˆط§ط¹ ط§ظ„ط£ط³ط¦ظ„ط©: ${questionTypes.map((t: string) => getQuestionTypeName(t)).join(', ')}
+      - ط§ظ„ظ…ط¯ط© ط§ظ„ط²ظ…ظ†ظٹط©: ${timeLimit || 30} ط¯ظ‚ظٹظ‚ط©
 
-      لكل سؤال، قم بتوفير:
-      1. نص السؤال
-      2. نوع السؤال
-      3. الخيارات (إذا كان سؤال اختيار من متعدد)
-      4. الإجابة الصحيحة
-      5. شرح للإجابة (بحد أقصى 50 كلمة)
-      6. مستوى الصعوبة (سهل، متوسط، صعب)
-      7. نقاط السؤال (1 للسهل، 2 للمتوسط، 3 للصعب)
+      ظ„ظƒظ„ ط³ط¤ط§ظ„طŒ ظ‚ظ… ط¨طھظˆظپظٹط±:
+      1. ظ†طµ ط§ظ„ط³ط¤ط§ظ„
+      2. ظ†ظˆط¹ ط§ظ„ط³ط¤ط§ظ„
+      3. ط§ظ„ط®ظٹط§ط±ط§طھ (ط¥ط°ط§ ظƒط§ظ† ط³ط¤ط§ظ„ ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯)
+      4. ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط©
+      5. ط´ط±ط­ ظ„ظ„ط¥ط¬ط§ط¨ط© (ط¨ط­ط¯ ط£ظ‚طµظ‰ 50 ظƒظ„ظ…ط©)
+      6. ظ…ط³طھظˆظ‰ ط§ظ„طµط¹ظˆط¨ط© (ط³ظ‡ظ„طŒ ظ…طھظˆط³ط·طŒ طµط¹ط¨)
+      7. ظ†ظ‚ط§ط· ط§ظ„ط³ط¤ط§ظ„ (1 ظ„ظ„ط³ظ‡ظ„طŒ 2 ظ„ظ„ظ…طھظˆط³ط·طŒ 3 ظ„ظ„طµط¹ط¨)
 
-      قم بتنسيق الإجابة كـ JSON بالهيكل التالي:
+      ظ‚ظ… ط¨طھظ†ط³ظٹظ‚ ط§ظ„ط¥ط¬ط§ط¨ط© ظƒظ€ JSON ط¨ط§ظ„ظ‡ظٹظƒظ„ ط§ظ„طھط§ظ„ظٹ:
       {
-        "title": "عنوان الاختبار",
+        "title": "ط¹ظ†ظˆط§ظ† ط§ظ„ط§ط®طھط¨ط§ط±",
         "questions": [
           {
-            "question": "نص السؤال",
-            "type": "نوع السؤال",
-            "options": ["خيار1", "خيار2", "خيار3", "خيار4"],
-            "correctAnswer": "الإجابة الصحيحة",
-            "explanation": "شرح للإجابة",
-            "difficulty": "مستوى الصعوبة",
+            "question": "ظ†طµ ط§ظ„ط³ط¤ط§ظ„",
+            "type": "ظ†ظˆط¹ ط§ظ„ط³ط¤ط§ظ„",
+            "options": ["ط®ظٹط§ط±1", "ط®ظٹط§ط±2", "ط®ظٹط§ط±3", "ط®ظٹط§ط±4"],
+            "correctAnswer": "ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط©",
+            "explanation": "ط´ط±ط­ ظ„ظ„ط¥ط¬ط§ط¨ط©",
+            "difficulty": "ظ…ط³طھظˆظ‰ ط§ظ„طµط¹ظˆط¨ط©",
             "points": 1
           }
         ]
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
           data: {
             userId: user.id,
             subjectId: dbSubject.id,
-            title: String(generatedTest.title || `اختبار ${subject}`),
+            title: String(generatedTest.title || `ط§ط®طھط¨ط§ط± ${subject}`),
             year: new Date().getFullYear(),
             difficulty: (difficulty || 'MEDIUM').toUpperCase() as any,
             duration: Number(timeLimit || 30),
@@ -168,15 +168,15 @@ export async function POST(request: NextRequest) {
 
 function getSubjectName(subjectValue: string): string {
   const subjects: Record<string, string> = {
-    'math': 'الرياضيات',
-    'science': 'العلوم',
-    'history': 'التاريخ',
-    'arabic': 'اللغة العربية',
-    'english': 'اللغة الإنجليزية',
-    'physics': 'الفيزياء',
-    'chemistry': 'الكيمياء',
-    'biology': 'الأحياء',
-    'computer': 'علوم الحاسب',
+    'math': 'ط§ظ„ط±ظٹط§ط¶ظٹط§طھ',
+    'science': 'ط§ظ„ط¹ظ„ظˆظ…',
+    'history': 'ط§ظ„طھط§ط±ظٹط®',
+    'arabic': 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط©',
+    'english': 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©',
+    'physics': 'ط§ظ„ظپظٹط²ظٹط§ط،',
+    'chemistry': 'ط§ظ„ظƒظٹظ…ظٹط§ط،',
+    'biology': 'ط§ظ„ط£ط­ظٹط§ط،',
+    'computer': 'ط¹ظ„ظˆظ… ط§ظ„ط­ط§ط³ط¨',
   };
 
   return subjects[subjectValue] || subjectValue;
@@ -184,10 +184,10 @@ function getSubjectName(subjectValue: string): string {
 
 function getDifficultyName(difficulty: string): string {
   const difficulties: Record<string, string> = {
-    'easy': 'سهل',
-    'medium': 'متوسط',
-    'hard': 'صعب',
-    'mixed': 'مختلط',
+    'easy': 'ط³ظ‡ظ„',
+    'medium': 'ظ…طھظˆط³ط·',
+    'hard': 'طµط¹ط¨',
+    'mixed': 'ظ…ط®طھظ„ط·',
   };
 
   return difficulties[difficulty] || difficulty;
@@ -195,11 +195,12 @@ function getDifficultyName(difficulty: string): string {
 
 function getQuestionTypeName(type: string): string {
   const types: Record<string, string> = {
-    'multiple-choice': 'اختيار من متعدد',
-    'true-false': 'صح/خطأ',
-    'short-answer': 'إجابة قصيرة',
-    'essay': 'مقال',
+    'multiple-choice': 'ط§ط®طھظٹط§ط± ظ…ظ† ظ…طھط¹ط¯ط¯',
+    'true-false': 'طµط­/ط®ط·ط£',
+    'short-answer': 'ط¥ط¬ط§ط¨ط© ظ‚طµظٹط±ط©',
+    'essay': 'ظ…ظ‚ط§ظ„',
   };
 
   return types[type] || type;
 }
+

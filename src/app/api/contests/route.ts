@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       const hasMore = contests.length > limit;
       const pageContests = hasMore ? contests.slice(0, limit) : contests;
 
-      const transformedContests = pageContests.map((contest): ContestResponse => ({
+      const transformedContests = pageContests.map((contest: any): ContestResponse => ({
         id: contest.id,
         title: contest.title,
         description: contest.description,

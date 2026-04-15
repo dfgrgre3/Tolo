@@ -1,6 +1,6 @@
 import { xpRepository, XPUpdateData } from './xp.repository';
 import { logger } from '@/lib/logger';
-import { gamificationQueue, enqueueJob } from '@/lib/queue';
+import { gamificationQueue, enqueueJob } from '@/lib/queue/bullmq';
 import redisService from '@/lib/redis';
 import { prisma, Prisma } from '@/lib/db';
 
@@ -78,7 +78,7 @@ export class XPService {
     
     try {
         // Atomic DB Update in a Transaction
-        const { stats, levelUp, newLevel } = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const { stats, levelUp, newLevel } = await (prisma as any).$transaction(async (tx: any) => {
           // 1. Atomic XP Update
           const currentStats = await xpRepository.updateStats(data, tx);
           
@@ -156,3 +156,4 @@ export class XPService {
 
 export const xpService = XPService.getInstance();
 export default xpService;
+

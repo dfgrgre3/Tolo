@@ -4,6 +4,7 @@ import { SessionService } from './session-service';
 import { SecurityLogger, SecurityEventType } from './security-logger';
 import { TwoFactorService } from './two-factor-service';
 import { logger } from '@/lib/logger';
+import { RequestDeduplication } from '@/lib/request-dedup';
 import { randomBytes, createHash } from 'crypto';
 import { NotificationQueueService } from '@/services/notification-queue-service';
 import { v4 as uuidv4 } from 'uuid';
@@ -197,8 +198,8 @@ export class AuthService {
                 };
             }
 
-            // 4. Check email verification
-            if (!user.emailVerified) {
+            // 4. Check email verification (Bypassed in development mode)
+            if (!user.emailVerified && process.env.NODE_ENV === 'production') {
                 return {
                     success: false,
                     error: 'يرجى تفعيل بريدك الإلكتروني قبل تسجيل الدخول. تم إرسال رابط التفعيل عند التسجيل.',
@@ -347,6 +348,16 @@ export class AuthService {
         try {
             const normalizedEmail = email.toLowerCase().trim();
 
+            // 0. Request Deduplication (Prevent rapid double-clicks/retries)
+            const dedup = await RequestDeduplication.acquire(`register:${normalizedEmail}`);
+            if (dedup.isDuplicate) {
+                logger.warn(`[AUTH] Duplicate registration blocked for ${normalizedEmail}`);
+                return {
+                    success: true, // Return success to the client
+                    statusCode: 200,
+                };
+            }
+
             // 1. Check if email already exists
             const existingUser = await prisma.user.findUnique({
                 where: { email: normalizedEmail },
@@ -418,14 +429,21 @@ export class AuthService {
             });
 
             // 6. Enqueue verification email (Background Step for Scalability)
+            // Use a deterministic jobId to prevent BullMQ-level duplication
             await NotificationQueueService.enqueue({
                 userId: user.id,
                 title: 'تفعيل حسابك في منصة تولو',
                 message: `مرحباً ${username || normalizedEmail.split('@')[0]}! يرجى تفعيل حسابك لإكمال عملية التسجيل.`, // The worker will handle the template
                 type: 'success',
                 channels: ['email'],
-                actionUrl: `/verify-email?token=${verifyToken}`
+                actionUrl: `/verify-email?token=${verifyToken}`,
+                idempotencyKey: `register-verification:${user.id}` // Redundant check
+            }, { 
+                jobId: `register-verification:${user.id}` 
             });
+
+            // Mark dedup as completed
+            await RequestDeduplication.complete(`register:${normalizedEmail}`);
 
             return {
                 success: true,
@@ -445,6 +463,10 @@ export class AuthService {
         } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             logger.error('[AUTH_REGISTER_ERROR]', { error });
+
+            // Release dedup on error so the user can try again if it truly failed
+            const normalizedEmail = email.toLowerCase().trim();
+            await RequestDeduplication.release(`register:${normalizedEmail}`);
 
             return {
                 success: false,
@@ -543,6 +565,8 @@ export class AuthService {
                 type: 'warning',
                 channels: ['email'],
                 actionUrl: `/reset-password?token=${resetToken}`
+            }, {
+                jobId: `password-reset:${user.id}:${Math.floor(Date.now() / 300000)}` // Same reset link for 5 mins
             });
             logger.info('[PASSWORD_RESET_JOB_ENQUEUED]', { email: normalizedEmail });
 
@@ -607,12 +631,19 @@ export class AuthService {
     static async resendVerification(email: string, _ip: string, _userAgent: string): Promise<{ success: boolean; error?: string }> {
         try {
             const normalizedEmail = email.toLowerCase().trim();
+
+            // Deduplication for resend (Prevent spamming the button)
+            const dedup = await RequestDeduplication.acquire(`resend:${normalizedEmail}`);
+            if (dedup.isDuplicate) return { success: true };
+
             const user = await prisma.user.findUnique({
                 where: { email: normalizedEmail },
+                select: { id: true, username: true, email: true, emailVerified: true }
             });
 
             if (!user || user.emailVerified) {
-                return { success: true }; // Ambiguous
+                await RequestDeduplication.complete(`resend:${normalizedEmail}`);
+                return { success: true };
             }
 
             // Generate new token
@@ -632,16 +663,21 @@ export class AuthService {
             await NotificationQueueService.enqueue({
                 userId: user.id,
                 title: 'تفعيل حسابك في منصة تولو',
-                message: 'يرجى تفعيل حسابك لإكمال عملية التسجيل.',
+                message: `مرحباً ${user.username || normalizedEmail.split('@')[0]}! يرجى تفعيل حسابك لإكمال عملية التسجيل.`,
                 type: 'success',
                 channels: ['email'],
                 actionUrl: `/verify-email?token=${verifyToken}`
+            }, { 
+                jobId: `resend-verification:${user.id}:${Math.floor(Date.now() / 60000)}` // Limit to 1 per minute
             });
 
+            await RequestDeduplication.complete(`resend:${normalizedEmail}`);
             return { success: true };
         } catch (error) {
+            const normalizedEmail = email.toLowerCase().trim();
+            await RequestDeduplication.release(`resend:${normalizedEmail}`);
             logger.error('[AUTH_RESEND_VERIFICATION_ERROR]', { error });
-            return { success: true };
+            return { success: true }; // Ambiguous for security
         }
     }
 
@@ -856,6 +892,8 @@ export class AuthService {
                 type: 'info',
                 channels: ['email'],
                 actionUrl: `/api/auth/magic-link/verify?token=${magicToken}`
+            }, {
+                jobId: `magic-link:${user.id}:${Math.floor(Date.now() / 60000)}`
             });
 
             await SecurityLogger.log({

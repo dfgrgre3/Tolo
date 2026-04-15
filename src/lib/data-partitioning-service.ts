@@ -1,18 +1,36 @@
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/db';
 
+export interface TableHealth {
+    tableName: string;
+    partitionCount?: number;
+    status: 'healthy' | 'warning' | 'critical' | 'not_partitioned' | 'error';
+    recommendedActions?: string[];
+    error?: string;
+}
+
+export interface PartitionHealthReport {
+    tableHealth: TableHealth[];
+    timestamp: string;
+}
+
 export class DataPartitioningService {
     /**
      * Get a real health report from the database pg_catalog
      */
-    static async getPartitionHealthReport() {
+    static async getPartitionHealthReport(): Promise<PartitionHealthReport> {
         const tables = ['StudySession', 'ProgressSnapshot', 'SecurityLog', 'Session'];
         const tableHealth = [];
 
         for (const tableName of tables) {
             try {
                 // Check for existing partitions in PostgreSQL catalog
-                const partitions = await prisma.$queryRawUnsafe<any[]>(`
+                const partitions = await prisma.$queryRawUnsafe<Array<{
+                    parent_schema: string;
+                    parent_table: string;
+                    child_schema: string;
+                    child_table: string;
+                }>>(`
                     SELECT
                         nmsp_parent.nspname  AS parent_schema,
                         parent.relname       AS parent_table,
@@ -27,18 +45,18 @@ export class DataPartitioningService {
                 `, tableName);
 
                 const hasFuturePartition = await this.checkFuturePartitionExists(tableName);
-                
+
                 tableHealth.push({
                     tableName,
                     partitionCount: partitions.length,
-                    status: partitions.length > 0 ? (hasFuturePartition ? 'healthy' : 'warning') : 'not_partitioned',
-                    recommendedActions: partitions.length === 0 
-                        ? [`Convert ${tableName} to partitioned table`] 
+                    status: partitions.length > 0 ? (hasFuturePartition ? 'healthy' as const : 'warning' as const) : 'not_partitioned' as const,
+                    recommendedActions: partitions.length === 0
+                        ? [`Convert ${tableName} to partitioned table`]
                         : (!hasFuturePartition ? [`Create future partitions for ${tableName}`] : [])
                 });
             } catch (error) {
                 logger.error(`Failed to get health for ${tableName}:`, error);
-                tableHealth.push({ tableName, status: 'error', error: String(error) });
+                tableHealth.push({ tableName, status: 'error' as const, error: String(error) });
             }
         }
 
@@ -55,7 +73,7 @@ export class DataPartitioningService {
         const partitionName = `"${tableName}_${suffix}"`;
 
         try {
-            const result = await prisma.$queryRawUnsafe<any[]>(`
+            const result = await prisma.$queryRawUnsafe<Array<{ count: string }>>(`
                 SELECT count(*) FROM pg_class c 
                 JOIN pg_namespace n ON n.oid = c.relnamespace 
                 WHERE c.relname = $1
@@ -71,7 +89,7 @@ export class DataPartitioningService {
      */
     static async createMonthlyPartitions(tableName: string, startDate: Date, endDate: Date) {
         logger.info(`ScaleEngine: Running partition creation for ${tableName}`);
-        
+
         let current = new Date(startDate);
         current.setDate(1); // Start of month
 
@@ -83,7 +101,7 @@ export class DataPartitioningService {
             const month = (current.getMonth() + 1).toString().padStart(2, '0');
             const suffix = `${year}_m${month}`;
             const partitionName = `"${tableName}_${suffix}"`;
-            
+
             const startStr = current.toISOString().split('T')[0];
             const endStr = next.toISOString().split('T')[0];
 
@@ -109,7 +127,7 @@ export class DataPartitioningService {
 
     static async getPartitionInfo(tableName: string) {
         try {
-            const partitions = await prisma.$queryRawUnsafe<any[]>(`
+            const partitions = await prisma.$queryRawUnsafe<Array<{ name: string }>>(`
                 SELECT relname as name FROM pg_class c
                 JOIN pg_inherits i ON c.oid = i.inhrelid
                 JOIN pg_class p ON i.inhparent = p.oid
@@ -126,7 +144,7 @@ export class DataPartitioningService {
         return { efficiencyScore: 95, status: 'optimal', details: 'Partition pruning is active' };
     }
 
-    static async checkAndExtendPartitionsIfNeeded() {
+    static async checkAndExtendPartitionsIfNeeded(): Promise<{ triggeredActions: string[]; errors?: string[] }> {
         const health = await this.getPartitionHealthReport();
         const triggeredActions = [];
 
@@ -135,7 +153,7 @@ export class DataPartitioningService {
                 const start = new Date();
                 const end = new Date();
                 end.setMonth(end.getMonth() + 6); // Pre-create 6 months
-                
+
                 if (table.status !== 'not_partitioned') {
                     await this.createMonthlyPartitions(table.tableName, start, end);
                     triggeredActions.push(`Extended partitions for ${table.tableName}`);
@@ -146,7 +164,7 @@ export class DataPartitioningService {
         return { triggeredActions };
     }
 
-    static async cleanupOldPartitions() {
+    static async cleanupOldPartitions(): Promise<{ deletedPartitions: string[]; error?: string }> {
         // Logic to drop partitions older than retention policy (e.g. 1 year)
         return { deletedPartitions: [] };
     }

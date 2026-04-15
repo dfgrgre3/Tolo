@@ -5,6 +5,7 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, notFoundResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
 import { SubscriptionService } from '@/services/subscription-service';
+import { handleCourseEnrollment } from '@/lib/courses/course-integration-service';
 
 // POST to enroll in a subject
 export async function POST(
@@ -26,7 +27,7 @@ export async function POST(
 
         const subject = await prisma.subject.findUnique({
           where: { id },
-          select: { price: true }
+          select: { price: true, nameAr: true, name: true }
         });
 
         if (!subject) {
@@ -60,7 +61,14 @@ export async function POST(
           throw error;
         }
 
-        return successResponse(enrollment);
+        // Integrate with gamification, notifications, and update counters
+        const integrationResult = await handleCourseEnrollment(userId, id);
+
+        return successResponse({
+          ...enrollment,
+          xpAwarded: integrationResult.xpAwarded,
+          isFirstCourse: integrationResult.isFirstCourse,
+        });
       } catch (error) {
         logger.error("Error enrolling in course:", error);
         return handleApiError(error);

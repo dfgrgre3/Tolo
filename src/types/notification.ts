@@ -1,13 +1,12 @@
-
 import { DateString } from './api/common';
 
-export type NotificationType = 'info' | 'success' | 'warning' | 'error';
+export type UINotificationType = 'info' | 'success' | 'warning' | 'error';
 
 export interface Notification {
   id: string;
   title: string;
   message: string;
-  type: NotificationType;
+  type: UINotificationType;
   isRead: boolean;
   actionUrl?: string;
   link?: string;
@@ -22,7 +21,7 @@ export interface Notification {
 export interface NotificationTemplate {
   title: string;
   message: string;
-  type: NotificationType;
+  type: UINotificationType;
   actionUrl?: string;
   icon?: string;
 }
@@ -30,7 +29,7 @@ export interface NotificationTemplate {
 export interface NotificationPayload {
   title: string;
   message: string;
-  type: NotificationType;
+  type: UINotificationType;
   actionUrl?: string;
   icon?: string;
 }

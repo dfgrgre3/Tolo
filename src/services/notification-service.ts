@@ -1,5 +1,4 @@
-
-import { NotificationType } from '@/types/notification';
+import { UINotificationType } from '@/types/notification';
 // تم إزالة نظام تسجيل الدخول
 import { logger } from '@/lib/logger';
 
@@ -10,7 +9,7 @@ import { logger } from '@/lib/logger';
 export async function sendNotification(
   title: string,
   message: string,
-  type: NotificationType = 'info',
+  type: UINotificationType = 'info',
   options?: {
     actionUrl?: string;
     icon?: string;
@@ -84,7 +83,7 @@ export async function sendBulkNotifications(
   notifications: Array<{
     title: string;
     message: string;
-    type: NotificationType;
+    type: UINotificationType;
     actionUrl?: string;
     icon?: string;
   }>
@@ -173,7 +172,7 @@ export const notificationTemplates = {
   taskDueSoon: (taskTitle: string, dueDate: string) => ({
     title: 'مهمة قريبة الموعد',
     message: `مهمة "${taskTitle}" سيتم تسليمها في ${dueDate}`,
-    type: 'warning' as NotificationType,
+    type: 'warning' as UINotificationType,
     actionUrl: '/tasks',
     icon: '⏰',
   }),
@@ -181,7 +180,7 @@ export const notificationTemplates = {
   taskOverdue: (taskTitle: string, daysOverdue: number) => ({
     title: 'مهمة متأخرة',
     message: `مهمة "${taskTitle}" متأخرة منذ ${daysOverdue} يوم${daysOverdue > 1 ? 'أيام' : ''}`,
-    type: 'error' as NotificationType,
+    type: 'error' as UINotificationType,
     actionUrl: '/tasks',
     icon: '❌',
   }),
@@ -189,7 +188,7 @@ export const notificationTemplates = {
   taskCompleted: (taskTitle: string) => ({
     title: 'تم إكمال المهمة',
     message: `تم إكمال مهمة "${taskTitle}" بنجاح`,
-    type: 'success' as NotificationType,
+    type: 'success' as UINotificationType,
     actionUrl: '/tasks',
     icon: '✅',
   }),
@@ -198,7 +197,7 @@ export const notificationTemplates = {
   testGenerated: (subject: string) => ({
     title: 'تم إنشاء اختبار جديد',
     message: `تم إنشاء اختبار جديد في مادة ${subject}`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/test',
     icon: '📝',
   }),
@@ -206,7 +205,7 @@ export const notificationTemplates = {
   testCompleted: (subject: string, score: number) => ({
     title: 'نتيجة الاختبار',
     message: `لقد حصلت على ${score}% في اختبار ${subject}`,
-    type: 'success' as NotificationType,
+    type: 'success' as UINotificationType,
     actionUrl: '/test',
     icon: '🏆',
   }),
@@ -214,7 +213,7 @@ export const notificationTemplates = {
   testReminder: (subject: string, time: string) => ({
     title: 'تذكير بالاختبار',
     message: `لديك اختبار في ${subject} بعد ${time}`,
-    type: 'warning' as NotificationType,
+    type: 'warning' as UINotificationType,
     actionUrl: '/test',
     icon: '⏰',
   }),
@@ -223,7 +222,7 @@ export const notificationTemplates = {
   scheduleConflict: (time: string) => ({
     title: 'تعارض في الجدول',
     message: `يوجد تعارض في جدولك في ${time}`,
-    type: 'warning' as NotificationType,
+    type: 'warning' as UINotificationType,
     actionUrl: '/schedule',
     icon: '📅',
   }),
@@ -231,7 +230,7 @@ export const notificationTemplates = {
   classReminder: (subject: string, time: string) => ({
     title: 'تذكير بالحصة',
     message: `لديك حصة ${subject} في ${time}`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/schedule',
     icon: '📚',
   }),
@@ -240,7 +239,7 @@ export const notificationTemplates = {
   progressMilestone: (streakDays: number) => ({
     title: 'إنجاز جديد',
     message: `لقد حققت ${streakDays} أيام متتالية من الدراسة!`,
-    type: 'success' as NotificationType,
+    type: 'success' as UINotificationType,
     actionUrl: '/progress',
     icon: '🔥',
   }),
@@ -248,7 +247,7 @@ export const notificationTemplates = {
   goalAchieved: (goalName: string) => ({
     title: 'تم تحقيق الهدف',
     message: `تهانينا! لقد حققت هدف "${goalName}"`,
-    type: 'success' as NotificationType,
+    type: 'success' as UINotificationType,
     actionUrl: '/progress',
     icon: '🎯',
   }),
@@ -257,7 +256,7 @@ export const notificationTemplates = {
   newMessage: (senderName: string) => ({
     title: 'رسالة جديدة',
     message: `لديك رسالة جديدة من ${senderName}`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/chat',
     icon: '💬',
   }),
@@ -265,7 +264,7 @@ export const notificationTemplates = {
   eventReminder: (eventName: string, time: string) => ({
     title: 'تذكير بالمناسبة',
     message: `مناسبة "${eventName}" ستبدأ بعد ${time}`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/events',
     icon: '📅',
   }),
@@ -273,7 +272,7 @@ export const notificationTemplates = {
   newFollower: (followerName: string) => ({
     title: 'متابع جديد',
     message: `${followerName} يتابعك الآن`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/settings',
     icon: '👤',
   }),
@@ -282,14 +281,14 @@ export const notificationTemplates = {
   systemUpdate: (version: string) => ({
     title: 'تحديث النظام',
     message: `تم تحديث النظام إلى الإصدار ${version}`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     icon: '🔄',
   }),
 
   securityAlert: (alertType: string) => ({
     title: 'تنبيه أمني',
     message: `تم اكتشاف نشاط غير معتاد: ${alertType}`,
-    type: 'error' as NotificationType,
+    type: 'error' as UINotificationType,
     actionUrl: '/settings',
     icon: '🔒',
   }),
@@ -298,7 +297,7 @@ export const notificationTemplates = {
   newContent: (contentType: string, title: string) => ({
     title: `محتوى جديد: ${contentType}`,
     message: `تم إضافة ${title} حديثاً`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/resources',
     icon: '📚',
   }),
@@ -306,7 +305,7 @@ export const notificationTemplates = {
   contentRecommendation: (contentType: string, title: string) => ({
     title: 'توصية بالمحتوى',
     message: `قد يعجبك ${contentType}: ${title}`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/resources',
     icon: '👍',
   }),
@@ -315,7 +314,7 @@ export const notificationTemplates = {
   welcome: (name: string) => ({
     title: 'أهلاً بك في تولو!',
     message: `مرحباً ${name}! يسعدنا انضمامك إلينا. ابدأ رحلتك التعليمية الآن.`,
-    type: 'success' as NotificationType,
+    type: 'success' as UINotificationType,
     actionUrl: '/dashboard',
     icon: '👋',
   }),
@@ -323,7 +322,7 @@ export const notificationTemplates = {
   bookUploaded: (bookTitle: string) => ({
     title: 'تم رفع الكتاب بنجاح',
     message: `لقد تم رفع كتاب "${bookTitle}" إلى المكتبة الرقمية.`,
-    type: 'success' as NotificationType,
+    type: 'success' as UINotificationType,
     actionUrl: '/library',
     icon: '📚',
   }),
@@ -331,7 +330,7 @@ export const notificationTemplates = {
   bookRated: (bookTitle: string, rating: number) => ({
     title: 'تقييم جديد لكتابك',
     message: `حصل كتابك "${bookTitle}" على تقييم ${rating} نجوم.`,
-    type: 'info' as NotificationType,
+    type: 'info' as UINotificationType,
     actionUrl: '/library',
     icon: '⭐',
   }),
@@ -339,7 +338,7 @@ export const notificationTemplates = {
   studySessionFinished: (duration: number) => ({
     title: 'انتهت جلسة المذاكرة',
     message: `لقد أتممت ${duration} دقيقة من المذاكرة المركزة. تابع التقدم!`,
-    type: 'success' as NotificationType,
+    type: 'success' as UINotificationType,
     actionUrl: '/time',
     icon: '⌛',
   }),
@@ -402,7 +401,7 @@ export function sendTemplatedNotification(
   return sendNotification(
     String(notification.title || ''),
     String(notification.message || ''),
-    (notification.type as NotificationType) || 'info', 
+    (notification.type as UINotificationType) || 'info', 
     options
   );
 }
@@ -413,4 +412,3 @@ export const notificationService = {
   sendTemplatedNotification,
   notificationTemplates,
 };
-

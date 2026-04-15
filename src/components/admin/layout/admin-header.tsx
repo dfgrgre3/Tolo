@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, Search, Menu, LogOut, Moon, Sun, ChevronLeft, Home, Settings, Shield, Users, Trophy, AlertCircle, CheckCircle, Info, X, CheckCheck } from "lucide-react";
+import { Bell, Search, Menu, LogOut, Moon, Sun, ChevronLeft, Settings, Shield, Users, Trophy, AlertCircle, CheckCircle, Info, X, CheckCheck } from "lucide-react";
 import { IconButton } from "@/components/admin/ui/admin-button";
 import { AdminBadge } from "@/components/admin/ui/admin-badge";
 import { SearchInput } from "@/components/admin/ui/admin-input";
@@ -77,11 +77,11 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
   const [notifications, setNotifications] = React.useState<Notification[]>([
-    { id: "1", type: "user", title: "مستخدم جديد", message: "تم تسجيل مستخدم جديد في النظام", time: new Date(Date.now() - 5 * 60 * 1000), read: false },
-    { id: "2", type: "achievement", title: "إنجاز جديد", message: "تم فتح إنجاز جديد: الطالب المثالي", time: new Date(Date.now() - 15 * 60 * 1000), read: false },
-    { id: "3", type: "system", title: "تحديث النظام", message: "تم تحديث النظام بنجاح إلى الإصدار 2.0", time: new Date(Date.now() - 60 * 60 * 1000), read: true },
-    { id: "4", type: "warning", title: "تحذير", message: "اقتراب مساحة التخزين من الحد الأقصى", time: new Date(Date.now() - 2 * 60 * 60 * 1000), read: true },
-    { id: "5", type: "success", title: "نجاح", message: "تم إرسال الإشعارات بنجاح", time: new Date(Date.now() - 3 * 60 * 60 * 1000), read: true },
+    { id: "1", type: "user", title: "مستخدم جديد", message: "تم تسجيل مستخدم جديد في النظام", time: new Date("2026-04-15T11:55:00.000Z"), read: false },
+    { id: "2", type: "achievement", title: "إنجاز جديد", message: "تم فتح إنجاز جديد: الطالب المثالي", time: new Date("2026-04-15T11:45:00.000Z"), read: false },
+    { id: "3", type: "system", title: "تحديث النظام", message: "تم تحديث النظام بنجاح إلى الإصدار 2.0", time: new Date("2026-04-15T11:00:00.000Z"), read: true },
+    { id: "4", type: "warning", title: "تحذير", message: "اقتراب مساحة التخزين من الحد الأقصى", time: new Date("2026-04-15T10:00:00.000Z"), read: true },
+    { id: "5", type: "success", title: "نجاح", message: "تم إرسال الإشعارات بنجاح", time: new Date("2026-04-15T09:00:00.000Z"), read: true },
   ]);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
@@ -107,6 +107,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   }, [pathname]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const pageTitle = breadcrumbs[breadcrumbs.length - 1]?.label || "لوحة التحكم";
 
   const formatNotificationTime = (date: Date) => {
     const now = new Date();
@@ -137,9 +138,8 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b bg-background/80 backdrop-blur-xl px-2 sm:px-4 lg:px-6">
-      {/* Left side: Menu + Breadcrumbs */}
-      <div className="flex items-center gap-1 sm:gap-3">
+    <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-border/60 bg-background/80 px-2 backdrop-blur-xl sm:px-4 lg:px-6">
+      <div className="flex min-w-0 items-center gap-1 sm:gap-3">
         {/* Mobile Menu Button */}
         <IconButton
           icon={Menu}
@@ -149,8 +149,8 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
           onClick={onMenuClick}
         />
 
-        {/* Breadcrumbs */}
-        <nav className="hidden md:flex items-center gap-1.5 text-sm">
+        <div className="hidden min-w-0 md:block">
+          <nav className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
           {breadcrumbs.map((crumb, index) => (
             <React.Fragment key={crumb.href}>
               {index > 0 && (
@@ -170,10 +170,11 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
               )}
             </React.Fragment>
           ))}
-        </nav>
+          </nav>
+          <p className="mt-1 truncate text-sm font-black text-foreground">{pageTitle}</p>
+        </div>
       </div>
 
-      {/* Right Side */}
       <div className="flex items-center gap-0.5 sm:gap-2">
         {/* Search */}
         <button 
@@ -313,7 +314,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-1 sm:gap-2.5 h-9 rounded-lg px-1 sm:px-2 hover:bg-accent transition-colors">
               <Avatar className="h-7 w-7 ring-2 ring-primary/20">
-                <AvatarImage src="/admin-avatar.png" alt="Admin" />
+                <AvatarImage src="/logo-tolo.jpg" alt="Admin" />
                 <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-xs font-bold">
                   م
                 </AvatarFallback>

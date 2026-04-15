@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/db';
 import { OpenAI } from 'openai';
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     return withAuth(req, async ({ userId }) => {
       try {
         // Apply rate limiting
-        const rateLimitResult = await rateLimit(req, 20, 'evaluate_test'); // 20 requests per window
+        const rateLimitResult = await rateLimit(req, 20); // 20 requests per window
         if (rateLimitResult) {
           return rateLimitResult;
         }
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Prepare answers and questions for AI evaluation
-        const questionsForEvaluation = test.questions.map((q): AIQuestion => ({
+        const questionsForEvaluation = test.questions.map((q: any): AIQuestion => ({
           id: q.id,
           question: q.question,
           options: q.options && typeof q.options === 'string' ? JSON.parse(q.options) : q.options,
@@ -84,33 +84,33 @@ export async function POST(request: NextRequest) {
 
         // Create prompt for AI to evaluate answers
         const prompt = `
-        قم بتقييم إجابات الطالب على الاختبار التالي في مادة ${getSubjectName(test.subjectId)}.
+        ظ‚ظ… ط¨طھظ‚ظٹظٹظ… ط¥ط¬ط§ط¨ط§طھ ط§ظ„ط·ط§ظ„ط¨ ط¹ظ„ظ‰ ط§ظ„ط§ط®طھط¨ط§ط± ط§ظ„طھط§ظ„ظٹ ظپظٹ ظ…ط§ط¯ط© ${getSubjectName(test.subjectId)}.
 
-        الأسئلة والإجابات الصحيحة:
+        ط§ظ„ط£ط³ط¦ظ„ط© ظˆط§ظ„ط¥ط¬ط§ط¨ط§طھ ط§ظ„طµط­ظٹط­ط©:
         ${JSON.stringify(questionsForEvaluation, null, 2)}
 
-        إجابات الطالب:
+        ط¥ط¬ط§ط¨ط§طھ ط§ظ„ط·ط§ظ„ط¨:
         ${JSON.stringify(userAnswersForEvaluation, null, 2)}
 
-        قم بتقييم كل إجابة وتحديد ما إذا كانت صحيحة أم خاطئة، مع تقديم شرح موجز لكل إجابة.
+        ظ‚ظ… ط¨طھظ‚ظٹظٹظ… ظƒظ„ ط¥ط¬ط§ط¨ط© ظˆطھط­ط¯ظٹط¯ ظ…ط§ ط¥ط°ط§ ظƒط§ظ†طھ طµط­ظٹط­ط© ط£ظ… ط®ط§ط·ط¦ط©طŒ ظ…ط¹ طھظ‚ط¯ظٹظ… ط´ط±ط­ ظ…ظˆط¬ط² ظ„ظƒظ„ ط¥ط¬ط§ط¨ط©.
 
-        بعد ذلك، قم بتقديم ملخص شامل للتقييم يتضمن:
-        1. الدرجة الإجمالية والنسبة المئوية
-        2. عدد الإجابات الصحيحة والخاطئة
-        3. نقاط القوة في إجابات الطالب
-        4. جوانب تحتاج إلى تحسين
-        5. توصيات للطالب لتحسين أدائه
+        ط¨ط¹ط¯ ط°ظ„ظƒطŒ ظ‚ظ… ط¨طھظ‚ط¯ظٹظ… ظ…ظ„ط®طµ ط´ط§ظ…ظ„ ظ„ظ„طھظ‚ظٹظٹظ… ظٹطھط¶ظ…ظ†:
+        1. ط§ظ„ط¯ط±ط¬ط© ط§ظ„ط¥ط¬ظ…ط§ظ„ظٹط© ظˆط§ظ„ظ†ط³ط¨ط© ط§ظ„ظ…ط¦ظˆظٹط©
+        2. ط¹ط¯ط¯ ط§ظ„ط¥ط¬ط§ط¨ط§طھ ط§ظ„طµط­ظٹط­ط© ظˆط§ظ„ط®ط§ط·ط¦ط©
+        3. ظ†ظ‚ط§ط· ط§ظ„ظ‚ظˆط© ظپظٹ ط¥ط¬ط§ط¨ط§طھ ط§ظ„ط·ط§ظ„ط¨
+        4. ط¬ظˆط§ظ†ط¨ طھط­طھط§ط¬ ط¥ظ„ظ‰ طھط­ط³ظٹظ†
+        5. طھظˆطµظٹط§طھ ظ„ظ„ط·ط§ظ„ط¨ ظ„طھط­ط³ظٹظ† ط£ط¯ط§ط¦ظ‡
 
-        قم بتنسيق الإجابة كـ JSON بالهيكل التالي:
+        ظ‚ظ… ط¨طھظ†ط³ظٹظ‚ ط§ظ„ط¥ط¬ط§ط¨ط© ظƒظ€ JSON ط¨ط§ظ„ظ‡ظٹظƒظ„ ط§ظ„طھط§ظ„ظٹ:
         {
           "detailedResults": [
             {
-              "questionId": "معرف السؤال",
+              "questionId": "ظ…ط¹ط±ظپ ط§ظ„ط³ط¤ط§ظ„",
               "isCorrect": true,
-              "userAnswer": "إجابة الطالب",
-              "correctAnswer": "الإجابة الصحيحة",
-              "explanation": "شرح للتقييم",
-              "feedback": "ملاحظات على الإجابة"
+              "userAnswer": "ط¥ط¬ط§ط¨ط© ط§ظ„ط·ط§ظ„ط¨",
+              "correctAnswer": "ط§ظ„ط¥ط¬ط§ط¨ط© ط§ظ„طµط­ظٹط­ط©",
+              "explanation": "ط´ط±ط­ ظ„ظ„طھظ‚ظٹظٹظ…",
+              "feedback": "ظ…ظ„ط§ط­ط¸ط§طھ ط¹ظ„ظ‰ ط§ظ„ط¥ط¬ط§ط¨ط©"
             }
           ],
           "summary": {
@@ -119,13 +119,13 @@ export async function POST(request: NextRequest) {
             "correctAnswers": 8,
             "incorrectAnswers": 2,
             "strengths": [
-              "فهمك للمفاهيم الأساسية جيد"
+              "ظپظ‡ظ…ظƒ ظ„ظ„ظ…ظپط§ظ‡ظٹظ… ط§ظ„ط£ط³ط§ط³ظٹط© ط¬ظٹط¯"
             ],
             "improvementAreas": [
-              "تحتاج إلى تحسين معرفتك بالمفاهيم المتقدمة"
+              "طھط­طھط§ط¬ ط¥ظ„ظ‰ طھط­ط³ظٹظ† ظ…ط¹ط±ظپطھظƒ ط¨ط§ظ„ظ…ظپط§ظ‡ظٹظ… ط§ظ„ظ…طھظ‚ط¯ظ…ط©"
             ],
             "recommendations": [
-              "راجع الفصول من 5 إلى 7 في الكتاب المقرر"
+              "ط±ط§ط¬ط¹ ط§ظ„ظپطµظˆظ„ ظ…ظ† 5 ط¥ظ„ظ‰ 7 ظپظٹ ط§ظ„ظƒطھط§ط¨ ط§ظ„ظ…ظ‚ط±ط±"
             ]
           }
         }
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         let score = 0;
         let totalPoints = 0;
 
-        test.questions.forEach((question) => {
+        test.questions.forEach((question: any) => {
           totalPoints += question.points;
           const result = evaluation.detailedResults.find((r: { questionId: string; isCorrect: boolean }) => r.questionId === question.id);
           if (result && result.isCorrect) {
@@ -196,16 +196,17 @@ export async function POST(request: NextRequest) {
 
 function getSubjectName(subjectValue: string): string {
   const subjects: Record<string, string> = {
-    'MATH': 'الرياضيات',
-    'SCIENCE': 'العلوم',
-    'HISTORY': 'التاريخ',
-    'ARABIC': 'اللغة العربية',
-    'ENGLISH': 'اللغة الإنجليزية',
-    'PHYSICS': 'الفيزياء',
-    'CHEMISTRY': 'الكيمياء',
-    'BIOLOGY': 'الأحياء',
-    'COMPUTER': 'علوم الحاسب',
+    'MATH': 'ط§ظ„ط±ظٹط§ط¶ظٹط§طھ',
+    'SCIENCE': 'ط§ظ„ط¹ظ„ظˆظ…',
+    'HISTORY': 'ط§ظ„طھط§ط±ظٹط®',
+    'ARABIC': 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط©',
+    'ENGLISH': 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©',
+    'PHYSICS': 'ط§ظ„ظپظٹط²ظٹط§ط،',
+    'CHEMISTRY': 'ط§ظ„ظƒظٹظ…ظٹط§ط،',
+    'BIOLOGY': 'ط§ظ„ط£ط­ظٹط§ط،',
+    'COMPUTER': 'ط¹ظ„ظˆظ… ط§ظ„ط­ط§ط³ط¨',
   };
 
   return subjects[subjectValue] || subjectValue;
 }
+

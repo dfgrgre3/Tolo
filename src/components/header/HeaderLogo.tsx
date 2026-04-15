@@ -25,6 +25,7 @@ export function HeaderLogo() {
           width={48}
           height={48}
           className="h-full w-full object-cover"
+          sizes="48px"
           priority
         />
         <motion.div

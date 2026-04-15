@@ -10,6 +10,7 @@ import {
   createSuccessResponse,
   addSecurityHeaders
 } from '@/lib/api-utils';
+import { AIService } from "@/lib/ai/ai-service";
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -36,10 +37,26 @@ export async function POST(request: NextRequest) {
         // Auth removed
       }
 
-      // تحديد مقدم الخدمة
-      const selectedProvider = provider === 'openai' ? AI_PROVIDERS.OPENAI : AI_PROVIDERS.GEMINI;
+      // تحديد مقدم الخدمة باستخدام الدالة الافتراضية مع السماح بالتغيير من الطلب
+      let providerKey = 'OPENROUTER'; // الافتراضي هو OpenRouter كما طلب المستخدم
+      
+      if (provider === 'openai') {
+        providerKey = 'OPENAI';
+      } else if (provider === 'gemini') {
+        providerKey = 'GEMINI';
+      } else if (provider === 'openrouter') {
+        providerKey = 'OPENROUTER';
+      } else {
+        // إذا لم يتم تحديد مزود، نستخدم الافتراضي من الإعدادات
+        const defaultProv = getDefaultProvider();
+        if (defaultProv === AI_PROVIDERS.OPENAI) providerKey = 'OPENAI';
+        else if (defaultProv === AI_PROVIDERS.GEMINI) providerKey = 'GEMINI';
+        else providerKey = 'OPENROUTER';
+      }
 
-      if (!validateApiKey(selectedProvider === AI_PROVIDERS.OPENAI ? 'OPENAI' : 'GEMINI')) {
+      const selectedProvider = AI_PROVIDERS[providerKey];
+
+      if (!validateApiKey(providerKey)) {
         const response = NextResponse.json(
           { error: `مفتاح API لـ ${selectedProvider.name} غير مهيأ`, code: 'API_KEY_MISSING' },
           { status: 500 }
@@ -94,80 +111,20 @@ export async function POST(request: NextRequest) {
       }
 
       // إضافة رسالة النظام لتعريف شخصية المساعد مع تحليل المشاعر
-      const systemMessage = {
-        role: "system",
-        content: `${sentimentAwareContext}أنت مساعد ذكاء اصطناعي متخصص في التعليم والإرشاد الأكاديمي لمنصة تولو. مهمتك هي مساعدة الطلاب في دراستهم والإجابة على أسئلتهم بطريقة واضحة ومفيدة. يجب أن تكون إجاباتك دقيقة ومتناسبة مع المستوى التعليمي للطالب. إذا لم تكن متأكداً من إجابة سؤال ما، فمن الأفضل أن تعترف بذلك بدلاً من تقديم معلومات خاطئة. كن دائماً داعماً ومشجعاً، خاصة إذا كان المستخدم يبدو محبطاً أو متعباً.`
-      };
+      const systemMessage = `${sentimentAwareContext}أنت مساعد ذكاء اصطناعي متخصص في التعليم والإرشاد الأكاديمي لمنصة تولو. مهمتك هي مساعدة الطلاب في دراستهم والإجابة على أسئلتهم بطريقة واضحة ومفيدة. يجب أن تكون إجاباتك دقيقة ومتناسبة مع المستوى التعليمي للطالب. إذا لم تكن متأكداً من إجابة سؤال ما، فمن الأفضل أن تعترف بذلك بدلاً من تقديم معلومات خاطئة. كن دائماً داعماً ومشجعاً، خاصة إذا كان المستخدم يبدو محبطاً أو متعباً.`;
 
-      let aiMessage = "";
-
-      if (selectedProvider === AI_PROVIDERS.OPENAI) {
-        // استخدام OpenAI API
-        const response = await fetch(selectedProvider.baseUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${selectedProvider.apiKey}`
-          },
-          body: JSON.stringify({
-            model: selectedProvider.model,
-            messages: [systemMessage, ...messages],
-            temperature: 0.7,
-            max_tokens: 1000
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          logger.error("Error from OpenAI:", errorData);
-          const errorResponse = NextResponse.json({
-            message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم.",
-            code: 'AI_SERVICE_ERROR'
-          }, { status: 500 });
-          return addSecurityHeaders(errorResponse);
-        }
-
-        const data = await response.json();
-        aiMessage = data.choices[0].message.content;
-      } else {
-        // استخدام Google Gemini API
-        const geminiMessages = [
+      const aiMessage = await AIService.call(
+        messages.map(m => ({
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: m.content
+        })),
+        {
+          provider: providerKey,
           systemMessage,
-          ...messages
-        ].map(msg => ({
-          role: msg.role === "user" ? "user" : "model",
-          parts: [{ text: msg.content }]
-        }));
-
-        const response = await fetch(`${selectedProvider.baseUrl}${selectedProvider.model}:generateContent?key=${selectedProvider.apiKey}`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            contents: geminiMessages,
-            generationConfig: {
-              temperature: 0.7,
-              topK: 40,
-              topP: 0.95,
-              maxOutputTokens: 1000,
-            },
-          })
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          logger.error("Error from Gemini:", errorData);
-          const errorResponse = NextResponse.json({
-            message: "عذراً، يواجه المساعد الذكي بعض الصعوبات التقنية حالياً. يرجى المحاولة مرة أخرى لاحقاً أو التواصل مع فريق الدعم.",
-            code: 'AI_SERVICE_ERROR'
-          }, { status: 500 });
-          return addSecurityHeaders(errorResponse);
+          temperature: 0.7,
+          maxTokens: 1000
         }
-
-        const data = await response.json();
-        aiMessage = data.candidates[0].content.parts[0].text;
-      }
+      );
 
       // Save assistant message if userId exists
       if (actualUserId) {

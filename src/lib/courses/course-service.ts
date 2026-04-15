@@ -28,8 +28,10 @@ export interface CourseSummary {
   tags: string[];
   enrolled: boolean;
   progress?: number;
+  isFeatured: boolean;
   lessonsCount: number;
 }
+
 
 export interface CourseCategory {
   id: string;
@@ -46,9 +48,28 @@ type SubjectWithStats = {
   categoryId: string | null;
   description: string | null;
   type: string | null;
+  level?: string | null;
   createdAt: Date;
-  teachers: Array<{ name: string; rating: number }>;
+  teachers: Array<{ name: string; rating: number; image?: string | null }>;
   _count: { enrollments: number };
+  // Real subject fields
+  thumbnailUrl?: string | null;
+  trailerUrl?: string | null;
+  price?: number | null;
+  rating?: number | null;
+  enrolledCount?: number | null;
+  durationHours?: number | null;
+  instructorName?: string | null;
+  isFeatured?: boolean;
+  whatYouLearn?: string[];
+  coursePrerequisites?: string[];
+  targetAudience?: string[];
+  language?: string | null;
+  slug?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  requirements?: string | null;
+  learningObjectives?: string | null;
 };
 
 const CATEGORY_NAMES: Record<string, string> = {
@@ -358,20 +379,42 @@ export function mapSubjectToCourse(
   const categoryName = getCategoryName(categoryId);
   const lessonsCount = options?.lessonsCount ?? 0;
 
+  // Use real level from Subject model instead of deriving from type
+  const level = subject.level
+    ? resolveCourseLevel(subject.level)
+    : resolveCourseLevel(subject.type);
+
+  // Use real duration from Subject model, fallback to estimated
+  const duration = (subject.durationHours && subject.durationHours > 0)
+    ? subject.durationHours
+    : estimateDurationHours(lessonsCount);
+
+  // Use real price from Subject model
+  const price = subject.price ?? 0;
+
+  // Use real rating from Subject model, fallback to calculated
+  const rating = (subject.rating && subject.rating > 0)
+    ? Number(clamp(subject.rating, 0, 5).toFixed(1))
+    : resolveRating(subject);
+
+  // Use real enrolledCount from Subject model, fallback to _count
+  const enrolledCount = subject.enrolledCount ?? subject._count.enrollments;
+
   return {
     id: subject.id,
     title: subject.nameAr || subject.name,
     description: subject.description || "لا يوجد وصف متاح لهذه الدورة حالياً.",
-    instructor: resolveInstructor(subject),
+    instructor: subject.instructorName || resolveInstructor(subject),
     subject: categoryName,
     categoryId,
     categoryName,
-    level: resolveCourseLevel(subject.type),
-    duration: estimateDurationHours(lessonsCount),
-    thumbnailUrl: undefined,
-    price: 0,
-    rating: resolveRating(subject),
-    enrolledCount: subject._count.enrollments,
+    level,
+    duration,
+    thumbnailUrl: subject.thumbnailUrl || undefined,
+    price,
+    rating,
+    enrolledCount,
+    isFeatured: subject.isFeatured ?? false,
     createdAt: new Date(subject.createdAt).toISOString(),
     tags: buildTags(subject, categoryName),
     enrolled: options?.enrolled ?? false,

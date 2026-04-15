@@ -82,13 +82,13 @@ export async function POST(req: NextRequest) {
 				update: {
 					name: name || undefined,
 					role: UserRole.TEACHER
-				},
+				} as any,
 				create: {
 					email,
 					name: name || email.split('@')[0], // Using just the local part of email as name instead of full email
 					passwordHash: "", // Password should be set separately
 					role: UserRole.TEACHER
-				}
+				} as any
 			});
 
 			// If subject is provided, create enrollment

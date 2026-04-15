@@ -297,7 +297,7 @@ export function MegaMenuContent({
 											isCompact ? 'pt-4 md:pt-5' : 'pt-6 md:pt-8'
 										)}>
 											<AiSuggestions
-													userId={user.id || user.userId}
+													userId={user.id || (user as any).userId || ""}
 													isCompact={isCompact}
 													onItemClick={onClose}
 												/>

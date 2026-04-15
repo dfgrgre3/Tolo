@@ -1,8 +1,15 @@
+export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from '@/lib/db';
-import { handleApiError, badRequestResponse, successResponse, createErrorResponse, withAuth } from "@/lib/api-utils";
-import { opsWrapper } from "@/lib/middleware/ops-middleware";
+import { 
+  handleApiError, 
+  badRequestResponse, 
+  successResponse, 
+  createErrorResponse, 
+  withAuth, 
+  opsWrapper 
+} from "@/lib/api-utils";
 
 // Validation schemas
 const SchedulePostSchema = z.object({
@@ -34,6 +41,22 @@ export async function GET(req: NextRequest) {
         });
 
         if (!schedule) {
+          // Verify the user exists in the DB before creating a schedule.
+          // A valid JWT can reference a user that was deleted, causing an FK violation.
+          const userExists = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true }
+          });
+
+          if (!userExists) {
+            return createErrorResponse(
+              'User account not found. Please sign in again.',
+              401,
+              undefined,
+              'USER_NOT_FOUND'
+            );
+          }
+
           schedule = await prisma.schedule.create({
             data: {
               userId,
@@ -81,6 +104,20 @@ export async function POST(req: NextRequest) {
         // For security, we should only allow modifying the authenticated user's schedule
         if (userId !== authUser.userId) {
           return badRequestResponse('Invalid userId parameter', 'INVALID_PARAMETER');
+        }
+
+        const userExists = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true }
+        });
+
+        if (!userExists) {
+          return createErrorResponse(
+            'User account not found. Please sign in again.',
+            401,
+            undefined,
+            'USER_NOT_FOUND'
+          );
         }
 
         const existing = await prisma.schedule.findFirst({

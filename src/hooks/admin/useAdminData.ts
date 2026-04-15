@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import { toast } from "sonner";
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
 
 // Types
 interface FetchState<T> {
@@ -56,15 +57,10 @@ export function useAdminFetch<T>(
           });
         }
 
-        const url = `${endpoint}${searchParams.toString() ? `?${searchParams}` : ""}`;
-        const response = await fetch(url);
+        const cleanEndpoint = endpoint.replace(/^\/api/, "");
+        const url = `${cleanEndpoint}${searchParams.toString() ? `?${searchParams}` : ""}`;
+        const data = await apiClient.get<T>(url);
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "حدث خطأ أثناء جلب البيانات");
-        }
-
-        const data = await response.json();
         setState({ data, loading: false, error: null });
         options?.onSuccess?.(data);
         return data;
@@ -117,13 +113,9 @@ export function useAdminPaginated<T>(
       if (params.sortBy) searchParams.append("sortBy", params.sortBy);
       if (params.sortOrder) searchParams.append("sortOrder", params.sortOrder);
 
-      const response = await fetch(`${endpoint}?${searchParams}`);
-
-      if (!response.ok) {
-        throw new Error("حدث خطأ أثناء جلب البيانات");
-      }
-
-      const data = await response.json();
+      const cleanEndpoint = endpoint.replace(/^\/api/, "");
+      const data = await apiClient.get<PaginatedResponse<T>>(`${cleanEndpoint}?${searchParams}`);
+      
       setState({ data, loading: false, error: null });
     } catch (error) {
       const errorMessage =
@@ -179,23 +171,13 @@ export function useAdminCrud<T extends { id: string }>(
   }
 ) {
   const [loading, setLoading] = React.useState(false);
+  const cleanEndpoint = endpoint.replace(/^\/api/, "");
 
   const create = React.useCallback(
     async (data: Partial<T>): Promise<T | null> => {
       setLoading(true);
       try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "حدث خطأ أثناء الإنشاء");
-        }
-
-        const result = await response.json();
+        const result = await apiClient.post<T>(cleanEndpoint, data);
         toast.success("تم الإنشاء بنجاح");
         options?.onSuccess?.("create", result);
         return result;
@@ -209,25 +191,14 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [endpoint, options]
+    [cleanEndpoint, options]
   );
 
   const update = React.useCallback(
     async (id: string, data: Partial<T>): Promise<T | null> => {
       setLoading(true);
       try {
-        const response = await fetch(endpoint, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id, ...data }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "حدث خطأ أثناء التحديث");
-        }
-
-        const result = await response.json();
+        const result = await apiClient.patch<T>(cleanEndpoint, { id, ...data });
         toast.success("تم التحديث بنجاح");
         options?.onSuccess?.("update", result);
         return result;
@@ -241,24 +212,14 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [endpoint, options]
+    [cleanEndpoint, options]
   );
 
   const remove = React.useCallback(
     async (id: string): Promise<boolean> => {
       setLoading(true);
       try {
-        const response = await fetch(endpoint, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || "حدث خطأ أثناء الحذف");
-        }
-
+        await apiClient.delete(cleanEndpoint, { body: JSON.stringify({ id }) });
         toast.success("تم الحذف بنجاح");
         options?.onSuccess?.("delete");
         return true;
@@ -272,7 +233,7 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [endpoint, options]
+    [cleanEndpoint, options]
   );
 
   const bulkDelete = React.useCallback(
@@ -281,12 +242,12 @@ export function useAdminCrud<T extends { id: string }>(
       let deletedCount = 0;
       try {
         for (const id of ids) {
-          const response = await fetch(endpoint, {
-            method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id }),
-          });
-          if (response.ok) deletedCount++;
+          try {
+            await apiClient.delete(cleanEndpoint, { body: JSON.stringify({ id }) });
+            deletedCount++;
+          } catch (e) {
+            logger.error(`Failed to delete item ${id}:`, e);
+          }
         }
 
         if (deletedCount > 0) {
@@ -304,7 +265,7 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [endpoint, options]
+    [cleanEndpoint, options]
   );
 
   return {
@@ -336,13 +297,8 @@ export function useAdminItem<T>(
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const response = await fetch(`${endpoint}/${id}`);
-
-      if (!response.ok) {
-        throw new Error("العنصر غير موجود");
-      }
-
-      const data = await response.json();
+      const cleanEndpoint = endpoint.replace(/^\/api/, "");
+      const data = await apiClient.get<T>(`${cleanEndpoint}/${id}`);
       setState({ data, loading: false, error: null });
       return data;
     } catch (error) {
@@ -367,24 +323,23 @@ export function useAdminItem<T>(
   };
 }
 
+interface DashboardStats {
+  users: { total: number; new: number; active: number };
+  content: { subjects: number; exams: number; resources: number };
+  activity: { studySessions: number; tasksCompleted: number };
+  gamification: { totalXP: number; achievements: number };
+}
+
 // Hook for dashboard stats
 export function useAdminDashboard() {
-  const [stats, setStats] = React.useState<{
-    users: { total: number; new: number; active: number };
-    content: { subjects: number; exams: number; resources: number };
-    activity: { studySessions: number; tasksCompleted: number };
-    gamification: { totalXP: number; achievements: number };
-  } | null>(null);
+  const [stats, setStats] = React.useState<DashboardStats | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   const fetchStats = React.useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch("/api/admin/dashboard");
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      }
+      const data = await apiClient.get<DashboardStats>("/admin/dashboard");
+      setStats(data);
     } catch (error) {
       logger.error("Error fetching dashboard stats:", error);
     } finally {

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { OAuthService, OAuthUser } from '@/services/auth/oauth-service';
 import { cookies } from 'next/headers';
 import { extractClientInfo } from '@/lib/api-utils';
@@ -67,3 +67,4 @@ export async function GET(
 
     return response;
 }
+

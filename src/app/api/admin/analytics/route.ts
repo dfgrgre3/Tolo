@@ -41,11 +41,11 @@ export async function GET(request: NextRequest) {
           prisma.user.count({
             where: { lastLogin: { gte: startDate } },
           }),
-          prisma.user.groupBy({
+          (prisma.user as any).groupBy({
             by: ["role"],
             _count: { id: true },
           }),
-          prisma.user.groupBy({
+          (prisma.user as any).groupBy({
             by: ["gender"],
             _count: { id: true },
             where: { gender: { not: null } },
@@ -107,19 +107,27 @@ export async function GET(request: NextRequest) {
           prisma.challengeCompletion.count({
             where: { completedAt: { gte: startDate } },
           }),
-          prisma.user.aggregate({
+          prisma.userXP.aggregate({
             _sum: { totalXP: true },
           }),
           prisma.user.findMany({
             take: 10,
-            orderBy: { totalXP: "desc" },
+            orderBy: { 
+              xp: {
+                totalXP: "desc"
+              }
+            },
             select: {
               id: true,
               name: true,
               email: true,
               avatar: true,
-              totalXP: true,
-              level: true,
+              xp: {
+                select: {
+                  totalXP: true,
+                  level: true
+                }
+              }
             },
           }),
         ]);
@@ -212,10 +220,11 @@ export async function GET(request: NextRequest) {
           gamification: {
             achievementsEarned: Number(totalAchievementsEarned),
             challengesCompleted: Number(totalChallengesCompleted),
-            totalXP: Number(totalXP._sum.totalXP || 0),
+            totalXP: Number(totalXP._sum?.totalXP || 0),
             topUsers: (topUsers || []).map((u: any) => ({
               ...u,
-              totalXP: Number(u.totalXP),
+              totalXP: Number(u.xp?.totalXP || 0),
+              level: u.xp?.level || 1,
             })),
           },
           charts: {

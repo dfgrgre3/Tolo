@@ -15,7 +15,7 @@ export class ReferralQueueService {
     options?: { jobId?: string }
   ) {
     const jobId = options?.jobId ?? payload.idempotencyKey;
-    return referralQueue.addJob('PROCESS_REFERRAL_REWARD', payload, jobId);
+    return referralQueue.addJob('PROCESS_REFERRAL_REWARD', payload, { jobId });
   }
 
   static async processJob(job: Job<ReferralJobPayload, any, string>): Promise<void> {

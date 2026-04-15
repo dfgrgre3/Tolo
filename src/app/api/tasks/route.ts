@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
             dueAt,
             priority: normalizePriority(body.priority),
             status: body.status && Object.values(TaskStatus).includes(body.status)
-              ? body.status
-              : TaskStatus.PENDING,
-          },
+              ? (body.status as any)
+              : (TaskStatus.PENDING as any),
+          } as any,
         });
 
         return successResponse(task, 'Task created', 201);

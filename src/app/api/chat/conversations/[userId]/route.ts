@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, handleApiError, unauthorizedResponse } from '@/lib/api-utils';
@@ -73,7 +73,7 @@ export async function GET(
         });
 
         // 3. Batch fetch ALL unread counts for these partners in ONE query
-        const unreadCounts = await prisma.message.groupBy({
+        const unreadCounts = await (prisma.message as any).groupBy({
           by: ['senderId'],
           where: {
             receiverId: userId,
@@ -111,3 +111,4 @@ export async function GET(
     });
   });
 }
+

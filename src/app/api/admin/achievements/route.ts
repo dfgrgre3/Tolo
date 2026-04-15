@@ -96,9 +96,9 @@ export async function POST(request: NextRequest) {
           data: {
             id: data.key,
             ...data,
-            category: data.category as AchievementCategory,
-            difficulty: data.difficulty as Difficulty,
-          },
+            category: data.category as any,
+            difficulty: data.difficulty as any,
+          } as any,
         });
 
 

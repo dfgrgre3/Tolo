@@ -19,23 +19,23 @@ let loggerInstance: Logger | null = null;
 // Create a console-based logger for client-side use
 const createConsoleLogger = () => ({
   info: (...args: unknown[]) => {
-    if (typeof console !== 'undefined' && console.info) {
-      logger.info(...args);
+    if (typeof console !== 'undefined' && typeof console.info === 'function') {
+      console.info(...args);
     }
   },
   warn: (...args: unknown[]) => {
-    if (typeof console !== 'undefined' && console.warn) {
-      logger.warn(...args);
+    if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+      console.warn(...args);
     }
   },
   error: (...args: unknown[]) => {
-    if (typeof console !== 'undefined' && console.error) {
-      logger.error(...args);
+    if (typeof console !== 'undefined' && typeof console.error === 'function') {
+      console.error(...args);
     }
   },
   debug: (...args: unknown[]) => {
-    if (typeof console !== 'undefined' && console.debug) {
-      logger.debug(...args);
+    if (typeof console !== 'undefined' && typeof console.debug === 'function') {
+      console.debug(...args);
     }
   },
 });

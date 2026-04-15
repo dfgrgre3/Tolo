@@ -34,6 +34,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { toast } from "sonner";
 
 type Attachment = {
   id: string;
@@ -214,20 +215,41 @@ export default function AdvancedLearningHub() {
     [totalLessons, completedLessons]
   );
 
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [lastXpAwarded, setLastXpAwarded] = useState(0);
+
   const handleLessonComplete = async (lessonId: string) => {
     try {
-      await fetch(`/api/courses/lessons/${lessonId}/progress`, {
+      const res = await fetch(`/api/courses/lessons/${lessonId}/progress`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ completed: true, subject: course?.nameAr || course?.name }),
       });
 
-      setChapters((prev) =>
-        prev.map((c) => ({
-          ...c,
-          subTopics: c.subTopics.map((l) => (l.id === lessonId ? { ...l, completed: true } : l)),
-        }))
-      );
+      if (res.ok) {
+        const data = await res.json();
+        const integration = data.data || data;
+
+        // Show XP toast
+        if (integration.xpAwarded) {
+          toast.success(`أحسنت! +${integration.xpAwarded} XP`, {
+            icon: "⚡",
+            description: integration.isCourseComplete ? "لقد أتممت الدورة بالكامل!" : undefined
+          });
+          setLastXpAwarded(integration.xpAwarded);
+        }
+
+        if (integration.isCourseComplete) {
+          setShowCompletionModal(true);
+        }
+
+        setChapters((prev) =>
+          prev.map((c) => ({
+            ...c,
+            subTopics: c.subTopics.map((l) => (l.id === lessonId ? { ...l, completed: true } : l)),
+          }))
+        );
+      }
     } catch (err) {
       logger.error("Error updating lesson progress", err);
     }
@@ -704,6 +726,111 @@ export default function AdvancedLearningHub() {
           </div>
         </div>
       </main>
+
+      {/* Completion Modal */}
+      <AnimatePresence>
+        {showCompletionModal && (
+          <CourseCompletionModal
+            courseName={course?.nameAr || course?.name || "الدورة"}
+            onClose={() => setShowCompletionModal(false)}
+            courseId={courseId}
+          />
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+// ============ Components ============
+
+function CourseCompletionModal({
+  courseName,
+  onClose,
+  courseId,
+}: {
+  courseName: string;
+  onClose: () => void;
+  courseId: string;
+}) {
+  const router = useRouter();
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        onClick={onClose}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+        className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white dark:bg-gray-900 shadow-2xl"
+      >
+        {/* Decorative background */}
+        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-br from-primary via-orange-500 to-amber-500" />
+        <div className="absolute top-8 left-1/2 -translate-x-1/2">
+          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-white shadow-xl rotate-12">
+            <Trophy className="h-10 w-10 text-amber-500" />
+          </div>
+        </div>
+
+        <div className="relative pt-32 p-8 text-center space-y-6">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black text-gray-900 dark:text-white">ألف مبروك!</h2>
+            <p className="text-gray-500 font-medium">
+              لقد أتممت دورة <span className="text-primary font-bold">"{courseName}"</span> بنجاح.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">النقاط المكتسبة</p>
+              <p className="text-2xl font-black text-primary">+100 XP</p>
+            </div>
+            <div className="rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50 dark:bg-white/5 p-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">المستوى</p>
+              <p className="text-2xl font-black text-amber-500">خبير</p>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              onClick={() => {
+                onClose();
+                router.push(`/courses/${courseId}`);
+              }}
+              className="w-full h-12 bg-primary text-white rounded-xl font-bold shadow-lg shadow-primary/20"
+            >
+              عرض الشهادة والتقييم
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={onClose}
+              className="w-full h-12 text-gray-500 font-bold"
+            >
+              إغلاق
+            </Button>
+          </div>
+        </div>
+
+        {/* Confetti simulation (visual only) */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
+          {Array.from({ length: 20 }).map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ y: -20, x: Math.random() * 500, rotate: 0 }}
+              animate={{ y: 600, x: Math.random() * 500, rotate: 360 }}
+              transition={{ duration: 2 + Math.random() * 2, repeat: Infinity, delay: Math.random() * 2 }}
+              className={cn(
+                "absolute h-2 w-2 rounded-full",
+                ["bg-primary", "bg-amber-500", "bg-emerald-500", "bg-violet-500"][i % 4]
+              )}
+            />
+          ))}
+        </div>
+      </motion.div>
     </div>
   );
 }

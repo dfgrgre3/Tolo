@@ -7,11 +7,19 @@ import { logger } from '@/lib/logger';
 import { withAdmin } from '@/lib/api-utils';
 
 // Constants for security limits
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB limit
+const DEFAULT_MAX_FILE_SIZE = 5 * 1024 * 1024 * 1024; // 5GB default
+const MAX_FILE_SIZE = Number.parseInt(process.env.MAX_UPLOAD_SIZE_BYTES || `${DEFAULT_MAX_FILE_SIZE}`, 10);
 const ALLOWED_MIME_TYPES = [
   'image/jpeg', 
   'image/png', 
   'image/webp', 
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+  'video/quicktime',
+  'video/x-msvideo',
+  'video/x-matroska',
+  'video/mpeg',
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -35,7 +43,7 @@ export async function POST(request: NextRequest) {
       if (!ALLOWED_MIME_TYPES.includes(fileEntry.type)) {
         logger.warn(`Rejected upload with invalid MIME type: ${fileEntry.type} from admin ${authUser.userId}`);
         return NextResponse.json(
-          { error: `نوع الملف غير مسموح به (${fileEntry.type}). يرجى رفع ملفات الصور أو المستندات فقط.` },
+          { error: `نوع الملف غير مسموح به (${fileEntry.type}). يرجى رفع صور أو فيديوهات أو مستندات مدعومة.` },
           { status: 415 }
         );
       }
@@ -43,7 +51,7 @@ export async function POST(request: NextRequest) {
       // 3. Security: File Size limit
       if (fileEntry.size > MAX_FILE_SIZE) {
         return NextResponse.json(
-          { error: `حجم الملف كبير جدًا. الحد الأقصى هو ${MAX_FILE_SIZE / (1024 * 1024)}MB` },
+          { error: `حجم الملف كبير جدًا. الحد الأقصى هو ${Math.round(MAX_FILE_SIZE / (1024 * 1024))}MB` },
           { status: 413 }
         );
       }

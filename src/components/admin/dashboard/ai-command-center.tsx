@@ -13,8 +13,6 @@ import {
   XCircle,
   ShieldCheck,
   Zap,
-  Star,
-  ZapIcon,
   Crown,
   Scroll
 } from "lucide-react";
@@ -142,13 +140,6 @@ export function AiCommandCenter() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-ai"] }),
   });
-
-  const getPublishedLink = (item: ReviewItem) => {
-    if (!item.publishedEntityType || !item.publishedEntityId) {
-      return null;
-    }
-    return `/admin/ai?item=${encodeURIComponent(item.id)}&entityType=${encodeURIComponent(item.publishedEntityType)}&entityId=${encodeURIComponent(item.publishedEntityId)}`;
-  };
 
   return (
     <section className="grid gap-8 xl:grid-cols-[1.4fr_0.6fr]" dir="rtl">
@@ -411,7 +402,9 @@ export function AiCommandCenter() {
                   </div>
                 </div>
                 
-                <p className="mb-4 line-clamp-2 text-[11px] leading-relaxed text-gray-400 italic">"{item.preview}"</p>
+                <p className="mb-4 line-clamp-2 text-[11px] leading-relaxed text-gray-400 italic">
+                  &ldquo;{item.preview}&rdquo;
+                </p>
                 
                 <div className="flex gap-2">
                   <motion.button

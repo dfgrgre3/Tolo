@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+﻿import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -36,7 +36,7 @@ export class ReferralService {
     const REWARD_AMOUNT = 20;
 
     try {
-      return await prisma.$transaction(async (tx) => {
+      return await (prisma as any).$transaction(async (tx: any) => {
         const reward = await tx.referralReward.create({
           data: {
             referrerId,
@@ -83,3 +83,4 @@ export class ReferralService {
     }
   }
 }
+

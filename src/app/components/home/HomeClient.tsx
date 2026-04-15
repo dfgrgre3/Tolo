@@ -1,17 +1,39 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { ProgressSummary } from "@/lib/server-data-fetch";
-import { UserHome } from "@/app/components/home/UserHome";
-import LandingPage from "@/app/components/home/LandingPage";
 import { User as ApiUser } from "@/types/user";
 import { UserRole, UserStatus } from "@/types/enums";
 import { PerformanceMetric } from "./types";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
+
+// Dynamic imports to reduce initial bundle size
+const LandingPage = dynamic(() => import("@/app/components/home/LandingPage"), {
+  loading: () => <HomeLoader />,
+  ssr: true,
+});
+
+const UserHome = dynamic(() => import("@/app/components/home/UserHome").then(mod => mod.UserHome), {
+  loading: () => <HomeLoader />,
+  ssr: true,
+});
+
+function HomeLoader() {
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+       <motion.div 
+         animate={{ rotate: 360 }}
+         transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+         className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)]"
+       />
+    </div>
+  );
+}
 
 interface HomeClientProps {
   summary: ProgressSummary | null;
@@ -79,15 +101,7 @@ export function HomeClient({ summary }: HomeClientProps) {
   }, [isLoading, isAuthenticated]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-         <motion.div 
-           animate={{ rotate: 360 }}
-           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-           className="h-16 w-16 border-4 border-primary border-t-transparent rounded-full shadow-[0_0_20px_rgba(var(--primary),0.5)]"
-         />
-      </div>
-    );
+    return <HomeLoader />;
   }
 
   if (!isAuthenticated || !authUser) {
@@ -99,7 +113,9 @@ export function HomeClient({ summary }: HomeClientProps) {
            animate={{ opacity: 1 }}
            exit={{ opacity: 0 }}
         >
-          <LandingPage />
+          <Suspense fallback={<HomeLoader />}>
+            <LandingPage />
+          </Suspense>
         </motion.div>
       </AnimatePresence>
     );
@@ -145,12 +161,14 @@ export function HomeClient({ summary }: HomeClientProps) {
          initial={{ opacity: 0, y: 20 }}
          animate={{ opacity: 1, y: 0 }}
       >
-        <UserHome 
-          user={displayUser} 
-          summary={summary} 
-          performanceMetrics={performanceMetrics}
-          metricsLoading={metricsLoading}
-        />
+        <Suspense fallback={<HomeLoader />}>
+          <UserHome 
+            user={displayUser} 
+            summary={summary} 
+            performanceMetrics={performanceMetrics}
+            metricsLoading={metricsLoading}
+          />
+        </Suspense>
       </motion.div>
     </AnimatePresence>
   );

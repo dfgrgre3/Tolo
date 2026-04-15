@@ -10,29 +10,21 @@ import {
   BookOpen,
   FileText,
   Target,
-  Gift,
-  Trophy,
-  Award,
-  Crown,
   Bell,
   MessageSquare,
-  Newspaper,
-  Calendar,
-  Gamepad2,
   Settings,
   ScrollText,
   Plus,
   UserPlus,
-  FilePlus,
   Zap,
   ArrowRight,
-  Command as CommandIcon,
   Loader2,
   Bot,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { usePremiumSounds } from "@/hooks/use-premium-sounds";import { logger } from '@/lib/logger';
+import { usePremiumSounds } from "@/hooks/use-premium-sounds";
+import { logger } from '@/lib/logger';
 
 import {
   Dialog,
@@ -236,7 +228,7 @@ export function CommandPalette() {
             <input
               autoFocus
               className="flex-1 bg-transparent border-none outline-none text-xl placeholder:text-muted-foreground/40 pr-0 font-black tracking-tight"
-              placeholder="اصدر أمراً ملكياً أو ابحث في السجلات..."
+              placeholder="???????? ?????????? ???????????? ???? ???????? ???? ??????????????..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               aria-label="بحث في لوحة الأوامر"
@@ -332,7 +324,7 @@ export function CommandPalette() {
                 <div className="space-y-2 px-10">
                   <p className="font-black text-2xl text-foreground">المخطوطات مفقودة!</p>
                   <p className="text-sm text-muted-foreground max-w-xs mx-auto font-bold opacity-60 italic">
-                    "لم نجد أثراً لما تبحث عنه في سجلات المملكة الراهنة.."
+                    &ldquo;???? ?????? ?????????? ?????? ???????? ?????? ???? ?????????? ?????????????? ??????????????..&rdquo;
                   </p>
                 </div>
               </div>

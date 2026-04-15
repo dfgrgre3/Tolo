@@ -1,5 +1,6 @@
 import { redis, getRedisClient } from '@/lib/cache';
 import type { RedisClient } from '@/lib/redis';
+import { redisCircuitBreaker } from '@/lib/circuit-breaker';
 
 import { logger } from '@/lib/logger';
 import { RateLimitConfig, RateLimitResult, RateLimitService } from '@/types/services';
@@ -23,6 +24,8 @@ export class RateLimitingService implements RateLimitService {
 
   private async getClient(): Promise<RedisClient | null> {
     if (this.externalClient) return this.externalClient;
+    // Don't even try if circuit is open to avoid 1s+ timeouts
+    if (redisCircuitBreaker.getState() === 'OPEN') return null;
     return getRedisClient();
   }
 

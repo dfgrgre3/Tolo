@@ -84,6 +84,21 @@ type CourseSummary = {
   nameAr?: string | null;
 };
 
+function calculateCurriculumStats(chapters: Chapter[]) {
+  const lessonsCount = chapters.reduce((sum, chapter) => sum + chapter.subTopics.length, 0);
+  const totalDurationMinutes = chapters.reduce(
+    (sum, chapter) => sum + chapter.subTopics.reduce((lessonSum, lesson) => lessonSum + (lesson.duration || 0), 0),
+    0
+  );
+
+  return {
+    chaptersCount: chapters.length,
+    lessonsCount,
+    totalDurationMinutes,
+    totalDurationHours: Math.ceil(totalDurationMinutes / 60),
+  };
+}
+
 function SortableLesson({
   lesson,
   onDelete,
@@ -230,6 +245,7 @@ export default function CourseCurriculumPage() {
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
+  const curriculumStats = calculateCurriculumStats(chapters);
 
   useEffect(() => {
     const fetchCurriculum = async () => {
@@ -398,6 +414,12 @@ export default function CourseCurriculumPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <div className="hidden rounded-2xl border border-zinc-200 bg-white px-4 py-2 text-right dark:border-zinc-800 dark:bg-zinc-900 md:block">
+            <p className="text-[10px] font-black text-zinc-500">إجمالي المحتوى</p>
+            <p className="text-sm font-black">
+              {curriculumStats.lessonsCount} درس • {curriculumStats.totalDurationMinutes} دقيقة • {curriculumStats.totalDurationHours} ساعة
+            </p>
+          </div>
           <Button onClick={handleSave} disabled={isSaving} className="h-11 rounded-xl px-8 text-[10px] font-black uppercase">
             {isSaving ? <div className="ml-2 h-4 w-4 animate-spin rounded-full border-t-2 border-white" /> : <Save className="ml-2 h-4 w-4" />}
             حفظ التغييرات
@@ -547,11 +569,24 @@ export default function CourseCurriculumPage() {
                 <AdminUpload
                   accept="video/*"
                   label="رفع فيديو الدرس"
-                  onUploadComplete={(url: string) =>
+                  maxSize={100 * 1024} // 100GB support
+                  onUploadComplete={(url: string, metadata) => {
                     setEditingLesson((current) =>
-                      current ? { ...current, lesson: { ...current.lesson, videoUrl: url } } : null
-                    )
-                  }
+                      current
+                        ? {
+                            ...current,
+                            lesson: {
+                              ...current.lesson,
+                              videoUrl: url,
+                              duration:
+                                metadata?.durationMinutes && metadata.durationMinutes > 0
+                                  ? metadata.durationMinutes
+                                  : current.lesson.duration,
+                            },
+                          }
+                        : null
+                    );
+                  }}
                 />
               )}
             </div>

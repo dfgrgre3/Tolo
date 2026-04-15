@@ -202,10 +202,10 @@ export const dbCircuitBreaker = new CircuitBreaker({
 /** Redis circuit breaker - more lenient since we have memory fallback */
 export const redisCircuitBreaker = new CircuitBreaker({
   name: 'Redis',
-  failureThreshold: 10,
-  cooldownMs: 15_000,
+  failureThreshold: 5,
+  cooldownMs: 30_000,
   timeoutMs: 3_000,
-  successThreshold: 2,
+  successThreshold: 3,
 });
 
 /** External API circuit breaker (Paymob, OpenAI, etc.) */

@@ -10,13 +10,13 @@ interface LevelProgressProps {
 }
 
 export const LevelProgressSection = ({ user }: LevelProgressProps) => {
-  // Gamification Data Logic with Fallbacks
+   // Gamification Data Logic with Fallbacks
   const level = user.level || 1;
-  const currentXP = user.xp || 0;
-  const nextLevelXP = user.xpToNextLevel || 1000;
+  const currentXP = Number(user.totalXP) || 0;
+  const nextLevelXP = level * 1000; // Each level requires 1000 XP
   const progressPercent = Math.min((currentXP / nextLevelXP) * 100, 100);
-  const rankTitle = user.rank || "مبتدئ طموح";
-  const remainingXP = nextLevelXP - currentXP;
+  const rankTitle = (user.rank as string) || "مبتدئ طموح";
+  const remainingXP = Math.max(nextLevelXP - currentXP, 0);
 
   return (
     <motion.div

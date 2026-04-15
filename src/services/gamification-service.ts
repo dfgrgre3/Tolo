@@ -154,7 +154,7 @@ export class GamificationService {
   }
 
   async getActiveChallenges(type?: string): Promise<Challenge[]> {
-    return progressionService.getActiveChallenges(type);
+    return progressionService.getActiveChallenges(type as any);
   }
 
   async getActiveQuestChains(): Promise<QuestChain[]> {
@@ -164,7 +164,7 @@ export class GamificationService {
   // ===== Leaderboards (Delegated to LeaderboardService) =====
 
   async getLeaderboard(type?: string, limit?: number, options?: Record<string, unknown>): Promise<LeaderboardEntry[]> {
-    return leaderboardService.getLeaderboard(type, limit, options);
+    return leaderboardService.getLeaderboard(type as any, limit, options);
   }
 
   // ===== Custom Goals (Delegated to ProgressionService) =====

@@ -1,6 +1,8 @@
-// Service Worker for Offline Support and Push Notifications
-const CACHE_NAME = "thanawy-v2";
-const DATA_CACHE_NAME = "thanawy-data-v1";
+// Service Worker for Offline Support and Data Efficiency
+const CACHE_NAME = "thanawy-v3"; // Version bump for update
+const DATA_CACHE_NAME = "thanawy-data-v2";
+const IMAGE_CACHE_NAME = "thanawy-images-v1";
+const FONT_CACHE_NAME = "thanawy-fonts-v1";
 const OFFLINE_URL = "/offline";
 
 const STATIC_ASSETS = [
@@ -9,7 +11,6 @@ const STATIC_ASSETS = [
     "/manifest.json",
     "/favicon.ico",
     "/globals.css",
-    "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
 ];
 
 const OFFLINE_NAV_ROUTES = [
@@ -36,7 +37,12 @@ self.addEventListener("activate", (event) => {
         caches.keys().then((cacheNames) => {
             return Promise.all(
                 cacheNames
-                    .filter((name) => name !== CACHE_NAME && name !== DATA_CACHE_NAME)
+                    .filter((name) => 
+                        name !== CACHE_NAME && 
+                        name !== DATA_CACHE_NAME && 
+                        name !== IMAGE_CACHE_NAME && 
+                        name !== FONT_CACHE_NAME
+                    )
                     .map((name) => caches.delete(name))
             );
         })
@@ -68,11 +74,10 @@ self.addEventListener("fetch", (event) => {
                     return caches.match(request).then((cachedResponse) => {
                         if (cachedResponse) return cachedResponse;
                         
-                        // Default offline JSON response
                         return new Response(
                             JSON.stringify({ 
                                 error: "Offline mode", 
-                                message: "You are currently offline. This data may be out of date.",
+                                message: "أنت الآن تعمل بدون اتصال. قد تكون هذه البيانات قديمة.",
                                 isOffline: true 
                             }),
                             { headers: { "Content-Type": "application/json" } }
@@ -89,7 +94,6 @@ self.addEventListener("fetch", (event) => {
                 const cachedResponse = await cache.match(request);
                 if (cachedResponse) return cachedResponse;
                 
-                // If it's a known interactive route, try to serve "/" (Next.js client-side will handle)
                 if (OFFLINE_NAV_ROUTES.some(route => url.pathname.startsWith(route))) {
                     return cache.match("/") || cache.match(OFFLINE_URL);
                 }
@@ -98,14 +102,53 @@ self.addEventListener("fetch", (event) => {
             })
         );
     } 
-    // 3. Static Assets (Cache First, Network Fallback)
+    // 3. Fonts (Cache First)
+    else if (request.destination === "font" || url.pathname.includes(".woff2")) {
+        event.respondWith(
+            caches.open(FONT_CACHE_NAME).then((cache) => {
+                return cache.match(request).then((cachedResponse) => {
+                    return cachedResponse || fetch(request).then((networkResponse) => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                });
+            })
+        );
+    }
+    // 4. Images (Cache First, Network Fallback) - Massive data saver
+    else if (request.destination === "image" || /\.(png|jpg|jpeg|gif|svg|webp|avif)$/.test(url.pathname)) {
+        event.respondWith(
+            caches.open(IMAGE_CACHE_NAME).then((cache) => {
+                return cache.match(request).then((cachedResponse) => {
+                    if (cachedResponse) {
+                        // Return cached and update in background (Stale-while-revalidate)
+                        fetch(request).then((networkResponse) => {
+                            cache.put(request, networkResponse.clone());
+                        }).catch(() => {});
+                        return cachedResponse;
+                    }
+                    return fetch(request).then((networkResponse) => {
+                        cache.put(request, networkResponse.clone());
+                        return networkResponse;
+                    });
+                });
+            })
+        );
+    }
+    // 5. Static Assets (Stale-while-revalidate)
     else {
         event.respondWith(
             caches.match(request).then((cachedResponse) => {
-                return cachedResponse || fetch(request).then((response) => {
-                    // Don't cache everything, just safe defaults or already cached
-                    return response;
-                });
+                const fetchPromise = fetch(request).then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200) {
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(request, networkResponse.clone());
+                        });
+                    }
+                    return networkResponse;
+                }).catch(() => {});
+                
+                return cachedResponse || fetchPromise;
             })
         );
     }
@@ -117,39 +160,25 @@ self.addEventListener("push", (event) => {
     const title = data.title || "إشعار جديد";
     const options = {
         body: data.message || data.body || "",
-        icon: data.icon || "/icon-192x192.png",
-        badge: data.badge || "/icon-192x192.png",
-        image: data.image,
-        tag: data.tag || data.id || "notification",
+        icon: "/icons/icon-192x192.png",
+        badge: "/icons/badge-72x72.png",
+        tag: data.tag || "notification",
         data: data.data || {},
-        requireInteraction: data.requireInteraction || false,
-        actions: data.actions || [],
     };
 
-    event.waitUntil(
-        self.registration.showNotification(title, options)
-    );
+    event.waitUntil(self.registration.showNotification(title, options));
 });
 
 // Notification click handler
 self.addEventListener("notificationclick", (event) => {
     event.notification.close();
-
-    const data = event.notification.data;
-    const urlToOpen = data.url || data.link || "/";
-
     event.waitUntil(
         clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-            for (let i = 0; i < clientList.length; i++) {
-                const client = clientList[i];
-                if (client.url === urlToOpen && "focus" in client) {
-                    return client.focus();
-                }
-            }
-            if (clients.openWindow) {
-                return clients.openWindow(urlToOpen);
-            }
+            const urlToOpen = event.notification.data.url || "/";
+            if (clientList.length > 0) return clientList[0].focus();
+            return clients.openWindow(urlToOpen);
         })
     );
 });
+
 

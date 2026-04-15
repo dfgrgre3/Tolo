@@ -175,7 +175,7 @@ export function HeaderMobileMenuEnhanced({
                 <div className="relative">
                   <div className="absolute inset-0 bg-primary/20 blur-lg rounded-full" />
                   <div className="relative w-9 h-9 rounded-xl overflow-hidden bg-white border border-primary/20 shadow-lg shadow-primary/20">
-                    <Image src="/logo-tolo.jpg" alt="TOLO" width={36} height={36} className="h-full w-full object-cover" />
+                    <Image src="/logo-tolo.jpg" alt="TOLO" width={36} height={36} sizes="36px" className="h-full w-full object-cover" />
                   </div>
                 </div>
                 <div className="flex flex-col">

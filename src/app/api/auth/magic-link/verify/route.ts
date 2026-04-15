@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/services/auth/auth-service';
 import { cookies } from 'next/headers';
 import { extractClientInfo } from '@/lib/api-utils';
@@ -55,3 +55,4 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(new URL('/dashboard', request.url));
 }
+

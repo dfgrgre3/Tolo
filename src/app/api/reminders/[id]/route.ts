@@ -24,10 +24,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
         const updates: Prisma.ReminderUpdateInput = {};
         if ('title' in body) updates.title = body.title;
-        if ('description' in body) updates.description = body.description;
-        if ('completed' in body) updates.completed = body.completed;
-        if ('priority' in body) updates.priority = body.priority;
-        if (body.scheduledAt) updates.scheduledAt = new Date(body.scheduledAt);
+        if ('description' in body) updates.message = body.description;
+        if (body.scheduledAt) updates.remindAt = new Date(body.scheduledAt);
 
         // 2. Optimized Update: Single DB roundtrip for ownership check + update
         // We use updateMany then findUnique to handle "not found or unauthorized" efficiently

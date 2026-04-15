@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { AdminButton } from "@/components/admin/ui/admin-button";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { 
   Zap, 
   ShieldCheck, 
@@ -14,7 +14,6 @@ import {
   AlertTriangle, 
   Server, 
   Layers,
-  ChevronRight,
   Monitor
 } from "lucide-react";
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
@@ -36,140 +35,152 @@ const STYLES = {
 export default function InfrastructurePage() {
   const { playSound } = usePremiumSounds();
 
-  const { data, isLoading, refetch, isFetching } = useQuery({
+  const { data, isLoading, isError, refetch, isFetching } = useQuery({
     queryKey: ['admin', 'infra', 'stats'],
     queryFn: async () => {
       const response = await fetch('/api/admin/infrastructure/stats');
       if (!response.ok) throw new Error("Could not reach telemetry server");
       return (await response.json()).data;
     },
-    refetchInterval: 10000, // Sync every 10 seconds
+    refetchInterval: 10000,
   });
 
-  const handleRefresh = () => {
+  const handleRefresh = React.useCallback(() => {
     playSound('transition');
     refetch();
-  };
+  }, [playSound, refetch]);
 
-  if (isLoading) return (
-     <div className="flex flex-col items-center justify-center min-h-[600px] gap-6" dir="rtl">
-        <RefreshCw className="w-12 h-12 text-primary animate-spin" />
-        <span className="font-black text-2xl tracking-[0.2em] animate-pulse">جاري استدعاء السجلات الملكية...</span>
-     </div>
-  );
-
+  // Main render logic using conditional blocks to keep hooks consistent
   return (
     <div className="space-y-12 pb-20" dir="rtl">
-      {/* Header */}
-      <motion.header 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className={STYLES.glass + " flex flex-col md:flex-row items-center justify-between gap-8"}
-      >
-        <div className={STYLES.glow} />
-        <div className="relative z-10 flex items-center gap-6">
-           <div className="p-4 bg-primary/10 rounded-3xl border border-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.3)]">
-              <Server className="w-10 h-10 text-primary" />
-           </div>
-           <div className="space-y-1">
-              <h1 className="text-3xl font-black tracking-tight">غرفة التحكم بالنظام 🏛️</h1>
-              <p className="text-gray-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2">
-                 <ShieldCheck className="w-4 h-4 text-green-500" />
-                 <span>تم التحقق من سلامة الأكواد بنسبة 100%</span>
-              </p>
-           </div>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center min-h-[600px] gap-6">
+          <RefreshCw className="w-12 h-12 text-primary animate-spin" />
+          <span className="font-black text-2xl tracking-[0.2em] animate-pulse">جاري استدعاء السجلات الملكية...</span>
         </div>
-
-        <div className="flex items-center gap-4 relative z-10">
-           <AdminButton variant="outline" onClick={handleRefresh} loading={isFetching} icon={RefreshCw} className="h-14 px-8 rounded-2xl font-black">إعادة الاستدعاء</AdminButton>
-           <div className="h-10 w-[2px] bg-white/5 mx-2" />
-           <div className="flex flex-col items-end">
-              <span className="text-[10px] font-black text-gray-500 uppercase">حالة الاستعداد</span>
-              <span className="text-green-500 font-black animate-pulse">Operational (جيد)</span>
-           </div>
+      ) : (isError || !data) ? (
+        <div className="flex flex-col items-center justify-center min-h-[600px] gap-6 text-center">
+          <AlertTriangle className="w-16 h-16 text-red-500 animate-bounce" />
+          <div className="space-y-2">
+            <h2 className="text-2xl font-black text-white">عذرًا، حدث خطأ في النظام</h2>
+            <p className="text-gray-400 font-bold">فشل الملك في استعادة سجلات البنية التحتية. يرجى التحقق من اتصال الخادم.</p>
+          </div>
+          <AdminButton variant="outline" onClick={() => refetch()} icon={RefreshCw} className="h-14 px-8 rounded-2xl font-black mt-4">إعادة المحاولة</AdminButton>
         </div>
-      </motion.header>
-
-      {/* Grid: Health & Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-         <StatsCard 
-            title="وقت التشغيل" 
-            value={`${Math.floor(data.system.uptime / 3600)}h ${Math.floor((data.system.uptime % 3600) / 60)}m`} 
-            icon={Activity} 
-            color="blue" 
-         />
-         <StatsCard 
-            title="الذاكرة المستخدمة" 
-            value={data.system.memoryUsage} 
-            icon={Cpu} 
-            color="purple" 
-         />
-         <StatsCard 
-            title="ذاكرة التخزين (Redis)" 
-            value={data.cache.usedMemory} 
-            icon={Zap} 
-            color="amber" 
-         />
-         <StatsCard 
-            title="حالة قاعدة البيانات" 
-            value={data.system.status} 
-            icon={Database} 
-            color="green" 
-         />
-      </div>
-
-      {/* Queues Monitor */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         <div className="lg:col-span-2 space-y-8">
-            <h2 className="text-xl font-black flex items-center gap-3">
-               <Layers className="w-6 h-6 text-primary" />
-               <span>مراقب طوابير العمل (BullMQ Monitor)</span>
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-               <QueueCard name="الجمفيكييشن (Gamification)" stats={data.queues.gamification} icon={Zap} />
-               <QueueCard name="الإشعارات (Notifications)" stats={data.queues.notifications} icon={Monitor} />
-               <QueueCard name="التحليلات (Analytics)" stats={data.queues.analytics} icon={Activity} />
-            </div>
-
-            <div className={STYLES.glass + " h-[300px] flex items-center justify-center border-dashed border-white/10"}>
-               <div className="text-center space-y-4">
-                  <Monitor className="w-12 h-12 text-gray-700 mx-auto" />
-                  <p className="text-gray-500 font-bold">نمط الرسوم البيانية اللحظية تحت التطوير...</p>
+      ) : (
+        <>
+          {/* Header */}
+          <motion.header 
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={STYLES.glass + " flex flex-col md:flex-row items-center justify-between gap-8"}
+          >
+            <div className={STYLES.glow} />
+            <div className="relative z-10 flex items-center gap-6">
+               <div className="p-4 bg-primary/10 rounded-3xl border border-primary/20 shadow-[0_0_30px_rgba(var(--primary),0.3)]">
+                  <Server className="w-10 h-10 text-primary" />
+               </div>
+               <div className="space-y-1">
+                  <h1 className="text-3xl font-black tracking-tight">غرفة التحكم بالنظام 🏛️</h1>
+                  <p className="text-gray-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2">
+                     <ShieldCheck className="w-4 h-4 text-green-500" />
+                     <span>تم التحقق من سلامة الأكواد بنسبة 100%</span>
+                  </p>
                </div>
             </div>
-         </div>
 
-         {/* Alerts & Logs */}
-         <div className="space-y-8">
-            <h2 className="text-xl font-black flex items-center gap-3">
-               <AlertTriangle className="w-6 h-6 text-amber-500" />
-               <span>تنبيهات النظام الحرجة</span>
-            </h2>
-            
-            <div className={STYLES.glass}>
-               <div className="space-y-6">
-                  {data.queues.gamification.failed > 0 ? (
-                     <SystemAlert 
-                        type="error" 
-                        title="مهام فاشلة في Gamification" 
-                        desc={`تم رصد ${data.queues.gamification.failed} مهام تعثرت في طابور النقاط.`} 
-                     />
-                  ) : (
-                     <SystemAlert 
-                        type="success" 
-                        title="جميع الأنظمة تعمل بكفاءة" 
-                        desc="لا توجد أي مهام فاشلة في الـ 24 ساعة الماضية." 
-                     />
-                  )}
-                  
-                  <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 text-blue-500 text-xs font-bold leading-relaxed">
-                     <p>مرحباً بك في غرفة التحكم. جميع الخدمات (BullMQ + Redis) مراقبة ومؤمنة في بيئة Modular Monolith.</p>
-                  </div>
+            <div className="flex items-center gap-4 relative z-10">
+               <AdminButton variant="outline" onClick={handleRefresh} loading={isFetching} icon={RefreshCw} className="h-14 px-8 rounded-2xl font-black">إعادة الاستدعاء</AdminButton>
+               <div className="h-10 w-[2px] bg-white/5 mx-2" />
+               <div className="flex flex-col items-end">
+                  <span className="text-[10px] font-black text-gray-500 uppercase">حالة الاستعداد</span>
+                  <span className="text-green-500 font-black animate-pulse">Operational (جيد)</span>
                </div>
             </div>
-         </div>
-      </div>
+          </motion.header>
+
+          {/* Grid: Health & Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+             <StatsCard 
+                title="وقت التشغيل" 
+                value={`${Math.floor(data.system.uptime / 3600)}h ${Math.floor((data.system.uptime % 3600) / 60)}m`} 
+                icon={Activity} 
+                color="blue" 
+             />
+             <StatsCard 
+                title="الذاكرة المستخدمة" 
+                value={data.system.memoryUsage} 
+                icon={Cpu} 
+                color="purple" 
+             />
+             <StatsCard 
+                title="ذاكرة التخزين (Redis)" 
+                value={data.cache.usedMemory} 
+                icon={Zap} 
+                color="amber" 
+             />
+             <StatsCard 
+                title="حالة قاعدة البيانات" 
+                value={data.system.status} 
+                icon={Database} 
+                color="green" 
+             />
+          </div>
+
+          {/* Queues Monitor */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+             <div className="lg:col-span-2 space-y-8">
+                <h2 className="text-xl font-black flex items-center gap-3">
+                   <Layers className="w-6 h-6 text-primary" />
+                   <span>مراقب طوابير العمل (BullMQ Monitor)</span>
+                </h2>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   <QueueCard name="الجمفيكييشن (Gamification)" stats={data.queues.gamification} icon={Zap} />
+                   <QueueCard name="الإشعارات (Notifications)" stats={data.queues.notifications} icon={Monitor} />
+                   <QueueCard name="التحليلات (Analytics)" stats={data.queues.analytics} icon={Activity} />
+                </div>
+
+                <div className={STYLES.glass + " h-[300px] flex items-center justify-center border-dashed border-white/10"}>
+                   <div className="text-center space-y-4">
+                      <Monitor className="w-12 h-12 text-gray-700 mx-auto" />
+                      <p className="text-gray-500 font-bold">نمط الرسوم البيانية اللحظية تحت التطوير...</p>
+                   </div>
+                </div>
+             </div>
+
+             {/* Alerts & Logs */}
+             <div className="space-y-8">
+                <h2 className="text-xl font-black flex items-center gap-3">
+                   <AlertTriangle className="w-6 h-6 text-amber-500" />
+                   <span>تنبيهات النظام الحرجة</span>
+                </h2>
+                
+                <div className={STYLES.glass}>
+                   <div className="space-y-6">
+                      {data.queues.gamification.failed > 0 ? (
+                         <SystemAlert 
+                            type="error" 
+                            title="مهام فاشلة في Gamification" 
+                            desc={`تم رصد ${data.queues.gamification.failed} مهام تعثرت في طابور النقاط.`} 
+                         />
+                      ) : (
+                         <SystemAlert 
+                            type="success" 
+                            title="جميع الأنظمة تعمل بكفاءة" 
+                            desc="لا توجد أي مهام فاشلة في الـ 24 ساعة الماضية." 
+                         />
+                      )}
+                      
+                      <div className="p-4 rounded-xl bg-blue-500/5 border border-blue-500/10 text-blue-500 text-xs font-bold leading-relaxed">
+                         <p>مرحباً بك في غرفة التحكم. جميع الخدمات (BullMQ + Redis) مراقبة ومؤمنة في بيئة Modular Monolith.</p>
+                      </div>
+                   </div>
+                </div>
+             </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

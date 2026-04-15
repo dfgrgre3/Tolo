@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbMonitor } from '@/lib/db-monitor';
+import { getDbPoolStats } from '@/lib/db-monitor';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Get monitoring data
-      const healthReport = await dbMonitor.getHealthReport();
+      const healthReport = await getDbPoolStats();
 
       return NextResponse.json(healthReport);
     } catch (error) {
@@ -74,8 +74,7 @@ export async function POST(request: NextRequest) {
       const { action } = await req.json();
 
       if (action === 'reset') {
-        dbMonitor.resetStats();
-        return NextResponse.json({ message: 'Statistics reset successfully' });
+        return NextResponse.json({ message: 'Statistics reset not supported' });
       }
 
       return NextResponse.json(
