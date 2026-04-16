@@ -110,9 +110,9 @@ export async function GET(request: NextRequest) {
             totalLessons,
             certificate: cert
               ? {
-                  url: cert.certUrl as string,
-                  issuedAt: cert.issuedAt as Date,
-                }
+                url: cert.certUrl as string,
+                issuedAt: cert.issuedAt as Date,
+              }
               : null,
           };
         });

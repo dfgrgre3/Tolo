@@ -42,7 +42,7 @@ export default async function RootLayout({
         <meta name="theme-color" content="#f97316" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
       </head>
-      <body className={alexandria.variable}>
+      <body className={alexandria.variable} suppressHydrationWarning>
         <SWRegistration />
         <ThemeProvider
           attribute="class"
