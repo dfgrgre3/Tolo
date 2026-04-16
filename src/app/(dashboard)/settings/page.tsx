@@ -40,7 +40,8 @@ import {
   ChevronRight,
   RefreshCw,
   AtSign,
-  Clock } from 'lucide-react';
+  Clock
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { SettingsCard } from './components';
@@ -68,33 +69,33 @@ interface ProfileData {
 }
 
 const educationTypes = [
-{ value: 'GENERAL', label: 'ثانوية عامة (عام)' },
-{ value: 'STEM', label: 'ثانوية STEM' },
-{ value: 'AZHAR', label: 'ثانوية أزهرية' },
-{ value: 'TECHNICAL', label: 'ثانوية فنية' },
-{ value: 'INTERNATIONAL', label: 'دولي / IG' }];
+  { value: 'GENERAL', label: 'ثانوية عامة (عام)' },
+  { value: 'STEM', label: 'ثانوية STEM' },
+  { value: 'AZHAR', label: 'ثانوية أزهرية' },
+  { value: 'TECHNICAL', label: 'ثانوية فنية' },
+  { value: 'INTERNATIONAL', label: 'دولي / IG' }];
 
 
 const sections = [
-{ value: 'SCIENCE_BIO', label: 'علمي علوم' },
-{ value: 'SCIENCE_MATH', label: 'علمي رياضة' },
-{ value: 'LITERARY', label: 'أدبي' },
-{ value: 'NONE', label: 'غير محدد' }];
+  { value: 'SCIENCE_BIO', label: 'علمي علوم' },
+  { value: 'SCIENCE_MATH', label: 'علمي رياضة' },
+  { value: 'LITERARY', label: 'أدبي' },
+  { value: 'NONE', label: 'غير محدد' }];
 
 
 const gradeLevels = [
-{ value: '1_PREP', label: 'الصف الأول الإعدادي' },
-{ value: '2_PREP', label: 'الصف الثاني الإعدادي' },
-{ value: '3_PREP', label: 'الصف الثالث الإعدادي' },
-{ value: '1_SEC', label: 'الصف الأول الثانوي' },
-{ value: '2_SEC', label: 'الصف الثاني الثانوي' },
-{ value: '3_SEC', label: 'الصف الثالث الثانوي' }];
+  { value: '1_PREP', label: 'الصف الأول الإعدادي' },
+  { value: '2_PREP', label: 'الصف الثاني الإعدادي' },
+  { value: '3_PREP', label: 'الصف الثالث الإعدادي' },
+  { value: '1_SEC', label: 'الصف الأول الثانوي' },
+  { value: '2_SEC', label: 'الصف الثاني الثانوي' },
+  { value: '3_SEC', label: 'الصف الثالث الثانوي' }];
 
 
 const countries = [
-'مصر', 'السعودية', 'الإمارات', 'الكويت', 'قطر', 'البحرين', 'عُمان',
-'الأردن', 'لبنان', 'سوريا', 'العراق', 'اليمن', 'ليبيا', 'تونس',
-'الجزائر', 'المغرب', 'السودان', 'غيرها'];
+  'مصر', 'السعودية', 'الإمارات', 'الكويت', 'قطر', 'البحرين', 'عُمان',
+  'الأردن', 'لبنان', 'سوريا', 'العراق', 'اليمن', 'ليبيا', 'تونس',
+  'الجزائر', 'المغرب', 'السودان', 'غيرها'];
 
 
 const initialProfile: ProfileData = {
@@ -130,12 +131,12 @@ function StatBadge({
 
 
 
-}: {icon: React.ElementType; value: string | number; label: string; color: string;}) {
+}: { icon: React.ElementType; value: string | number; label: string; color: string; }) {
   return (
     <motion.div
       whileHover={{ scale: 1.05 }}
       className="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors cursor-default">
-      
+
       <div className={cn('flex items-center justify-center gap-1.5', color)}>
         <Icon className="h-4 w-4" />
         <span className="text-lg font-black">{value}</span>
@@ -168,7 +169,7 @@ function ProfileInput({
 
 
 
-}: {id: string; label: string; icon?: React.ElementType; value: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; disabled?: boolean; type?: string; placeholder?: string; hint?: string; required?: boolean;}) {
+}: { id: string; label: string; icon?: React.ElementType; value: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; disabled?: boolean; type?: string; placeholder?: string; hint?: string; required?: boolean; }) {
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="flex items-center gap-1.5 text-sm font-semibold text-slate-300">
@@ -177,11 +178,11 @@ function ProfileInput({
       </label>
       <div className="relative group">
         {Icon &&
-        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none">
             <Icon className={cn(
-            'h-4 w-4 transition-colors',
-            disabled ? 'text-slate-600' : 'text-slate-500 group-focus-within:text-indigo-400'
-          )} />
+              'h-4 w-4 transition-colors',
+              disabled ? 'text-slate-600' : 'text-slate-500 group-focus-within:text-indigo-400'
+            )} />
           </div>
         }
         <input
@@ -198,10 +199,10 @@ function ProfileInput({
             'disabled:opacity-60 disabled:cursor-not-allowed',
             Icon ? 'pr-11 pl-4' : 'px-4'
           )} />
-        
+
       </div>
       {hint &&
-      <p className="text-xs text-slate-500 flex items-start gap-1.5">
+        <p className="text-xs text-slate-500 flex items-start gap-1.5">
           <span className="mt-0.5 h-1 w-1 rounded-full bg-slate-600 shrink-0" />
           {hint}
         </p>
@@ -227,17 +228,17 @@ function ProfileSelect({
 
 
 
-}: {id: string; label: string; icon?: React.ElementType; value: string; onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void; disabled?: boolean; options: {value: string; label: string;}[];}) {
+}: { id: string; label: string; icon?: React.ElementType; value: string; onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void; disabled?: boolean; options: { value: string; label: string; }[]; }) {
   return (
     <div className="space-y-2">
       <label htmlFor={id} className="text-sm font-semibold text-slate-300">{label}</label>
       <div className="relative group">
         {Icon &&
-        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none z-10">
             <Icon className={cn(
-            'h-4 w-4 transition-colors',
-            disabled ? 'text-slate-600' : 'text-slate-500 group-focus-within:text-indigo-400'
-          )} />
+              'h-4 w-4 transition-colors',
+              disabled ? 'text-slate-600' : 'text-slate-500 group-focus-within:text-indigo-400'
+            )} />
           </div>
         }
         <select
@@ -252,9 +253,9 @@ function ProfileSelect({
             'disabled:opacity-60 disabled:cursor-not-allowed',
             Icon ? 'pr-11 pl-4' : 'px-4'
           )}>
-          
+
           {options.map((option) =>
-          <option key={option.value} value={option.value} className="bg-slate-800">
+            <option key={option.value} value={option.value} className="bg-slate-800">
               {option.label}
             </option>
           )}
@@ -430,8 +431,8 @@ export default function ProfileSettingsPage() {
 
   const isTeacher = user.role === 'TEACHER';
   const userInitial = user.name ?
-  user.name.charAt(0).toUpperCase() :
-  user.email.charAt(0).toUpperCase();
+    user.name.charAt(0).toUpperCase() :
+    user.email.charAt(0).toUpperCase();
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-10">
@@ -449,38 +450,38 @@ export default function ProfileSettingsPage() {
 
         <div className="flex items-center gap-2">
           {isEditing ?
-          <>
+            <>
               <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={handleCancel}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-slate-300 font-medium hover:bg-white/10 hover:text-white transition-all border border-white/10">
-              
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={handleCancel}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 text-slate-300 font-medium hover:bg-white/10 hover:text-white transition-all border border-white/10">
+
                 <X className="h-4 w-4" />
                 إلغاء
               </motion.button>
               <motion.button
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={handleSave}
-              disabled={isSaving || !hasChanges}
-              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-all disabled:opacity-50 shadow-lg shadow-green-500/20">
-              
-                {isSaving ?
-              <Loader2 className="h-4 w-4 animate-spin" /> :
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                onClick={handleSave}
+                disabled={isSaving || !hasChanges}
+                className="flex items-center gap-2 px-5 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-medium transition-all disabled:opacity-50 shadow-lg shadow-green-500/20">
 
-              <Save className="h-4 w-4" />
-              }
+                {isSaving ?
+                  <Loader2 className="h-4 w-4 animate-spin" /> :
+
+                  <Save className="h-4 w-4" />
+                }
                 {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
               </motion.button>
             </> :
 
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => setIsEditing(true)}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-medium hover:bg-indigo-500/30 transition-all">
-            
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 font-medium hover:bg-indigo-500/30 transition-all">
+
               <Edit3 className="h-4 w-4" />
               تعديل الملف
             </motion.button>
@@ -490,11 +491,11 @@ export default function ProfileSettingsPage() {
 
       {/* Email verification warning */}
       {!user.emailVerified &&
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex items-start gap-3 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20">
-        
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-start gap-3 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20">
+
           <AlertCircle className="h-5 w-5 text-orange-400 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-orange-300">البريد الإلكتروني غير مفعّل</p>
@@ -514,27 +515,27 @@ export default function ProfileSettingsPage() {
               <div className="h-28 w-28 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 p-1 shadow-xl shadow-indigo-500/30">
                 <div className="h-full w-full rounded-full bg-slate-900 flex items-center justify-center overflow-hidden border-2 border-slate-900/50">
                   {profile.avatar ?
-                  <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" /> :
+                    <img src={profile.avatar} alt="Avatar" className="h-full w-full object-cover" /> :
 
-                  <span className="text-4xl font-black text-white">{userInitial}</span>
+                    <span className="text-4xl font-black text-white">{userInitial}</span>
                   }
                 </div>
               </div>
 
               {isEditing &&
-              <button
-                onClick={handleAvatarClick}
-                disabled={isUploadingAvatar}
-                className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300">
-                
-                  {isUploadingAvatar ?
-                <Loader2 className="h-8 w-8 text-white animate-spin" /> :
+                <button
+                  onClick={handleAvatarClick}
+                  disabled={isUploadingAvatar}
+                  className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300">
 
-                <div className="flex flex-col items-center gap-1">
+                  {isUploadingAvatar ?
+                    <Loader2 className="h-8 w-8 text-white animate-spin" /> :
+
+                    <div className="flex flex-col items-center gap-1">
                       <Camera className="h-6 w-6 text-white" />
                       <span className="text-[10px] text-white font-bold">تغيير</span>
                     </div>
-                }
+                  }
                 </button>
               }
 
@@ -544,7 +545,7 @@ export default function ProfileSettingsPage() {
                 accept="image/*"
                 onChange={handleAvatarChange}
                 className="hidden" />
-              
+
             </div>
 
             {/* User Info */}
@@ -552,30 +553,30 @@ export default function ProfileSettingsPage() {
               <div className="flex flex-col md:flex-row md:items-center gap-3">
                 <h2 className="text-3xl font-black text-white tracking-tight">
                   {profile.firstName || profile.lastName ?
-                  `${profile.firstName} ${profile.lastName}`.trim() :
-                  user.username || 'المستخدم'}
+                    `${profile.firstName} ${profile.lastName}`.trim() :
+                    user.username || 'المستخدم'}
                 </h2>
                 <span
                   className={cn(
                     'inline-flex w-fit mx-auto md:mx-0 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider',
                     isTeacher ?
-                    'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
-                    'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
+                      'bg-purple-500/20 text-purple-400 border border-purple-500/30' :
+                      'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
                   )}>
-                  
+
                   {isTeacher ? '🎓 مدرس' : '📚 طالب'}
                 </span>
               </div>
 
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-2 text-sm text-slate-400">
                 {profile.email &&
-                <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1">
                     <Mail className="h-3.5 w-3.5" />
                     {profile.email}
                   </span>
                 }
                 {profile.phone &&
-                <span className="flex items-center gap-1">
+                  <span className="flex items-center gap-1">
                     <Phone className="h-3.5 w-3.5" />
                     {profile.phone}
                   </span>
@@ -583,7 +584,7 @@ export default function ProfileSettingsPage() {
               </div>
 
               {profile.bio &&
-              <p className="text-sm text-slate-400 max-w-lg leading-relaxed">{profile.bio}</p>
+                <p className="text-sm text-slate-400 max-w-lg leading-relaxed">{profile.bio}</p>
               }
             </div>
 
@@ -605,7 +606,7 @@ export default function ProfileSettingsPage() {
             المعلومات الأساسية
           </h3>
           {isEditing && hasChanges &&
-          <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
+            <span className="text-xs text-amber-400 font-medium flex items-center gap-1">
               <RefreshCw className="h-3 w-3" />
               يوجد تغييرات غير محفوظة
             </span>
@@ -624,7 +625,7 @@ export default function ProfileSettingsPage() {
               disabled={!isEditing}
               placeholder="مثال: أحمد"
               required />
-            
+
             <ProfileInput
               id="lastName"
               label="الاسم الأخير"
@@ -633,7 +634,7 @@ export default function ProfileSettingsPage() {
               onChange={(e) => handleInputChange('lastName', e.target.value)}
               disabled={!isEditing}
               placeholder="مثال: محمد" />
-            
+
           </div>
 
           {/* Username */}
@@ -646,7 +647,7 @@ export default function ProfileSettingsPage() {
             disabled={!isEditing}
             placeholder="اسم_المستخدم"
             hint="يظهر في ملفك الشخصي العام ولا يمكن أن يحتوي على مسافات" />
-          
+
 
           {/* Email & Phone */}
           <div className="grid sm:grid-cols-2 gap-6">
@@ -658,7 +659,7 @@ export default function ProfileSettingsPage() {
               value={profile.email}
               disabled={true}
               hint="لا يمكن تعديل البريد الإلكتروني الأساسي" />
-            
+
             <ProfileInput
               id="phone"
               label="رقم الهاتف الأساسي"
@@ -668,7 +669,7 @@ export default function ProfileSettingsPage() {
               onChange={(e) => handleInputChange('phone', e.target.value)}
               disabled={!isEditing}
               placeholder="01xxxxxxxxx" />
-            
+
           </div>
 
           {/* Alt Phone & Birthdate */}
@@ -683,7 +684,7 @@ export default function ProfileSettingsPage() {
               disabled={!isEditing}
               placeholder="01xxxxxxxxx"
               hint="رقم هاتف لولي الأمر أو للطوارئ" />
-            
+
             <ProfileInput
               id="birthDate"
               label="تاريخ الميلاد"
@@ -692,7 +693,7 @@ export default function ProfileSettingsPage() {
               value={profile.birthDate}
               onChange={(e) => handleInputChange('birthDate', e.target.value)}
               disabled={!isEditing} />
-            
+
           </div>
 
           {/* Gender */}
@@ -700,26 +701,26 @@ export default function ProfileSettingsPage() {
             <label className="text-sm font-semibold text-slate-300">الجنس</label>
             <div className="flex gap-3">
               {[
-              { value: 'male', label: '👨 ذكر', activeColor: 'bg-blue-500/20 border-blue-500/50 text-blue-300' },
-              { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' }].
-              map((g) =>
-              <button
-                key={g.value}
-                type="button"
-                disabled={!isEditing}
-                onClick={() => handleInputChange('gender', g.value)}
-                className={cn(
-                  'flex-1 flex items-center justify-center gap-2 p-3.5 rounded-2xl border transition-all font-semibold',
-                  profile.gender === g.value ?
-                  g.activeColor :
-                  'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10',
-                  !isEditing && 'opacity-60 cursor-not-allowed'
-                )}>
-                
-                  {profile.gender === g.value && <CheckCircle className="h-4 w-4" />}
-                  {g.label}
-                </button>
-              )}
+                { value: 'male', label: '👨 ذكر', activeColor: 'bg-blue-500/20 border-blue-500/50 text-blue-300' },
+                { value: 'female', label: '👩 أنثى', activeColor: 'bg-pink-500/20 border-pink-500/50 text-pink-300' }].
+                map((g) =>
+                  <button
+                    key={g.value}
+                    type="button"
+                    disabled={!isEditing}
+                    onClick={() => handleInputChange('gender', g.value)}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-2 p-3.5 rounded-2xl border transition-all font-semibold',
+                      profile.gender === g.value ?
+                        g.activeColor :
+                        'bg-white/5 border-white/10 text-slate-500 hover:bg-white/10',
+                      !isEditing && 'opacity-60 cursor-not-allowed'
+                    )}>
+
+                    {profile.gender === g.value && <CheckCircle className="h-4 w-4" />}
+                    {g.label}
+                  </button>
+                )}
             </div>
           </div>
 
@@ -733,7 +734,7 @@ export default function ProfileSettingsPage() {
               onChange={(e) => handleInputChange('country', e.target.value)}
               disabled={!isEditing}
               options={countries.map((c) => ({ value: c, label: c }))} />
-            
+
             <ProfileInput
               id="city"
               label="المدينة"
@@ -742,7 +743,7 @@ export default function ProfileSettingsPage() {
               onChange={(e) => handleInputChange('city', e.target.value)}
               disabled={!isEditing}
               placeholder="مثال: القاهرة" />
-            
+
           </div>
         </div>
       </SettingsCard>
@@ -752,9 +753,9 @@ export default function ProfileSettingsPage() {
         <div className="p-5 border-b border-white/10">
           <h3 className="font-semibold text-white flex items-center gap-2">
             {isTeacher ?
-            <Briefcase className="h-5 w-5 text-indigo-400" /> :
+              <Briefcase className="h-5 w-5 text-indigo-400" /> :
 
-            <GraduationCap className="h-5 w-5 text-indigo-400" />
+              <GraduationCap className="h-5 w-5 text-indigo-400" />
             }
             {isTeacher ? 'المعلومات المهنية' : 'المعلومات الدراسية'}
           </h3>
@@ -762,87 +763,87 @@ export default function ProfileSettingsPage() {
 
         <div className="p-6 space-y-6">
           {!isTeacher ?
-          <>
+            <>
               {/* School */}
               <ProfileInput
-              id="school"
-              label="المدرسة / المعهد"
-              icon={Building2}
-              value={profile.school}
-              onChange={(e) => handleInputChange('school', e.target.value)}
-              disabled={!isEditing}
-              placeholder="اسم مدرستك الحالية" />
-            
+                id="school"
+                label="المدرسة / المعهد"
+                icon={Building2}
+                value={profile.school}
+                onChange={(e) => handleInputChange('school', e.target.value)}
+                disabled={!isEditing}
+                placeholder="اسم مدرستك الحالية" />
+
 
               <div className="grid sm:grid-cols-2 gap-6">
                 <ProfileSelect
-                id="gradeLevel"
-                label="الصف الدراسي"
-                icon={GraduationCap}
-                value={profile.gradeLevel}
-                onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
-                disabled={!isEditing}
-                options={gradeLevels} />
-              
+                  id="gradeLevel"
+                  label="الصف الدراسي"
+                  icon={GraduationCap}
+                  value={profile.gradeLevel}
+                  onChange={(e) => handleInputChange('gradeLevel', e.target.value)}
+                  disabled={!isEditing}
+                  options={gradeLevels} />
+
                 <ProfileSelect
-                id="educationType"
-                label="نوع التعليم"
-                icon={BookOpen}
-                value={profile.educationType}
-                onChange={(e) => handleInputChange('educationType', e.target.value)}
-                disabled={!isEditing}
-                options={educationTypes} />
-              
+                  id="educationType"
+                  label="نوع التعليم"
+                  icon={BookOpen}
+                  value={profile.educationType}
+                  onChange={(e) => handleInputChange('educationType', e.target.value)}
+                  disabled={!isEditing}
+                  options={educationTypes} />
+
               </div>
 
               <ProfileSelect
-              id="section"
-              label="الشعبة / التخصص"
-              icon={BookOpen}
-              value={profile.section}
-              onChange={(e) => handleInputChange('section', e.target.value)}
-              disabled={!isEditing}
-              options={sections} />
-            
+                id="section"
+                label="الشعبة / التخصص"
+                icon={BookOpen}
+                value={profile.section}
+                onChange={(e) => handleInputChange('section', e.target.value)}
+                disabled={!isEditing}
+                options={sections} />
+
 
               <ProfileInput
-              id="studyGoal"
-              label="هدفك الدراسي"
-              icon={Award}
-              value={profile.studyGoal}
-              onChange={(e) => handleInputChange('studyGoal', e.target.value)}
-              disabled={!isEditing}
-              placeholder="مثال: دخول كلية الهندسة"
-              hint="سيساعدنا هذا في توفير محتوى تعليمي مخصص لك" />
-            
+                id="studyGoal"
+                label="هدفك الدراسي"
+                icon={Award}
+                value={profile.studyGoal}
+                onChange={(e) => handleInputChange('studyGoal', e.target.value)}
+                disabled={!isEditing}
+                placeholder="مثال: دخول كلية الهندسة"
+                hint="سيساعدنا هذا في توفير محتوى تعليمي مخصص لك" />
+
             </> :
 
-          <>
+            <>
               <ProfileInput
-              id="experienceYears"
-              label="سنوات الخبرة"
-              icon={Hash}
-              value={profile.experienceYears}
-              onChange={(e) => handleInputChange('experienceYears', e.target.value)}
-              disabled={!isEditing}
-              placeholder="مثال: 10 سنوات" />
-            
+                id="experienceYears"
+                label="سنوات الخبرة"
+                icon={Hash}
+                value={profile.experienceYears}
+                onChange={(e) => handleInputChange('experienceYears', e.target.value)}
+                disabled={!isEditing}
+                placeholder="مثال: 10 سنوات" />
+
 
               <div className="space-y-2">
                 <label className="text-sm font-semibold text-slate-300">المواد التي تدرّسها</label>
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 min-h-[60px] flex flex-wrap gap-2">
                   {profile.subjectsTaught.length > 0 ?
-                profile.subjectsTaught.map((sub, i) =>
-                <span
-                  key={i}
-                  className="bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/30 text-sm text-indigo-300 font-medium">
-                  
+                    profile.subjectsTaught.map((sub, i) =>
+                      <span
+                        key={i}
+                        className="bg-indigo-500/20 px-3 py-1.5 rounded-lg border border-indigo-500/30 text-sm text-indigo-300 font-medium">
+
                         {sub}
                       </span>
-                ) :
+                    ) :
 
-                <span className="text-slate-500 italic text-sm">لم يتم تحديد مواد بعد</span>
-                }
+                    <span className="text-slate-500 italic text-sm">لم يتم تحديد مواد بعد</span>
+                  }
                 </div>
               </div>
             </>
@@ -874,16 +875,16 @@ export default function ProfileSettingsPage() {
                 'focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500/50 transition-all',
                 'disabled:opacity-60 disabled:cursor-not-allowed'
               )} />
-            
+
             <div className="absolute bottom-4 left-4">
               <span
                 className={cn(
                   'text-xs font-bold font-mono px-2 py-1 rounded-md',
                   profile.bio.length >= 450 ?
-                  'bg-red-500/20 text-red-400' :
-                  'bg-white/5 text-slate-500'
+                    'bg-red-500/20 text-red-400' :
+                    'bg-white/5 text-slate-500'
                 )}>
-                
+
                 {profile.bio.length} / 500
               </span>
             </div>
@@ -899,7 +900,7 @@ export default function ProfileSettingsPage() {
         <Link
           href="/settings/security"
           className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
-          
+
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10">
               <Shield className="h-5 w-5 text-red-400" />
@@ -915,7 +916,7 @@ export default function ProfileSettingsPage() {
         <Link
           href="/settings/privacy"
           className="flex items-center justify-between p-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all group">
-          
+
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">
               <Globe className="h-5 w-5 text-indigo-400" />

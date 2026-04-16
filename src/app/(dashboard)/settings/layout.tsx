@@ -257,8 +257,8 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                       isAdmin
                         ? 'bg-amber-500/20 text-amber-400'
                         : isTeacher
-                        ? 'bg-purple-500/20 text-purple-400'
-                        : 'bg-indigo-500/20 text-indigo-400'
+                          ? 'bg-purple-500/20 text-purple-400'
+                          : 'bg-indigo-500/20 text-indigo-400'
                     )}
                   >
                     {isAdmin ? 'مدير' : isTeacher ? 'مدرس' : 'طالب'}
