@@ -13,6 +13,7 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
   const searchParams = useSearchParams();
   const router = useRouter();
   const isFirstRender = useRef(true);
+  const isRestoring = useRef(false);
   
   const search = searchParams?.toString() ?? '';
   const fullPath = search ? `${pathname}?${search}` : pathname;
@@ -37,7 +38,7 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
               description: 'تمت إعادتك إلى آخر مكان كنت فيه.',
               duration: 3000,
             });
-          }, 100);
+          }, 150);
           return () => clearTimeout(timer);
         }
       }
@@ -57,13 +58,17 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
   const saveScrollPosition = useCallback(() => {
     if (!isBrowser() || !pathname) return;
     
-    const positions = safeGetItem<Record<string, number>>(SCROLL_POSITIONS_KEY, { 
-      storageType: 'local', 
-      fallback: {} 
-    }) || {};
-    
-    positions[fullPath] = window.scrollY;
-    safeSetItem(SCROLL_POSITIONS_KEY, positions, { storageType: 'local' });
+    try {
+      const positions = safeGetItem<Record<string, number>>(SCROLL_POSITIONS_KEY, { 
+        storageType: 'local', 
+        fallback: {} 
+      }) || {};
+      
+      positions[fullPath] = window.scrollY;
+      safeSetItem(SCROLL_POSITIONS_KEY, positions, { storageType: 'local' });
+    } catch (e) {
+      // Ignore storage errors on scroll
+    }
   }, [pathname, fullPath]);
 
   // Restore scroll position on path change
@@ -87,7 +92,7 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
     let scrollTimeout: NodeJS.Timeout;
     const onScroll = () => {
       clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(saveScrollPosition, 150);
+      scrollTimeout = setTimeout(saveScrollPosition, 250);
     };
 
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -99,6 +104,7 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
     document.addEventListener('visibilitychange', onVisibilityChange);
 
     return () => {
+      clearTimeout(scrollTimeout);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('beforeunload', saveScrollPosition);
       document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -110,11 +116,20 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
     if (!isBrowser() || !pathname) return;
 
     const INPUT_STATE_KEY = `thanawy:inputs:${fullPath}`;
+    let saveTimeout: NodeJS.Timeout;
 
     // Restore inputs logic
     const restoreInputs = () => {
-      const savedInputs = safeGetItem<Record<string, any>>(INPUT_STATE_KEY, { storageType: 'local' });
-      if (savedInputs) {
+      if (isRestoring.current) return;
+      isRestoring.current = true;
+
+      try {
+        const savedInputs = safeGetItem<Record<string, any>>(INPUT_STATE_KEY, { storageType: 'local' });
+        if (!savedInputs) {
+          isRestoring.current = false;
+          return;
+        }
+
         Object.entries(savedInputs).forEach(([id, data]) => {
           const el = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
           if (!el) return;
@@ -139,11 +154,17 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
             }
           }
         });
+      } finally {
+        // Unlock restoration after a small delay to allow events to process
+        setTimeout(() => { isRestoring.current = false; }, 100);
       }
     };
 
-    // Save inputs on change
+    // Save inputs on change with debouncing
     const handleFormChange = (e: Event) => {
+      // Ignore events triggered by restoration process
+      if (isRestoring.current) return;
+
       const target = e.target as HTMLElement;
       if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
       
@@ -154,15 +175,18 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
       if (target instanceof HTMLInputElement && (target.type === 'password' || target.type === 'hidden')) return;
       if (target.tagName === 'BUTTON') return;
 
-      const savedInputs = safeGetItem<Record<string, any>>(INPUT_STATE_KEY, { storageType: 'local', fallback: {} }) || {};
-      
-      if (target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio')) {
-        savedInputs[id] = { checked: target.checked, type: target.type };
-      } else {
-        savedInputs[id] = { value: (target as any).value, type: target.tagName.toLowerCase() };
-      }
-      
-      safeSetItem(INPUT_STATE_KEY, savedInputs, { storageType: 'local' });
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        const savedInputs = safeGetItem<Record<string, any>>(INPUT_STATE_KEY, { storageType: 'local', fallback: {} }) || {};
+        
+        if (target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio')) {
+          savedInputs[id] = { checked: target.checked, type: target.type };
+        } else {
+          savedInputs[id] = { value: (target as any).value, type: target.tagName.toLowerCase() };
+        }
+        
+        safeSetItem(INPUT_STATE_KEY, savedInputs, { storageType: 'local' });
+      }, 500);
     };
 
     // UI Persistence for elements with data-persist-id
@@ -173,6 +197,8 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
       const persistentElements = document.querySelectorAll('[data-persist-id]');
       const scrollableElements = document.querySelectorAll('[data-persist-scroll-id]');
       
+      if (persistentElements.length === 0 && scrollableElements.length === 0) return;
+
       const uiState: Record<string, any> = {};
       const scrollState: Record<string, { x: number, y: number }> = {};
       
@@ -230,22 +256,25 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
         }
     };
 
-    // Initial restoration
+    // Initial restoration with staged delay to prevent blocking hydration
     const timer = setTimeout(() => {
-        restoreInputs();
-        restoreUIAndElementScroll();
-    }, 400);
+        requestIdleCallback?.(() => {
+          restoreInputs();
+          restoreUIAndElementScroll();
+        }) || setTimeout(() => {
+          restoreInputs();
+          restoreUIAndElementScroll();
+        }, 200);
+    }, 600);
 
     // Event listeners
     document.addEventListener('input', handleFormChange);
     document.addEventListener('change', handleFormChange);
     window.addEventListener('beforeunload', saveUIAndElementScroll);
-    window.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') saveUIAndElementScroll();
-    });
-
+    
     return () => {
       clearTimeout(timer);
+      clearTimeout(saveTimeout);
       document.removeEventListener('input', handleFormChange);
       document.removeEventListener('change', handleFormChange);
       window.removeEventListener('beforeunload', saveUIAndElementScroll);

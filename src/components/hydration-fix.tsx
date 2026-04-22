@@ -1,44 +1,70 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useCallback } from "react";
 
+/**
+ * HydrationFix: تجميعة من الحلول لمشاكل الـ Hydration الناتجة عن إضافات المتصفح.
+ * تم تحسينه ليكون فائق الأداء ولا يسبب تجمد المتصفح عبر استخدام استهداف محدد للعناصر.
+ */
 export function HydrationFix() {
-  React.useEffect(() => {
-    // Remove browser extension attributes that cause hydration errors
-    const attributesToRemove = ['bis_skin_checked', 'bis_register'];
+  const cleanElements = useCallback(() => {
+    // استهداف السمات المعروفة التي تسبب مشاكل فقط بدلاً من مسح كل شيء
+    const selectors = [
+      '[bis_skin_checked]',
+      '[bis_register]',
+      '[data-gr-ext-installed]',
+      '[data-new-gr-c-s-check-loaded]',
+      '[data-lastpass-icon]',
+      '[data-dashlane-rid]',
+      '[__processed_id]',
+      '[style*="--processed"]'
+    ];
 
-    const removeExtensionAttributes = (element: Element) => {
-      if (!element) return;
+    try {
+      const elements = document.querySelectorAll(selectors.join(','));
+      
+      elements.forEach((el) => {
+        const attributesToRemove = [
+          'bis_skin_checked',
+          'bis_register',
+          'data-gr-ext-installed',
+          'data-new-gr-c-s-check-loaded',
+          'data-lastpass-icon',
+          'data-dashlane-rid'
+        ];
 
-      // Remove specific attributes
-      attributesToRemove.forEach((attr) => {
-        if (element.hasAttribute && element.hasAttribute(attr)) {
-          element.removeAttribute(attr);
+        attributesToRemove.forEach(attr => {
+          if (el.hasAttribute(attr)) el.removeAttribute(attr);
+        });
+
+        // مسح السمات التي تبدأ بـ __processed_
+        if (el.attributes) {
+          Array.from(el.attributes).forEach(attr => {
+            if (attr.name.startsWith('__processed_')) {
+              el.removeAttribute(attr.name);
+            }
+          });
         }
       });
-
-      // Remove __processed_* attributes
-      if (element.attributes) {
-        Array.from(element.attributes).forEach((attr) => {
-          if (attr.name.startsWith('__processed_')) {
-            element.removeAttribute(attr.name);
-          }
-        });
-      }
-    };
-
-    const cleanAllElements = () => {
-      const allElements = document.querySelectorAll('*');
-      allElements.forEach(removeExtensionAttributes);
-    };
-
-    // Run immediately on mount
-    cleanAllElements();
-
-    // Run again after a short delay to catch any late injections during initial load
-    const timer = setTimeout(cleanAllElements, 1000);
-    return () => clearTimeout(timer);
+    } catch (e) {
+      // Silently fail if selector is invalid or parsing fails
+    }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // تشغيل التنظيف على الفور بعد التحميل
+    const immediateTimer = setTimeout(cleanElements, 100);
+    
+    // تشغيل التنظيف بعد فترة بسيطة للتعامل مع العناصر التي تضاف لاحقاً
+    const delayTimer = setTimeout(cleanElements, 1000);
+
+    return () => {
+      clearTimeout(immediateTimer);
+      clearTimeout(delayTimer);
+    };
+  }, [cleanElements]);
 
   return null;
 }
