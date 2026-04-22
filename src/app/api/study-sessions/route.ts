@@ -10,79 +10,70 @@ import { successResponse, badRequestResponse, withAuth, handleApiError } from '@
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
+    const { searchParams } = new URL(req.url);
+    const queryUserId = searchParams.get('userId');
+    const limit = parseInt(searchParams.get('limit') || '10', 10);
+    const offset = parseInt(searchParams.get('offset') || '0', 10);
+    const cursor = searchParams.get('cursor');
+
+    if (Number.isNaN(limit) || limit < 1 || limit > 100) {
+      return badRequestResponse('Invalid limit parameter');
+    }
+
+    // Function to fetch and cache sessions
+    const getSessionsPayload = async (userId: string) => {
+      const cacheKey = cursor
+        ? `study_sessions_${userId}_cursor_${cursor}_limit_${limit}`
+        : `study_sessions_${userId}_limit_${limit}_offset_${offset}`;
+
+      return LegacyCacheService.getOrSet(cacheKey, async () => {
+        const fetchedSessions = await prisma.studySession.findMany({
+          where: { userId },
+          take: limit + 1,
+          ...(cursor ? { cursor: { id: cursor }, skip: 1 } : { skip: offset }),
+          orderBy: [{ startTime: 'desc' }, { id: 'desc' }],
+          select: {
+            id: true,
+            userId: true,
+            subjectId: true,
+            startTime: true,
+            endTime: true,
+            durationMin: true,
+            focusScore: true,
+            notes: true,
+            strategy: true,
+            createdAt: true,
+            subject: {
+              select: { id: true, name: true, icon: true, color: true }
+            }
+          }
+        });
+
+        const hasMore = fetchedSessions.length > limit;
+        const sessions = hasMore ? fetchedSessions.slice(0, limit) : fetchedSessions;
+
+        return {
+          sessions,
+          hasMore,
+          nextCursor: hasMore ? sessions[sessions.length - 1]?.id ?? null : null,
+        };
+      }, 300);
+    };
+
+    // If userId provided in query (for guest users)
+    if (queryUserId && queryUserId !== 'undefined' && queryUserId.trim() !== '') {
+      try {
+        const payload = await getSessionsPayload(queryUserId);
+        return successResponse(payload);
+      } catch (error) {
+        return handleApiError(error);
+      }
+    }
+
+    // Fallback to authentication
     return withAuth(req, async (authUser) => {
       try {
-        const { searchParams } = new URL(req.url);
-        const limit = parseInt(searchParams.get('limit') || '10', 10);
-        const offset = parseInt(searchParams.get('offset') || '0', 10);
-        const cursor = searchParams.get('cursor');
-
-        if (Number.isNaN(limit) || limit < 1 || limit > 100) {
-          return badRequestResponse('Invalid limit parameter');
-        }
-
-        if (!cursor && (Number.isNaN(offset) || offset < 0)) {
-          return badRequestResponse('Invalid offset parameter');
-        }
-
-        const cacheKey = cursor
-          ? `study_sessions_${authUser.userId}_cursor_${cursor}_limit_${limit}`
-          : `study_sessions_${authUser.userId}_limit_${limit}_offset_${offset}`;
-
-        const payload = await LegacyCacheService.getOrSet(cacheKey, async () => {
-          const fetchedSessions = await prisma.studySession.findMany({
-            where: {
-              userId: authUser.userId,
-            },
-            take: limit + 1,
-            ...(cursor
-              ? {
-                  cursor: { id: cursor },
-                  skip: 1,
-                }
-              : {
-                  skip: offset,
-                }),
-            orderBy: [
-              {
-                startTime: 'desc',
-              },
-              {
-                id: 'desc',
-              }
-            ],
-            select: {
-              id: true,
-              userId: true,
-              subjectId: true,
-              startTime: true,
-              endTime: true,
-              durationMin: true,
-              focusScore: true,
-              notes: true,
-              strategy: true,
-              createdAt: true,
-              subject: {
-                select: {
-                  id: true,
-                  name: true,
-                  icon: true,
-                  color: true
-                }
-              }
-            }
-          });
-
-          const hasMore = fetchedSessions.length > limit;
-          const sessions = hasMore ? fetchedSessions.slice(0, limit) : fetchedSessions;
-
-          return {
-            sessions,
-            hasMore,
-            nextCursor: hasMore ? sessions[sessions.length - 1]?.id ?? null : null,
-          };
-        }, 300);
-
+        const payload = await getSessionsPayload(authUser.userId);
         return successResponse(payload);
       } catch (error) {
         logger.error('Error fetching study sessions:', error);
@@ -130,10 +121,10 @@ export async function POST(request: NextRequest) {
           const { sendMultiChannelNotification } = await import('@/services/notification-sender');
           await sendMultiChannelNotification({
             userId: authUser.userId,
-            title: 'ط§ظ†طھظ‡طھ ط¬ظ„ط³ط© ط§ظ„ظ…ط°ط§ظƒط±ط©',
-            message: `ظ„ظ‚ط¯ ط£طھظ…ظ…طھ ${body.durationMin || 0} ط¯ظ‚ظٹظ‚ط© ظ…ظ† ط§ظ„ظ…ط°ط§ظƒط±ط© ط§ظ„ظ…ط±ظƒط²ط©. طھط§ط¨ط¹ ط§ظ„طھظ‚ط¯ظ…!`,
+            title: 'انتهت جلسة المذاكرة',
+            message: `لقد أتممت ${body.durationMin || 0} دقيقة من المذاكرة المركزة. تابع التقدم!`,
             type: 'success',
-            icon: 'âŒ›',
+            icon: '✅',
             channels: ['app']
           });
         } catch (notificationError) {

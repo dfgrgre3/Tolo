@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole } from "@prisma/client";
+﻿import { PrismaClient, UserRole } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -74,7 +74,7 @@ async function seedTeachersData() {
       });
     }
     
-    console.log("✓ Teachers data seeded successfully.");
+    console.log("âœ“ Teachers data seeded successfully.");
   } catch (error) {
     console.error("Error seeding teachers data:", error);
   }

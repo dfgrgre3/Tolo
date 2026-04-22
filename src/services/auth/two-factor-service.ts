@@ -1,4 +1,4 @@
-import { OTP } from 'otplib';
+﻿import { OTP } from 'otplib';
 import QRCode from 'qrcode';
 import prisma from '@/lib/db';
 

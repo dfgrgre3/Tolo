@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -22,7 +22,7 @@ export default function MarketingPage() {
   const [audience, setAudience] = React.useState("challenge_winners");
   const [rewardType, setRewardType] = React.useState("xp");
   const [rewardValue, setRewardValue] = React.useState("500");
-  const [title, setTitle] = React.useState("🎁 هدية من القيادة العُليا");
+  const [title, setTitle] = React.useState("ًںژپ هدية من القيادة العظڈليا");
   const [content, setContent] = React.useState("أيها المحارب المغوار، لقد أثبت كفاءتك في المعارك السابقة. تقديراً لجهودك، أرسلنا لك هذه الغنيمة لترفع من تصنيفك. استمر في القتال!");
   const [isSending, setIsSending] = React.useState(false);
   const [stats, setStats] = React.useState({
@@ -79,7 +79,7 @@ export default function MarketingPage() {
     <div className="space-y-8 pb-10">
       <PageHeader
         title="مركز التسويق الداخلي وحملات الغنائم (CRM)"
-        description="تواصل مع جيش المحاربين بدقة. حدد الفئة المستهدفة، جهز رسالتك المحفزة، وأسقط لهم الغنائم (Loot Drops) لزيادة ارتباطهم بالمنصة."
+        description="تواصل مع جيش المحاربين بدقة. حدد الفئة المستهدفة، جهز رسالتك المحفزة، وأسقط لهم الغنائم (Loot Drops) لزيادة ارتباتم بالمنصة."
       >
         <div className="flex bg-accent rounded-xl p-1 border">
            <AdminButton variant="outline" className="border-none shadow-none font-black text-primary">حملة جديدة</AdminButton>
@@ -92,7 +92,7 @@ export default function MarketingPage() {
          <AdminCard variant="glass" className="p-5 border-blue-500/20">
            <div className="flex justify-between items-start">
              <div>
-               <p className="text-sm font-bold text-muted-foreground">إجمالي الرسائل المُرسلة</p>
+               <p className="text-sm font-bold text-muted-foreground">إجمالي الرسائل المظڈرسلة</p>
                <h3 className="text-3xl font-black mt-2 text-blue-500">{stats.delivered}</h3>
              </div>
              <MailOpen className="w-8 h-8 text-blue-500/50" />

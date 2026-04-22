@@ -1,4 +1,4 @@
-const Redis = require('ioredis');
+﻿const Redis = require('ioredis');
 const crypto = require('crypto');
 
 const redisUrl = "redis://default:CG1xOpG2d2K9dki0OavkUUdsad2PAlsP@redis-13287.c270.us-east-1-3.ec2.cloud.redislabs.com:13287";

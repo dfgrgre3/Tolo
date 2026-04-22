@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+
 import { successResponse, notFoundResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: {params: Promise<{id: string;}>;}) {
   return opsWrapper(req, async () => {
     try {
       const { id } = await params;
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, { params }: {params: Promise<{id: string;}>;}) {
   return opsWrapper(req, async (request) => {
     return withAuth(request, async (authUser) => {
       try {
@@ -68,7 +68,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           where: { id },
           data: updates,
           include: {
-             organizer: { select: { name: true } }
+            organizer: { select: { name: true } }
           }
         });
 
@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: {params: Promise<{id: string;}>;}) {
   return opsWrapper(req, async (request) => {
     return withAuth(request, async (authUser) => {
       try {

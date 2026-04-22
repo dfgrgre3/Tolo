@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from 'react';
 import {
@@ -68,7 +68,7 @@ export default function AILearningPage() {
               <span>محراب الحكمة اللامتناهية</span>
            </div>
            <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-tight">
-              استشر <span className={STYLES.neonText}>العراف الذكي</span> ✨
+              استشر <span className={STYLES.neonText}>العراف الذكي</span> âœ¨
            </h1>
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto">
               قوة الذكاء الاصطناعي بين يديك. احصل على إجابات مذهلة، امتحانات مخصصة، وتوجيهات أسطورية لترقية مستواك العسكري في عالم المعرفة.

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { PlusCircle, Play, Pause, RefreshCw, Download, Settings, Calendar, TrendingUp, Target, Clock, Zap, Award } from 'lucide-react';
 import { Badge } from "@/components/ui/badge";
 import { motion } from 'framer-motion';
-import { Progress } from "@/components/ui/progress";
+
 import CreateTaskDialog from './CreateTaskDialog';
 import type { SubjectType, Task, TimeStats } from '../types';
 import { calculateGameMetrics } from '../utils/gameUtils';
@@ -28,6 +28,8 @@ interface TimeManagementHeaderProps {
   subjects?: SubjectType[];
   userId?: string;
   onTaskCreate?: (task: Task) => void;
+  isCreateTaskOpen?: boolean;
+  setIsCreateTaskOpen?: (open: boolean) => void;
 }
 
 export default function TimeManagementHeader({
@@ -40,10 +42,15 @@ export default function TimeManagementHeader({
   fullStats, // Optional for backward compatibility, but we expect it for XP System
   subjects = [],
   userId,
-  onTaskCreate
+  onTaskCreate,
+  isCreateTaskOpen: isCreateTaskOpenProp,
+  setIsCreateTaskOpen: setIsCreateTaskOpenProp
 }: TimeManagementHeaderProps) {
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [internalIsCreateTaskOpen, setInternalIsCreateTaskOpen] = useState(false);
+
+  const isCreateTaskOpen = isCreateTaskOpenProp ?? internalIsCreateTaskOpen;
+  const setIsCreateTaskOpen = setIsCreateTaskOpenProp ?? setInternalIsCreateTaskOpen;
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -78,12 +85,12 @@ export default function TimeManagementHeader({
         <div className="space-y-4 flex-1 relative z-10 w-full lg:w-auto">
           <div className="flex items-start lg:items-center gap-4 flex-col lg:flex-row">
             {/* Player Level Badge */}
-            <motion.div 
-               initial={{ scale: 0.8, opacity: 0 }}
-               animate={{ scale: 1, opacity: 1 }}
-               whileHover={{ scale: 1.05 }}
-               className="relative shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)] border-2 border-emerald-300/50"
-            >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              whileHover={{ scale: 1.05 }}
+              className="relative shrink-0 w-20 h-20 rounded-2xl flex items-center justify-center bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.3)] border-2 border-emerald-300/50">
+              
               <div className="text-center">
                 <div className="text-xs font-bold text-emerald-100/90 tracking-wider">Lvl</div>
                 <div className="text-4xl font-black text-white leading-none tracking-tighter drop-shadow-md">
@@ -108,24 +115,24 @@ export default function TimeManagementHeader({
               </div>
 
               {/* XP Progress Bar */}
-              {gameMetrics && (
-                <div className="w-full max-w-md mt-2 space-y-2">
+              {gameMetrics &&
+              <div className="w-full max-w-md mt-2 space-y-2">
                    <div className="flex justify-between text-xs font-medium text-muted-foreground/80">
                      <span>{gameMetrics.currentXP} XP</span>
                      <span>التالي: {gameMetrics.xpForNextLevel} XP</span>
                    </div>
                    <div className="relative h-2.5 w-full bg-muted/50 rounded-full overflow-hidden border border-white/5">
-                     <motion.div 
-                       initial={{ width: 0 }}
-                       animate={{ width: `${gameMetrics.progressPercentage}%` }}
-                       transition={{ duration: 1, delay: 0.2 }}
-                       className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full"
-                     >
+                     <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${gameMetrics.progressPercentage}%` }}
+                    transition={{ duration: 1, delay: 0.2 }}
+                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-500 rounded-full">
+                    
                        <div className="absolute top-0 left-0 w-full h-full bg-[linear-gradient(45deg,rgba(255,255,255,0.2)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.2)_50%,rgba(255,255,255,0.2)_75%,transparent_75%,transparent)] bg-[length:10px_10px] animate-stripe" />
                      </motion.div>
                    </div>
                 </div>
-              )}
+              }
             </div>
           </div>
         </div>
@@ -209,10 +216,10 @@ export default function TimeManagementHeader({
       {/* Productivity Indicator Stats - RPG Floating Look */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {/* Card 1 */}
-        <motion.div 
-          whileHover={{ y: -5, scale: 1.02 }} 
-          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group"
-        >
+        <motion.div
+          whileHover={{ y: -5, scale: 1.02 }}
+          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
+          
           <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-colors" />
           <div className="relative z-10">
@@ -225,10 +232,10 @@ export default function TimeManagementHeader({
         </motion.div>
 
         {/* Card 2 */}
-        <motion.div 
-          whileHover={{ y: -5, scale: 1.02 }} 
-          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group"
-        >
+        <motion.div
+          whileHover={{ y: -5, scale: 1.02 }}
+          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
+          
           <div className="absolute inset-0 bg-emerald-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors" />
           <div className="relative z-10">
@@ -241,10 +248,10 @@ export default function TimeManagementHeader({
         </motion.div>
 
         {/* Card 3 */}
-        <motion.div 
-          whileHover={{ y: -5, scale: 1.02 }} 
-          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group"
-        >
+        <motion.div
+          whileHover={{ y: -5, scale: 1.02 }}
+          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
+          
           <div className="absolute inset-0 bg-rose-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-colors" />
           <div className="relative z-10">
@@ -257,10 +264,10 @@ export default function TimeManagementHeader({
         </motion.div>
 
         {/* Card 4 */}
-        <motion.div 
-          whileHover={{ y: -5, scale: 1.02 }} 
-          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group"
-        >
+        <motion.div
+          whileHover={{ y: -5, scale: 1.02 }}
+          className="relative overflow-hidden p-6 rounded-3xl bg-background/40 backdrop-blur-xl border border-white/10 dark:border-white/5 shadow-lg flex items-center justify-between group">
+          
           <div className="absolute inset-0 bg-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
           <div className="absolute -right-4 -top-4 w-24 h-24 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors" />
           <div className="relative z-10">
@@ -272,6 +279,6 @@ export default function TimeManagementHeader({
           </div>
         </motion.div>
       </div>
-    </div>
-  );
+    </div>);
+
 }

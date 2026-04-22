@@ -1,4 +1,4 @@
-import type { User as BaseUser } from '@/types/user';
+﻿import type { User as BaseUser } from '@/types/user';
 import type { ReactNode } from 'react';
 
 // --- User Types ---

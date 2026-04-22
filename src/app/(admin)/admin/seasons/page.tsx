@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -39,7 +39,8 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { motion } from "framer-motion";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Season {
   id: string;
@@ -272,7 +273,7 @@ export default function AdminSeasonsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="المواسم القتالية (Battle Passes) 🛡️"
+        title="المواسم القتالية (Battle Passes) ًں›،ï¸ڈ"
         description="إدارة العصور التعليمية، ضبط جوائز الـ Battle Pass، وجدولة ملاحم القمة لجيش المحاربين.">
         
         <AdminButton
@@ -438,7 +439,7 @@ export default function AdminSeasonsPage() {
                   <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5 shadow-inner">
                       <div className="space-y-0.5">
                         <FormLabel className="font-black text-xs">تفعيل الحقبة الآن؟</FormLabel>
-                        <p className="text-[10px] text-muted-foreground font-bold uppercase">سيظهر الموسم فوراً لكافة المحاربين</p>
+                        <p className="text-[10px] text-muted-foreground font-bold uppercase">سي٪ر الموسم فوراً لكافة المحاربين</p>
                       </div>
                       <FormControl>
                         <Switch

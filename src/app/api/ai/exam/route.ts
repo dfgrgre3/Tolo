@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { AI_PROVIDERS, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";

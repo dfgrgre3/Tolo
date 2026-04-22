@@ -1,4 +1,4 @@
-import { logger } from './logger';
+﻿import { logger } from './logger';
 import { getRedisClient } from './cache';
 import type Redis from 'ioredis';
 

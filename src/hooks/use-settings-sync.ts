@@ -3,8 +3,9 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { fetchSettingsPreferences, saveSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
-import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/settings-preferences';
-import { logger } from '@/lib/logger';
+import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/user-ui-preferences';
+
+import { logger } from '@/lib/logger';
 
 /**
  * Hook to synchronize settings between localStorage and server
@@ -71,7 +72,7 @@ export function useSettingsSync() {
     }, 2000);
   }, []);
 
-  const applySettingsFromPreferences = useCallback((preferences: SettingsPreferences) => {
+  const applySettingsFromPreferences = useCallback((_preferences: SettingsPreferences) => {
 
   }, []);
 

@@ -1,4 +1,4 @@
-import { GamificationWorker } from '../src/services/worker/gamification-worker';
+﻿import { GamificationWorker } from '../src/services/worker/gamification-worker';
 import { NotificationQueueService } from '../src/services/notification-queue-service';
 import { ReferralQueueService } from '../src/services/referral-queue-service';
 import { logger } from '../src/lib/logger';
@@ -10,7 +10,7 @@ import { redisConnection } from '../src/lib/queue/bullmq';
  * This script is designed to run in a separate process/container from the Next.js Frontend.
  */
 async function main() {
-  logger.info('🚀 Starting App Background Workers...');
+  logger.info('ًںڑ€ Starting App Background Workers...');
 
   // 1. Start Specialized Workers
   await GamificationWorker.start();
@@ -37,11 +37,11 @@ async function main() {
       throw error;
     }
   }, {
-    connection: queueConnection,
+    connection: redisConnection,
     concurrency: 5,
   });
 
-  logger.info('✅ All workers are online and listening to Redis.');
+  logger.info('âœ… All workers are online and listening to Redis.');
 
   // Handle termination signals for graceful shutdown
   const shutdown = async (signal: string) => {

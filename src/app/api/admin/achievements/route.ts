@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from "next/server";
-import { AchievementCategory, Difficulty } from "@/types/enums";
+import { NextRequest } from "next/server";
+
 
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse, notFoundResponse } from '@/lib/api-utils';
+import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
 import { z } from "zod";
 
 const achievementSchema = z.object({
@@ -16,7 +16,7 @@ const achievementSchema = z.object({
   requirements: z.string().default(""),
   isSecret: z.boolean().default(false),
   category: z.enum(["STUDY", "TASKS", "EXAMS", "TIME", "STREAK"]).default("STUDY"),
-  difficulty: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]).default("MEDIUM"),
+  difficulty: z.enum(["EASY", "MEDIUM", "HARD", "EXPERT"]).default("MEDIUM")
 });
 
 
@@ -35,29 +35,29 @@ export async function GET(request: NextRequest) {
 
         const skip = (page - 1) * limit;
 
-        const where = search
-          ? {
-            OR: [
-              { title: { contains: search, mode: "insensitive" as const } },
-              { key: { contains: search, mode: "insensitive" as const } },
-            ],
-          }
-          : {};
+        const where = search ?
+        {
+          OR: [
+          { title: { contains: search, mode: "insensitive" as const } },
+          { key: { contains: search, mode: "insensitive" as const } }]
+
+        } :
+        {};
 
         const [achievements, total] = await Promise.all([
-          prisma.achievement.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
-            include: {
-              _count: {
-                select: { users: true },
-              },
-            },
-          }),
-          prisma.achievement.count({ where }),
-        ]);
+        prisma.achievement.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          include: {
+            _count: {
+              select: { users: true }
+            }
+          }
+        }),
+        prisma.achievement.count({ where })]
+        );
 
         return successResponse({
           achievements,
@@ -65,8 +65,8 @@ export async function GET(request: NextRequest) {
             page,
             limit,
             total,
-            totalPages: Math.ceil(total / limit),
-          },
+            totalPages: Math.ceil(total / limit)
+          }
         });
       } catch (error) {
         return handleApiError(error);
@@ -97,8 +97,8 @@ export async function POST(request: NextRequest) {
             id: data.key,
             ...data,
             category: data.category as any,
-            difficulty: data.difficulty as any,
-          } as any,
+            difficulty: data.difficulty as any
+          } as any
         });
 
 
@@ -126,7 +126,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         await prisma.achievement.delete({
-          where: { id },
+          where: { id }
         });
 
         return successResponse({ success: true }, "تم حذف الإنجاز بنجاح");
@@ -136,4 +136,3 @@ export async function DELETE(request: NextRequest) {
     });
   });
 }
-

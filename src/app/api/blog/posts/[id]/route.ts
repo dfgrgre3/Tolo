@@ -5,10 +5,10 @@ import { logger } from '@/lib/logger';
 
 // GET a single blog post by ID
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { id } = await params;
 
@@ -56,12 +56,12 @@ export async function GET(
 
 // POST to increment view count
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
-      const { id } = await params;
+      const { id: _id } = await params;
 
       // Views tracking removed as field does not exist in schema
       /*

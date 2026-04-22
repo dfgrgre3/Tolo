@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+﻿import { PrismaClient } from '@prisma/client';
 import bcryptjs from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -16,19 +16,19 @@ async function seedTestUsers() {
       {
         email: 'test@example.com',
         password: 'Test123!@#',
-        name: 'مستخدم تجريبي',
+        name: 'ظ…ط³طھط®ط¯ظ… طھط¬ط±ظٹط¨ظٹ',
         role: 'user',
       },
       {
         email: 'demo@thanawy.com',
         password: 'Demo123!@#',
-        name: 'حساب تجريبي',
+        name: 'ط­ط³ط§ط¨ طھط¬ط±ظٹط¨ظٹ',
         role: 'user',
       },
       {
         email: 'admin@thanawy.com',
         password: 'Admin123!@#',
-        name: 'مدير النظام',
+        name: 'ظ…ط¯ظٹط± ط§ظ„ظ†ط¸ط§ظ…',
         role: 'admin',
       },
     ];
@@ -82,7 +82,7 @@ async function seedTestUsers() {
         },
       });
 
-      console.log(`✓ Created test user: ${userData.email} (Password: ${userData.password})`);
+      console.log(`âœ“ Created test user: ${userData.email} (Password: ${userData.password})`);
     }
 
     console.log('Test users seeded successfully!');

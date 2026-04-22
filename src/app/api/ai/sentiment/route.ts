@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { analyzeSentiment, getUserSentimentTrends } from "@/lib/ai/sentiment-analysis";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 

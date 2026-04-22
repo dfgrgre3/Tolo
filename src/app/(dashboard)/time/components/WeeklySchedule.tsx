@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-
 import { format } from 'date-fns';
-
+import { motion } from 'framer-motion';
 
 import type { TimeBlock, WeeklyScheduleProps } from './WeeklySchedule/types';
 import { calculateWeekStats, addMinutesToTime } from './WeeklySchedule/utils';
@@ -18,6 +17,72 @@ import { SettingsDialog } from './WeeklySchedule/SettingsDialog';
 
 import { logger } from '@/lib/logger';
 
+function extractTimeBlocks(planJson?: string): TimeBlock[] {
+  if (!planJson) return [];
+
+  try {
+    const parsed = JSON.parse(planJson) as unknown;
+
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      'timeBlocks' in parsed &&
+      Array.isArray((parsed as { timeBlocks?: unknown }).timeBlocks)
+    ) {
+      return (parsed as { timeBlocks: TimeBlock[] }).timeBlocks;
+    }
+
+    if (Array.isArray(parsed)) {
+      return parsed as TimeBlock[];
+    }
+
+    if (parsed && typeof parsed === 'object') {
+      return Object.entries(parsed as Record<string, unknown>).flatMap(([dayKey, value]) => {
+        if (!Array.isArray(value)) return [];
+
+        const parsedDate = new Date(dayKey);
+        if (Number.isNaN(parsedDate.getTime())) return [];
+
+        return value.map((block, index) => {
+          const legacyBlock = (block ?? {}) as Record<string, unknown>;
+          return {
+            id: typeof legacyBlock.id === 'string' ? legacyBlock.id : `legacy_${dayKey}_${index}`,
+            title: typeof legacyBlock.title === 'string' ? legacyBlock.title : 'عنصر بدون عنوان',
+            description: typeof legacyBlock.description === 'string' ? legacyBlock.description : '',
+            startTime: typeof legacyBlock.startTime === 'string' ? legacyBlock.startTime : '09:00',
+            endTime: typeof legacyBlock.endTime === 'string' ? legacyBlock.endTime : '10:00',
+            day: parsedDate.getDay(),
+            color: typeof legacyBlock.color === 'string' ? legacyBlock.color : '#3b82f6',
+            type: typeof legacyBlock.type === 'string'
+              ? legacyBlock.type.toUpperCase() as TimeBlock['type']
+              : 'STUDY',
+            subject: typeof legacyBlock.subject === 'string' ? legacyBlock.subject : '',
+            priority: typeof legacyBlock.priority === 'string'
+              ? legacyBlock.priority.toUpperCase() as TimeBlock['priority']
+              : 'MEDIUM',
+            isRecurring: Boolean(legacyBlock.isRecurring),
+            recurringPattern: typeof legacyBlock.recurringPattern === 'string'
+              ? legacyBlock.recurringPattern.toUpperCase() as TimeBlock['recurringPattern']
+              : 'WEEKLY',
+            reminders: Array.isArray(legacyBlock.reminders)
+              ? legacyBlock.reminders.filter((reminder): reminder is number => typeof reminder === 'number')
+              : [],
+            location: typeof legacyBlock.location === 'string' ? legacyBlock.location : '',
+            notes: typeof legacyBlock.notes === 'string' ? legacyBlock.notes : '',
+            isCompleted: Boolean(legacyBlock.isCompleted),
+            completedAt: typeof legacyBlock.completedAt === 'string' ? legacyBlock.completedAt : undefined
+          };
+        });
+      });
+    }
+
+    return [];
+  } catch (error) {
+    logger.error('Error parsing schedule data:', error);
+    return [];
+  }
+}
+
 export default function WeeklySchedule({
   schedule,
   subjects,
@@ -30,7 +95,6 @@ export default function WeeklySchedule({
   const [blockToEdit, setBlockToEdit] = useState<TimeBlock | null>(null);
   const [, setSelectedSlot] = useState<{day: number;time: string;} | null>(null);
   const [viewMode, setViewMode] = useState<'week' | 'day' | 'agenda'>('week');
-  const [,,] = useState(0);
   const [showCompleted, setShowCompleted] = useState(true);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -59,25 +123,15 @@ export default function WeeklySchedule({
   const [autoSave, setAutoSave] = useState(true);
   const [compactView, setCompactView] = useState(false);
   const [showTimeLabels, setShowTimeLabels] = useState(true);
-  const [,,] = useState(true);
   const [defaultDuration, setDefaultDuration] = useState(60); // minutes
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Statistics
   const [weekStats, setWeekStats] = useState(calculateWeekStats([], currentWeek));
 
   const loadScheduleData = useCallback(() => {
-    if (!schedule?.planJson) {
-      setTimeBlocks([]);
-      return;
-    }
-
-    try {
-      const data = JSON.parse(schedule.planJson);
-      setTimeBlocks(Array.isArray(data.timeBlocks) ? data.timeBlocks : []);
-    } catch (error) {
-      logger.error('Error parsing schedule data:', error);
-      setTimeBlocks([]);
-    }
+    setTimeBlocks(extractTimeBlocks(schedule?.planJson));
+    setHasInitialized(true);
   }, [schedule]);
 
   useEffect(() => {
@@ -94,10 +148,7 @@ export default function WeeklySchedule({
   }, [weekStatsMemo]);
 
   const saveSchedule = useCallback(async () => {
-    if (!userId) {
-      logger.warn('Cannot save schedule: userId is missing');
-      return;
-    }
+    if (!userId) return;
 
     const scheduleData = {
       timeBlocks,
@@ -106,41 +157,33 @@ export default function WeeklySchedule({
     };
 
     try {
-      const endpoint = schedule?.id ? `/api/schedule/${schedule.id}` : '/api/schedule';
-      const method = schedule?.id ? 'PATCH' : 'POST';
-
-      const response = await fetch(endpoint, {
-        method,
+      const response = await fetch('/api/schedule', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId,
-          planJson: JSON.stringify(scheduleData)
+          version: typeof (schedule as any)?.version === 'number'
+            ? (schedule as any).version
+            : undefined,
+          plan: scheduleData
         })
       });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => 'Unknown error');
-        throw new Error(`Failed to save schedule: ${errorText}`);
+      if (response.ok) {
+        const savedSchedule = await response.json();
+        onScheduleUpdate?.(savedSchedule);
       }
-
-      const savedSchedule = await response.json();
-      onScheduleUpdate?.(savedSchedule);
     } catch (error) {
       logger.error('Error saving schedule:', error);
-      // You can add toast notification here if needed
     }
   }, [timeBlocks, userId, schedule, onScheduleUpdate]);
 
   // Debounced auto-save
   useEffect(() => {
-    if (!autoSave) return;
-
-    const timer = setTimeout(() => {
-      saveSchedule();
-    }, 1000);
-
+    if (!autoSave || !hasInitialized) return;
+    const timer = setTimeout(() => { saveSchedule(); }, 1000);
     return () => clearTimeout(timer);
-  }, [timeBlocks, autoSave, saveSchedule]);
+  }, [timeBlocks, autoSave, hasInitialized, saveSchedule]);
 
   const handleSlotClick = useCallback((day: number, time: string) => {
     setSelectedSlot({ day, time });
@@ -156,7 +199,6 @@ export default function WeeklySchedule({
 
   const handleBlockEdit = useCallback((block: TimeBlock) => {
     if (!block) return;
-
     setBlockToEdit(block);
     setFormData({
       title: block.title || '',
@@ -179,12 +221,7 @@ export default function WeeklySchedule({
 
   const handleFormSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-
-    // Validate time range
-    if (formData.startTime >= formData.endTime) {
-      logger.error('Start time must be before end time');
-      return;
-    }
+    if (formData.startTime >= formData.endTime) return;
 
     const newBlock: TimeBlock = {
       id: blockToEdit?.id || `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -194,9 +231,7 @@ export default function WeeklySchedule({
     };
 
     if (blockToEdit) {
-      setTimeBlocks((prev) => prev.map((block) =>
-      block.id === blockToEdit.id ? newBlock : block
-      ));
+      setTimeBlocks((prev) => prev.map((block) => block.id === blockToEdit.id ? newBlock : block));
     } else {
       setTimeBlocks((prev) => [...prev, newBlock]);
     }
@@ -204,44 +239,12 @@ export default function WeeklySchedule({
     setIsDialogOpen(false);
     setBlockToEdit(null);
     setSelectedSlot(null);
-    setFormData((prev) => ({
-      ...prev,
-      title: '',
-      description: '',
-      startTime: '09:00',
-      endTime: '10:00',
-      day: 0,
-      color: '#3b82f6',
-      type: 'STUDY' as TimeBlock['type'],
-      subject: '',
-      priority: 'MEDIUM' as TimeBlock['priority'],
-      isRecurring: false,
-      recurringPattern: 'WEEKLY' as TimeBlock['recurringPattern'],
-      reminders: [],
-      location: ''
-    }));
   }, [formData, blockToEdit]);
 
   const handleDialogClose = useCallback(() => {
     setIsDialogOpen(false);
     setBlockToEdit(null);
     setSelectedSlot(null);
-    setFormData({
-      title: '',
-      description: '',
-      startTime: '09:00',
-      endTime: '10:00',
-      day: 0,
-      color: '#3b82f6',
-      type: 'STUDY',
-      subject: '',
-      priority: 'MEDIUM',
-      isRecurring: false,
-      recurringPattern: 'WEEKLY',
-      reminders: [],
-      location: '',
-      notes: ''
-    });
   }, []);
 
   const handleBlockDelete = useCallback((blockId: string) => {
@@ -252,64 +255,30 @@ export default function WeeklySchedule({
   const handleBlockComplete = useCallback((blockId: string) => {
     if (!blockId) return;
     setTimeBlocks((prev) => prev.map((block) =>
-    block.id === blockId ?
-    {
-      ...block,
-      isCompleted: !block.isCompleted,
-      completedAt: !block.isCompleted ? new Date().toISOString() : undefined
-    } :
-    block
+      block.id === blockId ? {
+        ...block,
+        isCompleted: !block.isCompleted,
+        completedAt: !block.isCompleted ? new Date().toISOString() : undefined
+      } : block
     ));
-  }, []);
-
-  const _duplicateBlock = useCallback((block: TimeBlock) => {
-    if (!block) return;
-    const newBlock: TimeBlock = {
-      ...block,
-      id: `block_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      title: `${block.title} (نسخة)`,
-      isCompleted: false,
-      completedAt: undefined
-    };
-    setTimeBlocks((prev) => [...prev, newBlock]);
   }, []);
 
   // Memoize filtered blocks
   const filteredBlocks = useMemo(() => {
     return timeBlocks.filter((block) => {
-      // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const titleMatch = block.title?.toLowerCase().includes(query);
-        const descMatch = block.description?.toLowerCase().includes(query);
-        if (!titleMatch && !descMatch) {
-          return false;
-        }
+        if (!block.title?.toLowerCase().includes(query) && !block.description?.toLowerCase().includes(query)) return false;
       }
-
-      // Type filter
-      if (filterType !== 'all' && block.type !== filterType) {
-        return false;
-      }
-
-      // Completed filter
-      if (!showCompleted && block.isCompleted) {
-        return false;
-      }
-
+      if (filterType !== 'all' && block.type !== filterType) return false;
+      if (!showCompleted && block.isCompleted) return false;
       return true;
     });
   }, [timeBlocks, searchQuery, filterType, showCompleted]);
 
   const exportSchedule = useCallback(() => {
     try {
-      const data = {
-        timeBlocks,
-        weekStats,
-        exportDate: new Date().toISOString(),
-        version: '2.0'
-      };
-
+      const data = { timeBlocks, weekStats, exportDate: new Date().toISOString(), version: '2.0' };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -327,88 +296,81 @@ export default function WeeklySchedule({
   const importSchedule = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string);
-        if (Array.isArray(data.timeBlocks)) {
-          setTimeBlocks(data.timeBlocks);
-        } else {
-          logger.error('Invalid schedule format');
-        }
+        if (Array.isArray(data.timeBlocks)) setTimeBlocks(data.timeBlocks);
       } catch (error) {
         logger.error('Error importing schedule:', error);
       }
     };
-    reader.onerror = () => {
-      logger.error('Error reading file');
-    };
     reader.readAsText(file);
   }, []);
 
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <ScheduleHeader
-          weekStats={weekStats}
-          onSettingsClick={() => setShowSettings(true)}
-          onExport={exportSchedule}
-          onImport={importSchedule} />
-        
-        
-        <div className="flex flex-wrap gap-2">
-          <WeekNavigation
-            currentWeek={currentWeek}
-            onWeekChange={setCurrentWeek}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode} />
-          
-        </div>
-      </div>
+      <ScheduleHeader
+        weekStats={weekStats}
+        onSettingsClick={() => setShowSettings(true)}
+        onExport={exportSchedule}
+        onImport={importSchedule}
+      />
 
-      {/* Filters */}
+      <WeekNavigation
+        currentWeek={currentWeek}
+        onWeekChange={setCurrentWeek}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+      />
+
       <ScheduleFilters
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         filterType={filterType}
         onFilterTypeChange={setFilterType}
         showCompleted={showCompleted}
-        onShowCompletedToggle={() => setShowCompleted(!showCompleted)} />
-      
+        onShowCompletedToggle={() => setShowCompleted(!showCompleted)}
+      />
 
-      {/* Schedule View */}
-      <Card>
-        <CardContent className="p-0">
-          {viewMode === 'week' ?
-          <div className="overflow-x-auto">
-              <TimeGrid
-              currentWeek={currentWeek}
-              timeBlocks={filteredBlocks}
-              showTimeLabels={showTimeLabels}
-              compactView={compactView}
-              onSlotClick={handleSlotClick}
-              onBlockEdit={handleBlockEdit}
-              onBlockComplete={handleBlockComplete}
-              onBlockDragStart={setDraggedBlock} />
-            
-            </div> :
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative"
+      >
+        <div className="absolute inset-0 bg-emerald-500/5 blur-[100px] rounded-full pointer-events-none -z-10" />
+        
+        <Card className="bg-transparent border-0 shadow-none">
+          <CardContent className="p-0">
+            {viewMode === 'week' ? (
+              <div className="relative rounded-3xl overflow-hidden border border-white/5">
+                <div className="overflow-x-auto pb-4">
+                  <TimeGrid
+                    currentWeek={currentWeek}
+                    timeBlocks={filteredBlocks}
+                    showTimeLabels={showTimeLabels}
+                    compactView={compactView}
+                    onSlotClick={handleSlotClick}
+                    onBlockEdit={handleBlockEdit}
+                    onBlockComplete={handleBlockComplete}
+                    onBlockDragStart={setDraggedBlock}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="bg-[#0A0F1D]/50 backdrop-blur-2xl border border-white/5 rounded-3xl p-6 shadow-2xl">
+                <AgendaView
+                  currentWeek={currentWeek}
+                  timeBlocks={filteredBlocks}
+                  onBlockEdit={handleBlockEdit}
+                  onBlockComplete={handleBlockComplete}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
-          <div className="p-6">
-              <AgendaView
-              currentWeek={currentWeek}
-              timeBlocks={filteredBlocks}
-              onBlockEdit={handleBlockEdit}
-              onBlockComplete={handleBlockComplete} />
-            
-            </div>
-          }
-        </CardContent>
-      </Card>
-
-      {/* Add/Edit Block Dialog */}
       <BlockFormDialog
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
@@ -420,10 +382,9 @@ export default function WeeklySchedule({
         onDelete={blockToEdit ? () => {
           handleBlockDelete(blockToEdit.id);
           handleDialogClose();
-        } : undefined} />
-      
+        } : undefined}
+      />
 
-      {/* Settings Dialog */}
       <SettingsDialog
         isOpen={showSettings}
         onOpenChange={setShowSettings}
@@ -434,8 +395,8 @@ export default function WeeklySchedule({
         showTimeLabels={showTimeLabels}
         onShowTimeLabelsToggle={() => setShowTimeLabels(!showTimeLabels)}
         defaultDuration={defaultDuration}
-        onDefaultDurationChange={setDefaultDuration} />
-      
-    </div>);
-
+        onDefaultDurationChange={setDefaultDuration}
+      />
+    </div>
+  );
 }

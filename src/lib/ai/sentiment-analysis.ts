@@ -1,6 +1,6 @@
 import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
 import { prisma } from '@/lib/db';
-import { AIService } from './ai-service';
+
 
 import { logger } from '@/lib/logger';
 
@@ -23,10 +23,10 @@ export interface SentimentResult {
  * Analyze sentiment of user text using AI
  */
 export async function analyzeSentiment(
-  text: string,
-  userId?: string,
-  context?: string
-): Promise<SentimentResult> {
+text: string,
+userId?: string,
+context?: string)
+: Promise<SentimentResult> {
   const provider = getDefaultProvider();
 
   if (!provider.apiKey) {
@@ -73,15 +73,15 @@ export async function analyzeSentiment(
         body: JSON.stringify({
           model: provider.model,
           messages: [
-            {
-              role: 'system',
-              content: '7?8 7? 8&7?7?7?7? 8~8y 7?7?88y8 7?88&7?7?7?7? 8?7?87?8?7?7?8~. 8y7?7? 7?8  7?7?8y7? 7?7?8y77? JSON 8~87?.'
-            },
-            {
-              role: 'user',
-              content: prompt
-            }
-          ],
+          {
+            role: 'system',
+            content: '7?8 7? 8&7?7?7?7? 8~8y 7?7?88y8 7?88&7?7?7?7? 8?7?87?8?7?7?8~. 8y7?7? 7?8  7?7?8y7? 7?7?8y77? JSON 8~87?.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }],
+
           temperature: 0.3,
           max_tokens: 500
         })
@@ -101,7 +101,7 @@ export async function analyzeSentiment(
         {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'application/json'
           },
           body: JSON.stringify({
             contents: [{
@@ -110,8 +110,8 @@ export async function analyzeSentiment(
             }],
             generationConfig: {
               temperature: 0.3,
-              maxOutputTokens: 500,
-            },
+              maxOutputTokens: 500
+            }
           })
         }
       );
@@ -166,22 +166,22 @@ function simpleSentimentAnalysis(text: string): SentimentResult {
   let sentiment: SentimentResult['sentiment'] = 'neutral';
 
   // Check for frustration
-  if (frustratedKeywords.some(kw => lowerText.includes(kw))) {
+  if (frustratedKeywords.some((kw) => lowerText.includes(kw))) {
     sentiment = 'frustrated';
     score = -0.6;
   }
   // Check for tiredness
-  else if (tiredKeywords.some(kw => lowerText.includes(kw))) {
+  else if (tiredKeywords.some((kw) => lowerText.includes(kw))) {
     sentiment = 'tired';
     score = -0.5;
   }
   // Check for negative
-  else if (negativeKeywords.some(kw => lowerText.includes(kw))) {
+  else if (negativeKeywords.some((kw) => lowerText.includes(kw))) {
     sentiment = 'negative';
     score = -0.4;
   }
   // Check for positive
-  else if (positiveKeywords.some(kw => lowerText.includes(kw))) {
+  else if (positiveKeywords.some((kw) => lowerText.includes(kw))) {
     sentiment = 'positive';
     score = 0.6;
   }
@@ -207,7 +207,7 @@ function parseSentimentResponse(content: string): SentimentResult {
   try {
     // Try to extract JSON from markdown code blocks
     const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/\{[\s\S]*\}/);
-    const jsonStr = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+    const jsonStr = jsonMatch ? jsonMatch[1] || jsonMatch[0] : content;
     const parsed = JSON.parse(jsonStr);
 
     return {
@@ -251,24 +251,23 @@ export async function getUserSentimentTrends(userId: string, days: number = 7) {
     };
   }
 
-  const averageScore = analyses.reduce((sum: number, a: { score: number }) => sum + a.score, 0) / analyses.length;
+  const averageScore = analyses.reduce((sum: number, a: {score: number;}) => sum + a.score, 0) / analyses.length;
 
   const sentimentCounts: Record<string, number> = {};
-  analyses.forEach((a: { sentiment: string }) => {
+  analyses.forEach((a: {sentiment: string;}) => {
     sentimentCounts[a.sentiment] = (sentimentCounts[a.sentiment] || 0) + 1;
   });
 
-  const dominantSentiment = Object.entries(sentimentCounts)
-    .sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0][0] as SentimentResult['sentiment'];
+  const dominantSentiment = Object.entries(sentimentCounts).
+  sort((a: [string, number], b: [string, number]) => b[1] - a[1])[0][0] as SentimentResult['sentiment'];
 
   return {
     averageScore,
     dominantSentiment,
-    trends: analyses.map((a: { createdAt: Date; sentiment: string; score: number }) => ({
+    trends: analyses.map((a: {createdAt: Date;sentiment: string;score: number;}) => ({
       date: a.createdAt,
       sentiment: a.sentiment,
       score: a.score
     }))
   };
 }
-

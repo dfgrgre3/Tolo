@@ -5,15 +5,31 @@ import * as React from "react"
 import { Moon, Sun } from "lucide-react"
 import { useTheme } from "next-themes"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/contexts/auth-context"
+import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client"
+import { logger } from "@/lib/logger"
 
 export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; onToggle?: () => void } = {}) {
   const { setTheme, theme } = useTheme()
-
-  const handleToggle = () => {
+  const { user } = useAuth()
+ 
+  const handleToggle = async () => {
+    const nextTheme = theme === "light" ? "dark" : "light"
+    
     if (onToggle) {
       onToggle()
     } else {
-      setTheme(theme === "light" ? "dark" : "light")
+      setTheme(nextTheme)
+      
+      if (user?.id) {
+        try {
+          await saveSettingsPreferences({
+            appearance: { theme: nextTheme }
+          })
+        } catch (error) {
+          logger.error("Failed to sync theme preference:", error)
+        }
+      }
     }
   }
 
@@ -27,7 +43,7 @@ export function ThemeToggle({ isDarkMode, onToggle }: { isDarkMode?: boolean; on
     >
       <Sun className={`h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "-rotate-90 scale-0" : "rotate-0 scale-100"}`} />
       <Moon className={`absolute h-[1.2rem] w-[1.2rem] transition-all ${isDark ? "rotate-0 scale-100" : "rotate-90 scale-0"}`} />
-      <span className="sr-only">تبديل المظهر</span>
+      <span className="sr-only">تبديل الم٪ر</span>
     </Button>
   )
 }

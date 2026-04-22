@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Utility functions for time management calculations
  */
 

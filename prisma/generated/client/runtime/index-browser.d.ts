@@ -1,4 +1,4 @@
-declare class AnyNull extends NullTypesEnumValue {
+﻿declare class AnyNull extends NullTypesEnumValue {
     #private;
 }
 

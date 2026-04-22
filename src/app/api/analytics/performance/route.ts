@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import redisClient, { CacheService } from '@/lib/redis';
+import { CacheService } from '@/lib/redis';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
       // Process metrics for the requested time period
       const now = Date.now();
-      const timeThreshold = now - (hours * 60 * 60 * 1000);
+      const timeThreshold = now - hours * 60 * 60 * 1000;
 
       const processedMetrics: Record<string, {
         count: number;
@@ -42,8 +42,8 @@ export async function GET(request: NextRequest) {
         trend: 'up' | 'down' | 'stable';
       }> = {};
 
-      Object.keys(metrics).forEach(key => {
-        const values = metrics[key].filter(timestamp => timestamp > timeThreshold);
+      Object.keys(metrics).forEach((key) => {
+        const values = metrics[key].filter((value) => value > timeThreshold);
 
         if (values.length > 0) {
           const count = values.length;
@@ -109,11 +109,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const timestamp = Date.now();
+      const _timestamp = Date.now();
 
       try {
         // Try to store in Redis
-        const existingMetrics = await CacheService.get<Record<string, number[]>>('perf:metrics') || {};
+        const existingMetrics = (await CacheService.get<Record<string, number[]>>('perf:metrics')) || {};
 
         if (!existingMetrics[metric]) {
           existingMetrics[metric] = [];

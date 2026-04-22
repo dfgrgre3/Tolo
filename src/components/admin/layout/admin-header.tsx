@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -203,7 +203,7 @@ export function AdminHeader({ onMenuClick }: AdminHeaderProps) {
         {/* Theme Toggle */}
         <IconButton
           icon={!mounted ? Sun : (theme === "dark" ? Moon : Sun)}
-          label="تبديل المظهر"
+          label="تبديل الم٪ر"
           variant="ghost"
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         />

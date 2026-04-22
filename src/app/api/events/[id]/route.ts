@@ -6,10 +6,10 @@ import { logger } from '@/lib/logger';
 
 // GET a single event by ID
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { id } = await params;
 

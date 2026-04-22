@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
         const reports = await prisma.contentReport.findMany({
           where: {
             ...(status && { status }),
-            ...(type && { targetType: type }),
+            ...(type && { targetType: type })
           },
           include: {
             user: {
@@ -56,7 +56,7 @@ export async function PATCH(request: NextRequest) {
           where: { id },
           data: {
             ...(status && { status }),
-            ...(adminNote !== undefined && { adminNote }),
+            ...(adminNote !== undefined && { adminNote })
           }
         });
 

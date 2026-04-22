@@ -1,4 +1,4 @@
-import Link from 'next/link';
+﻿import Link from 'next/link';
 import { ShieldAlert, ArrowRight } from 'lucide-react';
 
 export default function UnauthorizedPage() {

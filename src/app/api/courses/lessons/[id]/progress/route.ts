@@ -1,45 +1,73 @@
-﻿import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { successResponse, badRequestResponse, handleApiError, ApiError, withAuth } from '@/lib/api-utils';
-import { logger } from '@/lib/logger';
-import { Prisma } from "@prisma/client";
+import {
+  successResponse,
+  badRequestResponse,
+  handleApiError,
+  ApiError,
+  withAuth
+} from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 import { EducationalCache } from "@/lib/cache";
 import { handleLessonCompletion } from "@/lib/courses/course-integration-service";
 
-// POST to update lesson progress
+type ProgressPayload = {
+  completed?: boolean;
+  positionSeconds?: number;
+};
+
+// POST to update lesson completion and/or video position
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const { id } = await params; // lesson ID
-        const { completed, subject } = await req.json();
+        const { id } = await params;
+        const body = await req.json() as ProgressPayload;
+        const completed = typeof body.completed === "boolean" ? body.completed : undefined;
+        const positionSeconds =
+        typeof body.positionSeconds === "number" && Number.isFinite(body.positionSeconds) ?
+        Math.max(0, Math.round(body.positionSeconds)) :
+        undefined;
 
-        if (completed === undefined || !subject) {
-          return badRequestResponse("ط­ط§ظ„ط© ط§ظ„ط¥ظƒظ…ط§ظ„ ظˆط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨ط©");
+        if (completed === undefined && positionSeconds === undefined) {
+          return badRequestResponse("حالة الإكمال أو موضع المشاهدة مطلوب");
         }
 
-        // Use transaction for consistency and to prevent race conditions
         const result = await (prisma as any).$transaction(async (tx: any) => {
-          // Check if lesson exists and get subject details
           const lesson = await tx.subTopic.findUnique({
             where: { id },
-            select: { 
+            select: {
               id: true,
-              topic: { select: { subjectId: true } }
+              topic: {
+                select: {
+                  subjectId: true
+                }
+              }
             }
           });
 
           if (!lesson) {
-             throw new ApiError("ط§ظ„ط¯ط±ط³ ط؛ظٹط± ظ…ظˆط¬ظˆط¯", 404);
+            throw new ApiError("الدرس غير موجود", 404);
           }
 
           const subjectId = lesson.topic.subjectId;
+          const enrollment = await tx.subjectEnrollment.findUnique({
+            where: {
+              userId_subjectId: {
+                userId,
+                subjectId
+              }
+            }
+          });
 
-          // Check existing progress for idempotency
+          if (!enrollment && completed !== undefined) {
+            throw new ApiError("يجب التسجيل في الدورة لتحديث الإكمال", 403);
+          }
+
           const existingProgress = await tx.topicProgress.findUnique({
             where: {
               userId_subTopicId: {
@@ -49,7 +77,6 @@ export async function POST(
             }
           });
 
-          // Update or create progress record
           const progressRecord = await tx.topicProgress.upsert({
             where: {
               userId_subTopicId: {
@@ -57,85 +84,92 @@ export async function POST(
                 subTopicId: id
               }
             },
-            update: { completed },
+            update: {
+              ...(completed !== undefined ?
+              {
+                completed,
+                completedAt: completed ? new Date() : null
+              } :
+              {}),
+              ...(positionSeconds !== undefined ? { lastVideoPosition: positionSeconds } : {})
+            },
             create: {
               userId,
               subTopicId: id,
-              completed
+              completed: completed ?? false,
+              completedAt: completed ? new Date() : null,
+              lastVideoPosition: positionSeconds ?? 0
             }
           });
 
-          // Optimized Progress Calculation
           const isMarkedCompleted = completed === true;
           const wasNotCompletedBefore = !existingProgress || !existingProgress.completed;
-          const wasCompletedBefore = existingProgress && existingProgress.completed;
+          const wasCompletedBefore = Boolean(existingProgress?.completed);
 
-          let updatedEnrollment;
+          let updatedEnrollment = enrollment;
           let integrationResult = null;
-          
-          if (isMarkedCompleted && wasNotCompletedBefore) {
-            // New completion: Increment counter
-            updatedEnrollment = (await tx.subjectEnrollment.update({
+
+          if (enrollment && isMarkedCompleted && wasNotCompletedBefore) {
+            updatedEnrollment = await tx.subjectEnrollment.update({
               where: { userId_subjectId: { userId, subjectId } },
               data: { completedLessonsCount: { increment: 1 } } as any
-            })) as any;
-            
-            // Full integration: XP, achievements, notifications, certificates
+            });
+
             integrationResult = await handleLessonCompletion(userId, id, subjectId, tx);
-          } else if (!isMarkedCompleted && wasCompletedBefore) {
-            // Un-completion: Decrement counter
-            updatedEnrollment = (await tx.subjectEnrollment.update({
+          } else if (enrollment && completed === false && wasCompletedBefore) {
+            updatedEnrollment = await tx.subjectEnrollment.update({
               where: { userId_subjectId: { userId, subjectId } },
               data: { completedLessonsCount: { decrement: 1 } } as any
-            })) as any;
-          } else {
-            // No change in completion status
-            updatedEnrollment = await tx.subjectEnrollment.findUnique({
-               where: { userId_subjectId: { userId, subjectId } }
             });
           }
 
           if (updatedEnrollment) {
-            // Recalculate percentage using cached total count
             const totalCountKey = `subject:${subjectId}:totalSubTopics`;
             const totalSubTopicsCount = await EducationalCache.getOrSet(totalCountKey, async () => {
               return await prisma.subTopic.count({
                 where: { topic: { subjectId } }
               });
-            }, 3600); // Cache for 1 hour
+            }, 3600);
 
-            const progressPercentage = totalSubTopicsCount > 0 
-              ? Math.min(100, Math.round(((updatedEnrollment as any).completedLessonsCount / (totalSubTopicsCount as number)) * 100))
-              : 0;
+            const progressPercentage = totalSubTopicsCount > 0 ?
+            Math.min(
+              100,
+              Math.round((updatedEnrollment.completedLessonsCount / (totalSubTopicsCount as number)) * 100)
+            ) :
+            0;
 
             if (progressPercentage !== updatedEnrollment.progress) {
-              await tx.subjectEnrollment.update({
+              updatedEnrollment = await tx.subjectEnrollment.update({
                 where: { id: updatedEnrollment.id },
                 data: { progress: progressPercentage }
               });
             }
           }
 
-          return { 
-            progress: progressRecord, 
-            integration: integrationResult 
+          return {
+            progress: progressRecord,
+            integration: integrationResult
           };
         });
 
         return successResponse({
           ...result.progress,
-          ...(result.integration ? {
+          ...(result.integration ?
+          {
             xpAwarded: result.integration.xpAwarded,
             courseProgress: result.integration.courseProgress,
             isChapterComplete: result.integration.isChapterComplete,
             isCourseComplete: result.integration.isCourseComplete,
             certificateCreated: result.integration.certificateCreated,
-          } : {}),
+            certificateId: result.integration.certificateId
+          } :
+          {})
         });
       } catch (error) {
         if (error instanceof ApiError) {
-           return handleApiError(error);
+          return handleApiError(error);
         }
+
         logger.error("Error updating lesson progress:", error instanceof Error ? error.message : String(error));
         return handleApiError(error);
       }
@@ -145,9 +179,9 @@ export async function POST(
 
 // GET lesson progress
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
@@ -162,7 +196,7 @@ export async function GET(
           }
         });
 
-        return successResponse(progress || { completed: false });
+        return successResponse(progress || { completed: false, lastVideoPosition: 0 });
       } catch (error) {
         logger.error("Error fetching lesson progress:", error);
         return handleApiError(error);
@@ -170,4 +204,3 @@ export async function GET(
     });
   });
 }
-

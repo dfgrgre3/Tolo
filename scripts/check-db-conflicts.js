@@ -1,8 +1,8 @@
-#!/usr/bin/env node
+﻿#!/usr/bin/env node
 
 /**
  * Script to check for database connection conflicts
- * يتحقق من تضارب الاتصال بقاعدة البيانات
+ * ظٹطھط­ظ‚ظ‚ ظ…ظ† طھط¶ط§ط±ط¨ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
  * 
  * Usage: node scripts/check-db-conflicts.js
  */
@@ -10,7 +10,7 @@
 const fs = require('fs');
 const path = require('path');
 
-console.log('🔍 Checking for database connection conflicts...\n');
+console.log('ًں”چ Checking for database connection conflicts...\n');
 
 let hasErrors = false;
 let hasWarnings = false;
@@ -47,11 +47,11 @@ function removeComments(content) {
 
 
 // 1. Check for direct PrismaClient instantiation
-console.log('1️⃣ Checking for direct PrismaClient instantiation...');
+console.log('1ï¸ڈâƒ£ Checking for direct PrismaClient instantiation...');
 try {
   const srcDir = path.join(process.cwd(), 'src');
   if (!fs.existsSync(srcDir)) {
-    console.log('⚠️  src/ directory not found');
+    console.log('âڑ ï¸ڈ  src/ directory not found');
     hasWarnings = true;
   } else {
     const tsFiles = findTsFiles(srcDir);
@@ -87,22 +87,22 @@ try {
     });
     
     if (problematicFiles.length > 0) {
-      console.log('❌ Found direct PrismaClient instantiation outside src/lib/db.ts:');
+      console.log('â‌Œ Found direct PrismaClient instantiation outside src/lib/db.ts:');
       problematicFiles.forEach(({ file, line }) => {
         console.log(`   ${file}:${line}`);
       });
       hasErrors = true;
     } else {
-      console.log('✅ No problematic PrismaClient instantiation found');
+      console.log('âœ… No problematic PrismaClient instantiation found');
     }
   }
 } catch (error) {
-  console.log(`⚠️  Error checking for PrismaClient instantiation: ${error.message}`);
+  console.log(`âڑ ï¸ڈ  Error checking for PrismaClient instantiation: ${error.message}`);
   hasWarnings = true;
 }
 
 // 2. Check for direct imports from '@prisma/client'
-console.log('\n2️⃣ Checking for direct PrismaClient imports from @prisma/client...');
+console.log('\n2ï¸ڈâƒ£ Checking for direct PrismaClient imports from @prisma/client...');
 try {
   const srcDir = path.join(process.cwd(), 'src');
   if (fs.existsSync(srcDir)) {
@@ -143,23 +143,23 @@ try {
     });
     
     if (problematicFiles.length > 0) {
-      console.log('❌ Found direct PrismaClient imports (should use @/lib/db instead):');
+      console.log('â‌Œ Found direct PrismaClient imports (should use @/lib/db instead):');
       problematicFiles.forEach(({ file, matches }) => {
         console.log(`   ${file}`);
         matches.forEach(match => console.log(`      ${match.trim()}`));
       });
       hasErrors = true;
     } else {
-      console.log('✅ No problematic PrismaClient imports found');
+      console.log('âœ… No problematic PrismaClient imports found');
     }
   }
 } catch (error) {
-  console.log(`⚠️  Error checking for PrismaClient imports: ${error.message}`);
+  console.log(`âڑ ï¸ڈ  Error checking for PrismaClient imports: ${error.message}`);
   hasWarnings = true;
 }
 
 // 3. Check for .bak files
-console.log('\n3️⃣ Checking for backup files that might be imported...');
+console.log('\n3ï¸ڈâƒ£ Checking for backup files that might be imported...');
 try {
   const srcDir = path.join(process.cwd(), 'src');
   if (fs.existsSync(srcDir)) {
@@ -170,22 +170,22 @@ try {
     });
     
     if (backupFiles.length > 0) {
-      console.log('⚠️  Found backup files that might cause confusion:');
+      console.log('âڑ ï¸ڈ  Found backup files that might cause confusion:');
       backupFiles.forEach(file => {
         console.log(`   ${path.relative(process.cwd(), file)}`);
       });
       hasWarnings = true;
     } else {
-      console.log('✅ No backup files found');
+      console.log('âœ… No backup files found');
     }
   }
 } catch (error) {
-  console.log(`⚠️  Error checking for backup files: ${error.message}`);
+  console.log(`âڑ ï¸ڈ  Error checking for backup files: ${error.message}`);
   hasWarnings = true;
 }
 
 // 4. Verify that db.ts handles the database connection
-console.log('\n4️⃣ Verifying that db.ts correctly handles the database connection...');
+console.log('\n4ï¸ڈâƒ£ Verifying that db.ts correctly handles the database connection...');
 const dbPath = path.join(process.cwd(), 'src/lib/db.ts');
 
 if (fs.existsSync(dbPath)) {
@@ -199,16 +199,16 @@ if (fs.existsSync(dbPath)) {
   const exportsPrisma = content.includes('export const prisma') || content.includes('export default prisma');
   
   if (hasNewPrismaClient && exportsPrisma) {
-    console.log('✅ src/lib/db.ts is correctly configured as the database entry point.');
+    console.log('âœ… src/lib/db.ts is correctly configured as the database entry point.');
   } else if (!hasNewPrismaClient) {
-    console.log('❌ src/lib/db.ts missing instantiation "new PrismaClient()"');
+    console.log('â‌Œ src/lib/db.ts missing instantiation "new PrismaClient()"');
     hasErrors = true;
   } else {
-    console.log('⚠️  src/lib/db.ts might not be exporting the prisma client correctly');
+    console.log('âڑ ï¸ڈ  src/lib/db.ts might not be exporting the prisma client correctly');
     hasWarnings = true;
   }
 } else {
-  console.log('❌ src/lib/db.ts not found! This is now required as the unified entry point.');
+  console.log('â‌Œ src/lib/db.ts not found! This is now required as the unified entry point.');
   hasErrors = true;
 }
 
@@ -216,12 +216,12 @@ if (fs.existsSync(dbPath)) {
 // Summary
 console.log('\n' + '='.repeat(50));
 if (hasErrors) {
-  console.log('❌ ERRORS FOUND - Please fix the issues above');
+  console.log('â‌Œ ERRORS FOUND - Please fix the issues above');
   process.exit(1);
 } else if (hasWarnings) {
-  console.log('⚠️  WARNINGS FOUND - Review the warnings above');
+  console.log('âڑ ï¸ڈ  WARNINGS FOUND - Review the warnings above');
   process.exit(0);
 } else {
-  console.log('✅ No conflicts found! Database connection setup is correct.');
+  console.log('âœ… No conflicts found! Database connection setup is correct.');
   process.exit(0);
 }

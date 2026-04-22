@@ -4,13 +4,13 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ goalId: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{goalId: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { goalId } = await params;
-      const body = await req.json();
+      const body = await request.json();
       const { currentValue } = body;
 
       if (currentValue === undefined) {
@@ -35,10 +35,10 @@ export async function PATCH(
 }
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ goalId: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{goalId: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { goalId } = await params;
       await gamificationService.deleteCustomGoal(goalId);
@@ -57,4 +57,3 @@ export async function DELETE(
     }
   });
 }
-

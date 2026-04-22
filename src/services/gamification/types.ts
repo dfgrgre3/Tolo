@@ -1,4 +1,4 @@
-export interface Achievement {
+﻿export interface Achievement {
   key: string;
   name: string;
   description: string;

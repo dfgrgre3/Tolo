@@ -1,4 +1,4 @@
-export interface RateLimitConfig {
+﻿export interface RateLimitConfig {
     windowMs: number;
     maxAttempts: number;
     lockoutMs?: number;

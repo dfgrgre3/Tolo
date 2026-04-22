@@ -1,4 +1,4 @@
-import { CategoryType } from "@prisma/client";
+﻿import { CategoryType } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
@@ -240,7 +240,7 @@ export async function DELETE(request: NextRequest) {
         });
 
         if (attachedCourses > 0) {
-          return badRequestResponse(`لا يمكن حذف هذا التصنيف لارتباطه بعدد ${attachedCourses} دورة`);
+          return badRequestResponse(`لا يمكن حذف هذا التصنيف لارتبات بعدد ${attachedCourses} دورة`);
         }
 
         await prisma.category.delete({

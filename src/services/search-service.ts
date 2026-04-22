@@ -1,4 +1,4 @@
-import { Client } from '@elastic/elasticsearch';
+﻿import { Client } from '@elastic/elasticsearch';
 import { logger } from '@/lib/logger';
 import { prisma } from '@/lib/db';
 import { BaseService } from '@/lib/base-service';

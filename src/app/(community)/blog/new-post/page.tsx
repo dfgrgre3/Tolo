@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -201,7 +201,7 @@ export default function NewBlogPostPage() {
                       className="text-muted-foreground hover:text-foreground"
                       onClick={() => handleRemoveTag(tag)}
                     >
-                      ×
+                      أ—
                     </button>
                   </div>
                 ))}

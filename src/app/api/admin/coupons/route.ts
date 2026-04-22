@@ -1,18 +1,19 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { DiscountType } from '@prisma/client';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // GET all coupons for admin
-export async function GET(req: Request) {
+export async function GET(_req: Request) {
   try {
     // Note: Middleware/Proxy handles ADMIN role check for /api/admin/*
     const coupons = await prisma.coupon.findMany({
       orderBy: { createdAt: 'desc' },
       include: {
-          _count: {
-              select: { payments: { where: { status: 'SUCCESS' } } }
-          }
+        _count: {
+          select: { payments: { where: { status: 'SUCCESS' } } }
+        }
       }
     });
 
@@ -27,14 +28,14 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { 
-        code, 
-        discountType, 
-        discountValue, 
-        description, 
-        maxUses, 
-        expiryDate, 
-        minOrderAmount 
+    const {
+      code,
+      discountType,
+      discountValue,
+      description,
+      maxUses,
+      expiryDate,
+      minOrderAmount
     } = body;
 
     if (!code || !discountValue) {
@@ -58,7 +59,7 @@ export async function POST(req: Request) {
         maxUses: maxUses ? parseInt(maxUses) : null,
         expiryDate: expiryDate ? new Date(expiryDate) : null,
         minOrderAmount: minOrderAmount ? parseFloat(minOrderAmount) : 0,
-        isActive: true,
+        isActive: true
       }
     });
 

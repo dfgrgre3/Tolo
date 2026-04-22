@@ -2,11 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { gamificationService } from '@/services/gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
-import { ensureUser } from '@/lib/user-utils';
+
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
+  return opsWrapper(request, async (_req) => {
     try {
       logger.info('Achievements API called');
 
@@ -27,15 +27,12 @@ export async function GET(request: NextRequest) {
       const category = searchParams.get('category');
       const difficulty = searchParams.get('difficulty');
       const userIdParam = searchParams.get('userId');
-
-      // Try to get authenticated user first, fallback to guest user
+        // Try to get authenticated user first, fallback to guest user
       let userId: string | null = null;
-
-      // Check if we have authentication headers
+        // Check if we have authentication headers
       const authHeader = req.headers.get('authorization') || req.headers.get('Authorization');
       const userIdHeader = req.headers.get('x-user-id');
-
-      if (userIdHeader) {
+        if (userIdHeader) {
         // User is authenticated via middleware
         userId = userIdHeader;
       } else if (authHeader) {
@@ -51,8 +48,7 @@ export async function GET(request: NextRequest) {
           // Token invalid, continue to guest flow
         }
       }
-
-      // If still no userId, try from params or create guest user
+        // If still no userId, try from params or create guest user
       if (!userId) {
         if (userIdParam) {
           userId = userIdParam;
@@ -60,13 +56,17 @@ export async function GET(request: NextRequest) {
           userId = await ensureUser();
         }
       }
-
-      if (!userId) {
+        if (!userId) {
         return badRequestResponse('User identification required');
       }
-
-      return await handleAchievementsRequest(userId, category, difficulty);
+        return await handleAchievementsRequest(userId, category, difficulty);
       */
+
+
+
+
+
+
     } catch (error) {
       logger.error('Error in achievements API:', error);
       return handleApiError(error);
@@ -74,11 +74,11 @@ export async function GET(request: NextRequest) {
   });
 }
 
-async function handleAchievementsRequest(
-  userId: string,
-  category: string | null,
-  difficulty: string | null
-): Promise<NextResponse> {
+async function _handleAchievementsRequest(
+userId: string,
+category: string | null,
+difficulty: string | null)
+: Promise<NextResponse> {
   try {
     logger.info(`Fetching achievements for user: ${userId}`);
 
@@ -148,10 +148,10 @@ async function handleAchievementsRequest(
 }
 
 export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
-    return withAuth(req, async (authUser) => {
+  return opsWrapper(request, async (_req) => {
+    return withAuth(request, async (authUser) => {
       try {
-        const body = await req.json();
+        const body = await request.json();
         const { action, data } = body;
 
         if (!action) {

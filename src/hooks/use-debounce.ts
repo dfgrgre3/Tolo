@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { logger } from '@/lib/logger';
+
+
 
 /**
  * Hook لتأخير تحديث القيمة (Debouncing)
@@ -73,9 +74,9 @@ export function useDebounce<T>(value: T, delay: number = 500): T {
  * ```
  */
 export function useDebouncedCallback<T extends (...args: unknown[]) => unknown>(
-  callback: T,
-  delay: number = 500
-): (...args: Parameters<T>) => void {
+callback: T,
+delay: number = 500)
+: (...args: Parameters<T>) => void {
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
 
   return (...args: Parameters<T>) => {

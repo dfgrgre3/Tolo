@@ -12,7 +12,8 @@ import { AchievementTable } from "./AchievementTable";
 import { AchievementFormDialog } from "./AchievementFormDialog";
 import { Achievement } from "./types";
 import { motion } from "framer-motion";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export default function AdminAchievementsPage() {
   const [achievements, setAchievements] = React.useState<Achievement[]>([]);
@@ -157,7 +158,7 @@ export default function AdminAchievementsPage() {
       <ConfirmDialog
         open={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog({ open, id: null })}
-        title="سحب وسام الشرف؟"
+        title="سحب وسام الشرف"
         description="هل أنت متأكد من حذف هذا الوسام من سجلات المملكة؟ هذا القرار سيؤثر على تاريخ المحاربين الحاصلين عليه."
         confirmText="نعم، احذف الوسام"
         variant="destructive"

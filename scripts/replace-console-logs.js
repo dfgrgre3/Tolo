@@ -1,6 +1,6 @@
-/**
+﻿/**
  * Script to replace console.* calls with unified logger
- * سكريبت لاستبدال استخدامات console.* بنظام التسجيل الموحد
+ * ط³ظƒط±ظٹط¨طھ ظ„ط§ط³طھط¨ط¯ط§ظ„ ط§ط³طھط®ط¯ط§ظ…ط§طھ console.* ط¨ظ†ط¸ط§ظ… ط§ظ„طھط³ط¬ظٹظ„ ط§ظ„ظ…ظˆط­ط¯
  */
 
 const fs = require('fs');
@@ -164,12 +164,12 @@ function processFile(filePath) {
 
     if (hasChanges) {
       fs.writeFileSync(filePath, newContent, 'utf8');
-      console.log(`✓ Processed: ${filePath}`);
+      console.log(`âœ“ Processed: ${filePath}`);
       return true;
     }
     return false;
   } catch (error) {
-    console.error(`✗ Error processing ${filePath}:`, error.message);
+    console.error(`âœ— Error processing ${filePath}:`, error.message);
     return false;
   }
 }
@@ -180,7 +180,7 @@ function main() {
   const dryRun = args.includes('--dry-run');
   const specificFile = args.find(arg => !arg.startsWith('--'));
 
-  console.log('🔍 Searching for console.* calls...\n');
+  console.log('ًں”چ Searching for console.* calls...\n');
 
   let filesToProcess = [];
 
@@ -222,11 +222,11 @@ function main() {
     }
   });
 
-  console.log(`\n✅ Processed ${processedCount} files`);
-  console.log(`📝 ${changedCount} files would be modified`);
+  console.log(`\nâœ… Processed ${processedCount} files`);
+  console.log(`ًں“‌ ${changedCount} files would be modified`);
 
   if (dryRun) {
-    console.log('\n💡 Run without --dry-run to apply changes');
+    console.log('\nًں’، Run without --dry-run to apply changes');
   }
 }
 

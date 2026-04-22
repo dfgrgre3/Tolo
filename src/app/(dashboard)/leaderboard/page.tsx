@@ -37,14 +37,14 @@ export default function LeaderboardPage() {
 
   const {
     userProgress,
-    achievements,
+    achievements: _achievements,
     leaderboard,
     currentAchievement,
     clearAchievementNotification,
     getUserRank,
     isLoading,
-    error,
-    refreshData
+    error: _error,
+    refreshData: _refreshData
   } = useGamification({
     userId,
     enableNotifications: true
@@ -100,10 +100,10 @@ export default function LeaderboardPage() {
             <span>الحلبة الكبرى للمتفوقين</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
-             مدرج <span className={STYLES.neonText}>خالد الطلبة</span> 🏛️
+             مدرج <span className={STYLES.neonText}>خالد الطلبة</span> ًںڈ›ï¸ڈ
           </h1>
           <p className="text-lg text-gray-400 font-medium max-w-2xl mx-auto">
-            هنا تُخلد أسماء الأبطال الذين قهروا رغبات الراحة وبنوا مجدهم بالعلم والاجتهاد. هل أنت مستعد لتحدي العظماء؟
+            هنا تظڈخلد أسماء الأبطال الذين قهروا رغبات الراحة وبنوا مجدهم بالعلم والاجتهاد. هل أنت مستعد لتحدي العظماء؟
           </p>
         </motion.div>
 

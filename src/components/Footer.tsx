@@ -1,21 +1,21 @@
 "use client";
 
 import React from "react";
-import { 
-  CheckCircle2, 
-  Map, 
-  BookOpen, 
-  Shield, 
-  History, 
-  Twitter, 
-  Github, 
+import {
+  CheckCircle2,
+  Map,
+  BookOpen,
+  Shield,
+  History,
+  Twitter,
+  Github,
   Linkedin,
   Sparkles,
   Trophy,
   Info,
-  Bell
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+  Bell } from
+"lucide-react";
+
 import { motion } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
@@ -30,22 +30,22 @@ export default function Footer() {
   }, []);
 
   const footerLinks = [
-    { title: "الأكاديمية", items: [
-      { name: "جميع الدورات", href: "/courses", icon: BookOpen },
-      { name: "المسارات التعليمية", href: "/pathways", icon: Map },
-      { name: "سجل الإنجازات", href: "/courses", icon: Trophy },
-    ]},
-    { title: "المجتمع", items: [
-      { name: "المنتدى", href: "/forum", icon: Shield },
-      { name: "لوحة الصدارة", href: "/courses", icon: Sparkles },
-      { name: "المدونة", href: "/blog", icon: History },
-    ]},
-    { title: "تواصل معنا", items: [
-      { name: "عن المنصة", href: "/about", icon: Info },
-      { name: "اتصل بنا", href: "/contact", icon: Bell },
-      { name: "الشروط والخصوصية", href: "/privacy", icon: Shield },
-    ]},
-  ];
+  { title: "الأكاديمية", items: [
+    { name: "جميع الدورات", href: "/courses", icon: BookOpen },
+    { name: "المسارات التعليمية", href: "/pathways", icon: Map },
+    { name: "سجل الإنجازات", href: "/courses", icon: Trophy }]
+  },
+  { title: "المجتمع", items: [
+    { name: "المنتدى", href: "/forum", icon: Shield },
+    { name: "لوحة الصدارة", href: "/courses", icon: Sparkles },
+    { name: "المدونة", href: "/blog", icon: History }]
+  },
+  { title: "تواصل معنا", items: [
+    { name: "عن المنصة", href: "/about", icon: Info },
+    { name: "اتصل بنا", href: "/contact", icon: Bell },
+    { name: "الشروط والخصوصية", href: "/privacy", icon: Shield }]
+  }];
+
 
   if (!isMounted) return null;
 
@@ -63,14 +63,14 @@ export default function Footer() {
           <div className="space-y-6">
             <Link href="/" className="flex items-center gap-3 group">
               <div className="relative h-12 w-12 rounded-xl overflow-hidden bg-white border border-primary/20 transition-all group-hover:scale-110 group-hover:rotate-6">
-                <Image 
-                  src="/logo-tolo.jpg" 
-                  alt="TOLO" 
+                <Image
+                  src="/logo-tolo.jpg"
+                  alt="TOLO"
                   fill
                   priority
                   sizes="48px"
-                  className="object-cover"
-                />
+                  className="object-cover" />
+                
               </div>
               <div>
                 <h2 className="text-3xl font-black text-foreground tracking-tight">TOLO</h2>
@@ -81,49 +81,49 @@ export default function Footer() {
               ساحة المعركة بانتظارك! أكمل مهماتك اليومية، ارفع مستواك، وسيطر على لوحة الصدارة في أكبر منصة تعليمية بأسلوب RPG.
             </p>
             <div className="flex items-center gap-4">
-              {[Twitter, Github, Linkedin].map((Icon, i) => (
-                <button key={i} className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:border-primary/50 transition-all hover:scale-110">
+              {[Twitter, Github, Linkedin].map((Icon, i) =>
+              <button key={i} className="h-10 w-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:text-white hover:border-primary/50 transition-all hover:scale-110">
                   <Icon className="h-5 w-5" />
                 </button>
-              ))}
+              )}
             </div>
           </div>
 
           {/* Links Sections */}
-          {footerLinks.map((section, idx) => (
-            <div key={idx} className="space-y-6">
+          {footerLinks.map((section, idx) =>
+          <div key={idx} className="space-y-6">
               <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] border-r-2 border-primary pr-4">
                 {section.title}
               </h3>
               <ul className="space-y-4">
-                {section.items.map((item, i) => (
-                  <li key={i}>
+                {section.items.map((item, i) =>
+              <li key={i}>
                     <Link href={item.href} className="text-gray-500 text-sm font-bold hover:text-primary transition-colors flex items-center gap-3 group">
                       {item.icon && <item.icon className="h-4 w-4 opacity-40 group-hover:opacity-100 transition-opacity whitespace-nowrap" />}
                       <span>{item.name}</span>
                     </Link>
                   </li>
-                ))}
+              )}
               </ul>
             </div>
-          ))}
+          )}
         </div>
 
         {/* --- Bottom Barrier --- */}
         <div className="relative pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <p className="font-bold text-gray-600 text-sm">© {new Date().getFullYear()} TOLO. جميع الحقوق محفوظة.</p>
-            {user && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black"
-              >
+            <p className="font-bold text-gray-600 text-sm">آ© {new Date().getFullYear()} TOLO. جميع الحقوق محفوظة.</p>
+            {user &&
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black">
+              
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>المحارب المتصل: {user.name || user.username || user.email}</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
               </motion.div>
-            )}
+            }
           </div>
           
           <div className="flex flex-col items-center md:items-end gap-1 opacity-40">
@@ -132,6 +132,6 @@ export default function Footer() {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>);
+
 }

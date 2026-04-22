@@ -33,10 +33,10 @@ export async function GET(req: NextRequest) {
       const heartbeatInterval = setInterval(() => {
         try {
           controller.enqueue(encoder.encode(': heartbeat\n\n'));
-        } catch (e) {
+        } catch (_e) {
+
           // Swallow if controller is closed
-        }
-      }, 15000);
+        }}, 15000);
 
       // Subscribe to Redis Pub/Sub events for this specific user
       const unsubscribe = await realtimeBus.subscribe(`user:${userId}`, sendEvent);
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Origin': '*'
     }
   });
 }

@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+
 import { xpService as modularXPService } from '@/modules/gamification/xp.service';
 import { logger } from '@/lib/logger';
 
@@ -22,10 +22,10 @@ export class XPService {
    * Delegates to the new high-performance modular service
    */
   async addXP(
-    userId: string,
-    amount: number,
-    type: 'study' | 'task' | 'exam' | 'challenge' | 'quest' | 'season' = 'study'
-  ): Promise<void> {
+  userId: string,
+  amount: number,
+  type: 'study' | 'task' | 'exam' | 'challenge' | 'quest' | 'season' = 'study')
+  : Promise<void> {
     try {
       await modularXPService.awardXP(userId, amount, type);
     } catch (error) {
@@ -37,10 +37,10 @@ export class XPService {
    * Internal processor now handled by the Modular Worker
    */
   async commitXPUpdate(
-    userId: string,
-    amount: number,
-    type: 'study' | 'task' | 'exam' | 'challenge' | 'quest' | 'season' = 'study'
-  ): Promise<void> {
+  userId: string,
+  amount: number,
+  type: 'study' | 'task' | 'exam' | 'challenge' | 'quest' | 'season' = 'study')
+  : Promise<void> {
     await modularXPService.processXPUpdate({ userId, amount, type });
   }
 

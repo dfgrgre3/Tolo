@@ -4,21 +4,21 @@ import React from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { Shield, Sparkles } from "lucide-react";
+
 
 export function HeaderLogo() {
   return (
-    <Link 
-      href="/" 
-      className="flex items-center gap-3 group relative z-50" 
+    <Link
+      href="/"
+      className="flex items-center gap-3 group relative z-50"
       prefetch={true}
-      scroll={true}
-    >
-      <motion.div 
+      scroll={true}>
+      
+      <motion.div
         className="relative flex items-center justify-center w-12 h-12 rounded-xl overflow-hidden bg-white border border-primary/20 shadow-sm transition-all duration-300 group-hover:border-primary group-hover:shadow-[0_0_20px_rgba(255,109,0,0.3)]"
         whileHover={{ scale: 1.1, rotate: 5 }}
-        whileTap={{ scale: 0.95 }}
-      >
+        whileTap={{ scale: 0.95 }}>
+        
         <Image
           src="/logo-tolo.jpg"
           alt="TOLO"
@@ -26,13 +26,13 @@ export function HeaderLogo() {
           height={48}
           className="h-full w-full object-cover"
           sizes="48px"
-          priority
-        />
+          priority />
+        
         <motion.div
-           animate={{ rotate: 360 }}
-           transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-           className="absolute inset-0 rounded-xl border border-dashed border-primary/10 opacity-0 group-hover:opacity-100"
-        />
+          animate={{ rotate: 360 }}
+          transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+          className="absolute inset-0 rounded-xl border border-dashed border-primary/10 opacity-0 group-hover:opacity-100" />
+        
       </motion.div>
       
       <div className="flex flex-col">
@@ -45,6 +45,6 @@ export function HeaderLogo() {
            </span>
         </div>
       </div>
-    </Link>
-  );
+    </Link>);
+
 }

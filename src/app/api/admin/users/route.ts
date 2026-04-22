@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { Prisma, UserRole } from "@prisma/client";
-import { withAdmin, handleApiError, successResponse, badRequestResponse, notFoundResponse } from "@/lib/api-utils";
+import { withAdmin, handleApiError, successResponse, badRequestResponse } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { PasswordService } from "@/services/auth/password-service";
 
@@ -22,80 +22,80 @@ export async function GET(request: NextRequest) {
 
         const where: Prisma.UserWhereInput = {
           AND: [
-            { isDeleted: false }, // Critical: Only show active users by default
-            search
-              ? {
-                  OR: [
-                    { name: { contains: search, mode: "insensitive" as const } },
-                    { email: { contains: search, mode: "insensitive" as const } },
-                    { username: { contains: search, mode: "insensitive" as const } },
-                  ],
-                }
-              : {},
-            role ? { role } : {},
-          ],
+          { isDeleted: false }, // Critical: Only show active users by default
+          search ?
+          {
+            OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { email: { contains: search, mode: "insensitive" as const } },
+            { username: { contains: search, mode: "insensitive" as const } }]
+
+          } :
+          {},
+          role ? { role } : {}]
+
         };
 
         const { CacheService } = await import("@/lib/cache");
 
         const [users, total, totalAdmins, powerUsers] = await Promise.all([
-          prisma.user.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: {
-              [sortBy]: sortOrder,
+        prisma.user.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: {
+            [sortBy]: sortOrder
+          },
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+            avatar: true,
+            role: true,
+            permissions: true,
+            emailVerified: true,
+            createdAt: true,
+            lastLogin: true,
+            xp: {
+              select: {
+                totalXP: true,
+                level: true
+              }
             },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              username: true,
-              avatar: true,
-              role: true,
-              permissions: true,
-              emailVerified: true,
-              createdAt: true,
-              lastLogin: true,
-              xp: {
-                select: {
-                  totalXP: true,
-                  level: true,
-                }
-              },
-              activity: {
-                select: {
-                  currentStreak: true,
-                }
-              },
-              sessions: {
-                where: {
-                  isActive: true,
-                },
-                select: {
-                  id: true,
-                },
-              },
-              _count: {
-                select: {
-                  tasks: true,
-                  studySessions: true,
-                  achievements: true,
-                },
-              },
+            activity: {
+              select: {
+                currentStreak: true
+              }
             },
-          }),
-          prisma.user.count({ where }),
-          // Cache global stats for 5 minutes to reduce DB load
-          CacheService.getOrSet("admin:users:stats:total_admins", () => 
-            prisma.user.count({ where: { role: UserRole.ADMIN } }), 
-            300
-          ),
-          CacheService.getOrSet("admin:users:stats:power_users", () => 
-            prisma.user.count({ where: { xp: { level: { gt: 10 } } } }),
-            300
-          ),
-        ]);
+            sessions: {
+              where: {
+                isActive: true
+              },
+              select: {
+                id: true
+              }
+            },
+            _count: {
+              select: {
+                tasks: true,
+                studySessions: true,
+                achievements: true
+              }
+            }
+          }
+        }),
+        prisma.user.count({ where }),
+        // Cache global stats for 5 minutes to reduce DB load
+        CacheService.getOrSet("admin:users:stats:total_admins", () =>
+        prisma.user.count({ where: { role: UserRole.ADMIN } }),
+        300
+        ),
+        CacheService.getOrSet("admin:users:stats:power_users", () =>
+        prisma.user.count({ where: { xp: { level: { gt: 10 } } } }),
+        300
+        )]
+        );
 
         // Flatten users for frontend consistency
         const flattenedUsers = users.map((u: any) => ({
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
           currentStreak: u.activity?.currentStreak || 0,
           // Remove relation objects to keep response clean
           xp: undefined,
-          activity: undefined,
+          activity: undefined
         }));
 
         return successResponse({
@@ -113,14 +113,14 @@ export async function GET(request: NextRequest) {
           summary: {
             totalUsers: total,
             totalAdmins,
-            powerUsers,
+            powerUsers
           },
           pagination: {
             page,
             limit,
             total,
-            totalPages: Math.ceil(total / limit),
-          },
+            totalPages: Math.ceil(total / limit)
+          }
         });
       } catch (error) {
         return handleApiError(error);
@@ -157,8 +157,8 @@ export async function POST(req: NextRequest) {
           username,
           passwordHash: hashedPassword,
           role: role as UserRole,
-          emailVerified: true,
-        },
+          emailVerified: true
+        }
       });
 
       const { passwordHash: _, ...userWithoutPassword } = user;
@@ -177,7 +177,7 @@ export async function PATCH(request: NextRequest) {
         const body = await req.json();
         const { userId, role, permissions } = body;
 
-        if (!userId || (!role && !permissions)) {
+        if (!userId || !role && !permissions) {
           return badRequestResponse("معرف المستخدم والدور أو الصلاحيات مطلوبان");
         }
 
@@ -185,8 +185,8 @@ export async function PATCH(request: NextRequest) {
           where: { id: userId },
           data: {
             ...(role && { role: role as UserRole }),
-            ...(permissions && { permissions }),
-          },
+            ...(permissions && { permissions })
+          }
         });
 
         return successResponse(user, "تم تحديث بيانات المستخدم بنجاح");
@@ -212,7 +212,7 @@ export async function DELETE(request: NextRequest) {
         // Perform Soft Delete to preserve historical associations (XP, Exams, Logs)
         await prisma.user.update({
           where: { id: userId },
-          data: { 
+          data: {
             isDeleted: true,
             deletedAt: new Date(),
             status: 'DELETED' // Ensure status reflects deletion

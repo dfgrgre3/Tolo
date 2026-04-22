@@ -3,7 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+
 import { motion } from "framer-motion";
 
 import {
@@ -17,14 +17,16 @@ import {
   BookOpen,
   Sword,
   ShieldAlert,
-  Star
-} from 'lucide-react';
+  Star } from
+'lucide-react';
 import { formatTime } from '../utils/timeUtils';
 import type { Task, Reminder, StudySession, TimeStats } from '../types';
 import QuickActions from './QuickActions';
 import UpcomingTasksCard from './UpcomingTasksCard';
 import UpcomingRemindersCard from './UpcomingRemindersCard';
 import CircularProgress from './CircularProgress';
+import MasterySystem from './MasterySystem';
+import StudyAdvisor from './StudyAdvisor';
 
 interface DashboardTabProps {
   stats: TimeStats;
@@ -53,29 +55,40 @@ export default function DashboardTab({
   onToggleUpcomingReminders,
   onTimerToggle
 }: DashboardTabProps) {
-  const upcomingTasks = tasks
-    .filter((task) =>
-      task.dueAt &&
-      new Date(task.dueAt) > new Date() &&
-      (showCompletedTasks || task.status !== 'COMPLETED')
-    )
-    .sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime())
-    .slice(0, 5);
+  const upcomingTasks = tasks.
+  filter((task) =>
+  task.dueAt &&
+  new Date(task.dueAt) > new Date() && (
+  showCompletedTasks || task.status !== 'COMPLETED')
+  ).
+  sort((a, b) => new Date(a.dueAt!).getTime() - new Date(b.dueAt!).getTime()).
+  slice(0, 5);
 
-  const recentSessions = studySessions
-    .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-    .slice(0, 3);
+  const recentSessions = studySessions.
+  sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime()).
+  slice(0, 3);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700">
       
-      {/* RPG Stats Indicators */}
-      <motion.div 
+      {/* RPG Mastery & Advisor */}
+      <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, staggerChildren: 0.1 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
+        transition={{ duration: 0.6 }}
+        className="grid grid-cols-1 lg:grid-cols-2 gap-6"
       >
+        <MasterySystem stats={stats} />
+        <StudyAdvisor stats={stats} />
+      </motion.div>
+
+      {/* RPG Stats Indicators (Minified) */}
+      <motion.div
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1, staggerChildren: 0.1 }}
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
         <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-blue-500/20 shadow-[0_8px_32px_rgba(59,130,246,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -85,15 +98,9 @@ export default function DashboardTab({
                 <Sword className="h-4 w-4" /> معدل الإنجاز
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
-              <CircularProgress 
-                value={tasks.length ? Math.round((stats.completedTasks / tasks.length) * 100) : 0} 
-                max={100}
-                colorClass="text-blue-500"
-                icon={<CheckCircle2 className="h-6 w-6" />}
-                label={`${stats.completedTasks} مهمة مكتملة`}
-                sublabel={`من أصل ${tasks.length} مهام المسجلة`}
-              />
+            <CardContent className="flex flex-col items-center justify-center pt-2 pb-4 relative z-10">
+              <div className="text-3xl font-black text-blue-500">{tasks.length ? Math.round(stats.completedTasks / tasks.length * 100) : 0}%</div>
+              <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">{stats.completedTasks} مهمة مكتملة</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -107,15 +114,9 @@ export default function DashboardTab({
                 <BookOpen className="h-4 w-4" /> تقدم الدراسة
               </CardTitle>
             </CardHeader>
-             <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
-               <CircularProgress 
-                 value={Math.round(stats.weeklyGoalProgress)} 
-                 max={100}
-                 colorClass="text-orange-500"
-                 icon={<Star className="h-6 w-6" />}
-                 label="الهدف الأسبوعي"
-                 sublabel={`${stats.studyHours} ساعات متراكمة`}
-               />
+             <CardContent className="flex flex-col items-center justify-center pt-2 pb-4 relative z-10">
+                <div className="text-3xl font-black text-orange-500">{Math.round(stats.weeklyGoalProgress)}%</div>
+                <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">{stats.studyHours} ساعات متراكمة</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -129,15 +130,9 @@ export default function DashboardTab({
                 <ShieldAlert className="h-4 w-4" /> الانضباط
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
-               <CircularProgress 
-                 value={stats.disciplineScore} 
-                 max={100}
-                 colorClass="text-purple-500"
-                 icon={<Target className="h-6 w-6" />}
-                 label="القوة والثبات"
-                 sublabel="استمرارية وتحقيق الأهداف"
-               />
+            <CardContent className="flex flex-col items-center justify-center pt-2 pb-4 relative z-10">
+                <div className="text-3xl font-black text-purple-500">{stats.disciplineScore}%</div>
+                <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">القوة والثبات</div>
             </CardContent>
           </Card>
         </motion.div>
@@ -151,27 +146,21 @@ export default function DashboardTab({
                 <Trophy className="h-4 w-4" /> الإتقان
               </CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center pt-4 pb-6 relative z-10">
-               <CircularProgress 
-                 value={stats.masteryScore} 
-                 max={100}
-                 colorClass="text-emerald-500"
-                 icon={<Trophy className="h-6 w-6" />}
-                 label="السيطرة التامة"
-                 sublabel="كفاءة الدراسة والتركيز الفائق"
-               />
+            <CardContent className="flex flex-col items-center justify-center pt-2 pb-4 relative z-10">
+                <div className="text-3xl font-black text-emerald-500">{stats.masteryScore}%</div>
+                <div className="text-[10px] text-muted-foreground font-bold mt-1 uppercase">السيطرة التامة</div>
             </CardContent>
           </Card>
         </motion.div>
       </motion.div>
 
       {/* Main Boards */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.2 }}
-        className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-      >
+        className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
         <div className="lg:col-span-2 space-y-8">
           
           <Card className="bg-background/40 backdrop-blur-xl border-white/5 rounded-3xl shadow-[0_20px_40px_rgba(0,0,0,0.2)]">
@@ -314,22 +303,22 @@ export default function DashboardTab({
             </CardHeader>
             <CardContent className="pt-6">
               {recentSessions.length > 0 ?
-                <div className="space-y-4">
+              <div className="space-y-4">
                   {recentSessions.map((session, index) =>
-                    <div
-                      key={`${session.id}-${index}`}
-                      className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-white/5 hover:bg-muted/40 transition-colors group">
+                <div
+                  key={`${session.id}-${index}`}
+                  className="flex items-center justify-between p-4 bg-muted/20 rounded-2xl border border-white/5 hover:bg-muted/40 transition-colors group">
                       
                       <div className="flex-1 min-w-0">
                         <div className="font-medium truncate text-foreground/90 group-hover:text-primary transition-colors">
                           {session.taskId ?
-                            tasks.find((t) => t.id === session.taskId)?.title || 'جلسة تدريب مكثفة' :
-                            'تحصيل علمي'}
+                      tasks.find((t) => t.id === session.taskId)?.title || 'جلسة تدريب مكثفة' :
+                      'تحصيل علمي'}
                         </div>
                         <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-1.5 font-medium">
                           <Clock className="h-3 w-3 text-primary/70" />
                           <span className="bg-background/50 px-2 py-0.5 rounded-md">{formatTime(session.durationMin * 60)}</span>
-                          <span className="opacity-50">•</span>
+                          <span className="opacity-50">⬢</span>
                           <span>{new Date(session.startTime).toLocaleDateString('ar-SA')}</span>
                         </div>
                       </div>
@@ -337,9 +326,9 @@ export default function DashboardTab({
                         {Math.floor(session.durationMin)} د
                       </Badge>
                     </div>
-                  )}
+                )}
                 </div> :
-                <div className="text-center text-muted-foreground py-8 bg-muted/10 rounded-2xl border border-dashed border-white/10">
+              <div className="text-center text-muted-foreground py-8 bg-muted/10 rounded-2xl border border-dashed border-white/10">
                   <Clock className="h-8 w-8 mx-auto mb-3 opacity-20" />
                   <p>لا توجد مخطوطات تدريبية بعد</p>
                 </div>
@@ -348,6 +337,6 @@ export default function DashboardTab({
           </Card>
         </div>
       </motion.div>
-    </div>
-  );
+    </div>);
+
 }

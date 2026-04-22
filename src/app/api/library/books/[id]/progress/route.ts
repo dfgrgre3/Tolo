@@ -1,18 +1,18 @@
 import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { 
-  handleApiError, 
-  successResponse, 
-  badRequestResponse,
-  withAuth 
-} from '@/lib/api-utils';
-import { ERROR_CODES } from '@/lib/error-codes';
+import {
+  handleApiError,
+  successResponse,
+
+  withAuth } from
+'@/lib/api-utils';
+
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
@@ -32,7 +32,7 @@ export async function GET(
           return successResponse({
             progress: 0,
             currentPage: 0,
-            isCompleted: false,
+            isCompleted: false
           });
         }
 
@@ -45,9 +45,9 @@ export async function GET(
 }
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {

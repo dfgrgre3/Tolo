@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import prisma from '@/lib/db';
 import { TokenService, TokenPayload } from '@/services/auth/token-service';
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
 
         // 3. CRITICAL: Replay Attack Detection
         // If stored refreshToken doesn't match the one being used,
-        // it means an old token is being reused → potential theft
+        // it means an old token is being reused â†’ potential theft
         const refreshTokenHash = SessionService.hashRefreshToken(refreshToken);
         if (session.refreshToken !== refreshTokenHash) {
             // Check for grace period: was this token recently rotated?

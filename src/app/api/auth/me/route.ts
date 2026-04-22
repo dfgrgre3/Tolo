@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { AuthService } from '@/services/auth/auth-service';
 import { handleApiError } from '@/lib/api-utils';
 import { cookies } from 'next/headers';
@@ -11,15 +11,15 @@ import prisma from '@/lib/db';
  *
  * Returns the currently authenticated user's profile.
  * Supports two modes:
- *   1. Valid access_token → reads userId from X-User-ID header (set by middleware).
- *   2. Expired access_token + valid refresh_token → silently refreshes tokens then returns user.
+ *   1. Valid access_token â†’ reads userId from X-User-ID header (set by middleware).
+ *   2. Expired access_token + valid refresh_token â†’ silently refreshes tokens then returns user.
  *
  * This endpoint is called by the AuthContext on mount to restore user state
  * across page reloads.
  */
 export async function GET(req: NextRequest) {
     try {
-        // ── Priority 1: middleware already validated the access token ────────────
+        // â”€â”€ Priority 1: middleware already validated the access token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         const userIdFromHeader = req.headers.get('x-user-id');
 
         if (userIdFromHeader) {
@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ user }, { status: 200 });
         }
 
-        // ── Priority 2: Access token missing/expired — try silent refresh ────────
+        // â”€â”€ Priority 2: Access token missing/expired â€” try silent refresh â”€â”€â”€â”€â”€â”€â”€â”€
         const cookieStore = await cookies();
         const refreshToken = cookieStore.get('refresh_token')?.value;
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { Mail, Smartphone, Bell, CheckCircle2 } from "lucide-react";

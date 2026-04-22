@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useState, useEffect } from "react";
@@ -12,7 +12,8 @@ import { FiltersBar } from "@/components/ab-testing/filters-bar";
 import { EmptyState } from "@/components/ab-testing/empty-state";
 import { abTestingService } from "@/services/ab-testing-service";
 import { Experiment, CreateExperimentData } from "@/types/ab-testing";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export default function ABTestingPage() {
   const [experiments, setExperiments] = useState<Experiment[]>([]);

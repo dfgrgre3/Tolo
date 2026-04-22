@@ -3,15 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 export function useFormPersistence<T extends Record<string, any>>(
-  formId: string,
-  initialFormValues: T,
-  options: {
-    debounceMs?: number;
-    excludeFields?: string[];
-    includeFields?: string[];
-    autoSave?: boolean;
-  } = {}
-) {
+formId: string,
+initialFormValues: T,
+_options: {
+  debounceMs?: number;
+  excludeFields?: string[];
+  includeFields?: string[];
+  autoSave?: boolean;
+} = {})
+{
   const storageKey = `form:${formId}`;
   const [isInitialized, setIsInitialized] = useState(false);
   const [state, setState] = useState<T>(initialFormValues);
@@ -67,6 +67,6 @@ export function useFormPersistence<T extends Record<string, any>>(
     clearFormData,
     saveField,
     restoreField,
-    isInitialized,
+    isInitialized
   }), [clearFormData, isInitialized, restoreField, restoreFormData, saveField, saveFormData]);
 }

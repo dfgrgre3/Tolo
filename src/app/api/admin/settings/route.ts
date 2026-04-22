@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
-import { logger } from '@/lib/logger';
+
+
+import { logger } from '@/lib/logger';
 
 // System settings stored in a key-value format
 // We'll use a simple approach with a settings table or config file
@@ -58,23 +59,23 @@ const defaultSettings: SystemSettings = {
     forum: true,
     blog: true,
     events: true,
-    aiAssistant: true,
+    aiAssistant: true
   },
   gamification: {
     xpPerTask: 10,
     xpPerStudySession: 5,
     xpPerExam: 20,
-    streakBonus: 2,
+    streakBonus: 2
   },
   limits: {
     maxUploadSize: 10,
     maxStudySessionDuration: 180,
-    examTimeLimit: 60,
+    examTimeLimit: 60
   },
   maintenance: {
     enabled: false,
-    message: "الموقع تحت الصيانة، يرجى المحاولة لاحقاً",
-  },
+    message: "الموقع تحت الصيانة، يرجى المحاولة لاحقاً"
+  }
 };
 
 // In-memory settings (in production, this should be stored in database)
@@ -97,31 +98,31 @@ export async function GET() {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     // Merge the new settings with existing ones
     currentSettings = {
       ...currentSettings,
       ...body,
       socialLinks: {
         ...currentSettings.socialLinks,
-        ...(body.socialLinks || {}),
+        ...(body.socialLinks || {})
       },
       features: {
         ...currentSettings.features,
-        ...(body.features || {}),
+        ...(body.features || {})
       },
       gamification: {
         ...currentSettings.gamification,
-        ...(body.gamification || {}),
+        ...(body.gamification || {})
       },
       limits: {
         ...currentSettings.limits,
-        ...(body.limits || {}),
+        ...(body.limits || {})
       },
       maintenance: {
         ...currentSettings.maintenance,
-        ...(body.maintenance || {}),
-      },
+        ...(body.maintenance || {})
+      }
     };
 
     return NextResponse.json({ settings: currentSettings, success: true });
@@ -138,12 +139,12 @@ export async function PATCH(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     if (body.reset) {
       currentSettings = { ...defaultSettings };
       return NextResponse.json({ settings: currentSettings, success: true });
     }
-    
+
     return NextResponse.json({ error: "إجراء غير معروف" }, { status: 400 });
   } catch (error) {
     logger.error("Error resetting settings:", error);

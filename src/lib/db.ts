@@ -1,4 +1,4 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+﻿import { PrismaClient, Prisma } from "@prisma/client";
 import { readReplicas } from '@prisma/extension-read-replicas';
 import { logger } from "./logger";
 import { dbCircuitBreaker } from "./circuit-breaker";

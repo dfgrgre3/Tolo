@@ -5,7 +5,7 @@ export const redis = cache.redis;
 export const redisClient = cache.redisClient;
 export const getRedisClient = cache.getRedisClient;
 
-import { logger } from '@/lib/logger';
+
 import type { Redis } from 'ioredis';
 
 const UnifiedCache = cache.CacheService;

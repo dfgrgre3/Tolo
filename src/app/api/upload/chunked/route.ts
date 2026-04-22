@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import {
   existsSync,
   mkdirSync,
@@ -40,6 +40,10 @@ const ALLOWED_MIME_TYPES = [
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
+
+function isFormDataParseError(error: unknown) {
+  return error instanceof Error && error.message.includes("Failed to parse body as FormData");
+}
 
 type UploadSession = {
   uploadId: string;
@@ -154,6 +158,17 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: true, chunkIndex });
     } catch (error) {
       logger.error("Failed to save upload chunk", error);
+
+      if (isFormDataParseError(error)) {
+        return NextResponse.json(
+          {
+            error: "تعذر قراءة جزء الملف المرفوع.",
+            details: "حجم الجزء أكبر من الحد الذي يسمح به الخادم حالياً. أعد تشغيل الخادم بعد التحديث ثم حاول مجدداً.",
+          },
+          { status: 413 },
+        );
+      }
+
       return NextResponse.json({ error: "فشل حفظ جزء الملف" }, { status: 500 });
     }
   });

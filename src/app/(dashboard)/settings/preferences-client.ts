@@ -1,6 +1,6 @@
 'use client';
 
-import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/settings-preferences';
+import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/user-ui-preferences';
 
 type PreferencesResponse = {
   preferences: SettingsPreferences;

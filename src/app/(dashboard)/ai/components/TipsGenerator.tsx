@@ -1,4 +1,4 @@
-
+﻿
 "use client";
 
 import React, { useState } from 'react';
@@ -198,7 +198,7 @@ export default function TipsGenerator({
               type="text"
               value={challenges}
               onChange={(e) => setChallenges(e.target.value)}
-              placeholder="مثال: صعوبة الحفظ، قلة التركيز..."
+              placeholder="مثال: صعوبة الحف١ قلة التركيز..."
               className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
             
             </div>

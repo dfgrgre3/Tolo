@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useRef, useState } from "react";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 async function getUserId(): Promise<string | null> {
 	try {

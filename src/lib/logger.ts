@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Logger utility - Unified Logging System
  * نظام تسجيل موحد للمشروع
  * 

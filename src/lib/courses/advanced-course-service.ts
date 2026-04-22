@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { LessonType } from "@prisma/client";
+
 
 export async function getCourseCurriculum(subjectId: string, userId?: string) {
   const topics = await (prisma.topic as any).findMany({
@@ -9,10 +9,10 @@ export async function getCourseCurriculum(subjectId: string, userId?: string) {
       subTopics: {
         orderBy: { order: "asc" },
         include: {
-          attachments: true,
-        },
-      },
-    },
+          attachments: true
+        }
+      }
+    }
   });
 
   if (!userId) {
@@ -25,15 +25,15 @@ export async function getCourseCurriculum(subjectId: string, userId?: string) {
       userId,
       subTopic: {
         topic: {
-          subjectId,
-        },
-      },
+          subjectId
+        }
+      }
     },
     select: {
       subTopicId: true,
       completed: true,
-      completedAt: true,
-    },
+      completedAt: true
+    }
   });
 
   const progressMap = new Map(progress.map((p: any) => [p.subTopicId, p]));
@@ -43,8 +43,8 @@ export async function getCourseCurriculum(subjectId: string, userId?: string) {
     subTopics: topic.subTopics.map((subTopic: any) => ({
       ...subTopic,
       completed: (progressMap.get(subTopic.id) as any)?.completed ?? false,
-      completedAt: (progressMap.get(subTopic.id) as any)?.completedAt ?? null,
-    })),
+      completedAt: (progressMap.get(subTopic.id) as any)?.completedAt ?? null
+    }))
   }));
 }
 
@@ -54,77 +54,77 @@ export async function getCourseStats(subjectId: string) {
     include: {
       topics: {
         include: {
-          subTopics: true,
-        },
+          subTopics: true
+        }
       },
       reviews: {
-        select: { rating: true },
+        select: { rating: true }
       },
       _count: {
         select: {
-          enrollments: true,
-        },
-      },
-    },
+          enrollments: true
+        }
+      }
+    }
   });
 
   if (!subject) return null;
 
   const totalLessons = subject.topics.reduce((acc: number, t: any) => acc + t.subTopics.length, 0);
   const totalDuration = subject.topics.reduce(
-    (acc: number, t: any) => acc + t.subTopics.reduce((subAcc: number, st: any) => subAcc + (st.duration || 0), 0),
+    (acc: number, t: any) => acc + t.subTopics.reduce((subAcc: number, st: any) => subAcc + (st.durationMinutes || 0), 0),
     0
   );
 
   const avgRating =
-    subject.reviews.length > 0
-      ? subject.reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / subject.reviews.length
-      : subject.rating || 0;
+  subject.reviews.length > 0 ?
+  subject.reviews.reduce((acc: number, r: any) => acc + r.rating, 0) / subject.reviews.length :
+  subject.rating || 0;
 
   return {
     totalLessons,
     totalDuration,
     avgRating,
     reviewCount: subject.reviews.length,
-    enrollmentCount: subject._count.enrollments,
+    enrollmentCount: subject._count.enrollments
   };
 }
 
 export async function createSubjectReview(
-  subjectId: string,
-  userId: string,
-  rating: number,
-  comment?: string
-) {
+subjectId: string,
+userId: string,
+rating: number,
+comment?: string)
+{
   const review = await (prisma as any).subjectReview.upsert({
     where: {
-      subjectId_userId: { subjectId, userId },
+      subjectId_userId: { subjectId, userId }
     },
     update: {
       rating,
-      comment,
+      comment
     },
     create: {
       subjectId,
       userId,
       rating,
-      comment,
-    },
+      comment
+    }
   });
 
   // Update subject aggregate rating
   const allReviews = await (prisma as any).subjectReview.findMany({
     where: { subjectId },
-    select: { rating: true },
+    select: { rating: true }
   });
 
-  const avgRating = allReviews.length > 0
-    ? allReviews.reduce((acc: number, r: any) => acc + r.rating, 0) / allReviews.length
-    : 0;
+  const avgRating = allReviews.length > 0 ?
+  allReviews.reduce((acc: number, r: any) => acc + r.rating, 0) / allReviews.length :
+  0;
 
   await prisma.subject.update({
     where: { id: subjectId },
-    data: { rating: avgRating },
+    data: { rating: avgRating }
   });
 
   return review;

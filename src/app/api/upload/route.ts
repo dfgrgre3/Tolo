@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -24,6 +24,10 @@ const ALLOWED_MIME_TYPES = [
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
 ];
+
+function isFormDataParseError(error: unknown) {
+  return error instanceof Error && error.message.includes('Failed to parse body as FormData');
+}
 
 export async function POST(request: NextRequest) {
   return withAdmin(request, async (authUser) => {
@@ -88,6 +92,17 @@ export async function POST(request: NextRequest) {
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error('Error uploading file:', { error: errorMessage });
+
+      if (isFormDataParseError(error)) {
+        return NextResponse.json(
+          {
+            error: 'تعذر قراءة الملف المرفوع. غالباً حجم الملف كبير لطلب رفع واحد.',
+            details: 'جرّب الرفع بعد إعادة تشغيل الخادم؛ سيتم تحويل الملفات الكبيرة إلى رفع مجزأ تلقائياً.'
+          },
+          { status: 413 }
+        );
+      }
+
       return NextResponse.json(
         {
           error: 'فشل رفع الملف نتيجة خطأ داخلي.',

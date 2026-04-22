@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { TokenService } from "@/services/auth/token-service";
 import { cookies } from "next/headers";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     const targetUser = await prisma.user.findUnique({
       where: { id: targetUserId },
-      select: { id: true, role: true },
+      select: { id: true, role: true }
     });
 
     if (!targetUser) {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
       userId: targetUser.id,
       role: targetUser.role,
       sessionId: payload.sessionId,
-      originalAdminId: payload.userId, // Store the real admin ID
+      originalAdminId: payload.userId // Store the real admin ID
     });
 
     const isProduction = process.env.NODE_ENV === "production";
@@ -47,7 +48,7 @@ export async function POST(req: NextRequest) {
       secure: isProduction,
       sameSite: "lax",
       maxAge: 15 * 60,
-      path: "/",
+      path: "/"
     });
 
     cookieStore.set("is_impersonating", "true", {
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
       secure: isProduction,
       sameSite: "lax",
       maxAge: 15 * 60,
-      path: "/",
+      path: "/"
     });
 
     return NextResponse.json({ success: true });
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+export async function DELETE(_req: NextRequest) {
   try {
     const cookieStore = await cookies();
     const currentToken = cookieStore.get("access_token")?.value;
@@ -81,7 +82,7 @@ export async function DELETE(req: NextRequest) {
 
     const adminUser = await prisma.user.findUnique({
       where: { id: payload.originalAdminId },
-      select: { id: true, role: true },
+      select: { id: true, role: true }
     });
 
     if (!adminUser) {
@@ -92,7 +93,7 @@ export async function DELETE(req: NextRequest) {
     const newToken = await TokenService.generateAccessToken({
       userId: adminUser.id,
       role: adminUser.role,
-      sessionId: payload.sessionId,
+      sessionId: payload.sessionId
     });
 
     const isProduction = process.env.NODE_ENV === "production";
@@ -102,7 +103,7 @@ export async function DELETE(req: NextRequest) {
       secure: isProduction,
       sameSite: "lax",
       maxAge: 15 * 60,
-      path: "/",
+      path: "/"
     });
 
     cookieStore.delete("is_impersonating");

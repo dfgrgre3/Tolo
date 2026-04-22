@@ -6,7 +6,7 @@ import {
   notFoundResponse,
   withAuth,
 } from '@/lib/api-utils';
-import type { SettingsPreferences, SettingsPreferencesPatch } from '@/types/settings-preferences';
+import type { SettingsPreferences, SettingsPreferencesPatch } from '../../../../types/user-ui-preferences';
 import {
   getSettingsPreferences,
   upsertSettingsPreferences,
@@ -27,6 +27,14 @@ function buildPatch(body: unknown): SettingsPreferencesPatch | null {
 
   if (isPlainObject(body.privacy)) {
     patch.privacy = body.privacy as unknown as SettingsPreferencesPatch['privacy'];
+  }
+
+  if (isPlainObject(body.language)) {
+    patch.language = body.language as unknown as SettingsPreferencesPatch['language'];
+  }
+
+  if (isPlainObject(body.appearance)) {
+    patch.appearance = body.appearance as unknown as SettingsPreferencesPatch['appearance'];
   }
 
 

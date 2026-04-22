@@ -1,4 +1,4 @@
-import { UINotificationType } from '@/types/notification';
+﻿import { UINotificationType } from '@/types/notification';
 // تم إزالة نظام تسجيل الدخول
 import { logger } from '@/lib/logger';
 
@@ -174,7 +174,7 @@ export const notificationTemplates = {
     message: `مهمة "${taskTitle}" سيتم تسليمها في ${dueDate}`,
     type: 'warning' as UINotificationType,
     actionUrl: '/tasks',
-    icon: '⏰',
+    icon: 'âڈ°',
   }),
 
   taskOverdue: (taskTitle: string, daysOverdue: number) => ({
@@ -182,7 +182,7 @@ export const notificationTemplates = {
     message: `مهمة "${taskTitle}" متأخرة منذ ${daysOverdue} يوم${daysOverdue > 1 ? 'أيام' : ''}`,
     type: 'error' as UINotificationType,
     actionUrl: '/tasks',
-    icon: '❌',
+    icon: 'â‌Œ',
   }),
 
   taskCompleted: (taskTitle: string) => ({
@@ -190,7 +190,7 @@ export const notificationTemplates = {
     message: `تم إكمال مهمة "${taskTitle}" بنجاح`,
     type: 'success' as UINotificationType,
     actionUrl: '/tasks',
-    icon: '✅',
+    icon: 'âœ…',
   }),
 
   // إشعارات الاختبارات
@@ -199,7 +199,7 @@ export const notificationTemplates = {
     message: `تم إنشاء اختبار جديد في مادة ${subject}`,
     type: 'info' as UINotificationType,
     actionUrl: '/test',
-    icon: '📝',
+    icon: 'ًں“‌',
   }),
 
   testCompleted: (subject: string, score: number) => ({
@@ -207,7 +207,7 @@ export const notificationTemplates = {
     message: `لقد حصلت على ${score}% في اختبار ${subject}`,
     type: 'success' as UINotificationType,
     actionUrl: '/test',
-    icon: '🏆',
+    icon: 'ًںڈ†',
   }),
 
   testReminder: (subject: string, time: string) => ({
@@ -215,7 +215,7 @@ export const notificationTemplates = {
     message: `لديك اختبار في ${subject} بعد ${time}`,
     type: 'warning' as UINotificationType,
     actionUrl: '/test',
-    icon: '⏰',
+    icon: 'âڈ°',
   }),
 
   // إشعارات الجدول الدراسي
@@ -224,7 +224,7 @@ export const notificationTemplates = {
     message: `يوجد تعارض في جدولك في ${time}`,
     type: 'warning' as UINotificationType,
     actionUrl: '/schedule',
-    icon: '📅',
+    icon: 'ًں“…',
   }),
 
   classReminder: (subject: string, time: string) => ({
@@ -232,7 +232,7 @@ export const notificationTemplates = {
     message: `لديك حصة ${subject} في ${time}`,
     type: 'info' as UINotificationType,
     actionUrl: '/schedule',
-    icon: '📚',
+    icon: 'ًں“ڑ',
   }),
 
   // إشعارات التقدم
@@ -241,7 +241,7 @@ export const notificationTemplates = {
     message: `لقد حققت ${streakDays} أيام متتالية من الدراسة!`,
     type: 'success' as UINotificationType,
     actionUrl: '/progress',
-    icon: '🔥',
+    icon: 'ًں”¥',
   }),
 
   goalAchieved: (goalName: string) => ({
@@ -249,7 +249,7 @@ export const notificationTemplates = {
     message: `تهانينا! لقد حققت هدف "${goalName}"`,
     type: 'success' as UINotificationType,
     actionUrl: '/progress',
-    icon: '🎯',
+    icon: 'ًںژ¯',
   }),
 
   // إشعارات المجتمع
@@ -258,7 +258,7 @@ export const notificationTemplates = {
     message: `لديك رسالة جديدة من ${senderName}`,
     type: 'info' as UINotificationType,
     actionUrl: '/chat',
-    icon: '💬',
+    icon: 'ًں’¬',
   }),
 
   eventReminder: (eventName: string, time: string) => ({
@@ -266,7 +266,7 @@ export const notificationTemplates = {
     message: `مناسبة "${eventName}" ستبدأ بعد ${time}`,
     type: 'info' as UINotificationType,
     actionUrl: '/events',
-    icon: '📅',
+    icon: 'ًں“…',
   }),
 
   newFollower: (followerName: string) => ({
@@ -274,7 +274,7 @@ export const notificationTemplates = {
     message: `${followerName} يتابعك الآن`,
     type: 'info' as UINotificationType,
     actionUrl: '/settings',
-    icon: '👤',
+    icon: 'ًں‘¤',
   }),
 
   // إشعارات النظام
@@ -282,7 +282,7 @@ export const notificationTemplates = {
     title: 'تحديث النظام',
     message: `تم تحديث النظام إلى الإصدار ${version}`,
     type: 'info' as UINotificationType,
-    icon: '🔄',
+    icon: 'ًں”„',
   }),
 
   securityAlert: (alertType: string) => ({
@@ -290,7 +290,7 @@ export const notificationTemplates = {
     message: `تم اكتشاف نشاط غير معتاد: ${alertType}`,
     type: 'error' as UINotificationType,
     actionUrl: '/settings',
-    icon: '🔒',
+    icon: 'ًں”’',
   }),
 
   // إشعارات المحتوى
@@ -299,7 +299,7 @@ export const notificationTemplates = {
     message: `تم إضافة ${title} حديثاً`,
     type: 'info' as UINotificationType,
     actionUrl: '/resources',
-    icon: '📚',
+    icon: 'ًں“ڑ',
   }),
 
   contentRecommendation: (contentType: string, title: string) => ({
@@ -307,7 +307,7 @@ export const notificationTemplates = {
     message: `قد يعجبك ${contentType}: ${title}`,
     type: 'info' as UINotificationType,
     actionUrl: '/resources',
-    icon: '👍',
+    icon: 'ًں‘چ',
   }),
 
   // إشعارات الكتب
@@ -316,7 +316,7 @@ export const notificationTemplates = {
     message: `مرحباً ${name}! يسعدنا انضمامك إلينا. ابدأ رحلتك التعليمية الآن.`,
     type: 'success' as UINotificationType,
     actionUrl: '/dashboard',
-    icon: '👋',
+    icon: 'ًں‘‹',
   }),
 
   bookUploaded: (bookTitle: string) => ({
@@ -324,7 +324,7 @@ export const notificationTemplates = {
     message: `لقد تم رفع كتاب "${bookTitle}" إلى المكتبة الرقمية.`,
     type: 'success' as UINotificationType,
     actionUrl: '/library',
-    icon: '📚',
+    icon: 'ًں“ڑ',
   }),
 
   bookRated: (bookTitle: string, rating: number) => ({
@@ -332,7 +332,7 @@ export const notificationTemplates = {
     message: `حصل كتابك "${bookTitle}" على تقييم ${rating} نجوم.`,
     type: 'info' as UINotificationType,
     actionUrl: '/library',
-    icon: '⭐',
+    icon: 'â­گ',
   }),
 
   studySessionFinished: (duration: number) => ({
@@ -340,7 +340,7 @@ export const notificationTemplates = {
     message: `لقد أتممت ${duration} دقيقة من المذاكرة المركزة. تابع التقدم!`,
     type: 'success' as UINotificationType,
     actionUrl: '/time',
-    icon: '⌛',
+    icon: 'âŒ›',
   }),
 };
 

@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import { Prisma } from '@prisma/client';
+
 import { prisma } from '@/lib/db';
 import { paymob } from '@/lib/paymob';
 import { CouponService } from '@/services/coupon-service';
-import { ReferralService } from '@/services/referral-service';
+
 import { getRequestUserId } from '@/lib/request-auth';
 import { SubscriptionService } from '@/services/subscription-service';
+import { WalletService } from '@/services/wallet-service';
+import { InvoiceService } from '@/services/invoice-service';
 import { logger } from '@/lib/logger';
 import { EducationalCache } from '@/lib/cache';
 import { NotificationQueueService } from '@/services/notification-queue-service';
@@ -13,9 +15,9 @@ import { ReferralQueueService } from '@/services/referral-queue-service';
 import { RequestDeduplication } from '@/lib/request-dedup';
 
 export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+req: Request,
+{ params }: {params: Promise<{id: string;}>;})
+{
   try {
     const userId = await getRequestUserId(req);
     if (!userId) {
@@ -31,29 +33,29 @@ export async function POST(
     if (dedupResult.isDuplicate) {
       logger.warn(`[Checkout] Duplicate request blocked: user=${userId}, course=${id}, status=${dedupResult.existingStatus}`);
       return NextResponse.json({
-        error: 'ظ‡ط°ط§ ط§ظ„ط·ظ„ط¨ ظ‚ظٹط¯ ط§ظ„ظ…ط¹ط§ظ„ط¬ط© ط¨ط§ظ„ظپط¹ظ„. ظٹط±ط¬ظ‰ ط§ظ„ط§ظ†طھط¸ط§ط±.',
-        code: 'DUPLICATE_REQUEST',
+        error: 'هذا الطلب قيد المعالجة بالفعل. يرجى الانتظار.',
+        code: 'DUPLICATE_REQUEST'
       }, { status: 409 });
     }
 
     const body = await req.json();
     const {
       paymentMethod,
-      couponCode,
-    }: {
-      paymentMethod: string;
-      couponCode?: string;
-    } = body;
+      couponCode
 
-    const course = await EducationalCache.getOrSetCourse(id, () => prisma.subject.findUnique({
+
+
+    }: {paymentMethod: string;couponCode?: string;} = body;
+
+    const course = (await EducationalCache.getOrSetCourse(id, () => prisma.subject.findUnique({
       where: { id },
       select: {
         id: true,
         price: true,
         name: true,
-        nameAr: true,
+        nameAr: true
       }
-    })) as { id: string; price: number; name: string; nameAr: string | null } | null;
+    }))) as {id: string;price: number;name: string;nameAr: string | null;} | null;
 
     if (!course) {
       return NextResponse.json({ error: 'Course not found' }, { status: 404 });
@@ -71,7 +73,7 @@ export async function POST(
     });
 
     if (enrollment) {
-      return NextResponse.json({ error: 'ط£ظ†طھ ظ…ط³ط¬ظ„ ط¨ط§ظ„ظپط¹ظ„ ظپظٹ ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط©' }, { status: 400 });
+      return NextResponse.json({ error: 'أنت مسجل بالفعل في هذه الدورة' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
@@ -82,9 +84,9 @@ export async function POST(
         name: true,
         phone: true,
         wallet: {
-          select: { balance: true },
-        },
-      },
+          select: { balance: true }
+        }
+      }
     });
 
     if (!user) {
@@ -92,7 +94,7 @@ export async function POST(
     }
 
     const activeSub = await SubscriptionService.checkActiveSubscription(userId);
-    const basePrice = activeSub ? 0 : (course.price ?? 0);
+    const basePrice = activeSub ? 0 : course.price ?? 0;
     let finalPrice = basePrice;
     let couponId: string | null = null;
     let promoDiscountValue = 0;
@@ -114,80 +116,92 @@ export async function POST(
 
     // Handle internal wallet
     if (paymentMethod === 'internal_wallet') {
-      if ((user.wallet?.balance ?? 0) < finalPrice) {
-        return NextResponse.json(
-          { error: 'ط±طµظٹط¯ ط§ظ„ط­ط³ط§ط¨ ط؛ظٹط± ظƒط§ظپظچ. ظٹط±ط¬ظ‰ ط´ط­ظ† ط§ظ„ط±طµظٹط¯ ط£ظˆظ„ط§ظ‹.' },
-          { status: 400 }
-        );
-      }
+      try {
+        const result = await (prisma as any).$transaction(async (tx: any) => {
+          // 1. Create Payment Record (to be linked to wallet transaction)
+          const payment = await tx.payment.create({
+            data: {
+              userId: user.id,
+              amount: finalPrice,
+              provider: 'INTERNAL',
+              status: 'SUCCESS',
+              paymentMethod: 'wallet',
+              couponId,
+              promoDiscount: promoDiscountValue,
+              balanceUsed: balanceDiscountValue,
+              paymentData: JSON.stringify({
+                target: 'COURSE',
+                subjectId: course.id,
+                source: 'internal_wallet',
+                couponCode: couponCode ?? null
+              })
+            }
+          });
 
-      // Create Payment and Enrollment
-      await (prisma as any).$transaction(async (tx: any) => {
-        // Create payment tracking record
-        await tx.payment.create({
-          data: {
-            userId: user.id,
-            amount: finalPrice,
-            provider: 'INTERNAL',
-            status: 'SUCCESS',
-            paymentMethod: 'wallet',
-            couponId,
-            promoDiscount: promoDiscountValue,
-            balanceUsed: balanceDiscountValue,
-            paymentData: JSON.stringify({
-              target: 'COURSE',
+          // 2. Spend from wallet via WalletService (logging transaction)
+          await WalletService.spend(user.id, finalPrice, {
+            paymentId: payment.id,
+            description: `شراء دورة: ${course.nameAr || course.name}`,
+            metadata: { courseId: course.id }
+          });
+
+          // 3. Enroll user
+          await tx.subjectEnrollment.upsert({
+            where: {
+              userId_subjectId: {
+                userId: user.id,
+                subjectId: course.id
+              }
+            },
+            update: { isDeleted: false, deletedAt: null }, // Restore if deleted
+            create: {
+              userId: user.id,
               subjectId: course.id,
-              source: 'internal_wallet',
-              couponCode: couponCode ?? null,
-            })
-          }
+              targetWeeklyHours: 0
+            }
+          });
+
+          return payment;
         });
 
-        // Deduct balance
-        await tx.userWallet.upsert({
-          where: { userId: user.id },
-          update: { balance: { decrement: finalPrice } },
-          create: {
-            userId: user.id,
-            balance: 0,
-          },
+        // 4. Generate Invoice
+        try {
+          await InvoiceService.createInvoice(result.id);
+        } catch (invoiceErr) {
+          logger.error('Failed to generate invoice for course purchase:', invoiceErr);
+        }
+
+        await ReferralQueueService.enqueue({
+          userId: user.id,
+          paymentAmount: finalPrice,
+          idempotencyKey: `referral_${user.id}_${course.id}_${Date.now()}`
         });
 
-        // Enroll user
-        await tx.subjectEnrollment.create({
-          data: {
-            userId: user.id,
-            subjectId: course.id,
-            targetWeeklyHours: 0
-          }
+        await NotificationQueueService.enqueue({
+          userId: user.id,
+          title: 'تم الانضمام للدورة بنجاح',
+          message: `تم خصم ${finalPrice} ج.م من رصيدك وتسجيلك في دورة "${course.nameAr || course.name}".`,
+          type: 'success',
+          icon: 'book',
+          channels: ['app', 'email'],
+          actionUrl: `/courses/${course.id}`
+        }, {
+          jobId: `course-enrollment:${user.id}:${course.id}`
         });
-      });
 
-      await ReferralQueueService.enqueue({
-        userId: user.id,
-        paymentAmount: finalPrice,
-        idempotencyKey: `referral_${user.id}_${course.id}_${Date.now()}`
-      });
+        // Mark checkout as completed (idempotency)
+        await RequestDeduplication.complete(dedupKey, 'SUCCESS_WALLET');
 
-      await NotificationQueueService.enqueue({
-        userId: user.id,
-        title: 'تم الانضمام للدورة بنجاح',
-        message: `تم خصم ${finalPrice} ج.م من رصيدك وتسجيلك في دورة "${course.nameAr || course.name}".`,
-        type: 'success',
-        icon: 'book',
-        channels: ['app', 'email'],
-        actionUrl: `/courses/${course.id}`,
-      }, { 
-        jobId: `course-enrollment:${user.id}:${course.id}` 
-      });
-
-      // Mark checkout as completed (idempotency)
-      await RequestDeduplication.complete(dedupKey, 'SUCCESS_WALLET');
-
-      return NextResponse.json({
-        success: true,
-        message: 'Course activated via wallet balance',
-      });
+        return NextResponse.json({
+          success: true,
+          message: 'Course activated via wallet balance'
+        });
+      } catch (error: any) {
+        if (error.message === 'Insufficient wallet balance') {
+          return NextResponse.json({ error: 'رصيد الحساب غير كافٍ. يرجى شحن الرصيد أولاً.' }, { status: 400 });
+        }
+        throw error;
+      }
     }
 
     // If completely free
@@ -207,7 +221,7 @@ export async function POST(
               target: 'COURSE',
               subjectId: course.id,
               source: 'free',
-              couponCode: couponCode ?? null,
+              couponCode: couponCode ?? null
             })
           }
         });
@@ -226,8 +240,8 @@ export async function POST(
 
       return NextResponse.json({
         success: true,
-        message: 'طھظ… طھط³ط¬ظٹظ„ظƒ ظپظٹ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­.',
-        finalAmount: 0,
+        message: 'تم تسجيلك في الدورة بنجاح.',
+        finalAmount: 0
       });
     }
 
@@ -265,7 +279,7 @@ export async function POST(
         paymentData: JSON.stringify({
           target: 'COURSE',
           subjectId: course.id,
-          couponCode: couponCode ?? null,
+          couponCode: couponCode ?? null
         })
       }
     });
@@ -276,7 +290,7 @@ export async function POST(
 
     await prisma.payment.update({
       where: { id: payment.id },
-      data: { orderId: paymobOrderId.toString() },
+      data: { orderId: paymobOrderId.toString() }
     });
 
     const paymentKey = await paymob.generatePaymentKey(
@@ -288,7 +302,7 @@ export async function POST(
         email: user.email,
         firstName: user.name?.split(' ')[0] || 'Customer',
         lastName: user.name?.split(' ')[1] || 'User',
-        phone: user.phone || '0123456789',
+        phone: user.phone || '0123456789'
       }
     );
 
@@ -298,7 +312,7 @@ export async function POST(
       iframeId: process.env.PAYMOB_IFRAME_ID,
       finalAmount: finalPrice,
       basePrice,
-      discountAmount: promoDiscountValue + balanceDiscountValue,
+      discountAmount: promoDiscountValue + balanceDiscountValue
     });
   } catch (error: unknown) {
     // Release dedup lock on error so the user can retry
@@ -314,4 +328,3 @@ export async function POST(
     return NextResponse.json({ error: (error as Error).message || 'Internal Server Error' }, { status: 500 });
   }
 }
-

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { type Notification, type UINotificationType } from '@/types/notification';
+import { type Notification } from '@/types/notification';
 import { logger } from '@/lib/logger';
 import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { toast } from 'sonner';
@@ -46,16 +46,16 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   const fetchNotifications = useCallback(async (reset = false) => {
     if (isLoading) return;
     setIsLoading(true);
-    
+
     try {
       const currentOffset = reset ? 0 : offset;
       const params = new URLSearchParams({
         limit: limit.toString(),
-        offset: currentOffset.toString(),
+        offset: currentOffset.toString()
       });
 
       const response = await fetch(`/api/notifications?${params}`, {
-        credentials: 'include',
+        credentials: 'include'
       });
 
       if (response.status === 401 || response.status === 403) {
@@ -76,21 +76,21 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       if (reset) {
         setNotifications(nextNotifications);
         setOffset(limit);
-        
+
         // Show toast for new notifications if not the first fetch
         if (!isFirstFetch.current && nextNotifications.length > 0) {
           const newest = nextNotifications[0];
           if (!newest.isRead && newest.id !== lastNotifiedId.current) {
             toast(newest.title, {
               description: newest.message,
-              icon: newest.icon || '🔔',
+              icon: newest.icon || 'ًں””'
             });
             lastNotifiedId.current = newest.id;
           }
         }
         isFirstFetch.current = false;
       } else {
-        setNotifications(prev => [...prev, ...nextNotifications]);
+        setNotifications((prev) => [...prev, ...nextNotifications]);
         setOffset(currentOffset + nextNotifications.length);
       }
 
@@ -109,7 +109,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ notificationIds, all }),
+        body: JSON.stringify({ notificationIds, all })
       });
 
       if (!response.ok) throw new Error('Failed to mark notifications as read');
@@ -117,10 +117,10 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
       const data = await response.json();
 
       if (all) {
-        setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
       } else if (notificationIds) {
-        setNotifications(prev => 
-          prev.map(n => notificationIds.includes(n.id) ? { ...n, isRead: true } : n)
+        setNotifications((prev) =>
+        prev.map((n) => notificationIds.includes(n.id) ? { ...n, isRead: true } : n)
         );
       }
 
@@ -137,7 +137,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
   }, [isLoading, hasMore, fetchNotifications]);
 
   const toggleSound = useCallback(() => {
-    setSoundEnabled(prev => !prev);
+    setSoundEnabled((prev) => !prev);
     // You could also persist this to local storage or user settings
   }, []);
 
@@ -146,15 +146,15 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     // Only schedule if possible and hold onto cleanup function
     let cleanup: (() => void) | undefined;
     try {
-        cleanup = scheduleNotificationChecks?.();
+      cleanup = scheduleNotificationChecks?.();
     } catch (e) {
-        logger.warn('Failed to schedule notification checks:', e);
+      logger.warn('Failed to schedule notification checks:', e);
     }
-    
+
     return () => {
-        if (cleanup) {
-            cleanup();
-        }
+      if (cleanup) {
+        cleanup();
+      }
     };
   }, []);
 
@@ -167,12 +167,12 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     markAsRead,
     loadMore,
     soundEnabled,
-    toggleSound,
+    toggleSound
   }), [notifications, unreadCount, isLoading, hasMore, fetchNotifications, loadMore, soundEnabled, toggleSound, markAsRead]);
 
   return (
     <NotificationsContext.Provider value={value}>
       {children}
-    </NotificationsContext.Provider>
-  );
+    </NotificationsContext.Provider>);
+
 }

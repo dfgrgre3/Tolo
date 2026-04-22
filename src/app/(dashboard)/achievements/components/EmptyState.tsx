@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ export function EmptyState() {
 					}}
 					className="text-8xl md:text-9xl filter drop-shadow-2xl relative z-10"
 				>
-					🏆
+					ًںڈ†
 				</motion.div>
 				<motion.div 
 					className="absolute -top-4 -right-4 text-3xl"

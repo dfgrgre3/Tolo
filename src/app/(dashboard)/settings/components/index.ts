@@ -1,4 +1,4 @@
-export { SettingsSection } from './SettingsSection';
+﻿export { SettingsSection } from './SettingsSection';
 export { ToggleSwitch } from './ToggleSwitch';
 export { SettingsToggle } from './SettingsToggle';
 export { SettingsInput } from './SettingsInput';

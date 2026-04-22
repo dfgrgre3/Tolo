@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/db";
+﻿import { prisma } from "@/lib/db";
 import { CourseEditor } from "@/components/admin/courses/course-editor";
 
 export default async function NewCoursePage() {

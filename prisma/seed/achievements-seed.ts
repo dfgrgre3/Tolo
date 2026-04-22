@@ -1,4 +1,4 @@
-import { PrismaClient, AchievementCategory, Difficulty } from '@prisma/client';
+﻿import { PrismaClient, AchievementCategory, Difficulty } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -63,7 +63,7 @@ async function seedAchievementsData() {
     }
   }
 
-  console.log('✓ Achievements seeded successfully.');
+  console.log('âœ“ Achievements seeded successfully.');
 }
 
 export default seedAchievementsData;

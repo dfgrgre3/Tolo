@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -90,7 +90,7 @@ export default function SecurityOperationsPage() {
            <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
              <AdminCard variant="glass" className="p-6 flex items-center justify-between border-blue-500/20">
                 <div>
-                  <p className="text-sm text-muted-foreground font-bold mb-1">إجمالي المُمتحنين الآن</p>
+                  <p className="text-sm text-muted-foreground font-bold mb-1">إجمالي المظڈمتحنين الآن</p>
                   <h3 className="text-4xl font-black">{examTakers.length + 152}</h3>
                 </div>
                 <div className="p-4 bg-blue-500/10 rounded-2xl text-blue-500"><Target className="w-8 h-8" /></div>
@@ -216,7 +216,7 @@ export default function SecurityOperationsPage() {
                     <div className="flex items-center justify-between">
                        <div>
                           <p className="font-bold">حظر برامج محاكي الأندرويد (BlueStacks)</p>
-                          <p className="text-xs text-muted-foreground mt-1">يمنع تسجيل الدخول من محاكيات سطح المكتب التي تُستخدم غالباً لتسجيل الشاشة.</p>
+                          <p className="text-xs text-muted-foreground mt-1">يمنع تسجيل الدخول من محاكيات سطح المكتب التي تظڈستخدم غالباً لتسجيل الشاشة.</p>
                        </div>
                        <Switch defaultChecked />
                     </div>
@@ -276,7 +276,7 @@ export default function SecurityOperationsPage() {
               <div className="flex justify-between items-start">
                  <div>
                     <h3 className="text-2xl font-black text-emerald-500 flex items-center gap-2"><KeyRound /> الصلاحيات الجزيئية (Granular RBAC)</h3>
-                    <p className="text-sm font-bold mt-2 max-w-2xl text-muted-foreground">صناعة وتخصيص أدوار دقيقة للموظفين والمعلمين. لا تعطِ الصلاحية الكاملة لأحد. حدد من يقرأ، ومن يضيف، ومن يمسح، ومن يعدل الأسعار.</p>
+                    <p className="text-sm font-bold mt-2 max-w-2xl text-muted-foreground">صناعة وتخصيص أدوار دقيقة للموظفين والمعلمين. لا تعط٘ الصلاحية الكاملة لأحد. حدد من يقرأ، ومن يضيف، ومن يمسح، ومن يعدل الأسعار.</p>
                  </div>
                  <AdminButton variant="default" className="bg-emerald-500 text-white font-bold hover:bg-emerald-600">
                     إنشاء دور وظيفي جديد

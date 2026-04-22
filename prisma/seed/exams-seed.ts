@@ -1,187 +1,187 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 import { SubjectType } from "../../src/types/settings";
 import { randomUUID } from "crypto";
 
 const prisma = new PrismaClient();
 
-// بيانات الامتحانات مع تحسينات في البنية والشمولية
+// ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ظ…ط¹ طھط­ط³ظٹظ†ط§طھ ظپظٹ ط§ظ„ط¨ظ†ظٹط© ظˆط§ظ„ط´ظ…ظˆظ„ظٹط©
 const seedExams = [
-  // Math Exams - امتحانات الرياضيات
+  // Math Exams - ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ط±ظٹط§ط¶ظٹط§طھ
   { 
     id: randomUUID(),
     subjectId: SubjectType.MATH, 
-    title: "امتحان الرياضيات - الفصل الدراسي الأول", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ط±ظٹط§ط¶ظٹط§طھ - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط£ظˆظ„", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.MATH, 
-    title: "امتحان الرياضيات - الفصل الدراسي الثاني", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ط±ظٹط§ط¶ظٹط§طھ - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط«ط§ظ†ظٹ", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.MATH, 
-    title: "نموذج امتحان رياضيات - 2023", 
+    title: "ظ†ظ…ظˆط°ط¬ ط§ظ…طھط­ط§ظ† ط±ظٹط§ط¶ظٹط§طھ - 2023", 
     year: 2023, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.MATH, 
-    title: "امتحان رياضيات - اختبار قصير", 
+    title: "ط§ظ…طھط­ط§ظ† ط±ظٹط§ط¶ظٹط§طھ - ط§ط®طھط¨ط§ط± ظ‚طµظٹط±", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   
-  // Physics Exams - امتحانات الفيزياء
+  // Physics Exams - ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ظپظٹط²ظٹط§ط،
   { 
     id: randomUUID(),
     subjectId: SubjectType.PHYSICS, 
-    title: "امتحان الفيزياء - الفصل الدراسي الأول", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظپظٹط²ظٹط§ط، - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط£ظˆظ„", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.PHYSICS, 
-    title: "امتحان الفيزياء - الفصل الدراسي الثاني", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظپظٹط²ظٹط§ط، - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط«ط§ظ†ظٹ", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.PHYSICS, 
-    title: "نموذج امتحان فيزياء - 2023", 
+    title: "ظ†ظ…ظˆط°ط¬ ط§ظ…طھط­ط§ظ† ظپظٹط²ظٹط§ط، - 2023", 
     year: 2023, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.PHYSICS, 
-    title: "امتحان فيزياء - اختبار قصير", 
+    title: "ط§ظ…طھط­ط§ظ† ظپظٹط²ظٹط§ط، - ط§ط®طھط¨ط§ط± ظ‚طµظٹط±", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   
-  // Chemistry Exams - امتحانات الكيمياء
+  // Chemistry Exams - ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ظƒظٹظ…ظٹط§ط،
   { 
     id: randomUUID(),
     subjectId: SubjectType.CHEMISTRY, 
-    title: "امتحان الكيمياء - الفصل الدراسي الأول", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظƒظٹظ…ظٹط§ط، - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط£ظˆظ„", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.CHEMISTRY, 
-    title: "امتحان الكيمياء - الفصل الدراسي الثاني", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظƒظٹظ…ظٹط§ط، - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط«ط§ظ†ظٹ", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.CHEMISTRY, 
-    title: "نموذج امتحان كيمياء - 2023", 
+    title: "ظ†ظ…ظˆط°ط¬ ط§ظ…طھط­ط§ظ† ظƒظٹظ…ظٹط§ط، - 2023", 
     year: 2023, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.CHEMISTRY, 
-    title: "امتحان كيمياء - اختبار قصير", 
+    title: "ط§ظ…طھط­ط§ظ† ظƒظٹظ…ظٹط§ط، - ط§ط®طھط¨ط§ط± ظ‚طµظٹط±", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   
-  // Additional subjects - مواد إضافية
+  // Additional subjects - ظ…ظˆط§ط¯ ط¥ط¶ط§ظپظٹط©
   { 
     id: randomUUID(),
-    subjectId: SubjectType.ARABIC, // Fixed from "اللغة العربية"
-    title: "امتحان اللغة العربية - الفصل الدراسي الأول", 
+    subjectId: SubjectType.ARABIC, // Fixed from "ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط©"
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط© - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط£ظˆظ„", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.ARABIC, 
-    title: "امتحان اللغة العربية - الفصل الدراسي الثاني", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط© - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط«ط§ظ†ظٹ", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: SubjectType.ENGLISH, // Fixed from "اللغة الإنجليزية"
-    title: "امتحان اللغة الإنجليزية - الفصل الدراسي الأول", 
+    subjectId: SubjectType.ENGLISH, // Fixed from "ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©"
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط© - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط£ظˆظ„", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: SubjectType.ENGLISH, 
-    title: "امتحان اللغة الإنجليزية - الفصل الدراسي الثاني", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط© - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط«ط§ظ†ظٹ", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "SCIENCE", // Fixed from "العلوم"
-    title: "امتحان العلوم - الفصل الدراسي الأول", 
+    subjectId: "SCIENCE", // Fixed from "ط§ظ„ط¹ظ„ظˆظ…"
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ط¹ظ„ظˆظ… - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط£ظˆظ„", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: "SCIENCE", 
-    title: "امتحان العلوم - الفصل الدراسي الثاني", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ط¹ظ„ظˆظ… - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط«ط§ظ†ظٹ", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
-    subjectId: "SOCIAL_STUDIES", // Fixed from "الدراسات الاجتماعية"
-    title: "امتحان الدراسات الاجتماعية - الفصل الدراسي الأول", 
+    subjectId: "SOCIAL_STUDIES", // Fixed from "ط§ظ„ط¯ط±ط§ط³ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹط©"
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ط¯ط±ط§ط³ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹط© - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط£ظˆظ„", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
   { 
     id: randomUUID(),
     subjectId: "SOCIAL_STUDIES", 
-    title: "امتحان الدراسات الاجتماعية - الفصل الدراسي الثاني", 
+    title: "ط§ظ…طھط­ط§ظ† ط§ظ„ط¯ط±ط§ط³ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹط© - ط§ظ„ظپطµظ„ ط§ظ„ط¯ط±ط§ط³ظٹ ط§ظ„ط«ط§ظ†ظٹ", 
     year: 2024, 
     url: "https://www.moem.gov.eg/Pages/ExamBank.aspx" 
   },
 ];
 
 /**
- * دالة لزرع بيانات الامتحانات في قاعدة البيانات
- * تقوم بفحص البيانات الموجودة وإضافة البيانات المفقودة فقط
+ * ط¯ط§ظ„ط© ظ„ط²ط±ط¹ ط¨ظٹط§ظ†ط§طھ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
+ * طھظ‚ظˆظ… ط¨ظپط­طµ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظˆط¬ظˆط¯ط© ظˆط¥ط¶ط§ظپط© ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظپظ‚ظˆط¯ط© ظپظ‚ط·
  */
 async function seedExamsData() {
   try {
     const count = await prisma.exam.count();
     
     if (count === 0) {
-      console.log("🌱 Seeding exams data...");
+      console.log("ًںŒ± Seeding exams data...");
       
-      // استخدام createMany مع skipDuplicates لمعالجة أفضل للأخطاء
+      // ط§ط³طھط®ط¯ط§ظ… createMany ظ…ط¹ skipDuplicates ظ„ظ…ط¹ط§ظ„ط¬ط© ط£ظپط¶ظ„ ظ„ظ„ط£ط®ط·ط§ط،
       const result = await prisma.exam.createMany({ 
         data: seedExams,
         skipDuplicates: true 
       });
       
-      console.log(`✅ Successfully seeded ${result.count} exam(s).`);
+      console.log(`âœ… Successfully seeded ${result.count} exam(s).`);
     } else {
-      console.log(`📚 Exams data already exists (${count} exam(s)), checking for missing exams...`);
+      console.log(`ًں“ڑ Exams data already exists (${count} exam(s)), checking for missing exams...`);
       
-      // الحصول على الامتحانات الموجودة للتحقق من البيانات المفقودة
+      // ط§ظ„ط­طµظˆظ„ ط¹ظ„ظ‰ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ظ…ظˆط¬ظˆط¯ط© ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظپظ‚ظˆط¯ط©
       const existingExams = await prisma.exam.findMany({
         select: { id: true, title: true, year: true, subjectId: true }
       });
       
-      // فلترة الامتحانات المفقودة بناءً على العنوان والسنة والمادة
+      // ظپظ„طھط±ط© ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط§ظ„ظ…ظپظ‚ظˆط¯ط© ط¨ظ†ط§ط،ظ‹ ط¹ظ„ظ‰ ط§ظ„ط¹ظ†ظˆط§ظ† ظˆط§ظ„ط³ظ†ط© ظˆط§ظ„ظ…ط§ط¯ط©
       const missingExams = seedExams.filter(seedExam => 
         !existingExams.some(existing => 
           existing.title === seedExam.title && 
@@ -191,20 +191,20 @@ async function seedExamsData() {
       );
       
       if (missingExams.length > 0) {
-        console.log(`➕ Adding ${missingExams.length} missing exam(s)...`);
+        console.log(`â‍• Adding ${missingExams.length} missing exam(s)...`);
         const addResult = await prisma.exam.createMany({ 
           data: missingExams,
           skipDuplicates: true 
         });
-        console.log(`✅ Successfully added ${addResult.count} exam(s).`);
+        console.log(`âœ… Successfully added ${addResult.count} exam(s).`);
       } else {
-        console.log("✨ All exams are already in the database.");
+        console.log("âœ¨ All exams are already in the database.");
       }
     }
   } catch (error) {
-    console.error("❌ Error seeding exams data:", error);
+    console.error("â‌Œ Error seeding exams data:", error);
     
-    // تسجيل تفصيلي للأخطاء
+    // طھط³ط¬ظٹظ„ طھظپطµظٹظ„ظٹ ظ„ظ„ط£ط®ط·ط§ط،
     if (error instanceof Error) {
       console.error("Error message:", error.message);
       if (error.stack) {
@@ -212,10 +212,10 @@ async function seedExamsData() {
       }
     }
     
-    // إعادة رمي الخطأ للسماح بمعالجته من قبل الدالة الرئيسية
+    // ط¥ط¹ط§ط¯ط© ط±ظ…ظٹ ط§ظ„ط®ط·ط£ ظ„ظ„ط³ظ…ط§ط­ ط¨ظ…ط¹ط§ظ„ط¬طھظ‡ ظ…ظ† ظ‚ط¨ظ„ ط§ظ„ط¯ط§ظ„ط© ط§ظ„ط±ط¦ظٹط³ظٹط©
     throw error;
   } finally {
-    // إغلاق الاتصال بقاعدة البيانات
+    // ط¥ط؛ظ„ط§ظ‚ ط§ظ„ط§طھطµط§ظ„ ط¨ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ
     await prisma.$disconnect();
   }
 }

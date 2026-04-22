@@ -1,4 +1,4 @@
-export interface Rule {
+﻿export interface Rule {
   id: string;
   name: string;
   triggerType: string;

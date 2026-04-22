@@ -1,4 +1,4 @@
-// Script to check if server is running before running Lighthouse
+﻿// Script to check if server is running before running Lighthouse
 const http = require('http');
 
 const url = process.env.LIGHTHOUSE_URL || 'http://localhost:3000';
@@ -26,14 +26,14 @@ async function waitForServer() {
   for (let i = 0; i < maxRetries; i++) {
     try {
       await checkServer();
-      console.log(`✓ Server is running on ${url}`);
+      console.log(`âœ“ Server is running on ${url}`);
       return true;
     } catch (_err) {
       if (i < maxRetries - 1) {
         process.stdout.write(`Waiting for server... (${i + 1}/${maxRetries})\r`);
         await new Promise(resolve => setTimeout(resolve, retryDelay));
       } else {
-        console.error(`\n✗ Server is not running on ${url}`);
+        console.error(`\nâœ— Server is not running on ${url}`);
         console.error(`Please start the server first with: npm run dev`);
         process.exit(1);
       }

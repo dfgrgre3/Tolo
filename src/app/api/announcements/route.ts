@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+﻿import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { Announcement } from '@prisma/client';
 import { CacheService } from "@/lib/cache-service-unified";

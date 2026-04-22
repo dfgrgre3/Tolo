@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 🔔 صفحة إعدادات الإشعارات - Notifications Settings
+ * ًں”” صفحة إعدادات الإشعارات - Notifications Settings
  * 
  * تخصيص جميع أنواع الإشعارات مع:
  * - إشعارات المهام والامتحانات
@@ -39,7 +39,7 @@ import { SettingsHeader, SettingsSection, SettingsToggle, ToggleSwitch } from '@
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
   type NotificationSettingsPreference,
-} from '@/types/settings-preferences';
+} from '@/types/user-ui-preferences';
 import {
   fetchSettingsPreferences,
   saveSettingsPreferences,

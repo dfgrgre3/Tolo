@@ -1,4 +1,4 @@
-// Service Worker for Offline Support and Data Efficiency
+﻿// Service Worker for Offline Support and Data Efficiency
 const CACHE_NAME = "thanawy-v3"; // Version bump for update
 const DATA_CACHE_NAME = "thanawy-data-v2";
 const IMAGE_CACHE_NAME = "thanawy-images-v1";
@@ -77,7 +77,7 @@ self.addEventListener("fetch", (event) => {
                         return new Response(
                             JSON.stringify({ 
                                 error: "Offline mode", 
-                                message: "أنت الآن تعمل بدون اتصال. قد تكون هذه البيانات قديمة.",
+                                message: "ط£ظ†طھ ط§ظ„ط¢ظ† طھط¹ظ…ظ„ ط¨ط¯ظˆظ† ط§طھطµط§ظ„. ظ‚ط¯ طھظƒظˆظ† ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ ظ‚ط¯ظٹظ…ط©.",
                                 isOffline: true 
                             }),
                             { headers: { "Content-Type": "application/json" } }
@@ -157,7 +157,7 @@ self.addEventListener("fetch", (event) => {
 // Push notification handler
 self.addEventListener("push", (event) => {
     const data = event.data ? event.data.json() : {};
-    const title = data.title || "إشعار جديد";
+    const title = data.title || "ط¥ط´ط¹ط§ط± ط¬ط¯ظٹط¯";
     const options = {
         body: data.message || data.body || "",
         icon: "/icons/icon-192x192.png",

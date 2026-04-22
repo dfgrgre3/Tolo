@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import type { Task, StudySession, Reminder, TimeStats } from '../types';
 
 interface UseTimeStatsProps {
@@ -6,6 +7,15 @@ interface UseTimeStatsProps {
   studySessions: StudySession[];
   reminders: Reminder[];
 }
+
+const getRank = (level: number) => {
+  if (level >= 50) return "أسطورة حكيمة";
+  if (level >= 40) return "أستاذ أعظم";
+  if (level >= 30) return "عالم خبير";
+  if (level >= 20) return "باحث مجتهد";
+  if (level >= 10) return "طالب واعد";
+  return "مبتدئ";
+};
 
 export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsProps) {
   const [stats, setStats] = useState<TimeStats>({
@@ -20,7 +30,11 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
     pomodoroSessions: 0,
     studyEfficiency: 0,
     disciplineScore: 0,
-    masteryScore: 0
+    masteryScore: 0,
+    level: 1,
+    xp: 0,
+    nextLevelXp: 1000,
+    rank: "مبتدئ"
   });
 
   const calculateStats = useCallback(() => {
@@ -57,6 +71,26 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
     const WEEKLY_GOAL_MINUTES = 1260;
     const dailyGoalProgress = Math.min(100, dailyMinutes / DAILY_GOAL_MINUTES * 100);
     const weeklyGoalProgress = Math.min(100, weeklyMinutes / WEEKLY_GOAL_MINUTES * 100);
+
+    // Calculate XP
+    let totalXp = 0;
+    
+    // XP from completed tasks
+    tasks.forEach(task => {
+      if (task.status === 'COMPLETED') {
+        totalXp += 100;
+        if (task.priority === 'URGENT') totalXp += 100;
+        if (task.priority === 'HIGH') totalXp += 50;
+      }
+    });
+
+    // XP from study sessions
+    const totalMinutes = studySessions.reduce((acc, s) => acc + s.durationMin, 0);
+    totalXp += totalMinutes * 2;
+
+    // XP from goals
+    if (dailyGoalProgress >= 100) totalXp += 500;
+    if (weeklyGoalProgress >= 100) totalXp += 2000;
 
     // Calculate streak days - consecutive days with study sessions
     const sessionDays = studySessions.
@@ -124,7 +158,11 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
       pomodoroSessions,
       studyEfficiency,
       disciplineScore,
-      masteryScore
+      masteryScore,
+      level: Math.floor(totalXp / 1000) + 1,
+      xp: totalXp % 1000,
+      nextLevelXp: 1000,
+      rank: getRank(Math.floor(totalXp / 1000) + 1)
     });
   }, [tasks, studySessions, reminders]);
 
@@ -253,6 +291,18 @@ export function useTimeStats({ tasks, studySessions, reminders }: UseTimeStatsPr
       }));
     }
   }, []);
+
+  const prevLevelRef = useRef<number>(stats.level);
+
+  useEffect(() => {
+    if (stats.level > prevLevelRef.current) {
+      toast.success(`🎉 تهانينا! لقد ارتفع مستواك إلى المستوى ${stats.level}!`, {
+        description: `لقد حصلت على رتبة: ${stats.rank}`,
+        duration: 5000,
+      });
+    }
+    prevLevelRef.current = stats.level;
+  }, [stats.level, stats.rank]);
 
   return {
     stats,

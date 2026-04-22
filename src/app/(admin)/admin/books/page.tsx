@@ -8,6 +8,7 @@ import { AdminCard } from "@/components/admin/ui/admin-card";
 import { 
   Plus, BookOpen, Download, Star, Eye, Users, Search
 } from "lucide-react";
+import Image from "next/image";
 import { ColumnDef } from "@tanstack/react-table";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -223,7 +224,7 @@ export default function AdminBooksPage() {
               <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
               <div className="relative flex h-14 w-10 items-center justify-center rounded-sm bg-background border border-white/10 overflow-hidden shadow-2xl">
                 {book.coverUrl ? (
-                  <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
+                  <Image src={book.coverUrl} alt={book.title} fill className="object-cover" />
                 ) : (
                   <BookOpen className="h-5 w-5 text-amber-500" />
                 )}
@@ -294,7 +295,7 @@ export default function AdminBooksPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="خزانة الكتب الملكية 🏛️"
+        title="خزانة الكتب الملكية 📚"
         description="إدارة المراجع العلمية، المذكرات الدراسية، والكتب الخارجية للمحاربين."
       >
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
@@ -342,7 +343,7 @@ export default function AdminBooksPage() {
               type="text"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="???? ?? ????? ???? ?? ????"
+              placeholder="ابحث عن المجلد، المؤلف، أو المجال..."
               className="h-10 w-72 rounded-xl border border-border bg-accent/20 px-10 text-sm outline-none ring-primary transition focus:ring-1"
             />
           </div>

@@ -5,7 +5,7 @@
  */
 
 import { execSync } from 'child_process';
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { join, extname } from 'path';
 
 interface ErrorReport {
@@ -350,7 +350,7 @@ function generateReport(): void {
     byFile.get(error.file)!.push(error);
   });
 
-  console.log('\n\n📁 الأخطاء حسب الملف:');
+  console.log('\n\n📂 الأخطاء حسب الملف:');
   console.log('-'.repeat(80));
   Array.from(byFile.entries())
     .sort((a, b) => b[1].length - a[1].length)
@@ -404,7 +404,7 @@ function generateReport(): void {
     });
   }
 
-  reportContent += `## 📁 الأخطاء حسب الملف\n\n`;
+  reportContent += `## 📂 الأخطاء حسب الملف\n\n`;
   Array.from(byFile.entries())
     .sort((a, b) => b[1].length - a[1].length)
     .forEach(([file, fileErrors]) => {
@@ -423,7 +423,7 @@ function generateReport(): void {
   reportContent += `**التاريخ:** ${new Date().toLocaleString('ar-SA')}\n`;
 
   try {
-    require('fs').writeFileSync(reportPath, reportContent, 'utf-8');
+    writeFileSync(reportPath, reportContent, 'utf-8');
     console.log(`\n✅ تم حفظ التقرير في: ${reportPath}`);
   } catch (error) {
     console.error(`\n❌ فشل حفظ التقرير: ${error}`);
@@ -464,4 +464,3 @@ main().catch((error) => {
   console.error('❌ حدث خطأ أثناء الفحص:', error);
   process.exit(1);
 });
-

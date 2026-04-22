@@ -1,4 +1,4 @@
-import { StatsCard } from "@/components/admin/ui/stats-card";
+﻿import { StatsCard } from "@/components/admin/ui/stats-card";
 import { Users, BookOpen, FileText, Trophy } from "lucide-react";
 import { formatNumber } from "@/lib/utils";
 

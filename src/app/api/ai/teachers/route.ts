@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
-import { AI_PROVIDERS, getDefaultProvider, validateApiKey } from "@/lib/ai-config";
+import { AI_PROVIDERS, validateApiKey } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 
 import { logger } from '@/lib/logger';

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -157,7 +157,7 @@ export default function ReportsPage() {
       {/* Custom Report Builder Section */}
       <h2 className="text-xl font-black flex items-center gap-2 mt-12 mb-4">
         <TableProperties className="w-5 h-5 text-primary" />
-        مُنشئ التقارير المخصص (Custom Builder)
+        مظڈنشئ التقارير المخصص (Custom Builder)
       </h2>
       
       <div className="grid gap-8 lg:grid-cols-3">

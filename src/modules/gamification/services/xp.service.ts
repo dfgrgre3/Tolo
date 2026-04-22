@@ -1,4 +1,4 @@
-import { statsRepository } from '../repositories/stats.repository';
+﻿import { statsRepository } from '../repositories/stats.repository';
 import { logger } from '@/lib/logger';
 import { CacheService } from '@/lib/cache';
 import { gamificationQueue } from '@/lib/queue/bullmq';

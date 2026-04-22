@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -231,7 +231,7 @@ export default function ChatPage() {
               ))
             ) : (
               <div className="p-8 text-center text-muted-foreground">
-                <div className="text-4xl mb-2">💬</div>
+                <div className="text-4xl mb-2">ًں’¬</div>
                 <p>لا توجد محادثات</p>
                 <p className="text-sm mt-2">ابدأ محادثة جديدة من خلال البحث عن مستخدم</p>
               </div>
@@ -264,7 +264,7 @@ export default function ChatPage() {
                 <div>
                   <h2 className="font-medium">{selectedUser.name}</h2>
                   <p className="text-xs text-muted-foreground">
-                    {selectedUser.isOnline ? "متصل الآن" : selectedUser.lastSeen ? `آخر ظهور: ${formatTime(selectedUser.lastSeen)}` : "غير متصل"}
+                    {selectedUser.isOnline ? "متصل الآن" : selectedUser.lastSeen ? `آخر ٪ور: ${formatTime(selectedUser.lastSeen)}` : "غير متصل"}
                   </p>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export default function ChatPage() {
                 ) : (
                   <div className="flex justify-center items-center h-full">
                     <div className="text-center text-muted-foreground">
-                      <div className="text-4xl mb-2">💬</div>
+                      <div className="text-4xl mb-2">ًں’¬</div>
                       <p>لا توجد رسائل</p>
                       <p className="text-sm mt-2">ابدأ المحادثة بإرسال رسالة</p>
                     </div>
@@ -334,7 +334,7 @@ export default function ChatPage() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-              <div className="text-5xl mb-4">💬</div>
+              <div className="text-5xl mb-4">ًں’¬</div>
               <h2 className="text-xl font-bold mb-2">مرحباً في الدردشة</h2>
               <p className="text-muted-foreground mb-6">اختر محادثة من القائمة لبدء الدردشة</p>
               <Link href="/teachers" className="px-4 py-2 bg-primary text-primary-foreground rounded-md">

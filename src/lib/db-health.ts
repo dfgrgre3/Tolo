@@ -64,7 +64,7 @@ export class DatabaseHealthMonitor {
         // Alert on degraded health (skip alerts during startup grace period)
         if (!health.healthy) {
           if (inGracePeriod) {
-            logger.info(`[DBHealth] Startup warmup — latency ${health.latencyMs}ms (grace period, not alerting)`);
+            logger.info(`[DBHealth] Startup warmup â€” latency ${health.latencyMs}ms (grace period, not alerting)`);
           } else {
             logger.error(`[DBHealth] Database health degraded: ${JSON.stringify(health)}`);
             if (health.latencyMs > 1000 && process.env.NODE_ENV === 'development') {
@@ -118,7 +118,7 @@ export class DatabaseHealthMonitor {
 
     try {
       // 1. Basic connectivity + latency check
-      const pingResult = await prisma.$queryRaw<[{ now: Date }]>`SELECT NOW() as now`;
+      const _pingResult = await prisma.$queryRaw<[{now: Date;}]>`SELECT NOW() as now`;
       const latencyMs = Date.now() - start;
 
       // Track latency sample
@@ -147,9 +147,9 @@ export class DatabaseHealthMonitor {
           maxConnections = Number(poolStats[0].max_conn || 100);
         }
       } catch {
+
         // Non-critical: pg_stat_activity might be restricted
       }
-
       const poolUtilization = maxConnections > 0 ? activeConnections / maxConnections : 0;
 
       // 3. Check replication lag (if replica is configured)
@@ -168,9 +168,9 @@ export class DatabaseHealthMonitor {
             replicationLagMs = Number(replicationInfo[0].lag_ms);
           }
         } catch {
+
           // Replication info might not be available on primary
-        }
-      }
+        }}
 
       // Determine overall health
       const healthy = latencyMs < 2000 && poolUtilization < 0.9;
@@ -182,16 +182,16 @@ export class DatabaseHealthMonitor {
         activeConnections,
         maxConnections,
         replicationLagMs,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         healthy: false,
         latencyMs: Date.now() - start,
         poolUtilization: 1,
         activeConnections: 0,
         maxConnections: 0,
-        timestamp: Date.now(),
+        timestamp: Date.now()
       };
     }
   }
@@ -199,21 +199,21 @@ export class DatabaseHealthMonitor {
   /**
    * Get latency percentiles from recent samples
    */
-  static getLatencyPercentiles(): { p50: number; p95: number; p99: number } {
+  static getLatencyPercentiles(): {p50: number;p95: number;p99: number;} {
     if (latencySamples.length === 0) {
       return { p50: 0, p95: 0, p99: 0 };
     }
 
     const sorted = [...latencySamples].sort((a, b) => a - b);
     const p = (percentile: number) => {
-      const idx = Math.ceil((percentile / 100) * sorted.length) - 1;
+      const idx = Math.ceil(percentile / 100 * sorted.length) - 1;
       return sorted[Math.max(0, idx)];
     };
 
     return {
       p50: p(50),
       p95: p(95),
-      p99: p(99),
+      p99: p(99)
     };
   }
 }

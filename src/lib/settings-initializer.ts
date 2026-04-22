@@ -1,7 +1,7 @@
 'use client';
 
 import { fetchSettingsPreferences } from '@/app/(dashboard)/settings/preferences-client';
-import type { SettingsPreferences, LanguageSettingsPreference, AppearanceSettingsPreference } from '@/types/settings-preferences';
+import type { LanguageSettingsPreference, AppearanceSettingsPreference } from '@/types/user-ui-preferences';
 import { logger } from '@/lib/logger';
 
 /**

@@ -1,12 +1,12 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import {
   createStandardErrorResponse,
-  createSuccessResponse,
-  addSecurityHeaders
-} from '@/lib/api-utils';
+  createSuccessResponse } from
+
+'@/lib/api-utils';
 
 // GET all users
 export async function GET(request: NextRequest) {

@@ -1,4 +1,4 @@
-export {
+﻿export {
   categoryStyles,
   navBadgeStyles,
   navIconStyles,

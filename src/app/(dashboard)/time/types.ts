@@ -102,4 +102,8 @@ export interface TimeStats {
   studyEfficiency: number;
   disciplineScore: number;
   masteryScore: number;
+  level: number;
+  xp: number;
+  nextLevelXp: number;
+  rank: string;
 }

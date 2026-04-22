@@ -5,38 +5,38 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { 
-  Mail, 
-  Lock, 
-  Loader2, 
-  AlertCircle, 
-  ArrowRight, 
-  Eye, 
-  EyeOff, 
-  Github, 
-  Chrome, 
+import {
+  Mail,
+  Lock,
+  Loader2,
+  AlertCircle,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Github,
+  Chrome,
   Wand2,
   Shield,
   Zap,
   Bot,
   Sparkles,
-  KeyRound
-} from 'lucide-react';
+  KeyRound } from
+'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import {
   DEFAULT_AUTHENTICATED_ROUTE,
-  sanitizeRedirectPath,
-} from '@/services/auth/navigation';
+  sanitizeRedirectPath } from
+'@/services/auth/navigation';
 import { Suspense } from 'react';
 import { toast } from 'sonner';
 
 const loginSchema = z.object({
   email: z.string().trim().email('يرجى إدخال بريد إلكتروني صحيح'),
   password: z.string().min(1, 'كلمة المرور مطلوبة').optional().or(z.literal('')),
-  rememberMe: z.boolean().optional(),
+  rememberMe: z.boolean().optional()
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -64,10 +64,10 @@ function LoginForm() {
     handleSubmit,
     getValues,
     formState: { errors },
-    trigger,
+    trigger
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { rememberMe: false },
+    defaultValues: { rememberMe: false }
   });
 
   const redirectAfterLogin = useCallback((target: string) => {
@@ -83,7 +83,7 @@ function LoginForm() {
 
   const onSubmit = async (data: LoginFormValues) => {
     if (isAuthLoading || isAuthenticated) return;
-    
+
     if (loginMode === 'magic-link') {
       handleMagicLinkRequest();
       return;
@@ -110,10 +110,10 @@ function LoginForm() {
         redirectAfterLogin(redirectUrl);
         return;
       }
-      
+
       setErrorStatus(result.error || 'فشل تسجيل الدخول. يرجى المحاولة مرة أخرى.');
       toast.error(result.error || 'خطأ في بيانات الدخول');
-    } catch (err) {
+    } catch (_err) {
       toast.error('حدث خطأ غير متوقع');
     } finally {
       setIsSubmitting(false);
@@ -132,7 +132,7 @@ function LoginForm() {
       const res = await fetch('/api/auth/magic-link/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email })
       });
 
       const data = await res.json();
@@ -143,7 +143,7 @@ function LoginForm() {
         setErrorStatus(data.error || 'فشل إرسال رابط الدخول.');
         toast.error(data.error || 'حدث خطأ أثناء طلب الرابط');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('خطأ في الاتصال بالخادم');
     } finally {
       setIsSubmitting(false);
@@ -153,7 +153,7 @@ function LoginForm() {
   const onVerify2FA = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userId2FA || twoFactorCode.length < 6) return;
-    
+
     setIsSubmitting(true);
     setErrorStatus(null);
     try {
@@ -174,11 +174,11 @@ function LoginForm() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center space-y-6 text-center bg-black">
         <div className="relative h-24 w-24">
-          <motion.div 
+          <motion.div
             animate={{ rotate: 360 }}
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-            className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]" 
-          />
+            className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]" />
+          
           <div className="flex h-full w-full items-center justify-center rounded-full bg-primary/5 backdrop-blur-sm">
              <Bot className="h-12 w-12 text-primary" />
           </div>
@@ -187,8 +187,8 @@ function LoginForm() {
           <p className="animate-pulse text-sm font-black uppercase tracking-[0.3em] text-primary">جاري استدعاء البيانات...</p>
           <p className="text-gray-500 text-xs font-medium">التحقق من صلاحيات الدخول للمملكة</p>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
@@ -203,16 +203,16 @@ function LoginForm() {
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-[500px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-12 backdrop-blur-2xl shadow-[0_20px_80px_rgba(0,0,0,0.6)]"
-      >
+        className="relative w-full max-w-[500px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-12 backdrop-blur-2xl shadow-[0_20px_80px_rgba(0,0,0,0.6)]">
+        
         {/* Glow Border Effect */}
         <div className="absolute inset-0 pointer-events-none border border-white/5 rounded-[2.5rem]" />
         
         <div className="mb-10 text-center space-y-4">
-           <motion.div 
-             whileHover={{ scale: 1.05, rotate: 5 }}
-             className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(var(--primary),0.2)]"
-           >
+           <motion.div
+            whileHover={{ scale: 1.05, rotate: 5 }}
+            className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(var(--primary),0.2)]">
+            
               <Shield className="w-10 h-10 text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
            </motion.div>
            <h2 className="text-4xl font-black text-white tracking-tight leading-tight">
@@ -226,18 +226,18 @@ function LoginForm() {
           <motion.button
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => { window.location.href = `/api/auth/oauth/google`; }}
-            className="flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 h-14 transition-all hover:bg-white/10 hover:border-primary/40 group"
-          >
+            onClick={() => {window.location.href = `/api/auth/oauth/google`;}}
+            className="flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 h-14 transition-all hover:bg-white/10 hover:border-primary/40 group">
+            
             <Chrome className="h-5 w-5 text-red-500" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">Google</span>
           </motion.button>
           <motion.button
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => { window.location.href = `/api/auth/oauth/github`; }}
-            className="flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 h-14 transition-all hover:bg-white/10 hover:border-primary/40 group"
-          >
+            onClick={() => {window.location.href = `/api/auth/oauth/github`;}}
+            className="flex items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 h-14 transition-all hover:bg-white/10 hover:border-primary/40 group">
+            
             <Github className="h-5 w-5 text-white" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">Github</span>
           </motion.button>
@@ -249,56 +249,56 @@ function LoginForm() {
         </div>
 
         <AnimatePresence mode="wait">
-          {errorStatus && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mb-6 overflow-hidden"
-            >
+          {errorStatus &&
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="mb-6 overflow-hidden">
+            
               <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm font-bold flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p>{errorStatus}</p>
-                  {errorStatus.includes('تفعيل') && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        const email = getValues('email');
-                        if (!email) {
-                          toast.error('يرجى إدخال البريد الإلكتروني أولاً');
-                          return;
-                        }
-                        const promise = fetch('/api/auth/resend-verification', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ email }),
-                        });
-                        
-                        toast.promise(promise, {
-                          loading: 'جاري إرسال رابط التفعيل...',
-                          success: 'تم إرسال الرابط بنجاح!',
-                          error: 'فشل إرسال الرابط. حاول لاحقاً.'
-                        });
-                      }}
-                      className="mt-2 text-[10px] font-black underline uppercase tracking-widest text-primary/80 hover:text-primary"
-                    >
+                  {errorStatus.includes('تفعيل') &&
+                <button
+                  type="button"
+                  onClick={async () => {
+                    const email = getValues('email');
+                    if (!email) {
+                      toast.error('يرجى إدخال البريد الإلكتروني أولاً');
+                      return;
+                    }
+                    const promise = fetch('/api/auth/resend-verification', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ email })
+                    });
+
+                    toast.promise(promise, {
+                      loading: 'جاري إرسال رابط التفعيل...',
+                      success: 'تم إرسال الرابط بنجاح!',
+                      error: 'فشل إرسال الرابط. حاول لاحقاً.'
+                    });
+                  }}
+                  className="mt-2 text-[10px] font-black underline uppercase tracking-widest text-primary/80 hover:text-primary">
+                  
                       إعادة إرسال الرابط
                     </button>
-                  )}
+                }
                 </div>
               </div>
             </motion.div>
-          )}
+          }
         </AnimatePresence>
 
         <div className="space-y-6">
-          {!requires2FA ? (
-            <motion.form 
-              layout
-              onSubmit={handleSubmit(onSubmit)} 
-              className="space-y-6"
-            >
+          {!requires2FA ?
+          <motion.form
+            layout
+            onSubmit={handleSubmit(onSubmit)}
+            className="space-y-6">
+            
               <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest mr-1">البريد الإلكتروني</label>
                 <div className="group relative">
@@ -306,25 +306,25 @@ function LoginForm() {
                      <Mail size={18} />
                    </div>
                    <input
-                     {...register('email')}
-                     type="email"
-                     autoComplete="email"
-                     className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pr-12 pl-6 text-white text-sm font-bold outline-none ring-primary/20 transition-all focus:border-primary/50 focus:bg-white/10"
-                     placeholder="warrior@thanawy.me"
-                   />
+                  {...register('email')}
+                  type="email"
+                  autoComplete="email"
+                  className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pr-12 pl-6 text-white text-sm font-bold outline-none ring-primary/20 transition-all focus:border-primary/50 focus:bg-white/10"
+                  placeholder="warrior@thanawy.me" />
+                
                 </div>
                 {errors.email && <p className="mr-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.email.message}</p>}
               </div>
 
               <AnimatePresence mode="wait">
-                {loginMode === 'password' && (
-                  <motion.div 
-                    key="password-field"
-                    initial={{ opacity: 0, height: 0, y: -20 }}
-                    animate={{ opacity: 1, height: 'auto', y: 0 }}
-                    exit={{ opacity: 0, height: 0, y: -20 }}
-                    className="space-y-2"
-                  >
+                {loginMode === 'password' &&
+              <motion.div
+                key="password-field"
+                initial={{ opacity: 0, height: 0, y: -20 }}
+                animate={{ opacity: 1, height: 'auto', y: 0 }}
+                exit={{ opacity: 0, height: 0, y: -20 }}
+                className="space-y-2">
+                
                     <div className="mr-1 flex items-center justify-between">
                       <label className="text-[10px] font-black uppercase text-gray-500 tracking-widest">كلمة المرور</label>
                       <Link href="/forgot-password" disable-nav="true" className="text-[10px] font-black text-primary/60 hover:text-primary transition-colors uppercase tracking-widest">نسيت؟</Link>
@@ -334,34 +334,34 @@ function LoginForm() {
                         <Lock size={18} />
                       </div>
                       <input
-                        {...register('password')}
-                        type={showPassword ? 'text' : 'password'}
-                        autoComplete="current-password"
-                        className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pr-12 pl-12 text-white text-sm font-bold outline-none ring-primary/20 transition-all focus:border-primary/50 focus:bg-white/10"
-                        placeholder="••••••••"
-                      />
+                    {...register('password')}
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    className="w-full h-14 rounded-2xl bg-white/5 border border-white/10 pr-12 pl-12 text-white text-sm font-bold outline-none ring-primary/20 transition-all focus:border-primary/50 focus:bg-white/10"
+                    placeholder="⬢⬢⬢⬢⬢⬢⬢⬢" />
+                  
                       <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-2"
-                      >
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors p-2">
+                    
                         {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                       </button>
                     </div>
                     {errors.password && <p className="mr-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.password.message}</p>}
                   </motion.div>
-                )}
+              }
               </AnimatePresence>
 
               <div className="flex items-center justify-between px-1">
                  <div className="flex items-center gap-3 cursor-pointer group">
                    <div className="relative flex items-center">
                       <input
-                        {...register('rememberMe')}
-                        type="checkbox"
-                        id="rememberMe"
-                        className="h-4 w-4 appearance-none rounded-md border border-white/20 bg-white/5 checked:bg-primary checked:border-primary transition-all cursor-pointer"
-                      />
+                    {...register('rememberMe')}
+                    type="checkbox"
+                    id="rememberMe"
+                    className="h-4 w-4 appearance-none rounded-md border border-white/20 bg-white/5 checked:bg-primary checked:border-primary transition-all cursor-pointer" />
+                  
                       <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 peer-checked:opacity-100">
                         <svg className="h-3 w-3 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="4" d="M5 13l4 4L19 7"></path></svg>
                       </div>
@@ -370,51 +370,51 @@ function LoginForm() {
                  </div>
                  
                  <button
-                   type="button"
-                   onClick={() => setLoginMode(loginMode === 'password' ? 'magic-link' : 'password')}
-                   className="flex items-center gap-2 text-[10px] font-black text-primary/60 hover:text-primary transition-all uppercase tracking-widest group"
-                 >
-                   {loginMode === 'password' ? (
-                     <>
+                type="button"
+                onClick={() => setLoginMode(loginMode === 'password' ? 'magic-link' : 'password')}
+                className="flex items-center gap-2 text-[10px] font-black text-primary/60 hover:text-primary transition-all uppercase tracking-widest group">
+                
+                   {loginMode === 'password' ?
+                <>
                         <Wand2 className="h-3 w-3 group-hover:rotate-12 transition-transform" />
                         <span>رابط الدخول السريع</span>
-                     </>
-                   ) : (
-                     <>
+                     </> :
+
+                <>
                         <KeyRound className="h-3 w-3" />
                         <span>كلمة السـر</span>
                      </>
-                   )}
+                }
                  </button>
               </div>
 
               <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                 <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="h-14 w-full rounded-2xl bg-primary text-black font-black text-md overflow-hidden relative group hover:shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all"
-                >
+                type="submit"
+                disabled={isSubmitting}
+                className="h-14 w-full rounded-2xl bg-primary text-black font-black text-md overflow-hidden relative group hover:shadow-[0_0_30px_rgba(var(--primary),0.3)] transition-all">
+                
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  {isSubmitting ? (
-                    <Loader2 className="h-5 w-5 animate-spin mx-auto" />
-                  ) : (
-                    <div className="flex items-center justify-center gap-3">
+                  {isSubmitting ?
+                <Loader2 className="h-5 w-5 animate-spin mx-auto" /> :
+
+                <div className="flex items-center justify-center gap-3">
                       <span className="uppercase tracking-[0.2em]">
                         {loginMode === 'password' ? 'تأكيـد الدخـول' : 'إرسـال الرابـط'}
                       </span>
                       <ArrowRight className="h-4 w-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
                     </div>
-                  )}
+                }
                 </Button>
               </motion.div>
-            </motion.form>
-          ) : (
-            <motion.form
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              onSubmit={onVerify2FA}
-              className="space-y-8"
-            >
+            </motion.form> :
+
+          <motion.form
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onSubmit={onVerify2FA}
+            className="space-y-8">
+            
               <div className="text-center space-y-4">
                  <div className="mx-auto h-20 w-20 rounded-3xl bg-primary/10 border border-primary/20 flex items-center justify-center relative">
                     <div className="absolute inset-0 animate-ping rounded-3xl bg-primary/5" />
@@ -426,35 +426,35 @@ function LoginForm() {
 
               <div className="flex justify-center flex-row-reverse gap-3">
                 <input
-                  type="text"
-                  maxLength={6}
-                  value={twoFactorCode}
-                  onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, ''))}
-                  className="w-full h-20 text-center text-5xl font-black tracking-[0.6em] rounded-3xl bg-white/5 border border-white/10 text-primary outline-none transition-all focus:border-primary/50 focus:bg-white/10"
-                  placeholder="000000"
-                  autoFocus
-                />
+                type="text"
+                maxLength={6}
+                value={twoFactorCode}
+                onChange={(e) => setTwoFactorCode(e.target.value.replace(/[^0-9]/g, ''))}
+                className="w-full h-20 text-center text-5xl font-black tracking-[0.6em] rounded-3xl bg-white/5 border border-white/10 text-primary outline-none transition-all focus:border-primary/50 focus:bg-white/10"
+                placeholder="000000"
+                autoFocus />
+              
               </div>
 
               <div className="space-y-4">
                 <Button
-                  type="submit"
-                  disabled={isSubmitting || twoFactorCode.length < 6}
-                  className="h-14 w-full rounded-2xl bg-primary text-black font-black text-md shadow-xl group"
-                >
+                type="submit"
+                disabled={isSubmitting || twoFactorCode.length < 6}
+                className="h-14 w-full rounded-2xl bg-primary text-black font-black text-md shadow-xl group">
+                
                   {isSubmitting ? <Loader2 className="h-5 w-5 animate-spin mx-auto" /> : "تحقق وآخترق"}
                 </Button>
 
                 <button
-                  type="button"
-                  onClick={() => setRequires2FA(false)}
-                  className="w-full text-[10px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-[0.2em]"
-                >
+                type="button"
+                onClick={() => setRequires2FA(false)}
+                className="w-full text-[10px] font-black text-gray-500 hover:text-white transition-colors uppercase tracking-[0.2em]">
+                
                   العودة للخلف
                 </button>
               </div>
             </motion.form>
-          )}
+          }
         </div>
 
         <div className="mt-12 text-center">
@@ -473,18 +473,18 @@ function LoginForm() {
           <Sparkles size={12} className="text-primary" />
         </div>
       </motion.div>
-    </div>
-  );
+    </div>);
+
 }
 
 export default function LoginPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-black flex items-center justify-center">
+    <div className="min-h-screen bg-black flex items-center justify-center">
         <Loader2 className="h-8 w-8 text-primary animate-spin" />
       </div>
     }>
       <LoginForm />
-    </Suspense>
-  );
+    </Suspense>);
+
 }

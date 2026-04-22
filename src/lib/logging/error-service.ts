@@ -1,11 +1,12 @@
-/**
+﻿/**
  * Consolidated Error Management & Logging Service
  * Unified single source of truth for error handling, logging, formatting, toasts and persistence.
  */
 
 import { toast } from 'sonner';
 import { safeGetItem, safeSetItem } from '@/lib/safe-client-utils';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export type ErrorSeverity = 'low' | 'medium' | 'high' | 'critical';
 

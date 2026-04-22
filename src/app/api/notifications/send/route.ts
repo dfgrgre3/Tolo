@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server';
 import { sendMultiChannelNotification } from '@/services/notification-sender';
 import { opsWrapper } from '@/lib/middleware/ops-middleware';
-import { withAuth, successResponse, badRequestResponse, handleApiError, unauthorizedResponse, notFoundResponse } from '@/lib/api-utils';
+import { withAuth, successResponse, badRequestResponse, handleApiError, notFoundResponse } from '@/lib/api-utils';
 
 import { logger } from '@/lib/logger';
 
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         let body;
         try {
           body = await req.json();
-        } catch (error) {
+        } catch (_error) {
           return badRequestResponse('تنسيق البيانات غير صحيح');
         }
 

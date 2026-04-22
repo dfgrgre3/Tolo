@@ -4,17 +4,17 @@ import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import {
   successResponse,
-  unauthorizedResponse,
+
   badRequestResponse,
   notFoundResponse,
   handleApiError,
-  withAuth,
-} from "@/lib/api-utils";
+  withAuth } from
+"@/lib/api-utils";
 
 export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ subjectId: string }> }
-) {
+req: NextRequest,
+{ params }: {params: Promise<{subjectId: string;}>;})
+{
   return opsWrapper(req, async (request) => {
     return withAuth(request, async (authUser) => {
       try {
@@ -28,8 +28,8 @@ export async function DELETE(
         const { count } = await prisma.subjectEnrollment.deleteMany({
           where: {
             userId: authUser.userId,
-            subjectId,
-          },
+            subjectId
+          }
         });
 
         if (count === 0) {

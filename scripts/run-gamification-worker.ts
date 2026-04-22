@@ -1,4 +1,4 @@
-import { GamificationWorker } from '../src/services/worker/gamification-worker';
+﻿import { GamificationWorker } from '../src/services/worker/gamification-worker';
 import { logger } from '../src/lib/logger';
 
 async function main() {

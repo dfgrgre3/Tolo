@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -276,7 +276,7 @@ export default function AdminBlogPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مكتبة المخطوطات الملكية (Blog) 📚"
+        title="مكتبة المخطوطات الملكية (Blog) ًں“ڑ"
         description="دون المعرفة، شارك القصص، والهم المحاربين بمقالاتك الفريدة في أرجاء المملكة."
       >
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
@@ -401,7 +401,7 @@ export default function AdminBlogPage() {
                     <FormItem className="flex items-center justify-between rounded-2xl border border-white/10 p-4 bg-white/5">
                       <div>
                         <FormLabel className="font-black text-xs">نشر للعامة؟</FormLabel>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل الظهور في مكتبة المملكة الآن</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase">تفعيل ال٪ور في مكتبة المملكة الآن</p>
                       </div>
                       <FormControl>
                         <Switch

@@ -1,4 +1,4 @@
-import { PrismaClient, CategoryType } from '@prisma/client';
+﻿import { PrismaClient, CategoryType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -31,57 +31,57 @@ async function seedCategoriesData() {
     },
     {
       id: 'MATH',
-      name: 'الرياضيات',
+      name: 'ط§ظ„ط±ظٹط§ط¶ظٹط§طھ',
       slug: 'math-courses',
-      description: 'دورات الرياضيات التعليمية',
+      description: 'ط¯ظˆط±ط§طھ ط§ظ„ط±ظٹط§ط¶ظٹط§طھ ط§ظ„طھط¹ظ„ظٹظ…ظٹط©',
       icon: 'Calculator',
       type: CategoryType.COURSE,
     },
     {
       id: 'PHYSICS',
-      name: 'الفيزياء',
+      name: 'ط§ظ„ظپظٹط²ظٹط§ط،',
       slug: 'physics-courses',
-      description: 'دورات الفيزياء التعليمية',
+      description: 'ط¯ظˆط±ط§طھ ط§ظ„ظپظٹط²ظٹط§ط، ط§ظ„طھط¹ظ„ظٹظ…ظٹط©',
       icon: 'Zap',
       type: CategoryType.COURSE,
     },
     {
       id: 'CHEMISTRY',
-      name: 'الكيمياء',
+      name: 'ط§ظ„ظƒظٹظ…ظٹط§ط،',
       slug: 'chemistry-courses',
-      description: 'دورات الكيمياء التعليمية',
+      description: 'ط¯ظˆط±ط§طھ ط§ظ„ظƒظٹظ…ظٹط§ط، ط§ظ„طھط¹ظ„ظٹظ…ظٹط©',
       icon: 'FlaskConical',
       type: CategoryType.COURSE,
     },
     {
       id: 'ARABIC',
-      name: 'اللغة العربية',
+      name: 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط©',
       slug: 'arabic-courses',
-      description: 'دورات اللغة العربية التعليمية',
+      description: 'ط¯ظˆط±ط§طھ ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط© ط§ظ„طھط¹ظ„ظٹظ…ظٹط©',
       icon: 'BookOpen',
       type: CategoryType.COURSE,
     },
     {
       id: 'ENGLISH',
-      name: 'اللغة الإنجليزية',
+      name: 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©',
       slug: 'english-courses',
-      description: 'دورات اللغة الإنجليزية التعليمية',
+      description: 'ط¯ظˆط±ط§طھ ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط© ط§ظ„طھط¹ظ„ظٹظ…ظٹط©',
       icon: 'Languages',
       type: CategoryType.COURSE,
     },
     {
       id: 'SCIENCE',
-      name: 'العلوم',
+      name: 'ط§ظ„ط¹ظ„ظˆظ…',
       slug: 'science-courses',
-      description: 'دورات العلوم التعليمية',
+      description: 'ط¯ظˆط±ط§طھ ط§ظ„ط¹ظ„ظˆظ… ط§ظ„طھط¹ظ„ظٹظ…ظٹط©',
       icon: 'Beaker',
       type: CategoryType.COURSE,
     },
     {
       id: 'SOCIAL_STUDIES',
-      name: 'الدراسات الاجتماعية',
+      name: 'ط§ظ„ط¯ط±ط§ط³ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹط©',
       slug: 'social-studies-courses',
-      description: 'دورات الدراسات الاجتماعية التعليمية',
+      description: 'ط¯ظˆط±ط§طھ ط§ظ„ط¯ط±ط§ط³ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹط© ط§ظ„طھط¹ظ„ظٹظ…ظٹط©',
       icon: 'Globe',
       type: CategoryType.COURSE,
     }
@@ -99,7 +99,7 @@ async function seedCategoriesData() {
     }
   }
 
-  console.log('✓ Categories seeded successfully.');
+  console.log('âœ“ Categories seeded successfully.');
 }
 
 export default seedCategoriesData;

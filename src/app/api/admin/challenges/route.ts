@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 // GET /api/admin/challenges - Get all challenges
 export async function GET(request: NextRequest) {

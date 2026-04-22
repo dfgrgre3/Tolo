@@ -1,4 +1,4 @@
-// TypeScript interfaces and types for settings configuration
+﻿// TypeScript interfaces and types for settings configuration
 // Ensures type safety when accessing settings properties
 
 // Enums from the database schema

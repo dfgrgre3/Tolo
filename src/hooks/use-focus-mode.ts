@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";

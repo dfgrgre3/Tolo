@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from "framer-motion";
 import { ROYAL_TEMPLATES, MessageTemplate } from "./types";

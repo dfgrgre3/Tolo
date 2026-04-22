@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -69,7 +69,7 @@ export default function GoalsPage() {
           className="text-center mb-8">
           
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🎯 أهدافي المخصصة
+            ًںژ¯ أهدافي المخصصة
           </h1>
           <p className="text-gray-600">
             حدد أهدافك الخاصة وسجل تقدمك نحو تحقيقها
@@ -85,9 +85,9 @@ export default function GoalsPage() {
           
           <div className="bg-white rounded-lg p-1 shadow-md">
             {[
-            { key: 'all', label: 'الكل', icon: '📋' },
-            { key: 'active', label: 'نشط', icon: '🔄' },
-            { key: 'completed', label: 'مكتمل', icon: '✅' }].
+            { key: 'all', label: 'الكل', icon: 'ًں“‹' },
+            { key: 'active', label: 'نشط', icon: 'ًں”„' },
+            { key: 'completed', label: 'مكتمل', icon: 'âœ…' }].
             map((tab) =>
             <button
               key={tab.key}
@@ -115,7 +115,7 @@ export default function GoalsPage() {
             onClick={() => setIsCreateModalOpen(true)}
             className="w-full bg-gradient-to-r from-emerald-500 to-green-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-emerald-600 hover:to-green-700 transition-all shadow-lg hover:shadow-xl">
             
-            ➕ إنشاء هدف جديد
+            â‍• إنشاء هدف جديد
           </button>
         </motion.div>
 
@@ -139,7 +139,7 @@ export default function GoalsPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-16">
           
-            <div className="text-6xl mb-4">🎯</div>
+            <div className="text-6xl mb-4">ًںژ¯</div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               {filter === 'all' ? 'لا توجد أهداف بعد' :
             filter === 'active' ? 'لا توجد أهداف نشطة' :

@@ -1,13 +1,13 @@
 
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
-import { successResponse, unauthorizedResponse, notFoundResponse, withAuth, handleApiError } from '@/lib/api-utils';
+import { successResponse, notFoundResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
 // جلب إعدادات الإشعارات
 export async function GET(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
+  return opsWrapper(request, async (_req) => {
     return withAuth(request, async (authUser) => {
       try {
 
@@ -40,11 +40,11 @@ export async function GET(request: NextRequest) {
 
 // تحديث إعدادات الإشعارات
 export async function PUT(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
+  return opsWrapper(request, async (_req) => {
     return withAuth(request, async (authUser) => {
       try {
 
-        const { emailNotifications, smsNotifications, phone } = await req.json();
+        const { emailNotifications, smsNotifications, phone } = await request.json();
 
         // Update user notification settings
         const updatedUser = await prisma.user.update({

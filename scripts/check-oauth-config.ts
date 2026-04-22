@@ -1,7 +1,7 @@
-#!/usr/bin/env tsx
+﻿#!/usr/bin/env tsx
 /**
  * OAuth Configuration Check Script
- * سكربت للتحقق من إعدادات OAuth و redirect_uri
+ * ط³ظƒط±ط¨طھ ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¥ط¹ط¯ط§ط¯ط§طھ OAuth ظˆ redirect_uri
  * 
  * Checks:
  * - Google OAuth redirect_uri configuration
@@ -167,33 +167,33 @@ function checkOAuthConfig(): OAuthReport {
 
 function formatReport(report: OAuthReport): void {
   console.log('\n' + '='.repeat(70));
-  console.log('OAuth Configuration Check / فحص إعدادات OAuth');
+  console.log('OAuth Configuration Check / ظپط­طµ ط¥ط¹ط¯ط§ط¯ط§طھ OAuth');
   console.log('='.repeat(70) + '\n');
 
   // Google OAuth Status
-  console.log('📋 Google OAuth Configuration:');
-  console.log(`   Client ID: ${report.google.clientId || '❌ Not set'}`);
-  console.log(`   Client Secret: ${report.google.clientSecret || '❌ Not set'}`);
-  console.log(`   Base URL: ${report.google.baseUrl || '❌ Not set'}`);
-  console.log(`   Redirect URI: ${report.google.redirectUri || '❌ Not calculated'}`);
-  console.log(`   Configured: ${report.google.isConfigured ? '✅ Yes' : '❌ No'}`);
+  console.log('ًں“‹ Google OAuth Configuration:');
+  console.log(`   Client ID: ${report.google.clientId || 'â‌Œ Not set'}`);
+  console.log(`   Client Secret: ${report.google.clientSecret || 'â‌Œ Not set'}`);
+  console.log(`   Base URL: ${report.google.baseUrl || 'â‌Œ Not set'}`);
+  console.log(`   Redirect URI: ${report.google.redirectUri || 'â‌Œ Not calculated'}`);
+  console.log(`   Configured: ${report.google.isConfigured ? 'âœ… Yes' : 'â‌Œ No'}`);
   console.log();
 
   // Validation
   if (report.google.redirectUri) {
-    console.log('🔍 Redirect URI Validation:');
+    console.log('ًں”چ Redirect URI Validation:');
     if (report.google.validation.valid) {
-      console.log('   ✅ Valid format');
+      console.log('   âœ… Valid format');
     } else {
-      console.log('   ❌ Invalid format');
+      console.log('   â‌Œ Invalid format');
       report.google.validation.errors.forEach(error => {
-        console.log(`      • ${error}`);
+        console.log(`      ⬢ ${error}`);
       });
     }
     
     if (report.google.validation.warnings.length > 0) {
       report.google.validation.warnings.forEach(warning => {
-        console.log(`      ⚠️  ${warning}`);
+        console.log(`      âڑ ï¸ڈ  ${warning}`);
       });
     }
     console.log();
@@ -201,25 +201,25 @@ function formatReport(report: OAuthReport): void {
 
   // Errors
   if (report.errors.length > 0) {
-    console.log('❌ Errors:');
+    console.log('â‌Œ Errors:');
     report.errors.forEach(error => {
-      console.log(`   • ${error}`);
+      console.log(`   ⬢ ${error}`);
     });
     console.log();
   }
 
   // Warnings
   if (report.warnings.length > 0) {
-    console.log('⚠️  Warnings:');
+    console.log('âڑ ï¸ڈ  Warnings:');
     report.warnings.forEach(warning => {
-      console.log(`   • ${warning}`);
+      console.log(`   ⬢ ${warning}`);
     });
     console.log();
   }
 
   // Recommendations
   if (report.recommendations.length > 0) {
-    console.log('💡 Recommendations / التوصيات:');
+    console.log('ًں’، Recommendations / ط§ظ„طھظˆطµظٹط§طھ:');
     report.recommendations.forEach((rec, index) => {
       console.log(`   ${index + 1}. ${rec}`);
     });
@@ -227,9 +227,9 @@ function formatReport(report: OAuthReport): void {
   }
 
   // Google Cloud Console Instructions
-  console.log('📝 Google Cloud Console Setup Instructions:');
+  console.log('ًں“‌ Google Cloud Console Setup Instructions:');
   console.log('   1. Go to https://console.cloud.google.com/');
-  console.log('   2. Navigate to: APIs & Services → Credentials');
+  console.log('   2. Navigate to: APIs & Services â†’ Credentials');
   console.log('   3. Select your OAuth 2.0 Client ID');
   console.log(`   4. Add this exact redirect_uri to "Authorized redirect URIs":`);
   console.log(`      ${report.google.redirectUri || 'N/A'}`);
@@ -240,9 +240,9 @@ function formatReport(report: OAuthReport): void {
   console.log('='.repeat(70));
   const allValid = report.google.isConfigured && report.google.validation.valid && report.errors.length === 0;
   if (allValid) {
-    console.log('✅ All checks passed! OAuth configuration looks good.');
+    console.log('âœ… All checks passed! OAuth configuration looks good.');
   } else {
-    console.log('❌ Configuration issues found. Please fix the errors above.');
+    console.log('â‌Œ Configuration issues found. Please fix the errors above.');
   }
   console.log('='.repeat(70) + '\n');
 }

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -121,10 +121,10 @@ export default function NewAnnouncementPage() {
   };
 
   const categories = [
-    { id: "academic", name: "أكاديمي", icon: "🎓" },
-    { id: "administrative", name: "إداري", icon: "🏢" },
-    { id: "events", name: "فعاليات", icon: "🎉" },
-    { id: "competitions", name: "مسابقات", icon: "🏆" },
+    { id: "academic", name: "أكاديمي", icon: "ًںژ“" },
+    { id: "administrative", name: "إداري", icon: "ًںڈ¢" },
+    { id: "events", name: "فعاليات", icon: "ًںژ‰" },
+    { id: "competitions", name: "مسابقات", icon: "ًںڈ†" },
   ];
 
   const priorities = [
@@ -335,7 +335,7 @@ export default function NewAnnouncementPage() {
                       onClick={() => handleRemoveTag(tag)}
                       aria-label={`إزالة الوسم ${tag}`}
                     >
-                      ×
+                      أ—
                     </button>
                   </div>
                 ))}

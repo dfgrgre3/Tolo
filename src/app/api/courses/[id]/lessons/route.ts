@@ -7,8 +7,13 @@ import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-u
 
 interface SubTopic {
   id: string;
-  name: string;
+  title: string;
   description: string | null;
+  content: string | null;
+  videoUrl: string | null;
+  type: string;
+  isFree: boolean;
+  durationMinutes: number;
   topicId: string;
   order: number;
 }
@@ -21,30 +26,69 @@ export async function GET(
   return opsWrapper(request, async (req) => {
     try {
       const { id } = await params;
-      const { searchParams } = new URL(req.url);
-      const userId = searchParams.get("userId");
+      const userId = req.headers.get("x-user-id");
+      const userRole = req.headers.get("x-user-role");
 
       // Check if subject exists
-      const subject = await prisma.subject.findUnique({
-        where: { id }
+      const subject = await prisma.subject.findFirst({
+        where: {
+          OR: [
+            { id },
+            { slug: id }
+          ]
+        }
       });
 
       if (!subject) {
         return badRequestResponse("المادة غير موجودة", "SUBJECT_NOT_FOUND");
       }
 
+      // Use the actual subject ID for caching and subsequent queries
+      const subjectId = subject.id;
+      const isAdmin = userRole === "ADMIN";
+
+      const enrollment = userId ?
+      await prisma.subjectEnrollment.findUnique({
+        where: {
+          userId_subjectId: {
+            userId,
+            subjectId
+          }
+        },
+        select: { id: true }
+      }) :
+      null;
+
+      const canAccessPaidContent = Boolean(enrollment) || isAdmin;
+
       // Get lessons (now subtopics) for this subject
       const lessons = await getOrSetEnhanced(
-        `subject:${id}:lessons`,
+        `subject:${subjectId}:lessons`,
         async () => {
           return await prisma.subTopic.findMany({
             where: {
               topic: {
-                subjectId: id
+                subjectId: subjectId
               }
             },
-            include: {
-              topic: true
+            select: {
+              id: true,
+              title: true,
+              description: true,
+              content: true,
+              videoUrl: true,
+              type: true,
+              isFree: true,
+              durationMinutes: true,
+              topicId: true,
+              order: true,
+              topic: {
+                select: {
+                  id: true,
+                  title: true,
+                  order: true
+                }
+              }
             },
             orderBy: [
               { topic: { order: 'asc' } },
@@ -71,9 +115,31 @@ export async function GET(
         }, {} as Record<string, boolean>);
       }
 
+      const sanitizedLessons = lessons.map((lesson: SubTopic & {topic?: {id: string;title: string;order: number;};}) => {
+        const isAccessible = canAccessPaidContent || lesson.isFree;
+
+        return {
+          id: lesson.id,
+          title: lesson.title,
+          description: lesson.description,
+          content: isAccessible ? lesson.content : null,
+          videoUrl: isAccessible ? lesson.videoUrl : null,
+          type: lesson.type,
+          isFree: lesson.isFree,
+          durationMinutes: lesson.durationMinutes,
+          order: lesson.order,
+          locked: !isAccessible,
+          topic: lesson.topic
+        };
+      });
+
       return successResponse({
-        lessons,
-        progress: lessonProgress
+        lessons: sanitizedLessons,
+        progress: lessonProgress,
+        access: {
+          enrolled: Boolean(enrollment),
+          canAccessPaidContent
+        }
       });
     } catch (error: unknown) {
       logger.error("Error fetching subject lessons:", error);

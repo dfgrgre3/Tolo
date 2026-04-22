@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+﻿import { PrismaClient } from "@prisma/client";
 import { SubjectType } from "../../src/types/settings";
 
 const prisma = new PrismaClient();

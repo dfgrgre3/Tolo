@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/db';
-import { logger } from '@/lib/logger';
-import { Season, Challenge, QuestChain, Quest, Reward, CustomGoal } from './types';
+
+import { Season, Challenge, QuestChain, Reward, CustomGoal } from './types';
 import { xpService } from './xp-service';
 
 export class ProgressionService {
@@ -55,9 +55,9 @@ export class ProgressionService {
       description: c.description || '',
       type: c.type as any,
       category: c.category as any,
-      difficulty: (c.difficulty as any) || 'medium',
+      difficulty: c.difficulty as any || 'medium',
       xpReward: c.xpReward,
-      requirements: (c.requirements as any) || {},
+      requirements: c.requirements as any || {},
       startDate: c.startDate,
       endDate: c.endDate,
       subjectId: c.subjectId || undefined,
@@ -88,8 +88,8 @@ export class ProgressionService {
         description: q.description || '',
         order: q.order,
         xpReward: q.xpReward,
-        requirements: (q.requirements as any) || {},
-        prerequisites: (q.prerequisites as any) || undefined
+        requirements: q.requirements as any || {},
+        prerequisites: q.prerequisites as any || undefined
       }))
     }));
   }
@@ -106,7 +106,7 @@ export class ProgressionService {
         unit: data.unit || 'unit',
         category: data.category || 'custom',
         xpReward: data.xpReward || 10,
-        isCompleted: false,
+        isCompleted: false
       }
     });
     return result as unknown as CustomGoal;

@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * 🔐 صفحة الأمان - Security Settings
+ * ًں”گ صفحة الأمان - Security Settings
  * 
  * إدارة أمان الحساب:
  * - تغيير كلمة المرور
@@ -42,7 +42,7 @@ interface SecurityLog {
 }
 
 export default function SecurityPage() {
-  const { logout, user, refreshUser } = useAuth();
+  const { logout: _logout, user, refreshUser } = useAuth();
   const router = useRouter();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordData, setPasswordData] = useState({
@@ -346,7 +346,7 @@ export default function SecurityPage() {
             <div>
               <p className="text-sm text-green-300">المصادقة الثنائية مفعّلة</p>
               <p className="text-xs text-green-400/70 mt-1">
-                سيُطلب منك رمز التحقق عند تسجيل الدخول من أجهزة جديدة
+                سيظڈطلب منك رمز التحقق عند تسجيل الدخول من أجهزة جديدة
               </p>
             </div>
           </div>

@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { logger } from './lib/logger';
+
 import { TokenService, TokenPayload } from './services/auth/token-service';
 import { CacheService } from './lib/cache';
 import {
-  DEFAULT_AUTHENTICATED_ROUTE,
-  isAuthPublicRoute,
-  sanitizeRedirectPath,
-} from './services/auth/navigation';
+
+  isAuthPublicRoute } from
+
+'./services/auth/navigation';
 
 /**
  * middleware.ts - Global Next.js Middleware Optimized for 10M+ Users.
@@ -23,34 +23,34 @@ export const config = {
   // Use Node.js runtime for full ioredis support and high-performance TCP caching
   runtime: 'nodejs',
   matcher: [
-    '/api/:path*',
-    '/admin/:path*',
-    '/teacher/:path*',
-    '/user/:path*',
-    '/settings/:path*',
-    '/login',
-    '/register',
-    '/forgot-password',
-    '/reset-password',
-    '/verify-email',
-    '/admin-login',
-  ],
+  '/api/:path*',
+  '/admin/:path*',
+  '/teacher/:path*',
+  '/user/:path*',
+  '/settings/:path*',
+  '/login',
+  '/register',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email',
+  '/admin-login']
+
 };
 
 const PROTECTED_PREFIXES = ['/user', '/settings', '/api/'];
 const ADMIN_ROUTES = ['/admin', '/api/admin'];
 const TEACHER_ROUTES = ['/teacher'];
 const PUBLIC_AUTH_API_ROUTES = [
-  '/api/auth/login', '/api/auth/register', '/api/auth/forgot-password',
-  '/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/resend-verification',
-  '/api/auth/refresh', '/api/auth/logout', '/api/auth/oauth', '/api/auth/callback',
-  '/api/auth/csrf', '/api/users/guest', '/api/healthz', '/api/readyz', '/api/webhooks',
-  '/api/courses', '/api/courses/categories', '/api/subjects', '/api/teachers',
-];
+'/api/auth/login', '/api/auth/register', '/api/auth/forgot-password',
+'/api/auth/reset-password', '/api/auth/verify-email', '/api/auth/resend-verification',
+'/api/auth/refresh', '/api/auth/logout', '/api/auth/oauth', '/api/auth/callback',
+'/api/auth/csrf', '/api/users/guest', '/api/healthz', '/api/readyz', '/api/webhooks',
+'/api/courses', '/api/courses/categories', '/api/subjects', '/api/teachers'];
+
 
 export default async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const isApiRoute = pathname.startsWith('/api/');
+  const _isApiRoute = pathname.startsWith('/api/');
 
   // 1. FAST PATH: Health checks (Bypass for K8s)
   if (pathname === '/api/healthz' || pathname === '/api/readyz') {
@@ -64,7 +64,7 @@ export default async function middleware(request: NextRequest) {
 
   // 3. INTERNAL HEADER PROTECTION (Spoof prevention)
   const internalHeaders = ['x-user-id', 'x-user-role', 'x-user-permissions', 'x-session-id'];
-  internalHeaders.forEach(h => requestHeaders.delete(h));
+  internalHeaders.forEach((h) => requestHeaders.delete(h));
 
   // 4. AUTHENTICATION & SESSION CACHING
   const token = request.cookies.get('access_token')?.value;
@@ -73,26 +73,28 @@ export default async function middleware(request: NextRequest) {
   if (token) {
     // 4.1 Cryptographic verification
     payload = await TokenService.verifyToken<TokenPayload>(token);
-    
+
     // 4.2 Distributed Revocation Check (Million-User Scale Security)
     if (payload?.sessionId) {
       const cacheKey = `session:${payload.sessionId}`;
       const cachedSession = await CacheService.get<any>(cacheKey);
-      
+
       // If session is revoked or missing from cache (TTL exceeded), we block
       // Note: Real-world apps might fallback to DB if cache is missing, but for 10M users
       // strict Cache-Aside is safer for performance.
       if (!cachedSession || !cachedSession.isActive) {
-         payload = null; // Mark as unauthorized
+        payload = null; // Mark as unauthorized
       }
     }
   }
 
   // 5. ROUTE PROTECTION
-  const isPublicAuthApiRoute = PUBLIC_AUTH_API_ROUTES.includes(pathname);
-  const isPublicAuthRoute = isAuthPublicRoute(pathname);
+  const isPublicAuthApiRoute = PUBLIC_AUTH_API_ROUTES.includes(pathname) || 
+                               pathname.startsWith('/api/courses/') || 
+                               pathname.startsWith('/api/subjects/');
+  const _isPublicAuthRoute = isAuthPublicRoute(pathname);
   const isStaticAsset = pathname.includes('.') || pathname.includes('/_next/');
-  const requiresAuth = !isStaticAsset && !isPublicAuthApiRoute && PROTECTED_PREFIXES.some(p => pathname.startsWith(p));
+  const requiresAuth = !isStaticAsset && !isPublicAuthApiRoute && PROTECTED_PREFIXES.some((p) => pathname.startsWith(p));
 
   if (!payload && requiresAuth) {
     return handleUnauthorized(request, pathname);
@@ -100,10 +102,10 @@ export default async function middleware(request: NextRequest) {
 
   // 6. RBAC (Role Based Access Control)
   if (payload) {
-    if (ADMIN_ROUTES.some(p => pathname.startsWith(p)) && payload.role !== 'ADMIN') {
+    if (ADMIN_ROUTES.some((p) => pathname.startsWith(p)) && payload.role !== 'ADMIN') {
       return handleForbidden(request, pathname);
     }
-    if (TEACHER_ROUTES.some(p => pathname.startsWith(p)) && payload.role !== 'TEACHER' && payload.role !== 'ADMIN') {
+    if (TEACHER_ROUTES.some((p) => pathname.startsWith(p)) && payload.role !== 'TEACHER' && payload.role !== 'ADMIN') {
       return handleForbidden(request, pathname);
     }
   }
@@ -122,7 +124,7 @@ export default async function middleware(request: NextRequest) {
   // 8. SECURITY & CACHING HEADERS
   addSecurityHeaders(response, requestId);
   addCachingHeaders(request, response);
-  
+
   return response;
 }
 
@@ -132,13 +134,13 @@ export default async function middleware(request: NextRequest) {
  */
 function addCachingHeaders(request: NextRequest, response: NextResponse) {
   const { pathname } = request.nextUrl;
-  
+
   // Public content (Subjects, Courses, Lessons) - Cache at edge for 1 minute, allow stale for 1 hour
   const PUBLIC_METADATA_ROUTES = ['/api/subjects', '/api/courses', '/api/lessons'];
-  if (PUBLIC_METADATA_ROUTES.some(p => pathname.startsWith(p))) {
+  if (PUBLIC_METADATA_ROUTES.some((p) => pathname.startsWith(p))) {
     response.headers.set('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=3600');
   }
-  
+
   // Static assets (Next.js internals, public folder) - Cache forever
   if (pathname.startsWith('/_next/static/') || pathname.startsWith('/public/')) {
     response.headers.set('Cache-Control', 'public, max-age=31536000, immutable');

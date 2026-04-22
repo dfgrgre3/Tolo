@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { Achievement } from './types';
-import { xpService } from './xp-service';
+
 
 export class AchievementService {
   private static instance: AchievementService;
@@ -20,11 +20,11 @@ export class AchievementService {
 
   private initializeAchievements(): void {
     const achievements: Achievement[] = [
-      { key: 'STUDY_SESSION_COMPLETED', name: 'طالب مجتهد', description: 'أكملت أول جلسة مذاكرة لك', icon: '📖', xpReward: 100 },
-      { key: 'QUIZ_MASTER', name: 'سيد الاختبارات', description: 'حصلت على درجة كاملة في اختبار', icon: '🏆', xpReward: 200 },
-      { key: 'SEVEN_DAY_STREAK', name: 'الاستمرارية سر النجاح', description: 'حافظت على نشاطك لمدة 7 أيام متتالية', icon: '🔥', xpReward: 500 },
-    ];
-    achievements.forEach(a => this.achievementsMap.set(a.key, a));
+    { key: 'STUDY_SESSION_COMPLETED', name: 'طالب مجتهد', description: 'أكملت أول جلسة مذاكرة لك', icon: 'ًں“–', xpReward: 100 },
+    { key: 'QUIZ_MASTER', name: 'سيد الاختبارات', description: 'حصلت على درجة كاملة في اختبار', icon: 'ًںڈ†', xpReward: 200 },
+    { key: 'SEVEN_DAY_STREAK', name: 'الاستمرارية سر النجاح', description: 'حافظت على نشاطك لمدة 7 أيام متتالية', icon: 'ًں”¥', xpReward: 500 }];
+
+    achievements.forEach((a) => this.achievementsMap.set(a.key, a));
   }
 
   public getAllAchievements(): Achievement[] {
@@ -53,21 +53,25 @@ export class AchievementService {
 
       // Use XPService to calculate reward increment
       await prisma.$transaction([
-        prisma.userAchievement.create({
-          data: {
-            id: crypto.randomUUID(),
-            userId,
-            achievementKey,
-            earnedAt: new Date()
-          }
-        }),
-        prisma.user.update({
-          where: { id: userId },
-          data: {
-            totalXP: { increment: achievement.xpReward }
-          }
-        })
-      ]);
+      prisma.userAchievement.create({
+        data: {
+          id: crypto.randomUUID(),
+          userId,
+          achievementKey,
+          earnedAt: new Date()
+        }
+      }),
+      prisma.userXP.upsert({
+        where: { userId },
+        update: {
+          totalXP: { increment: achievement.xpReward }
+        },
+        create: {
+          userId,
+          totalXP: achievement.xpReward
+        }
+      })]
+      );
 
       return true;
     } catch (error) {

@@ -1,4 +1,4 @@
-import { useEffect, RefObject } from 'react';
+﻿import { useEffect, RefObject } from 'react';
 
 /**
  * Hook لاكتشاف النقر خارج عنصر معين

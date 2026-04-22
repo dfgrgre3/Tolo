@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, Suspense } from 'react';
 import { useForm } from 'react-hook-form';
@@ -149,7 +149,7 @@ function ResetPasswordForm() {
                 {...register('password')}
                 type={showPassword ? 'text' : 'password'}
                 className="w-full h-14 pr-12 pl-12 bg-white/5 border border-white/10 rounded-2xl focus:border-primary/50 transition-all outline-none text-white font-bold text-sm"
-                placeholder="••••••••"
+                placeholder="⬢⬢⬢⬢⬢⬢⬢⬢"
               />
               <button
                 type="button"
@@ -171,7 +171,7 @@ function ResetPasswordForm() {
                 {...register('confirmPassword')}
                 type={showPassword ? 'text' : 'password'}
                 className="w-full h-14 pr-12 pl-6 bg-white/5 border border-white/10 rounded-2xl focus:border-primary/50 transition-all outline-none text-white font-bold text-sm"
-                placeholder="••••••••"
+                placeholder="⬢⬢⬢⬢⬢⬢⬢⬢"
               />
             </div>
             {errors.confirmPassword && <p className="text-[10px] font-black text-red-500 uppercase mr-1">{errors.confirmPassword.message}</p>}

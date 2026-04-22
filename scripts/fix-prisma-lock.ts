@@ -1,4 +1,4 @@
-import path from 'path';
+﻿import path from 'path';
 import fs from 'fs';
 import { log, colors, killProcess, runCommand } from './lib/script-utils';
 

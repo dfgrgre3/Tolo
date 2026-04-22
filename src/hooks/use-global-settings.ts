@@ -5,30 +5,28 @@
  *
  * يقوم بـ:
  * 1. تحميل إعدادات المستخدم عند تسجيل الدخول
- * 2. تطبيق السمة (theme) ولون الخط والمظهر على الـ DOM
+ * 2. تطبيق السمة (theme) ولون الخط والم٪ر على الـ DOM
  * 3. تطبيق إعدادات اللغة والتوجيه (RTL/LTR)
  * 4. حفظ الإعدادات في localStorage لاستعادتها بسرعة
  */
 
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/auth-context';
-import { logger } from '@/lib/logger';
+import { useTheme } from 'next-themes';
+
+import { logger } from '@/lib/logger';
 
 export function useGlobalSettings() {
   const { user, isLoading } = useAuth();
   const settingsLoadedRef = useRef(false);
   const prevUserIdRef = useRef<string | null>(null);
 
+  const { setTheme } = useTheme();
+
   const applyTheme = useCallback((theme: string) => {
-    const root = document.documentElement;
-    if (theme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      root.classList.toggle('dark', prefersDark);
-    } else {
-      root.classList.toggle('dark', theme === 'dark');
-    }
+    setTheme(theme);
     localStorage.setItem('theme', theme);
-  }, []);
+  }, [setTheme]);
 
   const applyFontSize = useCallback((fontSize: string) => {
     const sizes: Record<string, string> = {
@@ -82,7 +80,7 @@ export function useGlobalSettings() {
   // تطبيق الإعدادات المحفوظة من localStorage على الفور (بدون انتظار API)
   const applyFromLocalStorage = useCallback(() => {
     try {
-      const theme = localStorage.getItem('theme') || 'dark';
+      const theme = localStorage.getItem('theme') || 'light';
       const fontSize = localStorage.getItem('fontSize') || 'medium';
       const language = localStorage.getItem('language') || 'ar';
       const direction = localStorage.getItem('direction') || 'rtl';
@@ -122,7 +120,7 @@ export function useGlobalSettings() {
 
       if (!preferences) return;
 
-      // تطبيق إعدادات المظهر
+      // تطبيق إعدادات الم٪ر
       if (preferences.appearance) {
         const { theme, fontSize, primaryColor, accentColor, reducedMotion, highContrast, compactMode } =
           preferences.appearance;

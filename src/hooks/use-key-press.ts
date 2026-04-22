@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { logger } from '@/lib/logger';
+
+
 
 /**
  * Hook لاكتشاف ضغط مفتاح معين
@@ -43,17 +44,17 @@ export interface UseKeyPressOptions {
 }
 
 export function useKeyPress(
-  targetKey: string,
-  handler: (event: KeyboardEvent) => void,
-  options: UseKeyPressOptions = {}
-): void {
+targetKey: string,
+handler: (event: KeyboardEvent) => void,
+options: UseKeyPressOptions = {})
+: void {
   const {
     ctrlKey = false,
     altKey = false,
     shiftKey = false,
     metaKey = false,
     preventDefault = false,
-    enabled = true,
+    enabled = true
   } = options;
 
   useEffect(() => {
@@ -116,13 +117,13 @@ export function useMultiKeyPress(targetKeys: string[]): Set<string> {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (targetKeys.includes(event.key)) {
-        setPressedKeys(prev => new Set(prev).add(event.key));
+        setPressedKeys((prev) => new Set(prev).add(event.key));
       }
     };
 
     const handleKeyUp = (event: KeyboardEvent) => {
       if (targetKeys.includes(event.key)) {
-        setPressedKeys(prev => {
+        setPressedKeys((prev) => {
           const next = new Set(prev);
           next.delete(event.key);
           return next;
@@ -162,8 +163,8 @@ export function useMultiKeyPress(targetKeys: string[]): Set<string> {
  * ```
  */
 export function useKeyboardShortcuts(
-  shortcuts: Record<string, (event: KeyboardEvent) => void>
-): void {
+shortcuts: Record<string, (event: KeyboardEvent) => void>)
+: void {
   const parseShortcut = useCallback((shortcut: string) => {
     const parts = shortcut.toLowerCase().split('+');
     return {
@@ -171,7 +172,7 @@ export function useKeyboardShortcuts(
       ctrl: parts.includes('ctrl') || parts.includes('control'),
       alt: parts.includes('alt'),
       shift: parts.includes('shift'),
-      meta: parts.includes('meta') || parts.includes('cmd'),
+      meta: parts.includes('meta') || parts.includes('cmd')
     };
   }, []);
 
@@ -181,12 +182,12 @@ export function useKeyboardShortcuts(
         const parsed = parseShortcut(shortcut);
 
         if (
-          event.key.toLowerCase() === parsed.key &&
-          event.ctrlKey === parsed.ctrl &&
-          event.altKey === parsed.alt &&
-          event.shiftKey === parsed.shift &&
-          event.metaKey === parsed.meta
-        ) {
+        event.key.toLowerCase() === parsed.key &&
+        event.ctrlKey === parsed.ctrl &&
+        event.altKey === parsed.alt &&
+        event.shiftKey === parsed.shift &&
+        event.metaKey === parsed.meta)
+        {
           event.preventDefault();
           handler(event);
           break;

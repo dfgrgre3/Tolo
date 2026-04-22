@@ -1,4 +1,4 @@
-import {
+﻿import {
   Activity,
   Award,
   BarChart3,
@@ -78,7 +78,7 @@ export const scheduleMegaMenu: MegaMenuCategory[] = [
     items: [
       { href: "/events", label: "الأحداث", icon: Sparkles, description: "فعاليات وأحداث قادمة" },
       { href: "/exams", label: "الامتحانات", icon: ClipboardList, description: "جدول الاختبارات والنتائج" },
-      { href: "/notifications", label: "التنبيهات", icon: Bell, description: "ابقَ على اطلاع بكل جديد" },
+      { href: "/notifications", label: "التنبيهات", icon: Bell, description: "ابقِ على اطلاع بكل جديد" },
     ],
   },
 ];

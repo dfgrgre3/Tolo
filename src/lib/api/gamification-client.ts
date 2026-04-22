@@ -1,4 +1,4 @@
-import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/services/gamification-service';
+﻿import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/services/gamification-service';
 import apiClient from './api-client';
 
 export async function fetchUserProgress(userId: string): Promise<UserProgress | null> {

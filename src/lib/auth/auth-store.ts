@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { clearUserId } from '@/lib/user-utils';
-import { sanitizeRedirectPath } from '@/services/auth/navigation';
+
 
 export interface AuthUser {
   id: string;
@@ -55,12 +55,12 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   isRefreshing: boolean;
-  
+
   // Actions
   setUser: (user: AuthUser | null) => void;
   setIsLoading: (isLoading: boolean) => void;
   setIsRefreshing: (isRefreshing: boolean) => void;
-  
+
   // Async Actions handled via the store or external calls
   // (Moving the complex logic here helps reduce Context size)
   reset: () => void;
@@ -79,12 +79,12 @@ export const useAuthStore = create<AuthState>()(
       reset: () => {
         set({ user: null, isAuthenticated: false, isLoading: false });
         clearUserId();
-      },
+      }
     }),
     {
       name: 'auth-storage',
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({ user: state.user, isAuthenticated: state.isAuthenticated })
     }
   )
 );

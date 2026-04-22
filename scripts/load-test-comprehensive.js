@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Comprehensive Load Test Script for Thanawy Platform
  * 
  * Tests system behavior at different user loads:
@@ -24,7 +24,7 @@ const http = require('http');
 const https = require('https');
 const { URL } = require('url');
 
-// ─── Configuration ───
+// â”€â”€â”€ Configuration â”€â”€â”€
 
 const DEFAULT_CONFIG = {
   baseUrl: process.env.API_BASE_URL || 'http://localhost:3000/api',
@@ -34,7 +34,7 @@ const DEFAULT_CONFIG = {
   timeout: 30000,
 };
 
-// ─── Test Scenarios ───
+// â”€â”€â”€ Test Scenarios â”€â”€â”€
 
 const SCENARIOS = [
   {
@@ -95,7 +95,7 @@ const SCENARIOS = [
   },
 ];
 
-// ─── Metrics Collection ───
+// â”€â”€â”€ Metrics Collection â”€â”€â”€
 
 class MetricsCollector {
   constructor() {
@@ -166,7 +166,7 @@ class MetricsCollector {
   }
 }
 
-// ─── HTTP Request Helper ───
+// â”€â”€â”€ HTTP Request Helper â”€â”€â”€
 
 function makeRequest(url, options = {}) {
   return new Promise((resolve, reject) => {
@@ -214,14 +214,14 @@ function makeRequest(url, options = {}) {
   });
 }
 
-// ─── Load Generator ───
+// â”€â”€â”€ Load Generator â”€â”€â”€
 
 async function runLoadTest(config) {
   const metrics = new MetricsCollector();
   const { users, duration, baseUrl } = config;
 
   console.log(`\n${'='.repeat(60)}`);
-  console.log(`🚀 Load Test: ${users} concurrent users for ${duration}s`);
+  console.log(`ًںڑ€ Load Test: ${users} concurrent users for ${duration}s`);
   console.log(`${'='.repeat(60)}`);
   console.log(`Target: ${baseUrl}`);
   console.log(`Scenarios: ${SCENARIOS.length}`);
@@ -232,8 +232,8 @@ async function runLoadTest(config) {
   const requestsPerSecond = users / 10; // Approximate RPS
   const intervalMs = 1000 / requestsPerSecond;
 
-  console.log(`\n📊 Expected RPS: ~${requestsPerSecond.toFixed(0)}`);
-  console.log(`⏱️  Request interval: ${intervalMs.toFixed(0)}ms`);
+  console.log(`\nًں“ٹ Expected RPS: ~${requestsPerSecond.toFixed(0)}`);
+  console.log(`âڈ±ï¸ڈ  Request interval: ${intervalMs.toFixed(0)}ms`);
 
   // Select scenario based on weight
   function selectScenario() {
@@ -312,26 +312,26 @@ async function runLoadTest(config) {
   return metrics.getStats();
 }
 
-// ─── Results Display ───
+// â”€â”€â”€ Results Display â”€â”€â”€
 
 function printResults(stats, config) {
   console.log(`\n${'='.repeat(60)}`);
-  console.log('📈 LOAD TEST RESULTS');
+  console.log('ًں“ˆ LOAD TEST RESULTS');
   console.log(`${'='.repeat(60)}`);
 
-  console.log(`\n🎯 Configuration:`);
+  console.log(`\nًںژ¯ Configuration:`);
   console.log(`   Users: ${config.users}`);
   console.log(`   Duration: ${config.duration}s`);
   console.log(`   Target: ${config.baseUrl}`);
 
-  console.log(`\n📊 Summary:`);
+  console.log(`\nًں“ٹ Summary:`);
   console.log(`   Total Requests: ${stats.totalRequests}`);
   console.log(`   Successful: ${stats.successfulRequests}`);
   console.log(`   Failed: ${stats.failedRequests}`);
   console.log(`   Error Rate: ${stats.errorRate}%`);
   console.log(`   Requests/sec: ${stats.rps}`);
 
-  console.log(`\n⏱️  Latency (ms):`);
+  console.log(`\nâڈ±ï¸ڈ  Latency (ms):`);
   console.log(`   Min: ${stats.latency.min}`);
   console.log(`   Avg: ${stats.latency.avg}`);
   console.log(`   P50: ${stats.latency.p50}`);
@@ -340,7 +340,7 @@ function printResults(stats, config) {
   console.log(`   P99: ${stats.latency.p99}`);
   console.log(`   Max: ${stats.latency.max}`);
 
-  console.log(`\n📋 Status Codes:`);
+  console.log(`\nًں“‹ Status Codes:`);
   Object.entries(stats.statusCodes)
     .sort(([a], [b]) => a - b)
     .forEach(([code, count]) => {
@@ -348,7 +348,7 @@ function printResults(stats, config) {
     });
 
   if (stats.topErrors.length > 0) {
-    console.log(`\n❌ Top Errors:`);
+    console.log(`\nâ‌Œ Top Errors:`);
     stats.topErrors.forEach((err, i) => {
       console.log(`   ${i + 1}. ${err.message} (${err.count}x)`);
     });
@@ -356,7 +356,7 @@ function printResults(stats, config) {
 
   // Pass/Fail criteria
   console.log(`\n${'='.repeat(60)}`);
-  console.log('✅ PASS/FAIL CRITERIA:');
+  console.log('âœ… PASS/FAIL CRITERIA:');
 
   const criteria = [
     { name: 'Error Rate < 1%', pass: parseFloat(stats.errorRate) < 1 },
@@ -366,15 +366,15 @@ function printResults(stats, config) {
   ];
 
   criteria.forEach((c) => {
-    console.log(`   ${c.pass ? '✅ PASS' : '❌ FAIL'}: ${c.name}`);
+    console.log(`   ${c.pass ? 'âœ… PASS' : 'â‌Œ FAIL'}: ${c.name}`);
   });
 
   const allPassed = criteria.every((c) => c.pass);
-  console.log(`\n${allPassed ? '🎉 ALL TESTS PASSED' : '⚠️  SOME TESTS FAILED'}`);
+  console.log(`\n${allPassed ? 'ًںژ‰ ALL TESTS PASSED' : 'âڑ ï¸ڈ  SOME TESTS FAILED'}`);
   console.log(`${'='.repeat(60)}\n`);
 }
 
-// ─── Multi-Stage Test ───
+// â”€â”€â”€ Multi-Stage Test â”€â”€â”€
 
 async function runMultiStageTest(config) {
   const stages = [
@@ -397,13 +397,13 @@ async function runMultiStageTest(config) {
     });
 
     // Cooldown between stages
-    console.log(`\n⏸️  Cooldown for 10 seconds...`);
+    console.log(`\nâڈ¸ï¸ڈ  Cooldown for 10 seconds...`);
     await new Promise((resolve) => setTimeout(resolve, 10000));
   }
 
   // Summary
   console.log(`\n\n${'='.repeat(60)}`);
-  console.log('📊 MULTI-STAGE SUMMARY');
+  console.log('ًں“ٹ MULTI-STAGE SUMMARY');
   console.log(`${'='.repeat(60)}`);
 
   console.log('\n| Stage | RPS | P95 (ms) | Error Rate |');
@@ -418,7 +418,7 @@ async function runMultiStageTest(config) {
   console.log(`${'='.repeat(60)}\n`);
 }
 
-// ─── CLI Entry Point ───
+// â”€â”€â”€ CLI Entry Point â”€â”€â”€
 
 async function main() {
   const args = process.argv.slice(2);

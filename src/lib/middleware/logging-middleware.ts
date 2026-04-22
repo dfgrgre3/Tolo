@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Logging Middleware
  * Provides request/response logging for API routes
  */

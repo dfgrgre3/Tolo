@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -74,11 +74,11 @@ export default function NewContestPage() {
   };
 
   const categories = [
-    { id: "academic", name: "أكاديمي", icon: "🎓" },
-    { id: "scientific", name: "علمي", icon: "🔬" },
-    { id: "literary", name: "أدبي", icon: "📚" },
-    { id: "artistic", name: "فني", icon: "🎨" },
-    { id: "technical", name: "تقني", icon: "💻" },
+    { id: "academic", name: "أكاديمي", icon: "ًںژ“" },
+    { id: "scientific", name: "علمي", icon: "ًں”¬" },
+    { id: "literary", name: "أدبي", icon: "ًں“ڑ" },
+    { id: "artistic", name: "فني", icon: "ًںژ¨" },
+    { id: "technical", name: "تقني", icon: "ًں’»" },
   ];
 
   return (
@@ -237,7 +237,7 @@ export default function NewContestPage() {
                       className="text-muted-foreground hover:text-foreground"
                       onClick={() => handleRemoveTag(tag)}
                     >
-                      ×
+                      أ—
                     </button>
                   </div>
                 ))}

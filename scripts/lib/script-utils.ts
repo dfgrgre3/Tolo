@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+﻿import { execSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import net from 'net';
@@ -43,7 +43,7 @@ export async function killProcess(processName: string): Promise<void> {
             // Unix/Linux/macOS
             execSync(`pkill -f ${processName}`, { stdio: 'ignore' });
         }
-        log(`✓ Stopped ${processName}`, colors.green);
+        log(`âœ“ Stopped ${processName}`, colors.green);
     } catch (_error) {
         // Ignore errors if process wasn't running
         // log(`No running ${processName} processes found or could not stop them.`, colors.gray);
@@ -58,12 +58,12 @@ export function removeDir(dirPath: string) {
         log(`Removing ${dirPath}...`, colors.yellow);
         try {
             fs.rmSync(dirPath, { recursive: true, force: true });
-            log(`✓ ${dirPath} cleared`, colors.green);
+            log(`âœ“ ${dirPath} cleared`, colors.green);
         } catch (error) {
-            log(`✗ Failed to remove ${dirPath}: ${(error as Error).message}`, colors.red);
+            log(`âœ— Failed to remove ${dirPath}: ${(error as Error).message}`, colors.red);
         }
     } else {
-        log(`✓ ${dirPath} doesn't exist`, colors.gray);
+        log(`âœ“ ${dirPath} doesn't exist`, colors.gray);
     }
 }
 

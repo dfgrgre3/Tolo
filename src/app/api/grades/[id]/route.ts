@@ -4,10 +4,10 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { id } = await params;
 

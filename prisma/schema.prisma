@@ -130,6 +130,9 @@ model User {
   userInteractions              UserInteraction[]
   userRewards                   UserReward[]
   wallet                        UserWallet?
+  walletTransactions            WalletTransaction[]
+  invoices                      Invoice[]
+  teacherEarnings               TeacherEarnings?
   xp                            UserXP?
   user_preferences              user_preferences?
   memberGroups                  GroupSubscription[]   @relation("GroupMembers")
@@ -176,10 +179,69 @@ model UserActivity {
 }
 
 model UserWallet {
-  userId    String   @id
-  balance   Float    @default(0)
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String              @id
+  balance      Float               @default(0)
+  currency     String              @default("EGP")
+  updatedAt    DateTime            @updatedAt
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String                @id @default(cuid())
+  walletId    String
+  userId      String
+  amount      Float
+  type        WalletTransactionType
+  status      WalletTransactionStatus @default(COMPLETED)
+  description String?
+  paymentId   String?               @unique
+  metadata    String?
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+  payment     Payment?              @relation(fields: [paymentId], references: [id])
+  user        User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet      UserWallet            @relation(fields: [walletId], references: [userId], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([walletId])
+  @@index([type])
+  @@index([createdAt(sort: Desc)])
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String        @unique
+  userId          String
+  paymentId       String        @unique
+  amount          Float
+  currency        String        @default("EGP")
+  status          InvoiceStatus @default(DRAFT)
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime?
+  paidDate        DateTime?
+  pdfUrl          String?
+  billingDetails  String?
+  items           String        // JSON array of items
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  payment         Payment       @relation(fields: [paymentId], references: [id])
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([issueDate(sort: Desc)])
+}
+
+model TeacherEarnings {
+  id              String   @id @default(cuid())
+  teacherId       String   @unique
+  balance         Float    @default(0)
+  totalEarned     Float    @default(0)
+  withdrawnAmount Float    @default(0)
+  currency        String   @default("EGP")
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 }
 
 model SubjectEnrollment {
@@ -1526,6 +1588,8 @@ model Payment {
   referralReward    ReferralReward? @relation(fields: [referralRewardId], references: [id])
   subscription      Subscription?   @relation(fields: [subscriptionId], references: [id])
   user              User            @relation("UserPayments", fields: [userId], references: [id], onDelete: Cascade)
+  walletTransaction WalletTransaction?
+  invoice           Invoice?
 
   @@index([userId])
   @@index([subscriptionId])
@@ -1750,4 +1814,28 @@ enum UserStatus {
   INACTIVE
   SUSPENDED
   DELETED
+}
+
+enum WalletTransactionType {
+  DEPOSIT
+  WITHDRAWAL
+  PAYMENT
+  REFUND
+  REFERRAL_REWARD
+  BONUS
+}
+
+enum WalletTransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
 }

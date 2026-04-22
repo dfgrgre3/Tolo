@@ -1,4 +1,4 @@
-// Types and constants for achievements
+﻿// Types and constants for achievements
 export interface Achievement {
   id: string;
   key: string;

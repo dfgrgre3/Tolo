@@ -1,6 +1,6 @@
 
 import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/db';
+
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, handleApiError } from '@/lib/api-utils';
 import { logger } from '@/lib/logger';
@@ -25,23 +25,23 @@ export async function POST(request: NextRequest) {
         // Use the unified notification service
         const { sendMultiChannelNotification } = await import('@/services/notification-sender');
         const createdNotifications = await Promise.all(
-          notifications.map(notification =>
-            sendMultiChannelNotification({
-              userId,
-              title: notification.title,
-              message: notification.message,
-              type: (notification.type?.toLowerCase() || 'info') as 'info' | 'success' | 'warning' | 'error',
-              actionUrl: notification.actionUrl,
-              icon: notification.icon,
-              channels: ['app']
-            }).then(res => res.app)
+          notifications.map((notification) =>
+          sendMultiChannelNotification({
+            userId,
+            title: notification.title,
+            message: notification.message,
+            type: (notification.type?.toLowerCase() || 'info') as 'info' | 'success' | 'warning' | 'error',
+            actionUrl: notification.actionUrl,
+            icon: notification.icon,
+            channels: ['app']
+          }).then((res) => res.app)
           )
         );
 
         return successResponse({
           success: true,
-          count: createdNotifications.filter(n => n !== null).length,
-          notifications: createdNotifications.filter(n => n !== null)
+          count: createdNotifications.filter((n) => n !== null).length,
+          notifications: createdNotifications.filter((n) => n !== null)
         }, undefined, 201);
       } catch (error) {
         logger.error('Error creating bulk notifications:', error);

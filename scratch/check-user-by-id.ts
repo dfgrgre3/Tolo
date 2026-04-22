@@ -1,4 +1,4 @@
-import { prisma } from "../src/lib/db";
+﻿import { prisma } from "../src/lib/db";
 
 async function main() {
   const userId = "cmnx7lvez0000zw1gonrlq8eo";

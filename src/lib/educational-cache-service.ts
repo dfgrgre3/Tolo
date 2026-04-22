@@ -1,5 +1,5 @@
 import { EducationalCache, CacheService } from './cache';
-import { logger } from '@/lib/logger';
+
 
 const MEDIUM_TTL = 600;
 const LONG_TTL = 3600;
@@ -36,12 +36,12 @@ export async function invalidateEducationalContentPattern(pattern: string): Prom
   await EducationalCache.invalidatePattern(pattern);
 }
 
-export async function batchGetOrSetEducationalContent<T>(items: { key: string; fetchFn: () => Promise<T>; ttl?: number }[]): Promise<T[]> {
-  return Promise.all(items.map(item => getOrSetEducationalContent(item.key, item.fetchFn, item.ttl || LONG_TTL)));
+export async function batchGetOrSetEducationalContent<T>(items: {key: string;fetchFn: () => Promise<T>;ttl?: number;}[]): Promise<T[]> {
+  return Promise.all(items.map((item) => getOrSetEducationalContent(item.key, item.fetchFn, item.ttl || LONG_TTL)));
 }
 
-export async function cacheMultipleEducationalItems(items: { key: string; data: any; ttl?: number }[]): Promise<void> {
-  await Promise.all(items.map(item => cacheEducationalContent(item.key, item.data, item.ttl)));
+export async function cacheMultipleEducationalItems(items: {key: string;data: any;ttl?: number;}[]): Promise<void> {
+  await Promise.all(items.map((item) => cacheEducationalContent(item.key, item.data, item.ttl)));
 }
 
 const educationalCacheService = {

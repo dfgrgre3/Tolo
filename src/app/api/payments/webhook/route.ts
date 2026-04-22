@@ -5,21 +5,22 @@ import { ReferralService } from '@/services/referral-service';
 import { NotificationQueueService } from '@/services/notification-queue-service';
 import { sendMultiChannelNotification } from '@/services/notification-sender';
 import { SubscriptionService } from '@/services/subscription-service';
+import { InvoiceService } from '@/services/invoice-service';
 import { logger } from '@/lib/logger';
 
 async function enqueueNotification(
-  paymentId: string,
-  status: 'success' | 'failed',
-  suffix: string,
-  payload: Parameters<typeof sendMultiChannelNotification>[0]
-) {
+paymentId: string,
+status: 'success' | 'failed',
+suffix: string,
+payload: Parameters<typeof sendMultiChannelNotification>[0])
+{
   const jobId = `${paymentId}-${suffix}-${status}`;
 
   try {
     await NotificationQueueService.enqueue(
       {
         ...payload,
-        idempotencyKey: jobId,
+        idempotencyKey: jobId
       },
       { jobId }
     );
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
 
     const payment = await prisma.payment.findUnique({
       where: { id: merchantOrderId },
-      include: { user: true },
+      include: { user: true }
     });
 
     if (!payment) {
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
           target = 'COURSE';
           subjectId = pd.subjectId;
         }
-      } catch (e) {}
+      } catch (_e) {}
     }
 
     if (isSuccess) {
@@ -119,7 +120,7 @@ export async function POST(req: Request) {
         // Notify for course
         const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
         if (subject) courseName = subject.nameAr || subject.name;
-        
+
         await enqueueNotification(payment.id, statusKey, 'course-payment-success', {
           userId: payment.userId,
           title: 'تم الانضمام للدورة بنجاح',
@@ -127,14 +128,14 @@ export async function POST(req: Request) {
           type: 'success',
           icon: 'success',
           channels: ['app', 'email'],
-          actionUrl: `/courses/${subjectId}`,
+          actionUrl: `/courses/${subjectId}`
         });
 
       } else {
         await SubscriptionService.activateSubscriptionPayment(payment.id, {
           transactionId: data?.id?.toString?.() ?? null,
           orderId: reportedOrderId ?? payment.orderId ?? null,
-          paymentData: JSON.stringify(data),
+          paymentData: JSON.stringify(data)
         });
 
         await enqueueNotification(payment.id, statusKey, 'payment-status', {
@@ -144,8 +145,15 @@ export async function POST(req: Request) {
           type: 'success',
           icon: 'success',
           channels: ['app', 'email'],
-          actionUrl: '/dashboard/subscription',
+          actionUrl: '/dashboard/subscription'
         });
+      }
+
+      // Auto-generate invoice
+      try {
+        await InvoiceService.createInvoice(payment.id);
+      } catch (invoiceError) {
+        logger.error('Failed to auto-generate invoice:', invoiceError);
       }
 
       await ReferralService.processReferralReward(payment.userId, payment.amount);
@@ -170,26 +178,26 @@ export async function POST(req: Request) {
           type: 'error',
           icon: 'error',
           channels: ['app', 'email'],
-          actionUrl: subjectId ? `/courses/${subjectId}/checkout` : '/courses',
+          actionUrl: subjectId ? `/courses/${subjectId}/checkout` : '/courses'
         });
       } else {
         await SubscriptionService.failSubscriptionPayment(payment.id, {
           transactionId: data?.id?.toString?.() ?? null,
           paymentData: JSON.stringify(data),
-          errorMessage: data?.txn_response_code?.toString?.() ?? 'PAYMENT_FAILED',
+          errorMessage: data?.txn_response_code?.toString?.() ?? 'PAYMENT_FAILED'
         });
 
         await enqueueNotification(payment.id, statusKey, 'payment-warning', {
           userId: payment.userId,
           title: 'مشكلة في سداد الاشتراك',
           message:
-            'فشلت عملية الدفع الخاصة باشتراكك. يمكنك إعادة المحاولة أو اختيار وسيلة دفع مختلفة.',
+          'فشلت عملية الدفع الخاصة باشتراكك. يمكنك إعادة المحاولة أو اختيار وسيلة دفع مختلفة.',
           type: 'warning',
           icon: 'warning',
           channels: ['app', 'email'],
-          actionUrl: '/billing',
+          actionUrl: '/billing'
         });
-        
+
         await enqueueNotification(payment.id, statusKey, 'payment-status', {
           userId: payment.userId,
           title: 'فشلت عملية الدفع',
@@ -197,7 +205,7 @@ export async function POST(req: Request) {
           type: 'error',
           icon: 'error',
           channels: ['app', 'email'],
-          actionUrl: '/billing',
+          actionUrl: '/billing'
         });
       }
     }
@@ -222,7 +230,7 @@ export async function GET(req: Request) {
     try {
       const payment = await prisma.payment.findUnique({
         where: { id: merchantOrderId },
-        select: { paymentData: true },
+        select: { paymentData: true }
       });
       if (payment?.paymentData) {
         const pd = JSON.parse(payment.paymentData);
@@ -231,7 +239,7 @@ export async function GET(req: Request) {
           subjectId = pd.subjectId;
         }
       }
-    } catch(e) {}
+    } catch (_e) {}
   }
 
   if (target === 'COURSE' && subjectId) {

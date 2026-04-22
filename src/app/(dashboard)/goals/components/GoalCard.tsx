@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from 'framer-motion';
 import { CustomGoal } from '@/hooks/use-gamification';
@@ -35,12 +35,12 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
             <span className="bg-gray-100 px-2 py-1 rounded-full">
               {'Goal'}
             </span>
-            <span>•</span>
+            <span>⬢</span>
             <span>{''}</span>
           </div>
         </div>
         <div className={`text-2xl ${goal.isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
-          {goal.isCompleted ? '✅' : '🎯'}
+          {goal.isCompleted ? 'âœ…' : 'ًںژ¯'}
         </div>
       </div>
 

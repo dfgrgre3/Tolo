@@ -1,4 +1,4 @@
-
+﻿
 import { SubjectType, TaskStatus } from './enums';
 import { DateString } from './api/common';
 export { SubjectType, TaskStatus };

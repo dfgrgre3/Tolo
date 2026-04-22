@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Next.js Instrumentation Hook
  * This file runs once when the application starts
  * Used for environment validation and core system health
@@ -22,7 +22,9 @@ export async function register() {
         try {
           // Workers will be stopped by their module's cleanup
           logger.info('[Shutdown] Notification workers signaled to stop');
-        } catch {}
+        } catch {
+          logger.warn('[Shutdown] Notification worker cleanup skipped');
+        }
       }, 10);
 
       // Priority 20: Close queues
@@ -35,7 +37,9 @@ export async function register() {
             analyticsQueue.getInternalQueue().close(),
             referralQueue.getInternalQueue().close(),
           ]);
-        } catch {}
+        } catch {
+          logger.warn('[Shutdown] Queue cleanup skipped');
+        }
       }, 20);
 
       // Priority 30: Close Redis
@@ -44,7 +48,9 @@ export async function register() {
           const { getRedisClient } = await import('./lib/cache');
           const client = await getRedisClient();
           if (client) await client.quit();
-        } catch {}
+        } catch {
+          logger.warn('[Shutdown] Redis cleanup skipped');
+        }
       }, 30);
 
       // Priority 40: Close database
@@ -52,7 +58,9 @@ export async function register() {
         try {
           const { prisma } = await import('./lib/db');
           await prisma.$disconnect();
-        } catch {}
+        } catch {
+          logger.warn('[Shutdown] Database cleanup skipped');
+        }
       }, 40);
       
       // 3. Database Health Monitor (Proactive Pool Exhaustion Detection)

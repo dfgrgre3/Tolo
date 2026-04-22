@@ -1,4 +1,4 @@
-import { buildSchema, Resolver, Query } from 'type-graphql';
+﻿import { buildSchema, Resolver, Query } from 'type-graphql';
 
 @Resolver()
 class HealthResolver {

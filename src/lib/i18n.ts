@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Secure i18n (internationalization) utility
  * Implements protection against prototype pollution attacks
  */

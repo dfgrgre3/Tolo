@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -120,7 +120,7 @@ export default function ContentReportsPage() {
         };
         const labels: Record<string, string> = {
           PENDING: "انتظار المعالجة",
-          RESOLVED: "تم الحل ✓",
+          RESOLVED: "تم الحل âœ“",
           DISMISSED: "بلاغ غير دقيق",
           INVESTIGATING: "قيد المراجعة",
         };
@@ -158,7 +158,7 @@ export default function ContentReportsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader 
-        title="مراقبة جودة المحتوى (Eagle Eye) 🦅"
+        title="مراقبة جودة المحتوى (Eagle Eye) ًں¦…"
         description="استقبل وصحح بلاغات الطلاب عن الأخطاء العلمية أو التقنية لضمان دقة معلومات المملكة."
       >
         <AdminButton icon={RefreshCw} variant="outline" onClick={() => refetch()} loading={isLoading}>
@@ -236,7 +236,7 @@ export default function ContentReportsPage() {
                 onClick={() => selectedReport && updateReportMutation.mutate({ id: selectedReport.id, status: 'RESOLVED', adminNote: resolutionNote })}
                 loading={updateReportMutation.isPending}
               >
-                تثبيت كـ &quot;تم الإصلاح&quot; 🏛️
+                تثبيت كـ &quot;تم الإصلاح&quot; ًںڈ›ï¸ڈ
               </AdminButton>
               <AdminButton 
                 variant="outline"

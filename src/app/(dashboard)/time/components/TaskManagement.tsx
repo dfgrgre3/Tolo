@@ -137,6 +137,8 @@ export default function TaskManagement({
     defaultValues: {
       title: '',
       description: '',
+      subject: 'MATH',
+      dueAt: '',
       priority: 'MEDIUM',
       estimatedTime: 30,
       tags: ''
@@ -1124,12 +1126,12 @@ export default function TaskManagement({
                                     setTaskToEdit(task);
                                     form.reset({
                                       title: task.title,
-                                      description: task.description,
-                                      subject: task.subject,
-                                      dueAt: task.dueAt,
-                                      priority: task.priority,
-                                      estimatedTime: task.estimatedTime,
-                                      tags: task.tags?.join(', ')
+                                      description: task.description || '',
+                                      subject: task.subject || 'MATH',
+                                      dueAt: task.dueAt || '',
+                                      priority: task.priority || 'MEDIUM',
+                                      estimatedTime: task.estimatedTime || 30,
+                                      tags: task.tags?.join(', ') || ''
                                     });
                                     setIsDialogOpen(true);
                                   }}>

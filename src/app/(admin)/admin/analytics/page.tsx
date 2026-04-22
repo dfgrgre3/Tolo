@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -105,7 +105,7 @@ export default function AdminAnalyticsPage() {
                  <div className="p-2 bg-primary/20 text-primary rounded-lg"><Settings className="w-5 h-5"/></div>
                  <div>
                     <h3 className="font-bold text-lg">وضع تخصيص اللوحة (Widget Builder)</h3>
-                    <p className="text-xs text-muted-foreground">قم بترتيب وإخفاء/إظهار المكونات التي تهمك فقط.</p>
+                    <p className="text-xs text-muted-foreground">قم بترتيب وإخفاء/إ٪ار المكونات التي تهمك فقط.</p>
                  </div>
               </div>
               <div>
@@ -307,7 +307,7 @@ export default function AdminAnalyticsPage() {
                  </div>
                  <div className="flex gap-2">
                     <Select defaultValue="course_a">
-                       <SelectTrigger className="w-64 h-11 bg-background"><SelectValue placeholder="اختر مسار لتتبعه"/></SelectTrigger>
+                       <SelectTrigger className="w-64 h-11 bg-background"><SelectValue placeholder="اختر مسار لتتبڪ"/></SelectTrigger>
                        <SelectContent>
                           <SelectItem value="course_a">مسار التوجيهي علمي (شراء كورس)</SelectItem>
                           <SelectItem value="register">مسار التسجيل الجديد وتفعيل الحساب</SelectItem>
@@ -342,7 +342,7 @@ export default function AdminAnalyticsPage() {
 
                          {s.danger && (
                             <div className="absolute -top-10 scale-90 w-max bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-bounce">
-                               نقطة اختناق خطيرة! ⚠️
+                               نقطة اختناق خطيرة! âڑ ï¸ڈ
                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-500 rotate-45"></div>
                             </div>
                          )}

@@ -1,4 +1,4 @@
-import { startOfWeek, addDays } from 'date-fns';
+﻿import { startOfWeek, addDays } from 'date-fns';
 import type { TimeBlock, WeekStats } from './types';
 import { DAYS_OF_WEEK } from './constants';
 

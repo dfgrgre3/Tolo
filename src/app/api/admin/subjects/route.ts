@@ -1,19 +1,19 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
-import { LessonType, Prisma } from "@prisma/client";
+import { LessonType } from "@prisma/client";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import {
   badRequestResponse,
   forbiddenResponse,
   handleApiError,
   successResponse,
-  withAuth,
-} from "@/lib/api-utils";
+  withAuth } from
+"@/lib/api-utils";
 import { logger } from '@/lib/logger';
 
 const subjectSchema = z.object({
-  name: z.string().min(1, "ط§ط³ظ… ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨"),
+  name: z.string().min(1, "طآ§طآ³ظâ€¦ طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© ظâ€¦طآ·ظâ€‍ظث†طآ¨"),
   nameAr: z.string().optional().nullable(),
   code: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
@@ -31,7 +31,7 @@ const subjectSchema = z.object({
   instructorId: z.string().optional().nullable(),
   categoryId: z.string().optional().nullable(),
   thumbnailUrl: z.string().optional().nullable(),
-  trailerUrl: z.string().optional().nullable(),
+  trailerUrl: z.string().optional().nullable()
 });
 
 type CurriculumLesson = {
@@ -70,347 +70,345 @@ type CurriculumLessonInput = {
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) =>
-    withAuth(req, async (authUser) => {
-      if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ط¥ط¯ط§ط±ط© ط§ظ„ظ…ظˆط§ط¯");
-      }
+  withAuth(req, async (authUser) => {
+    if (authUser.userRole !== "ADMIN") {
+      return forbiddenResponse("غيطآ± ظâ€¦طآ³ظâ€¦ظث†طآ­ ظâ€‍ظئ’ طآ¨طآ§ظâ€‍ظث†طآµظث†ظâ€‍ طآ¥ظâ€‍ظâ€° طآ¥طآ¯طآ§طآ±طآ© طآ§ظâ€‍ظâ€¦ظث†طآ§طآ¯");
+    }
 
-      try {
-        const searchParams = req.nextUrl.searchParams;
-        const subjectId = searchParams.get("id");
-        const includeCurriculum = searchParams.get("include") === "curriculum";
+    try {
+      const searchParams = req.nextUrl.searchParams;
+      const subjectId = searchParams.get("id");
+      const includeCurriculum = searchParams.get("include") === "curriculum";
 
-        if (subjectId) {
-          const subject = await prisma.subject.findUnique({
-            where: { id: subjectId },
-            include: includeCurriculum
-              ? {
-                topics: {
-                  orderBy: { order: "asc" },
-                  include: {
-                    subTopics: {
-                      orderBy: { order: "asc" },
-                    },
-                  },
-                },
+      if (subjectId) {
+        const subject = await prisma.subject.findUnique({
+          where: { id: subjectId },
+          include: includeCurriculum ?
+          {
+            topics: {
+              orderBy: { order: "asc" },
+              include: {
+                subTopics: {
+                  orderBy: { order: "asc" }
+                }
               }
-              : undefined,
-          });
+            }
+          } :
+          undefined
+        });
 
-          if (!subject) {
-            return badRequestResponse("ط§ظ„ظ…ط§ط¯ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
-          }
-
-          return successResponse({
-            subject: {
-              id: subject.id,
-              name: subject.name,
-              nameAr: subject.nameAr,
-              code: subject.code,
-              description: subject.description,
-              icon: subject.icon,
-              color: subject.color,
-              type: subject.type,
-              isActive: subject.isActive,
-              isPublished: subject.isPublished,
-              level: subject.level,
-              price: subject.price,
-              durationHours: subject.durationHours,
-              requirements: subject.requirements,
-              learningObjectives: subject.learningObjectives,
-              instructorName: subject.instructorName,
-              instructorId: subject.instructorId,
-              categoryId: subject.categoryId,
-              thumbnailUrl: subject.thumbnailUrl,
-              trailerUrl: subject.trailerUrl,
-            },
-            curriculum: (includeCurriculum && (subject as any).topics)
-              ? ((subject as any).topics as unknown as CurriculumTopic[]).map((topic) => ({
-                id: topic.id,
-                title: topic.title,
-                order: topic.order,
-                subTopics: (topic.subTopics as unknown as CurriculumLesson[]).map((subTopic) => ({
-                  id: subTopic.id,
-                  title: subTopic.title,
-                  order: subTopic.order,
-                  type: subTopic.type,
-                  videoUrl: subTopic.videoUrl,
-                  durationMinutes: (subTopic as any).durationMinutes || 0,
-                  isFree: subTopic.isFree,
-                  order_sub: subTopic.order,
-                  description: subTopic.description,
-                })),
-              }))
-              : undefined,
-          });
+        if (!subject) {
+          return badRequestResponse("طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© غيطآ± ظâ€¦ظث†طآ¬ظث†طآ¯طآ©");
         }
 
-        const page = parseInt(searchParams.get("page") || "1", 10);
-        const limit = parseInt(searchParams.get("limit") || "10", 10);
-        const search = searchParams.get("search") || "";
-        const isActive = searchParams.get("isActive");
-        const skip = (page - 1) * limit;
-
-        const where = {
-          AND: [
-            search
-              ? {
-                OR: [
-                  { name: { contains: search, mode: "insensitive" as const } },
-                  { nameAr: { contains: search, mode: "insensitive" as const } },
-                  { code: { contains: search, mode: "insensitive" as const } },
-                ],
-              }
-              : {},
-            isActive !== null ? { isActive: isActive === "true" } : {},
-          ],
-        };
-
-        const [subjects, total] = await Promise.all([
-          prisma.subject.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
-            include: {
-              _count: {
-                select: {
-                  books: true,
-                  exams: true,
-                  resources: true,
-                  topics: true,
-                  enrollments: true,
-                  teachers: true,
-                },
-              },
-            },
-          }),
-          prisma.subject.count({ where }),
-        ]);
-
         return successResponse({
-          subjects,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit),
+          subject: {
+            id: subject.id,
+            name: subject.name,
+            nameAr: subject.nameAr,
+            code: subject.code,
+            description: subject.description,
+            icon: subject.icon,
+            color: subject.color,
+            type: subject.type,
+            isActive: subject.isActive,
+            isPublished: subject.isPublished,
+            level: subject.level,
+            price: subject.price,
+            durationHours: subject.durationHours,
+            requirements: subject.requirements,
+            learningObjectives: subject.learningObjectives,
+            instructorName: subject.instructorName,
+            instructorId: subject.instructorId,
+            categoryId: subject.categoryId,
+            thumbnailUrl: subject.thumbnailUrl,
+            trailerUrl: subject.trailerUrl
           },
+          curriculum: includeCurriculum && (subject as any).topics ?
+          ((subject as any).topics as unknown as CurriculumTopic[]).map((topic) => ({
+            id: topic.id,
+            title: topic.title,
+            order: topic.order,
+            subTopics: (topic.subTopics as unknown as CurriculumLesson[]).map((subTopic) => ({
+              id: subTopic.id,
+              title: subTopic.title,
+              order: subTopic.order,
+              type: subTopic.type,
+              videoUrl: subTopic.videoUrl,
+              durationMinutes: (subTopic as any).durationMinutes || 0,
+              isFree: subTopic.isFree,
+              order_sub: subTopic.order,
+              description: subTopic.description
+            }))
+          })) :
+          undefined
         });
-      } catch (error) {
-        return handleApiError(error);
       }
-    })
+
+      const page = parseInt(searchParams.get("page") || "1", 10);
+      const limit = parseInt(searchParams.get("limit") || "10", 10);
+      const search = searchParams.get("search") || "";
+      const isActive = searchParams.get("isActive");
+      const skip = (page - 1) * limit;
+
+      const where = {
+        AND: [
+        search ?
+        {
+          OR: [
+          { name: { contains: search, mode: "insensitive" as const } },
+          { nameAr: { contains: search, mode: "insensitive" as const } },
+          { code: { contains: search, mode: "insensitive" as const } }]
+
+        } :
+        {},
+        isActive !== null ? { isActive: isActive === "true" } : {}]
+
+      };
+
+      const [subjects, total] = await Promise.all([
+      prisma.subject.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          _count: {
+            select: {
+              books: true,
+              exams: true,
+              resources: true,
+              topics: true,
+              enrollments: true,
+              teachers: true
+            }
+          }
+        }
+      }),
+      prisma.subject.count({ where })]
+      );
+
+      return successResponse({
+        subjects,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      });
+    } catch (error) {
+      return handleApiError(error);
+    }
+  })
   );
 }
 
 export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) =>
-    withAuth(req, async (authUser) => {
-      if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط¥ظ†ط´ط§ط، ظ…ظˆط§ط¯");
+  withAuth(req, async (authUser) => {
+    if (authUser.userRole !== "ADMIN") {
+      return forbiddenResponse("غيطآ± ظâ€¦طآ³ظâ€¦ظث†طآ­ ظâ€‍ظئ’ طآ¨طآ¥ظâ€ طآ´طآ§ء ظâ€¦ظث†طآ§طآ¯");
+    }
+
+    try {
+      const body = await req.json();
+      const validation = subjectSchema.safeParse(body);
+
+      if (!validation.success) {
+        return badRequestResponse(validation.error.errors[0].message);
       }
 
-      try {
-        const body = await req.json();
-        const validation = subjectSchema.safeParse(body);
+      const subject = await prisma.subject.create({
+        data: validation.data
+      });
 
-        if (!validation.success) {
-          return badRequestResponse(validation.error.errors[0].message);
-        }
-
-        const subject = await prisma.subject.create({
-          data: validation.data,
-        });
-
-        return successResponse(subject, "طھظ…طھ ط¥ط¶ط§ظپط© ط§ظ„ظ…ط§ط¯ط© ط¨ظ†ط¬ط§ط­", 201);
-      } catch (error) {
-        return handleApiError(error);
-      }
-    })
+      return successResponse(subject, "طھظâ€¦طھ طآ¥طآ¶طآ§فطآ© طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© طآ¨ظâ€ طآ¬طآ§طآ­", 201);
+    } catch (error) {
+      return handleApiError(error);
+    }
+  })
   );
 }
 
 export async function PATCH(request: NextRequest) {
   return opsWrapper(request, async (req) =>
-    withAuth(req, async (authUser) => {
-      if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط­ط¯ظٹط« ط§ظ„ظ…ظˆط§ط¯");
+  withAuth(req, async (authUser) => {
+    if (authUser.userRole !== "ADMIN") {
+      return forbiddenResponse("غيطآ± ظâ€¦طآ³ظâ€¦ظث†طآ­ ظâ€‍ظئ’ طآ¨طھطآ­طآ¯يطآ« طآ§ظâ€‍ظâ€¦ظث†طآ§طآ¯");
+    }
+
+    try {
+      const body = await req.json();
+      const { id, ...data } = body;
+
+      if (!id) {
+        return badRequestResponse("ظâ€¦طآ¹طآ±ف طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© ظâ€¦طآ·ظâ€‍ظث†طآ¨");
       }
 
-      try {
-        const body = await req.json();
-        const { id, ...data } = body;
+      const subject = await prisma.subject.update({
+        where: { id },
+        data
+      });
 
-        if (!id) {
-          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨");
-        }
-
-        const subject = await prisma.subject.update({
-          where: { id },
-          data,
-        });
-
-        return successResponse(subject, "طھظ… طھط­ط¯ظٹط« ط§ظ„ظ…ط§ط¯ط© ط¨ظ†ط¬ط§ط­");
-      } catch (error) {
-        return handleApiError(error);
-      }
-    })
+      return successResponse(subject, "طھظâ€¦ طھطآ­طآ¯يطآ« طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© طآ¨ظâ€ طآ¬طآ§طآ­");
+    } catch (error) {
+      return handleApiError(error);
+    }
+  })
   );
 }
 
 export async function PUT(request: NextRequest) {
   return opsWrapper(request, async (req) =>
-    withAuth(req, async (authUser) => {
-      if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط¹ط¯ظٹظ„ ط§ظ„ظ…ظ†ظ‡ط¬");
+  withAuth(req, async (authUser) => {
+    if (authUser.userRole !== "ADMIN") {
+      return forbiddenResponse("غيطآ± ظâ€¦طآ³ظâ€¦ظث†طآ­ ظâ€‍ظئ’ طآ¨طھطآ¹طآ¯يظâ€‍ طآ§ظâ€‍ظâ€¦ظâ€ ظâ€،طآ¬");
+    }
+
+    try {
+      const body = await req.json();
+      const { id, curriculum } = body;
+
+      if (!id) {
+        return badRequestResponse("ظâ€¦طآ¹طآ±ف طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© ظâ€¦طآ·ظâ€‍ظث†طآ¨");
       }
 
-      try {
-        const body = await req.json();
-        const { id, curriculum } = body;
+      if (!Array.isArray(curriculum)) {
+        return badRequestResponse("طآ¨يطآ§ظâ€ طآ§طھ طآ§ظâ€‍ظâ€¦ظâ€ ظâ€،طآ¬ غيطآ± طآµطآ§ظâ€‍طآ­طآ©");
+      }
 
-        if (!id) {
-          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨");
-        }
-
-        if (!Array.isArray(curriculum)) {
-          return badRequestResponse("ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†ظ‡ط¬ ط؛ظٹط± طµط§ظ„ط­ط©");
-        }
-
-        await (prisma as any).$transaction(async (tx: any) => {
-          const existingTopics = await tx.topic.findMany({
-            where: { subjectId: id },
-            select: { id: true },
-          });
-          const existingTopicIds = existingTopics.map((topic: { id: string }) => topic.id);
-
-          const receivedTopicIds = (curriculum as CurriculumTopicInput[])
-            .filter((chapter: CurriculumTopicInput) => !chapter.id.startsWith("new-"))
-            .map((chapter: CurriculumTopicInput) => chapter.id);
-
-          const topicsToDelete = existingTopicIds.filter((topicId: string) => !receivedTopicIds.includes(topicId));
-          if (topicsToDelete.length > 0) {
-            await tx.topic.deleteMany({
-              where: { id: { in: topicsToDelete } },
-            });
-          }
-
-          for (const [topicOrder, chapter] of (curriculum as CurriculumTopicInput[]).entries()) {
-            const topic = chapter.id.startsWith("new-")
-              ? await tx.topic.create({
-                data: {
-                  subjectId: id,
-                  title: chapter.title,
-                  order: topicOrder,
-                },
-              })
-              : await tx.topic.update({
-                where: { id: chapter.id },
-                data: {
-                  title: chapter.title,
-                  order: topicOrder,
-                },
-              });
-
-            const existingSubTopics = await tx.subTopic.findMany({
-              where: { topicId: topic.id },
-              select: { id: true },
-            });
-            const existingSubTopicIds = existingSubTopics.map((subTopic: { id: string }) => subTopic.id);
-
-            const receivedSubTopicIds = (chapter.subTopics || [])
-              .filter((lesson: CurriculumLessonInput) => !lesson.id.startsWith("new-"))
-              .map((lesson: CurriculumLessonInput) => lesson.id);
-
-            const subTopicsToDelete = existingSubTopicIds.filter(
-              (subTopicId: string) => !receivedSubTopicIds.includes(subTopicId)
-            );
-            if (subTopicsToDelete.length > 0) {
-              await tx.subTopic.deleteMany({
-                where: { id: { in: subTopicsToDelete } },
-              });
-            }
-
-            for (const [lessonOrder, lesson] of (chapter.subTopics || []).entries()) {
-              const lessonData = {
-                topicId: topic.id,
-                title: lesson.title,
-                order: lessonOrder,
-                type: (lesson.type || "VIDEO") as LessonType,
-                videoUrl: lesson.videoUrl || null,
-                durationMinutes: lesson.durationMinutes || 0,
-                isFree: lesson.isFree || false,
-                description: lesson.description || null,
-              };
-
-              if (lesson.id.startsWith("new-")) {
-                await tx.subTopic.create({ data: lessonData });
-              } else {
-                await tx.subTopic.update({
-                  where: { id: lesson.id },
-                  data: lessonData,
-                });
-              }
-            }
-          }
+      await (prisma as any).$transaction(async (tx: any) => {
+        const existingTopics = await tx.topic.findMany({
+          where: { subjectId: id },
+          select: { id: true }
         });
+        const existingTopicIds = existingTopics.map((topic: {id: string;}) => topic.id);
 
-        return successResponse({ success: true }, "طھظ… ط­ظپط¸ ط§ظ„ظ…ظ†ظ‡ط¬ ط¨ظ†ط¬ط§ط­");
-      } catch (error) {
-        return handleApiError(error);
-      }
-    })
+        const receivedTopicIds = (curriculum as CurriculumTopicInput[]).
+        filter((chapter: CurriculumTopicInput) => !chapter.id.startsWith("new-")).
+        map((chapter: CurriculumTopicInput) => chapter.id);
+
+        const topicsToDelete = existingTopicIds.filter((topicId: string) => !receivedTopicIds.includes(topicId));
+        if (topicsToDelete.length > 0) {
+          await tx.topic.deleteMany({
+            where: { id: { in: topicsToDelete } }
+          });
+        }
+
+        for (const [topicOrder, chapter] of (curriculum as CurriculumTopicInput[]).entries()) {
+          const topic = chapter.id.startsWith("new-") ?
+          await tx.topic.create({
+            data: {
+              subjectId: id,
+              title: chapter.title,
+              order: topicOrder
+            }
+          }) :
+          await tx.topic.update({
+            where: { id: chapter.id },
+            data: {
+              title: chapter.title,
+              order: topicOrder
+            }
+          });
+
+          const existingSubTopics = await tx.subTopic.findMany({
+            where: { topicId: topic.id },
+            select: { id: true }
+          });
+          const existingSubTopicIds = existingSubTopics.map((subTopic: {id: string;}) => subTopic.id);
+
+          const receivedSubTopicIds = (chapter.subTopics || []).
+          filter((lesson: CurriculumLessonInput) => !lesson.id.startsWith("new-")).
+          map((lesson: CurriculumLessonInput) => lesson.id);
+
+          const subTopicsToDelete = existingSubTopicIds.filter(
+            (subTopicId: string) => !receivedSubTopicIds.includes(subTopicId)
+          );
+          if (subTopicsToDelete.length > 0) {
+            await tx.subTopic.deleteMany({
+              where: { id: { in: subTopicsToDelete } }
+            });
+          }
+
+          for (const [lessonOrder, lesson] of (chapter.subTopics || []).entries()) {
+            const lessonData = {
+              topicId: topic.id,
+              title: lesson.title,
+              order: lessonOrder,
+              type: (lesson.type || "VIDEO") as LessonType,
+              videoUrl: lesson.videoUrl || null,
+              durationMinutes: lesson.durationMinutes || 0,
+              isFree: lesson.isFree || false,
+              description: lesson.description || null
+            };
+
+            if (lesson.id.startsWith("new-")) {
+              await tx.subTopic.create({ data: lessonData });
+            } else {
+              await tx.subTopic.update({
+                where: { id: lesson.id },
+                data: lessonData
+              });
+            }
+          }
+        }
+      });
+
+      return successResponse({ success: true }, "طھظâ€¦ طآ­فطآ¸ طآ§ظâ€‍ظâ€¦ظâ€ ظâ€،طآ¬ طآ¨ظâ€ طآ¬طآ§طآ­");
+    } catch (error) {
+      return handleApiError(error);
+    }
+  })
   );
 }
 
 export async function DELETE(request: NextRequest) {
   return opsWrapper(request, async (req) =>
-    withAuth(req, async (authUser) => {
-      if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط­ط°ظپ ط§ظ„ظ…ظˆط§ط¯");
+  withAuth(req, async (authUser) => {
+    if (authUser.userRole !== "ADMIN") {
+      return forbiddenResponse("غيطآ± ظâ€¦طآ³ظâ€¦ظث†طآ­ ظâ€‍ظئ’ طآ¨طآ­طآ°ف طآ§ظâ€‍ظâ€¦ظث†طآ§طآ¯");
+    }
+
+    try {
+      const body = await req.json();
+      const { id } = body;
+
+      if (!id) {
+        return badRequestResponse("ظâ€¦طآ¹طآ±ف طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© ظâ€¦طآ·ظâ€‍ظث†طآ¨");
       }
 
-      try {
-        const body = await req.json();
-        const { id } = body;
+      // 1. طآ§ظâ€‍طھطآ­ظâ€ڑظâ€ڑ ظâ€¦ظâ€  ظث†طآ¬ظث†طآ¯ ظâ€¦طآ´طھطآ±ظئ’يظâ€  (طآ£ظâ€،ظâ€¦ فطآ­طآµ)
+      const enrollmentsCount = await prisma.subjectEnrollment.count({
+        where: { subjectId: id }
+      });
 
-        if (!id) {
-          return badRequestResponse("ظ…ط¹ط±ظپ ط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨");
-        }
-
-        // 1. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ظ…ط´طھط±ظƒظٹظ† (ط£ظ‡ظ… ظپط­طµ)
-        const enrollmentsCount = await prisma.subjectEnrollment.count({
-          where: { subjectId: id }
-        });
-
-        if (enrollmentsCount > 0) {
-          return badRequestResponse(`ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط¯ظˆط±ط© ظ„ظˆط¬ظˆط¯ ${enrollmentsCount} ط·ط§ظ„ط¨ ظ…ط´طھط±ظƒ ط¨ظ‡ط§. ط§ظ„ظ‚ظˆط§ط¹ط¯ طھظ…ظ†ط¹ ط­ط°ظپ ط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±طھط¨ط·ط© ط¨ط³ط¬ظ„ط§طھ ظ…ط§ظ„ظٹط© ط£ظˆ ط·ظ„ط§ط¨ظٹط©. ظٹط±ط¬ظ‰ ط¥ظ„ط؛ط§ط، طھظپط¹ظٹظ„ ط§ظ„ط¯ظˆط±ط© ط¨ط¯ظ„ط§ظ‹ ظ…ظ† ط­ط°ظپظ‡ط§.`);
-        }
-
-        // 2. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ ط¨ظٹط§ظ†ط§طھ ط£ط®ط±ظ‰ ظ‚ط¯ طھظ…ظ†ط¹ ط§ظ„ط­ط°ظپ (ظ…ط«ظ„ ط§ظ„ط§ظ…طھط­ط§ظ†ط§طھ ط£ظˆ ط§ظ„ظƒطھط¨ ط¥ط°ط§ ظ„ظ… طھظƒظ† Cascade)
-        // ظ…ظ„ط§ط­ط¸ط©: ظ…ط¹ط¸ظ… ط§ظ„ط¹ظ„ط§ظ‚ط§طھ ط§ظ„ط£ط®ط±ظ‰ ظ…ط±طھط¨ط·ط© ط¨ظ€ Cascade ظپظٹ Schema
-        
-        await prisma.subject.delete({
-          where: { id },
-        });
-
-        return successResponse({ success: true }, "طھظ… ط­ط°ظپ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­");
-      } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ";
-        const errorCode = (error as { code?: string }).code;
-        
-        logger.error('Error deleting course:', error);
-        
-        // ط§ظ„طھظ‚ط§ط· ط£ط®ط·ط§ط، Prisma ط§ظ„ظ…ط­ط¯ط¯ط©
-        if (errorCode === 'P2003') {
-          return badRequestResponse("ظپط´ظ„ ط§ظ„ط­ط°ظپ ط¨ط³ط¨ط¨ ظˆط¬ظˆط¯ ظ‚ظٹظˆط¯ (Constraints) ظپظٹ ظ‚ط§ط¹ط¯ط© ط§ظ„ط¨ظٹط§ظ†ط§طھ. ظ‡ظ†ط§ظƒ ط³ط¬ظ„ط§طھ ط£ط®ط±ظ‰ ظ…ط±طھط¨ط·ط© ط¨ظ‡ط°ظ‡ ط§ظ„ظ…ط§ط¯ط© طھظ…ظ†ط¹ ط­ط°ظپظ‡ط§.");
-        }
-        
-        return handleApiError(error);
+      if (enrollmentsCount > 0) {
+        return badRequestResponse(`ظâ€‍طآ§ يظâ€¦ظئ’ظâ€  طآ­طآ°ف ظâ€،طآ°ظâ€، طآ§ظâ€‍طآ¯ظث†طآ±طآ© ظâ€‍ظث†طآ¬ظث†طآ¯ ${enrollmentsCount} طآ·طآ§ظâ€‍طآ¨ ظâ€¦طآ´طھطآ±ظئ’ طآ¨ظâ€،طآ§. طآ§ظâ€‍ظâ€ڑظث†طآ§طآ¹طآ¯ طھظâ€¦ظâ€ طآ¹ طآ­طآ°ف طآ§ظâ€‍طآ¨يطآ§ظâ€ طآ§طھ طآ§ظâ€‍ظâ€¦طآ±طھطآ¨طآ·طآ© طآ¨طآ³طآ¬ظâ€‍طآ§طھ ظâ€¦طآ§ظâ€‍يطآ© طآ£ظث† طآ·ظâ€‍طآ§طآ¨يطآ©. يطآ±طآ¬ظâ€° طآ¥ظâ€‍غطآ§ء طھفطآ¹يظâ€‍ طآ§ظâ€‍طآ¯ظث†طآ±طآ© طآ¨طآ¯ظâ€‍طآ§ظâ€¹ ظâ€¦ظâ€  طآ­طآ°فظâ€،طآ§.`);
       }
-    })
+
+      // 2. طآ§ظâ€‍طھطآ­ظâ€ڑظâ€ڑ ظâ€¦ظâ€  ظث†طآ¬ظث†طآ¯ طآ¨يطآ§ظâ€ طآ§طھ طآ£طآ®طآ±ظâ€° ظâ€ڑطآ¯ طھظâ€¦ظâ€ طآ¹ طآ§ظâ€‍طآ­طآ°ف (ظâ€¦طآ«ظâ€‍ طآ§ظâ€‍طآ§ظâ€¦طھطآ­طآ§ظâ€ طآ§طھ طآ£ظث† طآ§ظâ€‍ظئ’طھطآ¨ طآ¥طآ°طآ§ ظâ€‍ظâ€¦ طھظئ’ظâ€  Cascade)
+      // ظâ€¦ظâ€‍طآ§طآ­طآ¸طآ©: ظâ€¦طآ¹طآ¸ظâ€¦ طآ§ظâ€‍طآ¹ظâ€‍طآ§ظâ€ڑطآ§طھ طآ§ظâ€‍طآ£طآ®طآ±ظâ€° ظâ€¦طآ±طھطآ¨طآ·طآ© طآ¨ظâ‚¬ Cascade في Schema
+
+      await prisma.subject.delete({
+        where: { id }
+      });
+
+      return successResponse({ success: true }, "طھظâ€¦ طآ­طآ°ف طآ§ظâ€‍طآ¯ظث†طآ±طآ© طآ¨ظâ€ طآ¬طآ§طآ­");
+    } catch (error: unknown) {
+      const _errorMessage = error instanceof Error ? error.message : "طآ®طآ·طآ£ غيطآ± ظâ€¦طآ¹طآ±ظث†ف";
+      const errorCode = (error as {code?: string;}).code;
+
+      logger.error('Error deleting course:', error);
+
+      // طآ§ظâ€‍طھظâ€ڑطآ§طآ· طآ£طآ®طآ·طآ§ء Prisma طآ§ظâ€‍ظâ€¦طآ­طآ¯طآ¯طآ©
+      if (errorCode === 'P2003') {
+        return badRequestResponse("فطآ´ظâ€‍ طآ§ظâ€‍طآ­طآ°ف طآ¨طآ³طآ¨طآ¨ ظث†طآ¬ظث†طآ¯ ظâ€ڑيظث†طآ¯ (Constraints) في ظâ€ڑطآ§طآ¹طآ¯طآ© طآ§ظâ€‍طآ¨يطآ§ظâ€ طآ§طھ. ظâ€،ظâ€ طآ§ظئ’ طآ³طآ¬ظâ€‍طآ§طھ طآ£طآ®طآ±ظâ€° ظâ€¦طآ±طھطآ¨طآ·طآ© طآ¨ظâ€،طآ°ظâ€، طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© طھظâ€¦ظâ€ طآ¹ طآ­طآ°فظâ€،طآ§.");
+      }
+
+      return handleApiError(error);
+    }
+  })
   );
 }
-
-

@@ -6,18 +6,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { getSafeUserId } from "@/lib/safe-client-utils";
-import { 
+import {
   Activity,
   Clock,
-  CheckCircle2,
-  Trophy,
+
+
   BookOpen,
-  Users,
-  Zap,
-  TrendingUp,
-  MessageSquare,
-  Bell
-} from "lucide-react";
+
+
+
+
+  Bell } from
+"lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { ar } from "date-fns/locale";
 import { logger } from '@/lib/logger';
@@ -89,16 +89,16 @@ function extractStudySessions(payload: StudySessionsApiResponse | StudySession[]
 
 export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [isLive, setIsLive] = useState(true);
+  const [isLive,,] = useState(true);
 
   useEffect(() => {
     const fetchActivities = async () => {
       const userId = getSafeUserId();
-      
+
       try {
-        const notificationsUrl = userId 
-          ? `/api/notifications?userId=${encodeURIComponent(userId)}` 
-          : '/api/notifications';
+        const notificationsUrl = userId ?
+        `/api/notifications?userId=${encodeURIComponent(userId)}` :
+        '/api/notifications';
 
         const { data, error } = await safeFetch<NotificationsApiResponse | Notification[]>(
           notificationsUrl,
@@ -110,7 +110,7 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
         if (!error && notifications.length > 0) {
           const transformedActivities = notifications.map((notification) => ({
             id: notification.id || `activity-${Date.now()}-${Math.random()}`,
-            type: (notification.type as ActivityItem['type']) || "notification",
+            type: notification.type as ActivityItem['type'] || "notification",
             title: notification.title || "تنبيه جديد",
             description: notification.message || notification.description || "",
             timestamp: new Date(notification.createdAt || notification.timestamp || Date.now()),
@@ -127,9 +127,9 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
             return;
           }
 
-          const sessionsUrl = userId 
-            ? `/api/study-sessions?userId=${encodeURIComponent(userId)}` 
-            : '/api/study-sessions';
+          const sessionsUrl = userId ?
+          `/api/study-sessions?userId=${encodeURIComponent(userId)}` :
+          '/api/study-sessions';
 
           const { data: sessionsData } = await safeFetch<StudySessionsApiResponse | StudySession[]>(
             sessionsUrl,
@@ -188,8 +188,8 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6"
-        >
+          className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          
           <div className="flex items-center gap-6">
             <div className="relative">
               <div className="absolute inset-0 bg-blue-500/30 rounded-2xl blur-lg animate-pulse" />
@@ -216,15 +216,15 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
 
         <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
           <AnimatePresence>
-            {activities.length > 0 ? activities.map((activity, index) => (
-              <motion.div
-                key={activity.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ delay: index * 0.05 }}
-                layout
-              >
+            {activities.length > 0 ? activities.map((activity, index) =>
+            <motion.div
+              key={activity.id}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 20 }}
+              transition={{ delay: index * 0.05 }}
+              layout>
+              
                 <Card className="bg-black/40 border-white/5 shadow-2xl hover:bg-white/5 hover:border-blue-500/30 transition-all duration-500 group/item relative overflow-hidden backdrop-blur-xl">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/5 to-blue-500/0 translate-x-[-100%] group-hover/item:animate-shimmer" />
                   <CardContent className="p-6">
@@ -249,36 +249,36 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
                         </p>
 
                         <div className="flex items-center gap-3">
-                          <Badge 
-                            variant="outline" 
-                            className="text-[10px] uppercase tracking-[0.2em] font-black border-white/10 bg-white/5 text-gray-400 px-3 py-1"
-                          >
+                          <Badge
+                          variant="outline"
+                          className="text-[10px] uppercase tracking-[0.2em] font-black border-white/10 bg-white/5 text-gray-400 px-3 py-1">
+                          
                             {activity.type === "achievement" && "إنجاز ملحمي (Epic Achievement)"}
                             {activity.type === "task_completed" && "تم إكمال المهمة (Quest Clear)"}
                             {activity.type === "study_session" && "جلسة مذاكرة (Training Log)"}
                             {activity.type === "milestone" && "إنجاز مرحلي (Level Milestone)"}
                             {activity.type === "notification" && "تنبيه النظام (System Alert)"}
                           </Badge>
-                          {index === 0 && (
-                            <Badge className="text-[10px] uppercase font-black px-3 py-1 bg-blue-600/20 text-blue-400 border border-blue-500/30 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.3)]">
+                          {index === 0 &&
+                        <Badge className="text-[10px] uppercase font-black px-3 py-1 bg-blue-600/20 text-blue-400 border border-blue-500/30 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.3)]">
                               جديد (NEW)
                             </Badge>
-                          )}
+                        }
                         </div>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
               </motion.div>
-            )) : !activities.length && (
-              <div className="text-center py-20 flex flex-col items-center">
+            ) : !activities.length &&
+            <div className="text-center py-20 flex flex-col items-center">
                  <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
                    <Activity className="h-10 w-10 text-gray-600" />
                  </div>
                  <p className="text-xl font-bold text-gray-500 mb-2">لا توجد أنشطة لعرضها حالياً</p>
-                 <p className="text-sm text-gray-600">ابدأ بمذاكرة دروسك أو حل المهام لتظهر أنشطتك هنا.</p>
+                 <p className="text-sm text-gray-600">ابدأ بمذاكرة دروسك أو حل المهام لت٪ر أنشطتك هنا.</p>
               </div>
-            )}
+            }
           </AnimatePresence>
         </div>
       </div>
@@ -298,10 +298,8 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
           background: rgba(255, 255, 255, 0.1);
         }
       `}</style>
-    </section>
-  );
+    </section>);
+
 });
 
 export default LiveActivityFeedSection;
-
-

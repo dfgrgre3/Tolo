@@ -1,1 +1,1 @@
-declare module 'type-graphql';
+﻿declare module 'type-graphql';

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
@@ -10,7 +10,7 @@ const lessonSchema = z.object({
   location: z.string().min(1, "المكان مطلوب"),
   startTime: z.string().or(z.date()),
   endTime: z.string().or(z.date()),
-  subjectId: z.string().min(1, "معرف المادة مطلوب"),
+  subjectId: z.string().min(1, "معرف المادة مطلوب")
 });
 
 export async function GET(req: NextRequest) {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
             location,
             startTime: new Date(startTime),
             endTime: new Date(endTime)
-          },
+          }
         });
 
         return successResponse(lesson, "تم إنشاء الدرس بنجاح", 201);
@@ -74,5 +74,3 @@ export async function POST(req: NextRequest) {
     });
   });
 }
-
-

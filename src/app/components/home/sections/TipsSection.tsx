@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { memo } from "react";
 import { motion } from "framer-motion";
 import { Lightbulb, Zap, Calendar, BarChart3, ArrowRight } from "lucide-react";

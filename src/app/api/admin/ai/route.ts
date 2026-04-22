@@ -18,6 +18,29 @@ type RiskStudent = {
   daysSinceLastLogin: number | null;
 };
 
+type ExamQuestionPreview = {
+  question: string;
+};
+
+type ReviewQueueItem = {
+  id: string;
+  title: string;
+  type: string;
+  createdAt: Date;
+  status: string;
+  author: string;
+  subject: string;
+  preview: string;
+  publishedEntityType: string | null;
+  publishedEntityId: string | null;
+};
+
+type ActiveSubjectSummary = {
+  id: string;
+  name: string;
+  nameAr: string | null;
+};
+
 function slugify(value: string) {
   return value
     .toLowerCase()
@@ -217,7 +240,9 @@ async function getPublishedEntityDetail(entityType: string, entityId: string) {
       title: exam.title,
       subtitle: exam.subject.nameAr || exam.subject.name,
       meta: `${exam.questions.length} أسئلة معروضة من الامتحان`,
-      content: exam.questions.map((question: any, index: number) => `${index + 1}. ${question.question}`).join("\n"),
+      content: exam.questions
+        .map((question: ExamQuestionPreview, index: number) => `${index + 1}. ${question.question}`)
+        .join("\n"),
       href: "/admin/ai",
     };
 
@@ -427,7 +452,7 @@ function calculateRiskStudent(input: {
   };
 }
 
-async function getRiskStudents(limit = 6) {
+async function getRiskStudents(limit = 6): Promise<RiskStudent[]> {
   const students = await prisma.user.findMany({
     where: { role: "STUDENT" },
     take: 40,
@@ -457,7 +482,7 @@ async function getRiskStudents(limit = 6) {
   });
 
   return students
-    .map((student: any) => calculateRiskStudent({
+    .map((student: typeof students[number]) => calculateRiskStudent({
       id: student.id,
       name: student.name,
       email: student.email,
@@ -466,13 +491,13 @@ async function getRiskStudents(limit = 6) {
       grades: student.userGrades,
       studySessions: student.studySessions,
     }))
-    .filter((student: any) => student.riskScore >= 45)
-    .sort((a: any, b: any) => b.riskScore - a.riskScore)
+    .filter((student: RiskStudent) => student.riskScore >= 45)
+    .sort((a: RiskStudent, b: RiskStudent) => b.riskScore - a.riskScore)
     .slice(0, limit);
 
 }
 
-async function getReviewQueue(limit = 8) {
+async function getReviewQueue(limit = 8): Promise<ReviewQueueItem[]> {
   const items = await prisma.aiGeneratedContent.findMany({
     take: limit,
     orderBy: { createdAt: "desc" },
@@ -482,7 +507,7 @@ async function getReviewQueue(limit = 8) {
     },
   });
 
-  return items.map((item: any) => ({
+  return items.map((item: typeof items[number]) => ({
     id: item.id,
     title: item.title,
     type: item.type,
@@ -566,7 +591,7 @@ async function generateAdminCopilotReply(prompt: string) {
       latestAverage: student.latestAverage,
       reasons: student.reasons,
     })),
-    reviewQueue: reviewQueue.map((item: any) => ({
+    reviewQueue: reviewQueue.map((item: ReviewQueueItem) => ({
       title: item.title,
       type: item.type,
       status: item.status,
@@ -591,7 +616,7 @@ ${JSON.stringify(context)}
 إذا طلب المستخدم تقريراً أو إجراءً:
 - قدّم ملخصاً تنفيذياً.
 - اقترح خطوات تشغيلية واضحة.
-- لا تدّع تنفيذ إجراء فعلي ما لم يُذكر ذلك بوضوح.
+- لا تدّع تنفيذ إجراء فعلي ما لم يظڈذكر ذلك بوضوح.
 - إذا كان الطلب يتعلق بامتحان أو محتوى، ذكّر بمرحلة المراجعة البشرية قبل النشر.`;
 
   try {
@@ -634,20 +659,20 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Placeholder for grading queue - in production this would query a real Evaluation model
-    const gradingQueue: any[] = [];
+    const gradingQueue: unknown[] = [];
 
     return NextResponse.json({
       success: true,
       riskStudents,
       reviewQueue,
       gradingQueue,
-      subjects: subjects.map((subject: any) => ({
+      subjects: subjects.map((subject: ActiveSubjectSummary) => ({
         id: subject.id,
         name: subject.nameAr || subject.name,
       })),
       summary: {
-        highRiskCount: riskStudents.filter((student: any) => student.riskLevel === 'CRITICAL').length,
-        reviewPendingCount: reviewQueue.filter((item: any) => item.status === "pending_review").length,
+        highRiskCount: riskStudents.filter((student) => student.riskLevel === 'CRITICAL').length,
+        reviewPendingCount: reviewQueue.filter((item) => item.status === "pending_review").length,
         pendingGradingCount: 1,
         aiBriefing: summaryText,
       },

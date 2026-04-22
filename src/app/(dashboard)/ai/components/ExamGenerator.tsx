@@ -1,4 +1,4 @@
-
+﻿
 "use client";
 
 import React, { useState, useCallback } from 'react';
@@ -133,7 +133,7 @@ export default function ExamGenerator({
 
   const handleSaveExam = useCallback(async () => {
     if (!examData?.questions || examData.questions.length === 0) {
-      setSaveError('لا توجد أسئلة لحفظها');
+      setSaveError('لا توجد أسئلة لحف٪ا');
       return;
     }
 

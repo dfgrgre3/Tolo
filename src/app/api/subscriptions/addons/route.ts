@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { AddonService } from '@/services/addon-service';
 import { getRequestUserId } from '@/lib/request-auth';
 

@@ -4,20 +4,20 @@ import { useState, useEffect, memo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
+import {
   Wifi,
   WifiOff,
   Cloud,
   CloudOff,
   Bell,
   BellOff,
-  Battery,
+
   BatteryCharging,
   Moon,
   Sun,
   CheckCircle2,
-  XCircle
-} from "lucide-react";
+  XCircle } from
+"lucide-react";
 
 interface StatusIndicator {
   id: string;
@@ -35,10 +35,10 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
   useEffect(() => {
     // Check online status
     setIsOnline(navigator.onLine);
-    
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
-    
+
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
@@ -62,58 +62,58 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
   const updateIndicators = () => {
     const now = new Date();
     const hour = now.getHours();
-    const isDarkMode = typeof window !== 'undefined' && window.matchMedia ? (window.matchMedia("(prefers-color-scheme: dark)").matches || hour >= 18 || hour <= 6) : (hour >= 18 || hour <= 6);
+    const isDarkMode = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)").matches || hour >= 18 || hour <= 6 : hour >= 18 || hour <= 6;
 
     setIndicators([
-      {
-        id: "connection",
-        label: "الاتصال بالإنترنت",
-        status: isOnline ? "online" : "offline",
-        value: isOnline ? "متصل" : "غير متصل",
-        icon: isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />,
-        description: isOnline ? "اتصال مستقر" : "تحقق من اتصالك بالإنترنت"
-      },
-      {
-        id: "sync",
-        label: "مزامنة البيانات",
-        status: isOnline ? "online" : "warning",
-        value: isOnline ? "متزامن" : "في وضع عدم الاتصال",
-        icon: isOnline ? <Cloud className="h-5 w-5" /> : <CloudOff className="h-5 w-5" />,
-        description: isOnline ? "جميع البيانات محدثة" : "البيانات محفوظة محلياً"
-      },
-      {
-        id: "notifications",
-        label: "الإشعارات",
-        status: checkNotificationPermission(),
-        value: getNotificationStatus(),
-        icon: checkNotificationPermission() === "online" ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />,
-        description: getNotificationDescription()
-      },
-      {
-        id: "theme",
-        label: "الوضع الليلي",
-        status: isDarkMode ? "online" : "online",
-        value: isDarkMode ? "مفعل" : "معطل",
-        icon: isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />,
-        description: isDarkMode ? "الوضع الليلي نشط" : "الوضع النهاري نشط"
-      },
-      {
-        id: "storage",
-        label: "مساحة التخزين",
-        status: "online",
-        value: getStorageInfo(),
-        icon: <Cloud className="h-5 w-5" />,
-        description: "مساحة تخزين كافية"
-      },
-      {
-        id: "performance",
-        label: "أداء النظام",
-        status: "online",
-        value: "ممتاز",
-        icon: <BatteryCharging className="h-5 w-5" />,
-        description: "الأداء ضمن المستوى الطبيعي"
-      }
-    ]);
+    {
+      id: "connection",
+      label: "الاتصال بالإنترنت",
+      status: isOnline ? "online" : "offline",
+      value: isOnline ? "متصل" : "غير متصل",
+      icon: isOnline ? <Wifi className="h-5 w-5" /> : <WifiOff className="h-5 w-5" />,
+      description: isOnline ? "اتصال مستقر" : "تحقق من اتصالك بالإنترنت"
+    },
+    {
+      id: "sync",
+      label: "مزامنة البيانات",
+      status: isOnline ? "online" : "warning",
+      value: isOnline ? "متزامن" : "في وضع عدم الاتصال",
+      icon: isOnline ? <Cloud className="h-5 w-5" /> : <CloudOff className="h-5 w-5" />,
+      description: isOnline ? "جميع البيانات محدثة" : "البيانات محفوظة محلياً"
+    },
+    {
+      id: "notifications",
+      label: "الإشعارات",
+      status: checkNotificationPermission(),
+      value: getNotificationStatus(),
+      icon: checkNotificationPermission() === "online" ? <Bell className="h-5 w-5" /> : <BellOff className="h-5 w-5" />,
+      description: getNotificationDescription()
+    },
+    {
+      id: "theme",
+      label: "الوضع الليلي",
+      status: isDarkMode ? "online" : "online",
+      value: isDarkMode ? "مفعل" : "معطل",
+      icon: isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />,
+      description: isDarkMode ? "الوضع الليلي نشط" : "الوضع النهاري نشط"
+    },
+    {
+      id: "storage",
+      label: "مساحة التخزين",
+      status: "online",
+      value: getStorageInfo(),
+      icon: <Cloud className="h-5 w-5" />,
+      description: "مساحة تخزين كافية"
+    },
+    {
+      id: "performance",
+      label: "أداء النظام",
+      status: "online",
+      value: "ممتاز",
+      icon: <BatteryCharging className="h-5 w-5" />,
+      description: "الأداء ضمن المستوى الطبيعي"
+    }]
+    );
   };
 
   const checkNotificationPermission = (): "online" | "warning" => {
@@ -194,8 +194,8 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
-        >
+          className="mb-8 text-center">
+          
           <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4 drop-shadow-md">
             مؤشرات الحالة
           </h2>
@@ -205,15 +205,15 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
         </motion.div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {indicators.map((indicator, index) => (
-            <motion.div
-              key={indicator.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.05 }}
-              whileHover={{ scale: 1.02 }}
-            >
+          {indicators.map((indicator, index) =>
+          <motion.div
+            key={indicator.id}
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.05 }}
+            whileHover={{ scale: 1.02 }}>
+            
               <Card className="bg-black/40 border-white/5 shadow-none hover:bg-white-[0.03] hover:border-white/10 transition-all rounded-2xl backdrop-blur-md">
                 <CardContent className="p-5">
                   <div className="flex items-start justify-between mb-3">
@@ -236,7 +236,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
                 </CardContent>
               </Card>
             </motion.div>
-          ))}
+          )}
         </div>
 
         {/* System Health Summary */}
@@ -245,8 +245,8 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
-          className="mt-8"
-        >
+          className="mt-8">
+          
           <Card className="border border-white/10 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 backdrop-blur-xl shadow-[0_0_30px_rgba(16,185,129,0.15)] rounded-2xl mx-1">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row items-center justify-between text-white gap-4">
@@ -263,7 +263,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
                 </div>
                 <div className="text-center md:text-right bg-black/20 px-6 py-3 rounded-2xl border border-white/5">
                   <div className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 to-teal-300">
-                    {indicators.filter(i => i.status === "online").length}/{indicators.length}
+                    {indicators.filter((i) => i.status === "online").length}/{indicators.length}
                   </div>
                   <div className="text-sm text-emerald-200/60 font-medium">خدمات نشطة</div>
                 </div>
@@ -272,9 +272,8 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
           </Card>
         </motion.div>
       </div>
-    </section>
-  );
+    </section>);
+
 });
 
 export default StatusIndicatorsSection;
-

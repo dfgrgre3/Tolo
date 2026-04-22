@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,7 @@ export default function KeyboardShortcutsHelp() {
         
         <div className="mt-4 p-3 rounded-lg bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/50 dark:border-blue-800/50">
           <p className="text-xs text-muted-foreground">
-            💡 ملاحظة: الاختصارات تعمل فقط عندما لا تكون في حقل إدخال نص
+            ًں’، ملاحظة: الاختصارات تعمل فقط عندما لا تكون في حقل إدخال نص
           </p>
         </div>
       </DialogContent>

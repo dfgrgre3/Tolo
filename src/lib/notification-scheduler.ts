@@ -13,9 +13,9 @@ async function safeFetchJson(url: string, options: RequestInit = {}): Promise<an
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json', // Explicitly ask for JSON
-        ...options.headers,
+        ...options.headers
       },
-      credentials: 'include',
+      credentials: 'include'
     });
 
     const contentType = response.headers.get('content-type');
@@ -57,7 +57,7 @@ export async function checkUpcomingTasks() {
     // إرسال إشعارات للمهام القريبة الموعد
     for (const task of tasks) {
       if (!task.dueAt) continue;
-      
+
       const dueDate = new Date(task.dueAt);
       const now = new Date();
       const hoursUntilDue = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -68,7 +68,7 @@ export async function checkUpcomingTasks() {
           day: 'numeric',
           month: 'short',
           hour: '2-digit',
-          minute: '2-digit',
+          minute: '2-digit'
         });
 
         sendTemplatedNotification('taskDueSoon', task.title, formattedDate);
@@ -97,7 +97,7 @@ export async function checkUpcomingTests() {
     // إرسال إشعارات للاختبارات القريبة
     for (const test of tests) {
       if (!test.date) continue;
-      
+
       const testDate = new Date(test.date);
       const now = new Date();
       const hoursUntilTest = (testDate.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -120,23 +120,23 @@ export async function checkSchedule() {
     const result = await safeFetchJson(`/api/schedule?date=${today}`);
     if (!result) return;
     const scheduleData = result.data || result;
-    
+
     if (!scheduleData || !scheduleData.planJson) return;
-    
+
     let plan;
     try {
       plan = typeof scheduleData.planJson === 'string' ? JSON.parse(scheduleData.planJson) : scheduleData.planJson;
-    } catch (e) {
+    } catch (_e) {
       return;
     }
-    
+
     const dayItems = plan[today] || [];
     if (!Array.isArray(dayItems)) return;
 
     // إرسال إشعارات للحصص القريبة
     for (const item of dayItems) {
       if (!item.startTime) continue;
-      
+
       const classTime = new Date(`${today}T${item.startTime}`);
       const now = new Date();
       const hoursUntilClass = (classTime.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -145,7 +145,7 @@ export async function checkSchedule() {
       if (hoursUntilClass <= 1 && hoursUntilClass > 0) {
         const formattedTime = classTime.toLocaleTimeString('ar-SA', {
           hour: '2-digit',
-          minute: '2-digit',
+          minute: '2-digit'
         });
         sendTemplatedNotification('classReminder', item.subject || item.title, formattedTime);
       }
@@ -179,9 +179,9 @@ export async function checkProgressMilestones() {
           await fetch(`/api/goals/${goal.id}/notify`, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json',
+              'Content-Type': 'application/json'
             },
-            credentials: 'include',
+            credentials: 'include'
           });
         }
       }
@@ -203,7 +203,7 @@ export async function checkUpcomingEvents() {
     // إرسال إشعارات للمناسبات القريبة
     for (const event of events) {
       if (!event.startDate) continue;
-      
+
       const eventDate = new Date(event.startDate);
       const now = new Date();
       const hoursUntilEvent = (eventDate.getTime() - now.getTime()) / (1000 * 60 * 60);
@@ -245,7 +245,7 @@ export function scheduleNotificationChecks(): () => void {
 
   // تشغيل الفحوصص كل دقيقتين بدلاً من 30 دقيقة لتجربة أفضل
   const interval = setInterval(runNotificationChecks, 2 * 60 * 1000);
-  
+
   // Return cleanup function
   return () => {
     if (interval) {
@@ -253,4 +253,3 @@ export function scheduleNotificationChecks(): () => void {
     }
   };
 }
-

@@ -4,7 +4,7 @@ import { withAuth } from "@/lib/api-utils";
 import { ApiCache } from "@/lib/api-cache";
 import { prisma } from "@/lib/db";
 import { getOrSetEducationalContent, invalidateEducationalContentPattern } from "@/lib/educational-cache-service";
-import { logger } from "@/lib/logger";
+
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleSuccess, AppError } from "@/lib/error-handler";
 import { ERROR_CODES } from "@/lib/error-codes";
@@ -12,8 +12,8 @@ import {
   getSubjectLessonCounts,
   getSubjectProgressMap,
   mapSubjectToCourse,
-  resolveCourseLevel,
-} from "@/lib/courses/course-service";
+  resolveCourseLevel } from
+"@/lib/courses/course-service";
 
 const SORT_OPTIONS = ["newest", "popular", "rated", "price-low", "price-high"] as const;
 type SortOption = (typeof SORT_OPTIONS)[number];
@@ -60,23 +60,24 @@ async function handleGetCourses(req: NextRequest, authenticatedUserId: string | 
     // 2. Construct Prisma Query
     const where: Prisma.SubjectWhereInput = {
       isActive: true,
-      ...(featured && { isFeatured: true }),
+      isPublished: true,
+      ...(featured && { isFeatured: true })
     };
 
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: "insensitive" } },
-        { nameAr: { contains: search, mode: "insensitive" } },
-        { description: { contains: search, mode: "insensitive" } },
-        { slug: { contains: search, mode: "insensitive" } },
-      ];
+      { name: { contains: search, mode: "insensitive" } },
+      { nameAr: { contains: search, mode: "insensitive" } },
+      { description: { contains: search, mode: "insensitive" } },
+      { slug: { contains: search, mode: "insensitive" } }];
+
     }
 
-    if (category && category !== "ALL" && category !== "") {
+    if (category && category.toUpperCase() !== "ALL" && category !== "") {
       where.categoryId = category;
     }
 
-    if (level && level !== "ALL" && level !== "") {
+    if (level && level.toUpperCase() !== "ALL" && level.trim() !== "") {
       const prismaLevel = resolveCourseLevel(level);
       where.level = prismaLevel;
     }
@@ -105,37 +106,37 @@ async function handleGetCourses(req: NextRequest, authenticatedUserId: string | 
 
     const baseData = await getOrSetEducationalContent(cacheKey, async () => {
       const [subjects, totalCount, courseCategories] = await Promise.all([
-        prisma.subject.findMany({
-          where,
-          include: {
-            teachers: {
-              select: { name: true, rating: true, image: true },
-              orderBy: { rating: "desc" },
-            },
-            _count: { select: { enrollments: true } },
+      prisma.subject.findMany({
+        where,
+        include: {
+          teachers: {
+            select: { name: true, rating: true, image: true },
+            orderBy: { rating: "desc" }
           },
-          orderBy,
-          skip,
-          take: limit,
-        }),
-        prisma.subject.count({ where }),
-        prisma.category.findMany({
-          where: { type: CategoryType.COURSE },
-          select: { id: true, name: true, icon: true },
-        }),
-      ]);
+          _count: { select: { enrollments: true } }
+        },
+        orderBy,
+        skip,
+        take: limit
+      }),
+      prisma.subject.count({ where }),
+      prisma.category.findMany({
+        where: { type: CategoryType.COURSE },
+        select: { id: true, name: true, icon: true }
+      })]
+      );
 
-      const subjectIds = subjects.map(s => s.id);
+      const subjectIds = subjects.map((s) => s.id);
       const lessonCounts = await getSubjectLessonCounts(subjectIds);
 
       return { subjects, totalCount, courseCategories, lessonCounts };
     }, 600); // 10 minutes cache for list
 
     const { subjects, totalCount, courseCategories, lessonCounts } = baseData;
-    const subjectIds = subjects.map(s => s.id);
+    const subjectIds = subjects.map((s) => s.id);
 
-    const categoryMap = new Map<string, { id: string; name: string; icon: string | null }>(
-      courseCategories.map(c => [c.id, c])
+    const categoryMap = new Map<string, {id: string;name: string;icon: string | null;}>(
+      courseCategories.map((c) => [c.id, c])
     );
 
     let enrollmentMap = new Map<string, boolean>();
@@ -144,11 +145,11 @@ async function handleGetCourses(req: NextRequest, authenticatedUserId: string | 
     if (authenticatedUserId && subjectIds.length > 0) {
       const enrollments = await prisma.subjectEnrollment.findMany({
         where: { userId: authenticatedUserId, subjectId: { in: subjectIds } },
-        select: { subjectId: true },
+        select: { subjectId: true }
       });
 
       enrollmentMap = new Map(
-        enrollments.map(enrollment => [enrollment.subjectId, true])
+        enrollments.map((enrollment) => [enrollment.subjectId, true])
       );
 
       const enrolledIds = Array.from(enrollmentMap.keys());
@@ -163,20 +164,20 @@ async function handleGetCourses(req: NextRequest, authenticatedUserId: string | 
       const course = mapSubjectToCourse(subject as any, {
         lessonsCount: lessonCounts[subject.id] ?? 0,
         enrolled: enrollmentMap.has(subject.id),
-        progress: progressMap.get(subject.id),
+        progress: progressMap.get(subject.id)
       });
       const categoryMeta = categoryMap.get(course.categoryId);
 
       return {
         ...course,
-        categoryName: categoryMeta?.name ?? course.categoryName,
+        categoryName: categoryMeta?.name ?? course.categoryName
       };
     });
 
-    const categories = courseCategories.map(cat => ({
+    const categories = courseCategories.map((cat) => ({
       id: cat.id,
       name: cat.name,
-      icon: cat.icon || "BookOpen",
+      icon: cat.icon || "BookOpen"
     }));
 
     const response = handleSuccess({
@@ -186,11 +187,11 @@ async function handleGetCourses(req: NextRequest, authenticatedUserId: string | 
         total: totalCount,
         page,
         limit,
-        totalPages: Math.ceil(totalCount / limit),
+        totalPages: Math.ceil(totalCount / limit)
       },
       meta: {
-        filters: { search, category: category || "ALL", level: level || "ALL", sort },
-      },
+        filters: { search, category: category || "ALL", level: level || "ALL", sort }
+      }
     });
 
     // 7. CDN Caching Strategy (Strategic for 1M+ users)
@@ -224,12 +225,12 @@ export async function POST(request: NextRequest) {
       const duplicateSubject = await prisma.subject.findFirst({
         where: {
           OR: [
-            { name },
-            ...(code ? [{ code }] : []),
-            ...(body.slug ? [{ slug: body.slug }] : [])
-          ],
+          { name },
+          ...(code ? [{ code }] : []),
+          ...(body.slug ? [{ slug: body.slug }] : [])]
+
         },
-        select: { id: true },
+        select: { id: true }
       });
 
       if (duplicateSubject) {
@@ -258,15 +259,15 @@ export async function POST(request: NextRequest) {
           coursePrerequisites: body.coursePrerequisites || [],
           targetAudience: body.targetAudience || [],
           language: body.language || "ar",
-          isActive: body.isActive ?? true,
+          isActive: body.isActive ?? true
         },
         include: {
           teachers: {
             select: { name: true, rating: true, image: true },
-            orderBy: { rating: "desc" },
+            orderBy: { rating: "desc" }
           },
-          _count: { select: { enrollments: true } },
-        },
+          _count: { select: { enrollments: true } }
+        }
       });
 
       // Invalidate Courses List Cache
@@ -274,7 +275,7 @@ export async function POST(request: NextRequest) {
 
       const course = mapSubjectToCourse(createdSubject as any, {
         lessonsCount: 0,
-        enrolled: false,
+        enrolled: false
       });
 
       return handleSuccess({ course, subject: course }, 201);

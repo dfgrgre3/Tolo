@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 
 
@@ -25,33 +25,20 @@ import { MegaMenuContainer } from "./MegaMenuContainer";
 import { MegaMenuEmptyState } from "./MegaMenuEmptyState";
 
 import { MegaMenuGrid } from "./MegaMenuGrid";
-
-
-
 import dynamic from "next/dynamic";
-import { logger } from '@/lib/logger';
+import { logger } from '@/lib/logger';
 
-// Dynamic load AI Suggestions with error handling to avoid ChunkLoadError crashing the UI
+// Dynamic load AI Suggestions with error handling and retry logic
 const AiSuggestions = dynamic(
-	async () => {
-		try {
-			const mod = await import("./AiSuggestions");
-			return { default: mod.AiSuggestions };
-		} catch (err) {
-			logger.error("ChunkLoadError in AiSuggestions:", err);
-			// Fallback to a null component to avoid crashing the whole menu
-			return { default: () => null };
-		}
-	}, 
+	() => import("./AiSuggestions").catch((err) => {
+		logger.error("ChunkLoadError in AiSuggestions:", err);
+		return { default: () => null };
+	}), 
 	{
 		ssr: false,
 		loading: () => <AiSuggestionsLoader />
 	}
 );
-
-
-
-// Loading fallback component
 
 const AiSuggestionsLoader = () => (
 

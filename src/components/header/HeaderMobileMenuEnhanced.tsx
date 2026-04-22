@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from "react"
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, Search, X, Moon, Sun, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -17,6 +17,8 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, UserPlus, LogOut } from "lucide-react";
 import { buildLoginUrl } from "@/services/auth/navigation";
+import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client";
+import { logger } from "@/lib/logger";
 
 interface HeaderMobileMenuEnhancedProps {
   isMobileMenuOpen: boolean;
@@ -36,7 +38,6 @@ export function HeaderMobileMenuEnhanced({
   const searchParams = useSearchParams();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const shouldReduceMotion = useReducedMotion();
   const { user, logout, isLoading } = useAuth();
 
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
@@ -82,9 +83,20 @@ export function HeaderMobileMenuEnhanced({
     });
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  }, [theme, setTheme]);
+  const toggleTheme = useCallback(async () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+
+    if (user?.id) {
+      try {
+        await saveSettingsPreferences({
+          appearance: { theme: nextTheme }
+        });
+      } catch (error) {
+        logger.error("Failed to sync theme preference in MobileMenu:", error);
+      }
+    }
+  }, [theme, setTheme, user?.id]);
 
   const overlayVariants = useMemo(
     () => ({ initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.2, ease: "easeOut" as const } }),
@@ -92,15 +104,12 @@ export function HeaderMobileMenuEnhanced({
   );
 
   const menuVariants = useMemo(
-    () =>
-      shouldReduceMotion
-        ? { initial: { x: "100%", opacity: 0 }, animate: { x: 0, opacity: 1 }, exit: { x: "100%", opacity: 0 } }
-        : {
-            initial: { x: "100%" },
-            animate: { x: 0, transition: { type: "spring" as const, damping: 30, stiffness: 300 } },
-            exit: { x: "100%", transition: { type: "spring" as const, damping: 30, stiffness: 300 } },
-          },
-    [shouldReduceMotion]
+    () => ({
+      initial: { x: "100%" },
+      animate: { x: 0, transition: { type: "spring" as const, damping: 30, stiffness: 300 } },
+      exit: { x: "100%", transition: { type: "spring" as const, damping: 30, stiffness: 300 } },
+    }),
+    []
   );
 
   const staggerContainer = useMemo(
@@ -388,7 +397,7 @@ export function HeaderMobileMenuEnhanced({
 
             <div className="p-4 border-t border-border/40 space-y-3 bg-muted/20 backdrop-blur-sm mt-auto">
               <Button variant="outline" onClick={toggleTheme} className="w-full justify-between bg-background/50 border-border/50 h-9 rounded-xl text-sm">
-                <span className="text-sm font-medium">المظهر</span>
+                <span className="text-sm font-medium">الم٪ر</span>
                 {theme === "dark" ? (
                   <div className="flex items-center gap-1.5 text-primary">
                     <Moon className="h-3.5 w-3.5" />

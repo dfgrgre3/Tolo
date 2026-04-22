@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Notification Sender
  * مكتبة مساعدة لإرسال الإشعارات عبر قنوات متعددة
  * (بريد إلكتروني، رسائل نصية، إشعارات داخل التطبيق)
@@ -218,7 +218,7 @@ export async function sendMultiChannelNotification(
             try {
                 results.sms = await sendSMSNotification({
                     to: user.phone,
-                    body: `[ثناوي] ${title}: ${message}${actionUrl ? ` رابط: ${actionUrl}` : ''}`,
+                    body: `[ثانوي] ${title}: ${message}${actionUrl ? ` رابط: ${actionUrl}` : ''}`,
                 });
             } catch (error) {
                 logger.error('خطأ في إرسال الرسالة النصية:', error);
@@ -246,7 +246,7 @@ function buildEmailTemplate(options: {
     return `
     <div dir="rtl" style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
       <div style="text-align: center; margin-bottom: 20px;">
-        <h1 style="color: #3b82f6; margin: 0;">ثناوي</h1>
+        <h1 style="color: #3b82f6; margin: 0;">ثانوي</h1>
       </div>
       <div style="background-color: #f9fafb; padding: 15px; border-radius: 6px; margin-bottom: 20px;">
         <h2 style="color: #1e293b; margin-top: 0; margin-bottom: 10px;">${title}</h2>
@@ -259,8 +259,8 @@ function buildEmailTemplate(options: {
             : ''
         }
       <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
-        <p>تم إرسال هذه الرسالة من منصة ثناوي التعليمية</p>
-        <p>© ${year} جميع الحقوق محفوظة</p>
+        <p>تم إرسال هذه الرسالة من منصة ثانوي التعليمية</p>
+        <p>آ© ${year} جميع الحقوق محفوظة</p>
       </div>
     </div>
   `;

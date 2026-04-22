@@ -10,11 +10,13 @@ import {
   FileText,
   GripVertical,
   Layers,
+  Paperclip,
   Plus,
   PlusCircle,
   Save,
   Trash2,
   Video,
+  X,
 } from "lucide-react";
 import {
   DndContext,
@@ -58,6 +60,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { AdminUpload } from "@/components/admin/ui/admin-upload";
 
+type LessonAttachment = {
+  id: string;
+  title: string;
+  fileUrl: string;
+  fileType?: string | null;
+  fileSize?: number | null;
+};
+
 type LessonType = "VIDEO" | "ARTICLE" | "QUIZ" | "FILE" | "ASSIGNMENT";
 
 type Lesson = {
@@ -69,6 +79,7 @@ type Lesson = {
   duration?: number;
   isFree?: boolean;
   description?: string | null;
+  attachments?: LessonAttachment[];
 };
 
 type Chapter = {
@@ -327,6 +338,7 @@ export default function CourseCurriculumPage() {
               duration: 0,
               isFree: false,
               description: "",
+              attachments: [],
             },
           ],
         };
@@ -494,7 +506,7 @@ export default function CourseCurriculumPage() {
       </Dialog>
 
       <Dialog open={!!editingLesson} onOpenChange={(open) => !open && setEditingLesson(null)}>
-        <DialogContent className="sm:max-w-[560px]">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-black">تعديل الدرس</DialogTitle>
             <DialogDescription className="text-xs font-bold text-zinc-500">أدخل بيانات الدرس والمحتوى المرتبط به</DialogDescription>
@@ -554,7 +566,7 @@ export default function CourseCurriculumPage() {
             </div>
 
             <div className="space-y-3">
-              <Label className="text-[10px] font-black uppercase">رابط أو ملف المحتوى</Label>
+              <Label className="text-[10px] font-black uppercase">المحتوى الأساسي (رابط أو ملف)</Label>
               <Input
                 value={editingLesson?.lesson.videoUrl || ""}
                 onChange={(event) =>
@@ -565,10 +577,10 @@ export default function CourseCurriculumPage() {
                 className="h-12 rounded-xl text-sm font-bold"
                 placeholder="https://..."
               />
-              {editingLesson?.lesson.type === "VIDEO" && (
+              {(editingLesson?.lesson.type === "VIDEO" || editingLesson?.lesson.type === "FILE") && (
                 <AdminUpload
-                  accept="video/*"
-                  label="رفع فيديو الدرس"
+                  accept={editingLesson?.lesson.type === "VIDEO" ? "video/*" : "*/*"}
+                  label={editingLesson?.lesson.type === "VIDEO" ? "رفع فيديو الدرس" : "رفع ملف الدرس"}
                   maxSize={100 * 1024} // 100GB support
                   onUploadComplete={(url: string, metadata) => {
                     setEditingLesson((current) =>
@@ -589,6 +601,71 @@ export default function CourseCurriculumPage() {
                   }}
                 />
               )}
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] font-black uppercase">المرفقات الإضافية</Label>
+                <Badge variant="outline" className="text-[9px] font-black opacity-50">
+                  {editingLesson?.lesson.attachments?.length || 0} مرفقات
+                </Badge>
+              </div>
+              
+              <div className="space-y-2">
+                {editingLesson?.lesson.attachments?.map((attachment) => (
+                  <div key={attachment.id} className="flex items-center gap-3 rounded-xl border border-zinc-100 bg-zinc-50/50 p-2 dark:border-zinc-800 dark:bg-zinc-900/50">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white shadow-sm dark:bg-zinc-800">
+                      <Paperclip className="h-3.5 w-3.5 text-zinc-400" />
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                      <p className="truncate text-[11px] font-bold">{attachment.title}</p>
+                      <p className="text-[9px] text-zinc-400 uppercase font-medium">
+                        {(attachment.fileSize ? (attachment.fileSize / (1024 * 1024)).toFixed(2) + " MB" : "Unknown Size")}
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
+                      onClick={() => {
+                        setEditingLesson(prev => prev ? {
+                          ...prev,
+                          lesson: {
+                            ...prev.lesson,
+                            attachments: prev.lesson.attachments?.filter(a => a.id !== attachment.id)
+                          }
+                        } : null);
+                      }}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+
+                <AdminUpload
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.zip,.rar"
+                  label="إضافة مرفق جديد"
+                  onUploadComplete={(url, metadata) => {
+                    setEditingLesson(prev => {
+                      if (!prev) return null;
+                      const newAttachment: LessonAttachment = {
+                        id: `new-att-${Date.now()}`,
+                        title: metadata?.fileName || "مرفق جديد",
+                        fileUrl: url,
+                        fileType: metadata?.fileType,
+                        fileSize: metadata?.fileSize,
+                      };
+                      return {
+                        ...prev,
+                        lesson: {
+                          ...prev.lesson,
+                          attachments: [...(prev.lesson.attachments || []), newAttachment]
+                        }
+                      };
+                    });
+                  }}
+                />
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -619,7 +696,7 @@ export default function CourseCurriculumPage() {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 bg-white pt-4 pb-2 dark:bg-zinc-950">
             <Button onClick={handleSaveLesson} className="h-12 w-full rounded-xl text-xs font-black uppercase">
               حفظ بيانات الدرس
             </Button>

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * GamificationService - Facade for decomposed services
  * This file maintains the legacy singleton structure while delegating to specialized services.
  */

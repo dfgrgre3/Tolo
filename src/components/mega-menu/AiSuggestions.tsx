@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -147,7 +147,7 @@ export const AiSuggestions = memo(function AiSuggestions({
           id: 'behavior-1',
           itemId: 'quick-revision',
           itemType: 'content',
-          title: '🔥 مراجعة سريعة للاختبار',
+          title: 'ًں”¥ مراجعة سريعة للاختبار',
           description: 'لديك اختبار غداً في الكيمياء! ابدأ المراجعة المركزة الآن.',
           score: 0.99,
           algorithm: 'deep_learning',
@@ -496,3 +496,5 @@ export const AiSuggestions = memo(function AiSuggestions({
 });
 
 AiSuggestions.displayName = "AiSuggestions";
+
+export default AiSuggestions;

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { 
@@ -86,7 +86,7 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
         }
       } catch (_err) {
         toast.error("خطأ في قراءة ملف البيانات.");
-        logger.error("Error: " + String(err));
+        logger.error("Error: " + String(_err));
       }
     };
     reader.readAsText(selectedFile);
@@ -220,7 +220,7 @@ export function BulkUploadDialog({ open, onOpenChange, subjects, onSuccess }: Bu
                 className="w-full h-12 rounded-xl text-md font-black"
                 loading={loading}
               >
-                بدء عملية التحميل 🏛️
+                بدء عملية التحميل ًںڈ›ï¸ڈ
               </AdminButton>
             </DialogFooter>
           </div>

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching audit logs:", error);
     return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط§ظ„ط³ط¬ظ„ط§طھ" },
+      { error: "طآ­طآ¯طآ« طآ®طآ·طآ£ طآ£طآ«ظâ€ طآ§ء طآ¬ظâ€‍طآ¨ طآ§ظâ€‍طآ³طآ¬ظâ€‍طآ§طھ" },
       { status: 500 }
     );
   }

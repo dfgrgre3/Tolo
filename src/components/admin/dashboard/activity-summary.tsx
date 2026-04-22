@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+﻿import { Card, CardContent } from "@/components/ui/card";
 import { Target, FileText, Award } from "lucide-react";
 
 interface ActivitySummaryProps {

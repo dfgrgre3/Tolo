@@ -1,8 +1,9 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 /**
  * بيانات نقطة في الرسم البياني

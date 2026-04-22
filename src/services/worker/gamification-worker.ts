@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq';
+﻿import { Worker, Job } from 'bullmq';
 import { redisConnection } from '@/lib/queue/bullmq';
 import { xpService } from '@/modules/gamification/xp.service';
 import { logger } from '@/lib/logger';
@@ -47,7 +47,7 @@ export class GamificationWorker {
 
     switch (type) {
       case 'add_xp':
-        // Legacy add_xp job 지원
+        // Legacy add_xp job ى§€ى›گ
         await xpService.processXPUpdate({ userId: payload.userId, amount: payload.amount, type: payload.type || 'study' });
         break;
 

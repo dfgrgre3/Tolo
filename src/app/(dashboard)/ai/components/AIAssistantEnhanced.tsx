@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Zap, Mic, MicOff, Heart } from 'lucide-react';
@@ -266,7 +266,7 @@ export default function AIAssistantEnhanced({
           onClick={() => setSentimentAlert(null)}
           className="text-current opacity-70 hover:opacity-100">
           
-            ×
+            أ—
           </button>
         </div>
       }
@@ -298,7 +298,7 @@ export default function AIAssistantEnhanced({
               
                 <span>{formatTime(message.timestamp)}</span>
                 {message.sentiment && message.sentiment.sentiment === 'positive' &&
-              <span className="text-green-600">😊</span>
+              <span className="text-green-600">ًںکٹ</span>
               }
               </div>
             </div>
@@ -362,7 +362,7 @@ export default function AIAssistantEnhanced({
         </div>
         {isListening &&
         <p className="text-xs text-red-600 mt-2 text-center animate-pulse">
-            🎤 جاري الاستماع... تحدث الآن
+            ًںژ¤ جاري الاستماع... تحدث الآن
           </p>
         }
       </form>

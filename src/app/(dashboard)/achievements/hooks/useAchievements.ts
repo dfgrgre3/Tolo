@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback } from 'react';
 import { ensureUser } from '@/lib/user-utils';
 import { Achievement, UserProgress, AchievementFilters, AchievementRarity } from '../types';
 import { filterAchievements, calculateStats, getRarityByXP } from '../utils';

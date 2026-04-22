@@ -30,7 +30,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { safeFetch } from '@/lib/safe-client-utils';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 const taskSchema = z.object({
   title: z.string().min(1, { message: 'العنوان مطلوب' }),
@@ -53,7 +54,7 @@ export default function TasksPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [statusFilter, setStatusFilter] = useState<TaskStatus | 'ALL'>('ALL');
+  const [statusFilter,,] = useState<TaskStatus | 'ALL'>('ALL');
   const [sortBy, setSortBy] = useState<'dueAt' | 'priority'>('priority');
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');

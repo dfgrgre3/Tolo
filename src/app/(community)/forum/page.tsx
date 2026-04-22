@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
+import {
   BookOpen,
   MessageSquare,
   Plus,
@@ -20,7 +20,8 @@ import {
 import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -50,7 +51,7 @@ type ForumPost = {
 };
 
 export default function ForumPage() {
-  const [userId, setUserId] = useState<string | null>(null);
+  const [, setUserId] = useState<string | null>(null);
   const [categories, setCategories] = useState<ForumCategory[]>([]);
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>("all");
@@ -127,7 +128,7 @@ export default function ForumPage() {
                     <span>قاعة الحكمة والتبادل العسكري</span>
                  </div>
                  <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
-                    ساحة <span className={STYLES.neonText}>حوار الأبطال</span> 🛡️
+                    ساحة <span className={STYLES.neonText}>حوار الأبطال</span> ًں›،ï¸ڈ
                  </h1>
                  <p className="text-xl text-gray-400 font-medium max-w-2xl">
                     تبادل المعرفة مع رفاقك، اطرح تساؤلاتك في خضم المعركة، وساهم في بناء مكتبة الحكمة للمملكة.
@@ -215,7 +216,7 @@ export default function ForumPage() {
               <h2 className="text-3xl font-black flex items-center gap-4">
                  <BookOpen className="h-7 w-7 text-primary" />
                  <span>المخطوطات واللفائف</span>
-                 <Badge className="bg-white/5 text-gray-500 border-white/10 px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">{sortedPosts.length} نتيجة عُثر عليها</Badge>
+                 <Badge className="bg-white/5 text-gray-500 border-white/10 px-4 py-1.5 font-black uppercase text-[10px] tracking-widest">{sortedPosts.length} نتيجة عظڈثر عليها</Badge>
               </h2>
            </div>
 

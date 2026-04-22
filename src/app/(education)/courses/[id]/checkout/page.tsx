@@ -12,8 +12,13 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
-  GraduationCap
-} from "lucide-react";
+  GraduationCap,
+  ArrowRight,
+  Sparkles,
+
+  Zap,
+  Info } from
+"lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -23,6 +28,7 @@ interface CourseCheckoutInfo {
   nameAr?: string;
   price: number;
   thumbnailUrl?: string;
+  description?: string;
 }
 
 export default function CourseCheckoutPage() {
@@ -37,25 +43,40 @@ export default function CourseCheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "fawry" | "wallet" | "internal_wallet">("card");
   const [couponCode, setCouponCode] = useState("");
   const [iframeUrl, setIframeUrl] = useState<string | null>(null);
-  
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
+
   useEffect(() => {
     if (!courseId) return;
 
-    fetch(`/api/courses/${courseId}`)
-      .then(res => res.json())
-      .then(data => {
-        if (data.subject) {
+    const fetchData = async () => {
+      try {
+        const [courseRes, walletRes] = await Promise.all([
+        fetch(`/api/courses/${courseId}`),
+        fetch(`/api/billing/wallet`)]
+        );
+
+        const courseData = await courseRes.json();
+        const walletData = await walletRes.json();
+
+        if (courseData.subject) {
           setCourse({
-            id: data.subject.id,
-            name: data.subject.name,
-            nameAr: data.subject.nameAr,
-            price: data.subject.price || 0,
-            thumbnailUrl: data.subject.thumbnailUrl
+            id: courseData.subject.id,
+            name: courseData.subject.name,
+            nameAr: courseData.subject.nameAr,
+            price: courseData.subject.price || 0,
+            thumbnailUrl: courseData.subject.thumbnailUrl,
+            description: courseData.subject.description
           });
         }
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
+        setWalletBalance(walletData.balance || 0);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [courseId]);
 
   const handleCheckout = async () => {
@@ -72,30 +93,24 @@ export default function CourseCheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           paymentMethod,
-          couponCode: couponCode || undefined,
-        }),
+          couponCode: couponCode || undefined
+        })
       });
 
       const data = await res.json();
       if (!res.ok) {
-         toast.error(data.error || "حدث خطأ أثناء تهيئة الدفع");
-         return;
-      }
-
-      if (data.success && data.finalAmount === 0) {
-        toast.success("تم تسجيلك في الدورة بنجاح!");
-        router.push(`/courses/${courseId}`);
+        toast.error(data.error || "حدث خطأ أثناء تهيئة الدفع");
         return;
       }
 
-      if (paymentMethod === "internal_wallet" && data.success) {
-        toast.success("تم الشراء باستخدام الرصيد بنجاح!");
-        router.push(`/courses/${courseId}`);
+      if (data.success) {
+        toast.success("تم تسجيلك في الدورة بنجاح!");
+        router.push(`/courses/${courseId}?payment_success=true`);
         return;
       }
 
       if (data.paymentKey && data.iframeId) {
-        setIframeUrl(`https://accept.paymob.com/api/acceptance/iframes/${data.iframeId}?payment_token=${data.paymentKey}`);
+        setIframeUrl(`https://egypt.paymob.com/api/acceptance/iframes/${data.iframeId}?payment_token=${data.paymentKey}`);
       } else {
         toast.error("تكوين الدفع غير مكتمل من السيرفر");
       }
@@ -109,155 +124,231 @@ export default function CourseCheckoutPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0B0D14]">
-        <Loader2 className="w-10 h-10 animate-spin text-primary" />
-      </div>
-    );
+      <div className="min-h-screen flex items-center justify-center bg-[#09111f]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-12 h-12 animate-spin text-primary" />
+          <p className="text-gray-400 font-bold">جاري تجهيز طلبك...</p>
+        </div>
+      </div>);
+
   }
 
   if (!course) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-[#0B0D14] text-gray-800 dark:text-white">
-        <div className="text-center">
-          <AlertCircle className="mx-auto w-16 h-16 text-red-500 mb-4" />
-          <h2 className="text-2xl font-bold mb-2">الدورة غير موجودة</h2>
-          <p className="text-gray-500">لم يتم العثور على الدورة المطلوبة.</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#09111f]">
+        <div className="text-center p-8 bg-white/5 border border-white/10 rounded-[2rem] max-w-md">
+          <AlertCircle className="mx-auto w-20 h-20 text-rose-500 mb-6" />
+          <h2 className="text-3xl font-black text-white mb-2">الدورة غير موجودة</h2>
+          <p className="text-gray-400 mb-8">لم يتم العثور على الدورة المطلوبة، ربما تم نقلها أو حذفها.</p>
+          <button onClick={() => router.push('/courses')} className="w-full py-4 bg-white text-gray-900 font-bold rounded-2xl">العودة للدورات</button>
         </div>
-      </div>
-    );
+      </div>);
+
   }
-  
+
   if (iframeUrl) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#0B0D14] flex flex-col pt-[72px]" dir="rtl">
-        <div className="bg-white/10 text-white p-4 flex justify-between items-center shadow-md">
-          <h2 className="font-bold">إتمام الدفع</h2>
-          <button 
+      <div className="fixed inset-0 z-50 bg-[#0B0D14] flex flex-col" dir="rtl">
+        <div className="bg-[#101222] border-b border-white/10 text-white p-4 flex justify-between items-center shadow-2xl">
+          <div className="flex items-center gap-3">
+             <div className="bg-primary/20 p-2 rounded-xl">
+                <ShieldCheck className="w-6 h-6 text-primary" />
+             </div>
+             <h2 className="font-black text-xl">بوابة الدفع الآمنة</h2>
+          </div>
+          <button
             onClick={() => setIframeUrl(null)}
-            className="text-white hover:text-red-400 font-medium px-4 py-2 bg-white/5 rounded-xl transition"
-          >
-            إلغاء العملية ويرجوع للدورة
+            className="text-white hover:text-rose-400 font-black px-6 py-2.5 bg-white/5 border border-white/10 rounded-2xl transition-all active:scale-95 flex items-center gap-2">
+            
+            <span>إلغاء العملية</span>
+            <ArrowRight className="w-4 h-4 rotate-180" />
           </button>
         </div>
-        <iframe
-          src={iframeUrl}
-          className="flex-1 w-full bg-white"
-          allow="payment"
-        />
-      </div>
-    );
+        <div className="flex-1 bg-white relative">
+           <iframe src={iframeUrl} className="w-full h-full" allow="payment" />
+        </div>
+      </div>);
+
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14] py-12 px-4" dir="rtl">
-      <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Left column: Course Details */}
-        <div className="order-2 md:order-1">
-          <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/80 p-6 shadow-xl">
-            <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
-              <GraduationCap className="text-primary w-6 h-6" />
-              تفاصيل الدورة
-            </h2>
-            
-            <div className="aspect-video rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 mb-4">
-              {course.thumbnailUrl ? (
-                <img src={course.thumbnailUrl} alt={course.nameAr || course.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <GraduationCap className="w-12 h-12 text-gray-400" />
-                </div>
-              )}
-            </div>
+    <div className="min-h-screen bg-[#09111f] text-white py-12 px-4 md:px-8" dir="rtl">
+      {/* Background blobs */}
+      <div className="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+        <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 left-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]" />
+      </div>
 
-            <h3 className="font-bold text-gray-800 dark:text-gray-200 text-lg">{course.nameAr || course.name}</h3>
-            
-            <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/10">
-              <div className="flex justify-between items-center mb-4 text-lg">
-                <span className="text-gray-600 dark:text-gray-400">سعر الدورة</span>
-                <span className="font-bold text-gray-900 dark:text-white">{course.price} ج.م</span>
-              </div>
-              <div className="flex justify-between items-center text-xl font-black text-primary">
-                <span>الإجمالي الدفع</span>
-                <span>{course.price} ج.م</span>
-              </div>
-            </div>
-            
-            <div className="mt-6 flex items-start gap-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 p-4 rounded-xl text-sm">
-              <ShieldCheck className="w-5 h-5 shrink-0" />
-              <p>عملية الدفع آمنة ومشفرة بالكامل. ستحصل على وصول فوري للدورة فور إتمام الدفع بنجاح.</p>
+      <div className="max-w-6xl mx-auto">
+        <header className="mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+           <div className="space-y-2">
+              <h1 className="text-4xl font-black tracking-tight">إتمام التسجيل</h1>
+              <p className="text-gray-400 font-medium">خطوة واحدة تفصلك عن البدء في رحلة تعليمية جديدة</p>
+           </div>
+           <button onClick={() => router.back()} className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors font-bold group">
+              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              <span>الرجوع للدورة</span>
+           </button>
+        </header>
+
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          {/* Order Details Column */}
+          <div className="lg:col-span-4 space-y-8">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-2 overflow-hidden shadow-2xl">
+               <div className="aspect-video rounded-[2rem] overflow-hidden relative">
+                  {course.thumbnailUrl ?
+                <img src={course.thumbnailUrl} alt={course.nameAr} className="w-full h-full object-cover" /> :
+
+                <div className="w-full h-full bg-[#101222] flex items-center justify-center">
+                       <GraduationCap className="w-20 h-20 text-gray-700" />
+                    </div>
+                }
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-6 pt-12">
+                     <span className="text-xs bg-primary/80 text-white font-black px-3 py-1 rounded-full uppercase tracking-widest mb-2 inline-block">دورة تدريبية</span>
+                     <h2 className="text-2xl font-black text-white">{course.nameAr || course.name}</h2>
+                  </div>
+               </div>
+               
+               <div className="p-6 space-y-6">
+                  <div className="flex justify-between items-center">
+                     <span className="text-gray-400 font-bold">سعر الدورة</span>
+                     <span className="text-2xl font-black text-white">{course.price} ج.م</span>
+                  </div>
+                  
+                  <div className="space-y-3 pt-6 border-t border-white/10">
+                     {[
+                  "وصول مدى الحياة للمحتوى",
+                  "شهادة إكمال معتمدة",
+                  "ملفات مساعدة للتحميل"].
+                  map((text, i) =>
+                  <div key={i} className="flex items-center gap-3 text-sm text-gray-300">
+                          <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                          <span>{text}</span>
+                       </div>
+                  )}
+                  </div>
+
+                  <div className="pt-6 border-t border-white/10 flex justify-between items-center text-3xl font-black text-primary">
+                    <span>الإجمالي</span>
+                    <span>{course.price} <span className="text-lg">ج.م</span></span>
+                  </div>
+               </div>
+            </motion.div>
+
+            <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-[2rem] flex gap-4">
+               <ShieldCheck className="w-8 h-8 text-emerald-500 shrink-0" />
+               <p className="text-sm font-medium text-emerald-100/80 leading-relaxed">
+                  نحن نستخدم أحدث أنظمة التشفير لضمان أمان مدفوعاتك. بيانات بطاقتك لا تخزن أبداً على أنظمتنا.
+               </p>
             </div>
           </div>
-        </div>
 
-        {/* Right column: Payment Methods */}
-        <div className="order-1 md:order-2 space-y-6">
-          <div className="rounded-2xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/80 p-6 shadow-xl">
-             <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">طريقة الدفع</h2>
+          {/* Payment Selection Column */}
+          <div className="lg:col-span-8 space-y-8">
+            <div className="rounded-[2.5rem] bg-white/5 border border-white/10 p-8 md:p-12 shadow-2xl backdrop-blur-xl relative overflow-hidden">
+               <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary/5 rounded-full blur-[100px]" />
+               
+               <h3 className="text-2xl font-black mb-10 flex items-center gap-3">
+                  <CreditCard className="text-primary w-8 h-8" />
+                  اختر وسيلة الدفع المناسبة
+               </h3>
 
-             <div className="space-y-3 mb-8">
-              {[
-                { id: "card", icon: CreditCard, label: "بطاقة ائتمان / مدى", sub: "دفع آمن وفوري باستخدام بطاقتك البنكية" },
-                { id: "wallet", icon: Smartphone, label: "المحافظ الإلكترونية", sub: "فودافون كاش، اتصالات، أورانج" },
-                { id: "fawry", icon: Wallet, label: "نقداً عبر فوري", sub: "ادفع في أي منفذ فوري يقبل المدفوعات" },
-                { id: "internal_wallet", icon: Wallet, label: "رصيد المحفظة", sub: "خصم من رصيد محفظتك على المنصة" }
-              ].map((m) => (
-                <label 
-                  key={m.id} 
-                  className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${paymentMethod === m.id ? 'border-primary bg-primary/5' : 'border-gray-200 dark:border-gray-800 hover:border-primary/50'}`}
-                >
-                  <input
-                    type="radio"
-                    name="payment_method"
-                    value={m.id}
-                    checked={paymentMethod === m.id}
-                    onChange={(e) => setPaymentMethod(e.target.value as any)}
-                    className="w-5 h-5 accent-primary"
-                  />
-                  <div className={"flex items-center justify-center w-10 h-10 rounded-lg " + (paymentMethod === m.id ? "bg-primary text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-500")}>
-                    <m.icon className="w-5 h-5" />
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+                 {[
+                { id: "card", icon: CreditCard, label: "بطاقة الائتمان", sub: "Visa / Mastercard / Meeza", accent: "primary" },
+                { id: "wallet", icon: Smartphone, label: "محافظ إلكترونية", sub: "Vodafone Cash / Instant Pay", accent: "emerald" },
+                { id: "fawry", icon: Wallet, label: "كود فوري", sub: "دفع نقدي عبر منافذ فوري", accent: "amber" },
+                { id: "internal_wallet", icon: Zap, label: "رصيد المنصة", sub: "استخدم محفظتك الإلكترونية", accent: "indigo" }].
+                map((opt) =>
+                <label
+                  key={opt.id}
+                  onClick={() => setPaymentMethod(opt.id as any)}
+                  className={`group relative flex items-center gap-4 p-6 rounded-[2rem] border-2 cursor-pointer transition-all active:scale-[0.98] ${paymentMethod === opt.id ? `border-primary bg-primary/10 shadow-lg shadow-primary/5` : 'border-white/5 bg-white/5 hover:bg-white/10 hover:border-white/10'}`}>
+                  
+                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${paymentMethod === opt.id ? 'bg-primary text-white scale-110' : 'bg-white/5 text-gray-500 group-hover:text-white'}`}>
+                        <opt.icon className="w-7 h-7" />
+                     </div>
+                     <div className="flex-1">
+                        <span className="block font-black text-lg transition-colors">{opt.label}</span>
+                        <span className="text-xs text-gray-500 font-bold uppercase tracking-wide">{opt.sub}</span>
+                        {opt.id === 'internal_wallet' && walletBalance !== null &&
+                    <div className={`mt-2 text-xs font-bold ${walletBalance >= course.price ? 'text-emerald-400' : 'text-rose-400'}`}>
+                             رصيدك الحالي: {walletBalance.toLocaleString()} ج.م
+                          </div>
+                    }
+                     </div>
+                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${paymentMethod === opt.id ? 'border-primary' : 'border-white/20'}`}>
+                        {paymentMethod === opt.id && <div className="w-3 h-3 rounded-full bg-primary" />}
+                     </div>
+                   </label>
+                )}
+               </div>
+
+               <div className="space-y-6">
+                  <div className="relative group">
+                     <Tag className="absolute right-5 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-500 group-focus-within:text-primary transition-colors" />
+                     <input
+                    type="text"
+                    placeholder="هل لديك كود خصم؟ (أدخل الكود هنا)"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value)}
+                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-5 px-14 text-white font-bold outline-none focus:border-primary/50 focus:ring-4 focus:ring-primary/5 transition-all text-center tracking-[0.2em]" />
+                  
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                     <button
+                    disabled={processing || !user || paymentMethod === 'internal_wallet' && (walletBalance || 0) < course.price}
+                    onClick={handleCheckout}
+                    className="w-full py-6 rounded-3xl bg-primary hover:bg-primary/90 text-white font-black text-xl flex items-center justify-center gap-3 shadow-2xl shadow-primary/20 transition-all active:scale-[0.96] disabled:opacity-50 disabled:grayscale">
+                    
+                        {processing ? <Loader2 className="w-7 h-7 animate-spin" /> : <Sparkles className="w-7 h-7" />}
+                        <span>{processing ? "جاري الاتصال بالنظام..." : "تأكيد الحجز والبدء الآن"}</span>
+                     </button>
+                     
+                     {paymentMethod === 'internal_wallet' && (walletBalance || 0) < course.price &&
+                  <div className="bg-rose-500/10 border border-rose-500/20 p-4 rounded-2xl flex items-center gap-3 text-rose-400 text-sm font-bold justify-center">
+                          <Info className="w-5 h-5" />
+                          <span>رصيد محفظتك غير كافٍ. يرجى الشحن أولاً أو اختيار وسيلة دفع أخرى.</span>
+                       </div>
+                  }
+                  </div>
+
+                  <p className="text-center text-xs text-gray-500 font-medium px-10">
+                     بالضغط على تأكيد، أنت توافق على سياسة شحن المحتوى وشروط الخدمة. سيتم إرسال فاتورة إلكترونية مفصلة إلى بريدك المسجل فور النجاح.
+                  </p>
+               </div>
+            </div>
+
+            {/* Support section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               <div className="p-6 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                     <HelpCircleIcon className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white">{m.label}</h4>
-                    <p className="text-xs text-gray-500">{m.sub}</p>
+                     <h4 className="font-bold text-white tracking-tight">تحتاج مساعدة؟</h4>
+                     <p className="text-xs text-gray-500">فريق الدعم متاح 24/7 لمساعدتك</p>
                   </div>
-                </label>
-              ))}
-             </div>
-
-             <div className="relative mb-8">
-               <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-gray-400">
-                 <Tag className="w-5 h-5" />
                </div>
-               <input 
-                 type="text" 
-                 placeholder="لديك كود خصم؟" 
-                 value={couponCode}
-                 onChange={(e) => setCouponCode(e.target.value)}
-                 className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-xl py-3 px-10 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary/50 text-left"
-                 dir="ltr"
-               />
-             </div>
-
-             <button
-               disabled={processing || !user}
-               onClick={handleCheckout}
-               className="w-full h-14 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-primary/20 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-             >
-               {processing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Lock className="w-5 h-5" />}
-               <span>{processing ? "جاري المعالجة..." : "إتمام الشراء والانضمام"}</span>
-             </button>
-             {!user && <p className="text-center text-red-500 text-sm mt-3 font-medium">الرجاء تسجيل الدخول أولاً</p>}
+               <div className="p-6 rounded-[2rem] bg-amber-500/5 border border-amber-500/10 flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-500">
+                     <Zap className="w-6 h-6" />
+                  </div>
+                  <div>
+                     <h4 className="font-bold text-white tracking-tight">تفعيل فوري</h4>
+                     <p className="text-xs text-gray-500">تمتع بالوصول للمحتوى خلال ثوانٍ</p>
+                  </div>
+               </div>
+            </div>
           </div>
         </div>
-
       </div>
-    </div>
-  );
+    </div>);
+
 }
 
-const Lock = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-  </svg>
-)
+const HelpCircleIcon = ({ className }: {className?: string;}) =>
+<svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <path strokeLinecap="round" strokeLinejoin="round" d="M9.879 7.519c1.171-1.025 3.071-1.025 4.242 0 1.172 1.025 1.172 2.687 0 3.712-.203.179-.43.326-.67.442-.745.361-1.45.999-1.45 1.827v.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 5.25h.008v.008H12v-.008Z" />
+  </svg>;

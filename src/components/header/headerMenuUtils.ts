@@ -1,4 +1,4 @@
-import { Home } from "lucide-react";
+﻿import { Home } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { NavItemWithMegaMenu } from "@/components/mega-menu/navData";
 

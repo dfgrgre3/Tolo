@@ -2,31 +2,31 @@
 
 import React from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { 
+import {
   Crown,
-  Shield, 
-  Sword, 
-  Zap, 
-  Target, 
-  Trophy, 
-  Users, 
-  ArrowRight, 
-  Sparkles,
+  Shield,
+  Sword,
+  Zap,
+  Target,
+
+  Users,
+  ArrowRight,
+
   ChevronDown,
-  BookOpen,
+
   Map,
   Compass,
-  Star,
-  Skull
-} from "lucide-react";
+  Star } from
+
+"lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { 
-  scrollVariants, 
-  rpgCommonStyles, 
-  HIGHLIGHT_CARDS, 
-  FEATURES_LIST 
-} from "./constants";
+import {
+  scrollVariants,
+
+  HIGHLIGHT_CARDS,
+  FEATURES_LIST } from
+"./constants";
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -60,38 +60,38 @@ export default function LandingPage() {
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 pb-20 px-4 flex flex-col items-center justify-center text-center">
          <motion.div
-           initial={{ opacity: 0, scale: 0.8 }}
-           animate={{ opacity: 1, scale: 1 }}
-           className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary mb-12 shadow-[0_0_20px_rgba(var(--primary),0.2)]"
-         >
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary mb-12 shadow-[0_0_20px_rgba(var(--primary),0.2)]">
+          
            <Shield className="h-5 w-5" />
            <span>TOLO: عصر جديد في التعلم</span>
          </motion.div>
 
-         <motion.h1 
-           initial={{ opacity: 0, y: 30 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.2 }}
-           className="text-6xl md:text-9xl font-black tracking-tighter leading-[1.1] mb-8"
-         >
-           حوّل دراستك <br /> إلى <span className={STYLES.neonText}>لحظات مجد</span> 🏆
+         <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-6xl md:text-9xl font-black tracking-tighter leading-[1.1] mb-8">
+          
+           حوّل دراستك <br /> إلى <span className={STYLES.neonText}>لحظات مجد</span> ًںڈ†
          </motion.h1>
 
-         <motion.p 
-           initial={{ opacity: 0, y: 20 }}
-           animate={{ opacity: 1, y: 0 }}
-           transition={{ delay: 0.3 }}
-           className="text-xl md:text-2xl text-gray-400 font-medium max-w-3xl mb-16 leading-relaxed"
-         >
+         <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-xl md:text-2xl text-gray-400 font-medium max-w-3xl mb-16 leading-relaxed">
+          
            لا تكتفي بمذاكرة الدروس. انطلق في <span className={STYLES.goldText}>رحلة بطل</span>، اجمع نقاط القوة، ارفع مستواك الدراسي، وسيطر على لوحة الشرف الملكية.
          </motion.p>
 
-         <motion.div 
-           initial={{ opacity: 0, scale: 0.9 }}
-           animate={{ opacity: 1, scale: 1 }}
-           transition={{ delay: 0.4 }}
-           className="flex flex-col sm:flex-row gap-6 items-center"
-         >
+         <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.4 }}
+          className="flex flex-col sm:flex-row gap-6 items-center">
+          
            <Link href="/register">
               <Button className="h-20 px-12 bg-primary text-black font-black rounded-[2rem] gap-4 shadow-2xl shadow-primary/30 hover:scale-105 transition-all text-xl group overflow-hidden relative">
                  <div className="absolute inset-0 bg-white/20 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-500 skew-x-[-20deg]" />
@@ -106,11 +106,11 @@ export default function LandingPage() {
            </Link>
          </motion.div>
 
-         <motion.div 
-           animate={{ y: [0, 10, 0] }}
-           transition={{ repeat: Infinity, duration: 2 }}
-           className="mt-20 opacity-30"
-         >
+         <motion.div
+          animate={{ y: [0, 10, 0] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="mt-20 opacity-30">
+          
             <ChevronDown className="h-10 w-10 text-primary" />
          </motion.div>
       </section>
@@ -119,14 +119,14 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 py-32 space-y-32">
          {/* Feature Grid */}
          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {HIGHLIGHT_CARDS.map((card, i) => (
-              <motion.div
-                key={i}
-                {...scrollVariants.fadeUp}
-                viewport={{ once: true, margin: "-100px" }}
-                transition={{ delay: i * 0.1 }}
-                className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-10 group hover:border-primary/50 transition-all cursor-default"
-              >
+            {HIGHLIGHT_CARDS.map((card, i) =>
+          <motion.div
+            key={i}
+            {...scrollVariants.fadeUp}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ delay: i * 0.1 }}
+            className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-10 group hover:border-primary/50 transition-all cursor-default">
+            
                  <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-10 transition-transform group-hover:scale-110 group-hover:rotate-6">
                     {card.icon}
                  </div>
@@ -137,7 +137,7 @@ export default function LandingPage() {
                     <ArrowRight className="h-4 w-4 rotate-180" />
                  </Link>
               </motion.div>
-            ))}
+          )}
          </div>
 
          {/* Cinematic Middle Section */}
@@ -175,39 +175,39 @@ export default function LandingPage() {
 
                <div className="relative w-full max-w-md lg:max-w-lg aspect-square">
                   <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
-                  <motion.div 
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-                    className="absolute inset-0 border-[2px] border-dashed border-white/5 rounded-full"
-                  />
+                  <motion.div
+                animate={{ rotate: 360 }}
+                transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
+                className="absolute inset-0 border-[2px] border-dashed border-white/5 rounded-full" />
+              
                   <div className="absolute inset-4 border border-white/10 rounded-full flex items-center justify-center bg-black/40 backdrop-blur-3xl shadow-2xl">
                      <Crown className="w-32 h-32 text-primary shadow-[0_0_40px_rgba(var(--primary),0.5)]" />
                   </div>
                   
                   {/* Floating Icons around */}
-                  {[Zap, Target, Shield, Users].map((Icon, idx) => (
-                    <motion.div
-                      key={idx}
-                      animate={{ 
-                        y: [0, idx % 2 === 0 ? 30 : -30, 0],
-                        rotate: [0, 10, -10, 0]
-                      }}
-                      transition={{ 
-                        duration: 8 + idx * 2,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                      className="absolute p-6 rounded-3xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl z-20"
-                      style={{
-                        top: idx === 0 ? "10%" : idx === 1 ? "10%" : "auto",
-                        bottom: idx === 2 ? "10%" : idx === 3 ? "10%" : "auto",
-                        left: idx === 0 || idx === 2 ? "10%" : "auto",
-                        right: idx === 1 || idx === 3 ? "10%" : "auto",
-                      }}
-                    >
+                  {[Zap, Target, Shield, Users].map((Icon, idx) =>
+              <motion.div
+                key={idx}
+                animate={{
+                  y: [0, idx % 2 === 0 ? 30 : -30, 0],
+                  rotate: [0, 10, -10, 0]
+                }}
+                transition={{
+                  duration: 8 + idx * 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+                className="absolute p-6 rounded-3xl bg-white/5 border border-white/10 shadow-2xl backdrop-blur-xl z-20"
+                style={{
+                  top: idx === 0 ? "10%" : idx === 1 ? "10%" : "auto",
+                  bottom: idx === 2 ? "10%" : idx === 3 ? "10%" : "auto",
+                  left: idx === 0 || idx === 2 ? "10%" : "auto",
+                  right: idx === 1 || idx === 3 ? "10%" : "auto"
+                }}>
+                
                        <Icon className="w-8 h-8 text-white/40" />
                     </motion.div>
-                  ))}
+              )}
                </div>
             </div>
          </div>
@@ -220,14 +220,14 @@ export default function LandingPage() {
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-               {FEATURES_LIST.map((feat, i) => (
-                 <motion.div
-                   key={i}
-                   {...scrollVariants.scaleUp}
-                   viewport={{ once: true, margin: "-50px" }}
-                   transition={{ delay: feat.delay || 0 }}
-                   className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-8 text-center group flex flex-col items-center gap-6 hover:bg-card/60 transition-all"
-                 >
+               {FEATURES_LIST.map((feat, i) =>
+            <motion.div
+              key={i}
+              {...scrollVariants.scaleUp}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ delay: feat.delay || 0 }}
+              className="relative overflow-hidden rounded-[2.5rem] border border-border bg-card/40 shadow-2xl backdrop-blur-2xl ring-1 ring-border/5 p-8 text-center group flex flex-col items-center gap-6 hover:bg-card/60 transition-all">
+              
                     <div className={`p-5 rounded-2xl bg-white/5 border border-white/5 ${feat.color} group-hover:scale-110 transition-transform`}>
                        {feat.icon}
                     </div>
@@ -236,16 +236,16 @@ export default function LandingPage() {
                        <p className="text-xs text-gray-500 font-medium leading-relaxed">{feat.description}</p>
                     </div>
                  </motion.div>
-               ))}
+            )}
             </div>
          </div>
 
          {/* Final Call to Action - The Coliseum */}
-         <motion.div 
-           {...scrollVariants.fadeUp}
-           viewport={{ once: true }}
-           className="relative p-20 rounded-[4rem] bg-gradient-to-br from-primary/10 via-purple-600/5 to-transparent border border-white/10 overflow-hidden text-center group"
-         >
+         <motion.div
+          {...scrollVariants.fadeUp}
+          viewport={{ once: true }}
+          className="relative p-20 rounded-[4rem] bg-gradient-to-br from-primary/10 via-purple-600/5 to-transparent border border-white/10 overflow-hidden text-center group">
+          
             <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary/20 blur-[130px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             </div>
@@ -295,6 +295,6 @@ export default function LandingPage() {
             <Link href="/privacy" className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 hover:text-white transition-colors">ميثاق الخصوصية</Link>
          </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }

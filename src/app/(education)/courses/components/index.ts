@@ -1,4 +1,4 @@
-// Course components barrel export
+﻿// Course components barrel export
 export { CourseCard, type CourseCardProps } from "./CourseCard";
 export { CoursesHero } from "./CoursesHero";
 export { CoursesFilter } from "./CoursesFilter";

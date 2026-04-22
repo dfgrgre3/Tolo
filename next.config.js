@@ -1,9 +1,18 @@
 /** @type {import('next').NextConfig} */
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 const nextConfig = {
   output: 'standalone',
   // Enable React strict mode for better performance
   reactStrictMode: true,
+  swcMinify: true,
   transpilePackages: ['framer-motion', 'three'],
+
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
 
   // Turbopack configuration
   turbopack: {},
@@ -111,6 +120,7 @@ const nextConfig = {
       '@react-three/fiber',
       '@react-three/drei'
     ],
+    proxyClientMaxBodySize: '35mb',
     scrollRestoration: true,
   },
 
@@ -250,4 +260,4 @@ const nextConfig = {
 // Add allowed origin for remote development HMR
 nextConfig.allowedDevOrigins = ['192.168.1.15', 'localhost'];
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);

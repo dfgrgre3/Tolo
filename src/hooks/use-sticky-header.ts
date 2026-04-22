@@ -62,7 +62,7 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
         const scrollDirection = currentScrollY > lastScrollY.current ? "down" : "up";
         const scrollDelta = Math.abs(currentScrollY - lastScrollY.current);
 
-        // Only update if scroll delta is significant
+        // Only update if scroll delta is significant or we're at the top
         if (scrollDelta < 5 && currentScrollY !== 0) {
             ticking.current = false;
             return;
@@ -83,13 +83,26 @@ export function useStickyHeader(options: UseStickyHeaderOptions = {}) {
 
         const scrollProgress = opts.enableProgress ? calculateProgress() : 0;
 
-        setState({
-            isScrolled,
-            isShrunk,
-            isHidden,
-            scrollY: currentScrollY,
-            scrollDirection,
-            scrollProgress,
+        // Optimization: Only update state if values have changed significantly
+        setState(prev => {
+            if (
+                prev.isScrolled === isScrolled &&
+                prev.isShrunk === isShrunk &&
+                prev.isHidden === isHidden &&
+                Math.abs(prev.scrollY - currentScrollY) < 10 &&
+                prev.scrollDirection === scrollDirection &&
+                Math.abs(prev.scrollProgress - scrollProgress) < 1
+            ) {
+                return prev;
+            }
+            return {
+                isScrolled,
+                isShrunk,
+                isHidden,
+                scrollY: currentScrollY,
+                scrollDirection,
+                scrollProgress,
+            };
         });
 
         lastScrollY.current = currentScrollY;

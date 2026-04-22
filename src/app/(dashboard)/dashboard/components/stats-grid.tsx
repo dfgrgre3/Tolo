@@ -23,7 +23,7 @@ export function StatsGrid({ currentStreak, totalXP, achievementsCount }: StatsGr
     },
     {
        label: "ساعات التدريب",
-       value: `${Math.floor(totalXP / 100)} صاعة`,
+       value: `${Math.floor(totalXP / 100)} ساعة`,
        icon: Clock,
        color: "blue",
        bgColor: "bg-blue-500/10",

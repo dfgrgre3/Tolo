@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -213,7 +213,7 @@ export default function AdminUsersPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="سجلات جيش المملكة ⚔️"
+        title="سجلات جيش المملكة âڑ”ï¸ڈ"
         description="إدارة جميع المحاربين، رتبهم العسكرية، وصلاحياتهم داخل الإمبراطورية."
       >
         <div className="flex items-center gap-3">

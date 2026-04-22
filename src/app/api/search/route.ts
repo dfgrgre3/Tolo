@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 
 import { prisma } from '@/lib/db';
 
@@ -273,7 +273,7 @@ export async function GET(request: NextRequest) {
 
 					teachers.forEach((teacher: { id: string; name: string | null; email: string }) => {
 
-						const title = teacher.name || teacher.email || "8&7�88&";
+						const title = teacher.name || teacher.email || "8&7ï؟½88&";
 
 						const relevance = calculateRelevance(title, searchTerm);
 

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -335,13 +335,13 @@ export function CommandPalette() {
           <div className="border-t border-white/5 px-6 py-4 bg-primary/5 flex items-center justify-between text-[11px] text-muted-foreground/60">
             <div className="flex items-center gap-8">
               <div className="flex items-center gap-3">
-                <kbd className="flex h-6 w-7 items-center justify-center rounded-lg bg-white/5 border border-white/10 font-black shadow-inner">↵</kbd>
+                <kbd className="flex h-6 w-7 items-center justify-center rounded-lg bg-white/5 border border-white/10 font-black shadow-inner">â†µ</kbd>
                 <span className="font-black uppercase tracking-widest">تأكيد</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex gap-1.5">
-                  <kbd className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/5 border border-white/10 font-black shadow-inner">↑</kbd>
-                  <kbd className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/5 border border-white/10 font-black shadow-inner">↓</kbd>
+                  <kbd className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/5 border border-white/10 font-black shadow-inner">â†‘</kbd>
+                  <kbd className="flex h-6 w-6 items-center justify-center rounded-lg bg-white/5 border border-white/10 font-black shadow-inner">â†“</kbd>
                 </div>
                 <span className="font-black uppercase tracking-widest">تحرك</span>
               </div>

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -20,7 +20,8 @@ import {
   AlertTriangle, Monitor, Info, History, UserX, UserCheck, Key, Lock, Unlock, Mail, Scan, RefreshCw
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface AuditLog {
   id: string;
@@ -220,7 +221,7 @@ export default function AdminAuditLogsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مخطوطة الأحداث الملكية 📜"
+        title="مخطوطة الأحداث الملكية ًں“œ"
         description="سجل المراقبة الإمبراطوري، رصد تحركات المحاربين، وتوثيق سجلات الدخول والخروج من المملكة."
       />
 

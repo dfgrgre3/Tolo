@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Client-Server Compatibility Utilities
  *
  * This module provides utilities for handling client-server compatibility issues

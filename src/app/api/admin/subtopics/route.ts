@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse, notFoundResponse } from '@/lib/api-utils';
+import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
 import { z } from "zod";
 import { LessonType } from "@prisma/client";
 
@@ -12,7 +12,7 @@ const subTopicSchema = z.object({
   content: z.string().optional(),
   videoUrl: z.string().optional(),
   type: z.enum(["VIDEO", "ARTICLE", "QUIZ", "FILE", "ASSIGNMENT"]).default("VIDEO"),
-  order: z.number().default(0),
+  order: z.number().default(0)
 });
 
 export async function GET(request: NextRequest) {
@@ -64,8 +64,8 @@ export async function POST(request: NextRequest) {
         const subTopic = await prisma.subTopic.create({
           data: {
             ...validation.data,
-            type: (validation.data.type || "VIDEO") as LessonType,
-          },
+            type: (validation.data.type || "VIDEO") as LessonType
+          }
         });
 
         return successResponse(subTopic, "تم إضافة الدرس بنجاح", 201);
@@ -95,8 +95,8 @@ export async function PATCH(request: NextRequest) {
           where: { id },
           data: {
             ...data,
-            type: (data.type || "VIDEO") as LessonType,
-          },
+            type: (data.type || "VIDEO") as LessonType
+          }
         });
 
         return successResponse(subTopic, "تم تحديث الدرس بنجاح");
@@ -123,7 +123,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         await prisma.subTopic.delete({
-          where: { id },
+          where: { id }
         });
 
         return successResponse({ success: true }, "تم حذف الدرس بنجاح");

@@ -1,4 +1,4 @@
-import { PrismaClient, DiscountType } from '@prisma/client';
+﻿import { PrismaClient, DiscountType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
@@ -45,7 +45,7 @@ async function seedCouponsData() {
     }
   }
 
-  console.log('✓ Coupons seeded successfully.');
+  console.log('âœ“ Coupons seeded successfully.');
 }
 
 export default seedCouponsData;

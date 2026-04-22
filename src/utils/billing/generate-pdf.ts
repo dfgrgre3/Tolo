@@ -1,6 +1,7 @@
-import jsPDF from "jspdf";
+﻿import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 export const generateInvoicePDF = async (elementId: string, filename: string) => {
     const element = document.getElementById(elementId);

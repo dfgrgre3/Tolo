@@ -3,14 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
+
 import {
   BookOpen,
   Sword,
   Target,
   Trophy,
   Flame,
-  Zap,
+
   Clock,
   ChevronRight,
   Shield,
@@ -19,11 +19,11 @@ import {
   CheckCircle2,
   Crown,
   LayoutGrid,
-  TrendingUp,
+
   Award,
-  BookMarked
-} from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../../components/ui/card";
+  BookMarked } from
+"lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Progress } from "../../../components/ui/progress";
 import { Badge } from "../../../components/ui/badge";
@@ -32,7 +32,7 @@ import { logger } from '@/lib/logger';
 
 export default function GamifiedCoursesDashboard() {
   const router = useRouter();
-  const { user, fetchWithAuth } = useAuth();
+  const { user: _user, fetchWithAuth } = useAuth();
   const [loading, setLoading] = useState(true);
   const [courses, setCourses] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"active" | "completed" | "explore">("active");
@@ -44,11 +44,11 @@ export default function GamifiedCoursesDashboard() {
         const res = await fetchWithAuth("/api/courses");
         if (res.ok) {
           const data = await res.json();
-          const fetchedCourses = Array.isArray(data.courses)
-            ? data.courses
-            : Array.isArray(data.subjects)
-              ? data.subjects
-              : [];
+          const fetchedCourses = Array.isArray(data.courses) ?
+          data.courses :
+          Array.isArray(data.subjects) ?
+          data.subjects :
+          [];
           setCourses(fetchedCourses);
         }
       } catch (err) {
@@ -77,19 +77,19 @@ export default function GamifiedCoursesDashboard() {
           <div className="absolute inset-2 animate-spin rounded-full border-4 border-transparent border-t-primary" />
           <Sword className="absolute inset-0 m-auto h-6 w-6 text-primary animate-pulse" />
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-700" dir="rtl">
-      {/* ─── Stats Header ────────────────────────────────────────── */}
+      {/* â”€â”€â”€ Stats Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <motion.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, staggerChildren: 0.1 }}
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-      >
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
         {/* Level Card */}
         <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-amber-500/20 shadow-[0_8px_32px_rgba(245,158,11,0.15)] relative overflow-hidden group rounded-3xl">
@@ -169,7 +169,7 @@ export default function GamifiedCoursesDashboard() {
         </motion.div>
       </motion.div>
 
-      {/* ─── Main Content Area ───────────────────────────────────── */}
+      {/* â”€â”€â”€ Main Content Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* Left Col: Lists */}
@@ -181,25 +181,25 @@ export default function GamifiedCoursesDashboard() {
                   <button
                     onClick={() => setActiveTab("active")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeTab === "active" ? "bg-primary text-white shadow-md shadow-primary/20" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                    activeTab === "active" ? "bg-primary text-white shadow-md shadow-primary/20" : "text-muted-foreground hover:text-foreground"}`
+                    }>
+                    
                     <Target className="h-4 w-4" /> النشطة
                   </button>
                   <button
                     onClick={() => setActiveTab("completed")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeTab === "completed" ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                    activeTab === "completed" ? "bg-emerald-500 text-white shadow-md shadow-emerald-500/20" : "text-muted-foreground hover:text-foreground"}`
+                    }>
+                    
                     <Trophy className="h-4 w-4" /> المكتملة
                   </button>
                   <button
                     onClick={() => setActiveTab("explore")}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                      activeTab === "explore" ? "bg-amber-500 text-white shadow-md shadow-amber-500/20" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
+                    activeTab === "explore" ? "bg-amber-500 text-white shadow-md shadow-amber-500/20" : "text-muted-foreground hover:text-foreground"}`
+                    }>
+                    
                     <Star className="h-4 w-4" /> استكشاف
                   </button>
                 </div>
@@ -208,26 +208,26 @@ export default function GamifiedCoursesDashboard() {
             <CardContent className="pt-6 min-h-[400px]">
               <AnimatePresence mode="wait">
                 
-                {activeTab === "active" && (
-                  <motion.div
-                    key="active"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="space-y-4"
-                  >
-                    {activeQuests.length > 0 ? (
-                      activeQuests.map((course, idx) => (
-                        <div key={course.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-2xl border border-white/5 bg-muted/20 hover:bg-muted/40 transition-all hover:border-primary/30">
+                {activeTab === "active" &&
+                <motion.div
+                  key="active"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4">
+                  
+                    {activeQuests.length > 0 ?
+                  activeQuests.map((course, _idx) =>
+                  <div key={course.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 p-4 rounded-2xl border border-white/5 bg-muted/20 hover:bg-muted/40 transition-all hover:border-primary/30">
                           {/* Image */}
                           <div className="relative h-20 w-32 rounded-xl overflow-hidden shrink-0 hidden sm:block">
-                            {course.thumbnailUrl ? (
-                              <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center">
+                            {course.thumbnailUrl ?
+                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" /> :
+
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-indigo-500/20 flex items-center justify-center">
                                 <BookMarked className="h-6 w-6 text-primary/50" />
                               </div>
-                            )}
+                      }
                           </div>
 
                           {/* Info */}
@@ -244,15 +244,15 @@ export default function GamifiedCoursesDashboard() {
 
                           {/* Action */}
                           <Button
-                            onClick={() => router.push(`/learning/${course.id}`)}
-                            className="w-full sm:w-auto mt-2 sm:mt-0 gap-2 rounded-xl bg-primary text-primary-foreground font-bold hover:shadow-lg hover:shadow-primary/30"
-                          >
+                      onClick={() => router.push(`/learning/${course.id}`)}
+                      className="w-full sm:w-auto mt-2 sm:mt-0 gap-2 rounded-xl bg-primary text-primary-foreground font-bold hover:shadow-lg hover:shadow-primary/30">
+                      
                             متابعة <Play className="h-3 w-3 fill-current" />
                           </Button>
                         </div>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-center py-12">
+                  ) :
+
+                  <div className="flex flex-col items-center justify-center text-center py-12">
                         <Target className="h-12 w-12 text-muted-foreground/30 mb-3" />
                         <h4 className="text-lg font-bold">لا يوجد مهام تدريبية نشطة</h4>
                         <p className="text-sm text-muted-foreground mt-1 mb-4">اكتشف معسكرات التدريب الجديدة لتطوير مهاراتك!</p>
@@ -260,21 +260,21 @@ export default function GamifiedCoursesDashboard() {
                           <Star className="h-4 w-4" /> تصفح الدورات
                         </Button>
                       </div>
-                    )}
+                  }
                   </motion.div>
-                )}
+                }
 
-                {activeTab === "completed" && (
-                  <motion.div
-                    key="completed"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                  >
-                    {completedQuests.length > 0 ? (
-                      completedQuests.map((course) => (
-                        <div key={course.id} className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 group">
+                {activeTab === "completed" &&
+                <motion.div
+                  key="completed"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  
+                    {completedQuests.length > 0 ?
+                  completedQuests.map((course) =>
+                  <div key={course.id} className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 group">
                           <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-emerald-500/20 to-transparent rounded-bl-3xl" />
                           <CheckCircle2 className="absolute top-3 right-3 h-5 w-5 text-emerald-500" />
                           
@@ -283,45 +283,45 @@ export default function GamifiedCoursesDashboard() {
                             <div className="flex items-center gap-2 text-xs font-medium text-emerald-600 dark:text-emerald-400">
                               <Award className="h-4 w-4" /> تم الإنجاز بنجاح
                             </div>
-                            <Button 
-                              variant="ghost" 
-                              onClick={() => router.push(`/courses/${course.id}`)}
-                              className="w-full justify-center gap-2 mt-4 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl text-xs font-bold"
-                            >
+                            <Button
+                        variant="ghost"
+                        onClick={() => router.push(`/courses/${course.id}`)}
+                        className="w-full justify-center gap-2 mt-4 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 rounded-xl text-xs font-bold">
+                        
                               مراجعة المعسكر <ChevronRight className="h-3 w-3" />
                             </Button>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="col-span-2 flex flex-col items-center justify-center text-center py-12">
+                  ) :
+
+                  <div className="col-span-2 flex flex-col items-center justify-center text-center py-12">
                         <Trophy className="h-12 w-12 text-muted-foreground/30 mb-3" />
                         <h4 className="text-lg font-bold">لم تنجز أي مهام تدريبية بعد</h4>
                         <p className="text-sm text-muted-foreground mt-1">طريق الألف ميل يبدأ بخطوة. أكمل دورة للحصول على شارة النصر.</p>
                       </div>
-                    )}
+                  }
                   </motion.div>
-                )}
+                }
 
-                {activeTab === "explore" && (
-                  <motion.div
-                    key="explore"
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    className="grid grid-cols-1 gap-4"
-                  >
-                    {exploreCourses.length > 0 ? (
-                      exploreCourses.map((course) => (
-                        <div key={course.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-2xl border border-white/5 bg-background/50 hover:bg-muted/40 transition-colors">
+                {activeTab === "explore" &&
+                <motion.div
+                  key="explore"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="grid grid-cols-1 gap-4">
+                  
+                    {exploreCourses.length > 0 ?
+                  exploreCourses.map((course) =>
+                  <div key={course.id} className="flex flex-col sm:flex-row gap-4 p-4 rounded-2xl border border-white/5 bg-background/50 hover:bg-muted/40 transition-colors">
                            <div className="h-24 w-full sm:w-40 rounded-xl overflow-hidden shrink-0">
-                            {course.thumbnailUrl ? (
-                              <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+                            {course.thumbnailUrl ?
+                      <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover" /> :
+
+                      <div className="w-full h-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
                                 <BookOpen className="h-6 w-6 text-indigo-400" />
                               </div>
-                            )}
+                      }
                            </div>
                            <div className="flex-1 flex flex-col justify-center">
                               <div className="flex items-center justify-between mb-1">
@@ -334,23 +334,23 @@ export default function GamifiedCoursesDashboard() {
                               <p className="text-xs text-muted-foreground line-clamp-2">{course.description}</p>
                            </div>
                            <div className="flex sm:flex-col justify-center items-center gap-2">
-                             <Button 
-                               onClick={() => router.push(`/courses/${course.id}`)}
-                               className="w-full rounded-xl"
-                              >
+                             <Button
+                        onClick={() => router.push(`/courses/${course.id}`)}
+                        className="w-full rounded-xl">
+                        
                                 استكشاف
                              </Button>
                            </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="flex flex-col items-center justify-center text-center py-12">
+                  ) :
+
+                  <div className="flex flex-col items-center justify-center text-center py-12">
                         <BookOpen className="h-12 w-12 text-muted-foreground/30 mb-3" />
                         <h4 className="text-lg font-bold">لا توجد دورات جديدة متاحة حالياً</h4>
                       </div>
-                    )}
+                  }
                   </motion.div>
-                )}
+                }
 
               </AnimatePresence>
             </CardContent>
@@ -389,10 +389,10 @@ export default function GamifiedCoursesDashboard() {
                 </div>
               </div>
 
-              <Button 
+              <Button
                 onClick={() => router.push("/courses")}
-                className="w-full gap-2 rounded-xl h-11 bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
-              >
+                className="w-full gap-2 rounded-xl h-11 bg-primary text-white font-bold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30">
+                
                  <LayoutGrid className="h-4 w-4" /> كتالوج الدورات
               </Button>
             </CardContent>
@@ -426,6 +426,6 @@ export default function GamifiedCoursesDashboard() {
         </div>
 
       </div>
-    </div>
-  );
+    </div>);
+
 }

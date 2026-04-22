@@ -1,12 +1,12 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { Upload, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const CHUNK_UPLOAD_THRESHOLD_BYTES = 512 * 1024 * 1024;
-const CHUNK_SIZE_BYTES = 100 * 1024 * 1024;
+const CHUNK_UPLOAD_THRESHOLD_BYTES = 25 * 1024 * 1024;
+const CHUNK_SIZE_BYTES = 25 * 1024 * 1024;
 
 interface UploadMetadata {
   durationSeconds?: number;

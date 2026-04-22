@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { gamificationService } from '@/services/gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
@@ -35,5 +35,3 @@ export async function POST(request: NextRequest) {
     });
   });
 }
-
-

@@ -1,4 +1,4 @@
-#!/usr/bin/env tsx
+﻿#!/usr/bin/env tsx
 
 import { exec } from 'child_process';
 import fs from 'fs';
@@ -33,22 +33,22 @@ interface TaskResult {
 }
 
 async function runTask(task: AuditTask): Promise<TaskResult> {
-    console.log(`\n🔄 Running: ${task.name}...`);
+    console.log(`\nًں”„ Running: ${task.name}...`);
     const start = Date.now();
     try {
         const { stdout, stderr } = await execAsync(task.command, { maxBuffer: 1024 * 1024 * 50 }); // 50MB buffer
         const duration = Date.now() - start;
-        console.log(`✅ ${task.name} Passed (${(duration / 1000).toFixed(2)}s)`);
+        console.log(`âœ… ${task.name} Passed (${(duration / 1000).toFixed(2)}s)`);
         return { task, success: true, output: stdout + '\n' + stderr, duration };
     } catch (error: any) {
         const duration = Date.now() - start;
-        console.log(`❌ ${task.name} Failed (${(duration / 1000).toFixed(2)}s)`);
+        console.log(`â‌Œ ${task.name} Failed (${(duration / 1000).toFixed(2)}s)`);
         return { task, success: false, output: error.stdout + '\n' + error.stderr, duration };
     }
 }
 
 async function main() {
-    console.log('🚀 Starting Master Project Audit...');
+    console.log('ًںڑ€ Starting Master Project Audit...');
     console.log('=====================================');
 
     const results: TaskResult[] = [];
@@ -67,18 +67,18 @@ function generateReport(results: TaskResult[]) {
     const reportPath = path.join(process.cwd(), 'MASTER_AUDIT_REPORT.md');
     const timestamp = new Date().toLocaleString('ar-SA');
 
-    let content = `# 🛡️ Master Project Audit Report\n\n`;
+    let content = `# ًں›،ï¸ڈ Master Project Audit Report\n\n`;
     content += `**Date:** ${timestamp}\n\n`;
 
     const passed = results.filter(r => r.success);
     const failed = results.filter(r => !r.success);
 
-    content += `## 📊 Summary\n`;
+    content += `## ًں“ٹ Summary\n`;
     content += `- **Total Checks:** ${results.length}\n`;
-    content += `- **Passed:** ${passed.length} ✅\n`;
-    content += `- **Failed:** ${failed.length} ❌\n\n`;
+    content += `- **Passed:** ${passed.length} âœ…\n`;
+    content += `- **Failed:** ${failed.length} â‌Œ\n\n`;
 
-    content += `## 📝 Details\n\n`;
+    content += `## ًں“‌ Details\n\n`;
 
     // Group by category
     const categories = Array.from(new Set(results.map(r => r.task.category)));
@@ -88,16 +88,16 @@ function generateReport(results: TaskResult[]) {
         const categoryResults = results.filter(r => r.task.category === category);
 
         for (const result of categoryResults) {
-            const icon = result.success ? '✅' : '❌';
+            const icon = result.success ? 'âœ…' : 'â‌Œ';
             content += `- ${icon} **${result.task.name}** (${(result.duration / 1000).toFixed(2)}s)\n`;
         }
         content += `\n`;
     }
 
     if (failed.length > 0) {
-        content += `## 🚨 Failure Details\n\n`;
+        content += `## ًںڑ¨ Failure Details\n\n`;
         for (const result of failed) {
-            content += `### ❌ ${result.task.name}\n`;
+            content += `### â‌Œ ${result.task.name}\n`;
             content += `**Command:** \`${result.task.command}\`\n\n`;
             content += `**Output:**\n`;
             content += "```\n";
@@ -116,13 +116,13 @@ function generateReport(results: TaskResult[]) {
     }
 
     fs.writeFileSync(reportPath, content, 'utf-8');
-    console.log(`\n📄 Report generated at: ${reportPath}`);
+    console.log(`\nًں“„ Report generated at: ${reportPath}`);
 
     if (failed.length > 0) {
-        console.log('\n❌ Audit completed with errors.');
+        console.log('\nâ‌Œ Audit completed with errors.');
         process.exit(1);
     } else {
-        console.log('\n✅ Audit completed successfully. No errors found.');
+        console.log('\nâœ… Audit completed successfully. No errors found.');
         process.exit(0);
     }
 }

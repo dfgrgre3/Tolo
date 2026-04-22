@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import {
@@ -34,7 +34,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { Achievement, rarityOptions, categoryOptions, difficultyOptions } from "./types";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 const achievementSchema = z.object({
   key: z.string().min(1, "المفتاح مطلوب"),
@@ -137,7 +138,7 @@ export function AchievementFormDialog({
         <div className="p-8">
           <DialogHeader className="mb-8">
             <DialogTitle className="text-2xl font-black">
-              {editingAchievement ? "تنقيح وسام الجدارة" : "صياغة وسام ملكي جديد"}
+              {editingAchievement ? "تنسيق وسام الجدارة" : "صياغة وسام ملكي جديد"}
             </DialogTitle>
             <DialogDescription className="font-bold text-muted-foreground">
               أدخل بيانات الوسام بدقة لتكريم المحاربين المستحقين.
@@ -164,7 +165,7 @@ export function AchievementFormDialog({
                 name="icon"
                 render={({ field }) => (
                   <FormItem>
-                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">أيقونة الوسام</FormLabel>
+                  <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">أيقونة الوسام…</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="trophy" className="rounded-xl border-white/10 bg-white/5 h-11" />
                   </FormControl>
@@ -249,7 +250,7 @@ export function AchievementFormDialog({
                 name="category"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مجال التميز (الفئة)</FormLabel>
+                    <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مجال التمييز (الفئة)</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger className="rounded-xl border-white/10 bg-white/5 h-11">
@@ -299,8 +300,8 @@ export function AchievementFormDialog({
               render={({ field }) => (
                 <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                   <div className="space-y-0.5">
-                    <FormLabel className="font-black text-xs">وسام سري؟</FormLabel>
-                    <p className="text-[10px] text-muted-foreground font-bold">يظهر للمحاربين كعلامة استفهام؟</p>
+                    <FormLabel className="font-black text-xs">وسام سري</FormLabel>
+                    <p className="text-[10px] text-muted-foreground font-bold">ي٪ر للمحاربين كعلامة استفهام</p>
                   </div>
                   <FormControl>
                     <Switch

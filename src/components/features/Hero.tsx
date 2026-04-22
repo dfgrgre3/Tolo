@@ -1,4 +1,4 @@
-import Link from "next/link";
+
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles } from "lucide-react";
 
@@ -41,6 +41,6 @@ export function Hero() {
            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary to-blue-600 blur-[100px]" />
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }

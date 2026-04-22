@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { ReactNode } from "react";
 
@@ -27,7 +27,7 @@ export function Modal({ isOpen, onClose, title, children, className = "" }: Moda
               className="text-muted-foreground hover:text-foreground"
               aria-label="إغلاق"
             >
-              ✕
+              âœ•
             </button>
           </div>
         )}

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * API Response Cache Middleware
  * 
  * High-performance response caching for public GET endpoints.

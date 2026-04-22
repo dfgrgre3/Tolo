@@ -13,30 +13,30 @@ type WebSocketContextType = {
 
 const WebSocketContext = createContext<WebSocketContextType>({
   socket: null,
-  isConnected: false,
+  isConnected: false
 });
 
 // Error boundary component to catch any WebSocket-related errors
 class WebSocketErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
+  {children: React.ReactNode;},
+  {hasError: boolean;}>
+{
+  constructor(props: {children: React.ReactNode;}) {
     super(props);
     this.state = { hasError: false };
   }
 
-  static getDerivedStateFromError(): { hasError: boolean } {
+  static getDerivedStateFromError(): {hasError: boolean;} {
     // Update state so the next render will show the fallback UI
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(_error: Error, _errorInfo: ErrorInfo) {
+
+
     // Completely suppress WebSocket errors - do not log
     // Errors are expected when WebSocket is disabled
-  }
-
-  render() {
+  }render() {
     if (this.state.hasError) {
       // Silently return children without WebSocket functionality
       return <>{this.props.children}</>;
@@ -50,7 +50,7 @@ class WebSocketErrorBoundary extends React.Component<
 // Change to true only when deploying to edge runtime (Cloudflare Workers)
 const WEBSOCKET_ENABLED = false;
 
-export function WebSocketProvider({ children, userId }: { children: React.ReactNode, userId?: string }) {
+export function WebSocketProvider({ children, userId }: {children: React.ReactNode;userId?: string;}) {
   const { user } = useAuth();
   const currentUserId = userId || user?.id;
   const [socket, setSocket] = useState<WebSocket | null>(null);
@@ -63,10 +63,10 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
       setIsConnected(false);
       return;
     }
-    
+
     // ... rest of the connection logic ...
     const isWebSocketSupported = typeof window !== 'undefined' && 'WebSocket' in window;
-    
+
     if (!isWebSocketSupported) {
       return;
     }
@@ -82,7 +82,7 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
       try {
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${wsProtocol}//${window.location.host}/api/ws?userId=${encodeURIComponent(currentUserId)}`;
-        
+
         ws = new WebSocket(wsUrl);
 
         const connectionTimeout = setTimeout(() => {
@@ -128,7 +128,7 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
         ws.onerror = () => {
           clearTimeout(connectionTimeout);
           if (ws) {
-            try { ws.close(); } catch {
+            try {ws.close();} catch {
               return;
             }
           }
@@ -147,7 +147,7 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
         ws.onopen = null;
         ws.onmessage = null;
         ws.onclose = null;
-        try { ws.close(); } catch {
+        try {ws.close();} catch {
           return;
         }
       }
@@ -155,12 +155,12 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
       setIsConnected(false);
     };
   }, [currentUserId]); // Use currentUserId as dependency
- // Fixed: use consistent dependency array
+  // Fixed: use consistent dependency array
 
   // Always provide safe default values
   const contextValue = {
     socket: WEBSOCKET_ENABLED ? socket : null,
-    isConnected: WEBSOCKET_ENABLED ? isConnected : false,
+    isConnected: WEBSOCKET_ENABLED ? isConnected : false
   };
 
   // Wrap in error boundary to catch any unexpected errors
@@ -169,20 +169,20 @@ export function WebSocketProvider({ children, userId }: { children: React.ReactN
       <WebSocketContext.Provider value={contextValue}>
         {children}
       </WebSocketContext.Provider>
-    </WebSocketErrorBoundary>
-  );
+    </WebSocketErrorBoundary>);
+
 }
 
 export function useWebSocket() {
   const context = useContext(WebSocketContext);
-  
+
   // Always return safe defaults, never undefined
   if (!context) {
     return {
       socket: null,
-      isConnected: false,
+      isConnected: false
     };
   }
-  
+
   return context;
 }

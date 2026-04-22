@@ -107,10 +107,10 @@ const MOOD_LABELS = {
 };
 
 const MOOD_ICONS = {
-  'EXCELLENT': '😊',
-  'GOOD': '🙂',
-  'AVERAGE': '😐',
-  'POOR': '😔'
+  'EXCELLENT': 'ًںکٹ',
+  'GOOD': 'ًں™‚',
+  'AVERAGE': 'ًںکگ',
+  'POOR': 'ًںک”'
 };
 
 const TIME_PERIODS = [
@@ -591,14 +591,14 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   const renderSessionsList = () => (
     <div className="space-y-3">
       {paginatedSessions.map((session) => (
-        <Card key={session.id} className="hover:shadow-md transition-shadow">
-          <CardContent className="p-4">
+        <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-white/10 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
+          <CardContent className="p-5">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.1)]">
                     <Clock className="h-4 w-4 text-blue-500" />
-                    <span className="font-medium">{formatDuration(session.durationMin)}</span>
+                    <span className="font-black text-blue-500">{formatDuration(session.durationMin)}</span>
                   </div>
                   
                   {session.subject && (
@@ -686,7 +686,7 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
   const renderSessionsGrid = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {paginatedSessions.map((session) => (
-        <Card key={session.id} className="hover:shadow-md transition-shadow">
+        <Card key={session.id} className="bg-background/40 backdrop-blur-xl border-white/10 shadow-lg hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 rounded-2xl overflow-hidden group">
           <CardContent className="p-4">
             <div className="text-center mb-3">
               <div className="text-2xl font-bold text-blue-600 mb-1">
@@ -740,12 +740,14 @@ export default function StudySessionsHistory({ sessions, subjects }: StudySessio
       {/* Header */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold mb-2">سجل جلسات المذاكرة</h2>
-          <div className="flex flex-wrap gap-4 text-sm text-gray-600 dark:text-gray-400">
-            <span>الإجمالي: {stats.totalSessions} جلسة</span>
-            <span className="text-blue-600">الساعات: {stats.totalHours}س</span>
-            <span className="text-green-600">المتوسط: {stats.averageSessionLength}د</span>
-            <span className="text-purple-600">الإنتاجية: {stats.averageProductivity}%</span>
+          <h2 className="text-3xl font-black bg-gradient-to-r from-amber-200 to-yellow-500 bg-clip-text text-transparent flex items-center gap-3">
+            <Trophy className="h-8 w-8 text-amber-500" />
+            موسوعة السجل (Chronicles)
+          </h2>
+          <div className="flex flex-wrap gap-4 text-sm font-bold text-muted-foreground/80 mt-2">
+            <span className="flex items-center gap-1.5"><Activity className="h-4 w-4 text-blue-400" /> الإجمالي: {stats.totalSessions} جلسة</span>
+            <span className="flex items-center gap-1.5"><Clock className="h-4 w-4 text-emerald-400" /> الساعات: {stats.totalHours}س</span>
+            <span className="flex items-center gap-1.5"><Brain className="h-4 w-4 text-purple-400" /> الإنتاجية: {stats.averageProductivity}%</span>
           </div>
         </div>
         

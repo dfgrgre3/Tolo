@@ -1,4 +1,4 @@
-import React from 'react';
+﻿import React from 'react';
 import { AlertTriangle, Wifi, Shield, FileX, RefreshCw, Home, ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
 

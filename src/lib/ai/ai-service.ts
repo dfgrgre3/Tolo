@@ -1,4 +1,4 @@
-import { AI_PROVIDERS, getDefaultProvider, isOpenAICompatible, AIProvider } from '@/lib/ai-config';
+﻿import { AI_PROVIDERS, getDefaultProvider, isOpenAICompatible, AIProvider } from '@/lib/ai-config';
 import { logger } from '@/lib/logger';
 
 export interface AIMessage {

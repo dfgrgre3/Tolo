@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { sendMultiChannelNotification } from '@/services/notification-sender';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 /**
  * CRON Job to check for subscriptions expiring in 3 days.
@@ -49,10 +50,10 @@ export async function GET(req: Request) {
     const results = await Promise.all(expiringSubscriptions.map(async (sub: any) => {
       return await sendMultiChannelNotification({
         userId: sub.userId,
-        title: 'أوشك اشتراكك على الانتهاء ⏳',
+        title: 'أوشك اشتراكك على الانتهاء âڈ³',
         message: `مرحباً ${sub.user.name || 'بك'}، سينتهي اشتراكك في باقة "${sub.plan.nameAr || 'المنصة'}" خلال 3 أيام. قم بالتجديد الآن لضمان استمرار وصولك للمواد.`,
         type: 'warning',
-        icon: '⚠️',
+        icon: 'âڑ ï¸ڈ',
         channels: ['app', 'email'],
         actionUrl: '/billing'
       });

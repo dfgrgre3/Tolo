@@ -35,27 +35,27 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
   });
 
   // Build interaction matrix
-  allInteractions.forEach((interaction: { userId: string; itemType: string; itemId: string; type: string }) => {
+  allInteractions.forEach((interaction: {userId: string;itemType: string;itemId: string;type: string;}) => {
     if (!userItemMatrix[interaction.userId]) {
       userItemMatrix[interaction.userId] = {};
     }
     const key = `${interaction.itemType}:${interaction.itemId}`;
     const weight = getInteractionWeight(interaction.type);
     userItemMatrix[interaction.userId][key] =
-      (userItemMatrix[interaction.userId][key] || 0) + weight;
+    (userItemMatrix[interaction.userId][key] || 0) + weight;
   });
 
   // Calculate similarity with other users using cosine similarity
   const userVector = userItemMatrix[userId] || {};
-  const similarities: Array<{ userId: string; similarity: number }> = [];
+  const similarities: Array<{userId: string;similarity: number;}> = [];
 
-  Object.keys(userItemMatrix).forEach(otherUserId => {
+  Object.keys(userItemMatrix).forEach((otherUserId) => {
     if (otherUserId === userId) return;
 
     const otherVector = userItemMatrix[otherUserId];
     const similarity = cosineSimilarity(userVector, otherVector);
 
-    if (similarity > 0.1) { // Only consider users with some similarity
+    if (similarity > 0.1) {// Only consider users with some similarity
       similarities.push({ userId: otherUserId, similarity });
     }
   });
@@ -65,16 +65,16 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
 
   // Get items from top similar users that the target user hasn't interacted with
   const userItemKeys = new Set(Object.keys(userVector));
-  const recommendations: Map<string, { score: number; itemType: string; itemId: string }> = new Map();
+  const recommendations: Map<string, {score: number;itemType: string;itemId: string;}> = new Map();
 
   for (const { userId: similarUserId, similarity } of similarities.slice(0, 20)) {
     const similarUserItems = userItemMatrix[similarUserId] || {};
 
-    Object.keys(similarUserItems).forEach(itemKey => {
+    Object.keys(similarUserItems).forEach((itemKey) => {
       if (!userItemKeys.has(itemKey) && similarUserItems[itemKey] > 0) {
         const [itemType, itemId] = itemKey.split(':');
         const currentScore = recommendations.get(itemKey)?.score || 0;
-        const newScore = currentScore + (similarity * similarUserItems[itemKey]);
+        const newScore = currentScore + similarity * similarUserItems[itemKey];
 
         recommendations.set(itemKey, {
           score: newScore,
@@ -87,7 +87,7 @@ async function collaborativeFiltering(userId: string, limit: number = 10): Promi
 
   // Convert to recommendations and sort by score
   const result: Recommendation[] = [];
-  for (const [itemKey, { itemType, itemId, score }] of recommendations.entries()) {
+  for (const [, { itemType, itemId, score }] of recommendations.entries()) {
     // Normalize score to 0-1 range
     const normalizedScore = Math.min(1, score / 10);
 
@@ -132,7 +132,7 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
 
   // Build user preference vector
   const userPreferences: Record<string, number> = {};
-  preferences.forEach((pref: { itemType: string; itemValue: string; weight: number }) => {
+  preferences.forEach((pref: {itemType: string;itemValue: string;weight: number;}) => {
     const key = `${pref.itemType}:${pref.itemValue}`;
     userPreferences[key] = pref.weight;
   });
@@ -156,7 +156,7 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
             itemId: item.itemId || '',
             itemType: item.itemType || 'resource',
             title: item.title || '',
-            description: (item as { description?: string }).description,
+            description: (item as {description?: string;}).description,
             score: 0.7,
             algorithm: 'content_based',
             reason: `8&7?7?7?8! 88&7?7?8?80 7?7?7?7?8?`,
@@ -169,17 +169,17 @@ async function contentBasedFiltering(userId: string, limit: number = 10): Promis
     }
   }
 
-  return Array.from(recommendations.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  return Array.from(recommendations.values()).
+  sort((a, b) => b.score - a.score).
+  slice(0, limit);
 }
 
 /**
  * Find similar items based on type and metadata
  */
-async function findSimilarItems(itemType: string, itemId: string): Promise<Array<{ itemType: string; itemId: string; title: string }>> {
+async function findSimilarItems(itemType: string, itemId: string): Promise<Array<{itemType: string;itemId: string;title: string;}>> {
   // This is a simplified version - in production, you'd use more sophisticated matching
-  const results: Array<{ itemType: string; itemId: string; title: string }> = [];
+  const results: Array<{itemType: string;itemId: string;title: string;}> = [];
 
   // Example: if it's a resource, find other resources in the same subject
   if (itemType === 'resource') {
@@ -196,7 +196,7 @@ async function findSimilarItems(itemType: string, itemId: string): Promise<Array
         take: 5
       });
 
-      similarResources.forEach((r: { id: string; title: string; description: string | null;[key: string]: unknown }) => {
+      similarResources.forEach((r: {id: string;title: string;description: string | null;[key: string]: unknown;}) => {
         results.push({
           itemType: 'resource',
           itemId: r.id,
@@ -213,19 +213,19 @@ async function findSimilarItems(itemType: string, itemId: string): Promise<Array
  * Hybrid Recommendation: Combine collaborative and content-based
  */
 export async function getHybridRecommendations(
-  userId: string,
-  limit: number = 10
-): Promise<Recommendation[]> {
+userId: string,
+limit: number = 10)
+: Promise<Recommendation[]> {
   const [collaborative, contentBased] = await Promise.all([
-    collaborativeFiltering(userId, limit * 2),
-    contentBasedFiltering(userId, limit * 2)
-  ]);
+  collaborativeFiltering(userId, limit * 2),
+  contentBasedFiltering(userId, limit * 2)]
+  );
 
   // Combine and deduplicate
   const combined = new Map<string, Recommendation>();
 
   // Add collaborative recommendations with weight 0.6
-  collaborative.forEach(rec => {
+  collaborative.forEach((rec) => {
     const key = `${rec.itemType}:${rec.itemId}`;
     combined.set(key, {
       ...rec,
@@ -235,12 +235,12 @@ export async function getHybridRecommendations(
   });
 
   // Add content-based recommendations with weight 0.4
-  contentBased.forEach(rec => {
+  contentBased.forEach((rec) => {
     const key = `${rec.itemType}:${rec.itemId}`;
     const existing = combined.get(key);
 
     if (existing) {
-      existing.score = Math.min(1, existing.score + (rec.score * 0.4));
+      existing.score = Math.min(1, existing.score + rec.score * 0.4);
       existing.algorithm = 'hybrid';
       existing.reason = `8&7?8y7? 8&8  7?87?8?7?8y7?7? 7?87?7?7?8?8 8y7? 8?7?887?7?8&7? 7?880 7?88&7?7?8?80`;
     } else {
@@ -253,23 +253,23 @@ export async function getHybridRecommendations(
   });
 
   // Sort and return top recommendations
-  const result = Array.from(combined.values())
-    .sort((a, b) => b.score - a.score)
-    .slice(0, limit);
+  const result = Array.from(combined.values()).
+  sort((a, b) => b.score - a.score).
+  slice(0, limit);
 
   // Save recommendations to database
   await Promise.all(
-    result.map(rec =>
-      prisma.mlRecommendation.create({
-        data: {
-          userId,
-          itemType: rec.itemType,
-          itemId: rec.itemId,
-          score: rec.score,
-          algorithm: rec.algorithm,
-          reason: rec.reason
-        }
-      })
+    result.map((rec) =>
+    prisma.mlRecommendation.create({
+      data: {
+        userId,
+        itemType: rec.itemType,
+        itemId: rec.itemId,
+        score: rec.score,
+        algorithm: rec.algorithm,
+        reason: rec.reason
+      }
+    })
     )
   );
 
@@ -280,12 +280,12 @@ export async function getHybridRecommendations(
  * Track user interaction for ML learning
  */
 export async function trackInteraction(
-  userId: string,
-  type: 'view' | 'click' | 'complete' | 'like' | 'dislike' | 'bookmark',
-  itemType: 'resource' | 'course' | 'exam' | 'content' | 'teacher',
-  itemId: string,
-  metadata?: Record<string, any>
-) {
+userId: string,
+type: 'view' | 'click' | 'complete' | 'like' | 'dislike' | 'bookmark',
+itemType: 'resource' | 'course' | 'exam' | 'content' | 'teacher',
+itemId: string,
+metadata?: Record<string, any>)
+{
   await prisma.userInteraction.create({
     data: {
       userId,
@@ -316,11 +316,11 @@ export async function trackInteraction(
  * Update user preference
  */
 async function updatePreference(
-  userId: string,
-  itemType: string,
-  itemValue: string,
-  weight: number
-) {
+userId: string,
+itemType: string,
+itemValue: string,
+weight: number)
+{
   await prisma.contentPreference.upsert({
     where: {
       userId_itemType_itemValue: {
@@ -380,4 +380,3 @@ function cosineSimilarity(vecA: Record<string, number>, vecB: Record<string, num
 
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
-

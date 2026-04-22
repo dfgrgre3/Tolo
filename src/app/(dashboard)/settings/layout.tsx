@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 /**
- * 🎨 Settings Layout - تخطيط صفحات الإعدادات (محدّث بالكامل)
+ * ًںژ¨ Settings Layout - تخطيط صفحات الإعدادات (محدّث بالكامل)
  *
  * تصميم متطور مع:
  * - Sidebar متحرك مع معلومات المستخدم
@@ -119,11 +119,20 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Auth guard
+  // Auth guard with improved stability
   useEffect(() => {
-    if (isLoading || user) return;
-    const redirectTarget = pathname || '/settings';
-    router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+    // Only proceed if loading is finished
+    if (isLoading) return;
+
+    // If no user found after loading, redirect to login
+    if (!user) {
+      const redirectTarget = pathname || '/settings';
+      
+      // Prevent infinite redirect if we're already on a path that should be public (though settings shouldn't be)
+      if (pathname === '/login' || pathname === '/register') return;
+
+      router.replace(`/login?redirect=${encodeURIComponent(redirectTarget)}`);
+    }
   }, [isLoading, user, pathname, router]);
 
   if (isLoading || !user) {

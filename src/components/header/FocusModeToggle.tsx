@@ -2,7 +2,7 @@
 
 import React, { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Focus, Eye, EyeOff, Bell, BellOff, Search, Minimize2, Maximize2, RotateCcw, Clock } from "lucide-react";
+import { Focus, Eye, EyeOff, BellOff, Search, Minimize2, RotateCcw, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -11,8 +11,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuCheckboxItem } from
+"@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useFocusMode } from "@/hooks/use-focus-mode";
 
@@ -23,9 +23,9 @@ interface FocusModeToggleProps {
 
 export const FocusModeToggle = memo(function FocusModeToggle({
   className,
-  showLabel = false,
+  showLabel = false
 }: FocusModeToggleProps) {
-  const { state, actions, visibilityState } = useFocusMode();
+  const { state, actions, visibilityState: _visibilityState } = useFocusMode();
 
   return (
     <DropdownMenu>
@@ -38,37 +38,37 @@ export const FocusModeToggle = memo(function FocusModeToggle({
             state.isEnabled && "text-primary bg-primary/10",
             className
           )}
-          title={state.isEnabled ? "وضع التركيز مفعّل" : "وضع التركيز"}
-        >
+          title={state.isEnabled ? "وضع التركيز مفعّل" : "وضع التركيز"}>
+          
           <motion.div
             animate={{
-              scale: state.isEnabled ? [1, 1.1, 1] : 1,
+              scale: state.isEnabled ? [1, 1.1, 1] : 1
             }}
             transition={{
               duration: 0.3,
-              ease: "easeInOut",
-            }}
-          >
+              ease: "easeInOut"
+            }}>
+            
             <Focus className="h-4 w-4" />
           </motion.div>
           
           {/* Active indicator */}
           <AnimatePresence>
-            {state.isEnabled && (
-              <motion.span
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0 }}
-                className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full"
-              />
-            )}
+            {state.isEnabled &&
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0 }}
+              className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+
+            }
           </AnimatePresence>
 
-          {showLabel && (
-            <span className="mr-2 text-sm">
+          {showLabel &&
+          <span className="mr-2 text-sm">
               {state.isEnabled ? "مركّز" : "تركيز"}
             </span>
-          )}
+          }
         </Button>
       </DropdownMenuTrigger>
 
@@ -79,19 +79,19 @@ export const FocusModeToggle = memo(function FocusModeToggle({
             variant="ghost"
             size="sm"
             className="h-7 px-2 text-xs"
-            onClick={actions.toggle}
-          >
-            {state.isEnabled ? (
-              <>
+            onClick={actions.toggle}>
+            
+            {state.isEnabled ?
+            <>
                 <EyeOff className="h-3 w-3 ml-1" />
                 إيقاف
-              </>
-            ) : (
-              <>
+              </> :
+
+            <>
                 <Eye className="h-3 w-3 ml-1" />
                 تفعيل
               </>
-            )}
+            }
           </Button>
         </DropdownMenuLabel>
 
@@ -101,8 +101,8 @@ export const FocusModeToggle = memo(function FocusModeToggle({
         <DropdownMenuCheckboxItem
           checked={state.hideNotifications}
           onCheckedChange={actions.setHideNotifications}
-          disabled={!state.isEnabled}
-        >
+          disabled={!state.isEnabled}>
+          
           <BellOff className="h-4 w-4 ml-2" />
           إخفاء الإشعارات
         </DropdownMenuCheckboxItem>
@@ -110,8 +110,8 @@ export const FocusModeToggle = memo(function FocusModeToggle({
         <DropdownMenuCheckboxItem
           checked={state.hideSearch}
           onCheckedChange={actions.setHideSearch}
-          disabled={!state.isEnabled}
-        >
+          disabled={!state.isEnabled}>
+          
           <Search className="h-4 w-4 ml-2" />
           إخفاء البحث
         </DropdownMenuCheckboxItem>
@@ -119,8 +119,8 @@ export const FocusModeToggle = memo(function FocusModeToggle({
         <DropdownMenuCheckboxItem
           checked={state.isMinimal}
           onCheckedChange={actions.setMinimal}
-          disabled={!state.isEnabled}
-        >
+          disabled={!state.isEnabled}>
+          
           <Minimize2 className="h-4 w-4 ml-2" />
           وضع الحد الأدنى
         </DropdownMenuCheckboxItem>
@@ -128,8 +128,8 @@ export const FocusModeToggle = memo(function FocusModeToggle({
         <DropdownMenuCheckboxItem
           checked={state.autoHideIdle}
           onCheckedChange={actions.setAutoHideIdle}
-          disabled={!state.isEnabled}
-        >
+          disabled={!state.isEnabled}>
+          
           <Clock className="h-4 w-4 ml-2" />
           إخفاء تلقائي عند الخمول
         </DropdownMenuCheckboxItem>
@@ -146,16 +146,16 @@ export const FocusModeToggle = memo(function FocusModeToggle({
           اختصار: <kbd className="px-1 py-0.5 bg-muted rounded text-[10px]">Ctrl+Shift+F</kbd>
         </div>
       </DropdownMenuContent>
-    </DropdownMenu>
-  );
+    </DropdownMenu>);
+
 });
 
 // Compact focus mode indicator for minimal header
 export const FocusModeIndicator = memo(function FocusModeIndicator({
-  className,
-}: {
-  className?: string;
-}) {
+  className
+
+
+}: {className?: string;}) {
   const { state, actions } = useFocusMode();
 
   if (!state.isEnabled) return null;
@@ -168,19 +168,19 @@ export const FocusModeIndicator = memo(function FocusModeIndicator({
       className={cn(
         "flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium",
         className
-      )}
-    >
+      )}>
+      
       <Focus className="h-3.5 w-3.5" />
       <span>وضع التركيز</span>
       <button
         onClick={actions.disable}
         className="hover:bg-primary/20 rounded-full p-0.5 transition-colors"
-        title="إيقاف وضع التركيز"
-      >
+        title="إيقاف وضع التركيز">
+        
         <EyeOff className="h-3 w-3" />
       </button>
-    </motion.div>
-  );
+    </motion.div>);
+
 });
 
 export default FocusModeToggle;

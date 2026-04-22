@@ -4,20 +4,20 @@ import { useState, useEffect, memo } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+
 import { safeFetch } from "@/lib/safe-client-utils";
 import { getSafeUserId } from "@/lib/safe-client-utils";
 import { logger } from '@/lib/logger';
 
-import { 
+import {
   TrendingUp,
   Target,
   Calendar,
   Lightbulb,
   ArrowRight,
-  Sparkles,
-  Clock
-} from "lucide-react";
+
+  Clock } from
+"lucide-react";
 
 interface Prediction {
   period: string;
@@ -40,9 +40,9 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
   useEffect(() => {
     const fetchPredictions = async () => {
       const userId = getSafeUserId();
-      
+
       try {
-        const { data, error } = await safeFetch<{ predictions: Prediction[] }>(
+        const { data, error } = await safeFetch<{predictions: Prediction[];}>(
           `/api/analytics/predictions${userId ? `?userId=${userId}` : ''}`,
           undefined,
           null
@@ -88,8 +88,8 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
     return (
       <section className={`${rpgCommonStyles.glassPanel} px-6 md:px-12 py-12 flex justify-center items-center`}>
         <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary shadow-[0_0_15px_rgba(124,58,237,0.5)]" />
-      </section>
-    );
+      </section>);
+
   }
 
   return (
@@ -103,8 +103,8 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-12 text-center"
-        >
+          className="mb-12 text-center">
+          
           <div className="flex flex-col items-center gap-4 mb-6">
             <div className="rounded-full bg-indigo-500/20 p-4 ring-1 ring-indigo-500/40 shadow-[0_0_20px_rgba(99,102,241,0.2)]">
               <TrendingUp className="h-8 w-8 text-indigo-400 animate-pulse" />
@@ -128,8 +128,8 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="h-full"
-              >
+                className="h-full">
+                
                 <Card className="bg-white/5 border-white/5 shadow-xl hover:bg-white/[0.08] transition-all duration-500 border-none group">
                   <CardHeader className="p-8 pb-4">
                     <div className="flex items-center justify-between mb-6">
@@ -157,12 +157,12 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                         <span className="text-xl font-bold text-gray-500">%</span>
                       </div>
                       <div className="mt-8 h-3 bg-black/60 rounded-full overflow-hidden ring-1 ring-white/5 p-[1px]">
-                         <motion.div 
-                           initial={{ width: 0 }}
-                           animate={{ width: `${prediction.predictedScore}%` }}
-                           transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
-                           className="h-full bg-gradient-to-r from-primary via-indigo-500 to-blue-600 rounded-full shadow-[0_0_10px_rgba(124,58,237,0.5)]"
-                         />
+                         <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${prediction.predictedScore}%` }}
+                          transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
+                          className="h-full bg-gradient-to-r from-primary via-indigo-500 to-blue-600 rounded-full shadow-[0_0_10px_rgba(124,58,237,0.5)]" />
+                        
                       </div>
                     </div>
                   </CardHeader>
@@ -174,21 +174,21 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                         خريطة الأهداف (Roadmap)
                       </h4>
                       <div className="space-y-3">
-                        {prediction.milestones.map((milestone, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors"
-                          >
+                        {prediction.milestones.map((milestone, idx) =>
+                        <div
+                          key={idx}
+                          className="flex items-center gap-4 p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
+                          
                             <div className="flex-shrink-0 w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(124,58,237,0.8)]" />
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-1">
                                 <span className="font-bold text-gray-200">
                                   {milestone.goal}
                                 </span>
-                                <Badge 
-                                  variant="outline" 
-                                  className={`text-[9px] uppercase font-black px-2 py-0.5 border ${getMilestoneStatusBadge(milestone.status)}`}
-                                >
+                                <Badge
+                                variant="outline"
+                                className={`text-[9px] uppercase font-black px-2 py-0.5 border ${getMilestoneStatusBadge(milestone.status)}`}>
+                                
                                   {milestone.status === "achieved" && "مكتمل"}
                                   {milestone.status === "current" && "قيد المواجهة"}
                                   {milestone.status === "upcoming" && "هدف مستقبلي"}
@@ -200,7 +200,7 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                               </span>
                             </div>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
 
@@ -210,21 +210,21 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                         تكتيكات مقترحة (Tactics)
                       </h4>
                       <div className="grid gap-3">
-                        {prediction.recommendations.map((rec, idx) => (
-                          <div
-                            key={idx}
-                            className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10 transition-colors"
-                          >
+                        {prediction.recommendations.map((rec, idx) =>
+                        <div
+                          key={idx}
+                          className="flex items-start gap-3 p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 hover:bg-amber-500/10 transition-colors">
+                          
                             <ArrowRight className="h-4 w-4 text-amber-500/70 flex-shrink-0 mt-0.5" />
                             <span className="text-sm font-medium text-gray-300 leading-relaxed">{rec}</span>
                           </div>
-                        ))}
+                        )}
                       </div>
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
-            );
+              </motion.div>);
+
           })}
         </div>
 
@@ -234,8 +234,8 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          className="mt-12"
-        >
+          className="mt-12">
+          
           <div className="relative overflow-hidden rounded-3xl p-8 bg-gradient-to-r from-primary/10 via-indigo-600/20 to-primary/10 border border-white/10 backdrop-blur-xl">
              <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-right">
                 <div className="rounded-2xl bg-white/10 p-4 border border-white/20 shadow-xl backdrop-blur-md">
@@ -252,9 +252,8 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
           </div>
         </motion.div>
       </div>
-    </section>
-  );
+    </section>);
+
 });
 
 export default ProgressPredictionsSection;
-

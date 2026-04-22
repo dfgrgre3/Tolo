@@ -1,4 +1,4 @@
-import { prisma } from '../src/lib/db';
+﻿import { prisma } from '../src/lib/db';
 import { logger } from '../src/lib/logger';
 
 async function migrateTableToPartitioned(tableName: string, partitionKey: string) {

@@ -1,14 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse, notFoundResponse } from '@/lib/api-utils';
+import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
 import { z } from "zod";
 
 const topicSchema = z.object({
   subjectId: z.string().min(1, "معرف المادة مطلوب"),
   name: z.string().min(1, "اسم الموضوع مطلوب"),
   description: z.string().optional(),
-  order: z.number().default(0),
+  order: z.number().default(0)
 });
 
 export async function GET(request: NextRequest) {
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         }
 
         const topic = await prisma.topic.create({
-          data: validation.data,
+          data: validation.data
         });
 
         return successResponse(topic, "تم إضافة الموضوع بنجاح", 201);
@@ -89,7 +89,7 @@ export async function PATCH(request: NextRequest) {
 
         const topic = await prisma.topic.update({
           where: { id },
-          data,
+          data
         });
 
         return successResponse(topic, "تم تحديث الموضوع بنجاح");
@@ -116,7 +116,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         await prisma.topic.delete({
-          where: { id },
+          where: { id }
         });
 
         return successResponse({ success: true }, "تم حذف الموضوع بنجاح");

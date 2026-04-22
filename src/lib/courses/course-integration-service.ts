@@ -44,6 +44,7 @@ export interface LessonCompleteResult {
   isChapterComplete: boolean;
   isCourseComplete: boolean;
   certificateCreated: boolean;
+  certificateId?: string;
   chapterXP?: number;
   courseXP?: number;
 }
@@ -101,7 +102,7 @@ export async function handleCourseEnrollment(
     await db.notification.create({
       data: {
         userId,
-        title: "🎓 تم التسجيل بنجاح!",
+        title: "ًںژ“ تم التسجيل بنجاح!",
         message: `مبروك! تم تسجيلك في الدورة بنجاح. ابدأ رحلة التعلم الآن واكسب ${totalXP} نقطة XP!`,
         type: "SUCCESS",
         actionUrl: `/learning/${subjectId}`,
@@ -241,7 +242,7 @@ export async function handleLessonCompletion(
 
       // Create certificate
       try {
-        await db.subjectCertificate.upsert({
+        const cert = await db.subjectCertificate.upsert({
           where: { subjectId_userId: { subjectId, userId } },
           update: {},
           create: {
@@ -251,8 +252,17 @@ export async function handleLessonCompletion(
           },
         });
         result.certificateCreated = true;
-      } catch {
-        // Certificate may already exist
+        result.certificateId = cert.id;
+      } catch (error) {
+        logger.error("[CourseIntegration] Certificate error:", error);
+        // Certificate may already exist, try to fetch it to get the ID
+        const existingCert = await db.subjectCertificate.findUnique({
+          where: { subjectId_userId: { subjectId, userId } }
+        });
+        if (existingCert) {
+          result.certificateCreated = true;
+          result.certificateId = existingCert.id;
+        }
       }
 
       // Get course name for notification
@@ -266,7 +276,7 @@ export async function handleLessonCompletion(
       await db.notification.create({
         data: {
           userId,
-          title: "🏆 تهانينا! أتممت الدورة",
+          title: "ًںڈ† تهانينا! أتممت الدورة",
           message: `مبروك! لقد أتممت دورة "${courseName}" بنجاح واكتسبت ${XP_REWARDS.COURSE_COMPLETE} نقطة XP! شهادتك جاهزة.`,
           type: "SUCCESS",
           actionUrl: `/courses/${subjectId}`,
@@ -295,9 +305,9 @@ export async function handleLessonCompletion(
       }
     }
 
-    // 5. Progress milestone notifications (50%, 75%)
+    // 5. Progress milestone notifications (50%, 75%, 90%)
     if (!result.isCourseComplete && result.courseProgress > 0) {
-      const milestones = [50, 75];
+      const milestones = [50, 75, 90];
       const previousProgress = allLessons > 0
         ? Math.round(((completedLessons - 1) / allLessons) * 100)
         : 0;
@@ -307,7 +317,7 @@ export async function handleLessonCompletion(
           await db.notification.create({
             data: {
               userId,
-              title: `📈 أنجزت ${milestone}% من الدورة!`,
+              title: `ًں“ˆ أنجزت ${milestone}% من الدورة!`,
               message: `أنت تبلي بلاءً حسناً! واصل التقدم في الدورة.`,
               type: "INFO",
               actionUrl: `/learning/${subjectId}`,

@@ -2,7 +2,7 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
+
 import { TaskStatus } from '@/lib/constants';
 import { successResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
@@ -20,25 +20,25 @@ export async function GET(request: NextRequest) {
           where: {
             userId: authUser.userId,
             OR: [
-              {
-                dueAt: {
-                  lte: tomorrow,
-                  gte: now,
-                },
+            {
+              dueAt: {
+                lte: tomorrow,
+                gte: now
+              }
+            },
+            {
+              dueAt: {
+                lt: now
               },
-              {
-                dueAt: {
-                  lt: now,
-                },
-                status: {
-                  not: TaskStatus.COMPLETED,
-                },
-              },
-            ],
+              status: {
+                not: TaskStatus.COMPLETED
+              }
+            }]
+
           },
           orderBy: {
-            dueAt: 'asc',
-          },
+            dueAt: 'asc'
+          }
         });
 
         return successResponse({ tasks });

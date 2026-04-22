@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -186,7 +186,7 @@ export default function AdminLoginPage() {
                     {...register('password')}
                     type={showPassword ? 'text' : 'password'}
                     className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.03] py-4 pr-12 pl-14 text-white outline-none transition-all placeholder:text-gray-600 focus:border-red-500/50 focus:bg-white/[0.05] focus:ring-4 focus:ring-red-500/10 disabled:opacity-50"
-                    placeholder="••••••••••••"
+                    placeholder="⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢⬢"
                     dir="rtl"
                   />
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500 transition-colors group-focus-within:text-red-500">

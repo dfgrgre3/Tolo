@@ -1,4 +1,4 @@
-export type AchievementCategory = 'study' | 'tasks' | 'exams' | 'time' | 'streak';
+﻿export type AchievementCategory = 'study' | 'tasks' | 'exams' | 'time' | 'streak';
 export type AchievementDifficulty = 'easy' | 'medium' | 'hard' | 'expert';
 export type AchievementRarity = 'common' | 'rare' | 'epic' | 'legendary';
 export type SortOption = 'earnedAt' | 'title' | 'xpReward' | 'difficulty';

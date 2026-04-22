@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Split, Plus, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { CreateExperimentData } from "@/types/ab-testing";
 
 interface CreateExperimentDialogProps {
@@ -16,15 +16,15 @@ interface CreateExperimentDialogProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-export const CreateExperimentDialog: React.FC<CreateExperimentDialogProps> = ({ 
-  children, 
+export const CreateExperimentDialog: React.FC<CreateExperimentDialogProps> = ({
+  children,
   onCreate,
   open: externalOpen,
   onOpenChange: setExternalOpen
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
-  
+
   const handleOpenChange = (open: boolean) => {
     if (setExternalOpen) {
       setExternalOpen(open);
@@ -48,12 +48,12 @@ export const CreateExperimentDialog: React.FC<CreateExperimentDialogProps> = ({
     }
 
     setIsCreating(true);
-    
+
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
+    await new Promise((resolve) => setTimeout(resolve, 800));
+
     onCreate(newExperiment);
-    
+
     setNewExperiment({
       title: "",
       description: "",
@@ -82,53 +82,53 @@ export const CreateExperimentDialog: React.FC<CreateExperimentDialogProps> = ({
           <div className="grid grid-cols-1 gap-4">
             <div>
               <Label htmlFor="title">عنوان التجربة *</Label>
-              <Input 
-                id="title" 
+              <Input
+                id="title"
                 value={newExperiment.title}
-                onChange={(e) => setNewExperiment({...newExperiment, title: e.target.value})}
-                placeholder="مثلاً: تجربة تأثير شكل الأسئلة على أداء الطلاب"
-              />
+                onChange={(e) => setNewExperiment({ ...newExperiment, title: e.target.value })}
+                placeholder="مثلاً: تجربة تأثير شكل الأسئلة على أداء الطلاب" />
+              
             </div>
             
             <div>
               <Label htmlFor="description">وصف التجربة</Label>
-              <Textarea 
-                id="description" 
+              <Textarea
+                id="description"
                 value={newExperiment.description}
-                onChange={(e) => setNewExperiment({...newExperiment, description: e.target.value})}
+                onChange={(e) => setNewExperiment({ ...newExperiment, description: e.target.value })}
                 placeholder="اشرح تفاصيل التجربة وأهدافها..."
-                rows={3}
-              />
+                rows={3} />
+              
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="variantA">النسخة (أ) *</Label>
-                <Input 
-                  id="variantA" 
+                <Input
+                  id="variantA"
                   value={newExperiment.variantAName}
-                  onChange={(e) => setNewExperiment({...newExperiment, variantAName: e.target.value})}
-                  placeholder="اسم النسخة الأولى"
-                />
+                  onChange={(e) => setNewExperiment({ ...newExperiment, variantAName: e.target.value })}
+                  placeholder="اسم النسخة الأولى" />
+                
               </div>
               
               <div>
                 <Label htmlFor="variantB">النسخة (ب) *</Label>
-                <Input 
-                  id="variantB" 
+                <Input
+                  id="variantB"
                   value={newExperiment.variantBName}
-                  onChange={(e) => setNewExperiment({...newExperiment, variantBName: e.target.value})}
-                  placeholder="اسم النسخة الثانية"
-                />
+                  onChange={(e) => setNewExperiment({ ...newExperiment, variantBName: e.target.value })}
+                  placeholder="اسم النسخة الثانية" />
+                
               </div>
             </div>
             
             <div>
               <Label htmlFor="audience">الفئة المستهدفة</Label>
-              <Select 
+              <Select
                 value={newExperiment.targetAudience}
-                onValueChange={(value) => setNewExperiment({...newExperiment, targetAudience: value})}
-              >
+                onValueChange={(value) => setNewExperiment({ ...newExperiment, targetAudience: value })}>
+                
                 <SelectTrigger>
                   <SelectValue placeholder="اختر الفئة المستهدفة" />
                 </SelectTrigger>
@@ -145,22 +145,22 @@ export const CreateExperimentDialog: React.FC<CreateExperimentDialogProps> = ({
         </div>
         
         <DialogFooter>
-          <AdminButton 
-            variant="outline" 
+          <AdminButton
+            variant="outline"
             onClick={() => handleOpenChange(false)}
-            className="gap-2"
-          >
+            className="gap-2">
+            
             <X className="w-4 h-4" /> إلغاء
           </AdminButton>
-          <AdminButton 
+          <AdminButton
             className="gap-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-600 hover:to-emerald-700"
             onClick={handleCreate}
-            disabled={isCreating}
-          >
+            disabled={isCreating}>
+            
             <Plus className="w-4 h-4" /> {isCreating ? "جاري الإنشاء..." : "إنشاء التجربة"}
           </AdminButton>
         </DialogFooter>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>);
+
 };

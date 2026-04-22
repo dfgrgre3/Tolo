@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { motion } from 'framer-motion';
 
@@ -19,7 +19,7 @@ export function LoadingState() {
 					animate={{ scale: [0.8, 1.1, 0.8] }}
 					transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
 				>
-					🏆
+					ًںڈ†
 				</motion.div>
 			</div>
 			

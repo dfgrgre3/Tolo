@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/db";
 import { subDays } from "date-fns";
-import type { User, AnalyticsEvent, Subject } from "@/types";
+
 
 export interface StudentRisk {
   userId: string;
@@ -18,6 +18,16 @@ export interface PerformanceForecast {
   predictedFinalScore: number;
   confidence: "HIGH" | "MEDIUM" | "LOW";
 }
+
+type TimedAnalyticsEventRow = {
+  createdAt: Date;
+  type: string;
+};
+
+type SubjectCountRow = {
+  id: string;
+  name: string;
+};
 
 export class AnalyticsService {
   static async getChurnPrediction(): Promise<StudentRisk[]> {
@@ -53,9 +63,9 @@ export class AnalyticsService {
     for (const student of students) {
       const lastLogin = student.lastLogin ? new Date(student.lastLogin) : null;
       const recentResults = student.examResults;
-      const avgScore = recentResults.length > 0
-        ? recentResults.reduce((acc: number, r: { score: number }) => acc + (r.score / 100), 0) / recentResults.length
-        : 1;
+      const avgScore = recentResults.length > 0 ?
+      recentResults.reduce((acc: number, r: {score: number;}) => acc + r.score / 100, 0) / recentResults.length :
+      1;
 
 
       // Logic for CRITICAL (RED)
@@ -72,7 +82,7 @@ export class AnalyticsService {
       }
 
       // Logic for WARNING (ORANGE)
-      if (!lastLogin || lastLogin < threeDaysAgo || (recentResults.length >= 2 && recentResults[0].score < recentResults[1].score * 0.7)) {
+      if (!lastLogin || lastLogin < threeDaysAgo || recentResults.length >= 2 && recentResults[0].score < recentResults[1].score * 0.7) {
         risks.push({
           userId: student.id,
           name: student.name || "طالب غير مسمى",
@@ -101,18 +111,18 @@ export class AnalyticsService {
   }
   static async getGenerativeSummary(): Promise<string> {
     const riskStudents = await this.getChurnPrediction();
-    const criticalCount = riskStudents.filter(s => s.riskLevel === "CRITICAL").length;
+    const criticalCount = riskStudents.filter((s) => s.riskLevel === "CRITICAL").length;
 
     const stats = await prisma.$transaction([
-      prisma.user.count({ where: { role: "STUDENT" } }),
-      prisma.examResult.count({
-        where: { createdAt: { gte: subDays(new Date(), 7) } }
-      }),
-      prisma.studySession.aggregate({
-        _sum: { durationMin: true },
-        where: { startTime: { gte: subDays(new Date(), 7) } }
-      })
-    ]);
+    prisma.user.count({ where: { role: "STUDENT" } }),
+    prisma.examResult.count({
+      where: { createdAt: { gte: subDays(new Date(), 7) } }
+    }),
+    prisma.studySession.aggregate({
+      _sum: { durationMin: true },
+      where: { startTime: { gte: subDays(new Date(), 7) } }
+    })]
+    );
 
     const [totalStudents, recentExams, totalStudyTime] = stats;
     const avgStudyTime = totalStudents > 0 ? (totalStudyTime._sum.durationMin || 0) / totalStudents : 0;
@@ -150,18 +160,18 @@ export class AnalyticsService {
       }
     });
 
-    const forecast: (PerformanceForecast | null)[] = students.map((student: any) => {
+    const forecast: (PerformanceForecast | null)[] = students.map((student: typeof students[number]) => {
       const results = student.examResults;
       if (results.length < 2) return null;
 
-      const scores = results.map((r: { score: number }) => r.score);
+      const scores = results.map((r: {score: number;}) => r.score);
       const trend = scores[0] - scores[scores.length - 1]; // Very simple trend
 
       return {
         userId: student.id,
         name: student.name,
         currentScore: Math.round(scores[0]),
-        predictedFinalScore: Math.min(100, Math.max(0, Math.round(scores[0] + (trend * 0.5)))),
+        predictedFinalScore: Math.min(100, Math.max(0, Math.round(scores[0] + trend * 0.5))),
         confidence: results.length >= 5 ? "HIGH" : "MEDIUM"
       };
     });
@@ -172,11 +182,11 @@ export class AnalyticsService {
   }
 
   static async executeAiAction(
-    actionType: string,
-    params: Record<string, string | number | boolean | any>
-  ): Promise<{ success: boolean; message: string }> {
+  actionType: string,
+  params: Record<string, string | number | boolean | unknown>)
+  : Promise<{success: boolean;message: string;}> {
     if (actionType === "notify_inactive") {
-      const { days, subjectId } = params;
+      const { days, subjectId: _subjectId } = params;
       // In a real app, this would trigger an email/push notification service
       // For now, we simulate the success
       return {
@@ -186,7 +196,7 @@ export class AnalyticsService {
     }
 
     if (actionType === "generate_revision_plan") {
-      const { studentId } = params;
+      const { studentId: _studentId } = params;
       return {
         success: true,
         message: "تم إنشاء وترشيح جدول مراجعة ذكي للطالب بناءً على نقاط ضعفه."
@@ -215,7 +225,9 @@ export class AnalyticsService {
         if (meta.subjectId) {
           subjectCounts[meta.subjectId] = (subjectCounts[meta.subjectId] || 0) + 1;
         }
-      } catch (e) { }
+      } catch (_e) {
+        // Ignore malformed analytics metadata rows.
+      }
     });
 
     // Map to subject names if possible
@@ -225,10 +237,10 @@ export class AnalyticsService {
       select: { id: true, name: true }
     });
 
-    return subjects.map((s: any) => ({
+    return subjects.map((s: SubjectCountRow) => ({
       name: s.name,
       count: subjectCounts[s.id]
-    })).sort((a: any, b: any) => b.count - a.count);
+    })).sort((a: { count: number }, b: { count: number }) => b.count - a.count);
   }
 
   /**
@@ -242,10 +254,10 @@ export class AnalyticsService {
       select: { createdAt: true, type: true }
     });
 
-    const hourlyStats: Record<number, { exams: number; ai: number }> = {};
+    const hourlyStats: Record<number, {exams: number;ai: number;}> = {};
     for (let i = 0; i < 24; i++) hourlyStats[i] = { exams: 0, ai: 0 };
 
-    events.forEach((event: any) => {
+    events.forEach((event: TimedAnalyticsEventRow) => {
       const hour = new Date(event.createdAt).getHours();
       if (event.type.startsWith('EXAM_')) hourlyStats[hour].exams++;
       if (event.type.startsWith('AI_')) hourlyStats[hour].ai++;
@@ -268,9 +280,9 @@ export class AnalyticsService {
       select: { createdAt: true, type: true }
     });
 
-    const dailyStats: Record<string, { exams: number; ai: number }> = {};
+    const dailyStats: Record<string, {exams: number;ai: number;}> = {};
 
-    events.forEach((event: any) => {
+    events.forEach((event: TimedAnalyticsEventRow) => {
       const date = new Date(event.createdAt).toISOString().split('T')[0];
       if (!dailyStats[date]) dailyStats[date] = { exams: 0, ai: 0 };
 
@@ -280,9 +292,9 @@ export class AnalyticsService {
 
     return Object.entries(dailyStats)
       .map(([date, stats]) => ({ date, ...stats }))
-      .sort((a: any, b: any) => a.date.localeCompare(b.date));
+      .sort((a, b) => a.date.localeCompare(b.date));
   }
 }
 
 // Helper
-function now() { return new Date(); }
+function now() {return new Date();}

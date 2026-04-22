@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { Bell, Check, CheckCheck, ExternalLink, Clock } from 'lucide-react';
@@ -133,13 +133,13 @@ export default function NotificationsPage() {
     if (icon) return icon;
     switch (type) {
       case 'success':
-        return '✅';
+        return 'âœ…';
       case 'warning':
-        return '⚠️';
+        return 'âڑ ï¸ڈ';
       case 'error':
-        return '❌';
+        return 'â‌Œ';
       default:
-        return 'ℹ️';
+        return 'â„¹ï¸ڈ';
     }
   };
 

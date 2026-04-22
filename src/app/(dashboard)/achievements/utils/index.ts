@@ -1,4 +1,4 @@
-import {
+﻿import {
 	Achievement,
 	AchievementCategory,
 	AchievementDifficulty,
@@ -26,13 +26,13 @@ export const getCategoryLabel = (category: AchievementCategory): string => {
  */
 export const getCategoryIcon = (category: AchievementCategory): string => {
 	const icons: Record<AchievementCategory, string> = {
-		study: '📚',
-		tasks: '✅',
-		exams: '📊',
-		time: '⏱️',
-		streak: '🔥',
+		study: 'ًں“ڑ',
+		tasks: 'âœ…',
+		exams: 'ًں“ٹ',
+		time: 'âڈ±ï¸ڈ',
+		streak: 'ًں”¥',
 	};
-	return icons[category] || '🏆';
+	return icons[category] || 'ًںڈ†';
 };
 
 /**

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { logger } from '@/lib/logger';
 
@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     logger.error("Error fetching notifications:", error);
     return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ط¬ظ„ط¨ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ" },
+      { error: "طآ­طآ¯طآ« طآ®طآ·طآ£ طآ£طآ«ظâ€ طآ§ء طآ¬ظâ€‍طآ¨ طآ§ظâ€‍طآ¥طآ´طآ¹طآ§طآ±طآ§طھ" },
       { status: 500 }
     );
   }
@@ -96,7 +96,7 @@ export async function PATCH(request: NextRequest) {
         where: { userId: { in: adminIds }, isRead: false, isDeleted: false },
         data: { isRead: true },
       });
-      return NextResponse.json({ success: true, message: "طھظ… طھط­ط¯ظٹط¯ ط¬ظ…ظٹط¹ ط§ظ„ط¥ط´ط¹ط§ط±ط§طھ ظƒظ…ظ‚ط±ظˆط،ط©" });
+      return NextResponse.json({ success: true, message: "طھظâ€¦ طھطآ­طآ¯يطآ¯ طآ¬ظâ€¦يطآ¹ طآ§ظâ€‍طآ¥طآ´طآ¹طآ§طآ±طآ§طھ ظئ’ظâ€¦ظâ€ڑطآ±ظث†ءطآ©" });
     }
 
     if (notificationId) {
@@ -107,11 +107,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    return NextResponse.json({ error: "ظ…ط¹ط±ظپ ط§ظ„ط¥ط´ط¹ط§ط± ظ…ط·ظ„ظˆط¨" }, { status: 400 });
+    return NextResponse.json({ error: "ظâ€¦طآ¹طآ±ف طآ§ظâ€‍طآ¥طآ´طآ¹طآ§طآ± ظâ€¦طآ·ظâ€‍ظث†طآ¨" }, { status: 400 });
   } catch (error) {
     logger.error("Error updating notification:", error);
     return NextResponse.json(
-      { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، طھط­ط¯ظٹط« ط§ظ„ط¥ط´ط¹ط§ط±" },
+      { error: "طآ­طآ¯طآ« طآ®طآ·طآ£ طآ£طآ«ظâ€ طآ§ء طھطآ­طآ¯يطآ« طآ§ظâ€‍طآ¥طآ´طآ¹طآ§طآ±" },
       { status: 500 }
     );
   }

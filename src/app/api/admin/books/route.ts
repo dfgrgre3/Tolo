@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { withAdmin, handleApiError } from "@/lib/api-utils";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
 
         if (!title || !author || !subjectId) {
           return NextResponse.json(
-            { error: "ط§ظ„ط¹ظ†ظˆط§ظ† ظˆط§ظ„ظ…ط¤ظ„ظپ ظˆط§ظ„ظ…ط§ط¯ط© ظ…ط·ظ„ظˆط¨ظˆظ†" },
+            { error: "طآ§ظâ€‍طآ¹ظâ€ ظث†طآ§ظâ€  ظث†طآ§ظâ€‍ظâ€¦طآ¤ظâ€‍ف ظث†طآ§ظâ€‍ظâ€¦طآ§طآ¯طآ© ظâ€¦طآ·ظâ€‍ظث†طآ¨ظث†ظâ€ " },
             { status: 400 }
           );
         }
@@ -136,7 +136,7 @@ export async function DELETE(request: NextRequest) {
 
         if (!id) {
           return NextResponse.json(
-            { error: "ظ…ط¹ط±ظپ ط§ظ„ظƒطھط§ط¨ ظ…ط·ظ„ظˆط¨" },
+            { error: "ظâ€¦طآ¹طآ±ف طآ§ظâ€‍ظئ’طھطآ§طآ¨ ظâ€¦طآ·ظâ€‍ظث†طآ¨" },
             { status: 400 }
           );
         }

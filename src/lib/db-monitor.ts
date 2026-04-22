@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Database Connection Monitor
  * 
  * Monitors PostgreSQL connection pool health and provides
@@ -141,4 +141,4 @@ export const dbMonitor = {
     start: startPoolMonitoring,
     stop: stopPoolMonitoring,
 };
-
+

@@ -1,7 +1,7 @@
 /**
- * URL Validation Utility
- * Validates URLs to prevent open redirect and XSS vulnerabilities
- */
+* URL Validation Utility
+* Validates URLs to prevent open redirect and XSS vulnerabilities
+*/
 
 /**
  * Validates if a URL is safe for navigation
@@ -24,15 +24,15 @@ export function isSafeUrl(url: string | undefined | null): boolean {
   try {
     // Check for dangerous protocols
     const dangerousProtocols = [
-      'javascript:',
-      'data:',
-      'vbscript:',
-      'file:',
-      'about:',
-    ];
+    'javascript:',
+    'data:',
+    'vbscript:',
+    'file:',
+    'about:'];
+
 
     const lowerUrl = trimmedUrl.toLowerCase();
-    
+
     // Block dangerous protocols
     for (const protocol of dangerousProtocols) {
       if (lowerUrl.startsWith(protocol)) {
@@ -63,7 +63,7 @@ export function isSafeUrl(url: string | undefined | null): boolean {
     // }
 
     return true;
-  } catch (error) {
+  } catch (_error) {
     // If URL parsing fails, treat as relative URL
     // Only allow if it starts with / (relative path)
     return trimmedUrl.startsWith('/');
@@ -96,9 +96,9 @@ export function safeNavigate(url: string | undefined | null, fallback: string = 
         return;
       }
     } catch {
+
       // fall through to location assignment
     }
-
     window.location.href = safeUrl;
   }
 }

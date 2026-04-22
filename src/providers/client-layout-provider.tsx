@@ -8,13 +8,13 @@ import { toast } from 'sonner';
 export const LAST_VISITED_PATH_KEY = 'thanawy:lastVisitedPath';
 export const SCROLL_POSITIONS_KEY = 'thanawy:scrollPosition';
 
-export default function ClientLayoutProvider({ children }: { children: React.ReactNode }) {
+export default function ClientLayoutProvider({ children }: {children: React.ReactNode;}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
   const isFirstRender = useRef(true);
   const isRestoring = useRef(false);
-  
+
   const search = searchParams?.toString() ?? '';
   const fullPath = search ? `${pathname}?${search}` : pathname;
 
@@ -24,19 +24,19 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
 
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      
+
       // If we're at the root, check if we should redirect back to where they were
       if (pathname === '/') {
-        const lastVisited = safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'session' }) 
-                         || safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'local' });
-        
+        const lastVisited = safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'session' }) ||
+        safeGetItem<string>(LAST_VISITED_PATH_KEY, { storageType: 'local' });
+
         if (lastVisited && lastVisited !== '/') {
           // Add a small delay for Next.js to be ready
           const timer = setTimeout(() => {
             router.push(lastVisited);
             toast.info('جاري استعادة جلستك السابقة...', {
               description: 'تمت إعادتك إلى آخر مكان كنت فيه.',
-              duration: 3000,
+              duration: 3000
             });
           }, 150);
           return () => clearTimeout(timer);
@@ -57,29 +57,29 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
   // Scroll Restoration Logic
   const saveScrollPosition = useCallback(() => {
     if (!isBrowser() || !pathname) return;
-    
+
     try {
-      const positions = safeGetItem<Record<string, number>>(SCROLL_POSITIONS_KEY, { 
-        storageType: 'local', 
-        fallback: {} 
+      const positions = safeGetItem<Record<string, number>>(SCROLL_POSITIONS_KEY, {
+        storageType: 'local',
+        fallback: {}
       }) || {};
-      
+
       positions[fullPath] = window.scrollY;
       safeSetItem(SCROLL_POSITIONS_KEY, positions, { storageType: 'local' });
-    } catch (e) {
+    } catch (_e) {
+
       // Ignore storage errors on scroll
-    }
-  }, [pathname, fullPath]);
+    }}, [pathname, fullPath]);
 
   // Restore scroll position on path change
   useEffect(() => {
     if (!isBrowser() || !pathname) return;
 
-    const positions = safeGetItem<Record<string, number>>(SCROLL_POSITIONS_KEY, { 
-      storageType: 'local', 
-      fallback: {} 
+    const positions = safeGetItem<Record<string, number>>(SCROLL_POSITIONS_KEY, {
+      storageType: 'local',
+      fallback: {}
     }) || {};
-    
+
     const savedScroll = positions[fullPath];
     if (savedScroll !== undefined) {
       // Use requestAnimationFrame to ensure DOM is ready
@@ -97,7 +97,7 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
 
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('beforeunload', saveScrollPosition);
-    
+
     const onVisibilityChange = () => {
       if (document.visibilityState === 'hidden') saveScrollPosition();
     };
@@ -132,7 +132,7 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
 
         Object.entries(savedInputs).forEach(([id, data]) => {
           const el = document.getElementById(id) || document.querySelector(`[name="${id}"]`);
-          if (!el) return;
+          if (!el || !(data && typeof data === 'object')) return;
 
           if (el instanceof HTMLInputElement) {
             if (el.type === 'checkbox' || el.type === 'radio') {
@@ -156,19 +156,17 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
         });
       } finally {
         // Unlock restoration after a small delay to allow events to process
-        setTimeout(() => { isRestoring.current = false; }, 100);
+        setTimeout(() => {isRestoring.current = false;}, 100);
       }
     };
 
     // Save inputs on change with debouncing
-    const handleFormChange = (e: Event) => {
+    const handleFormChange = (_e: Event) => {
       // Ignore events triggered by restoration process
       if (isRestoring.current) return;
 
-      const target = e.target as HTMLElement;
-      if (!(target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)) return;
-      
-      const id = target.id || (target as any).name;
+      const target = _e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      const id = target.id || target.name;
       if (!id) return;
 
       // Skip sensitive fields
@@ -177,14 +175,14 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
 
       clearTimeout(saveTimeout);
       saveTimeout = setTimeout(() => {
-        const savedInputs = safeGetItem<Record<string, any>>(INPUT_STATE_KEY, { storageType: 'local', fallback: {} }) || {};
-        
+        const savedInputs = safeGetItem<Record<string, { value?: string; checked?: boolean; type: string }>>(INPUT_STATE_KEY, { storageType: 'local', fallback: {} }) || {};
+
         if (target instanceof HTMLInputElement && (target.type === 'checkbox' || target.type === 'radio')) {
           savedInputs[id] = { checked: target.checked, type: target.type };
         } else {
-          savedInputs[id] = { value: (target as any).value, type: target.tagName.toLowerCase() };
+          savedInputs[id] = { value: target.value, type: target.tagName.toLowerCase() };
         }
-        
+
         safeSetItem(INPUT_STATE_KEY, savedInputs, { storageType: 'local' });
       }, 500);
     };
@@ -193,31 +191,31 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
     const saveUIAndElementScroll = () => {
       const UI_STATE_KEY = `thanawy:ui:${fullPath}`;
       const SCROLL_STATE_KEY = `thanawy:element-scroll:${fullPath}`;
-      
+
       const persistentElements = document.querySelectorAll('[data-persist-id]');
       const scrollableElements = document.querySelectorAll('[data-persist-scroll-id]');
-      
+
       if (persistentElements.length === 0 && scrollableElements.length === 0) return;
 
       const uiState: Record<string, any> = {};
-      const scrollState: Record<string, { x: number, y: number }> = {};
-      
-      persistentElements.forEach(el => {
+      const scrollState: Record<string, {x: number;y: number;}> = {};
+
+      persistentElements.forEach((el) => {
         const id = el.getAttribute('data-persist-id');
         if (!id) return;
         uiState[id] = {
           expanded: el.getAttribute('aria-expanded'),
           hidden: el.getAttribute('aria-hidden'),
-          open: el.hasAttribute('open'),
+          open: el.hasAttribute('open')
         };
       });
 
-      scrollableElements.forEach(el => {
+      scrollableElements.forEach((el) => {
         const id = el.getAttribute('data-persist-scroll-id');
         if (!id) return;
         scrollState[id] = { x: el.scrollLeft, y: el.scrollTop };
       });
-      
+
       if (Object.keys(uiState).length > 0) {
         safeSetItem(UI_STATE_KEY, uiState, { storageType: 'local' });
       }
@@ -227,51 +225,55 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
     };
 
     const restoreUIAndElementScroll = () => {
-        const UI_STATE_KEY = `thanawy:ui:${fullPath}`;
-        const SCROLL_STATE_KEY = `thanawy:element-scroll:${fullPath}`;
-        
-        const savedUI = safeGetItem<Record<string, any>>(UI_STATE_KEY, { storageType: 'local' });
-        const savedScroll = safeGetItem<Record<string, { x: number, y: number }>>(SCROLL_STATE_KEY, { storageType: 'local' });
-        
-        if (savedUI) {
-            Object.entries(savedUI).forEach(([id, state]) => {
-                const el = document.querySelector(`[data-persist-id="${id}"]`);
-                if (!el) return;
-                if (state.expanded !== null) el.setAttribute('aria-expanded', state.expanded);
-                if (state.hidden !== null) el.setAttribute('aria-hidden', state.hidden);
-                if (state.open !== undefined) {
-                    if (state.open) el.setAttribute('open', '');
-                    else el.removeAttribute('open');
-                }
-            });
-        }
+      const UI_STATE_KEY = `thanawy:ui:${fullPath}`;
+      const SCROLL_STATE_KEY = `thanawy:element-scroll:${fullPath}`;
 
-        if (savedScroll) {
-            Object.entries(savedScroll).forEach(([id, pos]) => {
-                const el = document.querySelector(`[data-persist-scroll-id="${id}"]`);
-                if (!el) return;
-                el.scrollLeft = pos.x;
-                el.scrollTop = pos.y;
-            });
-        }
+      const savedUI = safeGetItem<Record<string, { expanded: string | null; hidden: string | null; open: boolean }>>(UI_STATE_KEY, { storageType: 'local' });
+      const savedScroll = safeGetItem<Record<string, {x: number;y: number;}>>(SCROLL_STATE_KEY, { storageType: 'local' });
+
+      if (savedUI) {
+        Object.entries(savedUI).forEach(([id, state]) => {
+          const el = document.querySelector(`[data-persist-id="${id}"]`);
+          if (!el) return;
+          if (state.expanded !== null) el.setAttribute('aria-expanded', state.expanded);
+          if (state.hidden !== null) el.setAttribute('aria-hidden', state.hidden);
+          if (state.open !== undefined) {
+            if (state.open) el.setAttribute('open', '');else
+            el.removeAttribute('open');
+          }
+        });
+      }
+
+      if (savedScroll) {
+        Object.entries(savedScroll).forEach(([id, pos]) => {
+          const el = document.querySelector(`[data-persist-scroll-id="${id}"]`);
+          if (!el) return;
+          el.scrollLeft = pos.x;
+          el.scrollTop = pos.y;
+        });
+      }
     };
 
     // Initial restoration with staged delay to prevent blocking hydration
     const timer = setTimeout(() => {
-        requestIdleCallback?.(() => {
+      if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+        window.requestIdleCallback(() => {
           restoreInputs();
           restoreUIAndElementScroll();
-        }) || setTimeout(() => {
+        }, { timeout: 2000 });
+      } else {
+        setTimeout(() => {
           restoreInputs();
           restoreUIAndElementScroll();
-        }, 200);
-    }, 600);
+        }, 500);
+      }
+    }, 1000);
 
-    // Event listeners
-    document.addEventListener('input', handleFormChange);
-    document.addEventListener('change', handleFormChange);
-    window.addEventListener('beforeunload', saveUIAndElementScroll);
-    
+    // Event listeners - use passive where possible
+    document.addEventListener('input', handleFormChange, { passive: true });
+    document.addEventListener('change', handleFormChange, { passive: true });
+    window.addEventListener('beforeunload', saveUIAndElementScroll, { passive: true });
+
     return () => {
       clearTimeout(timer);
       clearTimeout(saveTimeout);
@@ -283,4 +285,3 @@ export default function ClientLayoutProvider({ children }: { children: React.Rea
 
   return <>{children}</>;
 }
-

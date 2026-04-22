@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { prisma } from '@/lib/db';
 import { withAuthCache } from '@/lib/cache-middleware';
-import { invalidateUserCache } from '@/lib/cache-invalidation-service';
+
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 import type { Prisma } from '@prisma/client';
 import {
   createStandardErrorResponse,
   createSuccessResponse,
-  addSecurityHeaders
-} from '@/lib/api-utils';
+  addSecurityHeaders } from
+'@/lib/api-utils';
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
@@ -34,11 +34,11 @@ async function handleGetRequest(request: NextRequest) {
     // Get user's study streak with timeout protection
     const studySessionsPromise = prisma.studySession.findMany({
       where: {
-        userId: decodedToken.userId,
+        userId: decodedToken.userId
       },
       orderBy: {
-        startTime: 'desc',
-      },
+        startTime: 'desc'
+      }
     });
 
     const studySessionsTimeoutPromise = new Promise<never>((resolve, reject) => {
@@ -101,13 +101,13 @@ async function handleGetRequest(request: NextRequest) {
       where: {
         userId: decodedToken.userId,
         title: {
-          contains: 'هدف',
-        },
+          contains: 'هدف'
+        }
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'desc'
       },
-      take: 5,
+      take: 5
     });
 
     const recentGoalsTimeoutPromise = new Promise<never>((resolve, reject) => {
@@ -126,7 +126,7 @@ async function handleGetRequest(request: NextRequest) {
     const goalsWithStatus: GoalWithStatus[] = recentGoals.map((goal: Prisma.CustomGoalGetPayload<{}>) => ({
       ...goal,
       achieved: goal.isCompleted,
-      notified: false, // This would be managed by a notification service
+      notified: false // This would be managed by a notification service
     }));
 
     const result = {

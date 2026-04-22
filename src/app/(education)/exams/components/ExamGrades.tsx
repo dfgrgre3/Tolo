@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -944,7 +944,7 @@ export default function ExamGrades({ userId, subjects, teachers = [] }: ExamGrad
           className="mr-auto text-yellow-800 dark:text-yellow-200 hover:bg-yellow-100 dark:hover:bg-yellow-900/40"
           aria-label="إغلاق رسالة الخطأ">
           
-            ✕
+            âœ•
           </Button>
         </div>
       }

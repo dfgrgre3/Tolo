@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -47,7 +47,8 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface ForumCategory {
   id: string;

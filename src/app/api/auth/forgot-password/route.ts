@@ -9,7 +9,7 @@ const forgotPasswordSchema = z.object({
 
 const forgotPasswordRateLimiter = new RateLimiter({
     windowMs: 15 * 60 * 1000,
-    maxAttempts: 3, // Very strict for password reset
+    maxAttempts: 5, // 5 attempts per 15 minutes
     lockoutMs: 60 * 60 * 1000,
 });
 
@@ -17,14 +17,18 @@ export async function POST(req: NextRequest) {
     try {
         const { ip, userAgent, clientId } = extractClientInfo(req);
 
-        // Rate Limiting
+        // Rate Limiting - check AND record the attempt
         const rateLimitResult = await forgotPasswordRateLimiter.checkRateLimit(clientId);
         if (!rateLimitResult.allowed) {
+            console.warn(`[FORGOT_PASSWORD] Rate limited: ${clientId}`);
             return NextResponse.json(
                 { error: 'Too many requests. Please try again after an hour.' },
                 { status: 429 }
             );
         }
+
+        // Record this attempt in rate limiter
+        await forgotPasswordRateLimiter.incrementAttempts(clientId);
 
         const body = await req.json();
         const validation = forgotPasswordSchema.safeParse(body);

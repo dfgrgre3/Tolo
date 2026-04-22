@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useCallback, useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -122,7 +122,7 @@ export function RoyalCallModal({ open, onOpenChange, users }: RoyalCallModalProp
       const data = await response.json();
 
       if (response.ok) {
-        toast.success(`تم بث المرسوم الملكي بنجاح 👑`, {
+        toast.success(`تم بث المرسوم الملكي بنجاح ًں‘‘`, {
           description: `وصل المرسوم لـ ${data.data.summary.success} محارب | السجلات الفاشلة: ${data.data.summary.failure}`,
         });
         onOpenChange(false);

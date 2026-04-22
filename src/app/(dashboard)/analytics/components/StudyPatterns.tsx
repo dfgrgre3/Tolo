@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -202,28 +202,28 @@ export default function StudyPatterns({ weekly }: StudyPatternsProps) {
 								{patterns.consistencyRate >= 80 && (
 									<div className="p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
 										<p className="text-sm font-medium text-green-800 dark:text-green-200">
-											✓ أنت تحافظ على انتظام ممتاز في المذاكرة
+											âœ“ أنت تحافظ على انتظام ممتاز في المذاكرة
 										</p>
 									</div>
 								)}
 								{patterns.maxStreak >= 7 && (
 									<div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
 										<p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-											✓ لديك سلسلة طويلة من المذاكرة المتتالية
+											âœ“ لديك سلسلة طويلة من المذاكرة المتتالية
 										</p>
 									</div>
 								)}
 								{patterns.variability < 30 && (
 									<div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-800">
 										<p className="text-sm font-medium text-purple-800 dark:text-purple-200">
-											✓ أنماط مذاكرتك منتظمة ومتسقة
+											âœ“ أنماط مذاكرتك منتظمة ومتسقة
 										</p>
 									</div>
 								)}
 								{patterns.consistencyRate < 50 && (
 									<div className="p-3 rounded-lg bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800">
 										<p className="text-sm font-medium text-orange-800 dark:text-orange-200">
-											⚠️ حاول زيادة عدد أيام المذاكرة لتحسين الانتظام
+											âڑ ï¸ڈ حاول زيادة عدد أيام المذاكرة لتحسين الانتظام
 										</p>
 									</div>
 								)}

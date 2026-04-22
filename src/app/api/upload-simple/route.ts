@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
@@ -7,13 +7,13 @@ import { logger } from '@/lib/logger';
 
 export async function POST(request: NextRequest) {
   try {
-    logger.info('🔄 Simple upload endpoint called');
+    logger.info('ًں”„ Simple upload endpoint called');
     
     const data = await request.formData();
     const fileEntry = data.get('file');
 
     if (!(fileEntry instanceof Blob)) {
-      logger.info('❌ No file uploaded');
+      logger.info('â‌Œ No file uploaded');
       return NextResponse.json(
         { error: 'No file uploaded' },
         { status: 400 }
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     }
 
     const file = fileEntry as unknown as File;
-    logger.info(`📁 File received: ${file.name || 'blob'} (${file.size} bytes)`);
+    logger.info(`ًں“پ File received: ${file.name || 'blob'} (${file.size} bytes)`);
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -34,12 +34,12 @@ export async function POST(request: NextRequest) {
     // التأكد من وجود مجلد الرفع
     if (!existsSync(uploadsDir)) {
       mkdirSync(uploadsDir, { recursive: true });
-      logger.info('📁 Created uploads directory');
+      logger.info('ًں“پ Created uploads directory');
     }
 
     // حفظ الملف على القرص
     await writeFile(filePath, buffer);
-    logger.info(`✅ File saved: ${filePath}`);
+    logger.info(`âœ… File saved: ${filePath}`);
 
     // رابط الملف
     const fileUrl = `/uploads/${fileName}`;
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logger.error('❌ Upload error:', { error: errorMessage });
+    logger.error('â‌Œ Upload error:', { error: errorMessage });
     return NextResponse.json(
       { error: 'فشل رفع الملف', details: errorMessage },
       { status: 500 }

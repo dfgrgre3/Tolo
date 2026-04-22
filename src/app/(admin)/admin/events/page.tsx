@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -49,7 +49,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { SearchInput } from "@/components/admin/ui/admin-input";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Event {
   id: string;

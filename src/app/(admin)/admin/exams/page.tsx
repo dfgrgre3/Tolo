@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -272,7 +272,7 @@ export default function AdminExamsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="قاعة الاختبارات الملكية 🏆"
+        title="قاعة الاختبارات الملكية ًںڈ†"
         description="إدارة المسابقات العلمية، امتحانات السنوات السابقة، وتقييم قدرات المحاربين."
       >
         <div className="flex items-center gap-3">

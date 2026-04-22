@@ -1,4 +1,4 @@
-﻿import { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 import { LessonType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -10,6 +10,14 @@ import {
   withAuth,
 } from "@/lib/api-utils";
 
+type CurriculumAttachmentInput = {
+  id: string;
+  title: string;
+  fileUrl: string;
+  fileType?: string | null;
+  fileSize?: number | null;
+};
+
 type CurriculumLessonInput = {
   id: string;
   name: string;
@@ -18,6 +26,7 @@ type CurriculumLessonInput = {
   duration?: number;
   isFree?: boolean;
   description?: string | null;
+  attachments?: CurriculumAttachmentInput[];
 };
 
 type CurriculumTopicInput = {
@@ -31,7 +40,11 @@ type CurriculumSubject = Prisma.SubjectGetPayload<{
   include: {
     topics: {
       include: {
-        subTopics: true;
+        subTopics: {
+          include: {
+            attachments: true;
+          };
+        };
       };
     };
   };
@@ -77,7 +90,7 @@ export async function GET(
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„ ط¥ظ„ظ‰ ظ…ظ†ظ‡ط¬ ط§ظ„ط¯ظˆط±ط©");
+        return forbiddenResponse("غير مسموح لك بالوصول إلى منهج الدورة");
       }
 
       try {
@@ -90,6 +103,9 @@ export async function GET(
               include: {
                 subTopics: {
                   orderBy: { order: "asc" },
+                  include: {
+                    attachments: true,
+                  },
                 },
               },
             },
@@ -97,7 +113,7 @@ export async function GET(
         });
 
         if (!subject) {
-          return badRequestResponse("ط§ظ„ط¯ظˆط±ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
+          return badRequestResponse("الدورة غير موجودة");
         }
 
         const typedSubject = subject as CurriculumSubject;
@@ -125,6 +141,13 @@ export async function GET(
               duration: subTopic.durationMinutes,
               isFree: subTopic.isFree,
               description: subTopic.description,
+              attachments: subTopic.attachments.map((att) => ({
+                id: att.id,
+                title: att.title,
+                fileUrl: att.fileUrl,
+                fileType: att.fileType,
+                fileSize: att.fileSize,
+              })),
             })),
           })),
         });
@@ -142,7 +165,7 @@ export async function PUT(
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (authUser.userRole !== "ADMIN") {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨طھط¹ط¯ظٹظ„ ظ…ظ†ظ‡ط¬ ط§ظ„ط¯ظˆط±ط©");
+        return forbiddenResponse("غير مسموح لك بتعديل منهج الدورة");
       }
 
       try {
@@ -151,7 +174,7 @@ export async function PUT(
         const curriculum = body?.curriculum;
 
         if (!Array.isArray(curriculum)) {
-          return badRequestResponse("ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ظ†ظ‡ط¬ ط؛ظٹط± طµط§ظ„ط­ط©");
+          return badRequestResponse("بيانات المنهج غير صالحة");
         }
 
         await (prisma as any).$transaction(async (tx: any) => {
@@ -220,13 +243,54 @@ export async function PUT(
                 description: lesson.description || null,
               };
 
+              let savedSubTopic;
               if (lesson.id.startsWith("new-")) {
-                await tx.subTopic.create({ data: lessonData });
+                savedSubTopic = await tx.subTopic.create({ data: lessonData });
               } else {
-                await tx.subTopic.update({
+                savedSubTopic = await tx.subTopic.update({
                   where: { id: lesson.id },
                   data: lessonData,
                 });
+              }
+
+              // Handle attachments
+              if (lesson.attachments) {
+                const existingAttachments = await tx.lessonAttachment.findMany({
+                  where: { subTopicId: savedSubTopic.id },
+                  select: { id: true },
+                });
+                const existingAttachmentIds = existingAttachments.map((a: { id: string }) => a.id);
+                const receivedAttachmentIds = lesson.attachments
+                  .filter((a) => !a.id.startsWith("new-"))
+                  .map((a) => a.id);
+
+                const attachmentsToDelete = existingAttachmentIds.filter(
+                  (aid: string) => !receivedAttachmentIds.includes(aid)
+                );
+                if (attachmentsToDelete.length > 0) {
+                  await tx.lessonAttachment.deleteMany({
+                    where: { id: { in: attachmentsToDelete } },
+                  });
+                }
+
+                for (const attachment of lesson.attachments) {
+                  const attachmentData = {
+                    subTopicId: savedSubTopic.id,
+                    title: attachment.title,
+                    fileUrl: attachment.fileUrl,
+                    fileType: attachment.fileType || null,
+                    fileSize: attachment.fileSize || null,
+                  };
+
+                  if (attachment.id.startsWith("new-")) {
+                    await tx.lessonAttachment.create({ data: attachmentData });
+                  } else {
+                    await tx.lessonAttachment.update({
+                      where: { id: attachment.id },
+                      data: attachmentData,
+                    });
+                  }
+                }
               }
             }
           }
@@ -237,7 +301,11 @@ export async function PUT(
           include: {
             topics: {
               include: {
-                subTopics: true,
+                subTopics: {
+                  include: {
+                    attachments: true,
+                  },
+                },
               },
             },
           },
@@ -263,6 +331,9 @@ export async function PUT(
               include: {
                 subTopics: {
                   orderBy: { order: "asc" },
+                  include: {
+                    attachments: true,
+                  },
                 },
               },
             },
@@ -291,10 +362,17 @@ export async function PUT(
                   duration: subTopic.durationMinutes,
                   isFree: subTopic.isFree,
                   description: subTopic.description,
+                  attachments: subTopic.attachments.map((att) => ({
+                    id: att.id,
+                    title: att.title,
+                    fileUrl: att.fileUrl,
+                    fileType: att.fileType,
+                    fileSize: att.fileSize,
+                  })),
                 })),
               })) || [],
           },
-          "طھظ… ط­ظپط¸ ظ…ظ†ظ‡ط¬ ط§ظ„ط¯ظˆط±ط© ط¨ظ†ط¬ط§ط­"
+          "تم حفظ منهج الدورة بنجاح"
         );
       } catch (error) {
         return handleApiError(error);
@@ -302,4 +380,5 @@ export async function PUT(
     })
   );
 }
+
 

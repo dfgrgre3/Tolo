@@ -1,4 +1,4 @@
-import { redis, getRedisClient } from '@/lib/cache';
+import { getRedisClient } from '@/lib/cache';
 import type { RedisClient } from '@/lib/redis';
 import { redisCircuitBreaker } from '@/lib/circuit-breaker';
 
@@ -10,14 +10,14 @@ export class RateLimitingService implements RateLimitService {
   private defaultConfig: RateLimitConfig;
 
   constructor(
-    redisClient: RedisClient | null = null,
-    defaultConfig: RateLimitConfig = {
-      windowMs: 10 * 60 * 1000, // 10 minutes (stricter)
-      maxAttempts: 3, // Reduced from 5 for better security
-      lockoutMs: 60 * 60 * 1000, // 60 minutes (progressive lockout)
-      failClosed: false // Default to fail-open (Availability prioritized)
-    }
-  ) {
+  redisClient: RedisClient | null = null,
+  defaultConfig: RateLimitConfig = {
+    windowMs: 10 * 60 * 1000, // 10 minutes (stricter)
+    maxAttempts: 3, // Reduced from 5 for better security
+    lockoutMs: 60 * 60 * 1000, // 60 minutes (progressive lockout)
+    failClosed: false // Default to fail-open (Availability prioritized)
+  })
+  {
     this.externalClient = redisClient;
     this.defaultConfig = defaultConfig;
   }
@@ -51,7 +51,7 @@ export class RateLimitingService implements RateLimitService {
     const trimmedClientId = clientId.trim().slice(0, 200); // Limit length
     const validWindowMs = Math.max(1000, Math.min(config.windowMs || this.defaultConfig.windowMs, 3600000)); // 1s to 1h
     const validMaxAttempts = Math.max(1, Math.min(config.maxAttempts || this.defaultConfig.maxAttempts, 1000)); // 1 to 1000
-    const validLockoutMs = config.lockoutMs ? Math.max(1000, Math.min(config.lockoutMs, 86400000)) : undefined; // 1s to 24h
+    const _validLockoutMs = config.lockoutMs ? Math.max(1000, Math.min(config.lockoutMs, 86400000)) : undefined; // 1s to 24h
 
     const client = await this.getClient();
     // Fail strategy based on config
@@ -89,7 +89,7 @@ export class RateLimitingService implements RateLimitService {
           };
         } else {
           // Lockout expired, remove the lockout key (non-blocking)
-          client.del(lockoutKey).catch(() => { });
+          client.del(lockoutKey).catch(() => {});
         }
       }
 
@@ -110,7 +110,7 @@ export class RateLimitingService implements RateLimitService {
       });
 
       const results = await Promise.race([execPromise, execTimeoutPromise]);
-      const currentCount = (results && results[1] && typeof results[1] === 'number') ? results[1] : 0;
+      const currentCount = results && results[1] && typeof results[1] === 'number' ? results[1] : 0;
 
       return {
         allowed: currentCount < validMaxAttempts,
@@ -128,7 +128,7 @@ export class RateLimitingService implements RateLimitService {
       if (config.failClosed) {
         return { allowed: false, attempts: validMaxAttempts, remainingTime: 15 };
       }
-      
+
       // Fail open - don't block requests if rate limiting fails
       return {
         allowed: true,
@@ -190,21 +190,21 @@ export class RateLimitingService implements RateLimitService {
 
       // Check if we need to lock the account (non-blocking)
       // We don't await this to avoid blocking the response
-      this.checkRateLimit(trimmedClientId, { ...config, windowMs: validWindowMs, maxAttempts: validMaxAttempts, lockoutMs: validLockoutMs })
-        .then((result) => {
-          if (result.attempts >= validMaxAttempts && validLockoutMs) {
-            // Lock the account with timeout
-            const lockoutUntil = now + validLockoutMs;
-            const setExPromise = client.setex(lockoutKey, Math.ceil(validLockoutMs / 1000), lockoutUntil.toString());
-            // Fire and forget with error catching
-            setExPromise.catch(() => { });
-          }
-        })
-        .catch(() => { });
+      this.checkRateLimit(trimmedClientId, { ...config, windowMs: validWindowMs, maxAttempts: validMaxAttempts, lockoutMs: validLockoutMs }).
+      then((result) => {
+        if (result.attempts >= validMaxAttempts && validLockoutMs) {
+          // Lock the account with timeout
+          const lockoutUntil = now + validLockoutMs;
+          const setExPromise = client.setex(lockoutKey, Math.ceil(validLockoutMs / 1000), lockoutUntil.toString());
+          // Fire and forget with error catching
+          setExPromise.catch(() => {});
+        }
+      }).
+      catch(() => {});
     } catch (_error) {
+
       // Silent fail for recording attempts
-    }
-  }
+    }}
 
   /**
    * Increment failed attempts for a client (alias for recordFailedAttempt)
@@ -243,9 +243,9 @@ export class RateLimitingService implements RateLimitService {
 
       await Promise.race([delPromise, timeoutPromise]);
     } catch (_error) {
+
       // Silent fail
-    }
-  }
+    }}
 
   /**
    * Reset rate limiting for a client after successful authentication (alias for resetAttempts)

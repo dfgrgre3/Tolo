@@ -16,10 +16,10 @@ import {
   Crown,
   Lock,
   Unlock,
-  ExternalLink,
-  Star,
-  Layers,
-} from "lucide-react";
+
+
+  Layers } from
+"lucide-react";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -28,8 +28,8 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  DropdownMenuTrigger } from
+"@/components/ui/dropdown-menu";
 import { cn, formatPrice } from "@/lib/utils";
 import Link from "next/link";
 
@@ -41,16 +41,16 @@ interface CourseCardProps {
   onToggleStatus: (course: any) => void;
 }
 
-const levelConfig: Record<string, { label: string; color: string; num: string }> = {
+const levelConfig: Record<string, {label: string;color: string;num: string;}> = {
   BEGINNER: { label: "مبتدئ", color: "text-emerald-400 bg-emerald-500/10 border-emerald-500/25", num: "1" },
   INTERMEDIATE: { label: "متوسط", color: "text-sky-400 bg-sky-500/10 border-sky-500/25", num: "2" },
-  ADVANCED: { label: "متقدم", color: "text-violet-400 bg-violet-500/10 border-violet-500/25", num: "3" },
+  ADVANCED: { label: "متقدم", color: "text-violet-400 bg-violet-500/10 border-violet-500/25", num: "3" }
 };
 
 export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStatus }: CourseCardProps) {
   const learnersCount = course._count?.enrollments ?? 0;
   const topicsCount = course._count?.topics ?? 0;
-  const reviewsCount = course._count?.reviews ?? 0;
+  const _reviewsCount = course._count?.reviews ?? 0;
   const level = levelConfig[course.level] ?? levelConfig.INTERMEDIATE;
   const isFree = !course.price || course.price === 0;
 
@@ -61,31 +61,31 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
         "transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10",
         course.isFeatured && "ring-1 ring-amber-500/40",
         !course.isActive && "opacity-70"
-      )}
-    >
+      )}>
+      
       {/* Featured Crown Badge */}
-      {course.isFeatured && (
-        <div className="absolute left-3 top-3 z-10">
+      {course.isFeatured &&
+      <div className="absolute left-3 top-3 z-10">
           <div className="flex items-center gap-1 rounded-full bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 backdrop-blur-md">
             <Crown className="h-3 w-3 text-amber-400" />
             <span className="text-[10px] font-black text-amber-400">مميزة</span>
           </div>
         </div>
-      )}
+      }
 
       {/* Thumbnail */}
       <div className="relative aspect-video overflow-hidden bg-muted">
-        {course.thumbnailUrl ? (
-          <img
-            src={course.thumbnailUrl}
-            alt={course.nameAr || course.name}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/5 to-transparent">
+        {course.thumbnailUrl ?
+        <img
+          src={course.thumbnailUrl}
+          alt={course.nameAr || course.name}
+          className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" /> :
+
+
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/5 to-transparent">
             <BookOpen className="h-12 w-12 text-primary/30" />
           </div>
-        )}
+        }
 
         {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -95,18 +95,18 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
           <Badge
             className={cn(
               "rounded-lg px-2 py-0.5 text-[10px] font-black uppercase tracking-wider border backdrop-blur-md shadow-lg",
-              course.isPublished
-                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
-                : "bg-orange-500/20 text-orange-300 border-orange-500/30"
-            )}
-          >
+              course.isPublished ?
+              "bg-emerald-500/20 text-emerald-300 border-emerald-500/30" :
+              "bg-orange-500/20 text-orange-300 border-orange-500/30"
+            )}>
+            
             {course.isPublished ? "منشورة" : "مسودة"}
           </Badge>
-          {!course.isActive && (
-            <Badge className="rounded-lg px-2 py-0.5 text-[10px] font-black bg-red-500/20 text-red-300 border border-red-500/30 backdrop-blur-md">
+          {!course.isActive &&
+          <Badge className="rounded-lg px-2 py-0.5 text-[10px] font-black bg-red-500/20 text-red-300 border border-red-500/30 backdrop-blur-md">
               موقوفة
             </Badge>
-          )}
+          }
         </div>
 
         {/* Level badge */}
@@ -115,8 +115,8 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
             className={cn(
               "rounded-lg px-2 py-0.5 text-[10px] font-black border backdrop-blur-md",
               level.color
-            )}
-          >
+            )}>
+            
             {level.label}
           </Badge>
         </div>
@@ -126,11 +126,11 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
           <div
             className={cn(
               "rounded-lg px-2.5 py-0.5 text-[11px] font-black backdrop-blur-md border",
-              isFree
-                ? "bg-teal-500/20 text-teal-300 border-teal-500/30"
-                : "bg-black/60 text-white border-white/20"
-            )}
-          >
+              isFree ?
+              "bg-teal-500/20 text-teal-300 border-teal-500/30" :
+              "bg-black/60 text-white border-white/20"
+            )}>
+            
             {isFree ? "مجانية" : formatPrice(course.price)}
           </div>
         </div>
@@ -145,7 +145,7 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
               {course.nameAr || course.name}
             </h3>
             <p className="truncate text-[11px] font-bold text-muted-foreground/70 uppercase tracking-wide">
-              {course.code && <span className="text-primary/60">#{course.code} • </span>}
+              {course.code && <span className="text-primary/60">#{course.code} ⬢ </span>}
               {course.instructorName || "بدون محاضر"}
             </p>
           </div>
@@ -155,20 +155,20 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
               <AdminButton
                 variant="ghost"
                 size="icon-sm"
-                className="h-8 w-8 shrink-0 rounded-full hover:bg-primary/10"
-              >
+                className="h-8 w-8 shrink-0 rounded-full hover:bg-primary/10">
+                
                 <MoreVertical className="h-4 w-4" />
               </AdminButton>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/60" dir="rtl">
+            <DropdownMenuContent align="end" className="w-52 rounded-xl border-border/60">
               <DropdownMenuLabel className="text-xs font-black text-muted-foreground">
                 إجراءات الدورة
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => onEdit(course)}
-                className="gap-2.5 font-bold cursor-pointer rounded-lg"
-              >
+                className="gap-2.5 font-bold cursor-pointer rounded-lg">
+                
                 <Edit className="h-4 w-4 text-blue-500" />
                 تعديل البيانات
               </DropdownMenuItem>
@@ -180,8 +180,8 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
               </Link>
               <DropdownMenuItem
                 onClick={() => onDuplicate(course)}
-                className="gap-2.5 font-bold cursor-pointer rounded-lg"
-              >
+                className="gap-2.5 font-bold cursor-pointer rounded-lg">
+                
                 <Copy className="h-4 w-4 text-amber-500" />
                 استنساخ الدورة
               </DropdownMenuItem>
@@ -194,25 +194,25 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => onToggleStatus(course)}
-                className="gap-2.5 font-bold cursor-pointer rounded-lg"
-              >
-                {course.isPublished ? (
-                  <>
+                className="gap-2.5 font-bold cursor-pointer rounded-lg">
+                
+                {course.isPublished ?
+                <>
                     <Lock className="h-4 w-4 text-orange-500" />
                     <span>إخفاء الدورة</span>
-                  </>
-                ) : (
-                  <>
+                  </> :
+
+                <>
                     <Unlock className="h-4 w-4 text-emerald-500" />
                     <span>نشر الدورة</span>
                   </>
-                )}
+                }
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 onClick={() => onDelete(course)}
-                className="gap-2.5 font-black cursor-pointer rounded-lg text-red-500 focus:text-red-500 focus:bg-red-500/10"
-              >
+                className="gap-2.5 font-black cursor-pointer rounded-lg text-red-500 focus:text-red-500 focus:bg-red-500/10">
+                
                 <Trash2 className="h-4 w-4" />
                 حذف نهائي
               </DropdownMenuItem>
@@ -254,20 +254,20 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
               "flex-1 h-9 rounded-xl text-[11px] font-black",
               !course.isPublished && "shadow-md"
             )}
-            onClick={() => onToggleStatus(course)}
-          >
-            {course.isPublished ? (
-              <><XCircle className="h-3.5 w-3.5 ml-1" /> إخفاء</>
-            ) : (
-              <><CheckCircle2 className="h-3.5 w-3.5 ml-1" /> نشر</>
-            )}
+            onClick={() => onToggleStatus(course)}>
+            
+            {course.isPublished ?
+            <><XCircle className="h-3.5 w-3.5 ml-1" /> إخفاء</> :
+
+            <><CheckCircle2 className="h-3.5 w-3.5 ml-1" /> نشر</>
+            }
           </AdminButton>
           <Link href={`/admin/courses/${course.id}`} className="flex-1">
             <AdminButton
               variant="outline"
               size="sm"
-              className="w-full h-9 rounded-xl text-[11px] font-black gap-1"
-            >
+              className="w-full h-9 rounded-xl text-[11px] font-black gap-1">
+              
               <Eye className="h-3.5 w-3.5" />
               عرض
             </AdminButton>
@@ -276,12 +276,12 @@ export function CourseCard({ course, onEdit, onDuplicate, onDelete, onToggleStat
             variant="outline"
             size="icon-sm"
             className="h-9 w-9 shrink-0 rounded-xl"
-            onClick={() => onEdit(course)}
-          >
+            onClick={() => onEdit(course)}>
+            
             <Edit className="h-3.5 w-3.5" />
           </AdminButton>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }

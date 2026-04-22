@@ -4,10 +4,10 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { withAuth, successResponse, badRequestResponse, handleApiError } from "@/lib/api-utils";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { id: lessonId } = await params;
 
@@ -17,22 +17,22 @@ export async function GET(
           user: {
             select: {
               name: true,
-              avatar: true,
-            },
+              avatar: true
+            }
           },
           answers: {
             include: {
               user: {
                 select: {
                   name: true,
-                  avatar: true,
-                },
-              },
+                  avatar: true
+                }
+              }
             },
-            orderBy: { createdAt: "asc" },
-          },
+            orderBy: { createdAt: "asc" }
+          }
         },
-        orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "desc" }
       });
 
       return successResponse(questions);
@@ -43,14 +43,14 @@ export async function GET(
 }
 
 export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
-    return withAuth(req, async ({ userId }) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
+    return withAuth(request, async ({ userId }) => {
       try {
         const { id: lessonId } = await params;
-        const { content } = (await req.json()) as { content: string };
+        const { content } = (await request.json()) as {content: string;};
 
         if (!content || content.trim().length === 0) {
           return badRequestResponse("محتوى السؤال مطلوب");
@@ -60,16 +60,16 @@ export async function POST(
           data: {
             userId,
             subTopicId: lessonId,
-            content,
+            content
           },
           include: {
             user: {
               select: {
                 name: true,
-                avatar: true,
-              },
-            },
-          },
+                avatar: true
+              }
+            }
+          }
         });
 
         return successResponse(question);

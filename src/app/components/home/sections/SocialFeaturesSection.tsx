@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { getSafeUserId } from "@/lib/safe-client-utils";
-import { 
+import {
   Trophy,
   Share2,
   Users,
@@ -16,10 +16,10 @@ import {
   Award,
   Crown,
   Medal,
-  ArrowRight,
-  Flame,
-  Target
-} from "lucide-react";
+  ArrowRight } from
+
+
+"lucide-react";
 import Link from "next/link";
 
 import { logger } from '@/lib/logger';
@@ -51,12 +51,12 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
   useEffect(() => {
     const fetchData = async () => {
       const userId = getSafeUserId();
-      
+
       try {
         // Fetch leaderboard
         const { data: leaderData, error: leaderError } = await safeFetch<{
-          leaderboard: Array<{ rank: number; userId: string; name: string; totalXP: number; level: number }>;
-          userPosition?: { rank: number; totalXP: number; level: number };
+          leaderboard: Array<{rank: number;userId: string;name: string;totalXP: number;level: number;}>;
+          userPosition?: {rank: number;totalXP: number;level: number;};
         }>(
           `/api/gamification/leaderboard?limit=5${userId ? `&userId=${userId}` : ''}`,
           undefined,
@@ -68,7 +68,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
             rank: entry.rank || index + 1,
             name: entry.name || "مستخدم",
             score: entry.totalXP || 0,
-            badge: entry.rank === 1 ? "🥇" : entry.rank === 2 ? "🥈" : entry.rank === 3 ? "🥉" : "⭐",
+            badge: entry.rank === 1 ? "ًں¥‡" : entry.rank === 2 ? "ًں¥ˆ" : entry.rank === 3 ? "ًں¥‰" : "â­گ",
             isCurrentUser: entry.userId === userId
           }));
 
@@ -147,8 +147,8 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="mb-8 text-center"
-        >
+          className="mb-8 text-center">
+          
           <div className="flex items-center justify-center gap-3 mb-4">
             <div className="rounded-full bg-gradient-to-r from-yellow-600 to-orange-600 p-3">
               <Users className="h-6 w-6 text-white" />
@@ -168,8 +168,8 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-          >
+            transition={{ delay: 0.1 }}>
+            
             <Card className="border-slate-200/80 shadow-lg h-full">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -186,23 +186,23 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
-                {loading ? (
-                  <div className="flex justify-center py-8">
+                {loading ?
+                <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-600" />
-                  </div>
-                ) : (
-                  leaderboard.map((entry, index) => (
-                    <motion.div
-                      key={`${entry.rank}-${index}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className={`flex items-center gap-4 p-3 rounded-xl transition-all ${
-                        entry.isCurrentUser 
-                          ? "bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300" 
-                          : "bg-slate-50 hover:bg-slate-100"
-                      }`}
-                    >
+                  </div> :
+
+                leaderboard.map((entry, index) =>
+                <motion.div
+                  key={`${entry.rank}-${index}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className={`flex items-center gap-4 p-3 rounded-xl transition-all ${
+                  entry.isCurrentUser ?
+                  "bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-300" :
+                  "bg-slate-50 hover:bg-slate-100"}`
+                  }>
+                  
                       <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white shadow-sm">
                         {getRankIcon(entry.rank)}
                       </div>
@@ -211,9 +211,9 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                           <span className="font-bold text-sm text-slate-900">
                             {entry.badge} {entry.name}
                           </span>
-                          {entry.isCurrentUser && (
-                            <Badge className="bg-yellow-600 text-white text-xs">أنت</Badge>
-                          )}
+                          {entry.isCurrentUser &&
+                      <Badge className="bg-yellow-600 text-white text-xs">أنت</Badge>
+                      }
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <TrendingUp className="h-3 w-3 text-green-600" />
@@ -226,8 +226,8 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                         #{entry.rank}
                       </div>
                     </motion.div>
-                  ))
-                )}
+                )
+                }
               </CardContent>
             </Card>
           </motion.div>
@@ -237,8 +237,8 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-          >
+            transition={{ delay: 0.2 }}>
+            
             <Card className="border-slate-200/80 shadow-lg h-full">
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -255,19 +255,19 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                {loading ? (
-                  <div className="flex justify-center py-8">
+                {loading ?
+                <div className="flex justify-center py-8">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600" />
-                  </div>
-                ) : (
-                  recentAchievements.map((achievement, index) => (
-                    <motion.div
-                      key={`${achievement.id}-${index}`}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 hover:shadow-md transition-all"
-                    >
+                  </div> :
+
+                recentAchievements.map((achievement, index) =>
+                <motion.div
+                  key={`${achievement.id}-${index}`}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-100 hover:shadow-md transition-all">
+                  
                       <div className="flex-shrink-0 rounded-xl bg-gradient-to-br from-purple-600 to-pink-600 p-3 text-white">
                         {achievement.icon}
                       </div>
@@ -278,8 +278,8 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                         <p className="text-sm text-muted-foreground mb-2">
                           {achievement.description}
                         </p>
-                        {achievement.progress !== undefined && achievement.total && achievement.total > 0 && (
-                          <div className="mt-2">
+                        {achievement.progress !== undefined && achievement.total && achievement.total > 0 &&
+                    <div className="mt-2">
                             <div className="flex justify-between text-xs mb-1">
                               <span className="text-muted-foreground">التقدم</span>
                               <span className="font-semibold">
@@ -288,26 +288,26 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                             </div>
                             <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
                               <motion.div
-                                initial={{ width: 0 }}
-                                animate={{ width: `${(achievement.progress / achievement.total) * 100}%` }}
-                                transition={{ duration: 0.8 }}
-                                className="h-full bg-gradient-to-r from-purple-600 to-pink-600 rounded-full"
-                              />
+                          initial={{ width: 0 }}
+                          animate={{ width: `${achievement.progress / achievement.total * 100}%` }}
+                          transition={{ duration: 0.8 }}
+                          className="h-full bg-gradient-to-r from-purple-600 to-pink-600 rounded-full" />
+                        
                             </div>
                           </div>
-                        )}
-                        {achievement.unlockedAt && (
-                          <div className="mt-2 flex items-center gap-2">
+                    }
+                        {achievement.unlockedAt &&
+                    <div className="mt-2 flex items-center gap-2">
                             <Share2 className="h-3 w-3 text-muted-foreground" />
                             <Button variant="link" size="sm" className="h-auto p-0 text-xs">
                               شارك الإنجاز
                             </Button>
                           </div>
-                        )}
+                    }
                       </div>
                     </motion.div>
-                  ))
-                )}
+                )
+                }
               </CardContent>
             </Card>
           </motion.div>
@@ -319,8 +319,8 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          className="mt-8"
-        >
+          className="mt-8">
+          
           <Card className="border-0 bg-gradient-to-r from-yellow-600 to-orange-600 shadow-xl">
             <CardContent className="p-6">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white">
@@ -344,9 +344,8 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           </Card>
         </motion.div>
       </div>
-    </section>
-  );
+    </section>);
+
 });
 
 export default SocialFeaturesSection;
-

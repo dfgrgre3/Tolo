@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Common API response types
  */
 

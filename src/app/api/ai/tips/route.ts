@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
-import { AI_PROVIDERS, getDefaultProvider } from "@/lib/ai-config";
+import { AI_PROVIDERS } from "@/lib/ai-config";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleApiError, successResponse, createErrorResponse } from '@/lib/api-utils';
 
@@ -108,7 +108,7 @@ export async function POST(request: NextRequest) {
         const response = await fetch(`${selectedProvider.baseUrl}${selectedProvider.model}:generateContent?key=${selectedProvider.apiKey}`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             contents: [{
@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
               temperature: 0.7,
               topK: 40,
               topP: 0.95,
-              maxOutputTokens: 4000,
-            },
+              maxOutputTokens: 4000
+            }
           })
         });
 
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         tipsContent = data.candidates[0].content.parts[0].text;
       }
 
-      // تحليل النتيجة وحفظها
+      // تحليل النتيجة وحف٪ا
       try {
         const tipsData = JSON.parse(tipsContent);
 

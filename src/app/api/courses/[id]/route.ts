@@ -1,22 +1,29 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { prisma, Prisma } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
 import { getOrSetSubject, invalidateEducationalContent, invalidateEducationalContentPattern } from "@/lib/educational-cache-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
 // GET a specific subject by ID
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
-      const { id } = await params;
+      const { id: idOrSlug } = await params;
+      const { searchParams } = new URL(request.url);
+      const userId = searchParams.get("userId") || request.headers.get("x-user-id");
 
-      // Try to get from cache first
-      const subject = await getOrSetSubject(id, async () => {
-        return await prisma.subject.findUnique({
-          where: { id },
+      // Try to get from cache first (we use the id/slug as key)
+      const subject = (await getOrSetSubject(idOrSlug, async () => {
+        return await prisma.subject.findFirst({
+          where: {
+            OR: [
+              { id: idOrSlug },
+              { slug: idOrSlug }
+            ]
+          },
           include: {
             teachers: {
               select: {
@@ -24,50 +31,64 @@ export async function GET(
                 name: true,
                 image: true,
                 rating: true,
-                bio: true,
+                bio: true
               }
             },
             _count: {
               select: {
                 topics: true,
-                enrollments: true,
+                enrollments: true
               }
             }
           }
         });
-      }) as any;
+      })) as any;
 
       if (!subject) {
         return NextResponse.json(
-          { error: "ط§ظ„ظ…ط§ط¯ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©" },
+          { error: "المادة غير موجودة" },
           { status: 404 }
         );
       }
 
-      // Check enrollment if userId is provided
-      const { searchParams } = new URL(req.url);
-      const userId = searchParams.get("userId");
+      // Check enrollment & role
       let enrollment = null;
+      let userRole = null;
 
       if (userId) {
-        enrollment = await prisma.subjectEnrollment.findFirst({
-          where: {
-            userId,
-            subjectId: subject.id,
-            isDeleted: false
-          }
-        });
+        const [enrollmentRecord, userRecord] = await Promise.all([
+          prisma.subjectEnrollment.findFirst({
+            where: { userId, subjectId: subject.id, isDeleted: false }
+          }),
+          prisma.user.findUnique({
+            where: { id: userId },
+            select: { role: true }
+          })
+        ]);
+        enrollment = enrollmentRecord;
+        userRole = userRecord?.role;
+      }
+
+      const isOwnerOrEnrolled = !!enrollment;
+      const isAdmin = userRole === "ADMIN";
+      
+      // Security Check: If not published or not active, hide from non-admins/non-enrolled
+      if ((!subject.isPublished || !subject.isActive) && !isOwnerOrEnrolled && !isAdmin) {
+        return NextResponse.json(
+          { error: "هذه الدورة غير متاحة حالياً" },
+          { status: 404 }
+        );
       }
 
       return NextResponse.json({
-        ...subject,
+        subject: subject,
         enrollment
       });
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "ط®ط·ط£ ط؛ظٹط± ظ…ط¹ط±ظˆظپ";
+      const errorMessage = error instanceof Error ? error.message : "خطأ غير معروف";
       logger.error("Error fetching subject:", { error: errorMessage });
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط·ظ„ط¨" },
+        { error: "حدث خطأ أثناء معالجة الطلب" },
         { status: 500 }
       );
     }
@@ -76,10 +97,10 @@ export async function GET(
 
 // DELETE a subject
 export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { id } = await params;
 
@@ -90,7 +111,7 @@ export async function DELETE(
 
       if (!subjectResult) {
         return NextResponse.json(
-          { error: "ط§ظ„ظ…ط§ط¯ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©" },
+          { error: "المادة غير موجودة" },
           { status: 404 }
         );
       }
@@ -157,7 +178,7 @@ export async function DELETE(
       await invalidateEducationalContentPattern('courses:list:*');
 
       return NextResponse.json(
-        { message: "طھظ… ط­ط°ظپ ط§ظ„ظ…ط§ط¯ط© ط¨ظ†ط¬ط§ط­" },
+        { message: "تم حذف المادة بنجاح" },
         { status: 200 }
       );
     } catch (error: unknown) {
@@ -170,8 +191,8 @@ export async function DELETE(
         const { id } = await params; // Re-deconstruct params here for error handling
 
         if (errorMessageLower.includes('foreign key constraint') ||
-          errorMessageLower.includes('violates foreign key') ||
-          errorMessageLower.includes('still referenced')) {
+        errorMessageLower.includes('violates foreign key') ||
+        errorMessageLower.includes('still referenced')) {
 
           // Try to identify what's blocking the deletion
           let blockingInfo = "";
@@ -187,22 +208,22 @@ export async function DELETE(
             });
 
             const issues = [];
-            if (blockingData.enrollments > 0) issues.push(`${blockingData.enrollments} طھط³ط¬ظٹظ„ط§طھ ط·ظ„ط§ط¨`);
-            if (blockingData.studySessions > 0) issues.push(`${blockingData.studySessions} ط¬ظ„ط³ط§طھ ط¯ط±ط§ط³ط©`);
-            if (blockingData.tasks > 0) issues.push(`${blockingData.tasks} ظ…ظ‡ط§ظ…`);
-            if (blockingData.challenges > 0) issues.push(`${blockingData.challenges} طھط­ط¯ظٹط§طھ`);
-            if (blockingData.schedules > 0) issues.push(`${blockingData.schedules} ط¬ط¯ط§ظˆظ„`);
+            if (blockingData.enrollments > 0) issues.push(`${blockingData.enrollments} تسجيلات طلاب`);
+            if (blockingData.studySessions > 0) issues.push(`${blockingData.studySessions} جلسات دراسة`);
+            if (blockingData.tasks > 0) issues.push(`${blockingData.tasks} مهام`);
+            if (blockingData.challenges > 0) issues.push(`${blockingData.challenges} تحديات`);
+            if (blockingData.schedules > 0) issues.push(`${blockingData.schedules} جداول`);
 
             if (issues.length > 0) {
-              blockingInfo = `\nط§ظ„ط¨ظٹط§ظ†ط§طھ ط§ظ„ظ…ط±طھط¨ط·ط©: ${issues.join(', ')}`;
+              blockingInfo = `\nالبيانات المرتبطة: ${issues.join(', ')}`;
             }
-          } catch (countError) {
+          } catch (_countError) {
+
             // Ignore counting errors, just return generic message
           }
-
           return NextResponse.json(
             {
-              error: `ظ„ط§ ظٹظ…ظƒظ† ط­ط°ظپ ط§ظ„ظ…ط§ط¯ط© ط¨ط³ط¨ط¨ ظˆط¬ظˆط¯ ط¨ظٹط§ظ†ط§طھ ظ…ط±طھط¨ط·ط© ط¨ظ‡ط§.${blockingInfo}\n\nظٹطھظ… ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ط¨ظٹط§ظ†ط§طھ طھظ„ظ‚ط§ط¦ظٹط§ظ‹. ظٹط±ط¬ظ‰ ط§ظ„ظ…ط­ط§ظˆظ„ط© ظ…ط±ط© ط£ط®ط±ظ‰.`
+              error: `لا يمكن حذف المادة بسبب وجود بيانات مرتبطة بها.${blockingInfo}\n\nيتم حذف هذه البيانات تلقائياً. يرجى المحاولة مرة أخرى.`
             },
             { status: 409 }
           );
@@ -210,7 +231,7 @@ export async function DELETE(
       }
 
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط·ظ„ط¨" },
+        { error: "حدث خطأ أثناء معالجة الطلب" },
         { status: 500 }
       );
     }
@@ -219,13 +240,13 @@ export async function DELETE(
 
 // PUT to update a subject
 export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { id } = await params;
-      const data = await req.json();
+      const data = await request.json();
 
       // Update the subject
       const updatedSubject = await prisma.subject.update({
@@ -242,10 +263,9 @@ export async function PUT(
       const errorMessage = error instanceof Error ? error.message : String(error);
       logger.error("Error updating subject:", { error: errorMessage });
       return NextResponse.json(
-        { error: "ط­ط¯ط« ط®ط·ط£ ط£ط«ظ†ط§ط، ظ…ط¹ط§ظ„ط¬ط© ط§ظ„ط·ظ„ط¨" },
+        { error: "حدث خطأ أثناء معالجة الطلب" },
         { status: 500 }
       );
     }
   });
 }
-

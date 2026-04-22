@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
 import { CacheService } from '@/lib/redis';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
@@ -26,16 +26,16 @@ export async function GET(request: NextRequest) {
           select: {
             durationMin: true,
             focusScore: true,
-            createdAt: true,
+            createdAt: true
           },
           orderBy: {
-            createdAt: 'asc',
-          },
+            createdAt: 'asc'
+          }
         });
 
         // Type for selected study session fields
         type StudySessionSummary = Pick<Prisma.StudySessionGetPayload<{
-          select: { durationMin: true; focusScore: true; createdAt: true }
+          select: {durationMin: true;focusScore: true;createdAt: true;};
         }>, 'durationMin' | 'focusScore' | 'createdAt'>;
 
         // Calculate total minutes
@@ -49,19 +49,19 @@ export async function GET(request: NextRequest) {
           (session: StudySessionSummary) => session.focusScore !== null
         );
         const averageFocus =
-          focusSessions.length > 0
-            ? focusSessions.reduce(
-              (sum: number, session: StudySessionSummary) => sum + (session.focusScore || 0),
-              0
-            ) / focusSessions.length
-            : 0;
+        focusSessions.length > 0 ?
+        focusSessions.reduce(
+          (sum: number, session: StudySessionSummary) => sum + (session.focusScore || 0),
+          0
+        ) / focusSessions.length :
+        0;
 
         // Count completed tasks
         const tasksCompleted = await prisma.task.count({
           where: {
             userId,
-            status: TaskStatus.COMPLETED,
-          },
+            status: TaskStatus.COMPLETED
+          }
         });
 
         // Calculate current streak
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
           totalMinutes,
           averageFocus: Math.round(averageFocus * 100) / 100,
           tasksCompleted,
-          streakDays,
+          streakDays
         };
       }, 600); // Cache for 10 minutes (enhanced caching)
 

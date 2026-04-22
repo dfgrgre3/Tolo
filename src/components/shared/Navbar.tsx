@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+
 import { BookOpen, Menu } from "lucide-react";
 
 export function Navbar() {
@@ -41,6 +41,6 @@ export function Navbar() {
           <Menu className="h-5 w-5" />
         </Button>
       </div>
-    </header>
-  );
+    </header>);
+
 }

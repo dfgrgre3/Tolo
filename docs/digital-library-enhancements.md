@@ -1,4 +1,4 @@
-# Digital Library Enhancements
+﻿# Digital Library Enhancements
 
 This document outlines recommended enhancements to the digital library system in ThanaWy.
 

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { gamificationService } from "@/services/gamification-service";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
 import { z } from "zod";
 
 const claimSchema = z.object({
-  rewardId: z.string().min(1, "معرف المكافأة مطلوب"),
+  rewardId: z.string().min(1, "معرف المكافأة مطلوب")
 });
 
 export async function POST(request: NextRequest) {

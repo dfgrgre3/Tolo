@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { safeFetch } from "@/lib/safe-client-utils";
 import { errorService as errorManager } from '@/lib/logging/error-service';
-import { ensureUser } from "@/lib/user-utils";
+import { useAuth } from "@/contexts/auth-context";
 import type { Schedule, SubjectEnrollment, Task, StudySession, Reminder, SubjectType } from '../types';
 
 import { logger } from '@/lib/logger';
@@ -22,6 +22,7 @@ interface UseTimeDataReturn {
 }
 
 export function useTimeData(): UseTimeDataReturn {
+  const { user, isLoading: isAuthLoading } = useAuth();
   const [userId, setUserId] = useState<string | null>(null);
   const [schedule, setSchedule] = useState<Schedule | null>(null);
   const [subjects, setSubjects] = useState<SubjectType[]>([]);
@@ -29,6 +30,20 @@ export function useTimeData(): UseTimeDataReturn {
   const [studySessions, setStudySessions] = useState<StudySession[]>([]);
   const [reminders, setReminders] = useState<Reminder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Sync userId with AuthContext and fallback to guest ID
+  useEffect(() => {
+    if (user?.id) {
+      setUserId(user.id);
+    } else if (!isAuthLoading) {
+      // Fallback to guest ID if not logged in
+      import("@/lib/user-utils").then(({ ensureUser }) => {
+        ensureUser().then(id => {
+          if (id) setUserId(id);
+        });
+      });
+    }
+  }, [user, isAuthLoading]);
 
   const fetchData = useCallback(async () => {
     if (!userId || userId.trim() === '' || userId === 'undefined') {
@@ -44,8 +59,8 @@ export function useTimeData(): UseTimeDataReturn {
       const results = await Promise.allSettled([
         safeFetch<Schedule>(`/api/schedule?userId=${encodeURIComponent(userId)}`, undefined, null),
         safeFetch<SubjectEnrollment[]>(`/api/subjects?userId=${encodeURIComponent(userId)}`, undefined, []),
-        safeFetch<Task[]>(`/api/tasks`, undefined, []),
-        safeFetch<StudySession[]>(`/api/study-sessions`, undefined, []),
+        safeFetch<Task[]>(`/api/tasks?userId=${encodeURIComponent(userId)}`, undefined, []),
+        safeFetch<StudySession[]>(`/api/study-sessions?userId=${encodeURIComponent(userId)}`, undefined, []),
         safeFetch<Reminder[]>(`/api/reminders?userId=${encodeURIComponent(userId)}`, undefined, []),
       ]);
 
@@ -76,8 +91,11 @@ export function useTimeData(): UseTimeDataReturn {
           errorManager.handleNetworkError(subjectsError, `/api/subjects?userId=${userId}`, {
             showToast: false
           });
-        } else if (subjectsData) {
+        } else if (Array.isArray(subjectsData)) {
           setSubjects(subjectsData.map(s => s.subject));
+        } else {
+          logger.warn('Subjects data is not an array:', subjectsData);
+          setSubjects([]);
         }
       } else {
         errorManager.handleNetworkError(
@@ -95,8 +113,11 @@ export function useTimeData(): UseTimeDataReturn {
           errorManager.handleNetworkError(tasksError, `/api/tasks?userId=${userId}`, {
             showToast: false
           });
-        } else if (tasksData) {
+        } else if (Array.isArray(tasksData)) {
           setTasks(tasksData);
+        } else {
+          logger.warn('Tasks data is not an array:', tasksData);
+          setTasks([]);
         }
       } else {
         errorManager.handleNetworkError(
@@ -114,8 +135,11 @@ export function useTimeData(): UseTimeDataReturn {
           errorManager.handleNetworkError(studySessionsError, `/api/study-sessions?userId=${userId}`, {
             showToast: false
           });
-        } else if (studySessionsData) {
+        } else if (Array.isArray(studySessionsData)) {
           setStudySessions(studySessionsData);
+        } else {
+          logger.warn('Study sessions data is not an array:', studySessionsData);
+          setStudySessions([]);
         }
       } else {
         errorManager.handleNetworkError(
@@ -133,8 +157,11 @@ export function useTimeData(): UseTimeDataReturn {
           errorManager.handleNetworkError(remindersError, `/api/reminders?userId=${userId}`, {
             showToast: false
           });
-        } else if (remindersData) {
+        } else if (Array.isArray(remindersData)) {
           setReminders(remindersData);
+        } else {
+          logger.warn('Reminders data is not an array:', remindersData);
+          setReminders([]);
         }
       } else {
         errorManager.handleNetworkError(
@@ -175,23 +202,6 @@ export function useTimeData(): UseTimeDataReturn {
       setIsLoading(false);
     }
   }, [userId]);
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const id = await ensureUser();
-        if (id && id.trim() !== '' && id !== 'undefined') {
-          setUserId(id);
-        } else {
-          logger.debug('Failed to get valid userId');
-          setIsLoading(false);
-        }
-      } catch (error) {
-        logger.error('Error ensuring user:', error);
-        setIsLoading(false);
-      }
-    })();
-  }, []);
 
   useEffect(() => {
     if (userId) {

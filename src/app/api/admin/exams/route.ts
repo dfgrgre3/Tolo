@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
@@ -9,7 +9,7 @@ const examSchema = z.object({
   subjectId: z.string().min(1, "معرف المادة مطلوب"),
   year: z.number().default(new Date().getFullYear()),
   url: z.string().url("رابط الامتحان غير صالح"),
-  type: z.string().optional(),
+  type: z.string().optional()
 });
 
 export async function GET(request: NextRequest) {
@@ -30,30 +30,30 @@ export async function GET(request: NextRequest) {
 
         const where = {
           AND: [
-            search
-              ? { title: { contains: search, mode: "insensitive" as const } }
-              : {},
-            subjectId ? { subjectId } : {},
-          ],
+          search ?
+          { title: { contains: search, mode: "insensitive" as const } } :
+          {},
+          subjectId ? { subjectId } : {}]
+
         };
 
         const [exams, total] = await Promise.all([
-          prisma.exam.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
-            include: {
-              subject: {
-                select: { id: true, name: true, nameAr: true },
-              },
-              _count: {
-                select: { results: true },
-              },
+        prisma.exam.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          include: {
+            subject: {
+              select: { id: true, name: true, nameAr: true }
             },
-          }),
-          prisma.exam.count({ where }),
-        ]);
+            _count: {
+              select: { results: true }
+            }
+          }
+        }),
+        prisma.exam.count({ where })]
+        );
 
         return successResponse({
           exams,
@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
             page,
             limit,
             total,
-            totalPages: Math.ceil(total / limit),
-          },
+            totalPages: Math.ceil(total / limit)
+          }
         });
       } catch (error) {
         return handleApiError(error);
@@ -90,9 +90,9 @@ export async function POST(request: NextRequest) {
           data: validation.data,
           include: {
             subject: {
-              select: { id: true, name: true },
-            },
-          },
+              select: { id: true, name: true }
+            }
+          }
         });
 
         return successResponse(exam, "تم إضافة الامتحان بنجاح", 201);
@@ -123,9 +123,9 @@ export async function PATCH(request: NextRequest) {
           data,
           include: {
             subject: {
-              select: { id: true, name: true },
-            },
-          },
+              select: { id: true, name: true }
+            }
+          }
         });
 
         return successResponse(exam, "تم تحديث الامتحان بنجاح");
@@ -152,7 +152,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         await prisma.exam.delete({
-          where: { id },
+          where: { id }
         });
 
         return successResponse({ success: true }, "تم حذف الامتحان بنجاح");
@@ -162,4 +162,3 @@ export async function DELETE(request: NextRequest) {
     });
   });
 }
-

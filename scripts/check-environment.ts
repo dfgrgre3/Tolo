@@ -1,7 +1,7 @@
-#!/usr/bin/env tsx
+﻿#!/usr/bin/env tsx
 /**
  * Comprehensive Environment & Prisma Check Script
- * سكربت شامل للتحقق من بيئة التشغيل و Prisma
+ * ط³ظƒط±ط¨طھ ط´ط§ظ…ظ„ ظ„ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط¦ط© ط§ظ„طھط´ط؛ظٹظ„ ظˆ Prisma
  * 
  * Checks for:
  * - Prisma EPERM issues (Windows-specific)
@@ -229,21 +229,21 @@ async function checkEnvironment(): Promise<EnvironmentReport> {
 }
 
 function printReport(report: EnvironmentReport): void {
-  console.log('\n🔍 Comprehensive Environment & Prisma Check');
-  console.log('🔍 فحص شامل لبيئة التشغيل و Prisma\n');
+  console.log('\nًں”چ Comprehensive Environment & Prisma Check');
+  console.log('ًں”چ ظپط­طµ ط´ط§ظ…ظ„ ظ„ط¨ظٹط¦ط© ط§ظ„طھط´ط؛ظٹظ„ ظˆ Prisma\n');
   console.log('='.repeat(70));
 
   let hasIssues = false;
 
   // Prisma Section
-  console.log('\n📦 Prisma Status:');
-  console.log(`   Schema exists: ${report.prisma.schemaExists ? '✅' : '❌'}`);
-  console.log(`   Client generated: ${report.prisma.clientGenerated ? '✅' : '❌'}`);
-  console.log(`   Cache exists: ${report.prisma.cacheExists ? '✅' : '❌'}`);
+  console.log('\nًں“¦ Prisma Status:');
+  console.log(`   Schema exists: ${report.prisma.schemaExists ? 'âœ…' : 'â‌Œ'}`);
+  console.log(`   Client generated: ${report.prisma.clientGenerated ? 'âœ…' : 'â‌Œ'}`);
+  console.log(`   Cache exists: ${report.prisma.cacheExists ? 'âœ…' : 'â‌Œ'}`);
 
   if (report.prisma.issues.length > 0) {
     hasIssues = true;
-    console.log('\n   ⚠️  Issues:');
+    console.log('\n   âڑ ï¸ڈ  Issues:');
     report.prisma.issues.forEach(issue => {
       console.log(`      - ${issue}`);
     });
@@ -251,36 +251,36 @@ function printReport(report: EnvironmentReport): void {
 
   // Windows Section
   if (report.windows.isWindows) {
-    console.log('\n🪟 Windows Environment:');
+    console.log('\nًںھں Windows Environment:');
     console.log(`   Node processes running: ${report.windows.nodeProcesses}`);
-    console.log(`   Prisma locked: ${report.windows.prismaLocked ? '⚠️  Yes' : '✅ No'}`);
+    console.log(`   Prisma locked: ${report.windows.prismaLocked ? 'âڑ ï¸ڈ  Yes' : 'âœ… No'}`);
     
     if (report.windows.nodeProcesses > 0 || report.windows.prismaLocked) {
       hasIssues = true;
-      console.log('\n   💡 Solution: Run `npm run fix:prisma` to stop Node processes and fix Prisma EPERM');
+      console.log('\n   ًں’، Solution: Run `npm run fix:prisma` to stop Node processes and fix Prisma EPERM');
     }
   }
 
   // Auth Section
-  console.log('\n🔐 Authentication Libraries:');
+  console.log('\nًں”گ Authentication Libraries:');
   
   if (report.auth.conflictingPackages.length > 0) {
     hasIssues = true;
-    console.log('\n   ❌ Conflicting packages found:');
+    console.log('\n   â‌Œ Conflicting packages found:');
     report.auth.conflictingPackages.forEach(({ package: pkg, reason }) => {
       console.log(`      - ${pkg}`);
       console.log(`        ${reason}`);
     });
-    console.log('\n   💡 Solution: Remove conflicting packages');
+    console.log('\n   ًں’، Solution: Remove conflicting packages');
     const packages = report.auth.conflictingPackages.map(p => p.package).join(' ');
     console.log(`      npm uninstall ${packages}`);
   } else {
-    console.log('   ✅ No conflicting packages');
+    console.log('   âœ… No conflicting packages');
   }
 
   if (report.auth.conflictingFiles.length > 0) {
     hasIssues = true;
-    console.log('\n   ❌ Conflicting files found:');
+    console.log('\n   â‌Œ Conflicting files found:');
     report.auth.conflictingFiles.forEach(file => {
       console.log(`      - ${file}`);
     });
@@ -288,7 +288,7 @@ function printReport(report: EnvironmentReport): void {
 
   if (report.auth.forbiddenImports.length > 0) {
     hasIssues = true;
-    console.log('\n   ❌ Forbidden imports found:');
+    console.log('\n   â‌Œ Forbidden imports found:');
     const grouped = report.auth.forbiddenImports.reduce((acc, imp) => {
       if (!acc[imp.type]) acc[imp.type] = [];
       acc[imp.type].push(imp);
@@ -307,13 +307,13 @@ function printReport(report: EnvironmentReport): void {
   if (report.auth.conflictingPackages.length === 0 && 
       report.auth.conflictingFiles.length === 0 && 
       report.auth.forbiddenImports.length === 0) {
-    console.log('   ✅ No authentication conflicts');
+    console.log('   âœ… No authentication conflicts');
   }
 
   // Errors
   if (report.errors.length > 0) {
     hasIssues = true;
-    console.log('\n❌ Errors:');
+    console.log('\nâ‌Œ Errors:');
     report.errors.forEach(error => {
       console.log(`   - ${error}`);
     });
@@ -321,7 +321,7 @@ function printReport(report: EnvironmentReport): void {
 
   // Warnings
   if (report.warnings.length > 0) {
-    console.log('\n⚠️  Warnings:');
+    console.log('\nâڑ ï¸ڈ  Warnings:');
     report.warnings.forEach(warning => {
       console.log(`   - ${warning}`);
     });
@@ -331,23 +331,23 @@ function printReport(report: EnvironmentReport): void {
   console.log('\n' + '='.repeat(70));
   
   if (hasIssues) {
-    console.log('\n⚠️  ISSUES DETECTED! Please fix the issues above.');
-    console.log('⚠️  تم اكتشاف مشاكل! يرجى إصلاح المشاكل أعلاه.\n');
-    console.log('💡 Quick fixes:');
-    console.log('💡 إصلاحات سريعة:');
+    console.log('\nâڑ ï¸ڈ  ISSUES DETECTED! Please fix the issues above.');
+    console.log('âڑ ï¸ڈ  طھظ… ط§ظƒطھط´ط§ظپ ظ…ط´ط§ظƒظ„! ظٹط±ط¬ظ‰ ط¥طµظ„ط§ط­ ط§ظ„ظ…ط´ط§ظƒظ„ ط£ط¹ظ„ط§ظ‡.\n');
+    console.log('ًں’، Quick fixes:');
+    console.log('ًں’، ط¥طµظ„ط§ط­ط§طھ ط³ط±ظٹط¹ط©:');
     console.log('   - For Prisma EPERM: npm run fix:prisma');
-    console.log('     لإصلاح Prisma EPERM: npm run fix:prisma');
+    console.log('     ظ„ط¥طµظ„ط§ط­ Prisma EPERM: npm run fix:prisma');
     if (report.auth.conflictingPackages.length > 0) {
       const packages = report.auth.conflictingPackages.map(p => p.package).join(' ');
       console.log(`   - Remove auth conflicts: npm uninstall ${packages}`);
-      console.log(`     لحذف تعارضات المصادقة: npm uninstall ${packages}`);
+      console.log(`     ظ„ط­ط°ظپ طھط¹ط§ط±ط¶ط§طھ ط§ظ„ظ…طµط§ط¯ظ‚ط©: npm uninstall ${packages}`);
     }
     console.log('\n   For more details: npm run check:auth');
-    console.log('   لمزيد من التفاصيل: npm run check:auth');
+    console.log('   ظ„ظ…ط²ظٹط¯ ظ…ظ† ط§ظ„طھظپط§طµظٹظ„: npm run check:auth');
     process.exit(1);
   } else {
-    console.log('\n✅ All checks passed! Environment is healthy.');
-    console.log('✅ نجحت جميع الفحوصات! بيئة التشغيل سليمة.');
+    console.log('\nâœ… All checks passed! Environment is healthy.');
+    console.log('âœ… ظ†ط¬ط­طھ ط¬ظ…ظٹط¹ ط§ظ„ظپط­ظˆطµط§طھ! ط¨ظٹط¦ط© ط§ظ„طھط´ط؛ظٹظ„ ط³ظ„ظٹظ…ط©.');
     process.exit(0);
   }
 }

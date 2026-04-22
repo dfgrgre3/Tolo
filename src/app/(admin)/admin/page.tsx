@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { DashboardSkeleton } from "@/components/admin/ui/loading-skeleton";
@@ -515,7 +515,7 @@ export default function AdminDashboardPage() {
             <span>غرفة التحكم الملكية - Dungeon Master</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
-            لوحة <span className={STYLES.neonText}>إدارة المملكة</span> 🏛️
+            لوحة <span className={STYLES.neonText}>إدارة المملكة</span> ًںڈ›ï¸ڈ
           </h1>
           <p className="text-lg text-gray-400 font-medium max-w-2xl font-bold">
             أنت المتحكم في مصادر المحاربين. راقب الإحصائيات، وجّه الجيش الكان، وقم ببناء عظمة الجمهورية.

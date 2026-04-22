@@ -28,7 +28,7 @@ if (isServer) {
   try {
     const { AsyncLocalStorage } = require('async_hooks');
     storage = new AsyncLocalStorage();
-  } catch (error) {
+  } catch (_error) {
     // If requirement fails, use the mock
     storage = new MockAsyncLocalStorage<RequestContext>();
   }
@@ -60,7 +60,7 @@ export function initRequestContext(partial?: Partial<RequestContext>): RequestCo
   return {
     requestId: partial?.requestId || uuidv4(),
     startTime: Date.now(),
-    ...partial,
+    ...partial
   };
 }
 

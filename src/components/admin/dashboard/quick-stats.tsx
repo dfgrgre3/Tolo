@@ -1,4 +1,4 @@
-import { Card, CardContent } from "@/components/ui/card";
+﻿import { Card, CardContent } from "@/components/ui/card";
 import { Clock, TrendingUp, Calendar, ArrowUpRight } from "lucide-react";
 
 interface QuickStatsProps {

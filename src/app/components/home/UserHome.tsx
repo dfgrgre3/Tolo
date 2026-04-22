@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { ProgressSummary } from '@/lib/server-data-fetch';
 import { User } from '@/types/user';
 import { PerformanceMetric } from './types';
@@ -10,11 +10,11 @@ import dynamic from 'next/dynamic';
 import { Sparkles, Crown } from 'lucide-react';
 
 // --- Preload skeleton for dynamic imports ---
-import { Skeleton } from '@/components/ui/skeleton';
 
-const LoadingFallback = () => (
-  <div className="w-full h-48 bg-card/20 animate-pulse rounded-[2rem] border border-white/5" />
-);
+
+const LoadingFallback = () =>
+<div className="w-full h-48 bg-card/20 animate-pulse rounded-[2rem] border border-white/5" />;
+
 
 // --- Sections Imports (Optimized with Dynamic Loading) ---
 const LevelProgressSection = dynamic(
@@ -83,16 +83,16 @@ const containerVariants: any = {
 
 const itemVariants: any = {
   hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { type: "spring", stiffness: 80, damping: 15 } 
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { type: "spring", stiffness: 80, damping: 15 }
   }
 };
 
 export function UserHome({ user, summary, performanceMetrics, metricsLoading }: UserHomeProps) {
   const [isMounted, setIsMounted] = useState(false);
-  
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -103,13 +103,13 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
   const todayDate = new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <motion.div 
+    <motion.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
       className="max-w-[1800px] mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 py-6 sm:py-8 lg:py-12 space-y-8 lg:space-y-16 min-h-screen font-sans selection:bg-primary/30 selection:text-primary-foreground"
-      dir="rtl"
-    >
+      dir="rtl">
+      
       {/* --- Premium Ambient Background --- */}
       <div className="fixed inset-0 pointer-events-none -z-10 bg-background overflow-hidden">
         {/* Dynamic Gradient Mesh */}
@@ -121,21 +121,21 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]" />
 
         {/* Animated Floating Orbs using framer-motion */}
-        <motion.div 
+        <motion.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3], x: [0, 50, 0], y: [0, 30, 0] }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute -top-40 right-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen"
-        />
-        <motion.div 
+          className="absolute -top-40 right-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen" />
+        
+        <motion.div
           animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2], x: [0, -40, 0], y: [0, -50, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
-          className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen"
-        />
-        <motion.div 
+          className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen" />
+        
+        <motion.div
           animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3], x: [0, 30, 0], y: [0, -30, 0] }}
           transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 5 }}
-          className="absolute -bottom-40 right-1/3 w-[550px] h-[550px] bg-emerald-600/10 rounded-full blur-[120px] mix-blend-screen"
-        />
+          className="absolute -bottom-40 right-1/3 w-[550px] h-[550px] bg-emerald-600/10 rounded-full blur-[120px] mix-blend-screen" />
+        
       </div>
 
       {/* --- Premium Hero Header --- */}
@@ -148,12 +148,12 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
            
            <div className="relative z-10 flex flex-col items-center text-center gap-10">
               <div className="space-y-8 max-w-4xl">
-                 <motion.div 
-                   initial={{ opacity: 0, scale: 0.9 }}
-                   animate={{ opacity: 1, scale: 1 }}
-                   transition={{ delay: 0.2 }}
-                   className="inline-flex items-center gap-3 px-6 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-[0.2em] backdrop-blur-md shadow-[0_0_25px_rgba(16,185,129,0.2)]"
-                 >
+                 <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 }}
+                className="inline-flex items-center gap-3 px-6 py-2.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-black uppercase tracking-[0.2em] backdrop-blur-md shadow-[0_0_25px_rgba(16,185,129,0.2)]">
+                
                     <span className="relative flex h-3 w-3">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
@@ -167,16 +167,16 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
                       <span className="text-amber-400 text-sm font-black uppercase tracking-widest">رتبة المحارب</span>
                    </div>
                    <h1 className="text-5xl md:text-8xl font-black text-foreground tracking-tighter leading-[1.1]">
-                     مرحباً يا بطل، <br/>
+                     مرحباً يا بطل، <br />
                      <span className={`${rpgCommonStyles.neonText} drop-shadow-[0_0_35px_rgba(168,85,247,0.6)]`}>
                        {firstName}
                      </span>
-                     <motion.span 
-                       animate={{ rotate: [0, 14, -8, 14, -4, 10, 0, 0] }}
-                       transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1 }}
-                       className="inline-block origin-bottom-right ml-4 text-6xl md:text-7xl"
-                     >
-                       ⚔️
+                     <motion.span
+                    animate={{ rotate: [0, 14, -8, 14, -4, 10, 0, 0] }}
+                    transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1 }}
+                    className="inline-block origin-bottom-right ml-4 text-6xl md:text-7xl">
+                    
+                       âڑ”ï¸ڈ
                      </motion.span>
                    </h1>
                  </div>
@@ -238,6 +238,6 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
 
       </div>
 
-    </motion.div>
-  );
+    </motion.div>);
+
 }

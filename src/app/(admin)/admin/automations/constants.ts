@@ -1,4 +1,4 @@
-import { Rule } from "./types";
+﻿import { Rule } from "./types";
 
 export const triggerOptions = [
   { value: "ABSENCE_DAYS", label: "غاب عن المنصة لمدة" },

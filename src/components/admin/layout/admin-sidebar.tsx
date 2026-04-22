@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -143,7 +143,7 @@ const mainNavItems: SidebarNavItem[] = [
     permission: "ANALYTICS_VIEW",
   },
   {
-    title: "مُنشئ التقارير (الخزانة)",
+    title: "مظڈنشئ التقارير (الخزانة)",
     href: "/admin/reports",
     icon: TableProperties,
     color: "bg-orange-500",

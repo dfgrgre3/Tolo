@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
@@ -136,7 +136,7 @@ export default function EventsPage() {
                     ساحة <span className={STYLES.neonText}>المناسبات</span> <br /> الكبرى
                  </h1>
                  <p className="text-xl text-gray-400 font-medium max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                    هنا يلتقي الفرسان، وتُعقد المحاضرات التاريخية. لا تدع فرصة حضور هذه التجمعات العظمى تفوتك، ففيها تُبنى التحالفات وتُتبادل الخبرات.
+                    هنا يلتقي الفرسان، وتظڈعقد المحاضرات التاريخية. لا تدع فرصة حضور هذه التجمعات العظمى تفوتك، ففيها تظڈبنى التحالفات وتظڈتبادل الخبرات.
                  </p>
                  <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-6">
                     {userId &&
@@ -290,7 +290,7 @@ export default function EventsPage() {
                 </div>
                 <div className="space-y-2">
                    <h3 className="text-4xl font-black text-white">لا توجد احتفالات حالياً</h3>
-                   <p className="text-gray-500 font-medium max-w-lg mx-auto">المملكة هادئة الآن، لكن التجمعات الكبرى قادمة قريباً. ابقَ متيقظاً للبلاغات الملكية.</p>
+                   <p className="text-gray-500 font-medium max-w-lg mx-auto">المملكة هادئة الآن، لكن التجمعات الكبرى قادمة قريباً. ابقِ متيقظاً للبلاغات الملكية.</p>
                 </div>
                 <Button onClick={() => {setSearchTerm("");setActiveCategory("all");}} className="h-14 px-10 bg-primary/10 text-primary border border-primary/30 rounded-2xl font-black">إعادة تصفير الساحة</Button>
              </div>

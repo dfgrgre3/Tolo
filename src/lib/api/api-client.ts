@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Centralized API Client (Fetch Wrapper)
  * This replaces all custom apiFetch instances across the app to reduce over-engineering.
  */
 
 // NOTE: ErrorManager is intentionally NOT imported at the top level.
 // Doing so creates a circular dependency:
-//   api-client → ErrorManager → safe-client-utils → client-logger → unified-logger → ErrorManager
+//   api-client â†’ ErrorManager â†’ safe-client-utils â†’ client-logger â†’ unified-logger â†’ ErrorManager
 // This cycle causes api-client to resolve as `undefined` in modules that import it (e.g. auth-client).
 // Instead, ErrorManager is loaded lazily inside the catch block below.
 

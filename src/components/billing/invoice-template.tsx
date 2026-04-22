@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { ar } from "date-fns/locale";
+
 import QRCode from "qrcode";
 
 interface InvoiceData {
@@ -21,7 +21,7 @@ interface InvoiceData {
   paymentMethod: string;
 }
 
-export const InvoiceTemplate = ({ data }: { data: InvoiceData }) => {
+export const InvoiceTemplate = ({ data }: {data: InvoiceData;}) => {
   const [qrCodeUrl, setQrCodeUrl] = useState<string>("");
 
   useEffect(() => {
@@ -40,11 +40,11 @@ export const InvoiceTemplate = ({ data }: { data: InvoiceData }) => {
       {/* Header */}
       <div className="flex justify-between items-start border-b-2 border-gray-100 pb-8 mb-10">
         <div className="flex gap-6">
-            {qrCodeUrl && (
-                <div className="border p-1 rounded-lg">
+            {qrCodeUrl &&
+          <div className="border p-1 rounded-lg">
                     <img src={qrCodeUrl} alt="QR Verification" className="w-20 h-20" />
                 </div>
-            )}
+          }
             <div>
                 <h1 className="text-3xl font-extrabold text-blue-600 mb-1">منصة ثانوية أونلاين</h1>
                 <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Thanawy Online Educational Platform</p>
@@ -67,7 +67,7 @@ export const InvoiceTemplate = ({ data }: { data: InvoiceData }) => {
       {/* Info Grid */}
       <div className="grid grid-cols-2 gap-12 mb-12">
         <div>
-          <h3 className="text-blue-600/50 text-[10px] font-black mb-3 border-b pb-1 uppercase tracking-widest">مُقدمة إلى (Billed To):</h3>
+          <h3 className="text-blue-600/50 text-[10px] font-black mb-3 border-b pb-1 uppercase tracking-widest">مظڈقدمة إلى (Billed To):</h3>
           <div className="space-y-1">
             <p className="font-bold text-lg text-gray-800">{data.customerName}</p>
             <p className="text-gray-500 text-sm">{data.customerEmail}</p>
@@ -102,27 +102,27 @@ export const InvoiceTemplate = ({ data }: { data: InvoiceData }) => {
                 <td className="p-4 text-center text-gray-600 font-bold">1</td>
                 <td className="p-4 text-left font-mono font-bold text-gray-800">{data.amount} ج.م</td>
             </tr>
-            {data.promoDiscount && data.promoDiscount > 0 && (
-                <tr className="text-green-600 italic">
+            {data.promoDiscount && data.promoDiscount > 0 &&
+            <tr className="text-green-600 italic">
                     <td className="p-4">خصم كود الترويجي (Promo Code)</td>
                     <td className="p-4 text-center">---</td>
                     <td className="p-4 text-left font-mono font-bold">-{data.promoDiscount} ج.م</td>
                 </tr>
-            )}
-            {data.prorationDiscount && data.prorationDiscount > 0 && (
-                <tr className="text-blue-500 italic">
+            }
+            {data.prorationDiscount && data.prorationDiscount > 0 &&
+            <tr className="text-blue-500 italic">
                     <td className="p-4">خصم الترقية التناسبي (Proration Discount)</td>
                     <td className="p-4 text-center">---</td>
                     <td className="p-4 text-left font-mono font-bold">-{data.prorationDiscount} ج.m</td>
                 </tr>
-            )}
-            {data.balanceUsed && data.balanceUsed > 0 && (
-                <tr className="text-purple-600 italic">
+            }
+            {data.balanceUsed && data.balanceUsed > 0 &&
+            <tr className="text-purple-600 italic">
                     <td className="p-4">رصيد المحفظة المستخدم (Wallet Balance)</td>
                     <td className="p-4 text-center">---</td>
                     <td className="p-4 text-left font-mono font-bold">-{data.balanceUsed} ج.م</td>
                 </tr>
-            )}
+            }
           </tbody>
         </table>
       </div>
@@ -138,12 +138,12 @@ export const InvoiceTemplate = ({ data }: { data: InvoiceData }) => {
                 <span>سعر الباقة الأصلي</span>
                 <span>{data.amount} ج.م</span>
             </div>
-            {data.discountAmount !== undefined && data.discountAmount > 0 && (
-                <div className="flex justify-between text-green-600 font-bold text-sm">
+            {data.discountAmount !== undefined && data.discountAmount > 0 &&
+          <div className="flex justify-between text-green-600 font-bold text-sm">
                     <span>إحصالي الخصومات</span>
                     <span>-{data.discountAmount} ج.م</span>
                 </div>
-            )}
+          }
             <div className="flex justify-between text-2xl font-black border-t-2 border-dashed border-gray-200 pt-4 text-blue-600">
                 <span>الإجمالي</span>
                 <span className="font-mono">{data.finalAmount} ج.م</span>
@@ -164,7 +164,7 @@ export const InvoiceTemplate = ({ data }: { data: InvoiceData }) => {
                تم رصد ضريبة القيمة المضافة طبقاً لأحكام القانون المصري.
           </p>
           <div className="text-blue-600 text-[10px] font-black tracking-widest mt-4">
-              THANAWY.ONLINE • CAIRO, EGYPT
+              THANAWY.ONLINE ⬢ CAIRO, EGYPT
           </div>
       </div>
 
@@ -172,6 +172,6 @@ export const InvoiceTemplate = ({ data }: { data: InvoiceData }) => {
         @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap');
         div { font-family: 'Cairo', sans-serif; }
       `}</style>
-    </div>
-  );
+    </div>);
+
 };

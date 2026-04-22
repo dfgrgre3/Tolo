@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -163,7 +163,7 @@ export default function PermissionsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مصفوفة الصلاحيات (Kingdom Guard) ⚔️"
+        title="مصفوفة الصلاحيات (Kingdom Guard) âڑ”ï¸ڈ"
         description="إدارة رتب الأبطال والقادة، منح وتجريد الصلاحيات من القادة والمراقبين.">
         
         <AdminButton icon={ShieldAlert} variant="outline" className="opacity-70 group hover:opacity-100">
@@ -236,7 +236,7 @@ export default function PermissionsPage() {
                 onClick={() => selectedUser && updatePermissionsMutation.mutate({ userId: selectedUser.id, permissions: editingPermissions })}
                 loading={updatePermissionsMutation.isPending}>
                 
-                  حفظ الصلاحيات الملكية 🏛️
+                  حفظ الصلاحيات الملكية ًںڈ›ï¸ڈ
                 </AdminButton>
                 <AdminButton
                 variant="outline"

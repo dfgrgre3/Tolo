@@ -1,4 +1,4 @@
-import { PrismaClient, Level } from '@prisma/client'
+﻿import { PrismaClient, Level } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -6,16 +6,16 @@ const subjects = [
     {
         id: 'MATH',
         name: 'Mathematics',
-        nameAr: 'الرياضيات',
+        nameAr: 'ط§ظ„ط±ظٹط§ط¶ظٹط§طھ',
         type: 'MATH',
         categoryId: 'MATH',
         code: 'MATH101',
-        description: 'شرح متكامل لمنهج الرياضيات للمرحلة الثانوية، يغطي الجبر وحساب المثلثات والتفاضل والتكامل.',
+        description: 'ط´ط±ط­ ظ…طھظƒط§ظ…ظ„ ظ„ظ…ظ†ظ‡ط¬ ط§ظ„ط±ظٹط§ط¶ظٹط§طھ ظ„ظ„ظ…ط±ط­ظ„ط© ط§ظ„ط«ط§ظ†ظˆظٹط©طŒ ظٹط؛ط·ظٹ ط§ظ„ط¬ط¨ط± ظˆط­ط³ط§ط¨ ط§ظ„ظ…ط«ظ„ط«ط§طھ ظˆط§ظ„طھظپط§ط¶ظ„ ظˆط§ظ„طھظƒط§ظ…ظ„.',
         color: '#3b82f6',
         icon: 'Calculator',
         price: 150,
         rating: 4.8,
-        instructorName: 'أ/ محمد علي',
+        instructorName: 'ط£/ ظ…ط­ظ…ط¯ ط¹ظ„ظٹ',
         level: Level.INTERMEDIATE,
         durationHours: 40,
         thumbnailUrl: 'https://images.unsplash.com/photo-1509228468518-180dd48a5793?q=80&w=2070&auto=format&fit=crop',
@@ -25,16 +25,16 @@ const subjects = [
     {
         id: 'PHYSICS',
         name: 'Physics',
-        nameAr: 'الفيزياء',
+        nameAr: 'ط§ظ„ظپظٹط²ظٹط§ط،',
         type: 'PHYSICS',
         categoryId: 'PHYSICS',
         code: 'PHYS101',
-        description: 'دورة شاملة في الفيزياء تغطي الميكانيكا، الضوء، الكهرباء، والفيزياء الحديثة بأسلوب مبسط.',
+        description: 'ط¯ظˆط±ط© ط´ط§ظ…ظ„ط© ظپظٹ ط§ظ„ظپظٹط²ظٹط§ط، طھط؛ط·ظٹ ط§ظ„ظ…ظٹظƒط§ظ†ظٹظƒط§طŒ ط§ظ„ط¶ظˆط،طŒ ط§ظ„ظƒظ‡ط±ط¨ط§ط،طŒ ظˆط§ظ„ظپظٹط²ظٹط§ط، ط§ظ„ط­ط¯ظٹط«ط© ط¨ط£ط³ظ„ظˆط¨ ظ…ط¨ط³ط·.',
         color: '#ef4444',
         icon: 'Zap',
         price: 180,
         rating: 4.9,
-        instructorName: 'أ/ أحمد حسن',
+        instructorName: 'ط£/ ط£ط­ظ…ط¯ ط­ط³ظ†',
         level: Level.ADVANCED,
         durationHours: 45,
         thumbnailUrl: 'https://images.unsplash.com/photo-1636466497217-26a8cbeaf0aa?q=80&w=2070&auto=format&fit=crop',
@@ -44,16 +44,16 @@ const subjects = [
     {
         id: 'CHEMISTRY',
         name: 'Chemistry',
-        nameAr: 'الكيمياء',
+        nameAr: 'ط§ظ„ظƒظٹظ…ظٹط§ط،',
         type: 'CHEMISTRY',
         categoryId: 'CHEMISTRY',
         code: 'CHEM101',
-        description: 'تعلم الكيمياء العضوية وغير العضوية، مع تجارب عملية مسجلة وفهم عميق للروابط والمفاعلات.',
+        description: 'طھط¹ظ„ظ… ط§ظ„ظƒظٹظ…ظٹط§ط، ط§ظ„ط¹ط¶ظˆظٹط© ظˆط؛ظٹط± ط§ظ„ط¹ط¶ظˆظٹط©طŒ ظ…ط¹ طھط¬ط§ط±ط¨ ط¹ظ…ظ„ظٹط© ظ…ط³ط¬ظ„ط© ظˆظپظ‡ظ… ط¹ظ…ظٹظ‚ ظ„ظ„ط±ظˆط§ط¨ط· ظˆط§ظ„ظ…ظپط§ط¹ظ„ط§طھ.',
         color: '#10b981',
         icon: 'FlaskConical',
         price: 160,
         rating: 4.7,
-        instructorName: 'د/ سارة محمود',
+        instructorName: 'ط¯/ ط³ط§ط±ط© ظ…ط­ظ…ظˆط¯',
         level: Level.INTERMEDIATE,
         durationHours: 38,
         thumbnailUrl: 'https://images.unsplash.com/photo-1532187863486-abf9d3a4461a?q=80&w=2070&auto=format&fit=crop',
@@ -63,16 +63,16 @@ const subjects = [
     {
         id: 'ARABIC',
         name: 'Arabic',
-        nameAr: 'اللغة العربية',
+        nameAr: 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط©',
         type: 'ARABIC',
         categoryId: 'ARABIC',
         code: 'ARAB101',
-        description: 'إتقان اللغة العربية، النحو، البلاغة، والأدب بأسلوب شيق يضمن الدرجات النهائية.',
+        description: 'ط¥طھظ‚ط§ظ† ط§ظ„ظ„ط؛ط© ط§ظ„ط¹ط±ط¨ظٹط©طŒ ط§ظ„ظ†ط­ظˆطŒ ط§ظ„ط¨ظ„ط§ط؛ط©طŒ ظˆط§ظ„ط£ط¯ط¨ ط¨ط£ط³ظ„ظˆط¨ ط´ظٹظ‚ ظٹط¶ظ…ظ† ط§ظ„ط¯ط±ط¬ط§طھ ط§ظ„ظ†ظ‡ط§ط¦ظٹط©.',
         color: '#f59e0b',
         icon: 'BookOpen',
         price: 120,
         rating: 4.9,
-        instructorName: 'أ/ مصطفى سعيد',
+        instructorName: 'ط£/ ظ…طµط·ظپظ‰ ط³ط¹ظٹط¯',
         level: Level.BEGINNER,
         durationHours: 30,
         thumbnailUrl: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=1974&auto=format&fit=crop',
@@ -82,11 +82,11 @@ const subjects = [
     {
         id: 'ENGLISH',
         name: 'English',
-        nameAr: 'اللغة الإنجليزية',
+        nameAr: 'ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©',
         type: 'ENGLISH',
         categoryId: 'ENGLISH',
         code: 'ENGL101',
-        description: 'تطوير mهارات اللغة الإنجليزية، القواعد، الكلمات، والترجمة للمرحلة الثانوية.',
+        description: 'طھط·ظˆظٹط± mظ‡ط§ط±ط§طھ ط§ظ„ظ„ط؛ط© ط§ظ„ط¥ظ†ط¬ظ„ظٹط²ظٹط©طŒ ط§ظ„ظ‚ظˆط§ط¹ط¯طŒ ط§ظ„ظƒظ„ظ…ط§طھطŒ ظˆط§ظ„طھط±ط¬ظ…ط© ظ„ظ„ظ…ط±ط­ظ„ط© ط§ظ„ط«ط§ظ†ظˆظٹط©.',
         color: '#8b5cf6',
         icon: 'Languages',
         price: 140,
@@ -101,16 +101,16 @@ const subjects = [
     {
         id: 'SCIENCE',
         name: 'Science',
-        nameAr: 'العلوم',
+        nameAr: 'ط§ظ„ط¹ظ„ظˆظ…',
         type: 'SCIENCE',
         categoryId: 'SCIENCE',
         code: 'SCI101',
-        description: 'شرح مبسط لمبادئ العلوم العامة.',
+        description: 'ط´ط±ط­ ظ…ط¨ط³ط· ظ„ظ…ط¨ط§ط¯ط¦ ط§ظ„ط¹ظ„ظˆظ… ط§ظ„ط¹ط§ظ…ط©.',
         color: '#06b6d4',
         icon: 'Beaker',
         price: 100,
         rating: 4.5,
-        instructorName: 'أ/ محمود كامل',
+        instructorName: 'ط£/ ظ…ط­ظ…ظˆط¯ ظƒط§ظ…ظ„',
         level: Level.BEGINNER,
         durationHours: 25,
         thumbnailUrl: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=2070&auto=format&fit=crop',
@@ -120,16 +120,16 @@ const subjects = [
     {
         id: 'SOCIAL_STUDIES',
         name: 'Social Studies',
-        nameAr: 'الدراسات الاجتماعية',
+        nameAr: 'ط§ظ„ط¯ط±ط§ط³ط§طھ ط§ظ„ط§ط¬طھظ…ط§ط¹ظٹط©',
         type: 'SOCIAL',
         categoryId: 'SOCIAL_STUDIES',
         code: 'SOC101',
-        description: 'تاريخ وجغرافيا للمرحلة الثانوية.',
+        description: 'طھط§ط±ظٹط® ظˆط¬ط؛ط±ط§ظپظٹط§ ظ„ظ„ظ…ط±ط­ظ„ط© ط§ظ„ط«ط§ظ†ظˆظٹط©.',
         color: '#84cc16',
         icon: 'Globe',
         price: 110,
         rating: 4.4,
-        instructorName: 'أ/ هاني يوسف',
+        instructorName: 'ط£/ ظ‡ط§ظ†ظٹ ظٹظˆط³ظپ',
         level: Level.INTERMEDIATE,
         durationHours: 28,
         thumbnailUrl: 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?q=80&w=1974&auto=format&fit=crop',
@@ -153,7 +153,7 @@ async function seedSubjectsData() {
         }
     }
 
-    console.log('✓ Subjects seeded successfully.')
+    console.log('âœ“ Subjects seeded successfully.')
 }
 
 export default seedSubjectsData;

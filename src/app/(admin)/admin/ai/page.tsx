@@ -306,7 +306,7 @@ export default function AdminAIPage() {
                     طابور المراجعة البشرية
                   </h3>
                   <p className="text-sm text-muted-foreground mt-2 font-bold">
-                    مسودات ومسارات ولّدها الذكاء وبانتظار اعتمادك قبل تنشيطها للمحاربين.
+                    مسودات ومسارات ولّدها الذكاء وبانتظار اعتمادك قبل تنشيتا للمحاربين.
                   </p>
                 </div>
 

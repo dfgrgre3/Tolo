@@ -115,7 +115,7 @@ export default function UpcomingTasksCard({
             >
               <div className="mb-4 text-5xl opacity-50 grayscale">📝</div>
               <p className="text-muted-foreground font-semibold text-lg">لا توجد مهام قادمة</p>
-              <p className="text-sm text-muted-foreground mt-1">أوروبي لمهام ومغامرات جديدة!</p>
+              <p className="text-sm text-muted-foreground mt-1">ابدأ بمهمة ومغامرة جديدة!</p>
             </motion.div>
           )}
         </motion.div>

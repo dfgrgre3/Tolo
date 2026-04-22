@@ -1,9 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server'
-import DataPartitioningService from '@/lib/data-partitioning-service'
+import { NextRequest, NextResponse } from 'next/server';
+import DataPartitioningService from '@/lib/data-partitioning-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
 
-import { successResponse, withAdmin, handleApiError } from '@/lib/api-utils';
+import { withAdmin, handleApiError } from '@/lib/api-utils';
 
 interface PartitionInfo {
   tableName: string;
@@ -20,25 +20,25 @@ export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAdmin(request, async () => {
       try {
-        const { searchParams } = new URL(req.url)
-        const action = searchParams.get('action')
+        const { searchParams } = new URL(req.url);
+        const action = searchParams.get('action');
 
         switch (action) {
           case 'health':
-            return await getPartitionHealth()
+            return await getPartitionHealth();
           case 'info':
-            return await getPartitionInfo()
+            return await getPartitionInfo();
           case 'efficiency':
-            return await getPartitioningEfficiency()
+            return await getPartitioningEfficiency();
           case 'check_size':
-            return await checkAndExtendPartitions()
+            return await checkAndExtendPartitions();
           default:
             return NextResponse.json({
               error: 'Invalid action. Use: health, info, efficiency, or check_size'
-            }, { status: 400 })
+            }, { status: 400 });
         }
       } catch (error: unknown) {
-        logger.error('Database partitions API error:', error)
+        logger.error('Database partitions API error:', error);
         return handleApiError(error);
       }
     });
@@ -49,31 +49,31 @@ export async function POST(request: NextRequest) {
   return opsWrapper(request, async (req) => {
     return withAdmin(request, async () => {
       try {
-        const body = (await req.json()) as { action?: string; tableName?: string; startDate?: string; endDate?: string };
-        const { action, tableName, startDate, endDate } = body
+        const body = (await req.json()) as {action?: string;tableName?: string;startDate?: string;endDate?: string;};
+        const { action, tableName, startDate, endDate } = body;
 
         switch (action) {
           case 'create_partitions':
             if (!tableName || !startDate || !endDate) {
               return NextResponse.json({
                 error: 'tableName, startDate, and endDate are required'
-              }, { status: 400 })
+              }, { status: 400 });
             }
-            return await createPartitions(tableName, new Date(startDate), new Date(endDate))
+            return await createPartitions(tableName, new Date(startDate), new Date(endDate));
 
           case 'cleanup':
-            return await cleanupPartitions()
+            return await cleanupPartitions();
 
           case 'maintain':
-            return await maintainPartitions()
+            return await maintainPartitions();
 
           default:
             return NextResponse.json({
               error: 'Invalid action. Use: create_partitions, cleanup, or maintain'
-            }, { status: 400 })
+            }, { status: 400 });
         }
       } catch (error: unknown) {
-        logger.error('Database partitions POST API error:', error)
+        logger.error('Database partitions POST API error:', error);
         return handleApiError(error);
       }
     });
@@ -81,99 +81,99 @@ export async function POST(request: NextRequest) {
 }
 
 async function getPartitionHealth() {
-  const report = await DataPartitioningService.getPartitionHealthReport()
-  return NextResponse.json(report)
+  const report = await DataPartitioningService.getPartitionHealthReport();
+  return NextResponse.json(report);
 }
 
 async function getPartitionInfo() {
-  const tables = ['StudySession', 'ProgressSnapshot', 'SecurityLog', 'Session']
-  const info: Record<string, any> = {}
+  const tables = ['StudySession', 'ProgressSnapshot', 'SecurityLog', 'Session'];
+  const info: Record<string, any> = {};
 
   for (const tableName of tables) {
-    info[tableName] = await DataPartitioningService.getPartitionInfo(tableName)
+    info[tableName] = await DataPartitioningService.getPartitionInfo(tableName);
   }
 
-  return NextResponse.json({ partitionInfo: info })
+  return NextResponse.json({ partitionInfo: info });
 }
 
 async function getPartitioningEfficiency() {
-  const efficiency = await DataPartitioningService.verifyPartitioningEfficiency()
-  return NextResponse.json(efficiency)
+  const efficiency = await DataPartitioningService.verifyPartitioningEfficiency();
+  return NextResponse.json(efficiency);
 }
 
 async function checkAndExtendPartitions() {
   try {
-    const result = await DataPartitioningService.checkAndExtendPartitionsIfNeeded()
+    const result = await DataPartitioningService.checkAndExtendPartitionsIfNeeded();
     return NextResponse.json({
       success: true,
       triggeredActions: result.triggeredActions,
       ...(result.errors && { errors: result.errors })
-    })
+    });
   } catch (error: unknown) {
-    logger.error('Failed to check and extend partitions:', error)
+    logger.error('Failed to check and extend partitions:', error);
     return NextResponse.json({
       error: `Failed to check and extend partitions: ${error}`
-    }, { status: 500 })
+    }, { status: 500 });
   }
 }
 
 async function createPartitions(tableName: string, startDate: Date, endDate: Date) {
   try {
-    await DataPartitioningService.createMonthlyPartitions(tableName, startDate, endDate)
+    await DataPartitioningService.createMonthlyPartitions(tableName, startDate, endDate);
     return NextResponse.json({
       success: true,
       message: `Partitions created successfully for ${tableName}`
-    })
+    });
   } catch (error: unknown) {
-    logger.error('Failed to create partitions:', error)
+    logger.error('Failed to create partitions:', error);
     return NextResponse.json({
       error: `Failed to create partitions: ${error}`
-    }, { status: 500 })
+    }, { status: 500 });
   }
 }
 
 async function cleanupPartitions() {
   try {
-    const result = await DataPartitioningService.cleanupOldPartitions()
+    const result = await DataPartitioningService.cleanupOldPartitions();
     return NextResponse.json({
       success: true,
       deletedPartitions: result.deletedPartitions,
       ...(result.error && { warnings: [result.error] })
-    })
+    });
   } catch (error: unknown) {
-    logger.error('Failed to cleanup partitions:', error)
+    logger.error('Failed to cleanup partitions:', error);
     return NextResponse.json({
       error: `Failed to cleanup partitions: ${error}`
-    }, { status: 500 })
+    }, { status: 500 });
   }
 }
 
 async function maintainPartitions() {
   try {
     // Get health report to identify what maintenance is needed
-    const health = await DataPartitioningService.getPartitionHealthReport()
-    const actionsPerformed: string[] = []
+    const health = await DataPartitioningService.getPartitionHealthReport();
+    const actionsPerformed: string[] = [];
 
     for (const table of health.tableHealth) {
       // Check if partitions need to be created
       if (table.recommendedActions?.some((action: string) => action.includes('Create'))) {
-        const oneMonthFromNow = new Date()
-        oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1)
+        const oneMonthFromNow = new Date();
+        oneMonthFromNow.setMonth(oneMonthFromNow.getMonth() + 1);
 
-        const sixMonthsFromNow = new Date()
-        sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6)
+        const sixMonthsFromNow = new Date();
+        sixMonthsFromNow.setMonth(sixMonthsFromNow.getMonth() + 6);
 
-        await DataPartitioningService.createMonthlyPartitions(table.tableName, oneMonthFromNow, sixMonthsFromNow)
-        actionsPerformed.push(`Created future partitions for ${table.tableName}`)
+        await DataPartitioningService.createMonthlyPartitions(table.tableName, oneMonthFromNow, sixMonthsFromNow);
+        actionsPerformed.push(`Created future partitions for ${table.tableName}`);
       }
 
       // Check if cleanup is needed
       if (table.recommendedActions?.some((action: string) => action.includes('Remove'))) {
-        const cleanupResult = await DataPartitioningService.cleanupOldPartitions()
+        const cleanupResult = await DataPartitioningService.cleanupOldPartitions();
         if (cleanupResult.deletedPartitions.length > 0) {
-          const deletedForTable = cleanupResult.deletedPartitions.filter((dp: string) => dp.startsWith(table.tableName))
+          const deletedForTable = cleanupResult.deletedPartitions.filter((dp: string) => dp.startsWith(table.tableName));
           if (deletedForTable.length > 0) {
-            actionsPerformed.push(`Cleaned up ${deletedForTable.length} old partitions for ${table.tableName}`)
+            actionsPerformed.push(`Cleaned up ${deletedForTable.length} old partitions for ${table.tableName}`);
           }
         }
       }
@@ -183,11 +183,11 @@ async function maintainPartitions() {
       success: true,
       actionsPerformed,
       healthReport: health
-    })
+    });
   } catch (error: unknown) {
-    logger.error('Failed to perform partition maintenance:', error)
+    logger.error('Failed to perform partition maintenance:', error);
     return NextResponse.json({
       error: `Failed to perform partition maintenance: ${error}`
-    }, { status: 500 })
+    }, { status: 500 });
   }
 }

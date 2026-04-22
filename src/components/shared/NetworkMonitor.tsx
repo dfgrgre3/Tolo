@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useRef } from 'react';
 import { useNetworkStatus } from '@/hooks/use-network-status';

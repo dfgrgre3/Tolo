@@ -2,13 +2,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Search, User, Star, GraduationCap, BookOpen, MapPin, Clock, TrendingUp, Zap, Target, Shield, Award, Users, Briefcase, ExternalLink, Filter, X, Loader2, Youtube } from 'lucide-react';
+import { Search, User, Star, BookOpen, Zap, ExternalLink, Loader2, Youtube } from 'lucide-react';
 
 import { logger } from '@/lib/logger';
-import { safeFetch } from "@/lib/safe-client-utils";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
+
+
+
+
 
 interface Teacher {
   name: string;

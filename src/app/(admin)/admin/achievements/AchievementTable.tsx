@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { AdminDataTable, RowActions } from "@/components/admin/ui/admin-table";
@@ -146,7 +146,7 @@ export function AchievementTable({ achievements, onEdit, onDelete }: Achievement
             <Search className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <input 
               type="text" 
-              placeholder="ابحث في سجلات الأوسمة، المجلدات، أو مفاتيح الاستدعاء..." 
+              placeholder="ابحث في سجلات الأوسمة، المجلدات، أو مفاتيح الاستدعاء،..." 
               className="w-full bg-accent/20 border border-border rounded-xl h-11 px-11 text-sm font-bold focus:ring-1 ring-amber-500/50 outline-none transition-all"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -172,7 +172,7 @@ export function AchievementTable({ achievements, onEdit, onDelete }: Achievement
             <Select value={rarityFilter} onValueChange={setRarityFilter}>
               <SelectTrigger className="w-44 h-11 rounded-xl bg-accent/20 border-border font-bold">
                  <Star className="w-4 h-4 ml-2 text-amber-500" />
-                 <SelectValue placeholder="رتبة الندرة" />
+                 <SelectValue placeholder="درجة الندرة" />
               </SelectTrigger>
               <SelectContent className="rounded-xl border-white/10">
                 <SelectItem value="ALL" className="font-bold cursor-pointer">جميع الرتب</SelectItem>

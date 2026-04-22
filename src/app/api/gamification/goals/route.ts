@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 import { gamificationService } from '@/services/gamification-service';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
@@ -11,7 +11,7 @@ const goalSchema = z.object({
   currentValue: z.number().default(0),
   unit: z.string().default("count"),
   category: z.string().default("custom"),
-  xpReward: z.number().default(10),
+  xpReward: z.number().default(10)
 });
 
 export async function GET(request: NextRequest) {
@@ -29,15 +29,15 @@ export async function GET(request: NextRequest) {
 
         // Filter by category if provided
         if (category && category !== 'all') {
-          filteredGoals = filteredGoals.filter(goal => goal.category === category);
+          filteredGoals = filteredGoals.filter((goal) => goal.category === category);
         }
 
         // Filter by status if provided
         if (status && status !== 'all') {
           if (status === 'active') {
-            filteredGoals = filteredGoals.filter(goal => !goal.isCompleted);
+            filteredGoals = filteredGoals.filter((goal) => !goal.isCompleted);
           } else if (status === 'completed') {
-            filteredGoals = filteredGoals.filter(goal => goal.isCompleted);
+            filteredGoals = filteredGoals.filter((goal) => goal.isCompleted);
           }
         }
 
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
           goals: filteredGoals,
           summary: {
             total: progress.customGoals.length,
-            active: progress.customGoals.filter(g => !g.isCompleted).length,
-            completed: progress.customGoals.filter(g => g.isCompleted).length
+            active: progress.customGoals.filter((g) => !g.isCompleted).length,
+            completed: progress.customGoals.filter((g) => g.isCompleted).length
           }
         });
 
@@ -77,4 +77,3 @@ export async function POST(request: NextRequest) {
     });
   });
 }
-

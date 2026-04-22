@@ -16,9 +16,9 @@ export abstract class BaseService {
   protected readonly serviceName: string;
 
   constructor(
-    serviceName: string,
-    circuitOptions?: Partial<CircuitBreakerOptions>,
-  ) {
+  serviceName: string,
+  circuitOptions?: Partial<CircuitBreakerOptions>)
+  {
     this.serviceName = serviceName;
 
     if (circuitOptions) {
@@ -27,7 +27,7 @@ export abstract class BaseService {
         failureThreshold: 5,
         cooldownMs: 30000,
         timeoutMs: 10000,
-        ...circuitOptions,
+        ...circuitOptions
       });
     }
   }
@@ -36,10 +36,10 @@ export abstract class BaseService {
    * Run a service operation with protection and logging.
    */
   protected async runProtected<T>(
-    operationName: string,
-    operation: () => Promise<T>,
-    fallback?: () => T | Promise<T>,
-  ): Promise<T> {
+  operationName: string,
+  operation: () => Promise<T>,
+  fallback?: () => T | Promise<T>)
+  : Promise<T> {
     const start = Date.now();
 
     try {
@@ -54,7 +54,7 @@ export abstract class BaseService {
       const duration = Date.now() - start;
       if (duration > 1000) {
         logger.warn(
-          `[${this.serviceName}] Slow operation: ${operationName} took ${duration}ms`,
+          `[${this.serviceName}] Slow operation: ${operationName} took ${duration}ms`
         );
       }
 
@@ -68,12 +68,12 @@ export abstract class BaseService {
    * Standardized error handler for services.
    */
   protected handleServiceError(operationName: string, error: unknown): never {
-    const duration = 0; // Placeholder
+    const _duration = 0; // Placeholder
 
     if (error instanceof AppError) {
       logger.error(
         `[${this.serviceName}] ${operationName} failed: ${error.message}`,
-        { code: error.code },
+        { code: error.code }
       );
       throw error;
     }
@@ -81,13 +81,13 @@ export abstract class BaseService {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(
       `[${this.serviceName}] UNEXPECTED ERROR in ${operationName}: ${message}`,
-      { error },
+      { error }
     );
 
     throw new AppError(
       `Service error in ${this.serviceName}:${operationName}`,
       500,
-      ERROR_CODES.INTERNAL_ERROR,
+      ERROR_CODES.INTERNAL_ERROR
     );
   }
 }

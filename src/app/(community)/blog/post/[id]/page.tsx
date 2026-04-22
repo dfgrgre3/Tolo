@@ -29,7 +29,7 @@ export default function BlogPostPage() {
   const router = useRouter();
   const postId = params.id as string;
 
-  const [userId, setUserId] = useState<string | null>(null);
+  const [, setUserId] = useState<string | null>(null);
   const [post, setPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(true);
 

@@ -1,12 +1,12 @@
 import { NextRequest } from "next/server";
 import { prisma, Prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { 
-  handleApiError, 
-  successResponse, 
+import {
+  handleApiError,
+  successResponse,
   badRequestResponse,
-  withAuth 
-} from '@/lib/api-utils';
+  withAuth } from
+'@/lib/api-utils';
 import { ERROR_CODES } from '@/lib/error-codes';
 import { logger } from '@/lib/logger';
 
@@ -28,44 +28,44 @@ export async function GET(request: NextRequest) {
       const { searchParams } = new URL(req.url);
       const subjectId = searchParams.get('subjectId');
       const search = searchParams.get('search');
-      
+
       const { searchService } = await import('@/services/search-service');
-      
+
       // 1. Offload search to specialized engine (Elasticsearch)
       // Optimized for 10M+ users with O(1) retrieval and relevance ranking
       if (search) {
         const elasticResults = await searchService.searchBooks(search, 50);
-        
+
         if (elasticResults && elasticResults.length > 0) {
-           const bookIds = elasticResults.map((r: any) => r.id);
-           
-           // Fetch full records from DB with pre-sorted order from Elastic
-           const books = await prisma.book.findMany({
-             where: { id: { in: bookIds } },
-             include: {
-               uploader: { select: { id: true, name: true, username: true, avatar: true } },
-               _count: { select: { reviews: true } }
-             }
-           });
-           
-           // Return formatted results with relevance sorting preserved
-           const sortedBooks = bookIds.map(id => books.find((b: any) => b.id === id)).filter(Boolean);
-           return successResponse(sortedBooks);
+          const bookIds = elasticResults.map((r: any) => r.id);
+
+          // Fetch full records from DB with pre-sorted order from Elastic
+          const books = await prisma.book.findMany({
+            where: { id: { in: bookIds } },
+            include: {
+              uploader: { select: { id: true, name: true, username: true, avatar: true } },
+              _count: { select: { reviews: true } }
+            }
+          });
+
+          // Return formatted results with relevance sorting preserved
+          const sortedBooks = bookIds.map((id) => books.find((b: any) => b.id === id)).filter(Boolean);
+          return successResponse(sortedBooks);
         }
       }
 
       const where: Prisma.BookWhereInput = {};
-      
+
       if (subjectId) {
         where.subjectId = subjectId;
       }
-      
+
       if (search && !process.env.ELASTICSEARCH_ENABLED) {
         // Fallback for local/non-elastic environments
         where.OR = [
-          { title: { contains: search, mode: 'insensitive' } },
-          { author: { contains: search, mode: 'insensitive' } },
-        ];
+        { title: { contains: search, mode: 'insensitive' } },
+        { author: { contains: search, mode: 'insensitive' } }];
+
       }
 
       const books = await prisma.book.findMany({
@@ -75,9 +75,9 @@ export async function GET(request: NextRequest) {
           _count: { select: { reviews: true } }
         },
         orderBy: [
-          { createdAt: "desc" },
-          { downloads: "desc" }
-        ],
+        { createdAt: "desc" },
+        { downloads: "desc" }],
+
         take: 100 // Hard-limit per request for 10M-user safety
       });
 
@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
             coverUrl: coverUrl || null,
             downloadUrl,
             uploaderId: userId,
-            tags: Array.isArray(tags) ? tags : (tags ? [tags] : [])
+            tags: Array.isArray(tags) ? tags : tags ? [tags] : []
           }
         });
 
@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
             title: 'تم رفع الكتاب بنجاح',
             message: `لقد تم رفع كتاب "${title}" إلى المكتبة الرقمية.`,
             type: 'success',
-            icon: '📚'
+            icon: 'ًں“ڑ'
           });
         } catch (notificationError: unknown) {
           logger.error('Failed to send book upload notification:', notificationError);
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
         // Index in search engine (Background)
         try {
           const { searchService } = await import('@/services/search-service');
-          searchService.indexBook(newBook).catch(e => logger.error('Async Indexing failed for book', e));
-        } catch (searchError) {
+          searchService.indexBook(newBook).catch((e) => logger.error('Async Indexing failed for book', e));
+        } catch (_searchError) {
           logger.warn('Search service unavailable for indexing');
         }
 

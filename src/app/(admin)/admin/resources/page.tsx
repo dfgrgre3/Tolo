@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -45,7 +45,8 @@ import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { motion } from "framer-motion";
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface Subject {
   id: string;
@@ -313,7 +314,7 @@ export default function AdminResourcesPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="أرشيف الموارد الإمبراطوري 📚"
+        title="أرشيف الموارد الإمبراطوري ًں“ڑ"
         description="إدارة المكتبة المركزية، المخطوطات العلمية، وبوابات التعلم الخارجية لجيش المحاربين.">
         
         <div className="flex items-center gap-3">
@@ -386,7 +387,7 @@ export default function AdminResourcesPage() {
                     fetchResources();
                   }
                 } catch (_err) {
-                  toast.error("فشل في عملية التطهير");
+                  toast.error("فشل في عملية التتير");
                 }
               }
             }

@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';

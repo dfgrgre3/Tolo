@@ -43,6 +43,29 @@ function normalizePriority(priority: number | undefined): number {
 
 export async function GET(request: NextRequest) {
   return opsWrapper(request, async (req) => {
+    // Try to get userId from query params first (for guest users)
+    const { searchParams } = new URL(req.url);
+    const queryUserId = searchParams.get('userId');
+
+    if (queryUserId && queryUserId !== 'undefined' && queryUserId.trim() !== '') {
+      try {
+        const tasks = await prisma.task.findMany({
+          where: {
+            userId: queryUserId,
+          },
+          orderBy: [
+            { createdAt: 'desc' },
+            { dueAt: 'asc' },
+          ],
+        });
+
+        return successResponse(tasks);
+      } catch (error) {
+        return handleApiError(error);
+      }
+    }
+
+    // Fallback to standard authentication
     return withAuth(req, async (authUser) => {
       try {
         const tasks = await prisma.task.findMany({

@@ -1,4 +1,4 @@
-import path from 'path';
+﻿import path from 'path';
 import { log, colors, removeDir, killProcess } from './lib/script-utils';
 import os from 'os';
 
@@ -32,7 +32,7 @@ async function main() {
         removeDir(turboCachePath);
     }
 
-    log('\n✓ Cache cleared successfully!', colors.green);
+    log('\nâœ“ Cache cleared successfully!', colors.green);
     log('\nNext steps:', colors.cyan);
     log('1. Clear your browser cache', colors.white);
     log('2. Restart the dev server: npm run dev', colors.white);

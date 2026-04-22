@@ -1,4 +1,4 @@
-/**
+﻿/**
 * Course Service - Optimized for Enterprise Scale (10M+ Users)
 * 
 * Improvements over original:
@@ -9,6 +9,7 @@
 * 5. Parallel query execution
 */
 
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { CacheService } from "@/lib/cache";
 import { logger } from "@/lib/logger";
@@ -88,19 +89,19 @@ const CATEGORY_NAMES: Record<string, string> = {
 };
 
 const CATEGORY_ICONS: Record<string, string> = {
-    MATH: "📐",
-    PHYSICS: "⚛️",
-    CHEMISTRY: "🧪",
-    BIOLOGY: "🧬",
-    ARABIC: "📝",
-    ENGLISH: "🔤",
-    HISTORY: "📜",
-    GEOGRAPHY: "🌍",
-    PHILOSOPHY: "💭",
-    RELIGION: "🕌",
-    PROGRAMMING: "💻",
-    COMPUTER_SCIENCE: "🖥️",
-    GENERAL: "📚",
+    MATH: "ًں“گ",
+    PHYSICS: "âڑ›ï¸ڈ",
+    CHEMISTRY: "ًں§ھ",
+    BIOLOGY: "ًں§¬",
+    ARABIC: "ًں“‌",
+    ENGLISH: "ًں”¤",
+    HISTORY: "ًں“œ",
+    GEOGRAPHY: "ًںŒچ",
+    PHILOSOPHY: "ًں’­",
+    RELIGION: "ًں•Œ",
+    PROGRAMMING: "ًں’»",
+    COMPUTER_SCIENCE: "ًں–¥ï¸ڈ",
+    GENERAL: "ًں“ڑ",
 };
 
 const CATEGORY_KEYWORDS: Array<{ id: string; keywords: string[] }> = [
@@ -224,7 +225,7 @@ export async function getSubjectLessonCounts(subjectIds: string[]): Promise<Reco
       SELECT t."subjectId", COUNT(st."id") as count
       FROM "Topic" t
       LEFT JOIN "SubTopic" st ON st."topicId" = t."id"
-      WHERE t."subjectId" IN (${prisma.join(uniqueIds)})
+      WHERE t."subjectId" IN (${Prisma.join(uniqueIds)})
       GROUP BY t."subjectId"
     `;
 

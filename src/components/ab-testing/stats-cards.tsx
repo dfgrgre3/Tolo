@@ -1,4 +1,4 @@
-import { AdminCard } from "@/components/admin/ui/admin-card";
+﻿import { AdminCard } from "@/components/admin/ui/admin-card";
 import { TrendingUp, Activity, BarChart3 } from "lucide-react";
 import { Experiment } from "@/types/ab-testing";
 
@@ -26,7 +26,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
       </AdminCard>
       <AdminCard variant="glass" className="p-6 border-teal-500/20 shadow-sm flex items-center justify-between">
         <div>
-          <p className="text-sm font-bold text-muted-foreground mb-1">النمو المُضاف من التجارب</p>
+          <p className="text-sm font-bold text-muted-foreground mb-1">النمو المظڈضاف من التجارب</p>
           <h3 className="text-4xl font-black text-teal-500">+28%</h3>
         </div>
         <div className="w-14 h-14 bg-teal-500/10 rounded-2xl flex items-center justify-center text-teal-500">

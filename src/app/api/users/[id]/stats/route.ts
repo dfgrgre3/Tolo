@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -8,15 +8,15 @@ import { successResponse, unauthorizedResponse, handleApiError, createErrorRespo
 
 // Type for Prisma client with optional models
 type PrismaClientWithOptionalModels = typeof prisma & {
-  forumPost?: { count: (args: { where: { authorId: string } }) => Promise<number> };
-  blogPost?: { count: (args: { where: { authorId: string } }) => Promise<number> };
+  forumPost?: {count: (args: {where: {authorId: string;};}) => Promise<number>;};
+  blogPost?: {count: (args: {where: {authorId: string;};}) => Promise<number>;};
 };
 
 // GET user stats by ID
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
   return opsWrapper(request, async (req) => {
     try {
       const { id } = await params;
@@ -79,7 +79,7 @@ export async function GET(
         // Type assertion for optional model
         const prismaClient = prisma as PrismaClientWithOptionalModels;
         if ('forumPost' in prismaClient && typeof prismaClient.forumPost === 'object') {
-          forumPosts = await (prismaClient.forumPost as { count: (args: { where: { authorId: string } }) => Promise<number> }).count({
+          forumPosts = await (prismaClient.forumPost as {count: (args: {where: {authorId: string;};}) => Promise<number>;}).count({
             where: {
               authorId: id
             }
@@ -87,7 +87,7 @@ export async function GET(
         }
       } catch (error: unknown) {
         // Model doesn't exist in schema or other error, return 0
-        const prismaError = error as { code?: string; message?: string };
+        const prismaError = error as {code?: string;message?: string;};
         if (prismaError?.code === 'P2001' || prismaError?.message?.includes('does not exist')) {
           logger.debug("ForumPost model not available in schema");
         } else {
@@ -102,7 +102,7 @@ export async function GET(
         // Type assertion for optional model
         const prismaClient = prisma as PrismaClientWithOptionalModels;
         if ('blogPost' in prismaClient && typeof prismaClient.blogPost === 'object') {
-          blogPosts = await (prismaClient.blogPost as { count: (args: { where: { authorId: string } }) => Promise<number> }).count({
+          blogPosts = await (prismaClient.blogPost as {count: (args: {where: {authorId: string;};}) => Promise<number>;}).count({
             where: {
               authorId: id
             }
@@ -110,7 +110,7 @@ export async function GET(
         }
       } catch (error: unknown) {
         // Model doesn't exist in schema or other error, return 0
-        const prismaError = error as { code?: string; message?: string };
+        const prismaError = error as {code?: string;message?: string;};
         if (prismaError?.code === 'P2001' || prismaError?.message?.includes('does not exist')) {
           logger.debug("BlogPost model not available in schema");
         } else {

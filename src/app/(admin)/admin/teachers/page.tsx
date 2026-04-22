@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -74,7 +74,7 @@ export default function AdminTeachersPage() {
     open: false,
     id: null
   });
-  const deferredSearch = React.useDeferredValue("");
+  const deferredSearch: string = React.useDeferredValue("");
 
   const { data, isLoading, refetch } = useQuery({
     queryKey: ["admin", "teachers"],
@@ -100,9 +100,9 @@ export default function AdminTeachersPage() {
 
     const query = deferredSearch.toLowerCase();
     return items.filter((teacher) =>
-    teacher.name.toLowerCase().includes(query) ||
-    teacher.subject.name.toLowerCase().includes(query) ||
-    (teacher.subject.nameAr || "").toLowerCase().includes(query)
+    String(teacher.name || "").toLowerCase().includes(query) ||
+    String(teacher.subject?.name || "").toLowerCase().includes(query) ||
+    String(teacher.subject?.nameAr || "").toLowerCase().includes(query)
     );
   }, [data, deferredSearch]);
 
@@ -263,7 +263,7 @@ export default function AdminTeachersPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="مجلس الحكماء والعلماء 🎓"
+        title="مجلس الحكماء والعلماء ًںژ“"
         description="إدارة هيئة التدريس، تخصصات المعلمين، وقنوات التواصل المباشرة مع الطلاب.">
         
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>

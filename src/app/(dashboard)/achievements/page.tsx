@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -151,7 +151,7 @@ export default function AchievementsPage() {
 									<div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
 										<div className="flex items-center gap-6">
 											<div className="h-16 w-16 rounded-3xl bg-amber-500 flex items-center justify-center text-4xl animate-bounce shadow-lg shadow-amber-500/30">
-												🎉
+												ًںژ‰
 											</div>
 											<div className="space-y-1 text-center md:text-right">
 												<h3 className="text-2xl font-black text-white">يوم عظيم للجمهورية!</h3>

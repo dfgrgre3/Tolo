@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+﻿import { logger } from '@/lib/logger';
 import { setCircuitBreaker } from '@/lib/metrics/prometheus';
 
 /**
@@ -129,7 +129,7 @@ export class CircuitBreaker {
       setCircuitBreaker(this.options.name, 'open');
     }
 
-    logger.info(`[CircuitBreaker:${this.options.name}] ${oldState} → ${newState}`);
+    logger.info(`[CircuitBreaker:${this.options.name}] ${oldState} â†’ ${newState}`);
   }
 
   private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -173,7 +173,7 @@ export class CircuitBreakerError extends Error {
   }
 }
 
-// ─── Pre-configured Singleton Instances ───
+// â”€â”€â”€ Pre-configured Singleton Instances â”€â”€â”€
 
 /** Database circuit breaker - strict thresholds */
 export const dbCircuitBreaker = new CircuitBreaker({

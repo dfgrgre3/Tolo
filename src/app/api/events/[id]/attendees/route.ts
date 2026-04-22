@@ -38,7 +38,7 @@ export async function GET(
       });
 
       if (!event) {
-        return notFoundResponse("ط§ظ„ظ…ظ†ط§ط³ط¨ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
+        return notFoundResponse("المناسبة غير موجودة");
       }
 
       // Fetch attendees with user details in a single query (JOIN)
@@ -131,9 +131,9 @@ export async function POST(
         });
 
         if ('error' in result) {
-          if (result.error === "NOT_FOUND") return notFoundResponse("ط§ظ„ظ…ظ†ط§ط³ط¨ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
-          if (result.error === "LIMIT_REACHED") return badRequestResponse("ظˆطµظ„ ط§ظ„ط­ط¯ ط§ظ„ط£ظ‚طµظ‰ ظ„ظ„ظ…ط´ط§ط±ظƒظٹظ†");
-          if (result.error === "ALREADY_JOINED") return badRequestResponse("ط§ظ„ظ…ط³طھط®ط¯ظ… ظ…ط´ط§ط±ظƒ ط¨ط§ظ„ظپط¹ظ„");
+          if (result.error === "NOT_FOUND") return notFoundResponse("المناسبة غير موجودة");
+          if (result.error === "LIMIT_REACHED") return badRequestResponse("وصل الحد الأقصى للمشاركين");
+          if (result.error === "ALREADY_JOINED") return badRequestResponse("المستخدم مشارك بالفعل");
         }
 
         const attendee = result as any; // Typed via include above
@@ -177,7 +177,7 @@ export async function DELETE(
       } catch (error: unknown) {
         // Handle record not found as 404
         if (error && typeof error === 'object' && 'code' in error && error.code === 'P2025') {
-          return notFoundResponse("ط§ظ„ظ…ط³طھط®ط¯ظ… ط؛ظٹط± ظ…ط´ط§ط±ظƒ ظپظٹ ظ‡ط°ظ‡ ط§ظ„ظ…ظ†ط§ط³ط¨ط©");
+          return notFoundResponse("المستخدم غير مشارك في هذه المناسبة");
         }
         
         logger.error("Error leaving event:", error);

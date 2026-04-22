@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { User } from '@/types/user';
-import { Trophy, Zap, Crown, Target } from 'lucide-react';
+import { Zap, Crown, Target } from 'lucide-react';
 
 interface LevelProgressProps {
   user: User;
@@ -14,8 +14,8 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
   const level = user.level || 1;
   const currentXP = Number(user.totalXP) || 0;
   const nextLevelXP = level * 1000; // Each level requires 1000 XP
-  const progressPercent = Math.min((currentXP / nextLevelXP) * 100, 100);
-  const rankTitle = (user.rank as string) || "مبتدئ طموح";
+  const progressPercent = Math.min(currentXP / nextLevelXP * 100, 100);
+  const rankTitle = user.rank as string || "مبتدئ طموح";
   const remainingXP = Math.max(nextLevelXP - currentXP, 0);
 
   return (
@@ -23,8 +23,8 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 p-8 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all hover:bg-black/50 hover:border-white/20"
-    >
+      className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-black/40 p-8 shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-xl transition-all hover:bg-black/50 hover:border-white/20">
+      
       {/* Decorative Background Effects (RPG Style) */}
       <div className="absolute top-0 right-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl mix-blend-overlay animate-pulse-slow"></div>
       <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-48 w-48 rounded-full bg-indigo-400/20 blur-3xl mix-blend-overlay"></div>
@@ -49,9 +49,9 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
                 className="text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]"
                 fill="none"
                 strokeDasharray="289"
-                strokeDashoffset={289 - (289 * progressPercent) / 100}
-                style={{ transition: 'stroke-dashoffset 1s ease-in-out' }}
-              />
+                strokeDashoffset={289 - 289 * progressPercent / 100}
+                style={{ transition: 'stroke-dashoffset 1s ease-in-out' }} />
+              
             </svg>
 
             {/* Actual Avatar Image */}
@@ -59,8 +59,8 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
               <img
                 src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'User')}&background=random&color=fff&bold=true`}
                 alt={user.name || 'User'}
-                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-              />
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              
             </div>
 
             {/* Level Badge */}
@@ -78,7 +78,7 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
               </span>
             </h2>
             <p className="text-base text-indigo-100/90 font-medium">
-              مغامرتك التعليمية مستمرة! 🚀
+              مغامرتك التعليمية مستمرة! ًںڑ€
             </p>
           </div>
         </div>
@@ -108,8 +108,8 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
-              className="relative h-full rounded-full bg-gradient-to-l from-yellow-400 via-orange-500 to-pink-600 shadow-[0_0_15px_rgba(251,146,60,0.5)]"
-            >
+              className="relative h-full rounded-full bg-gradient-to-l from-yellow-400 via-orange-500 to-pink-600 shadow-[0_0_15px_rgba(251,146,60,0.5)]">
+              
               {/* Shimmer Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 -skew-x-12 animate-[shimmer_2s_infinite]"></div>
             </motion.div>
@@ -122,6 +122,6 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
         </div>
 
       </div>
-    </motion.div>
-  );
+    </motion.div>);
+
 };

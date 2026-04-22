@@ -6,7 +6,7 @@ import { logger } from '@/lib/logger';
 import { TaskStatus, SUBJECT_ID_MAP } from '@/lib/constants';
 import { successResponse, badRequestResponse, notFoundResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
-export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: {params: Promise<{id: string;}>;}) {
   return opsWrapper(req, async (request) => {
     return withAuth(request, async (authUser) => {
       try {
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function PATCH(req: NextRequest, { params }: {params: Promise<{id: string;}>;}) {
   return opsWrapper(req, async (request) => {
     return withAuth(request, async (authUser) => {
       try {
@@ -36,14 +36,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         const data = await request.json();
 
         // 1. Pre-validation and whitelist (Compute only)
-        const allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subjectId'];
+        const _allowedFields = ['title', 'description', 'completedAt', 'status', 'priority', 'dueAt', 'subjectId'];
         const updates: Prisma.TaskUpdateInput = {};
 
         if ('title' in data) updates.title = data.title;
         if ('description' in data) updates.description = data.description === '' ? null : data.description;
         if ('status' in data) updates.status = data.status;
         if ('priority' in data) updates.priority = data.priority;
-        
+
         if ('dueAt' in data) {
           updates.dueAt = data.dueAt ? new Date(data.dueAt) : null;
         }
@@ -82,12 +82,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
         // 3. Perform update (O(1) by primary key)
         const updatedTask = await prisma.task.update({
           where: { id },
-          data: updates,
+          data: updates
         });
 
         // 4. Post-update logic (Gamification)
-        const isCompleting = (data.status === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED) ||
-          (updates.completedAt !== undefined && updates.completedAt !== null && !existingTask.completedAt);
+        const isCompleting = data.status === TaskStatus.COMPLETED && existingTask.status !== TaskStatus.COMPLETED ||
+        updates.completedAt !== undefined && updates.completedAt !== null && !existingTask.completedAt;
 
         if (isCompleting) {
           try {
@@ -105,7 +105,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   });
 }
 
-export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: {params: Promise<{id: string;}>;}) {
   return opsWrapper(req, async (request) => {
     return withAuth(request, async (authUser) => {
       try {
@@ -113,9 +113,9 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         // Optimized Delete: Single-query atomic deletion with ownership check
         const { count } = await prisma.task.deleteMany({
-          where: { 
-            id, 
-            userId: authUser.userId 
+          where: {
+            id,
+            userId: authUser.userId
           }
         });
 

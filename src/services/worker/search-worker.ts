@@ -1,4 +1,4 @@
-import { Worker, Job } from 'bullmq';
+﻿import { Worker, Job } from 'bullmq';
 import { logger } from '@/lib/logger';
 import { redisConnection } from '@/lib/queue/bullmq';
 import { searchService } from '@/services/search-service';

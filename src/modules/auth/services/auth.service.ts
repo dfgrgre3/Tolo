@@ -1,4 +1,4 @@
-import { compare } from 'bcryptjs';
+﻿import { compare } from 'bcryptjs';
 import { SignJWT, jwtVerify } from 'jose';
 import { authRepository } from '../repositories/auth.repository';
 import { authRateLimiter } from '@/lib/rate-limit-unified';

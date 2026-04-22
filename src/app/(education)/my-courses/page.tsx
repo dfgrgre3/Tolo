@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   BookOpen,
-  BookCheck,
+
   GraduationCap,
   Clock,
   Trophy,
@@ -16,15 +16,15 @@ import {
   Zap,
   BarChart3,
   Star,
-  ChevronLeft,
-  Loader2,
-  Filter,
+
+
+
   Layers,
   CheckCircle2,
   Search,
-  Download,
-  Target,
-} from "lucide-react";
+
+  Target } from
+"lucide-react";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -52,6 +52,7 @@ type MyCourse = {
   enrolledAt: string;
   lastAccessedAt: string;
   certificate: {
+    id: string;
     url: string;
     issuedAt: string;
   } | null;
@@ -69,10 +70,10 @@ type MyCoursesStats = {
 
 type FilterType = "all" | "in-progress" | "completed" | "not-started";
 
-const levelConfig: Record<string, { label: string; color: string; bg: string }> = {
+const levelConfig: Record<string, {label: string;color: string;bg: string;}> = {
   BEGINNER: { label: "مبتدئ", color: "text-emerald-500", bg: "bg-emerald-500/10" },
   INTERMEDIATE: { label: "متوسط", color: "text-amber-500", bg: "bg-amber-500/10" },
-  ADVANCED: { label: "متقدم", color: "text-rose-500", bg: "bg-rose-500/10" },
+  ADVANCED: { label: "متقدم", color: "text-rose-500", bg: "bg-rose-500/10" }
 };
 
 export default function MyCoursesPage() {
@@ -102,9 +103,9 @@ export default function MyCoursesPage() {
           setStats(data.data?.stats || data.stats || null);
         }
       } catch {
+
         // silently handle
-      } finally {
-        setLoading(false);
+      } finally {setLoading(false);
       }
     };
 
@@ -126,8 +127,8 @@ export default function MyCoursesPage() {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (c) =>
-          c.title.toLowerCase().includes(term) ||
-          c.instructor.toLowerCase().includes(term)
+        c.title.toLowerCase().includes(term) ||
+        c.instructor.toLowerCase().includes(term)
       );
     }
 
@@ -136,9 +137,9 @@ export default function MyCoursesPage() {
 
   const overallProgress = useMemo(() => {
     if (!stats) return 0;
-    return stats.totalLessons > 0
-      ? Math.round((stats.totalCompletedLessons / stats.totalLessons) * 100)
-      : 0;
+    return stats.totalLessons > 0 ?
+    Math.round(stats.totalCompletedLessons / stats.totalLessons * 100) :
+    0;
   }, [stats]);
 
   if (loading) {
@@ -151,16 +152,16 @@ export default function MyCoursesPage() {
           </div>
           <p className="text-sm text-gray-500 font-medium">جاري تحميل دوراتك...</p>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
-  const filters: { key: FilterType; label: string; count: number; icon: typeof BookOpen }[] = [
-    { key: "all", label: "الكل", count: stats?.total || 0, icon: Layers },
-    { key: "in-progress", label: "قيد التقدم", count: stats?.inProgress || 0, icon: TrendingUp },
-    { key: "completed", label: "مكتملة", count: stats?.completed || 0, icon: CheckCircle2 },
-    { key: "not-started", label: "لم تبدأ", count: stats?.notStarted || 0, icon: BookOpen },
-  ];
+  const filters: {key: FilterType;label: string;count: number;icon: typeof BookOpen;}[] = [
+  { key: "all", label: "الكل", count: stats?.total || 0, icon: Layers },
+  { key: "in-progress", label: "قيد التقدم", count: stats?.inProgress || 0, icon: TrendingUp },
+  { key: "completed", label: "مكتملة", count: stats?.completed || 0, icon: CheckCircle2 },
+  { key: "not-started", label: "لم تبدأ", count: stats?.notStarted || 0, icon: BookOpen }];
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14]" dir="rtl">
@@ -175,8 +176,8 @@ export default function MyCoursesPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
-        >
+          className="space-y-4">
+          
           <div className="flex items-center justify-between">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
@@ -203,27 +204,27 @@ export default function MyCoursesPage() {
         </motion.div>
 
         {/* Stats Overview */}
-        {stats && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="grid grid-cols-2 md:grid-cols-5 gap-3"
-          >
+        {stats &&
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="grid grid-cols-2 md:grid-cols-5 gap-3">
+          
             {[
-              { label: "إجمالي الدورات", val: stats.total, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
-              { label: "قيد التقدم", val: stats.inProgress, icon: TrendingUp, color: "text-amber-500", bg: "bg-amber-500/10" },
-              { label: "مكتملة", val: stats.completed, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-              { label: "الشهادات", val: stats.certificates, icon: Award, color: "text-violet-500", bg: "bg-violet-500/10" },
-              { label: "التقدم العام", val: `${overallProgress}%`, icon: Target, color: "text-primary", bg: "bg-primary/10" },
-            ].map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-4 transition-all hover:border-gray-300 dark:hover:border-white/10"
-              >
+          { label: "إجمالي الدورات", val: stats.total, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
+          { label: "قيد التقدم", val: stats.inProgress, icon: TrendingUp, color: "text-amber-500", bg: "bg-amber-500/10" },
+          { label: "مكتملة", val: stats.completed, icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+          { label: "الشهادات", val: stats.certificates, icon: Award, color: "text-violet-500", bg: "bg-violet-500/10" },
+          { label: "التقدم العام", val: `${overallProgress}%`, icon: Target, color: "text-primary", bg: "bg-primary/10" }].
+          map((stat, i) =>
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.05 }}
+            className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-4 transition-all hover:border-gray-300 dark:hover:border-white/10">
+            
                 <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", stat.bg)}>
                   <stat.icon className={cn("h-5 w-5", stat.color)} />
                 </div>
@@ -232,24 +233,24 @@ export default function MyCoursesPage() {
                   <p className="text-xl font-black text-gray-900 dark:text-white">{stat.val}</p>
                 </div>
               </motion.div>
-            ))}
+          )}
           </motion.div>
-        )}
+        }
 
         {/* Overall Progress Bar */}
-        {stats && stats.total > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6"
-          >
+        {stats && stats.total > 0 &&
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="rounded-2xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-6">
+          
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-gray-700 dark:text-gray-300">التقدم العام في جميع الدورات</h3>
               <span className={cn(
-                "text-sm font-black",
-                overallProgress >= 80 ? "text-emerald-500" : overallProgress >= 40 ? "text-amber-500" : "text-primary"
-              )}>
+              "text-sm font-black",
+              overallProgress >= 80 ? "text-emerald-500" : overallProgress >= 40 ? "text-amber-500" : "text-primary"
+            )}>
                 {overallProgress}%
               </span>
             </div>
@@ -258,36 +259,36 @@ export default function MyCoursesPage() {
               {stats.totalCompletedLessons} من {stats.totalLessons} درس مكتمل
             </p>
           </motion.div>
-        )}
+        }
 
         {/* Filters & Search */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="flex flex-col md:flex-row items-center justify-between gap-4"
-        >
+          className="flex flex-col md:flex-row items-center justify-between gap-4">
+          
           <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/5">
-            {filters.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => setActiveFilter(f.key)}
-                className={cn(
-                  "flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
-                  activeFilter === f.key
-                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                )}
-              >
+            {filters.map((f) =>
+            <button
+              key={f.key}
+              onClick={() => setActiveFilter(f.key)}
+              className={cn(
+                "flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-medium transition-all",
+                activeFilter === f.key ?
+                "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm" :
+                "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+              )}>
+              
                 <f.icon className="h-4 w-4" />
                 <span>{f.label}</span>
-                {f.count > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
+                {f.count > 0 &&
+              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
                     {f.count}
                   </span>
-                )}
+              }
               </button>
-            ))}
+            )}
           </div>
 
           <div className="relative w-full md:w-72">
@@ -297,66 +298,66 @@ export default function MyCoursesPage() {
               placeholder="ابحث في دوراتك..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/80 pr-10 pl-4 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
+              className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/80 pr-10 pl-4 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20" />
+            
           </div>
         </motion.div>
 
         {/* Course Grid */}
-        {filteredCourses.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10"
-          >
+        {filteredCourses.length === 0 ?
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10">
+          
             <GraduationCap className="h-16 w-16 text-gray-300 dark:text-gray-600 mb.4" />
             <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">
               {courses.length === 0 ? "لم تسجل في أي دورة بعد" : "لا توجد نتائج"}
             </h3>
             <p className="text-sm text-gray-500 mb-6 max-w-sm text-center">
-              {courses.length === 0
-                ? "استكشف الدورات المتاحة وابدأ رحلة التعلم"
-                : "جرب تغيير الفلتر أو مصطلح البحث"}
+              {courses.length === 0 ?
+            "استكشف الدورات المتاحة وابدأ رحلة التعلم" :
+            "جرب تغيير الفلتر أو مصطلح البحث"}
             </p>
-            {courses.length === 0 && (
-              <Link href="/courses">
+            {courses.length === 0 &&
+          <Link href="/courses">
                 <Button className="gap-2 rounded-xl bg-primary text-white shadow-lg shadow-primary/20">
                   <BookOpen className="h-4 w-4" />
                   <span>استكشف الدورات</span>
                 </Button>
               </Link>
-            )}
-          </motion.div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          }
+          </motion.div> :
+
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
               {filteredCourses.map((course, index) => {
-                const levelInfo = levelConfig[course.level] || levelConfig.INTERMEDIATE;
-                const isComplete = (course.progress ?? 0) >= 100;
+              const levelInfo = levelConfig[course.level] || levelConfig.INTERMEDIATE;
+              const isComplete = (course.progress ?? 0) >= 100;
 
-                return (
-                  <motion.div
-                    key={course.id}
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.05, duration: 0.4 }}
-                    whileHover={{ y: -4 }}
-                    className={cn(
-                      "group relative flex flex-col rounded-2xl border bg-white dark:bg-gray-900/80 dark:border-white/[0.06] overflow-hidden transition-all duration-300",
-                      isComplete && "ring-2 ring-emerald-500/30",
-                      "hover:shadow-xl hover:shadow-primary/5"
-                    )}
-                  >
+              return (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ delay: index * 0.05, duration: 0.4 }}
+                  whileHover={{ y: -4 }}
+                  className={cn(
+                    "group relative flex flex-col rounded-2xl border bg-white dark:bg-gray-900/80 dark:border-white/[0.06] overflow-hidden transition-all duration-300",
+                    isComplete && "ring-2 ring-emerald-500/30",
+                    "hover:shadow-xl hover:shadow-primary/5"
+                  )}>
+                  
                     {/* Thumbnail */}
                     <div className="relative h-44 overflow-hidden bg-gray-100 dark:bg-gray-800">
-                      {course.thumbnailUrl ? (
-                        <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                      ) : (
-                        <div className="flex h-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-white dark:from-gray-800 dark:via-gray-900 dark:to-black">
+                      {course.thumbnailUrl ?
+                    <img src={course.thumbnailUrl} alt={course.title} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" /> :
+
+                    <div className="flex h-full items-center justify-center bg-gradient-to-br from-gray-100 via-gray-50 to-white dark:from-gray-800 dark:via-gray-900 dark:to-black">
                           <GraduationCap className="h-14 w-14 text-gray-300 dark:text-white/10" />
                         </div>
-                      )}
+                    }
                       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
                       {/* Badges */}
@@ -364,12 +365,12 @@ export default function MyCoursesPage() {
                         <Badge className={cn("border-0 px-2.5 py-1 text-[10px] font-bold backdrop-blur-md", levelInfo.bg, levelInfo.color)}>
                           {levelInfo.label}
                         </Badge>
-                        {isComplete && (
-                          <div className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-white text-[10px] font-bold">
+                        {isComplete &&
+                      <div className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-white text-[10px] font-bold">
                             <Trophy className="h-3 w-3" />
                             <span>مكتملة</span>
                           </div>
-                        )}
+                      }
                       </div>
 
                       {/* Play overlay */}
@@ -390,26 +391,26 @@ export default function MyCoursesPage() {
                             <span>التقدم</span>
                           </div>
                           <span className={cn(
-                            "font-black",
-                            (course.progress ?? 0) >= 100 ? "text-emerald-500" : (course.progress ?? 0) >= 50 ? "text-amber-500" : "text-primary"
-                          )}>
+                          "font-black",
+                          (course.progress ?? 0) >= 100 ? "text-emerald-500" : (course.progress ?? 0) >= 50 ? "text-amber-500" : "text-primary"
+                        )}>
                             {course.progress ?? 0}%
                           </span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
                           <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${course.progress ?? 0}%` }}
-                            transition={{ duration: 1, ease: "easeOut" }}
-                            className={cn(
-                              "h-full rounded-full",
-                              (course.progress ?? 0) >= 100
-                                ? "bg-gradient-to-r from-emerald-500 to-emerald-400"
-                                : (course.progress ?? 0) >= 50
-                                  ? "bg-gradient-to-r from-amber-500 to-amber-400"
-                                  : "bg-gradient-to-r from-primary to-orange-400"
-                            )}
-                          />
+                          initial={{ width: 0 }}
+                          animate={{ width: `${course.progress ?? 0}%` }}
+                          transition={{ duration: 1, ease: "easeOut" }}
+                          className={cn(
+                            "h-full rounded-full",
+                            (course.progress ?? 0) >= 100 ?
+                            "bg-gradient-to-r from-emerald-500 to-emerald-400" :
+                            (course.progress ?? 0) >= 50 ?
+                            "bg-gradient-to-r from-amber-500 to-amber-400" :
+                            "bg-gradient-to-r from-primary to-orange-400"
+                          )} />
+                        
                         </div>
                         <p className="text-[10px] text-gray-400">
                           {course.completedLessons} من {course.totalLessons} درس
@@ -451,52 +452,52 @@ export default function MyCoursesPage() {
                       <div className="flex items-center gap-2">
                         <Link href={`/learning/${course.id}`} className="flex-1">
                           <Button
-                            className={cn(
-                              "w-full gap-2 rounded-xl font-bold text-sm h-10 shadow-lg",
-                              isComplete
-                                ? "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600"
-                                : "bg-primary text-white shadow-primary/20 hover:shadow-xl"
-                            )}
-                          >
-                            {isComplete ? (
-                              <>
+                          className={cn(
+                            "w-full gap-2 rounded-xl font-bold text-sm h-10 shadow-lg",
+                            isComplete ?
+                            "bg-emerald-500 text-white shadow-emerald-500/20 hover:bg-emerald-600" :
+                            "bg-primary text-white shadow-primary/20 hover:shadow-xl"
+                          )}>
+                          
+                            {isComplete ?
+                          <>
                                 <CheckCircle2 className="h-4 w-4" />
                                 <span>مراجعة</span>
-                              </>
-                            ) : (course.progress ?? 0) > 0 ? (
-                              <>
+                              </> :
+                          (course.progress ?? 0) > 0 ?
+                          <>
                                 <Zap className="h-4 w-4 fill-current" />
                                 <span>متابعة التعلم</span>
-                              </>
-                            ) : (
-                              <>
+                              </> :
+
+                          <>
                                 <Play className="h-4 w-4 fill-current" />
                                 <span>ابدأ الآن</span>
                               </>
-                            )}
+                          }
                           </Button>
                         </Link>
 
-                        {course.certificate && (
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-10 w-10 rounded-xl border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
-                            onClick={() => window.open(course.certificate!.url)}
-                            title="تحميل الشهادة"
-                          >
-                            <Award className="h-4 w-4" />
-                          </Button>
-                        )}
+                        {course.certificate &&
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10 rounded-xl border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+                          onClick={() => router.push(`/certificates/${course.certificate!.id}`)}
+                          title="عرض الشهادة">
+                          <Award className="h-4 w-4" />
+                        </Button>
+                      }
                       </div>
                     </div>
                   </motion.div>
                 );
               })}
+
             </AnimatePresence>
           </div>
-        )}
+        }
       </div>
-    </div>
-  );
+    </div>);
+
 }

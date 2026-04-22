@@ -1,4 +1,4 @@
-import { Job } from 'bullmq';
+﻿import { Job } from 'bullmq';
 import { BaseWorker } from '@/lib/queue/worker';
 import { xpService } from './xp.service';
 import { logger } from '@/lib/logger';

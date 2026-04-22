@@ -1,4 +1,4 @@
-import { logger } from '@/lib/logger';
+﻿import { logger } from '@/lib/logger';
 
 /**
  * Graceful Shutdown Handler
@@ -9,8 +9,8 @@ import { logger } from '@/lib/logger';
  * 3. Closing all connections cleanly (Redis, Prisma, BullMQ)
  * 4. Exiting with proper code
  *
- * K8s sends SIGTERM → Pod goes to Terminating → preStop hook (if any) 
- * → Our handler runs → Pod removed from Service endpoints
+ * K8s sends SIGTERM â†’ Pod goes to Terminating â†’ preStop hook (if any) 
+ * â†’ Our handler runs â†’ Pod removed from Service endpoints
  */
 
 type CleanupFn = () => Promise<void>;
@@ -64,9 +64,9 @@ async function shutdown(signal: string): Promise<void> {
         handler.fn(),
         new Promise<void>((resolve) => setTimeout(resolve, 5000)),
       ]);
-      logger.info(`[Shutdown] ✓ ${handler.name} completed`);
+      logger.info(`[Shutdown] âœ“ ${handler.name} completed`);
     } catch (error) {
-      logger.error(`[Shutdown] ✗ ${handler.name} failed:`, error);
+      logger.error(`[Shutdown] âœ— ${handler.name} failed:`, error);
     }
   }
 

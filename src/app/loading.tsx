@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { LoadingPage } from '@/components/ui/loading-state';

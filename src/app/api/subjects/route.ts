@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { withCache } from "@/lib/cache-middleware";
 import { invalidateUserCache } from "@/lib/cache-invalidation-service";
 import { getOrSetEnhanced } from '@/lib/cache-service-unified';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { successResponse, badRequestResponse, unauthorizedResponse, withAuth, handleApiError } from '@/lib/api-utils';
+import { successResponse, badRequestResponse, withAuth, handleApiError } from '@/lib/api-utils';
 
 
 export async function GET(req: NextRequest) {

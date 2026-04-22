@@ -1,533 +1,824 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { motion } from "framer-motion";
 import {
-  BookCheck,
+  ArrowLeft,
   BookOpen,
+  Clock3,
+  GraduationCap,
+  Layers3,
+  PlayCircle,
+  Search,
+  SlidersHorizontal,
   Sparkles,
-  LayoutGrid,
-  Users,
   Star,
   TrendingUp,
-  Clock,
-  Heart,
-  Share2,
-  Download,
-  GraduationCap,
-  Loader2,
-  ChevronDown,
-  Zap,
-  BarChart3,
-  ArrowDown,
+  Trophy,
+  Users,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { useAuth } from "@/contexts/auth-context";
-import { logger } from "@/lib/logger";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
 import {
-  CourseCard,
-  CoursesEmptyState,
-  CoursesFilter,
-  CoursesHero,
-  CoursesLoadingSkeleton,
-  FeaturedCourses,
-  type CourseCardProps,
-} from "./components";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
-const PAGE_SIZE = 12;
+type CourseLevel = "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
+type SortOption =
+  | "newest"
+  | "popular"
+  | "rated"
+  | "price-low"
+  | "price-high"
+  | "duration-short"
+  | "duration-long";
 
-type SortOption = "newest" | "popular" | "rated" | "price-low" | "price-high" | "duration-short" | "duration-long";
-type CourseLevelFilter = "all" | "BEGINNER" | "INTERMEDIATE" | "ADVANCED";
-
-type Course = CourseCardProps & {
-  createdAt: string;
-  categoryId?: string;
-  categoryName?: string;
+type CourseSummary = {
+  id: string;
+  title: string;
+  description: string;
+  instructor: string;
+  subject: string;
+  categoryId: string;
+  categoryName: string;
+  level: CourseLevel;
   duration: number;
-  enrolledCount: number;
-  rating: number;
+  thumbnailUrl?: string;
   price: number;
+  rating: number;
+  enrolledCount: number;
+  createdAt: string;
   tags: string[];
-  lessonsCount?: number;
-  isWishlisted?: boolean;
+  enrolled: boolean;
+  progress?: number;
+  isFeatured: boolean;
+  lessonsCount: number;
 };
 
 type CourseCategory = {
   id: string;
   name: string;
-  icon: string;
-  count?: number;
 };
 
-type CoursesApiResponse = {
-  courses?: Course[];
-  subjects?: Course[];
-  categories?: CourseCategory[];
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: "newest", label: "الأحدث" },
+  { value: "popular", label: "الأكثر طلبًا" },
+  { value: "rated", label: "الأعلى تقييمًا" },
+  { value: "price-low", label: "السعر من الأقل" },
+  { value: "price-high", label: "السعر من الأعلى" },
+  { value: "duration-short", label: "المدة الأقصر" },
+  { value: "duration-long", label: "المدة الأطول" },
+];
+
+const LEVEL_OPTIONS: { value: "ALL" | CourseLevel; label: string }[] = [
+  { value: "ALL", label: "كل المستويات" },
+  { value: "BEGINNER", label: "مبتدئ" },
+  { value: "INTERMEDIATE", label: "متوسط" },
+  { value: "ADVANCED", label: "متقدم" },
+];
+
+const levelMap: Record<CourseLevel, { label: string; className: string }> = {
+  BEGINNER: {
+    label: "مبتدئ",
+    className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  },
+  INTERMEDIATE: {
+    label: "متوسط",
+    className: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  },
+  ADVANCED: {
+    label: "متقدم",
+    className: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+  },
 };
 
-function normalizeLevel(level: Course["level"]): Exclude<CourseLevelFilter, "all"> {
-  switch (level) {
-    case "BEGINNER":
-    case "EASY":
-      return "BEGINNER";
-    case "ADVANCED":
-    case "HARD":
-    case "EXPERT":
-      return "ADVANCED";
-    case "INTERMEDIATE":
-    case "MEDIUM":
-    default:
-      return "INTERMEDIATE";
+function formatPrice(price: number) {
+  return price === 0 ? "مجانية" : `${price.toLocaleString("ar-EG")} ج.م`;
+}
+
+function formatHours(duration: number) {
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return "ساعة واحدة";
   }
+
+  if (duration === 1) {
+    return "ساعة واحدة";
+  }
+
+  return `${duration.toLocaleString("ar-EG")} ساعة`;
 }
 
-function toTimestamp(value: string): number {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+function sortCourses(courses: CourseSummary[], sortBy: SortOption) {
+  const sorted = [...courses];
+
+  switch (sortBy) {
+    case "popular":
+      sorted.sort((left, right) => right.enrolledCount - left.enrolledCount);
+      break;
+    case "rated":
+      sorted.sort((left, right) => right.rating - left.rating);
+      break;
+    case "price-low":
+      sorted.sort((left, right) => left.price - right.price);
+      break;
+    case "price-high":
+      sorted.sort((left, right) => right.price - left.price);
+      break;
+    case "duration-short":
+      sorted.sort((left, right) => left.duration - right.duration);
+      break;
+    case "duration-long":
+      sorted.sort((left, right) => right.duration - left.duration);
+      break;
+    case "newest":
+    default:
+      sorted.sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      );
+      break;
+  }
+
+  return sorted;
 }
 
-export default function CoursesPage({
-  params,
-  searchParams,
+function CourseCard({
+  course,
+  index,
 }: {
-  params: Promise<{ slug?: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  course: CourseSummary;
+  index: number;
 }) {
-  const { user, isLoading: authLoading, fetchWithAuth } = useAuth();
-  const router = useRouter();
-
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [categories, setCategories] = useState<CourseCategory[]>([]);
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("newest");
-  const [levelFilter, setLevelFilter] = useState<CourseLevelFilter>("all");
-  const [showEnrolledOnly, setShowEnrolledOnly] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [enrollingId, setEnrollingId] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [refreshKey, setRefreshKey] = useState(0);
-  const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
-
-  const resetFilters = () => {
-    setActiveCategory("all");
-    setSearchTerm("");
-    setSortBy("newest");
-    setLevelFilter("all");
-    setShowEnrolledOnly(false);
-    setVisibleCount(PAGE_SIZE);
-  };
-
-  const hasActiveFilters =
-    activeCategory !== "all" ||
-    searchTerm.trim() !== "" ||
-    levelFilter !== "all" ||
-    showEnrolledOnly;
-
-  useEffect(() => {
-    if (authLoading) return;
-
-    const controller = new AbortController();
-
-    const fetchCourses = async () => {
-      try {
-        setLoading(true);
-        setFetchError(null);
-
-        const response = await fetchWithAuth("/api/courses", {
-          cache: "no-store",
-          signal: controller.signal,
-        });
-
-        if (!response.ok) throw new Error(`Failed to fetch courses (${response.status})`);
-
-        const data = (await response.json()) as CoursesApiResponse;
-        const fetchedCourses = Array.isArray(data.courses)
-          ? data.courses
-          : Array.isArray(data.subjects)
-            ? data.subjects
-            : [];
-        const fetchedCategories = Array.isArray(data.categories) ? data.categories : [];
-
-        setCourses(fetchedCourses);
-        setCategories(fetchedCategories);
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        logger.error("Error fetching courses:", error);
-
-        let errorMessage = "تعذر تحميل الدورات حالياً.";
-        let toastMessage = "تعذر تحميل الدورات";
-
-        if (error instanceof TypeError && error.message.includes('fetch')) {
-          errorMessage = "لا يمكن الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.";
-          toastMessage = "مشكلة في الاتصال بالخادم";
-        } else if (error instanceof Error && error.message.includes('500')) {
-          errorMessage = "حدث خطأ داخلي في الخادم.";
-          toastMessage = "خطأ داخلي في الخادم";
-        } else if (error instanceof Error && error.message.includes('403')) {
-          errorMessage = "غير مصرح لك بالوصول إلى هذه البيانات.";
-          toastMessage = "وصول محظور";
-        }
-
-        setCourses([]);
-        setCategories([]);
-        setFetchError(errorMessage);
-        toast.error(toastMessage);
-      } finally {
-        if (!controller.signal.aborted) setLoading(false);
-      }
-    };
-
-    void fetchCourses();
-    return () => controller.abort();
-  }, [authLoading, refreshKey, user?.id, fetchWithAuth]);
-
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [activeCategory, searchTerm, sortBy, levelFilter, showEnrolledOnly]);
-
-  const filteredCourses = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    return courses.filter((course) => {
-      if (showEnrolledOnly && !course.enrolled) return false;
-
-      const matchesCategory =
-        activeCategory === "all" ||
-        course.categoryId === activeCategory ||
-        course.subject === activeCategory;
-
-      const matchesLevel = levelFilter === "all" || normalizeLevel(course.level) === levelFilter;
-
-      if (!normalizedSearch) return matchesCategory && matchesLevel;
-
-      const matchesSearch =
-        course.title.toLowerCase().includes(normalizedSearch) ||
-        course.instructor.toLowerCase().includes(normalizedSearch) ||
-        course.description.toLowerCase().includes(normalizedSearch) ||
-        course.tags.some(tag => tag.toLowerCase().includes(normalizedSearch));
-
-      return matchesCategory && matchesSearch && matchesLevel;
-    });
-  }, [courses, activeCategory, searchTerm, levelFilter, showEnrolledOnly]);
-
-  const sortedCourses = useMemo(() => {
-    return [...filteredCourses].sort((left, right) => {
-      switch (sortBy) {
-        case "newest":
-          return toTimestamp(right.createdAt) - toTimestamp(left.createdAt);
-        case "popular":
-          return (right.enrolledCount || 0) - (left.enrolledCount || 0);
-        case "rated":
-          return (right.rating || 0) - (left.rating || 0);
-        case "price-low":
-          return (left.price || 0) - (right.price || 0);
-        case "price-high":
-          return (right.price || 0) - (left.price || 0);
-        case "duration-short":
-          return (left.duration || 0) - (right.duration || 0);
-        case "duration-long":
-          return (right.duration || 0) - (left.duration || 0);
-        default:
-          return 0;
-      }
-    });
-  }, [filteredCourses, sortBy]);
-
-  const featuredCourses = useMemo(() => {
-    // Priority 1: Courses manually marked as featured in database
-    // Priority 2: Fallback to highest rated courses
-    const allFeatured = courses.filter(c => (c as any).isFeatured);
-    
-    if (allFeatured.length > 0) {
-      return allFeatured.slice(0, 6);
-    }
-
-    const source = showEnrolledOnly ? courses.filter((course) => course.enrolled) : courses;
-    return [...source]
-      .sort((a, b) => (b.rating || 0) - (a.rating || 0))
-      .slice(0, 5);
-  }, [courses, showEnrolledOnly]);
-
-  const stats = useMemo(() => {
-    const enrolledCoursesCount = courses.filter((course) => course.enrolled).length;
-    const freeCoursesCount = courses.filter((course) => (course.price || 0) === 0).length;
-    const totalLessons = courses.reduce((acc, course) => acc + (course.lessonsCount || 0), 0);
-    const avgRating = courses.length > 0
-      ? courses.reduce((sum, course) => sum + (course.rating || 0), 0) / courses.length
-      : 0;
-
-    return {
-      totalCourses: courses.length,
-      totalStudents: courses.reduce((acc, course) => acc + (course.enrolledCount || 0), 0),
-      enrolledCoursesCount,
-      freeCoursesCount,
-      totalInstructors: new Set(courses.map(c => c.instructor)).size,
-      totalLessons,
-      avgRating: parseFloat(avgRating.toFixed(1)),
-    };
-  }, [courses]);
-
-  const handleEnroll = async (courseId: string) => {
-    if (!user) {
-      toast.error("يرجى تسجيل الدخول أولاً");
-      router.push("/login?redirect=/courses");
-      return;
-    }
-    setEnrollingId(courseId);
-    try {
-      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "POST" });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.requiresPayment) {
-          router.push(`/courses/${courseId}/checkout`);
-          return;
-        }
-        toast.success("تم التسجيل في الدورة بنجاح!");
-        setRefreshKey(k => k + 1);
-      } else {
-        toast.error("فشل التسجيل");
-      }
-    } catch (err) {
-      toast.error("حدث خطأ أثناء التسجيل");
-    } finally {
-      setEnrollingId(null);
-    }
-  };
-
-  const handleUnenroll = async (courseId: string) => {
-    setEnrollingId(courseId);
-    try {
-      const res = await fetch(`/api/courses/${courseId}/enroll`, { method: "DELETE" });
-      if (res.ok) {
-        toast.success("تم إلغاء التسجيل");
-        setRefreshKey(k => k + 1);
-      }
-    } finally {
-      setEnrollingId(null);
-    }
-  };
-
-  const toggleWishlist = (courseId: string) => {
-    setWishlistIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(courseId)) {
-        newSet.delete(courseId);
-      } else {
-        newSet.add(courseId);
-      }
-      return newSet;
-    });
-  };
-
-  const visibleCourses = sortedCourses.slice(0, visibleCount);
-  const canLoadMore = visibleCount < sortedCourses.length;
-
-  if (loading) return <CoursesLoadingSkeleton />;
+  const levelInfo = levelMap[course.level] ?? levelMap.INTERMEDIATE;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-[#0B0D14]" dir="rtl">
-      {/* Ambient background */}
-      <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/[0.02] blur-[150px] rounded-full" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-500/[0.02] blur-[130px] rounded-full" />
-      </div>
-
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
-        {/* Hero Section */}
-        <CoursesHero
-          totalCourses={stats.totalCourses}
-          totalStudents={stats.totalStudents}
-          totalInstructors={stats.totalInstructors}
-          avgRating={stats.avgRating}
-        />
-
-        {/* Quick Stats - compact row */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-          {[
-            { label: "إجمالي الدورات", val: stats.totalCourses, icon: BookOpen, color: "text-blue-500", bg: "bg-blue-500/10" },
-            { label: "إجمالي الطلاب", val: stats.totalStudents, icon: Users, color: "text-violet-500", bg: "bg-violet-500/10" },
-            { label: "دوراتك النشطة", val: stats.enrolledCoursesCount, icon: BookCheck, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-            { label: "دورات مجانية", val: stats.freeCoursesCount, icon: Sparkles, color: "text-amber-500", bg: "bg-amber-500/10" },
-            { label: "متوسط التقييم", val: stats.avgRating, icon: Star, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-          ].map((stat, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-white/[0.06] bg-white dark:bg-gray-900/80 p-4 transition-all hover:border-gray-300 dark:hover:border-white/10"
-            >
-              <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", stat.bg)}>
-                <stat.icon className={cn("h-5 w-5", stat.color)} />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 truncate">{stat.label}</p>
-                <p className="text-xl font-black text-gray-900 dark:text-white" suppressHydrationWarning>
-                  {typeof stat.val === 'number' && stat.val >= 1000
-                    ? `${(stat.val / 1000).toFixed(1)}K`
-                    : stat.val}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Featured Courses */}
-        {!loading && featuredCourses.length > 0 && (
-          <FeaturedCourses
-            courses={featuredCourses}
-            onEnroll={handleEnroll}
-            onUnenroll={handleUnenroll}
-            enrollingId={enrollingId}
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: index * 0.04 }}
+      className="group overflow-hidden rounded-[30px] border border-slate-200/80 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_80px_rgba(15,23,42,0.12)] dark:border-white/10 dark:bg-slate-950/70 dark:shadow-none"
+    >
+      <div className="relative aspect-[16/10] overflow-hidden">
+        {course.thumbnailUrl ? (
+          <Image
+            src={course.thumbnailUrl}
+            alt={course.title}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+            className="object-cover transition-transform duration-700 group-hover:scale-105"
           />
+        ) : (
+          <div className="flex h-full items-center justify-center bg-[radial-gradient(circle_at_top_right,_rgba(249,115,22,0.16),transparent_42%),linear-gradient(135deg,#f8fafc,#e2e8f0)] dark:bg-[radial-gradient(circle_at_top_right,_rgba(249,115,22,0.24),transparent_42%),linear-gradient(135deg,#0f172a,#020617)]">
+            <div className="rounded-3xl border border-white/20 bg-white/60 p-5 text-orange-500 backdrop-blur dark:bg-white/5">
+              <GraduationCap className="h-10 w-10" />
+            </div>
+          </div>
         )}
 
-        {/* Main Content */}
-        <div className="space-y-8">
-          {/* Tab Switcher */}
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2 p-1 rounded-xl bg-gray-100 dark:bg-white/5">
-              <button
-                onClick={() => setShowEnrolledOnly(false)}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all",
-                  !showEnrolledOnly
-                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                )}
-              >
-                <LayoutGrid className="h-4 w-4" />
-                <span>جميع الدورات</span>
-              </button>
-              <button
-                onClick={() => setShowEnrolledOnly(true)}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition-all",
-                  showEnrolledOnly
-                    ? "bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow-sm"
-                    : "text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                )}
-              >
-                <BookCheck className="h-4 w-4" />
-                <span>دوراتي</span>
-                {stats.enrolledCoursesCount > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
-                    {stats.enrolledCoursesCount}
-                  </span>
-                )}
-              </button>
-            </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/25 to-transparent" />
 
-            <div className="flex items-center gap-3">
-              <div className="hidden md:flex items-center gap-1.5 text-xs text-gray-400">
-                <TrendingUp className="h-3.5 w-3.5" />
-                <span>محدثة باستمرار</span>
-              </div>
-              <div className="flex gap-1.5">
-                <button
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/80 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
-                  onClick={() => window.print()}
-                  title="تصدير"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
-                <button
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/80 text-gray-500 hover:text-gray-700 dark:hover:text-white transition-colors"
-                  onClick={() =>
-                    navigator.share
-                      ? navigator.share({
-                          title: "Thanawy - الدورات التعليمية",
-                          text: "اكتشف مسارات التعلم المختلفة على منصة Thanawy",
-                          url: window.location.href,
-                        })
-                      : null
-                  }
-                  title="مشاركة"
-                >
-                  <Share2 className="h-4 w-4" />
-                </button>
-              </div>
+        <div className="absolute inset-x-4 top-4 flex items-start justify-between gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Badge className="border-0 bg-white/85 px-3 py-1 text-slate-800 backdrop-blur">
+              {course.categoryName}
+            </Badge>
+            {course.isFeatured ? (
+              <Badge className="border-0 bg-orange-500 px-3 py-1 text-white">
+                مميزة
+              </Badge>
+            ) : null}
+          </div>
+
+          <Badge className={cn("border px-3 py-1", levelInfo.className)}>
+            {levelInfo.label}
+          </Badge>
+        </div>
+
+        <div className="absolute inset-x-4 bottom-4 flex items-end justify-between gap-3 text-white">
+          <div className="space-y-2">
+            <div className="inline-flex items-center gap-1 rounded-full bg-black/40 px-3 py-1 text-xs font-bold backdrop-blur">
+              <Star className="h-3.5 w-3.5 fill-current text-amber-300" />
+              {course.rating.toFixed(1)}
+            </div>
+            <h3 className="line-clamp-2 text-xl font-black leading-tight">
+              {course.title}
+            </h3>
+          </div>
+
+          <div className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-white/15 backdrop-blur transition-transform group-hover:scale-110 md:flex">
+            <PlayCircle className="h-6 w-6" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-5 p-6">
+        <p className="line-clamp-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
+          {course.description}
+        </p>
+
+        <div className="grid grid-cols-2 gap-3 text-sm text-slate-500 dark:text-slate-400">
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/5">
+            <div className="mb-1 flex items-center gap-2">
+              <Users className="h-4 w-4 text-sky-500" />
+              <span>الطلاب</span>
+            </div>
+            <div className="font-black text-slate-900 dark:text-white">
+              {course.enrolledCount.toLocaleString("ar-EG")}
             </div>
           </div>
 
-          {/* Filters */}
-          <CoursesFilter
-            categories={categories}
-            activeCategory={activeCategory}
-            setActiveCategory={setActiveCategory}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            sortBy={sortBy}
-            setSortBy={setSortBy}
-            levelFilter={levelFilter}
-            setLevelFilter={setLevelFilter}
-            resultsCount={sortedCourses.length}
-            hasActiveFilters={hasActiveFilters}
-            onResetFilters={resetFilters}
-          />
-
-          {/* Results info */}
-          {sortedCourses.length > 0 && (
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-gray-500">
-                عرض <span className="font-bold text-gray-700 dark:text-white">{Math.min(visibleCount, sortedCourses.length)}</span> من{" "}
-                <span className="font-bold text-gray-700 dark:text-white">{sortedCourses.length}</span> دورة
-              </p>
-              {hasActiveFilters && (
-                <button
-                  onClick={resetFilters}
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  إزالة جميع الفلاتر
-                </button>
-              )}
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 dark:bg-white/5">
+            <div className="mb-1 flex items-center gap-2">
+              <Layers3 className="h-4 w-4 text-orange-500" />
+              <span>الدروس</span>
             </div>
-          )}
+            <div className="font-black text-slate-900 dark:text-white">
+              {course.lessonsCount.toLocaleString("ar-EG")}
+            </div>
+          </div>
+        </div>
 
-          {/* Course Grid */}
-          {sortedCourses.length === 0 && !loading ? (
-            <CoursesEmptyState />
-          ) : (
-            <>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                <AnimatePresence mode="popLayout">
-                  {visibleCourses.map((course, index) => (
-                    <CourseCard
-                      key={course.id}
-                      {...course}
-                      index={index}
-                      isProcessing={enrollingId === course.id}
-                      isWishlisted={wishlistIds.has(course.id)}
-                      onEnroll={() => handleEnroll(course.id)}
-                      onUnenroll={() => handleUnenroll(course.id)}
-                      onWishlistToggle={() => toggleWishlist(course.id)}
-                    />
-                  ))}
-                </AnimatePresence>
+        {course.enrolled && typeof course.progress === "number" ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-bold text-slate-500 dark:text-slate-400">
+              <span>تقدّمك في الدورة</span>
+              <span className="text-orange-500">{course.progress}%</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-slate-100 dark:bg-white/10">
+              <div
+                className="h-full rounded-full bg-gradient-to-l from-orange-500 to-amber-400"
+                style={{ width: `${Math.max(0, Math.min(course.progress, 100))}%` }}
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="flex flex-wrap gap-2">
+          {course.tags.slice(0, 3).map((tag) => (
+            <span
+              key={`${course.id}-${tag}`}
+              className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+
+        <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 pt-5 dark:border-white/10">
+          <div>
+            <p className="text-xs font-bold text-slate-400">السعر</p>
+            <p className="text-2xl font-black text-slate-950 dark:text-white">
+              {formatPrice(course.price)}
+            </p>
+          </div>
+
+          <div className="text-left">
+            <p className="mb-2 text-xs font-bold text-slate-400">المدة</p>
+            <p className="font-bold text-slate-700 dark:text-slate-200">
+              {formatHours(course.duration)}
+            </p>
+          </div>
+        </div>
+
+        <Button
+          asChild
+          className="h-12 w-full rounded-2xl bg-slate-950 text-white hover:bg-slate-800 dark:bg-orange-500 dark:hover:bg-orange-600"
+        >
+          <Link href={`/courses/${course.id}`} className="flex items-center justify-center gap-2">
+            {course.enrolled ? "متابعة التعلم" : "عرض تفاصيل الدورة"}
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+    </motion.article>
+  );
+}
+
+export default function CoursesPage() {
+  const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [categories, setCategories] = useState<CourseCategory[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("ALL");
+  const [selectedLevel, setSelectedLevel] = useState<"ALL" | CourseLevel>("ALL");
+  const [sortBy, setSortBy] = useState<SortOption>("newest");
+  const [featuredOnly, setFeaturedOnly] = useState(false);
+  const [enrolledOnly, setEnrolledOnly] = useState(false);
+
+  const deferredSearch = useDeferredValue(searchQuery);
+
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch("/api/courses?limit=48", { cache: "no-store" });
+        if (!response.ok) {
+          throw new Error("تعذر تحميل الدورات التعليمية.");
+        }
+
+        const payload = await response.json();
+        const data = payload.data ?? payload;
+        setCourses(data.courses ?? []);
+        setCategories(data.categories ?? []);
+      } catch (loadError) {
+        logger.error("Error loading courses catalog", loadError);
+        setError(
+          loadError instanceof Error
+            ? loadError.message
+            : "حدث خطأ أثناء تحميل الدورات."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    void loadCourses();
+  }, []);
+
+  const catalogStats = useMemo(() => {
+    const totalStudents = courses.reduce(
+      (sum, course) => sum + (course.enrolledCount || 0),
+      0
+    );
+    const totalLessons = courses.reduce(
+      (sum, course) => sum + (course.lessonsCount || 0),
+      0
+    );
+    const freeCourses = courses.filter((course) => course.price === 0).length;
+    const avgRating =
+      courses.length > 0
+        ? courses.reduce((sum, course) => sum + course.rating, 0) / courses.length
+        : 0;
+
+    return {
+      totalCourses: courses.length,
+      totalStudents,
+      totalLessons,
+      freeCourses,
+      avgRating,
+    };
+  }, [courses]);
+
+  const computedCategories = useMemo(() => {
+    const counts = new Map<string, number>();
+
+    for (const course of courses) {
+      counts.set(course.categoryId, (counts.get(course.categoryId) ?? 0) + 1);
+    }
+
+    return categories.map((category) => ({
+      ...category,
+      count: counts.get(category.id) ?? 0,
+    }));
+  }, [categories, courses]);
+
+  const filteredCourses = useMemo(() => {
+    const normalizedSearch = deferredSearch.trim().toLowerCase();
+
+    const base = courses.filter((course) => {
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        [
+          course.title,
+          course.description,
+          course.instructor,
+          course.categoryName,
+          course.tags.join(" "),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(normalizedSearch);
+
+      const matchesCategory =
+        selectedCategory === "ALL" || course.categoryId === selectedCategory;
+      const matchesLevel =
+        selectedLevel === "ALL" || course.level === selectedLevel;
+      const matchesFeatured = !featuredOnly || course.isFeatured;
+      const matchesEnrolled = !enrolledOnly || course.enrolled;
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesLevel &&
+        matchesFeatured &&
+        matchesEnrolled
+      );
+    });
+
+    return sortCourses(base, sortBy);
+  }, [
+    courses,
+    deferredSearch,
+    enrolledOnly,
+    featuredOnly,
+    selectedCategory,
+    selectedLevel,
+    sortBy,
+  ]);
+
+  const spotlightCourses = useMemo(() => {
+    const featuredCourses = courses.filter((course) => course.isFeatured);
+    if (featuredCourses.length > 0) {
+      return sortCourses(featuredCourses, "rated").slice(0, 3);
+    }
+
+    return sortCourses(courses, "popular").slice(0, 3);
+  }, [courses]);
+
+  const hasActiveFilters =
+    searchQuery.trim().length > 0 ||
+    selectedCategory !== "ALL" ||
+    selectedLevel !== "ALL" ||
+    featuredOnly ||
+    enrolledOnly ||
+    sortBy !== "newest";
+
+  return (
+    <div className="min-h-screen bg-[#fffdf9] text-slate-900 dark:bg-[#09090b] dark:text-white" dir="rtl">
+      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+        <div className="absolute right-[-12%] top-[-10%] h-[420px] w-[420px] rounded-full bg-orange-500/12 blur-[120px]" />
+        <div className="absolute left-[-8%] top-[18%] h-[320px] w-[320px] rounded-full bg-sky-500/12 blur-[110px]" />
+        <div className="absolute bottom-[-12%] left-[20%] h-[420px] w-[420px] rounded-full bg-emerald-500/10 blur-[130px]" />
+      </div>
+
+      <main className="relative mx-auto max-w-7xl px-4 pb-20 pt-8 sm:px-6 lg:px-8">
+        <section className="overflow-hidden rounded-[36px] border border-slate-200/80 bg-white/90 px-6 py-8 shadow-[0_30px_80px_rgba(15,23,42,0.07)] backdrop-blur sm:px-8 lg:px-10 lg:py-10 dark:border-white/10 dark:bg-slate-950/80 dark:shadow-none">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.2fr_0.8fr]">
+            <div className="space-y-7">
+              <Badge className="rounded-full border-0 bg-orange-500/10 px-4 py-2 text-orange-600 dark:bg-orange-500/15 dark:text-orange-300">
+                <Sparkles className="ml-2 h-4 w-4" />
+                منصة دورات تعليمية متكاملة للمرحلة الثانوية
+              </Badge>
+
+              <div className="space-y-4">
+                <h1 className="max-w-3xl text-4xl font-black leading-tight sm:text-5xl lg:text-6xl">
+                  اكتشف دورات تصنع
+                  <span className="block bg-gradient-to-l from-orange-500 via-amber-500 to-sky-500 bg-clip-text text-transparent">
+                    تجربة تعلّم حقيقية وليست مجرد فيديو
+                  </span>
+                </h1>
+
+                <p className="max-w-2xl text-base leading-8 text-slate-600 dark:text-slate-300 sm:text-lg">
+                  ابحث عن الدورة المناسبة لك، راقب تقدّمك، وانتقل مباشرة إلى
+                  بيئة تعلّم احترافية بمشغل فيديو متطور ومتكامل مع الدروس
+                  والملاحظات والمرفقات.
+                </p>
               </div>
 
-              {/* Load More */}
-              {canLoadMore && (
-                <div className="flex justify-center pt-4">
-                  <Button
-                    onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-                    variant="outline"
-                    className="gap-2 rounded-xl border-gray-200 dark:border-white/10 px-8 py-3 text-sm font-bold hover:bg-gray-50 dark:hover:bg-white/5"
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                    <span>عرض المزيد ({sortedCourses.length - visibleCount} دورة متبقية)</span>
-                  </Button>
+              <div className="grid gap-4 md:grid-cols-[1fr_auto_auto]">
+                <div className="relative">
+                  <Search className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="ابحث باسم الدورة أو المدرس أو المادة"
+                    className="h-14 rounded-2xl border-slate-200 bg-slate-50 pr-11 text-base dark:border-white/10 dark:bg-white/5"
+                  />
                 </div>
+
+                <Button
+                  type="button"
+                  variant={featuredOnly ? "default" : "outline"}
+                  className={cn(
+                    "h-14 rounded-2xl px-6",
+                    featuredOnly
+                      ? "bg-orange-500 text-white hover:bg-orange-600"
+                      : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  )}
+                  onClick={() => setFeaturedOnly((current) => !current)}
+                >
+                  <Trophy className="ml-2 h-4 w-4" />
+                  الدورات المميزة
+                </Button>
+
+                <Button
+                  type="button"
+                  variant={enrolledOnly ? "default" : "outline"}
+                  className={cn(
+                    "h-14 rounded-2xl px-6",
+                    enrolledOnly
+                      ? "bg-slate-950 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-950"
+                      : "border-slate-200 bg-white hover:bg-slate-50 dark:border-white/10 dark:bg-white/5 dark:hover:bg-white/10"
+                  )}
+                  onClick={() => setEnrolledOnly((current) => !current)}
+                >
+                  <BookOpen className="ml-2 h-4 w-4" />
+                  دوراتي فقط
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                {
+                  label: "إجمالي الدورات",
+                  value: catalogStats.totalCourses.toLocaleString("ar-EG"),
+                  icon: BookOpen,
+                  tone: "text-orange-500 bg-orange-500/10",
+                },
+                {
+                  label: "إجمالي الطلاب",
+                  value: catalogStats.totalStudents.toLocaleString("ar-EG"),
+                  icon: Users,
+                  tone: "text-sky-500 bg-sky-500/10",
+                },
+                {
+                  label: "إجمالي الدروس",
+                  value: catalogStats.totalLessons.toLocaleString("ar-EG"),
+                  icon: Layers3,
+                  tone: "text-emerald-500 bg-emerald-500/10",
+                },
+                {
+                  label: "متوسط التقييم",
+                  value: catalogStats.avgRating.toFixed(1),
+                  icon: Star,
+                  tone: "text-amber-500 bg-amber-500/10",
+                },
+              ].map((stat) => (
+                <div
+                  key={stat.label}
+                  className="rounded-[28px] border border-slate-200/70 bg-slate-50/70 p-5 dark:border-white/10 dark:bg-white/[0.03]"
+                >
+                  <div
+                    className={cn(
+                      "mb-4 flex h-12 w-12 items-center justify-center rounded-2xl",
+                      stat.tone
+                    )}
+                  >
+                    <stat.icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-3xl font-black">{stat.value}</p>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    {stat.label}
+                  </p>
+                </div>
+              ))}
+
+              <div className="rounded-[28px] border border-slate-200/70 bg-slate-950 p-5 text-white sm:col-span-2 dark:border-white/10">
+                <div className="mb-3 flex items-center gap-3">
+                  <div className="rounded-2xl bg-white/10 p-3">
+                    <TrendingUp className="h-5 w-5 text-orange-300" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white/80">
+                      دورات مجانية متاحة الآن
+                    </p>
+                    <p className="text-2xl font-black">
+                      {catalogStats.freeCourses.toLocaleString("ar-EG")}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-sm leading-7 text-white/70">
+                  ابدأ فورًا بدون انتظار، ثم انتقل إلى الدورات المتقدمة عندما
+                  تكون جاهزًا.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-10 space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-orange-600 dark:text-orange-300">
+                استكشاف المواد
+              </p>
+              <h2 className="text-2xl font-black">تصفّح حسب التخصص</h2>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("ALL")}
+              className={cn(
+                "rounded-full px-5 py-3 text-sm font-bold transition-all",
+                selectedCategory === "ALL"
+                  ? "bg-slate-950 text-white dark:bg-orange-500"
+                  : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
               )}
-            </>
+            >
+              كل المواد
+            </button>
+
+            {computedCategories.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => setSelectedCategory(category.id)}
+                className={cn(
+                  "rounded-full px-5 py-3 text-sm font-bold transition-all",
+                  selectedCategory === category.id
+                    ? "bg-slate-950 text-white dark:bg-orange-500"
+                    : "border border-slate-200 bg-white text-slate-600 hover:border-slate-300 dark:border-white/10 dark:bg-white/5 dark:text-slate-300"
+                )}
+              >
+                {category.name}
+                <span className="mr-2 text-xs opacity-70">
+                  ({category.count.toLocaleString("ar-EG")})
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {spotlightCourses.length > 0 ? (
+          <section className="mt-10 space-y-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold text-sky-600 dark:text-sky-300">
+                  ترشيحات جاهزة
+                </p>
+                <h2 className="text-2xl font-black">أفضل ما يمكن البدء به الآن</h2>
+              </div>
+            </div>
+
+            <div className="grid gap-5 lg:grid-cols-3">
+              {spotlightCourses.map((course, index) => (
+                <motion.div
+                  key={course.id}
+                  initial={{ opacity: 0, y: 18 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="relative overflow-hidden rounded-[32px] border border-slate-200/80 bg-white p-6 shadow-[0_20px_60px_rgba(15,23,42,0.05)] dark:border-white/10 dark:bg-slate-950/75 dark:shadow-none"
+                >
+                  <div className="absolute left-0 top-0 h-32 w-32 rounded-full bg-orange-500/10 blur-3xl" />
+                  <div className="relative space-y-4">
+                    <Badge className="rounded-full border-0 bg-slate-950 px-3 py-1 text-white dark:bg-white dark:text-slate-950">
+                      {index === 0 ? "الأكثر جذبًا" : index === 1 ? "الأعلى تقييمًا" : "مقترحة لك"}
+                    </Badge>
+                    <h3 className="text-2xl font-black">{course.title}</h3>
+                    <p className="line-clamp-2 text-sm leading-7 text-slate-600 dark:text-slate-300">
+                      {course.description}
+                    </p>
+
+                    <div className="flex flex-wrap gap-4 text-sm text-slate-500 dark:text-slate-400">
+                      <span className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-sky-500" />
+                        {course.enrolledCount.toLocaleString("ar-EG")} طالب
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Clock3 className="h-4 w-4 text-orange-500" />
+                        {formatHours(course.duration)}
+                      </span>
+                      <span className="flex items-center gap-2">
+                        <Star className="h-4 w-4 fill-current text-amber-400" />
+                        {course.rating.toFixed(1)}
+                      </span>
+                    </div>
+
+                    <Button
+                      asChild
+                      className="h-11 rounded-2xl bg-orange-500 px-5 text-white hover:bg-orange-600"
+                    >
+                      <Link href={`/courses/${course.id}`} className="flex items-center gap-2">
+                        افتح صفحة الدورة
+                        <ArrowLeft className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
+        <section className="mt-10 rounded-[32px] border border-slate-200/80 bg-white/85 p-5 backdrop-blur dark:border-white/10 dark:bg-slate-950/75">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto_auto]">
+            <div className="rounded-[24px] bg-slate-50 p-4 dark:bg-white/5">
+              <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-500 dark:text-slate-400">
+                <SlidersHorizontal className="h-4 w-4" />
+                إعدادات العرض
+              </div>
+              <p className="text-sm leading-7 text-slate-600 dark:text-slate-300">
+                خصّص النتائج حسب المستوى والسعر والشهرة للوصول إلى الدورة الأنسب
+                أسرع.
+              </p>
+            </div>
+
+            <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+              <SelectTrigger className="h-14 min-w-[190px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+                <SelectValue placeholder="الترتيب" />
+              </SelectTrigger>
+              <SelectContent>
+                {SORT_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={selectedLevel}
+              onValueChange={(value) => setSelectedLevel(value as "ALL" | CourseLevel)}
+            >
+              <SelectTrigger className="h-14 min-w-[180px] rounded-2xl border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/5">
+                <SelectValue placeholder="المستوى" />
+              </SelectTrigger>
+              <SelectContent>
+                {LEVEL_OPTIONS.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!hasActiveFilters}
+              className="h-14 rounded-2xl border-slate-200 px-6 dark:border-white/10"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategory("ALL");
+                setSelectedLevel("ALL");
+                setSortBy("newest");
+                setFeaturedOnly(false);
+                setEnrolledOnly(false);
+              }}
+            >
+              إعادة الضبط
+            </Button>
+          </div>
+        </section>
+
+        <section className="mt-10">
+          <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-emerald-600 dark:text-emerald-300">
+                نتائج البحث
+              </p>
+              <h2 className="text-3xl font-black">كل الدورات التعليمية</h2>
+            </div>
+
+            <div className="rounded-full bg-slate-100 px-4 py-2 text-sm font-bold text-slate-600 dark:bg-white/5 dark:text-slate-300">
+              {filteredCourses.length.toLocaleString("ar-EG")} دورة مطابقة
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="overflow-hidden rounded-[30px] border border-slate-200/80 bg-white dark:border-white/10 dark:bg-slate-950/70"
+                >
+                  <div className="aspect-[16/10] animate-pulse bg-slate-200 dark:bg-white/5" />
+                  <div className="space-y-4 p-6">
+                    <div className="h-6 w-2/3 animate-pulse rounded-full bg-slate-200 dark:bg-white/5" />
+                    <div className="h-4 w-full animate-pulse rounded-full bg-slate-200 dark:bg-white/5" />
+                    <div className="h-4 w-5/6 animate-pulse rounded-full bg-slate-200 dark:bg-white/5" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+                      <div className="h-20 animate-pulse rounded-2xl bg-slate-100 dark:bg-white/5" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : error ? (
+            <div className="rounded-[32px] border border-rose-200 bg-rose-50 p-8 text-center dark:border-rose-500/20 dark:bg-rose-500/10">
+              <h3 className="text-xl font-black text-rose-700 dark:text-rose-300">
+                تعذر تحميل الدورات
+              </h3>
+              <p className="mt-3 text-sm leading-7 text-rose-600 dark:text-rose-200/80">
+                {error}
+              </p>
+            </div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="rounded-[32px] border-2 border-dashed border-slate-300 bg-white/70 p-10 text-center dark:border-white/10 dark:bg-slate-950/60">
+              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-3xl bg-slate-100 text-slate-500 dark:bg-white/5 dark:text-slate-300">
+                <Search className="h-6 w-6" />
+              </div>
+              <h3 className="text-2xl font-black">لا توجد نتائج مطابقة الآن</h3>
+              <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-slate-500 dark:text-slate-400">
+                جرّب تعديل كلمات البحث أو إعادة ضبط الفلاتر، أو افتح جميع المواد
+                لرؤية مزيد من الدورات.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {filteredCourses.map((course, index) => (
+                <CourseCard key={course.id} course={course} index={index} />
+              ))}
+            </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }

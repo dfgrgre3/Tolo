@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <title>Upload Test</title>
@@ -37,10 +37,10 @@
                 const result = await response.json();
                 document.getElementById('simpleResult').innerHTML = 
                     response.ok ? 
-                    `✅ Success: ${result.fileUrl}` : 
-                    `❌ Error: ${result.error}`;
+                    `âœ… Success: ${result.fileUrl}` : 
+                    `â‌Œ Error: ${result.error}`;
             } catch (error) {
-                document.getElementById('simpleResult').innerHTML = `❌ Error: ${error.message}`;
+                document.getElementById('simpleResult').innerHTML = `â‌Œ Error: ${error.message}`;
             }
         });
 
@@ -63,10 +63,10 @@
                 const result = await response.json();
                 document.getElementById('mainResult').innerHTML = 
                     response.ok ? 
-                    `✅ Success: ${result.fileUrl}` : 
-                    `❌ Error: ${result.error}`;
+                    `âœ… Success: ${result.fileUrl}` : 
+                    `â‌Œ Error: ${result.error}`;
             } catch (error) {
-                document.getElementById('mainResult').innerHTML = `❌ Error: ${error.message}`;
+                document.getElementById('mainResult').innerHTML = `â‌Œ Error: ${error.message}`;
             }
         });
     </script>

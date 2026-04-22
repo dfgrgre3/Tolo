@@ -1,8 +1,8 @@
-import DataPartitioningService from '@/lib/data-partitioning-service';
+﻿import DataPartitioningService from '@/lib/data-partitioning-service';
 import { logger } from '@/lib/logger';
 
 async function runMaintenance() {
-    logger.info('🚀 Starting Production Maintenance Tasks...');
+    logger.info('ًںڑ€ Starting Production Maintenance Tasks...');
 
     try {
         // 1. Data Partitioning Management
@@ -16,10 +16,10 @@ async function runMaintenance() {
         // 2. Cache Warmup (Optional, but good for 1M users)
         // Add specific warmup logic here if needed
 
-        logger.info('✅ Maintenance Tasks Completed Successfully');
+        logger.info('âœ… Maintenance Tasks Completed Successfully');
         process.exit(0);
     } catch (error) {
-        logger.error('❌ Maintenance Tasks Failed:', error);
+        logger.error('â‌Œ Maintenance Tasks Failed:', error);
         process.exit(1);
     }
 }

@@ -465,7 +465,7 @@ export default function CurriculumEditorPage() {
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle className="font-black text-xl">تعديل الفصل الدراسي</DialogTitle>
-              <DialogDescription className="text-zinc-500 font-bold text-xs">تغيير اسم الفصل الذي سيظهر للطلاب</DialogDescription>
+              <DialogDescription className="text-zinc-500 font-bold text-xs">تغيير اسم الفصل الذي سي٪ر للطلاب</DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
                <div className="space-y-2">
@@ -554,7 +554,7 @@ export default function CurriculumEditorPage() {
                <div className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-900 rounded-2xl border border-zinc-100 dark:border-zinc-800">
                   <div className="space-y-0.5">
                     <Label className="text-sm font-bold">درس مجاني</Label>
-                    <p className="text-[10px] text-zinc-500 font-medium">سيظهر هذا الدرس كمعاينة للطلاب غير المشتركين</p>
+                    <p className="text-[10px] text-zinc-500 font-medium">سي٪ر هذا الدرس كمعاينة للطلاب غير المشتركين</p>
                   </div>
                   <Switch 
                     checked={editingLesson?.lesson.isFree || false} 

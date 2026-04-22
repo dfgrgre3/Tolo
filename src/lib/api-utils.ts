@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ZodSchema } from 'zod';
-import { redis } from '@/lib/cache';
+
 
 import { logger } from '@/lib/logger';
 import { ERROR_CODES } from '@/lib/error-codes';
 
 // Rate limiting configuration
 interface RateLimitConfig {
-  windowMs: number;        // Time window in milliseconds
-  maxAttempts: number;     // Maximum attempts allowed in the window
-  lockoutMs?: number;      // Lockout duration in milliseconds (optional)
-  failClosed?: boolean;    // Whether to block requests if Redis is unavailable
+  windowMs: number; // Time window in milliseconds
+  maxAttempts: number; // Maximum attempts allowed in the window
+  lockoutMs?: number; // Lockout duration in milliseconds (optional)
+  failClosed?: boolean; // Whether to block requests if Redis is unavailable
 }
 
 // Rate limit check result
@@ -79,18 +79,18 @@ export function extractClientInfo(request: NextRequest): {
 } {
   // Extract IP address
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    request.headers.get('cf-connecting-ip') ||
-    'unknown';
+  request.headers.get('x-real-ip') ||
+  request.headers.get('cf-connecting-ip') ||
+  'unknown';
 
   // Extract User Agent
   const userAgent = request.headers.get('user-agent') || 'unknown';
 
   // Extract Location (e.g. from Vercel or Cloudflare headers, or mock)
   const location =
-    request.headers.get('x-vercel-ip-city') ?
-      `${request.headers.get('x-vercel-ip-city')}, ${request.headers.get('x-vercel-ip-country')}` :
-      request.headers.get('cf-ipcountry') || 'Unknown';
+  request.headers.get('x-vercel-ip-city') ?
+  `${request.headers.get('x-vercel-ip-city')}, ${request.headers.get('x-vercel-ip-country')}` :
+  request.headers.get('cf-ipcountry') || 'Unknown';
 
   // Create unique client identifier
   const clientId = `${ip}:${userAgent}`;
@@ -121,11 +121,11 @@ export interface APISuccess<T = unknown> {
 // Custom error class for API errors
 export class ApiError extends Error {
   constructor(
-    message: string,
-    public readonly status: number = 500,
-    public readonly code?: string,
-    public readonly details?: Record<string, unknown>
-  ) {
+  message: string,
+  public readonly status: number = 500,
+  public readonly code?: string,
+  public readonly details?: Record<string, unknown>)
+  {
     super(message);
     this.name = 'ApiError';
   }
@@ -159,17 +159,17 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     );
   }
 
-  if ((error as { name: string }).name === 'ZodError') {
+  if ((error as {name: string;}).name === 'ZodError') {
     const apiError: APIError = {
       error: 'Validation error',
       code: ERROR_CODES.VALIDATION_ERROR,
-      details: ((error as { errors: unknown[] }).errors || []) as unknown as Record<string, unknown>,
+      details: ((error as {errors: unknown[];}).errors || []) as unknown as Record<string, unknown>,
       status: 400
     };
     return NextResponse.json(apiError, { status: 400 });
   }
 
-  if ((error as { code: string }).code === 'P2002') {
+  if ((error as {code: string;}).code === 'P2002') {
     return NextResponse.json(
       {
         error: 'Resource already exists',
@@ -180,7 +180,7 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
     );
   }
 
-  if ((error as { code: string }).code === 'P2025') {
+  if ((error as {code: string;}).code === 'P2025') {
     return NextResponse.json(
       {
         error: 'Resource not found',
@@ -205,24 +205,24 @@ export function handleApiError(error: unknown): NextResponse<APIError> {
 
 // Standardized success response helper with payload shredding for 10M+ users
 export function successResponse<T>(
-  data: T,
-  message?: string,
-  status: number = 200,
-  fields?: string[] // Optional: list of fields to include (shredding)
+data: T,
+message?: string,
+status: number = 200,
+fields?: string[] // Optional: list of fields to include (shredding)
 ): NextResponse<APISuccess<T>> {
   let finalData = data;
-  
+
   // Payload Shredding: Only include requested fields to save bandwidth
   if (fields && fields.length > 0 && typeof data === 'object' && data !== null) {
     if (Array.isArray(data)) {
-      finalData = data.map(item => {
+      finalData = data.map((item) => {
         const shredded: any = {};
-        fields.forEach(f => { if (item[f] !== undefined) shredded[f] = item[f]; });
+        fields.forEach((f) => {if (item[f] !== undefined) shredded[f] = item[f];});
         return shredded;
       }) as any;
     } else {
       const shredded: any = {};
-      fields.forEach(f => { if ((data as any)[f] !== undefined) shredded[f] = (data as any)[f]; });
+      fields.forEach((f) => {if ((data as any)[f] !== undefined) shredded[f] = (data as any)[f];});
       finalData = shredded as T;
     }
   }
@@ -288,9 +288,9 @@ export function forbiddenResponse(message = 'Forbidden'): NextResponse<APIError>
 
 // Helper function to validate request body against a Zod schema
 export async function validateRequestBody<T>(
-  request: NextRequest,
-  schema: ZodSchema<T>
-): Promise<{ success: true; data: T } | { success: false; error: string }> {
+request: NextRequest,
+schema: ZodSchema<T>)
+: Promise<{success: true;data: T;} | {success: false;error: string;}> {
   try {
     // Parse request body with timeout protection
     const bodyPromise = request.json();
@@ -308,9 +308,9 @@ export async function validateRequestBody<T>(
     const result = schema.safeParse(body);
 
     if (!result.success) {
-      const errorMessages = result.error.issues
-        .map(issue => `${issue.path.join('.')}: ${issue.message}`)
-        .join(', ');
+      const errorMessages = result.error.issues.
+      map((issue) => `${issue.path.join('.')}: ${issue.message}`).
+      join(', ');
 
       return { success: false, error: errorMessages };
     }
@@ -333,9 +333,9 @@ export async function validateRequestBody<T>(
  * @returns NextResponse if rate limit exceeded, null otherwise
  */
 export async function applyRateLimit(
-  req: NextRequest,
-  limit: number,
-  windowMs: number = 15 * 60 * 1000 // 15 minutes
+req: NextRequest,
+limit: number,
+windowMs: number = 15 * 60 * 1000 // 15 minutes
 ): Promise<NextResponse | null> {
   const clientInfo = extractClientInfo(req);
   const rateLimiter = new RateLimiter({
@@ -375,9 +375,9 @@ export async function applyRateLimit(
  * @returns NextResponse if validation fails, null otherwise
  */
 export function validateRequiredParams(
-  params: Record<string, unknown>,
-  required: string[]
-): NextResponse | null {
+params: Record<string, unknown>,
+required: string[])
+: NextResponse | null {
   for (const param of required) {
     if (params[param] === undefined || params[param] === null) {
       return NextResponse.json(
@@ -401,11 +401,11 @@ export function validateRequiredParams(
  * @returns Paginated response object
  */
 export function createPaginatedResponse<T>(
-  data: T[],
-  total: number,
-  limit: number,
-  offset: number
-) {
+data: T[],
+total: number,
+limit: number,
+offset: number)
+{
   return {
     data,
     pagination: {
@@ -433,9 +433,9 @@ export function isValidUUID(id: string): boolean {
  * @returns Sanitized string
  */
 export function sanitizeInput(input: string): string {
-  return input
-    .replace(/[<>]/g, '') // Remove potential HTML tags
-    .trim();
+  return input.
+  replace(/[<>]/g, '') // Remove potential HTML tags
+  .trim();
 }
 
 // getAuthenticatedUser removed
@@ -500,10 +500,10 @@ export function createSuccessResponse<T>(data: T, message?: string, status: numb
  * @returns NextResponse if rate limit exceeded, null otherwise
  */
 export async function rateLimit(
-  req: NextRequest,
-  limit: number,
-  identifier?: string,
-  windowMs: number = 15 * 60 * 1000 // 15 minutes default
+req: NextRequest,
+limit: number,
+identifier?: string,
+windowMs: number = 15 * 60 * 1000 // 15 minutes default
 ): Promise<NextResponse | null> {
   return applyRateLimit(req, limit, windowMs);
 }
@@ -513,7 +513,7 @@ export function createStandardErrorResponse(error: any, defaultMessage: string, 
   return createErrorResponse(message, status, undefined, status === 400 ? ERROR_CODES.BAD_REQUEST : ERROR_CODES.INTERNAL_ERROR);
 }
 
-export async function parseRequestBody<T>(req: NextRequest, options?: { maxSize?: number, required?: boolean }) {
+export async function parseRequestBody<T>(req: NextRequest, options?: {maxSize?: number;required?: boolean;}) {
   try {
     const text = await req.text();
     if (!text && options?.required) {
@@ -527,7 +527,7 @@ export async function parseRequestBody<T>(req: NextRequest, options?: { maxSize?
     }
     const data = JSON.parse(text) as T;
     return { success: true as const, data };
-  } catch (e) {
+  } catch (_e) {
     return { success: false as const, error: badRequestResponse('Invalid JSON', ERROR_CODES.INVALID_JSON) };
   }
 }
@@ -550,9 +550,9 @@ export interface AuthContextUser {
  * and automatically returns unauthorized response if missing.
  */
 export async function withAuth(
-  req: NextRequest,
-  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
-): Promise<NextResponse> {
+req: NextRequest,
+handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse)
+: Promise<NextResponse> {
   const userId = req.headers.get("x-user-id");
   const userRole = req.headers.get("x-user-role") || "USER";
   const permissionsHeader = req.headers.get("x-user-permissions") || "";
@@ -565,7 +565,7 @@ export async function withAuth(
       userRole,
       role: userRole,
       permissions,
-      sessionId,
+      sessionId
     });
   }
 
@@ -576,9 +576,9 @@ export async function withAuth(
  * Authentication and Authorization wrapper for ADMIN only routes.
  */
 export async function withAdmin(
-  req: NextRequest,
-  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
-): Promise<NextResponse> {
+req: NextRequest,
+handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse)
+: Promise<NextResponse> {
   return withAuth(req, async (user) => {
     if (user.role !== 'ADMIN') {
       return forbiddenResponse("غير مسموح لك بالوصول إلى هذه الصفحة. يتطلب صلاحيات مدير");
@@ -591,9 +591,9 @@ export async function withAdmin(
  * Authentication and Authorization wrapper for TEACHER and ADMIN routes.
  */
 export async function withTeacher(
-  req: NextRequest,
-  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
-): Promise<NextResponse> {
+req: NextRequest,
+handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse)
+: Promise<NextResponse> {
   return withAuth(req, async (user) => {
     if (user.role !== 'TEACHER' && user.role !== 'ADMIN') {
       return forbiddenResponse("غير مسموح لك بالوصول إلى هذه الصفحة. يتطلب صلاحيات معلم");
@@ -606,9 +606,9 @@ export async function withTeacher(
  * Authentication and Authorization wrapper for STUDENT only routes.
  */
 export async function withStudent(
-  req: NextRequest,
-  handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse
-): Promise<NextResponse> {
+req: NextRequest,
+handler: (user: AuthContextUser) => Promise<NextResponse> | NextResponse)
+: Promise<NextResponse> {
   return withAuth(req, async (user) => {
     if (user.role !== 'STUDENT' && user.role !== 'ADMIN') {
       return forbiddenResponse("غير مسموح لك بالوصول إلى هذه الصفحة. يتطلب حساب طالب");

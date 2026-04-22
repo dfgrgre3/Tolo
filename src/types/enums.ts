@@ -1,4 +1,4 @@
-export enum SubjectType {
+﻿export enum SubjectType {
     MATH = 'MATH',
     PHYSICS = 'PHYSICS',
     CHEMISTRY = 'CHEMISTRY',

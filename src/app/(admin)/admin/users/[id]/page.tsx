@@ -15,8 +15,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  SelectValue } from
+"@/components/ui/select";
 import {
   ArrowRight,
   Mail,
@@ -32,7 +32,7 @@ import {
   CheckCircle,
   XCircle,
   Hash,
-  MapPin,
+
   School,
   User as UserIcon,
   Activity,
@@ -44,8 +44,8 @@ import {
   Trash2,
   Lock,
   Edit,
-  Save,
-} from "lucide-react";
+  Save } from
+"lucide-react";
 import { toast } from "sonner";
 import { logger } from '@/lib/logger';
 import { format } from "date-fns";
@@ -138,7 +138,7 @@ const roleColors: Record<string, string> = {
   TEACHER: "bg-primary shadow-primary/20 text-white",
   STUDENT: "bg-success shadow-success/20 text-white",
   MODERATOR: "bg-warning shadow-warning/20 text-white",
-  USER: "bg-secondary shadow-secondary/20 text-white",
+  USER: "bg-secondary shadow-secondary/20 text-white"
 };
 
 const roleLabels: Record<string, string> = {
@@ -146,7 +146,7 @@ const roleLabels: Record<string, string> = {
   TEACHER: "معلم",
   STUDENT: "طالب",
   MODERATOR: "مشرف",
-  USER: "مستخدم",
+  USER: "مستخدم"
 };
 
 const gradeLabels: Record<string, string> = {
@@ -161,7 +161,7 @@ const gradeLabels: Record<string, string> = {
   "PREP_3": "الثالث الإعدادي",
   "SEC_1": "الأول الثانوي",
   "SEC_2": "الثاني الثانوي",
-  "SEC_3": "الثالث الثانوي",
+  "SEC_3": "الثالث الثانوي"
 };
 
 export default function UserDetailPage() {
@@ -171,7 +171,7 @@ export default function UserDetailPage() {
 
   const [user, setUser] = React.useState<UserDetails | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [isEditing, setIsEditing] = React.useState(false);
+  const [, setIsEditing] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("overview");
   const [editedUser, setEditedUser] = React.useState<Partial<UserDetails>>({});
 
@@ -203,7 +203,7 @@ export default function UserDetailPage() {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editedUser),
+        body: JSON.stringify(editedUser)
       });
 
       if (response.ok) {
@@ -220,12 +220,12 @@ export default function UserDetailPage() {
     }
   };
 
-  const handleRoleChange = async (role: string) => {
+  const _handleRoleChange = async (role: string) => {
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role }),
+        body: JSON.stringify({ role })
       });
 
       if (response.ok) {
@@ -249,7 +249,7 @@ export default function UserDetailPage() {
 
     try {
       const response = await fetch(`/api/admin/users/${userId}`, {
-        method: "DELETE",
+        method: "DELETE"
       });
 
       if (response.ok) {
@@ -287,27 +287,27 @@ export default function UserDetailPage() {
           </div>
           <div className="lg:col-span-3 space-y-8">
             <div className="grid gap-6 md:grid-cols-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="rounded-2xl border bg-card p-6 space-y-4">
+              {[...Array(4)].map((_, i) =>
+              <div key={i} className="rounded-2xl border bg-card p-6 space-y-4">
                   <div className="h-10 w-10 bg-muted animate-pulse rounded-xl" />
                   <div className="space-y-2">
                     <div className="h-8 w-20 bg-muted animate-pulse rounded" />
                     <div className="h-4 w-16 bg-muted animate-pulse rounded" />
                   </div>
                 </div>
-              ))}
+              )}
             </div>
             <div className="h-96 w-full bg-muted animate-pulse rounded-2xl border" />
           </div>
         </div>
-      </div>
-    );
+      </div>);
+
   }
 
   if (!user) return null;
 
-  const xpToNextLevel = (user.level * 1000) - (user.totalXP % 1000);
-  const levelProgress = ((user.totalXP % 1000) / 1000) * 100;
+  const xpToNextLevel = user.level * 1000 - user.totalXP % 1000;
+  const levelProgress = user.totalXP % 1000 / 1000 * 100;
 
   return (
     <div className="space-y-8 pb-10">
@@ -315,18 +315,18 @@ export default function UserDetailPage() {
         <PageHeader
           title={user.name || "تفاصيل المستخدم"}
           description={`إدارة بيانات ونشاط ${user.name || user.email}`}
-          className="p-0"
-        />
+          className="p-0" />
+        
         <div className="flex items-center gap-3">
           <Button variant="outline" className="rounded-xl" onClick={() => router.push("/admin/users")}>
             <ArrowRight className="ml-2 h-4 w-4" />
             العودة للقائمة
           </Button>
-          <Button 
-            variant="destructive" 
+          <Button
+            variant="destructive"
             className="rounded-xl shadow-lg shadow-danger/20"
-            onClick={handleDelete}
-          >
+            onClick={handleDelete}>
+            
             <Trash2 className="ml-2 h-4 w-4" />
             حذف الحساب
           </Button>
@@ -346,11 +346,11 @@ export default function UserDetailPage() {
                     {user.name?.charAt(0) || user.email.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
-                {user.emailVerified && (
-                  <div className="absolute bottom-1 right-1 bg-background rounded-full p-1 border shadow-sm">
+                {user.emailVerified &&
+                <div className="absolute bottom-1 right-1 bg-background rounded-full p-1 border shadow-sm">
                     <CheckCircle className="h-6 w-6 text-success fill-success/10" />
                   </div>
-                )}
+                }
               </div>
               
               <div className="mt-6 space-y-1">
@@ -367,11 +367,11 @@ export default function UserDetailPage() {
                   <Badge variant="outline" className={`${roleColors[user.role]} px-4 py-1.5 rounded-full border-none font-semibold`}>
                     {roleLabels[user.role] || user.role}
                   </Badge>
-                  {user.gradeLevel && (
-                    <Badge variant="secondary" className="px-4 py-1.5 rounded-full font-semibold">
+                  {user.gradeLevel &&
+                  <Badge variant="secondary" className="px-4 py-1.5 rounded-full font-semibold">
                       {gradeLabels[user.gradeLevel] || user.gradeLevel}
                     </Badge>
-                  )}
+                  }
                 </div>
 
                 <div className="pt-6 border-t w-full space-y-4 text-right">
@@ -385,8 +385,8 @@ export default function UserDetailPage() {
                     </div>
                   </div>
 
-                  {user.phone && (
-                    <div className="flex items-center gap-3 text-sm">
+                  {user.phone &&
+                  <div className="flex items-center gap-3 text-sm">
                       <div className="p-2 rounded-lg bg-green-500/10 text-green-600">
                         <Phone className="h-4 w-4" />
                       </div>
@@ -395,7 +395,7 @@ export default function UserDetailPage() {
                         <p className="text-xs text-muted-foreground">رقم الهاتف</p>
                       </div>
                     </div>
-                  )}
+                  }
 
                   <div className="flex items-center gap-3 text-sm">
                     <div className="p-2 rounded-lg bg-orange-500/10 text-orange-600">
@@ -430,11 +430,11 @@ export default function UserDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="w-full justify-start rounded-xl gap-2 h-11"
-                onClick={() => setActiveTab("settings")}
-              >
+                onClick={() => setActiveTab("settings")}>
+                
                 <Edit className="h-4 w-4" />
                 تعديل البيانات
               </Button>
@@ -455,12 +455,12 @@ export default function UserDetailPage() {
           {/* Dashboard Stats */}
           <div className="grid gap-6 md:grid-cols-4">
             {[
-              { label: "إجمالي XP", value: user.totalXP.toLocaleString(), icon: Star, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-              { label: "تتابع الأيام", value: user.currentStreak, icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
-              { label: "ساعات الدراسة", value: Math.floor(user.totalStudyTime / 60), icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
-              { label: "امتحانات مكتملة", value: user.examsPassed, icon: Award, color: "text-green-500", bg: "bg-green-500/10" },
-            ].map((stat, i) => (
-              <Card key={i} className="border-none shadow-lg overflow-hidden relative group hover:scale-[1.02] transition-all duration-300">
+            { label: "إجمالي XP", value: user.totalXP.toLocaleString(), icon: Star, color: "text-yellow-500", bg: "bg-yellow-500/10" },
+            { label: "تتابع الأيام", value: user.currentStreak, icon: Zap, color: "text-orange-500", bg: "bg-orange-500/10" },
+            { label: "ساعات الدراسة", value: Math.floor(user.totalStudyTime / 60), icon: Clock, color: "text-blue-500", bg: "bg-blue-500/10" },
+            { label: "امتحانات مكتملة", value: user.examsPassed, icon: Award, color: "text-green-500", bg: "bg-green-500/10" }].
+            map((stat, i) =>
+            <Card key={i} className="border-none shadow-lg overflow-hidden relative group hover:scale-[1.02] transition-all duration-300">
                 <CardContent className="p-6">
                   <div className={`p-3 rounded-xl ${stat.bg} ${stat.color} w-fit mb-4 group-hover:scale-110 transition-transform`}>
                     <stat.icon className="h-6 w-6" />
@@ -472,7 +472,7 @@ export default function UserDetailPage() {
                 </CardContent>
                 <div className={`absolute bottom-0 left-0 h-1 w-full scale-x-0 group-hover:scale-x-100 transition-transform origin-right ${stat.bg.replace('/10', '')}`} />
               </Card>
-            ))}
+            )}
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
@@ -499,8 +499,8 @@ export default function UserDetailPage() {
 
             <TabsContent value="overview" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {/* Bio Section */}
-              {user.bio && (
-                <Card className="border-none shadow-lg">
+              {user.bio &&
+              <Card className="border-none shadow-lg">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <UserIcon className="h-5 w-5 text-primary" />
@@ -513,7 +513,7 @@ export default function UserDetailPage() {
                     </p>
                   </CardContent>
                 </Card>
-              )}
+              }
 
               <div className="grid gap-8 md:grid-cols-2">
                 {/* XP Distribution */}
@@ -527,23 +527,23 @@ export default function UserDetailPage() {
                   </CardHeader>
                   <CardContent className="space-y-6">
                     {[
-                      { label: "الدراسة", value: user.studyXP, color: "bg-blue-500" },
-                      { label: "المهام", value: user.taskXP, color: "bg-green-500" },
-                      { label: "الامتحانات", value: user.examXP, color: "bg-purple-500" },
-                      { label: "التحديات", value: user.challengeXP, color: "bg-orange-500" },
-                      { label: "الموسم", value: user.seasonXP, color: "bg-red-500" },
-                    ].map((xp, i) => (
-                      <div key={i} className="space-y-2">
+                    { label: "الدراسة", value: user.studyXP, color: "bg-blue-500" },
+                    { label: "المهام", value: user.taskXP, color: "bg-green-500" },
+                    { label: "الامتحانات", value: user.examXP, color: "bg-purple-500" },
+                    { label: "التحديات", value: user.challengeXP, color: "bg-orange-500" },
+                    { label: "الموسم", value: user.seasonXP, color: "bg-red-500" }].
+                    map((xp, i) =>
+                    <div key={i} className="space-y-2">
                         <div className="flex justify-between text-sm font-medium">
                           <span>{xp.label}</span>
                           <span>{xp.value.toLocaleString()} XP</span>
                         </div>
-                        <Progress 
-                          value={(xp.value / (user.totalXP || 1)) * 100} 
-                          className={`h-2 rounded-full bg-muted`}
-                        />
+                        <Progress
+                        value={xp.value / (user.totalXP || 1) * 100}
+                        className={`h-2 rounded-full bg-muted`} />
+                      
                       </div>
-                    ))}
+                    )}
                   </CardContent>
                 </Card>
 
@@ -559,20 +559,20 @@ export default function UserDetailPage() {
                   <CardContent className="p-0">
                     <div className="divide-y">
                       {[
-                        { label: "المهام المكتملة", value: user.tasksCompleted, total: user._count.tasks, icon: CheckCircle, color: "text-green-500" },
-                        { label: "جلسات المذاكرة", value: user._count.studySessions, icon: BookOpen, color: "text-blue-500" },
-                        { label: "جلسات بومودورو", value: user.pomodoroSessions, icon: Clock, color: "text-orange-500" },
-                        { label: "أطول تتابع", value: `${user.longestStreak} يوم`, icon: Trophy, color: "text-yellow-500" },
-                        { label: "الإنجازات", value: user._count.achievements, icon: Award, color: "text-purple-500" },
-                      ].map((item, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 px-6">
+                      { label: "المهام المكتملة", value: user.tasksCompleted, total: user._count.tasks, icon: CheckCircle, color: "text-green-500" },
+                      { label: "جلسات المذاكرة", value: user._count.studySessions, icon: BookOpen, color: "text-blue-500" },
+                      { label: "جلسات بومودورو", value: user.pomodoroSessions, icon: Clock, color: "text-orange-500" },
+                      { label: "أطول تتابع", value: `${user.longestStreak} يوم`, icon: Trophy, color: "text-yellow-500" },
+                      { label: "الإنجازات", value: user._count.achievements, icon: Award, color: "text-purple-500" }].
+                      map((item, i) =>
+                      <div key={i} className="flex items-center justify-between p-4 px-6">
                           <div className="flex items-center gap-3">
                             <item.icon className={`h-5 w-5 ${item.color}`} />
                             <span className="text-sm font-medium">{item.label}</span>
                           </div>
                           <span className="font-bold">{item.value}</span>
                         </div>
-                      ))}
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -588,10 +588,10 @@ export default function UserDetailPage() {
                   <Button variant="ghost" size="sm" className="rounded-xl">عرض الكل</Button>
                 </CardHeader>
                 <CardContent>
-                  {user.achievements.length > 0 ? (
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                      {user.achievements.map((item) => (
-                        <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/20 hover:bg-muted/50 transition-all">
+                  {user.achievements.length > 0 ?
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      {user.achievements.map((item) =>
+                    <div key={item.id} className="flex items-center gap-4 p-4 rounded-2xl bg-muted/30 border border-transparent hover:border-primary/20 hover:bg-muted/50 transition-all">
                           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
                             <Trophy className="h-6 w-6" />
                           </div>
@@ -603,13 +603,13 @@ export default function UserDetailPage() {
                             </p>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-10 text-muted-foreground">
+                    )}
+                    </div> :
+
+                  <div className="text-center py-10 text-muted-foreground">
                       لا توجد إنجازات مسجلة حالياً
                     </div>
-                  )}
+                  }
                 </CardContent>
               </Card>
             </TabsContent>
@@ -636,9 +636,9 @@ export default function UserDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y">
-                        {user.examResults.length > 0 ? (
-                          user.examResults.map((result) => (
-                            <tr key={result.id} className="hover:bg-muted/30 transition-colors">
+                        {user.examResults.length > 0 ?
+                        user.examResults.map((result) =>
+                        <tr key={result.id} className="hover:bg-muted/30 transition-colors">
                               <td className="px-6 py-4 font-bold text-sm">{result.exam.title}</td>
                               <td className="px-6 py-4 text-sm text-muted-foreground">{result.exam.subject.name}</td>
                               <td className="px-6 py-4">
@@ -647,7 +647,7 @@ export default function UserDetailPage() {
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-center">
-                                <Badge variant={result.score >= 50 ? "success" : "destructive"} className="rounded-full px-3">
+                                <Badge variant={result.score >= 50 ? "secondary" : "destructive"} className="rounded-full px-3">
                                   {result.score >= 50 ? "ناجح" : "راسب"}
                                 </Badge>
                               </td>
@@ -655,14 +655,14 @@ export default function UserDetailPage() {
                                 {format(new Date(result.takenAt), "d MMM yyyy", { locale: ar })}
                               </td>
                             </tr>
-                          ))
-                        ) : (
-                          <tr>
+                        ) :
+
+                        <tr>
                             <td colSpan={5} className="px-6 py-10 text-center text-muted-foreground">
                               لا توجد نتائج اختبارات مسجلة حالياً
                             </td>
                           </tr>
-                        )}
+                        }
                       </tbody>
                     </table>
                   </div>
@@ -703,22 +703,22 @@ export default function UserDetailPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {user.interestedSubjects.length > 0 ? (
-                        user.interestedSubjects.map((subject, i) => (
-                          <Badge key={i} variant="outline" className="px-4 py-1.5 rounded-xl border-primary/20 bg-primary/5 text-primary">
+                      {user.interestedSubjects.length > 0 ?
+                      user.interestedSubjects.map((subject, i) =>
+                      <Badge key={i} variant="outline" className="px-4 py-1.5 rounded-xl border-primary/20 bg-primary/5 text-primary">
                             {subject}
                           </Badge>
-                        ))
-                      ) : (
-                        <p className="text-muted-foreground italic text-sm">لا توجد مواد مختارة</p>
-                      )}
+                      ) :
+
+                      <p className="text-muted-foreground italic text-sm">لا توجد مواد مختارة</p>
+                      }
                     </div>
-                    {user.studyGoal && (
-                      <div className="mt-6 p-4 rounded-2xl bg-muted/30">
+                    {user.studyGoal &&
+                    <div className="mt-6 p-4 rounded-2xl bg-muted/30">
                         <p className="text-xs text-muted-foreground mb-1">هدف الدراسة</p>
                         <p className="text-sm italic font-medium">"{user.studyGoal}"</p>
                       </div>
-                    )}
+                    }
                   </CardContent>
                 </Card>
               </div>
@@ -735,9 +735,9 @@ export default function UserDetailPage() {
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="divide-y">
-                    {user.studySessions.length > 0 ? (
-                      user.studySessions.map((session) => (
-                        <div key={session.id} className="p-6 flex items-center justify-between hover:bg-muted/30 transition-colors">
+                    {user.studySessions.length > 0 ?
+                    user.studySessions.map((session) =>
+                    <div key={session.id} className="p-6 flex items-center justify-between hover:bg-muted/30 transition-colors">
                           <div className="flex items-center gap-4">
                             <div className="h-12 w-12 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
                               <BookOpen className="h-6 w-6" />
@@ -762,12 +762,12 @@ export default function UserDetailPage() {
                             </div>
                           </div>
                         </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-10 text-muted-foreground">
+                    ) :
+
+                    <div className="text-center py-10 text-muted-foreground">
                         لا توجد جلسات مذاكرة مسجلة
                       </div>
-                    )}
+                    }
                   </div>
                 </CardContent>
               </Card>
@@ -781,18 +781,18 @@ export default function UserDetailPage() {
                   <CardContent className="space-y-4">
                     <div className="flex items-center justify-between p-3 rounded-xl bg-card border">
                       <div className="flex items-center gap-3">
-                        {user.emailVerified ? (
-                          <div className="h-8 w-8 rounded-full bg-success/10 text-success flex items-center justify-center">
+                        {user.emailVerified ?
+                        <div className="h-8 w-8 rounded-full bg-success/10 text-success flex items-center justify-center">
                             <CheckCircle className="h-4 w-4" />
-                          </div>
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-danger/10 text-danger flex items-center justify-center">
+                          </div> :
+
+                        <div className="h-8 w-8 rounded-full bg-danger/10 text-danger flex items-center justify-center">
                             <XCircle className="h-4 w-4" />
                           </div>
-                        )}
+                        }
                         <span className="text-sm font-medium">البريد الإلكتروني</span>
                       </div>
-                      <Badge variant={user.emailVerified ? "success" : "destructive"}>
+                      <Badge variant={user.emailVerified ? "secondary" : "destructive"}>
                         {user.emailVerified ? "موثق" : "غير موثق"}
                       </Badge>
                     </div>
@@ -804,7 +804,7 @@ export default function UserDetailPage() {
                         </div>
                         <span className="text-sm font-medium">التحقق الثنائي</span>
                       </div>
-                      <Badge variant={user.twoFactorEnabled ? "success" : "secondary"}>
+                      <Badge variant={user.twoFactorEnabled ? "secondary" : "outline"}>
                         {user.twoFactorEnabled ? "مفعّل" : "معطّل"}
                       </Badge>
                     </div>
@@ -860,7 +860,7 @@ export default function UserDetailPage() {
                     <div className="grid gap-6 md:grid-cols-2">
                         <div className="space-y-2">
                            <label className="text-sm font-bold">دور المستخدم</label>
-                           <Select value={editedUser.role || user.role} onValueChange={(val) => setEditedUser({...editedUser, role: val})}>
+                           <Select value={editedUser.role || user.role} onValueChange={(val) => setEditedUser({ ...editedUser, role: val })}>
                               <SelectTrigger className="h-12 rounded-xl">
                                 <SelectValue />
                               </SelectTrigger>
@@ -876,7 +876,7 @@ export default function UserDetailPage() {
 
                         <div className="space-y-2">
                             <label className="text-sm font-bold">المرحلة الدراسية</label>
-                            <Select value={editedUser.gradeLevel || ""} onValueChange={(val) => setEditedUser({...editedUser, gradeLevel: val})}>
+                            <Select value={editedUser.gradeLevel || ""} onValueChange={(val) => setEditedUser({ ...editedUser, gradeLevel: val })}>
                                <SelectTrigger className="h-12 rounded-xl">
                                  <SelectValue placeholder="اختر المرحلة" />
                                </SelectTrigger>
@@ -901,65 +901,65 @@ export default function UserDetailPage() {
                               <label className="text-sm font-medium">الاسم الكامل</label>
                               <div className="relative">
                                  <UserIcon className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                 <input 
-                                    className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
-                                    value={editedUser.name || ""} 
-                                    onChange={(e) => setEditedUser({...editedUser, name: e.target.value})}
-                                    placeholder="الاسم الكامل"
-                                 />
+                                 <input
+                            className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
+                            value={editedUser.name || ""}
+                            onChange={(e) => setEditedUser({ ...editedUser, name: e.target.value })}
+                            placeholder="الاسم الكامل" />
+                          
                               </div>
                            </div>
                            <div className="space-y-2">
                               <label className="text-sm font-medium">البريد الإلكتروني</label>
                               <div className="relative">
                                  <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                 <input 
-                                    className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
-                                    value={editedUser.email || ""} 
-                                    onChange={(e) => setEditedUser({...editedUser, email: e.target.value})}
-                                    placeholder="البريد الإلكتروني"
-                                 />
+                                 <input
+                            className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
+                            value={editedUser.email || ""}
+                            onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
+                            placeholder="البريد الإلكتروني" />
+                          
                               </div>
                            </div>
                            <div className="space-y-2">
                               <label className="text-sm font-medium">اسم المستخدم</label>
                               <div className="relative">
                                  <Hash className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                 <input 
-                                    className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
-                                    value={editedUser.username || ""} 
-                                    onChange={(e) => setEditedUser({...editedUser, username: e.target.value})}
-                                    placeholder="اسم المستخدم"
-                                 />
+                                 <input
+                            className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
+                            value={editedUser.username || ""}
+                            onChange={(e) => setEditedUser({ ...editedUser, username: e.target.value })}
+                            placeholder="اسم المستخدم" />
+                          
                               </div>
                            </div>
                            <div className="space-y-2">
                               <label className="text-sm font-medium">رقم الهاتف</label>
                               <div className="relative">
                                  <Phone className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                 <input 
-                                    className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
-                                    value={editedUser.phone || ""} 
-                                    onChange={(e) => setEditedUser({...editedUser, phone: e.target.value})}
-                                    placeholder="رقم الهاتف"
-                                 />
+                                 <input
+                            className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
+                            value={editedUser.phone || ""}
+                            onChange={(e) => setEditedUser({ ...editedUser, phone: e.target.value })}
+                            placeholder="رقم الهاتف" />
+                          
                               </div>
                            </div>
                            <div className="space-y-2">
                               <label className="text-sm font-medium">المدرسة</label>
                               <div className="relative">
                                  <School className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                 <input 
-                                    className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
-                                    value={editedUser.school || ""} 
-                                    onChange={(e) => setEditedUser({...editedUser, school: e.target.value})}
-                                    placeholder="اسم المدرسة"
-                                 />
+                                 <input
+                            className="w-full h-11 pr-10 rounded-xl border bg-muted/50 px-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all"
+                            value={editedUser.school || ""}
+                            onChange={(e) => setEditedUser({ ...editedUser, school: e.target.value })}
+                            placeholder="اسم المدرسة" />
+                          
                               </div>
                            </div>
                            <div className="space-y-2">
                               <label className="text-sm font-medium">نوع التعليم</label>
-                              <Select value={editedUser.educationType || ""} onValueChange={(val) => setEditedUser({...editedUser, educationType: val})}>
+                              <Select value={editedUser.educationType || ""} onValueChange={(val) => setEditedUser({ ...editedUser, educationType: val })}>
                                  <SelectTrigger className="h-11 rounded-xl">
                                    <SelectValue placeholder="اختر النوع" />
                                  </SelectTrigger>
@@ -975,31 +975,31 @@ export default function UserDetailPage() {
                            </div>
                            <div className="space-y-2 md:col-span-2">
                               <label className="text-sm font-medium">نبذة تعريفية (Bio)</label>
-                              <textarea 
-                                 className="w-full h-24 rounded-xl border bg-muted/50 p-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all resize-none"
-                                 value={editedUser.bio || ""} 
-                                 onChange={(e) => setEditedUser({...editedUser, bio: e.target.value})}
-                                 placeholder="اكتب نبذة عن المستخدم..."
-                              />
+                              <textarea
+                          className="w-full h-24 rounded-xl border bg-muted/50 p-4 text-sm focus:ring-2 ring-primary/20 outline-none transition-all resize-none"
+                          value={editedUser.bio || ""}
+                          onChange={(e) => setEditedUser({ ...editedUser, bio: e.target.value })}
+                          placeholder="اكتب نبذة عن المستخدم..." />
+                        
                            </div>
                         </div>
 
                         <div className="flex justify-start gap-3 pt-4">
-                           <Button 
-                              className="rounded-xl px-8 shadow-lg shadow-primary/20" 
-                              onClick={handleUpdate}
-                           >
+                           <Button
+                        className="rounded-xl px-8 shadow-lg shadow-primary/20"
+                        onClick={handleUpdate}>
+                        
                               <Save className="ml-2 h-4 w-4" />
                               حفظ التغييرات
                            </Button>
-                           <Button 
-                              variant="ghost" 
-                              className="rounded-xl"
-                              onClick={() => {
-                                setIsEditing(false);
-                                setEditedUser(user);
-                              }}
-                           >
+                           <Button
+                        variant="ghost"
+                        className="rounded-xl"
+                        onClick={() => {
+                          setIsEditing(false);
+                          setEditedUser(user);
+                        }}>
+                        
                               إلغاء
                            </Button>
                         </div>
@@ -1010,6 +1010,6 @@ export default function UserDetailPage() {
           </Tabs>
         </div>
       </div>
-    </div>
-  );
+    </div>);
+
 }

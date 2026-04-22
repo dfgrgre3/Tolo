@@ -1,7 +1,7 @@
-#!/usr/bin/env tsx
+﻿#!/usr/bin/env tsx
 /**
  * Script to check for authentication file conflicts and package conflicts
- * يتحقق من وجود تضارب في ملفات المصادقة ومكتبات المصادقة
+ * ظٹطھط­ظ‚ظ‚ ظ…ظ† ظˆط¬ظˆط¯ طھط¶ط§ط±ط¨ ظپظٹ ظ…ظ„ظپط§طھ ط§ظ„ظ…طµط§ط¯ظ‚ط© ظˆظ…ظƒطھط¨ط§طھ ط§ظ„ظ…طµط§ط¯ظ‚ط©
  * 
  * Checks for:
  * - Conflicting auth files (auth-server.ts, etc.)
@@ -69,32 +69,32 @@ const FORBIDDEN_IMPORTS = [
 
 // Patterns that indicate incorrect usage of auth context
 const INCORRECT_AUTH_USAGE = [
-  // ❌ useAuth from contexts/auth-context (should not be exported)
+  // â‌Œ useAuth from contexts/auth-context (should not be exported)
   {
     pattern: /from ['"]@\/contexts\/auth-context['"].*useAuth/,
-    message: 'useAuth لا يتم تصديره من @/contexts/auth-context - استخدم useUnifiedAuth بدلاً منه',
-    suggestion: 'استبدل: import { useUnifiedAuth } from \'@/contexts/auth-context\'',
+    message: 'useAuth ظ„ط§ ظٹطھظ… طھطµط¯ظٹط±ظ‡ ظ…ظ† @/contexts/auth-context - ط§ط³طھط®ط¯ظ… useUnifiedAuth ط¨ط¯ظ„ط§ظ‹ ظ…ظ†ظ‡',
+    suggestion: 'ط§ط³طھط¨ط¯ظ„: import { useUnifiedAuth } from \'@/contexts/auth-context\'',
     type: 'incorrect_export' as const,
   },
-  // ❌ AuthProvider from contexts/auth-context (should not be exported)
+  // â‌Œ AuthProvider from contexts/auth-context (should not be exported)
   {
     pattern: /from ['"]@\/contexts\/auth-context['"].*AuthProvider[^U]/,
-    message: 'AuthProvider لا يتم تصديره من @/contexts/auth-context - استخدم UnifiedAuthProvider بدلاً منه',
-    suggestion: 'استبدل: import { UnifiedAuthProvider } from \'@/contexts/auth-context\'',
+    message: 'AuthProvider ظ„ط§ ظٹطھظ… طھطµط¯ظٹط±ظ‡ ظ…ظ† @/contexts/auth-context - ط§ط³طھط®ط¯ظ… UnifiedAuthProvider ط¨ط¯ظ„ط§ظ‹ ظ…ظ†ظ‡',
+    suggestion: 'ط§ط³طھط¨ط¯ظ„: import { UnifiedAuthProvider } from \'@/contexts/auth-context\'',
     type: 'incorrect_export' as const,
   },
-  // ⚠️ useAuthCompatibility (deprecated and throws error)
+  // âڑ ï¸ڈ useAuthCompatibility (deprecated and throws error)
   {
     pattern: /useAuthCompatibility|from ['"].*compatibility['"].*useAuth/,
-    message: 'useAuthCompatibility تم إزالته - استخدم useUnifiedAuth بدلاً منه',
-    suggestion: 'استبدل: import { useUnifiedAuth } from \'@/contexts/auth-context\'',
+    message: 'useAuthCompatibility طھظ… ط¥ط²ط§ظ„طھظ‡ - ط§ط³طھط®ط¯ظ… useUnifiedAuth ط¨ط¯ظ„ط§ظ‹ ظ…ظ†ظ‡',
+    suggestion: 'ط§ط³طھط¨ط¯ظ„: import { useUnifiedAuth } from \'@/contexts/auth-context\'',
     type: 'deprecated' as const,
   },
-  // ⚠️ Dual providers (AuthProvider + UnifiedAuthProvider)
+  // âڑ ï¸ڈ Dual providers (AuthProvider + UnifiedAuthProvider)
   {
     pattern: /<AuthProvider[^U].*<UnifiedAuthProvider|<UnifiedAuthProvider.*<AuthProvider[^U]/,
-    message: 'تضارب: استخدام AuthProvider و UnifiedAuthProvider معاً - استخدم UnifiedAuthProvider فقط',
-    suggestion: 'استخدم UnifiedAuthProvider فقط في Providers',
+    message: 'طھط¶ط§ط±ط¨: ط§ط³طھط®ط¯ط§ظ… AuthProvider ظˆ UnifiedAuthProvider ظ…ط¹ط§ظ‹ - ط§ط³طھط®ط¯ظ… UnifiedAuthProvider ظپظ‚ط·',
+    suggestion: 'ط§ط³طھط®ط¯ظ… UnifiedAuthProvider ظپظ‚ط· ظپظٹ Providers',
     type: 'dual_provider' as const,
   },
 ];
@@ -317,8 +317,8 @@ async function checkAuthConflicts(): Promise<ConflictReport> {
 }
 
 function printReport(report: ConflictReport): void {
-  console.log('\n🔍 Authentication Conflict Check');
-  console.log('🔍 فحص تعارضات المصادقة\n');
+  console.log('\nًں”چ Authentication Conflict Check');
+  console.log('ًں”چ ظپط­طµ طھط¹ط§ط±ط¶ط§طھ ط§ظ„ظ…طµط§ط¯ظ‚ط©\n');
   console.log('='.repeat(70));
 
   let hasConflicts = false;
@@ -326,41 +326,41 @@ function printReport(report: ConflictReport): void {
   // Check conflicting files
   if (report.conflictingFiles.length > 0) {
     hasConflicts = true;
-    console.log('\n❌ CONFLICTING FILES FOUND:');
-    console.log('   ❌ تم العثور على ملفات متضاربة:');
+    console.log('\nâ‌Œ CONFLICTING FILES FOUND:');
+    console.log('   â‌Œ طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ظ„ظپط§طھ ظ…طھط¶ط§ط±ط¨ط©:');
     console.log('   These files should NOT exist:');
     report.conflictingFiles.forEach(file => {
       console.log(`   - ${file}`);
     });
   } else {
-    console.log('\n✅ No conflicting files found');
-    console.log('   ✅ لم يتم العثور على ملفات متضاربة');
+    console.log('\nâœ… No conflicting files found');
+    console.log('   âœ… ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ظ„ظپط§طھ ظ…طھط¶ط§ط±ط¨ط©');
   }
 
   // Check conflicting packages
   if (report.conflictingPackages.length > 0) {
     hasConflicts = true;
-    console.log('\n❌ CONFLICTING PACKAGES FOUND IN package.json:');
-    console.log('   ❌ تم العثور على مكتبات متضاربة في package.json:');
+    console.log('\nâ‌Œ CONFLICTING PACKAGES FOUND IN package.json:');
+    console.log('   â‌Œ طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ظƒطھط¨ط§طھ ظ…طھط¶ط§ط±ط¨ط© ظپظٹ package.json:');
     console.log('   These packages should be REMOVED:');
-    console.log('   يجب حذف هذه المكتبات:');
+    console.log('   ظٹط¬ط¨ ط­ط°ظپ ظ‡ط°ظ‡ ط§ظ„ظ…ظƒطھط¨ط§طھ:');
     report.conflictingPackages.forEach(({ package: pkg, reason }) => {
       console.log(`   - ${pkg}`);
       console.log(`     Reason: ${reason}`);
-      console.log(`     السبب: ${reason}`);
+      console.log(`     ط§ظ„ط³ط¨ط¨: ${reason}`);
     });
-    console.log('\n   💡 To remove, run: npm uninstall <package-name>');
-    console.log('   💡 للحذف، شغّل: npm uninstall <package-name>');
+    console.log('\n   ًں’، To remove, run: npm uninstall <package-name>');
+    console.log('   ًں’، ظ„ظ„ط­ط°ظپطŒ ط´ط؛ظ‘ظ„: npm uninstall <package-name>');
   } else {
-    console.log('\n✅ No conflicting packages found');
-    console.log('   ✅ لم يتم العثور على مكتبات متضاربة');
+    console.log('\nâœ… No conflicting packages found');
+    console.log('   âœ… ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ظ…ظƒطھط¨ط§طھ ظ…طھط¶ط§ط±ط¨ط©');
   }
 
   // Check incorrect auth usage
   if (report.incorrectUsage.length > 0) {
     hasConflicts = true;
-    console.log('\n❌ INCORRECT AUTH USAGE FOUND:');
-    console.log('   ❌ تم العثور على استخدامات غير صحيحة للمصادقة:');
+    console.log('\nâ‌Œ INCORRECT AUTH USAGE FOUND:');
+    console.log('   â‌Œ طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ط³طھط®ط¯ط§ظ…ط§طھ ط؛ظٹط± طµط­ظٹط­ط© ظ„ظ„ظ…طµط§ط¯ظ‚ط©:');
     
     // Group by type
     const incorrectExports = report.incorrectUsage.filter(u => u.type === 'incorrect_export');
@@ -368,44 +368,44 @@ function printReport(report: ConflictReport): void {
     const dualProviders = report.incorrectUsage.filter(u => u.type === 'dual_provider');
 
     if (incorrectExports.length > 0) {
-      console.log('\n   🚫 استخدامات تصدير غير صحيحة:');
+      console.log('\n   ًںڑ« ط§ط³طھط®ط¯ط§ظ…ط§طھ طھطµط¯ظٹط± ط؛ظٹط± طµط­ظٹط­ط©:');
       incorrectExports.forEach(({ file, line, code, message, suggestion }) => {
         console.log(`   - ${file}:${line}`);
         console.log(`     ${code}`);
-        console.log(`     ❌ ${message}`);
-        console.log(`     💡 ${suggestion}`);
+        console.log(`     â‌Œ ${message}`);
+        console.log(`     ًں’، ${suggestion}`);
       });
     }
 
     if (deprecated.length > 0) {
-      console.log('\n   ⚠️  استخدامات مهملة (Deprecated):');
+      console.log('\n   âڑ ï¸ڈ  ط§ط³طھط®ط¯ط§ظ…ط§طھ ظ…ظ‡ظ…ظ„ط© (Deprecated):');
       deprecated.forEach(({ file, line, code, message, suggestion }) => {
         console.log(`   - ${file}:${line}`);
         console.log(`     ${code}`);
-        console.log(`     ⚠️  ${message}`);
-        console.log(`     💡 ${suggestion}`);
+        console.log(`     âڑ ï¸ڈ  ${message}`);
+        console.log(`     ًں’، ${suggestion}`);
       });
     }
 
     if (dualProviders.length > 0) {
-      console.log('\n   ⚠️  تضارب: استخدام Providers متعددة:');
+      console.log('\n   âڑ ï¸ڈ  طھط¶ط§ط±ط¨: ط§ط³طھط®ط¯ط§ظ… Providers ظ…طھط¹ط¯ط¯ط©:');
       dualProviders.forEach(({ file, line, code, message, suggestion }) => {
         console.log(`   - ${file}:${line}`);
         console.log(`     ${code.split('\n').join('\n     ')}`);
-        console.log(`     ⚠️  ${message}`);
-        console.log(`     💡 ${suggestion}`);
+        console.log(`     âڑ ï¸ڈ  ${message}`);
+        console.log(`     ًں’، ${suggestion}`);
       });
     }
   } else {
-    console.log('\n✅ No incorrect auth usage found');
-    console.log('   ✅ لم يتم العثور على استخدامات غير صحيحة');
+    console.log('\nâœ… No incorrect auth usage found');
+    console.log('   âœ… ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ط³طھط®ط¯ط§ظ…ط§طھ ط؛ظٹط± طµط­ظٹط­ط©');
   }
 
   // Check forbidden imports
   if (report.forbiddenImports.length > 0) {
     hasConflicts = true;
-    console.log('\n❌ FORBIDDEN IMPORTS FOUND:');
-    console.log('   ❌ تم العثور على استيرادات محظورة:');
+    console.log('\nâ‌Œ FORBIDDEN IMPORTS FOUND:');
+    console.log('   â‌Œ طھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ط³طھظٹط±ط§ط¯ط§طھ ظ…ط­ط¸ظˆط±ط©:');
     
     // Group by type
     const clerkImports = report.forbiddenImports.filter(imp => imp.type === 'clerk');
@@ -413,39 +413,39 @@ function printReport(report: ConflictReport): void {
     const fileImports = report.forbiddenImports.filter(imp => imp.type === 'file');
 
     if (clerkImports.length > 0) {
-      console.log('\n   🚫 Clerk imports (Clerk استيرادات):');
+      console.log('\n   ًںڑ« Clerk imports (Clerk ط§ط³طھظٹط±ط§ط¯ط§طھ):');
       clerkImports.forEach(({ file, line, import: importLine, suggestion }) => {
         console.log(`   - ${file}:${line}`);
         console.log(`     ${importLine}`);
-        console.log(`     💡 ${suggestion}`);
+        console.log(`     ًں’، ${suggestion}`);
       });
     }
 
     if (nextAuthImports.length > 0) {
-      console.log('\n   🚫 NextAuth imports (NextAuth استيرادات):');
+      console.log('\n   ًںڑ« NextAuth imports (NextAuth ط§ط³طھظٹط±ط§ط¯ط§طھ):');
       nextAuthImports.forEach(({ file, line, import: importLine, suggestion }) => {
         console.log(`   - ${file}:${line}`);
         console.log(`     ${importLine}`);
-        console.log(`     💡 ${suggestion}`);
+        console.log(`     ًں’، ${suggestion}`);
       });
     }
 
     if (fileImports.length > 0) {
-      console.log('\n   🚫 Conflicting file imports (استيرادات ملفات متضاربة):');
+      console.log('\n   ًںڑ« Conflicting file imports (ط§ط³طھظٹط±ط§ط¯ط§طھ ظ…ظ„ظپط§طھ ظ…طھط¶ط§ط±ط¨ط©):');
       fileImports.forEach(({ file, line, import: importLine, suggestion }) => {
         console.log(`   - ${file}:${line}`);
         console.log(`     ${importLine}`);
-        console.log(`     💡 ${suggestion}`);
+        console.log(`     ًں’، ${suggestion}`);
       });
     }
   } else {
-    console.log('\n✅ No forbidden imports found');
-    console.log('   ✅ لم يتم العثور على استيرادات محظورة');
+    console.log('\nâœ… No forbidden imports found');
+    console.log('   âœ… ظ„ظ… ظٹطھظ… ط§ظ„ط¹ط«ظˆط± ط¹ظ„ظ‰ ط§ط³طھظٹط±ط§ط¯ط§طھ ظ…ط­ط¸ظˆط±ط©');
   }
 
   // Warnings
   if (report.warnings.length > 0) {
-    console.log('\n⚠️  WARNINGS:');
+    console.log('\nâڑ ï¸ڈ  WARNINGS:');
     report.warnings.forEach(warning => {
       console.log(`   - ${warning}`);
     });
@@ -455,20 +455,20 @@ function printReport(report: ConflictReport): void {
   console.log('\n' + '='.repeat(70));
   
   if (hasConflicts) {
-    console.log('\n⚠️  CONFLICTS DETECTED! Please fix the issues above.');
-    console.log('⚠️  تم اكتشاف تعارضات! يرجى إصلاح المشاكل أعلاه.');
-    console.log('\n📚 See AUTH_STRUCTURE_UNIFIED.md for correct usage.');
-    console.log('📚 راجع AUTH_STRUCTURE_UNIFIED.md للاستخدام الصحيح.');
-    console.log('\n💡 Quick fix suggestions:');
-    console.log('💡 اقتراحات الإصلاح السريع:');
+    console.log('\nâڑ ï¸ڈ  CONFLICTS DETECTED! Please fix the issues above.');
+    console.log('âڑ ï¸ڈ  طھظ… ط§ظƒطھط´ط§ظپ طھط¹ط§ط±ط¶ط§طھ! ظٹط±ط¬ظ‰ ط¥طµظ„ط§ط­ ط§ظ„ظ…ط´ط§ظƒظ„ ط£ط¹ظ„ط§ظ‡.');
+    console.log('\nًں“ڑ See AUTH_STRUCTURE_UNIFIED.md for correct usage.');
+    console.log('ًں“ڑ ط±ط§ط¬ط¹ AUTH_STRUCTURE_UNIFIED.md ظ„ظ„ط§ط³طھط®ط¯ط§ظ… ط§ظ„طµط­ظٹط­.');
+    console.log('\nًں’، Quick fix suggestions:');
+    console.log('ًں’، ط§ظ‚طھط±ط§ط­ط§طھ ط§ظ„ط¥طµظ„ط§ط­ ط§ظ„ط³ط±ظٹط¹:');
     if (report.conflictingPackages.length > 0) {
       const packages = report.conflictingPackages.map(p => p.package).join(' ');
       console.log(`   - npm uninstall ${packages}`);
     }
     process.exit(1);
   } else {
-    console.log('\n✅ No conflicts detected! Authentication structure is clean.');
-    console.log('✅ لم يتم اكتشاف تعارضات! بنية المصادقة نظيفة.');
+    console.log('\nâœ… No conflicts detected! Authentication structure is clean.');
+    console.log('âœ… ظ„ظ… ظٹطھظ… ط§ظƒطھط´ط§ظپ طھط¹ط§ط±ط¶ط§طھ! ط¨ظ†ظٹط© ط§ظ„ظ…طµط§ط¯ظ‚ط© ظ†ط¸ظٹظپط©.');
     process.exit(0);
   }
 }

@@ -1,4 +1,4 @@
-import { Job } from 'bullmq';
+﻿import { Job } from 'bullmq';
 import { logger } from '@/lib/logger';
 import { referralQueue } from '@/lib/queue/bullmq';
 import { ReferralService } from '@/services/referral-service';

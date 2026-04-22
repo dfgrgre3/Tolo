@@ -1,4 +1,4 @@
-import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
+﻿import { AI_PROVIDERS, getDefaultProvider } from '@/lib/ai-config';
 import { prisma } from '@/lib/db';
 
 import { logger } from '@/lib/logger';

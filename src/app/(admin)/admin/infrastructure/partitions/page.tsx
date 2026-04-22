@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -79,7 +79,7 @@ export default function PartitionsHealthPage() {
                 <span>بروتوكول البنية التحتية: Scalability v5.0</span>
              </div>
              <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-tight">
-                صحة <span className={STYLES.neonText}>خفايا المملكة</span> ⚔️
+                صحة <span className={STYLES.neonText}>خفايا المملكة</span> âڑ”ï¸ڈ
              </h1>
              <p className="text-lg text-gray-400 font-medium font-bold max-w-2xl">
                 عندما تزداد الجيوش (المطلوب: 1M محارب)، يجب أن تتسع خزائن البيانات. راقب تقسيم الجداول لضمان خفة الحركة القتالية.

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -477,7 +477,7 @@ function DeviceCard({
           <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400">
             <span className="flex items-center gap-1">
               <Globe className="h-3 w-3" />
-              {device.browser} • {device.os}
+              {device.browser} ⬢ {device.os}
             </span>
             <span className="flex items-center gap-1">
               IP: {device.ip}

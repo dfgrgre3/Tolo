@@ -1,4 +1,4 @@
-import { Worker, Job, WorkerOptions } from 'bullmq';
+﻿import { Worker, Job, WorkerOptions } from 'bullmq';
 import { redisConnection } from './bullmq';
 import { logger } from '../logger';
 

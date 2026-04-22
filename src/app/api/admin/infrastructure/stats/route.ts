@@ -1,18 +1,18 @@
 /**
- * Infrastructure Stats API Endpoint
- * 
- * Provides real-time system metrics for monitoring dashboards
- * and alerting systems.
- * 
- * GET /api/admin/infrastructure/stats
- * 
- * Returns:
- * - Database connection pool stats
- * - Memory usage
- * - Queue health
- * - Cache hit rates
- * - Circuit breaker states
- */
+* Infrastructure Stats API Endpoint
+* 
+* Provides real-time system metrics for monitoring dashboards
+* and alerting systems.
+* 
+* GET /api/admin/infrastructure/stats
+* 
+* Returns:
+* - Database connection pool stats
+* - Memory usage
+* - Queue health
+* - Cache hit rates
+* - Circuit breaker states
+*/
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getDbPoolStats } from '@/lib/db-monitor';
@@ -32,11 +32,11 @@ async function getQueueStats(queue: any) {
   try {
     const internal = queue.getInternalQueue();
     const [active, waiting, failed, completed] = await Promise.all([
-      internal.getActiveCount(),
-      internal.getWaitingCount(),
-      internal.getFailedCount(),
-      internal.getCompletedCount(),
-    ]);
+    internal.getActiveCount(),
+    internal.getWaitingCount(),
+    internal.getFailedCount(),
+    internal.getCompletedCount()]
+    );
     return { active, waiting, failed, completed };
   } catch (error) {
     logger.error(`[InfrastructureStats] Failed to get stats for queue:`, error);
@@ -52,19 +52,19 @@ export async function GET(request: NextRequest) {
 
     // Gather all metrics in parallel
     const [dbStatsResult, metricsResult, redisClient] = await Promise.all([
-      getDbPoolStats(),
-      getMetrics().catch(() => 'unavailable'),
-      getRedisClient(),
-    ]);
+    getDbPoolStats(),
+    getMetrics().catch(() => 'unavailable'),
+    getRedisClient()]
+    );
 
     const dbStats = dbStatsResult;
-    
+
     // Get Queue stats
     const [gamificationStats, notificationStats, analyticsStats] = await Promise.all([
-      getQueueStats(gamificationQueue),
-      getQueueStats(notificationQueue),
-      getQueueStats(analyticsQueue),
-    ]);
+    getQueueStats(gamificationQueue),
+    getQueueStats(notificationQueue),
+    getQueueStats(analyticsQueue)]
+    );
 
     // Get Redis memory info
     let redisMemory = '0B';
@@ -92,23 +92,23 @@ export async function GET(request: NextRequest) {
         memoryUsage: memoryFormatted,
         uptime: process.uptime(),
         pid: process.pid,
-        status: dbStats.status === 'healthy' ? 'Operational' : (dbStats.status === 'warning' ? 'Degraded' : 'Critical'),
+        status: dbStats.status === 'healthy' ? 'Operational' : dbStats.status === 'warning' ? 'Degraded' : 'Critical'
       },
       cache: {
-        usedMemory: redisMemory,
+        usedMemory: redisMemory
       },
       queues: {
         gamification: gamificationStats,
         notifications: notificationStats,
-        analytics: analyticsStats,
+        analytics: analyticsStats
       },
       config: {
         maxOldSpaceSize: process.env.NODE_OPTIONS?.match(/--max-old-space-size=(\d+)/)?.[1] || 'unknown',
         prismaConnectionLimit: process.env.PRISMA_CONNECTION_LIMIT || '50',
         prismaPoolTimeout: process.env.PRISMA_POOL_TIMEOUT || '10',
         prismaPgbouncer: process.env.PRISMA_PGBOUNCER === 'true',
-        redisEnabled: process.env.DISABLE_REDIS !== 'true',
-      },
+        redisEnabled: process.env.DISABLE_REDIS !== 'true'
+      }
     };
 
     return successResponse(response);
@@ -164,7 +164,7 @@ interface QueueStats {
 }
 
 // Health check endpoint (public)
-export async function HEAD(request: NextRequest) {
+export async function HEAD(_request: NextRequest) {
   try {
     const { checkDbReadiness } = await import('@/lib/db-monitor');
     const dbReady = await checkDbReadiness();

@@ -1,4 +1,4 @@
-// prisma.config.ts
+﻿// prisma.config.ts
 import 'dotenv/config'
 
 // Prisma configuration object for migrations and schema management

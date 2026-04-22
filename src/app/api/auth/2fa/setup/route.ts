@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
+﻿import { NextRequest, NextResponse } from 'next/server';
 import { withAuth } from '@/lib/api-utils';
 import { TwoFactorService } from '@/services/auth/two-factor-service';
 import prisma from '@/lib/db';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 /**
  * GET /api/auth/2fa/setup

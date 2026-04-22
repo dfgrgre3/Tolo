@@ -1,4 +1,4 @@
-export interface AIProvider {
+﻿export interface AIProvider {
   name: string;
   apiKey: string | undefined;
   baseUrl: string;

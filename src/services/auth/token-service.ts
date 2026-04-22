@@ -1,5 +1,6 @@
-import { SignJWT, jwtVerify } from 'jose';
-import { logger } from '@/lib/logger';
+﻿import { SignJWT, jwtVerify } from 'jose';
+
+import { logger } from '@/lib/logger';
 
 /**
  * TokenService - JWT token generation and verification.
@@ -23,7 +24,7 @@ const JWT_SECRET = new TextEncoder().encode(
 );
 
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-    logger.error('🚨 CRITICAL: JWT_SECRET is not set in production environment!');
+    logger.error('ًںڑ¨ CRITICAL: JWT_SECRET is not set in production environment!');
 }
 
 export interface TokenPayload {

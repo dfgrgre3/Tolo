@@ -14,7 +14,7 @@ export const CachePrefixes = {
   ANNOUNCEMENTS: 'announcements',
   USER_ANALYTICS: 'analytics',
   API_RESPONSE: 'api_v1',
-  RATE_LIMIT: 'rl',
+  RATE_LIMIT: 'rl'
 } as const;
 
 export type CachePrefix = (typeof CachePrefixes)[keyof typeof CachePrefixes];
@@ -22,13 +22,13 @@ export type CachePrefix = (typeof CachePrefixes)[keyof typeof CachePrefixes];
 // --- Redis Client Initialization ---
 
 const MAX_MEMORY_ITEMS = 5000;
-const memoryCache = new Map<string, { value: string; expires: number }>();
+const memoryCache = new Map<string, {value: string;expires: number;}>();
 
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
 
 // Singleton instance
-const globalForRedis = globalThis as unknown as { _redisClient?: Redis | null };
+const globalForRedis = globalThis as unknown as {_redisClient?: Redis | null;};
 let _redisClient: Redis | null = globalForRedis._redisClient || null;
 
 // Track pending ready-state promises to avoid duplicate listeners
@@ -39,7 +39,7 @@ async function ensureRedisReady(client: Redis | null): Promise<Redis | null> {
 
   const status = client.status;
   if (status === 'ready') return client;
-  
+
   // If we're already waiting for this specific client to be ready, reuse the promise
   const existingPromise = readyStatePromises.get(client);
   if (existingPromise) return existingPromise;
@@ -50,14 +50,14 @@ async function ensureRedisReady(client: Redis | null): Promise<Redis | null> {
       if (status === 'connecting' || status === 'reconnecting') {
         return await new Promise<Redis | null>((resolve) => {
           let resolved = false;
-          
+
           const onReady = () => {
             if (resolved) return;
             resolved = true;
             cleanup();
             resolve(client);
           };
-          
+
           const onError = () => {
             if (resolved) return;
             resolved = true;
@@ -72,7 +72,7 @@ async function ensureRedisReady(client: Redis | null): Promise<Redis | null> {
 
           client.once('ready', onReady);
           client.once('error', onError);
-          
+
           // Safety timeout: 2s (Increased for better availability/fail-over speed)
           setTimeout(() => {
             if (resolved) return;
@@ -124,7 +124,7 @@ async function ensureRedisReady(client: Redis | null): Promise<Redis | null> {
  */
 export async function getRedisClient(): Promise<Redis | null> {
   if (isRedisDisabled || typeof window !== 'undefined' || process.env.NEXT_RUNTIME === 'edge') return null;
-  
+
   if (!_redisClient) {
     try {
       const { default: Redis } = await import('ioredis');
@@ -150,18 +150,18 @@ export async function getRedisClient(): Promise<Redis | null> {
         // Ensure your Redis provider is configured with 'noeviction' policy.
       });
 
-      _redisClient.on('error', (err: { code?: string; message?: string }) => {
+      _redisClient.on('error', (err: {code?: string;message?: string;}) => {
         if (err.code === 'ECONNREFUSED' || err.code === 'ETIMEDOUT') {
-           // Silent fail as we have memory fallback
-        } else {
-           logger.error('Redis error:', err);
+
+          // Silent fail as we have memory fallback
+        } else {logger.error('Redis error:', err);
         }
       });
       if (process.env.NODE_ENV !== 'production') {
         globalForRedis._redisClient = _redisClient;
       }
-    } catch (e) {
-      logger.error('Failed to initialize Redis client:', e);
+    } catch (err) {
+      logger.error('Failed to initialize Redis client:', err);
       return null;
     }
   }
@@ -198,16 +198,16 @@ export class CacheService {
       if (error instanceof Error) {
         const msg = error.message;
         const isExpectedTransient =
-          msg.includes('circuit OPEN') ||
-          msg.includes('Redis not ready') ||
-          msg.includes('Operation timed out') ||   // CircuitBreaker timeout
-          msg.includes('ETIMEDOUT') ||
-          msg.includes('ECONNREFUSED') ||
-          msg.includes('Connection is closed');
+        msg.includes('circuit OPEN') ||
+        msg.includes('Redis not ready') ||
+        msg.includes('Operation timed out') || // CircuitBreaker timeout
+        msg.includes('ETIMEDOUT') ||
+        msg.includes('ECONNREFUSED') ||
+        msg.includes('Connection is closed');
         if (!isExpectedTransient) {
           logger.error(`[CacheService] Redis operation failed:`, error);
         }
-        // Expected transient states are silently handled — memory cache is the fallback
+        // Expected transient states are silently handled â€” memory cache is the fallback
       } else {
         logger.error(`[CacheService] Redis operation failed:`, error);
       }
@@ -218,14 +218,14 @@ export class CacheService {
   static async get<T>(key: string): Promise<T | null> {
     if (!key?.trim()) return null;
     const trimmedKey = key.trim();
-    
+
     // Tier 1: In-Memory (Sub-millisecond access)
     const l1Item = memoryCache.get(trimmedKey);
     if (l1Item && l1Item.expires > Date.now()) {
       trackCache('memory_l1', true);
       try {
         return JSON.parse(l1Item.value) as T;
-      } catch (e) {
+      } catch (_e) {
         memoryCache.delete(trimmedKey);
         return null;
       }
@@ -243,7 +243,7 @@ export class CacheService {
         // Promote to L1
         this.setL1(trimmedKey, data, 5);
         return parsed;
-      } catch (e) {
+      } catch (_e) {
         logger.error(`[CacheService] JSON parse error for key ${trimmedKey}`);
         return null;
       }
@@ -258,20 +258,20 @@ export class CacheService {
       const firstKey = memoryCache.keys().next().value;
       if (firstKey) memoryCache.delete(firstKey);
     }
-    
+
     memoryCache.set(key, {
       value: serializedValue,
-      expires: Date.now() + (ttlSeconds * 1000)
+      expires: Date.now() + ttlSeconds * 1000
     });
   }
 
   static async set<T>(key: string, value: T, ttl: number = 3600): Promise<void> {
     if (!key?.trim()) return;
     const trimmedKey = key.trim();
-    
+
     try {
       const serialized = JSON.stringify(value);
-      
+
       // Update L1
       this.setL1(trimmedKey, serialized, Math.min(ttl, 10)); // Max 10s for L1
 
@@ -292,7 +292,7 @@ export class CacheService {
   static async del(key: string): Promise<void> {
     if (!key?.trim()) return;
     const trimmedKey = key.trim();
-    
+
     // Always clear L1
     memoryCache.delete(trimmedKey);
 
@@ -306,7 +306,7 @@ export class CacheService {
   static async incrBy(key: string, amount: number): Promise<number> {
     if (!key?.trim()) return 0;
     const trimmedKey = key.trim();
-    
+
     return await this.safeRedisOp(async (client) => {
       return await client.incrby(trimmedKey, amount);
     }, 0);
@@ -314,16 +314,16 @@ export class CacheService {
 
   static async mget<T>(keys: string[]): Promise<(T | null)[]> {
     if (!keys?.length) return [];
-    
+
     const results = await this.safeRedisOp(async (client) => {
-      return await client.mget(keys.map(k => k.trim()));
+      return await client.mget(keys.map((k) => k.trim()));
     }, keys.map(() => null as string | null));
 
-    return results.map(item => {
+    return results.map((item) => {
       if (!item) return null;
       try {
         return JSON.parse(item) as T;
-      } catch (e) {
+      } catch (_e) {
         return null;
       }
     });
@@ -331,7 +331,7 @@ export class CacheService {
 
   static async mset<T>(keyValuePairs: [string, T][], ttl: number = 3600): Promise<void> {
     if (!keyValuePairs?.length) return;
-    
+
     await this.safeRedisOp(async (client) => {
       const pipeline = client.pipeline();
       keyValuePairs.forEach(([k, v]) => {
@@ -347,11 +347,11 @@ export class CacheService {
 
   static async mdel(keys: string[]): Promise<void> {
     if (!keys?.length) return;
-    
-    keys.forEach(k => memoryCache.delete(k.trim()));
+
+    keys.forEach((k) => memoryCache.delete(k.trim()));
 
     await this.safeRedisOp(async (client) => {
-      await client.del(...keys.map(k => k.trim()));
+      await client.del(...keys.map((k) => k.trim()));
       return true;
     }, false);
   }
@@ -359,7 +359,7 @@ export class CacheService {
   static async invalidatePattern(pattern: string): Promise<void> {
     try {
       const client = await getRedisClient();
-      
+
       // Memory cache invalidation
       const regexPattern = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
       for (const key of memoryCache.keys()) {
@@ -435,26 +435,26 @@ export class CacheService {
           reject(new Error(`Cache compute timed out for key: ${key}`));
         }, 10000); // 10s timeout for the fetch/compute operation
 
-        compute()
-          .then((res) => {
-            clearTimeout(timeout);
-            resolve(res);
-          })
-          .catch((err) => {
-            clearTimeout(timeout);
-            reject(err);
-          });
+        compute().
+        then((res) => {
+          clearTimeout(timeout);
+          resolve(res);
+        }).
+        catch((err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
       });
     };
 
-    const promise = computeWithTimeout()
-      .then(async (result) => {
-        await this.set(key, result, ttl);
-        return result;
-      })
-      .finally(() => {
-        this.pendingPromises.delete(key);
-      });
+    const promise = computeWithTimeout().
+    then(async (result) => {
+      await this.set(key, result, ttl);
+      return result;
+    }).
+    finally(() => {
+      this.pendingPromises.delete(key);
+    });
 
     this.pendingPromises.set(key, promise);
     return promise as Promise<T>;
@@ -505,8 +505,8 @@ export const EducationalCache = {
     await CacheService.invalidatePattern(`${CachePrefixes.EDUCATIONAL_CONTENT}:${pattern}`);
   },
 
-  async batchGetOrSet<T>(items: { key: string; fetchFn: () => Promise<T>; ttl?: number }[]): Promise<T[]> {
-    return Promise.all(items.map(item => this.getOrSet(item.key, item.fetchFn, item.ttl || 3600)));
+  async batchGetOrSet<T>(items: {key: string;fetchFn: () => Promise<T>;ttl?: number;}[]): Promise<T[]> {
+    return Promise.all(items.map((item) => this.getOrSet(item.key, item.fetchFn, item.ttl || 3600)));
   }
 };
 
@@ -517,7 +517,7 @@ export const InvalidationService = {
   async invalidateUser(userId: string): Promise<void> {
     await CacheService.invalidatePattern(`*:${userId}:*`);
   },
-  
+
   async invalidateAll(): Promise<void> {
     await CacheService.flushAll();
   }

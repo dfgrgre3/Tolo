@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { SubscriptionPlan } from '@prisma/client';

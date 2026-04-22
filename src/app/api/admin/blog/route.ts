@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/db";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse, notFoundResponse } from '@/lib/api-utils';
+import { successResponse, withAuth, handleApiError, badRequestResponse, forbiddenResponse } from '@/lib/api-utils';
 import { z } from "zod";
 
 const blogPostSchema = z.object({
@@ -11,7 +11,7 @@ const blogPostSchema = z.object({
   slug: z.string().min(1, "الرابط مطلوب"),
   excerpt: z.string().optional(),
   image: z.string().optional(),
-  published: z.boolean().default(false),
+  published: z.boolean().default(false)
 });
 
 export async function GET(request: NextRequest) {
@@ -29,27 +29,27 @@ export async function GET(request: NextRequest) {
 
         const skip = (page - 1) * limit;
 
-        const where = search
-          ? { title: { contains: search, mode: "insensitive" as const } }
-          : {};
+        const where = search ?
+        { title: { contains: search, mode: "insensitive" as const } } :
+        {};
 
         const [posts, total] = await Promise.all([
-          prisma.blogPost.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" },
-            include: {
-              author: {
-                select: { id: true, name: true },
-              },
-              category: {
-                select: { id: true, name: true },
-              },
+        prisma.blogPost.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: { createdAt: "desc" },
+          include: {
+            author: {
+              select: { id: true, name: true }
             },
-          }),
-          prisma.blogPost.count({ where }),
-        ]);
+            category: {
+              select: { id: true, name: true }
+            }
+          }
+        }),
+        prisma.blogPost.count({ where })]
+        );
 
         return successResponse({
           posts,
@@ -57,8 +57,8 @@ export async function GET(request: NextRequest) {
             page,
             limit,
             total,
-            totalPages: Math.ceil(total / limit),
-          },
+            totalPages: Math.ceil(total / limit)
+          }
         });
       } catch (error) {
         return handleApiError(error);
@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
         const post = await prisma.blogPost.create({
           data: {
             ...data,
-            authorId: authUser.userId,
-          },
+            authorId: authUser.userId
+          }
         });
 
         return successResponse(post, "تم إنشاء المقال بنجاح", 201);
@@ -117,7 +117,7 @@ export async function PATCH(request: NextRequest) {
 
         const post = await prisma.blogPost.update({
           where: { id },
-          data,
+          data
         });
 
         return successResponse(post, "تم تحديث المقال بنجاح");
@@ -144,7 +144,7 @@ export async function DELETE(request: NextRequest) {
         }
 
         await prisma.blogPost.delete({
-          where: { id },
+          where: { id }
         });
 
         return successResponse({ success: true }, "تم حذف المقال بنجاح");
@@ -154,4 +154,3 @@ export async function DELETE(request: NextRequest) {
     });
   });
 }
-

@@ -1,4 +1,4 @@
-const fs = require('fs');
+﻿const fs = require('fs');
 const path = require('path');
 
 const args = process.argv.slice(2);
@@ -9,9 +9,9 @@ const EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.md', '.css'
 const EXCLUDE_DIRS = new Set(['node_modules', '.next', '.git', 'dist', 'build', 'coverage', '.turbo', '.venv']);
 const EXCLUDE_FILES = new Set([path.resolve(__filename)]);
 const MOJIBAKE_PATTERNS = [
-  /(?:ط[اأإآءويهة]|ظ[اأإآءويهة]|ط[^\u0600-\u06FF]|ظ[^\u0600-\u06FF])/,
-  /[ØÙ][^ \t\r\n]/,
-  /[âãäåæçèéêëìíîïñòóôõöùúûüýÿ]/,
+  /(?:ط·[ط§ط£ط¥ط¢ط،ظˆظٹظ‡ط©]|ط¸[ط§ط£ط¥ط¢ط،ظˆظٹظ‡ط©]|ط·[^\u0600-\u06FF]|ط¸[^\u0600-\u06FF])/,
+  /[أکأ™][^ \t\r\n]/,
+  /[أ¢أ£أ¤أ¥أ¦أ§أ¨أ©أھأ«أ¬أ­أ®أ¯أ±أ²أ³أ´أµأ¶أ¹أ؛أ»أ¼أ½أ؟]/,
 ];
 
 function shouldSkipDir(name) {
@@ -24,7 +24,7 @@ function isTextFile(filePath) {
 
 function scoreText(text) {
   const arabic = (text.match(/[\u0600-\u06FF]/g) || []).length;
-  const mojibake = (text.match(/[طظـØÙâãäåæçèéêëìíîïñòóôõöùúûüýÿ]/g) || []).length;
+  const mojibake = (text.match(/[ط·ط¸ظ€أکأ™أ¢أ£أ¤أ¥أ¦أ§أ¨أ©أھأ«أ¬أ­أ®أ¯أ±أ²أ³أ´أµأ¶أ¹أ؛أ»أ¼أ½أ؟]/g) || []).length;
   return arabic * 2 - mojibake * 3;
 }
 
@@ -35,14 +35,14 @@ function hasMojibakePattern(text) {
 function tryFixLine(line) {
   if (!hasMojibakePattern(line)) return line;
   const arabicBefore = (line.match(/[\u0600-\u06FF]/g) || []).length;
-  const mojibakeBefore = (line.match(/[طظـØÙâãäåæçèéêëìíîïñòóôõöùúûüýÿ]/g) || []).length;
+  const mojibakeBefore = (line.match(/[ط·ط¸ظ€أکأ™أ¢أ£أ¤أ¥أ¦أ§أ¨أ©أھأ«أ¬أ­أ®أ¯أ±أ²أ³أ´أµأ¶أ¹أ؛أ»أ¼أ½أ؟]/g) || []).length;
   if (mojibakeBefore < 2) return line;
   if (mojibakeBefore <= arabicBefore * 0.35) return line;
 
   try {
     const fixed = Buffer.from(line, 'latin1').toString('utf8');
     const arabicAfter = (fixed.match(/[\u0600-\u06FF]/g) || []).length;
-    const mojibakeAfter = (fixed.match(/[طظـ]/g) || []).length;
+    const mojibakeAfter = (fixed.match(/[ط·ط¸ظ€]/g) || []).length;
     const scoreBefore = scoreText(line);
     const scoreAfter = scoreText(fixed);
 

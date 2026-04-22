@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -429,7 +429,7 @@ export function CourseEditor({
                   </div>
 
                   <p className="text-xs leading-6 text-slate-300">
-                    اربط بيانات الدورة بالمحتوى التعليمي من خلال صفحة المنهج حتى تظهر الفصول والدروس بشكل صحيح للطلاب داخل صفحة الدورة والتعلم.
+                    اربط بيانات الدورة بالمحتوى التعليمي من خلال صفحة المنهج حتى ت٪ر الفصول والدروس بشكل صحيح للطلاب داخل صفحة الدورة والتعلم.
                   </p>
 
                   <div className="mt-4 flex flex-col gap-2">
@@ -630,7 +630,7 @@ export function CourseEditor({
                             />
                           </FormControl>
                           <FormDescription className="text-[10px]">
-                            هذا النص سيظهر في صفحة الدورة الرئيسية أسفل الفيديو التعريفي.
+                            هذا النص سي٪ر في صفحة الدورة الرئيسية أسفل الفيديو التعريفي.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>
@@ -835,7 +835,7 @@ export function CourseEditor({
                             >
                               <FormControl>
                                 <SelectTrigger className="h-12 rounded-xl border-primary/20 bg-primary/5">
-                                  <SelectValue placeholder="اختر دورة لربطها كمتطلب..." />
+                                  <SelectValue placeholder="اختر دورة لربتا كمتطلب..." />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -853,7 +853,7 @@ export function CourseEditor({
                               <Textarea
                                 {...field}
                                 value={field.value || ""}
-                                placeholder="ضع كل متطلب في سطر مستقل ليُحفظ بشكل منظم"
+                                placeholder="ضع كل متطلب في سطر مستقل ليظڈحفظ بشكل منظم"
                                 className="min-h-[120px] rounded-2xl bg-muted/20 border-border/40 focus:border-primary/40 transition-all font-medium py-4"
                               />
                             </FormControl>
@@ -1165,7 +1165,7 @@ export function CourseEditor({
                         <div className="text-blue-500 text-lg font-medium hover:underline cursor-pointer">
                           {form.watch("seoTitle") ||
                             form.watch("nameAr") ||
-                            "عنوان الدورة يظهر هنا"}
+                            "عنوان الدورة ي٪ر هنا"}
                         </div>
                         <div className="text-emerald-700 text-xs">
                           https://thanawy.com/courses/
@@ -1174,7 +1174,7 @@ export function CourseEditor({
                         <div className="text-muted-foreground text-sm line-clamp-2">
                           {form.watch("seoDescription") ||
                             form.watch("description") ||
-                            "وصف الدورة يظهر هنا في نتائج البحث لجذب الطلاب للنقر والدخول..."}
+                            "وصف الدورة ي٪ر هنا في نتائج البحث لجذب الطلاب للنقر والدخول..."}
                         </div>
                       </div>
                     </div>
@@ -1189,11 +1189,11 @@ export function CourseEditor({
                       <div className="flex items-center gap-3">
                         <Rocket className="h-6 w-6 text-primary" />
                         <h3 className="text-lg font-black text-white">
-                          حالة النشر والظهور
+                          حالة النشر وال٪ور
                         </h3>
                       </div>
                       <p className="text-sm text-slate-400 max-w-md">
-                        عند تفعيل النشر، ستظهر الدورة لجميع الطلاب في المتجر التعليمي. تأكد من أن جميع الوحدات التعليمية جاهزة.
+                        عند تفعيل النشر، ست٪ر الدورة لجميع الطلاب في المتجر التعليمي. تأكد من أن جميع الوحدات التعليمية جاهزة.
                       </p>
 
                       <div className="flex items-center gap-8">

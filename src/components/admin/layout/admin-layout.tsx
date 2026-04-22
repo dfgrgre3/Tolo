@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { AdminSidebar } from "@/components/admin/layout/admin-sidebar";

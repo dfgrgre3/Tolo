@@ -21,7 +21,7 @@ export async function GET(
   return opsWrapper(request, async (req) =>
     withAuth(req, async (authUser) => {
       if (!ensureAdmin(authUser.userRole)) {
-        return forbiddenResponse("ط؛ظٹط± ظ…ط³ظ…ظˆط­ ظ„ظƒ ط¨ط§ظ„ظˆطµظˆظ„");
+        return forbiddenResponse("غير مسموح لك بالوصول");
       }
 
       try {
@@ -37,7 +37,7 @@ export async function GET(
         });
 
         if (!course) {
-          return notFoundResponse("ط§ظ„ط¯ظˆط±ط© ط؛ظٹط± ظ…ظˆط¬ظˆط¯ط©");
+          return notFoundResponse("الدورة غير موجودة");
         }
 
         const [reviews, total, avgResult] = await Promise.all([
@@ -80,7 +80,7 @@ export async function GET(
           reviews: reviews.map((r: any) => ({
             id: r.id,
             userId: r.userId,
-            userName: r.user.name || "ظ…ط³طھط®ط¯ظ…",
+            userName: r.user.name || "مستخدم",
             userEmail: r.user.email,
             userAvatar: r.user.avatar,
             rating: r.rating,

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db';
+﻿import { prisma } from '@/lib/db';
 import { AddonType } from '@prisma/client';
 
 export class AddonService {
@@ -21,7 +21,7 @@ export class AddonService {
     if (!user) throw new Error('User not found');
 
     if ((user.wallet?.balance ?? 0) < addon.price) {
-      throw new Error('ط±طµظٹط¯ ط§ظ„ط­ط³ط§ط¨ ط؛ظٹط± ظƒط§ظپظچ ظ„ط´ط±ط§ط، ظ‡ط°ظ‡ ط§ظ„ط¥ط¶ط§ظپط©.');
+      throw new Error('طآ±طآµيطآ¯ طآ§ظâ€‍طآ­طآ³طآ§طآ¨ غيطآ± ظئ’طآ§فظچ ظâ€‍طآ´طآ±طآ§ء ظâ€،طآ°ظâ€، طآ§ظâ€‍طآ¥طآ¶طآ§فطآ©.');
     }
 
     // 1. Transaction to deduct balance and add credits

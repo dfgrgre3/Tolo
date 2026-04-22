@@ -1,4 +1,4 @@
-/**
+﻿/**
  * @deprecated This component has been refactored and moved to src/components/admin/royal-call
  * Use the new RoyalCallModal from there instead.
  */

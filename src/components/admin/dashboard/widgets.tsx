@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import Link from "next/link";
@@ -374,7 +374,7 @@ export function UpcomingEvents({
                     <span className="text-primary/70">{eventDate.toLocaleDateString("ar-EG", { weekday: "long", day: "numeric" })}</span>
                     {event.location && (
                       <>
-                        <span className="opacity-20">•</span>
+                        <span className="opacity-20">⬢</span>
                         <span className="flex items-center gap-1 italic"><Target className="w-3 h-3" /> {event.location}</span>
                       </>
                     )}

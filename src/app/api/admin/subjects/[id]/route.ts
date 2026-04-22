@@ -76,7 +76,6 @@ export async function GET(
                     name: true,
                     email: true,
                     avatar: true,
-                    avatar: true,
                     xp: {
                       select: {
                         totalXP: true,

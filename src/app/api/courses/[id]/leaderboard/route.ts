@@ -4,10 +4,10 @@ import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, handleApiError } from "@/lib/api-utils";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  return opsWrapper(request, async (req) => {
+request: NextRequest,
+{ params }: {params: Promise<{id: string;}>;})
+{
+  return opsWrapper(request, async (_req) => {
     try {
       const { id: courseId } = await params;
 
@@ -19,12 +19,12 @@ export async function GET(
               name: true,
               avatar: true,
               level: true,
-              totalXP: true,
-            },
-          },
+              totalXP: true
+            }
+          }
         },
         orderBy: { totalXP: "desc" },
-        take: 5,
+        take: 5
       });
 
       return successResponse(leaderboard);

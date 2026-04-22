@@ -1,5 +1,5 @@
 // Performance monitoring configuration
-import { logger } from '@/lib/logger';
+
 
 // Lazy load logger to prevent server-side bundling issues
 // This file must be safe for both client and server execution
@@ -37,7 +37,7 @@ const createConsoleLogger = () => ({
     if (typeof console !== 'undefined' && typeof console.debug === 'function') {
       console.debug(...args);
     }
-  },
+  }
 });
 
 async function getLogger(): Promise<Logger> {
@@ -58,7 +58,7 @@ async function getLogger(): Promise<Logger> {
       const loggerPath = '@' + '/lib/' + 'logger';
       const loggerModule = await import(loggerPath);
       loggerInstance = loggerModule.logger || loggerModule.default || createConsoleLogger();
-    } catch (error) {
+    } catch (_error) {
       // Fallback to console if logger fails to load
       loggerInstance = createConsoleLogger();
     }
@@ -91,7 +91,7 @@ const getPerfConfig = () => {
         isDevelopment = false;
       }
     }
-  } catch (error) {
+  } catch (_error) {
     // Fallback to false if any error occurs
     isDevelopment = false;
   }
@@ -107,7 +107,7 @@ const getPerfConfig = () => {
       slowOperationThreshold: 100,
 
       // Sample rate for cache metrics (0.0 to 1.0)
-      sampleRate: isProduction ? 0.1 : 1.0,
+      sampleRate: isProduction ? 0.1 : 1.0
     },
 
     // API response time monitoring
@@ -116,7 +116,7 @@ const getPerfConfig = () => {
       slowRequestThreshold: 1000,
 
       // Sample rate for API metrics
-      sampleRate: isProduction ? 0.1 : 1.0,
+      sampleRate: isProduction ? 0.1 : 1.0
     },
 
     // Database query monitoring
@@ -125,7 +125,7 @@ const getPerfConfig = () => {
       slowQueryThreshold: 500,
 
       // Sample rate for database metrics
-      sampleRate: isProduction ? 0.1 : 1.0,
+      sampleRate: isProduction ? 0.1 : 1.0
     },
 
     // Lazy loading settings
@@ -149,7 +149,7 @@ const getPerfConfig = () => {
 let PERF_CONFIG: ReturnType<typeof getPerfConfig>;
 try {
   PERF_CONFIG = getPerfConfig();
-} catch (error) {
+} catch (_error) {
   // Fallback config if initialization fails (e.g., during client-side bundling)
   PERF_CONFIG = {
     cache: { logMetrics: false, slowOperationThreshold: 100, sampleRate: 0.1 },
@@ -164,7 +164,7 @@ try {
 
 // Stub PerfMonitor for compatibility (can be enhanced later)
 const PerfMonitor = {
-  measure: async <T>(label: string, fn: () => Promise<T> | T): Promise<T> => {
+  measure: async <T,>(label: string, fn: () => Promise<T> | T): Promise<T> => {
     const start = Date.now();
     try {
       const result = await fn();
@@ -180,7 +180,7 @@ const PerfMonitor = {
       throw normalizedError;
     }
   },
-  logCacheMetric: async (key: string, hit: boolean, duration: number) => {
+  logCacheMetric: async (key: string, hit: boolean, _duration: number) => {
     // Simple logging - can be enhanced with proper metrics collection
     const logger = await getLogger();
     if (hit) {

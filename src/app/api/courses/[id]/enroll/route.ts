@@ -15,7 +15,7 @@ export async function POST(
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const { id } = await params;
+        const { id: idOrSlug } = await params;
 
         const user = await prisma.user.findUnique({
           where: { id: userId }
@@ -25,14 +25,22 @@ export async function POST(
           return notFoundResponse("المستخدم غير موجود");
         }
 
-        const subject = await prisma.subject.findUnique({
-          where: { id },
-          select: { price: true, nameAr: true, name: true }
+        const subject = await prisma.subject.findFirst({
+          where: {
+            OR: [
+              { id: idOrSlug },
+              { slug: idOrSlug }
+            ]
+          },
+          select: { id: true, price: true, nameAr: true, name: true }
         });
 
         if (!subject) {
           return notFoundResponse("الدورة غير موجودة");
         }
+
+        // Use the actual subject ID for the rest of the operation
+        const subjectId = subject.id;
 
         const activeSub = await SubscriptionService.checkActiveSubscription(userId);
 
@@ -50,7 +58,7 @@ export async function POST(
           enrollment = await prisma.subjectEnrollment.create({
             data: {
               userId,
-              subjectId: id,
+              subjectId: subjectId,
               targetWeeklyHours: 0
             }
           });
@@ -62,7 +70,7 @@ export async function POST(
         }
 
         // Integrate with gamification, notifications, and update counters
-        const integrationResult = await handleCourseEnrollment(userId, id);
+        const integrationResult = await handleCourseEnrollment(userId, subjectId);
 
         return successResponse({
           ...enrollment,
@@ -85,13 +93,27 @@ export async function GET(
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const { id } = await params;
+        const { id: idOrSlug } = await params;
+
+        const subject = await prisma.subject.findFirst({
+          where: {
+            OR: [
+              { id: idOrSlug },
+              { slug: idOrSlug }
+            ]
+          },
+          select: { id: true }
+        });
+
+        if (!subject) {
+          return successResponse({ enrolled: false });
+        }
 
         const enrollment = await prisma.subjectEnrollment.findUnique({
           where: {
             userId_subjectId: {
               userId,
-              subjectId: id
+              subjectId: subject.id
             }
           }
         });
@@ -120,14 +142,28 @@ export async function DELETE(
   return opsWrapper(request, async (req) => {
     return withAuth(req, async ({ userId }) => {
       try {
-        const { id } = await params;
+        const { id: idOrSlug } = await params;
+
+        const subject = await prisma.subject.findFirst({
+          where: {
+            OR: [
+              { id: idOrSlug },
+              { slug: idOrSlug }
+            ]
+          },
+          select: { id: true }
+        });
+
+        if (!subject) {
+          return notFoundResponse("الدورة غير موجودة");
+        }
 
         try {
           await prisma.subjectEnrollment.delete({
             where: {
               userId_subjectId: {
                 userId,
-                subjectId: id
+                subjectId: subject.id
               }
             }
           });

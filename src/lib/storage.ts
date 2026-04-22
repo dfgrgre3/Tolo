@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Upload } from "@aws-sdk/lib-storage";
 import { logger } from "./logger";
@@ -12,8 +12,8 @@ const s3Client = new S3Client({
   region: process.env.S3_REGION || "us-east-1",
   credentials: {
     accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
-  },
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!
+  }
 });
 
 export class StorageService {
@@ -23,7 +23,7 @@ export class StorageService {
   static async uploadFile(file: File | Buffer, fileName: string, contentType: string, folder: string = "books"): Promise<string> {
     const key = `uploads/${folder}/${fileName}`;
     const bucket = process.env.S3_BUCKET_NAME || `thanawy-assets-${process.env.NODE_ENV}`;
-    
+
     try {
       const body = file instanceof File ? Buffer.from(await file.arrayBuffer()) : file;
 
@@ -33,12 +33,12 @@ export class StorageService {
           Bucket: bucket,
           Key: key,
           Body: body,
-          ContentType: contentType,
-        },
+          ContentType: contentType
+        }
       });
 
       await upload.done();
-      
+
       // Return the CloudFront URL for distribution
       const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL || "";
       return `${cdnUrl}/${key}`;
@@ -59,7 +59,7 @@ export class StorageService {
     try {
       const command = new GetObjectCommand({
         Bucket: bucket,
-        Key: key,
+        Key: key
       });
 
       // For 10M+ users, signed URLs are generated at the edge or app layer to avoid DB hits
@@ -82,11 +82,11 @@ export class StorageService {
 
     const key = url.replace(`${cdnUrl}/`, "");
     const bucket = process.env.S3_BUCKET_NAME || `thanawy-assets-${process.env.NODE_ENV}`;
-    
+
     try {
       await s3Client.send(new DeleteObjectCommand({
         Bucket: bucket,
-        Key: key,
+        Key: key
       }));
       logger.info(`Storage: Deleted ${key} from S3`);
     } catch (error) {

@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -273,7 +273,7 @@ export default function AdminAnnouncementsPage() {
   return (
     <div className="space-y-10 pb-20" dir="rtl">
       <PageHeader
-        title="منصة البلاغات الملكية (Herald) 📢"
+        title="منصة البلاغات الملكية (Herald) ًں“¢"
         description="إدارة التواصل العام مع المحاربين، نشر الأخبار، التحذيرات، والاحتفالات الكبرى بالمملكة."
       >
         <AdminButton icon={Plus} onClick={() => handleOpenDialog()}>
@@ -294,7 +294,7 @@ export default function AdminAnnouncementsPage() {
           value={announcements.filter(a => a.isActive).length} 
           icon={Zap} 
           color="green"
-          description="تظهر حالياً للأبطال"
+          description="ت٪ر حالياً للأبطال"
         />
         <AdminStatsCard 
           title="بلاغات الأسبوع" 
@@ -421,7 +421,7 @@ export default function AdminAnnouncementsPage() {
                     name="priority"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى الظهور</FormLabel>
+                        <FormLabel className="font-black text-[10px] uppercase tracking-widest opacity-60">مستوى ال٪ور</FormLabel>
                         <FormControl>
                           <Input
                             {...field}
@@ -443,7 +443,7 @@ export default function AdminAnnouncementsPage() {
                     <FormItem className="flex items-center justify-between rounded-xl border border-white/10 p-4 bg-white/5">
                       <div>
                         <FormLabel className="font-black text-xs">نشر فوري؟</FormLabel>
-                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">تفعيل الظهور في لوحة الأبطال</p>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-tight">تفعيل ال٪ور في لوحة الأبطال</p>
                       </div>
                       <FormControl>
                         <Switch

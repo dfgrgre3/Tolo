@@ -266,7 +266,7 @@ export function AiCommandCenter() {
               >
                 <option value="exam_blueprint">📜 مخطط اختبار</option>
                 <option value="curriculum_outline">📖 مخطط منهج</option>
-                <option value="article_draft">🖋️ مسودة مقال</option>
+                <option value="article_draft">✒️ مسودة مقال</option>
               </select>
             </div>
             <div className="space-y-2">
@@ -279,7 +279,7 @@ export function AiCommandCenter() {
                 <option value="">🔮 مادة عامة</option>
                 {(data?.subjects || []).map((subject, index) => (
                   <option key={`subject-option-${subject.id || index}`} value={subject.id}>
-                    ✨ {subject.name}
+                  ✨ {subject.name}
                   </option>
                 ))}
               </select>
@@ -397,7 +397,7 @@ export function AiCommandCenter() {
                   <div className="font-bold text-sm leading-tight mb-1">{item.title}</div>
                   <div className="flex items-center gap-2">
                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">{item.subject}</span>
-                     <span className="text-[10px] text-gray-600 font-bold">•</span>
+                     <span className="text-[10px] text-gray-600 font-bold">⬢</span>
                      <span className="text-[10px] font-bold text-gray-500">{item.author}</span>
                   </div>
                 </div>

@@ -10,6 +10,10 @@ import {
   withAuth,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { invalidateEducationalContentPattern } from "@/lib/educational-cache-service";
+import { CacheService } from "@/lib/cache";
+import { notificationQueue } from "@/lib/queue/bullmq";
+import { CourseNotification } from "@/lib/websocket-server";
 
 const courseSchema = z.object({
   name: z.string().min(1, "Course name is required"),
@@ -263,7 +267,7 @@ export async function POST(request: NextRequest) {
         }
 
         const generatedSlug = await generateUniqueSlug(
-          validation.data.slug || validation.data.nameAr || validation.data.name ||
+          validation.data.slug || validation.data.nameAr || validation.data.name || "course"
         );
 
         const course = await prisma.subject.create({
@@ -275,6 +279,33 @@ export async function POST(request: NextRequest) {
             lastContentUpdate: new Date(),
           },
         });
+
+        // Invalidate Courses List Cache
+        await invalidateEducationalContentPattern('courses:list:*');
+        await CacheService.invalidatePattern('api_v1:courses:public*');
+        await CacheService.invalidatePattern('educational:courses:public*');
+
+// Publish notification for real-time updates
+        const notification: CourseNotification = {
+          type: 'course_created',
+          course: {
+            id: course.id,
+            title: course.name,
+            description: course.description || '',
+            instructor: course.instructorName || 'المنصة التعليمية',
+            subject: course.nameAr || course.name,
+            level: course.level as 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED',
+            duration: course.durationHours || 0,
+            thumbnailUrl: course.thumbnailUrl,
+            price: course.price || 0,
+            rating: 0, // Default rating
+            enrolledCount: 0, // Default enrolled count
+            tags: [], // Default empty tags array
+            lessonsCount: 0
+          }
+        };
+
+        await notificationQueue.addJob('course_created', notification, { priority: 10 });
 
         return successResponse({ course }, "تم إنشاء الدورة بنجاح", 201);
       } catch (error) {
@@ -342,6 +373,12 @@ export async function PATCH(request: NextRequest) {
           data: updateData as any,
         });
 
+        // Invalidate Courses List Cache
+        await invalidateEducationalContentPattern('courses:list:*');
+        await CacheService.invalidatePattern('api_v1:courses:public*');
+        await CacheService.invalidatePattern('educational:courses:public*');
+        await invalidateEducationalContentPattern(`course:detail:${id}:*`);
+
         return successResponse({ course }, "تم تحديث الدورة بنجاح");
       } catch (error) {
         logger.error("Error updating admin course", error);
@@ -379,6 +416,12 @@ export async function DELETE(request: NextRequest) {
         await prisma.subject.delete({
           where: { id },
         });
+
+        // Invalidate Courses List Cache
+        await invalidateEducationalContentPattern('courses:list:*');
+        await CacheService.invalidatePattern('api_v1:courses:public*');
+        await CacheService.invalidatePattern('educational:courses:public*');
+        await invalidateEducationalContentPattern(`course:detail:${id}:*`);
 
         return successResponse({ success: true }, "تم حذف الدورة بنجاح");
       } catch (error: any) {

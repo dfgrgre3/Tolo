@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
           getSubjectLessonCounts(subjectIds),
           prisma.subjectCertificate.findMany({
             where: { userId, subjectId: { in: subjectIds } },
-            select: { subjectId: true, certUrl: true, issuedAt: true },
+            select: { id: true, subjectId: true, certUrl: true, issuedAt: true },
           }),
           // Get completed lessons per subject
           prisma.topicProgress.findMany({
@@ -110,6 +110,7 @@ export async function GET(request: NextRequest) {
             totalLessons,
             certificate: cert
               ? {
+                id: cert.id as string,
                 url: cert.certUrl as string,
                 issuedAt: cert.issuedAt as Date,
               }

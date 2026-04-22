@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -81,7 +81,7 @@ export default function InfrastructurePage() {
                   <Server className="w-10 h-10 text-primary" />
                </div>
                <div className="space-y-1">
-                  <h1 className="text-3xl font-black tracking-tight">غرفة التحكم بالنظام 🏛️</h1>
+                  <h1 className="text-3xl font-black tracking-tight">غرفة التحكم بالنظام ًںڈ›ï¸ڈ</h1>
                   <p className="text-gray-400 font-bold uppercase text-xs tracking-widest flex items-center gap-2">
                      <ShieldCheck className="w-4 h-4 text-green-500" />
                      <span>تم التحقق من سلامة الأكواد بنسبة 100%</span>

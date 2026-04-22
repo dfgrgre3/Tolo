@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { logger } from '@/lib/logger';
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
           name,
           slug: name.trim().toLowerCase().replace(/\s+/g, '-'),
           description,
-          icon: icon || "📂",
+          icon: icon || "ًں“‚",
           type: "BLOG"
         }
       });

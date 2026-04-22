@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { prisma } from '@/lib/db';
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { handleApiError, successResponse, badRequestResponse } from '@/lib/api-utils';
@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       if (!token) {
         return badRequestResponse("Authorization token required", ERROR_CODES.UNAUTHORIZED);
       }
-      
+
       const userId = await ensureUser();
       if (!userId) {
         return badRequestResponse("Invalid or expired token", ERROR_CODES.UNAUTHORIZED);
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
 
       // Get form data
       const formData = await request.formData();
-      
+
       const title = formData.get('title') as string;
       const author = formData.get('author') as string;
       const description = formData.get('description') as string;
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
           subjectId,
           coverUrl,
           downloadUrl,
-          tags,
+          tags
         }
       });
 
@@ -107,7 +107,7 @@ export async function DELETE(request: NextRequest) {
       if (!token) {
         return badRequestResponse("Authorization token required", ERROR_CODES.UNAUTHORIZED);
       }
-      
+
       const userId = await ensureUser();
       if (!userId) {
         return badRequestResponse("Invalid or expired token", ERROR_CODES.UNAUTHORIZED);

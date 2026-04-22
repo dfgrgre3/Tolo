@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { opsWrapper } from "@/lib/middleware/ops-middleware";
 import { successResponse, withAuth, handleApiError, badRequestResponse } from '@/lib/api-utils';
 import { progressService } from "@/modules/progress/progress.service";
@@ -13,7 +13,7 @@ import { z } from "zod";
 
 const progressSchema = z.object({
   subTopicId: z.string().min(1, "معرف الدرس مطلوب"),
-  completed: z.boolean().default(true),
+  completed: z.boolean().default(true)
 });
 
 export async function POST(request: NextRequest) {

@@ -81,9 +81,9 @@ function getStorage(type: StorageType = 'local'): Storage | null {
  * Safely read a value from storage
  */
 export function safeGetItem<T = unknown>(
-  key: string,
-  options: SafeStorageOptions<T> = {}
-): T | null {
+key: string,
+options: SafeStorageOptions<T> = {})
+: T | null {
   const { fallback = null, storageType = 'local', parser } = options;
 
   const storage = getStorage(storageType);
@@ -114,21 +114,21 @@ export function safeGetItem<T = unknown>(
  * Safely write a value to storage
  */
 export function safeSetItem<T = unknown>(
-  key: string,
-  value: T,
-  options: SafeStorageOptions<T> = {}
-): boolean {
+key: string,
+value: T,
+options: SafeStorageOptions<T> = {})
+: boolean {
   const { storageType = 'local', serializer } = options;
 
   const storage = getStorage(storageType);
   if (!storage) return false;
 
   try {
-    const stringValue = serializer
-      ? serializer(value)
-      : typeof value === 'string'
-        ? value
-        : JSON.stringify(value);
+    const stringValue = serializer ?
+    serializer(value) :
+    typeof value === 'string' ?
+    value :
+    JSON.stringify(value);
 
     storage.setItem(key, stringValue);
     return true;
@@ -143,9 +143,9 @@ export function safeSetItem<T = unknown>(
  * Safely remove a value from storage
  */
 export function safeRemoveItem(
-  key: string,
-  options: SafeStorageOptions = {}
-): boolean {
+key: string,
+options: SafeStorageOptions = {})
+: boolean {
   const { storageType = 'local' } = options;
 
   const storage = getStorage(storageType);
@@ -184,9 +184,9 @@ export function safeClearStorage(storageType: StorageType = 'local'): boolean {
  * Hook for safe localStorage access with automatic sync
  */
 export function useSafeLocalStorage<T = any>(
-  key: string,
-  initialValue: T
-): [T, (value: T | ((prev: T) => T)) => void, boolean] {
+key: string,
+initialValue: T)
+: [T, (value: T | ((prev: T) => T)) => void, boolean] {
   // حالة للتحقق من تحميل المكون
   const [mounted, setMounted] = useState(false);
 
@@ -212,8 +212,8 @@ export function useSafeLocalStorage<T = any>(
 
       setStoredValue(valueToStore);
       safeSetItem(key, valueToStore);
-    } catch (error) {
-      logger.warn(`Error setting localStorage key "${key}":`, error);
+    } catch (_error) {
+      logger.warn(`Error setting localStorage key "${key}":`, _error);
     }
   }, [key, storedValue]);
 
@@ -225,9 +225,9 @@ export function useSafeLocalStorage<T = any>(
  * Hook for safe sessionStorage access with automatic sync
  */
 export function useSafeSessionStorage<T = any>(
-  key: string,
-  initialValue: T
-): [T, (value: T | ((prev: T) => T)) => void, boolean] {
+key: string,
+initialValue: T)
+: [T, (value: T | ((prev: T) => T)) => void, boolean] {
   const [mounted, setMounted] = useState(false);
   const [storedValue, setStoredValue] = useState<T>(initialValue);
 
@@ -250,8 +250,8 @@ export function useSafeSessionStorage<T = any>(
 
       setStoredValue(valueToStore);
       safeSetItem(key, valueToStore, { storageType: 'session' });
-    } catch (error) {
-      logger.warn(`Error setting sessionStorage key "${key}":`, error);
+    } catch (_error) {
+      logger.warn(`Error setting sessionStorage key "${key}":`, _error);
     }
   }, [key, storedValue]);
 
@@ -273,9 +273,9 @@ export function isBrowser(): boolean {
  * Safe window access
  */
 export function safeWindow<T>(
-  accessor: (window: Window) => T,
-  fallback: T
-): T {
+accessor: (window: Window) => T,
+fallback: T)
+: T {
   if (!isBrowser()) return fallback;
 
   try {
@@ -291,9 +291,9 @@ export function safeWindow<T>(
  * Safe document access
  */
 export function safeDocument<T>(
-  accessor: (document: Document) => T,
-  fallback: T
-): T {
+accessor: (document: Document) => T,
+fallback: T)
+: T {
   if (!isBrowser() || typeof document === 'undefined') return fallback;
 
   try {
@@ -326,14 +326,14 @@ export function useIsMounted(): boolean {
 export function useWindowSize() {
   const [windowSize, setWindowSize] = useState({
     width: 0,
-    height: 0,
+    height: 0
   });
 
   useEffect(() => {
     function handleResize() {
       setWindowSize({
         width: window.innerWidth,
-        height: window.innerHeight,
+        height: window.innerHeight
       });
     }
 
@@ -411,10 +411,10 @@ export function useSafeMediaQuery(query: string): boolean {
  * Hook to safely add event listener
  */
 export function useSafeEventListener<K extends keyof WindowEventMap>(
-  eventName: K,
-  handler: (event: WindowEventMap[K]) => void,
-  element?: HTMLElement | Window | null
-) {
+eventName: K,
+handler: (event: WindowEventMap[K]) => void,
+element?: HTMLElement | Window | null)
+{
   const savedHandler = useRef<(event: WindowEventMap[K]) => void>(undefined);
 
   useEffect(() => {
@@ -458,8 +458,8 @@ function isHtmlContent(text: string): boolean {
     trimmed.startsWith('<html') ||
     trimmed.startsWith('<HTML') ||
     trimmed.startsWith('<Html') ||
-    (trimmed.startsWith('<') && (trimmed.includes('<head') || trimmed.includes('<body')))
-  );
+    trimmed.startsWith('<') && (trimmed.includes('<head') || trimmed.includes('<body')));
+
 }
 
 function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
@@ -478,20 +478,20 @@ async function refreshAuthSession(): Promise<boolean> {
     const refreshResponse = await fetch('/api/auth/refresh', {
       method: 'POST',
       credentials: 'include',
-      signal: controller.signal,
+      signal: controller.signal
     });
-    
+
     clearTimeout(timeout);
     return refreshResponse.ok;
-  } catch (error) {
+  } catch (_error) {
     return false;
   }
 }
 
 export async function safeJsonParse<T = any>(
-  response: Response,
-  fallback: T | null = null
-): Promise<T | null> {
+response: Response,
+fallback: T | null = null)
+: Promise<T | null> {
   try {
     // قراءة النص أولاً للتحقق من نوع المحتوى
     // نستخدم clone() إذا كان response مستهلكاً بالفعل
@@ -513,7 +513,7 @@ export async function safeJsonParse<T = any>(
 
     // إذا كان HTML، يعني أن هناك خطأ في الخادم (مثل صفحة خطأ Next.js)
     if (isHtmlContent(text)) {
-      // فقط في وضع التطوير نُظهر الخطأ التفصيلي
+      // فقط في وضع التطوير نظڈ٪ر الخطأ التفصيلي
       if (process.env.NODE_ENV === 'development') {
         const url = response.url || 'Unknown URL';
         logger.warn(
@@ -556,7 +556,7 @@ export async function safeJsonParse<T = any>(
     try {
       return JSON.parse(text) as T;
     } catch (parseError) {
-      // فقط في وضع التطوير نُظهر تفاصيل الخطأ
+      // فقط في وضع التطوير نظڈ٪ر تفاصيل الخطأ
       if (process.env.NODE_ENV === 'development') {
         logger.warn(
           `[Development] Failed to parse response as JSON:`,
@@ -569,10 +569,10 @@ export async function safeJsonParse<T = any>(
       }
       return fallback;
     }
-  } catch (error) {
-    // فقط في وضع التطوير نُظهر تفاصيل الخطأ
+  } catch (_error) {
+    // فقط في وضع التطوير نظڈ٪ر تفاصيل الخطأ
     if (process.env.NODE_ENV === 'development') {
-      logger.error('[Development] Error parsing JSON response:', error);
+      logger.error('[Development] Error parsing JSON response:', _error);
     }
     return fallback;
   }
@@ -583,14 +583,14 @@ export async function safeJsonParse<T = any>(
  * Safe fetch with error handling and JSON parsing
  */
 export async function safeFetch<T = any>(
-  url: string,
-  options?: RequestInit,
-  fallback: T | null = null
-): Promise<{ data: T | null; error: Error | null; response: Response | null }> {
+url: string,
+options?: RequestInit,
+fallback: T | null = null)
+: Promise<{data: T | null;error: Error | null;response: Response | null;}> {
   try {
     const fetchOptions: RequestInit = {
       ...options,
-      credentials: options?.credentials ?? 'include',
+      credentials: options?.credentials ?? 'include'
     };
 
     let response = await fetch(url, fetchOptions);
@@ -647,7 +647,7 @@ export async function safeFetch<T = any>(
       }
 
       // إذا كان data ليس fallback، يعني أننا حصلنا على JSON (حتى لو كانت error response)
-      const error = new Error(errorMessage);
+      const requestError = new Error(errorMessage);
       // فقط في وضع التطوير نعرض الخطأ في console
       if (process.env.NODE_ENV === 'development') {
         logger.warn(`[Development] API Error (${url}):`, {
@@ -660,13 +660,13 @@ export async function safeFetch<T = any>(
 
       return {
         data,
-        error,
+        error: requestError,
         response
       };
     }
 
     return { data, error: null, response };
-  } catch (error) {
+  } catch (_error) {
     const signalWasAborted = Boolean(
       options?.signal &&
       typeof options.signal === 'object' &&
@@ -675,18 +675,18 @@ export async function safeFetch<T = any>(
     );
 
     let normalizedError: Error;
-    if (error instanceof Error) {
-      normalizedError = error;
-    } else if (typeof error === 'string' && error.trim().length > 0) {
-      normalizedError = new Error(error);
+    if (_error instanceof Error) {
+      normalizedError = _error;
+    } else if (typeof _error === 'string' && _error.trim().length > 0) {
+      normalizedError = new Error(_error);
     } else if (
-      typeof error === 'object' &&
-      error !== null &&
-      'message' in error &&
-      typeof (error as { message: unknown }).message === 'string' &&
-      (error as { message: string }).message.trim().length > 0
-    ) {
-      normalizedError = new Error((error as { message: string }).message);
+    typeof _error === 'object' &&
+    _error !== null &&
+    'message' in _error &&
+    typeof (_error as {message: unknown;}).message === 'string' &&
+    (_error as {message: string;}).message.trim().length > 0)
+    {
+      normalizedError = new Error((_error as {message: string;}).message);
     } else {
       normalizedError = new Error('Unknown fetch error');
     }
@@ -698,7 +698,7 @@ export async function safeFetch<T = any>(
       }
     }
 
-    // فقط في وضع التطوير نُظهر تفاصيل الأخطاء غير المتوقعة
+    // فقط في وضع التطوير نظڈ٪ر تفاصيل الأخطاء غير المتوقعة
     if (process.env.NODE_ENV === 'development' && normalizedError.name !== 'AbortError') {
       logger.error(`[Development] Fetch error for URL: ${url}`, normalizedError);
     }
@@ -776,8 +776,7 @@ const safeClientUtils = {
 
   // Safe fetch & JSON
   safeJsonParse,
-  safeFetch,
+  safeFetch
 };
 
 export default safeClientUtils;
-

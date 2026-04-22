@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useState } from "react";
 import { ensureUser } from "@/lib/user-utils";
@@ -121,7 +121,7 @@ export default function TeachersPage() {
               <span>نقابة المعلمين الكبار</span>
            </div>
            <h1 className="text-4xl md:text-7xl font-black tracking-tight leading-tight">
-              مجلس <span className={STYLES.neonText}>الحكماء</span> 🧙‍♂️
+              مجلس <span className={STYLES.neonText}>الحكماء</span> ًں§™â€چâ™‚ï¸ڈ
            </h1>
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
               تعرف على كبار المخططين والمدربين في رحلتك التعليمية. هنا يمكنك العثور على رفقاء الطريق الذين سيقودونك نحو السيادة العلمية المطلقة.

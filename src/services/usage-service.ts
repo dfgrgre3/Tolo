@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db';
+﻿import { prisma } from '@/lib/db';
 import { logger } from '@/lib/logger';
 import { CacheService } from '@/lib/cache';
 
@@ -22,10 +22,7 @@ export class UsageService {
     await prisma.user.updateMany({
       where: { 
         id: userId, 
-        OR: [
-          { lastUsageReset: { lt: startOfMonth } },
-          { lastUsageReset: null }
-        ]
+        lastUsageReset: { lt: startOfMonth }
       },
       data: {
         monthlyExamCount: 0,
@@ -198,7 +195,7 @@ export class UsageService {
       const threshold = Math.floor(limit * 0.9);
 
       if (current === threshold) {
-        const title = type === 'EXAM' ? 'تحذير: باقة الامتحانات' : 'تحذير: باقة الـ AI';
+        const title = type === 'EXAM' ? 'تنبيه: باقة الامتحانات' : 'تنبيه: باقة الـ AI';
         const message = `لقد استهلكت %90 من باقتك (${current}/${limit}).`;
         this.notifyUser(userId, title, message);
       }

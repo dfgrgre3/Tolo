@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useFormPersistence as useSessionPersistence } from '@/hooks/use-form-persistence';
-import { logger } from '@/lib/logger';
+
+import { logger } from '@/lib/logger';
 
 interface ContactFormData {
   name: string;
@@ -14,11 +15,11 @@ interface ContactFormData {
 export default function ContactPage() {
   // استخدام الـ hook الشامل لحفظ حالة الجلسة
   const {
-    saveFormData,
+    saveFormData: _saveFormData,
     restoreFormData,
     clearFormData,
     saveField,
-    restoreField
+    restoreField: _restoreField
   } = useSessionPersistence<ContactFormData>(
     'contact-form', // معرف النموذج
     {
@@ -76,8 +77,8 @@ export default function ContactPage() {
             value={formData.name}
             onChange={(e) => updateField('name', e.target.value)}
             className="w-full p-2 border rounded-md"
-            placeholder="أدخل اسمك"
-          />
+            placeholder="أدخل اسمك" />
+          
         </div>
 
         <div>
@@ -90,8 +91,8 @@ export default function ContactPage() {
             value={formData.email}
             onChange={(e) => updateField('email', e.target.value)}
             className="w-full p-2 border rounded-md"
-            placeholder="أدخل بريدك الإلكتروني"
-          />
+            placeholder="أدخل بريدك الإلكتروني" />
+          
         </div>
 
         <div>
@@ -104,8 +105,8 @@ export default function ContactPage() {
             onChange={(e) => updateField('message', e.target.value)}
             rows={4}
             className="w-full p-2 border rounded-md"
-            placeholder="اكتب رسالتك هنا"
-          />
+            placeholder="اكتب رسالتك هنا" />
+          
         </div>
 
         <div className="flex items-center">
@@ -114,8 +115,8 @@ export default function ContactPage() {
             id="newsletter"
             checked={formData.newsletter}
             onChange={(e) => updateField('newsletter', e.target.checked)}
-            className="mr-2"
-          />
+            className="mr-2" />
+          
           <label htmlFor="newsletter" className="text-sm">
             اشترك في النشرة الإخبارية
           </label>
@@ -124,8 +125,8 @@ export default function ContactPage() {
         <div className="flex gap-4">
           <button
             type="submit"
-            className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600"
-          >
+            className="bg-blue-500 text-white px-6 py-2 rounded-md hover:bg-blue-600">
+            
             إرسال
           </button>
           <button
@@ -139,8 +140,8 @@ export default function ContactPage() {
                 newsletter: false
               });
             }}
-            className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600"
-          >
+            className="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600">
+            
             مسح البيانات
           </button>
         </div>
@@ -152,6 +153,6 @@ export default function ContactPage() {
           {JSON.stringify(formData, null, 2)}
         </pre>
       </div>
-    </div>
-  );
+    </div>);
+
 }

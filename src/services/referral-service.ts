@@ -1,6 +1,7 @@
 ﻿import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
+import { WalletService } from './wallet-service';
 
 export class ReferralService {
   /**
@@ -46,14 +47,12 @@ export class ReferralService {
           }
         });
 
-        await tx.userWallet.upsert({
-          where: { userId: referrerId },
-          update: { balance: { increment: REWARD_AMOUNT } },
-          create: {
-            userId: referrerId,
-            balance: REWARD_AMOUNT,
-          },
-        });
+        await WalletService.addBonus(
+          referrerId,
+          REWARD_AMOUNT,
+          'REFERRAL_REWARD',
+          `مكافأة دعوة زميل: ${userId}`
+        );
 
         await tx.payment.create({
           data: {
@@ -61,8 +60,12 @@ export class ReferralService {
             amount: REWARD_AMOUNT,
             status: 'SUCCESS',
             provider: 'REFERRAL_BONUS',
-            paymentMethod: 'system',
-            paymentData: `Referral reward for referred user ${userId}, source payment ${paymentAmount}`,
+            paymentMethod: 'wallet',
+            paymentData: JSON.stringify({
+              type: 'REFERRAL_REWARD',
+              referredUserId: userId,
+              sourcePayment: paymentAmount
+            }),
             referralRewardId: reward.id,
           }
         });
