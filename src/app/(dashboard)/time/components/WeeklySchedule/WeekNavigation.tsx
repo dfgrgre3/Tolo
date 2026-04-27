@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Calendar, ListTodo } from 'lucide-react';
 import { format, startOfWeek, addDays, addWeeks, subWeeks } from 'date-fns';
 import { ar } from 'date-fns/locale';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 interface WeekNavigationProps {
   currentWeek: Date;

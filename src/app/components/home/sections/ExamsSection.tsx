@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, memo, useCallback } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { safeFetch } from "@/lib/safe-client-utils";
 import { logger } from '@/lib/logger';
 import { AlertCircle, RefreshCw, Sword, Shield, Scroll, Trophy, Skull, Target, Clock, Swords, CheckCircle2 } from "lucide-react";
@@ -21,7 +21,7 @@ const SubjectCardSkeleton = () =>
 
 // --- Presentational Components ---
 const SubjectCard = memo(({ emoji, name, onClick }: {emoji: string;name: string;onClick: () => void;}) =>
-<motion.button
+<m.button
   onClick={onClick}
   whileHover={{ y: -8, scale: 1.05 }}
   whileTap={{ scale: 0.95 }}
@@ -32,7 +32,7 @@ const SubjectCard = memo(({ emoji, name, onClick }: {emoji: string;name: string;
         <div className="text-6xl drop-shadow-[0_0_15px_rgba(255,255,255,0.3)] group-hover:scale-125 transition-transform duration-500 filter group-hover:brightness-125 relative z-10" role="img" aria-hidden="true">{emoji}</div>
         <div className="text-xl font-black text-gray-100 group-hover:text-red-400 transition-colors tracking-tight relative z-10">{name}</div>
         <div className="text-[10px] font-black uppercase tracking-[0.2em] text-red-500/0 group-hover:text-red-500/100 transition-all duration-500 mt-1 relative z-10">بداية المعركة</div>
-    </motion.button>
+    </m.button>
 );
 SubjectCard.displayName = "SubjectCard";
 
@@ -231,13 +231,13 @@ const ExamsSectionComponent = () => {
                 {/* Section Header */}
                 <div className="text-center mb-16 relative">
                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 bg-red-600/10 rounded-full blur-[100px] -z-10" />
-                    <motion.div
+                    <m.div
             initial={{ scale: 0.8, rotate: -10 }}
             whileInView={{ scale: 1, rotate: 0 }}
             className="inline-flex items-center justify-center p-5 mb-8 rounded-[2rem] bg-black/60 border-2 border-red-500/40 backdrop-blur-2xl shadow-[0_0_40px_rgba(239,68,68,0.3)] ring-1 ring-white/10">
             
                         <Swords className="w-12 h-12 text-red-500 filter drop-shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-                    </motion.div>
+                    </m.div>
                     <h2 id="exams-heading" className={`text-5xl md:text-7xl font-black mb-6 tracking-tighter ${rpgCommonStyles.goldText}`}>
                          ساحة المعارك (ARENA)
                     </h2>

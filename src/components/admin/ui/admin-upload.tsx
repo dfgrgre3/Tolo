@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { Upload, Loader2, AlertCircle } from "lucide-react";
@@ -92,7 +92,7 @@ export function AdminUpload({
         formData.append("file", file);
 
         const xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/upload", true);
+        xhr.open("POST", "/api/upload", true); xhr.withCredentials = true;
 
         xhr.upload.onprogress = (event) => {
           if (event.lengthComputable) {
@@ -123,7 +123,7 @@ export function AdminUpload({
 
   const uploadChunked = React.useCallback(
     async (file: File, durationSeconds?: number) => {
-      const initResponse = await fetch("/api/upload/chunked", {
+      const initResponse = await fetch("/api/upload/chunked", { credentials: "include",
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -153,7 +153,7 @@ export function AdminUpload({
         chunkFormData.append("chunkIndex", String(chunkIndex));
         chunkFormData.append("totalChunks", String(totalChunks));
 
-        const chunkResponse = await fetch("/api/upload/chunked", {
+        const chunkResponse = await fetch("/api/upload/chunked", { credentials: "include",
           method: "PUT",
           body: chunkFormData,
         });
@@ -166,7 +166,7 @@ export function AdminUpload({
         setProgress(Math.round(((chunkIndex + 1) / totalChunks) * 95));
       }
 
-      const completeResponse = await fetch("/api/upload/chunked", {
+      const completeResponse = await fetch("/api/upload/chunked", { credentials: "include",
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ uploadId }),

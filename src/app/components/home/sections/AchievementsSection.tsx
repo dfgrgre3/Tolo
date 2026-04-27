@@ -2,7 +2,7 @@
 
 import React, { memo } from 'react';
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Trophy, Star, Award, CheckCircle2, ArrowRight, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ const DEFAULT_STATS: AchievementStat[] = [
 
 // --- Sub-components ---
 const AchievementCard = memo(({ achievement, index }: {achievement: Achievement;index: number;}) =>
-<motion.div
+<m.div
   initial={{ opacity: 0, scale: 0.9 }}
   whileInView={{ opacity: 1, scale: 1 }}
   viewport={{ once: true }}
@@ -76,7 +76,7 @@ const AchievementCard = memo(({ achievement, index }: {achievement: Achievement;
           <span className="text-primary">{achievement.progress}%</span>
         </div>
         <div className="h-1.5 w-full bg-black/40 rounded-full overflow-hidden">
-          <motion.div
+          <m.div
           initial={{ width: 0 }}
           whileInView={{ width: `${achievement.progress}%` }}
           transition={{ duration: 1, delay: 0.2 }}
@@ -85,7 +85,7 @@ const AchievementCard = memo(({ achievement, index }: {achievement: Achievement;
         </div>
       </div>
     </div>
-  </motion.div>
+  </m.div>
 );
 AchievementCard.displayName = "AchievementCard";
 

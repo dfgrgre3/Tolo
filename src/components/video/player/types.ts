@@ -1,6 +1,42 @@
 import type { MutableRefObject } from "react";
 import type { LucideIcon } from "lucide-react";
 
+export type YouTubeRuntimePlayer = {
+  destroy: () => void;
+  getAvailablePlaybackRates: () => number[];
+  getCurrentTime: () => number;
+  getDuration: () => number;
+  mute: () => void;
+  pauseVideo: () => void;
+  playVideo: () => void;
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
+  setPlaybackRate: (playbackRate: number) => void;
+  setVolume: (volume: number) => void;
+  unMute: () => void;
+};
+
+export type YouTubeNamespace = {
+  Player: new (
+    element: HTMLElement,
+    config: {
+      videoId: string;
+      playerVars: Record<string, any>;
+      events: {
+        onReady?: () => void;
+        onStateChange?: (event: { data: number }) => void;
+        onError?: () => void;
+      };
+    }
+  ) => YouTubeRuntimePlayer;
+  PlayerState: {
+    ENDED: 0;
+    PLAYING: 1;
+    PAUSED: 2;
+    BUFFERING: 3;
+    CUED: 5;
+  };
+};
+
 export type VideoProvider =
   | "youtube"
   | "bunny"

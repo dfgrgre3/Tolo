@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import {
   Shield,
 
@@ -130,14 +130,14 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
   return (
     <AnimatePresence>
       {isOpen &&
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
         onClick={handleClose}>
         
-          <motion.div
+          <m.div
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.9, opacity: 0 }}
@@ -321,8 +321,8 @@ export function TwoFactorSetupModal({ isOpen, onClose, onSuccess }: TwoFactorSet
                 </div>
               </div>
           }
-          </motion.div>
-        </motion.div>
+          </m.div>
+        </m.div>
       }
     </AnimatePresence>);
 

@@ -21,7 +21,7 @@ import {
   Loader2,
   Bot,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
 import { logger } from '@/lib/logger';
@@ -206,7 +206,7 @@ export function CommandPalette() {
       setOpen(val);
     }}>
       <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-2xl overflow-hidden top-[15%] translate-y-0">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9, y: -20, rotateX: -10 }}
           animate={{ opacity: 1, scale: 1, y: 0, rotateX: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -10, rotateX: 5 }}
@@ -276,7 +276,7 @@ export function CommandPalette() {
                         )}
                       >
                         {isSelected && (
-                          <motion.div 
+                          <m.div 
                             layoutId="active-shine"
                             className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -skew-x-12 translate-x-full animate-[shimmer_2s_infinite]" 
                           />
@@ -299,14 +299,14 @@ export function CommandPalette() {
                         </div>
                         
                         {isSelected && (
-                          <motion.div
+                          <m.div
                             initial={{ opacity: 0, x: -10 }}
                             animate={{ opacity: 1, x: 0 }}
                             className="flex items-center gap-2"
                           >
                             <span className="text-[10px] font-black uppercase tracking-widest text-white/50">تفعيل</span>
                             <ArrowRight className="h-4 w-4" />
-                          </motion.div>
+                          </m.div>
                         )}
                       </button>
                     );
@@ -351,7 +351,7 @@ export function CommandPalette() {
               <span className="font-black text-primary tracking-[0.2em] text-[9px] uppercase">Nexus OS v2.0 // COMMAND_LINE</span>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </DialogContent>
     </Dialog>
   );

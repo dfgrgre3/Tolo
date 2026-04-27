@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 interface HelpItem {
   id: string;
@@ -130,7 +130,7 @@ export function ContextualHelp() {
 				<div className="p-2 space-y-1">
 					<AnimatePresence>
 						{helpItems.map((item, index) =>
-            <motion.a
+            <m.a
               key={item.id}
               href={item.url || "#"}
               target={item.url?.startsWith("http") ? "_blank" : undefined}
@@ -158,7 +158,7 @@ export function ContextualHelp() {
 									</div>
 									<p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
 								</div>
-							</motion.a>
+							</m.a>
             )}
 					</AnimatePresence>
 				</div>

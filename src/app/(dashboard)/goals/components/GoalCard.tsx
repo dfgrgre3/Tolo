@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { CustomGoal } from '@/hooks/use-gamification';
 
 interface GoalCardProps {
@@ -11,7 +11,7 @@ interface GoalCardProps {
 
 export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
@@ -53,7 +53,7 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
           </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
-          <motion.div
+          <m.div
             initial={{ width: 0 }}
             animate={{
               width: `${Math.min((goal.currentValue / goal.targetValue) * 100, 100)}%`
@@ -97,6 +97,6 @@ export function GoalCard({ goal, onUpdateProgress, onComplete }: GoalCardProps) 
           تم الإكمال في {new Date(goal.completedAt).toLocaleDateString('ar-SA')}
         </div>
       )}
-    </motion.div>
+    </m.div>
   );
 }

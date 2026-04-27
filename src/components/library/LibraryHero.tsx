@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Plus, Library, Sparkles, TrendingUp, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -17,7 +17,7 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
   return (
     <section className="relative w-full h-[600px] md:h-[700px] rounded-[3rem] overflow-hidden group">
       {/* Background Image with Parallax-ish Effect */}
-      <motion.div 
+      <m.div 
         initial={{ scale: 1.1 }}
         animate={{ scale: 1 }}
         transition={{ duration: 1.5 }}
@@ -30,11 +30,11 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-      </motion.div>
+      </m.div>
 
       {/* Content */}
       <div className="relative z-10 h-full flex flex-col justify-center px-10 md:px-20 space-y-8" dir="rtl">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.3 }}
@@ -55,9 +55,9 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
             استكشف آلاف المجلدات، المذكرات، والكنوز التعليمية المنسقة بعناية. 
             مكان حيث تلتقي الحكمة القديمة بتقنيات المستقبل.
           </p>
-        </motion.div>
+        </m.div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
@@ -89,7 +89,7 @@ export function LibraryHero({ onUploadClick, stats }: LibraryHeroProps) {
               <span className="text-[10px] text-gray-500 uppercase tracking-widest font-bold">باحث</span>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Decorative Particles (Static simulation) */}

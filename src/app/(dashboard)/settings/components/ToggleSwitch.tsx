@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { memo } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { cn } from '@/lib/utils';
 
 interface ToggleSwitchProps {
@@ -61,7 +61,7 @@ export const ToggleSwitch = memo(function ToggleSwitch({
         className
       )}
     >
-      <motion.div
+      <m.div
         layout
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
         className={cn(

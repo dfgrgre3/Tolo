@@ -28,7 +28,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { safeFetch } from '@/lib/safe-client-utils';
 
 import { logger } from '@/lib/logger';
@@ -305,7 +305,7 @@ export default function TasksPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         
         {/* --- Header Section --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col md:flex-row justify-between items-center gap-6">
@@ -345,7 +345,7 @@ export default function TasksPage() {
               </form>
             </DialogContent>
           </Dialog>
-        </motion.div>
+        </m.div>
 
         {/* --- Analytics Row --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -412,16 +412,16 @@ export default function TasksPage() {
           <div className="min-h-[400px]">
             <AnimatePresence mode="wait">
               {loading ?
-              <motion.div
+              <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 className="flex items-center justify-center h-[400px]">
                 
                   <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-primary" />
-                </motion.div> :
+                </m.div> :
 
-              <motion.div
+              <m.div
                 key={activeTab}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -447,7 +447,7 @@ export default function TasksPage() {
                          </div>
                       </div>
                 }
-                </motion.div>
+                </m.div>
               }
             </AnimatePresence>
           </div>

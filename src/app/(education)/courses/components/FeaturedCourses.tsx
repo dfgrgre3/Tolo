@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useRef } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ChevronLeft, ChevronRight, Star, Sparkles } from "lucide-react";
 import { CourseCard, CourseCardProps } from "./CourseCard";
 
@@ -80,7 +80,7 @@ export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {courses.map((course, index) => (
-            <motion.div
+            <m.div
               key={course.id}
               initial={{ opacity: 0, scale: 0.96 }}
               whileInView={{ opacity: 1, scale: 1 }}
@@ -95,7 +95,7 @@ export const FeaturedCourses: React.FC<FeaturedCoursesProps> = ({
                 onEnroll={() => onEnroll(course.id)}
                 onUnenroll={() => onUnenroll(course.id)}
               />
-            </motion.div>
+            </m.div>
           ))}
         </div>
       </div>

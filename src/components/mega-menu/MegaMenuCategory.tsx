@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { forwardRef, memo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Sparkles, Zap, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MegaMenuCategory as MegaMenuCategoryType } from "./types";
@@ -27,7 +27,7 @@ export const MegaMenuCategory = memo(
     const itemCount = category.items.length;
 
     return (
-      <motion.div
+      <m.div
         ref={ref}
         initial={{ opacity: 0, y: 10, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -37,17 +37,17 @@ export const MegaMenuCategory = memo(
         role="group"
         aria-labelledby={`category-title-${categoryIndex}`}
       >
-        <motion.div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 group-hover/category:opacity-100 transition-opacity duration-500 blur-xl" initial={false} />
+        <m.div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary/10 via-transparent to-primary/5 opacity-0 group-hover/category:opacity-100 transition-opacity duration-500 blur-xl" initial={false} />
 
         <div className={cn(categoryStyles.header({ compact: isCompact }))}>
-          <motion.div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary via-primary/80 to-primary/60 rounded-full" initial={{ width: 0 }} whileHover={{ width: "100%" }} transition={{ duration: 0.4, ease: "easeOut" }} />
-          <motion.div
+          <m.div className="absolute bottom-0 left-0 h-0.5 bg-gradient-to-r from-primary via-primary/80 to-primary/60 rounded-full" initial={{ width: 0 }} whileHover={{ width: "100%" }} transition={{ duration: 0.4, ease: "easeOut" }} />
+          <m.div
             whileHover={{ scale: 1.15, rotate: [0, -5, 5, 0] }}
             whileTap={{ scale: 0.95 }}
             className={cn(categoryStyles.iconWrap({ compact: isCompact }))}
           >
             {hasActiveSearch ? <Zap className={cn("h-3.5 w-3.5 text-primary", isCompact && "h-3 w-3")} /> : <Sparkles className={cn("h-3.5 w-3.5 text-primary", isCompact && "h-3 w-3")} />}
-          </motion.div>
+          </m.div>
 
           <div className="flex-1 flex items-center justify-between">
             <div className="flex flex-col">
@@ -57,7 +57,7 @@ export const MegaMenuCategory = memo(
               {category.priorityLabel && !isCompact && <span className="text-[9px] font-black text-primary uppercase tracking-[0.2em] animate-pulse">{category.priorityLabel}</span>}
             </div>
 
-            <motion.span
+            <m.span
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               className={cn(
@@ -65,12 +65,12 @@ export const MegaMenuCategory = memo(
               )}
             >
               {itemCount}
-            </motion.span>
+            </m.span>
           </div>
 
-          <motion.div className="text-muted-foreground/50 group-hover/category:text-primary/50 transition-colors" whileHover={{ x: -3 }}>
+          <m.div className="text-muted-foreground/50 group-hover/category:text-primary/50 transition-colors" whileHover={{ x: -3 }}>
             <ChevronLeft className={cn("h-4 w-4", isCompact && "h-3.5 w-3.5")} />
-          </motion.div>
+          </m.div>
         </div>
 
         <div className={cn("space-y-2 relative z-10", isCompact && "space-y-1.5")} role="list">
@@ -89,14 +89,14 @@ export const MegaMenuCategory = memo(
         </div>
 
         {itemCount > 4 && !isCompact && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="pt-2 relative z-10">
+          <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="pt-2 relative z-10">
             <button onClick={onItemClick} className="text-xs text-primary/70 hover:text-primary font-medium flex items-center gap-1 transition-colors">
               <span>عرض الكل</span>
               <ChevronLeft className="h-3 w-3" />
             </button>
-          </motion.div>
+          </m.div>
         )}
-      </motion.div>
+      </m.div>
     );
   })
 );

@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 
 interface AchievementToastProps {
   achievement: {
@@ -48,7 +48,7 @@ export function AchievementToast({
   return (
     <AnimatePresence>
       {isVisible && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 100, scale: 0.8 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -100, scale: 0.8 }}
@@ -63,7 +63,7 @@ export function AchievementToast({
             {/* Achievement Header */}
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-3">
-                <motion.div
+                <m.div
                   animate={{
                     rotate: [0, 10, -10, 0],
                     scale: [1, 1.2, 1.2, 1]
@@ -76,7 +76,7 @@ export function AchievementToast({
                   className="text-3xl"
                 >
                   {achievement.icon}
-                </motion.div>
+                </m.div>
                 <div>
                   <h3 className="font-bold text-white text-lg">
                     إنجاز جديد! ًںژ‰
@@ -103,7 +103,7 @@ export function AchievementToast({
 
             {/* XP Reward */}
             <div className="flex items-center justify-between">
-              <motion.div
+              <m.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
@@ -113,12 +113,12 @@ export function AchievementToast({
                 <span className="font-bold text-white">
                   +{achievement.xpReward} XP
                 </span>
-              </motion.div>
+              </m.div>
 
               {/* Celebration particles effect */}
               <div className="flex space-x-1">
                 {[...Array(3)].map((_, i) => (
-                  <motion.div
+                  <m.div
                     key={i}
                     initial={{ scale: 0, opacity: 0 }}
                     animate={{
@@ -139,7 +139,7 @@ export function AchievementToast({
 
             {/* Progress bar for auto-close */}
             {autoClose && (
-              <motion.div
+              <m.div
                 initial={{ scaleX: 1 }}
                 animate={{ scaleX: 0 }}
                 transition={{ duration: duration / 1000, ease: "linear" }}
@@ -148,7 +148,7 @@ export function AchievementToast({
               />
             )}
           </div>
-        </motion.div>
+        </m.div>
       )}
     </AnimatePresence>
   );

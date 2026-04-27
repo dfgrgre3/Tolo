@@ -28,7 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { BulkUploadDialog } from "@/components/admin/exams/bulk-upload-dialog";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface Exam {
   id: string;
@@ -101,7 +102,7 @@ export default function AdminExamsPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`/api/admin/exams?${params.toString()}`);
+      const response = await fetch(`${apiRoutes.admin.exams}?${params.toString()}`);
       if (!response.ok) throw new Error("Failed to fetch exams");
       return (await response.json()) as ExamsResponse;
     },
@@ -117,7 +118,7 @@ export default function AdminExamsPage() {
   const { data: subjects = [] } = useQuery({
     queryKey: ["admin", "subjects-list"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/subjects?limit=100");
+      const response = await fetch(`${apiRoutes.admin.subjects}?limit=100`);
       const result = await response.json();
       return (result.data?.subjects || []) as Subject[];
     },
@@ -161,7 +162,7 @@ export default function AdminExamsPage() {
     try {
       const method = editingExam ? "PATCH" : "POST";
       const body = editingExam ? { ...values, id: editingExam.id } : values;
-      const response = await fetch("/api/admin/exams", {
+      const response = await fetch(apiRoutes.admin.exams, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -182,7 +183,7 @@ export default function AdminExamsPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch("/api/admin/exams", {
+      const response = await fetch(apiRoutes.admin.exams, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
@@ -321,7 +322,7 @@ export default function AdminExamsPage() {
         />
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
@@ -353,7 +354,7 @@ export default function AdminExamsPage() {
             </div>
           }
         />
-      </motion.div>
+      </m.div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Focus, Eye, EyeOff, BellOff, Search, Minimize2, RotateCcw, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +40,7 @@ export const FocusModeToggle = memo(function FocusModeToggle({
           )}
           title={state.isEnabled ? "وضع التركيز مفعّل" : "وضع التركيز"}>
           
-          <motion.div
+          <m.div
             animate={{
               scale: state.isEnabled ? [1, 1.1, 1] : 1
             }}
@@ -50,12 +50,12 @@ export const FocusModeToggle = memo(function FocusModeToggle({
             }}>
             
             <Focus className="h-4 w-4" />
-          </motion.div>
+          </m.div>
           
           {/* Active indicator */}
           <AnimatePresence>
             {state.isEnabled &&
-            <motion.span
+            <m.span
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0 }}
@@ -161,7 +161,7 @@ export const FocusModeIndicator = memo(function FocusModeIndicator({
   if (!state.isEnabled) return null;
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -10 }}
@@ -179,7 +179,7 @@ export const FocusModeIndicator = memo(function FocusModeIndicator({
         
         <EyeOff className="h-3 w-3" />
       </button>
-    </motion.div>);
+    </m.div>);
 
 });
 

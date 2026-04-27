@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 import { 
   Settings,
@@ -206,7 +206,7 @@ export default function AdminCouponsPage() {
 
         <AnimatePresence>
           {isAdding &&
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
@@ -308,7 +308,7 @@ export default function AdminCouponsPage() {
                     </button>
                 </div>
               </form>
-            </motion.div>
+            </m.div>
           }
         </AnimatePresence>
 

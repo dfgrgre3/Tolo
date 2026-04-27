@@ -1,64 +1,31 @@
-﻿export const DEFAULT_AUTHENTICATED_ROUTE = '/';
+/**
+ * Authentication Navigation Utilities
+ */
 
-export const AUTH_PUBLIC_ROUTES = [
-  '/login',
-  '/admin-login',
-  '/register',
-  '/forgot-password',
-  '/reset-password',
-  '/verify-email',
-];
-
-const DISALLOWED_REDIRECT_PREFIXES = ['//', '/\\', '/api/'];
+export const DEFAULT_AUTHENTICATED_ROUTE = '/dashboard';
+export const DEFAULT_UNAUTHENTICATED_ROUTE = '/login';
+export const PUBLIC_ROUTES = ['/', '/login', '/register', '/forgot-password', '/reset-password'];
 
 /**
- * Sanitize internal redirect paths to prevent open redirects.
- * Accepts only same-origin relative URLs.
+ * Sanitizes a redirect path to ensure it's a relative path and not a malicious external URL.
  */
-export function sanitizeRedirectPath(
-  value: string | null | undefined,
-  fallback: string = DEFAULT_AUTHENTICATED_ROUTE
-): string {
-  if (!value) {
-    return fallback;
+export function sanitizeRedirectPath(path: string | null | undefined, fallback: string = DEFAULT_AUTHENTICATED_ROUTE): string {
+  if (!path) return fallback;
+
+  // Ensure the path is relative (starts with / but not //)
+  if (path.startsWith('/') && !path.startsWith('//')) {
+    return path;
   }
 
-  const trimmedValue = value.trim();
-  if (!trimmedValue.startsWith('/')) {
-    return fallback;
-  }
-
-  if (DISALLOWED_REDIRECT_PREFIXES.some(prefix => trimmedValue.startsWith(prefix))) {
-    return fallback;
-  }
-
-  try {
-    const parsed = new URL(trimmedValue, 'http://localhost');
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`;
-  } catch {
-    return fallback;
-  }
+  // If it's an absolute URL, check if it's the same origin (optional, but safer to just fallback)
+  return fallback;
 }
 
 /**
- * Build login URL with optional safe redirect target.
- * Prevents redirecting back to auth-public routes to avoid loops.
+ * Checks if a route is public.
  */
-export function buildLoginUrl(currentPath?: string | null): string {
-  const redirectPath = sanitizeRedirectPath(currentPath, '/');
-
-  try {
-    const parsed = new URL(redirectPath, 'http://localhost');
-    if (isAuthPublicRoute(parsed.pathname)) {
-      return '/login';
-    }
-  } catch {
-    return '/login';
-  }
-
-  return `/login?redirect=${encodeURIComponent(redirectPath)}`;
-}
-
 export function isAuthPublicRoute(pathname: string): boolean {
-  return AUTH_PUBLIC_ROUTES.includes(pathname);
+  return PUBLIC_ROUTES.some(route => 
+    pathname === route || pathname.startsWith(`${route}/`)
+  );
 }

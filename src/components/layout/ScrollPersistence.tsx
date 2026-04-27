@@ -18,7 +18,7 @@ export function ScrollPersistence() {
       try {
         scrollPositions.current = JSON.parse(savedPositions);
         const savedY = scrollPositions.current[pathname];
-        
+
         if (typeof savedY === 'number') {
           // ننتظر قليلاً للتأكد من تحميل المحتوى (خاصة في Next.js)
           const timer = setTimeout(() => {
@@ -30,7 +30,8 @@ export function ScrollPersistence() {
           return () => clearTimeout(timer);
         }
       } catch (e) {
-        console.error('Failed to parse scroll positions', e);
+        // Silently handle error - scroll position restoration is non-critical
+        // Failure to restore scroll position does not affect core functionality
       }
     }
   }, [pathname]);
@@ -47,7 +48,7 @@ export function ScrollPersistence() {
 
     window.addEventListener('scroll', handleScroll, { passive: true });
     window.addEventListener('beforeunload', handleBeforeUnload);
-    
+
     // حفظ دوري للتأكد من عدم ضياع البيانات في حال الخروج المفاجئ
     const interval = setInterval(handleBeforeUnload, 2000);
 

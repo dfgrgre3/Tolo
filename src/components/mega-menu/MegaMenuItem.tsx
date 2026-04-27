@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useMemo, useEffect, useRef, memo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { NavItem } from "./types";
 import { HeaderNavLink } from "@/components/navigation";
 
@@ -43,7 +43,7 @@ export const MegaMenuItem = memo(function MegaMenuItem({
   const { label, description } = useMemo(() => highlightMatch(item, searchQuery), [item, searchQuery]);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: -8, scale: 0.96 }}
       animate={{ opacity: 1, x: 0, scale: 1 }}
       transition={{ delay, duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -65,7 +65,7 @@ export const MegaMenuItem = memo(function MegaMenuItem({
           external={item.href?.startsWith("http") || item.href?.startsWith("//")}
         />
       </div>
-    </motion.div>
+    </m.div>
   );
 });
 

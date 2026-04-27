@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { 
   Play, 
   Pause, 
@@ -108,7 +108,7 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 ${currentTheme.bg} rounded-full blur-[150px] opacity-10 pointer-events-none transition-all duration-1000`} />
           
           <CardHeader className="text-center pb-2 relative z-10">
-            <motion.div 
+            <m.div 
               key={currentPomodoroState}
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -116,7 +116,7 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
             >
               {getTimerIcon()}
               <CardTitle className="text-2xl font-bold">متتبع الوقت</CardTitle>
-            </motion.div>
+            </m.div>
             <CardDescription className="text-base font-medium">
               {getTimerLabel()}
               {activeTaskId && (
@@ -139,7 +139,7 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
                   className="text-muted/30"
                 />
                 {/* Progress Ring */}
-                <motion.circle 
+                <m.circle 
                   cx="140" cy="140" r="120" 
                   fill="none" stroke="currentColor" 
                   strokeWidth="12" 
@@ -175,7 +175,7 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
                 }`}
               >
                 <AnimatePresence mode="popLayout">
-                  <motion.div
+                  <m.div
                     key={isRunning ? 'pause' : 'play'}
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -193,7 +193,7 @@ const TimeTracker = ({ userId, tasks, subjects, onStudySessionCreate }: TimeTrac
                         بدء الجلسة
                       </>
                     )}
-                  </motion.div>
+                  </m.div>
                 </AnimatePresence>
               </Button>
               

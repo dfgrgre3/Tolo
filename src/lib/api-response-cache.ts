@@ -1,4 +1,4 @@
-﻿/**
+/**
  * API Response Cache Middleware
  * 
  * High-performance response caching for public GET endpoints.
@@ -10,8 +10,8 @@
  * 
  * export async function GET(request: NextRequest) {
  *   return withResponseCache(request, 'courses:list', async () => {
- *     // Your expensive DB query here
- *     const courses = await prisma.course.findMany();
+ *     // Your expensive API fetch here
+ *     const courses = await apiClient.get('/subjects');
  *     return NextResponse.json(courses);
  *   }, { ttl: 120 }); // Cache for 2 minutes
  * }

@@ -1,12 +1,13 @@
-﻿'use client';
+'use client';
 
 /**
  * وظائف مساعدة لإدارة معرف المستخدم
  * Helper functions for user ID management
  */
 
-import { safeGetItem, safeSetItem, safeFetch } from './safe-client-utils';
+import { safeGetItem, safeSetItem } from './safe-client-utils';
 import { logger } from '@/lib/logger';
+import { apiClient } from '@/lib/api/api-client';
 
 const LOCAL_USER_KEY = 'tw_user_id';
 
@@ -28,23 +29,19 @@ function normalizeUserId(value: unknown): string | null {
  * التأكد من وجود معرف المستخدم، وإنشاء مستخدم ضيف إذا لزم الأمر
  * Ensure user ID exists, create guest user if needed
  */
-export async function ensureUser(signal?: AbortSignal): Promise<string> {
+export async function ensureUser(): Promise<string> {
   let id: string | null = normalizeUserId(safeGetItem(LOCAL_USER_KEY, { fallback: null }));
   
   if (!id) {
     try {
-      const { data, error } = await safeFetch<{ id: string }>('/api/users/guest', { 
-        method: 'POST',
-        signal
-      });
+      // The Go backend uses GET /api/users/guest
+      const data = await apiClient.get<any>('/users/guest');
       
       if (data?.id) {
         id = normalizeUserId(data.id);
         if (id) {
           safeSetItem(LOCAL_USER_KEY, id);
         }
-      } else if (error) {
-        logger.warn('Failed to create guest user:', error.message);
       }
     } catch (error) {
       logger.warn('Unexpected error creating guest user:', error);
@@ -53,6 +50,7 @@ export async function ensureUser(signal?: AbortSignal): Promise<string> {
   
   return id || '';
 }
+
 
 /**
  * الحصول على معرف المستخدم من التخزين فقط

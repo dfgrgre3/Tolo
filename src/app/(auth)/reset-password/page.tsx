@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Lock, Loader2, AlertCircle, CheckCircle2, ArrowRight, Eye, EyeOff, ShieldCheck, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -83,7 +83,7 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <motion.div 
+      <m.div 
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         className="p-8 bg-red-500/10 border border-red-500/20 rounded-[2.5rem] text-red-500 text-center backdrop-blur-xl"
@@ -98,7 +98,7 @@ function ResetPasswordForm() {
         >
           طلب رابط جديد
         </Button>
-      </motion.div>
+      </m.div>
     );
   }
 
@@ -107,7 +107,7 @@ function ResetPasswordForm() {
       <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-primary/20 blur-[130px] rounded-full" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[400px] h-[400px] bg-blue-600/10 blur-[130px] rounded-full" />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative w-full max-w-[450px] overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-12 backdrop-blur-2xl shadow-2xl"
@@ -124,7 +124,7 @@ function ResetPasswordForm() {
 
         <AnimatePresence mode="wait">
           {status && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -136,7 +136,7 @@ function ResetPasswordForm() {
             >
               <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
               <p className="text-xs font-bold leading-relaxed">{status.message}</p>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -199,7 +199,7 @@ function ResetPasswordForm() {
           <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">Security Encryption Active</span>
           <Sparkles size={12} className="text-primary" />
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

@@ -3,8 +3,16 @@
 import React, { createContext, useContext, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearUserId } from '@/lib/user-utils';
-import { sanitizeRedirectPath } from '@/services/auth/navigation';
+// Removed broken import: import { buildLoginUrl } from "@/services/auth/navigation";
+const buildLoginUrl = (redirect?: string) => {
+  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
+};
+const sanitizeRedirectPath = (path: string, fallback: string = '/') => {
+  if (!path || path.includes('//') || !path.startsWith('/')) return fallback;
+  return path;
+};
 import { useAuthStore, type AuthUser } from '@/lib/auth/auth-store';
+import { apiRoutes } from '@/lib/api/routes';
 
 import { logger } from '@/lib/logger';
 
@@ -105,7 +113,7 @@ export function AuthProvider({
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-        const response = await fetch('/api/auth/refresh', {
+        const response = await fetch(apiRoutes.auth.refresh, {
           method: 'POST',
           credentials: 'include',
           signal: controller.signal
@@ -470,16 +478,29 @@ export function AuthProvider({
     let mounted = true;
 
     const checkAuth = async () => {
-      await refreshUser();
-      if (mounted) {
-        setIsLoading(false);
+      try {
+        await refreshUser();
+      } catch {
+        // Ensure loading stops even on unexpected errors
+      } finally {
+        if (mounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     checkAuth();
 
+    // Safety timeout: force isLoading to false after 8s to prevent permanent loading screen
+    const safetyTimer = setTimeout(() => {
+      if (mounted) {
+        setIsLoading(false);
+      }
+    }, 8000);
+
     return () => {
       mounted = false;
+      clearTimeout(safetyTimer);
     };
   }, [refreshUser, setIsLoading]);
 

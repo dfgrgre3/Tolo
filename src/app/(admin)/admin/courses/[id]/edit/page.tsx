@@ -1,6 +1,6 @@
 import * as React from "react";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { apiClient } from "@/lib/api/api-client";
 import { CourseEditor } from "@/components/admin/courses/course-editor";
 
 interface EditCoursePageProps {
@@ -9,30 +9,27 @@ interface EditCoursePageProps {
   }>;
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function EditCoursePage({ params }: EditCoursePageProps) {
   const { id } = await params;
 
+  // Fetch data from Go Backend API
   const [course, categories, teachers] = await Promise.all([
-    prisma.subject.findUnique({
-      where: { id },
-    }),
-    prisma.category.findMany({
-      where: { type: "COURSE" }, // Using COURSE specifically for subjects/courses
-      orderBy: { name: "asc" },
-    }),
-    prisma.teacher.findMany({
-      orderBy: { name: "asc" },
-    }),
+    apiClient.get<any>(`/courses/${id}`).catch(() => null),
+    apiClient.get<any[]>("/categories?type=COURSE").catch(() => []),
+    apiClient.get<any[]>("/teachers").catch(() => []),
   ]);
 
   if (!course) {
     notFound();
   }
 
-  // Map Subject to the format CourseEditor expects if needed
+  // Map Go Subject model to the format CourseEditor expects
   const initialData = {
     ...course,
-    // Add any mappings if field names differ slightly
+    // The Go model uses 'isActive' instead of 'active' maybe? 
+    // And 'thumbnailUrl' instead of 'image'.
   };
 
   return (

@@ -7,15 +7,10 @@ const nextConfig = {
   output: 'standalone',
   // Enable React strict mode for better performance
   reactStrictMode: true,
-  swcMinify: true,
-  transpilePackages: ['framer-motion', 'three'],
 
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
   },
-
-  // Turbopack configuration
-  turbopack: {},
 
   // Skip type checking during build (run separately in CI)
   typescript: {
@@ -48,53 +43,36 @@ const nextConfig = {
     ],
     formats: ['image/webp', 'image/avif'],
     minimumCacheTTL: 86400,
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Performance optimizations
+    unoptimized: process.env.NODE_ENV === 'development', // Skip optimization in dev for speed
   },
 
   // Enable compression
   compress: true,
 
+  async rewrites() {
+    return [
+      {
+        source: '/api/:path*',
+        destination: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api'}/:path*`,
+      },
+      {
+        source: '/uploads/:path*',
+        destination: `${(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api').replace('/api', '')}/uploads/:path*`,
+      },
+    ];
+  },
+
   // Remove powered by header
   poweredByHeader: false,
-
-  // Server-side packages that should not be bundled
-  serverExternalPackages: [
-    'winston',
-    'winston-elasticsearch',
-    '@elastic/elasticsearch',
-    'tailwindcss',
-    '@nodelib/fs.scandir',
-    '@nodelib/fs.walk',
-    'fast-glob',
-    'import-in-the-middle',
-    'require-in-the-middle',
-    '@prisma/instrumentation',
-    'prom-client',
-    '@opentelemetry/sdk-trace-node',
-    '@opentelemetry/sdk-trace-base',
-    '@opentelemetry/instrumentation',
-    '@opentelemetry/instrumentation-http',
-    '@opentelemetry/instrumentation-express',
-    '@opentelemetry/exporter-jaeger',
-    '@opentelemetry/resources',
-    '@opentelemetry/semantic-conventions',
-    '@opentelemetry/api',
-    'bcrypt',
-    'ioredis',
-    'nodemailer',
-    'openai',
-    'twilio',
-    '@prisma/client',
-    'bullmq',
-  ],
 
   // Optimize package imports - reduces bundle size significantly
   experimental: {
     optimizePackageImports: [
-      'lucide-react',
       'react-hook-form',
       '@radix-ui/react-dialog',
       '@radix-ui/react-dropdown-menu',
@@ -115,10 +93,12 @@ const nextConfig = {
       'date-fns',
       'zod',
       '@tanstack/react-table',
-      'framer-motion',
-      'three',
-      '@react-three/fiber',
-      '@react-three/drei'
+      'sonner',
+      'clsx',
+      'tailwind-merge',
+      'uuid',
+      'lodash',
+      'axios'
     ],
     proxyClientMaxBodySize: '35mb',
     scrollRestoration: true,
@@ -142,13 +122,6 @@ const nextConfig = {
         'node:https': false,
         'async_hooks': false,
         'node:async_hooks': false,
-        '@elastic/elasticsearch': false,
-        'winston': false,
-        'winston-elasticsearch': false,
-        'undici': false,
-        'ioredis': false,
-        'redis-errors': false,
-        'bullmq': false,
       };
     } else {
       // Server-side alias
@@ -168,8 +141,8 @@ const nextConfig = {
 
     config.performance = {
       hints: false,
-      maxEntrypointSize: 512000,
-      maxAssetSize: 512000,
+      maxEntrypointSize: 300000,
+      maxAssetSize: 300000,
     };
 
     if (!dev) {

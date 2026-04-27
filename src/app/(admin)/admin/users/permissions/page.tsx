@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { PageHeader } from "@/components/admin/ui/page-header";
@@ -11,7 +11,6 @@ import {
 import { ColumnDef } from "@tanstack/react-table";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { DEFAULT_ROLE_PERMISSIONS, Permission } from "@/lib/permissions";
-import { UserRole } from "@prisma/client";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -200,7 +199,7 @@ export default function PermissionsPage() {
                       <h4 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-white/5 pb-2 mb-4">{cat}</h4>
                       <div className="space-y-3">
                          {perms.map((p) => {
-                      const isDefault = selectedUser ? (DEFAULT_ROLE_PERMISSIONS[selectedUser.role as UserRole] || []).includes(p as Permission) : false;
+                      const isDefault = selectedUser ? (DEFAULT_ROLE_PERMISSIONS[selectedUser.role as any] || []).includes(p as any) : false;
                       const isActive = editingPermissions.includes(p) || isDefault;
 
                       const isOverride = editingPermissions.includes(p);

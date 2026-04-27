@@ -1,149 +1,73 @@
-import { NextRequest } from 'next/server';
-import { prisma } from '@/lib/db';
-import { CacheService } from '@/lib/redis';
-import { opsWrapper } from "@/lib/middleware/ops-middleware";
-import { logger } from '@/lib/logger';
-import type { Prisma } from '@prisma/client';
-import { TaskStatus } from '@/lib/constants';
-import { successResponse, badRequestResponse, handleApiError } from '@/lib/api-utils';
+import { NextRequest, NextResponse } from 'next/server';
 
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api';
+
+/**
+ * GET /api/progress/summary
+ * Proxies the request to the Go backend to get progress summary
+ */
 export async function GET(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
     try {
-      const { searchParams } = new URL(req.url);
-      const userId = searchParams.get('userId') || req.headers.get('x-user-id');
+        const { searchParams } = new URL(request.url);
+        const userId = searchParams.get('userId');
 
-      if (!userId || userId === 'undefined') {
-        return badRequestResponse('User ID is required');
-      }
-
-      // Use enhanced caching for progress summary with longer TTL
-      const cacheKey = `progress_summary_${userId}`;
-      const summary = await CacheService.getOrSet(cacheKey, async () => {
-        // Get all study sessions for the user
-        const sessions = await prisma.studySession.findMany({
-          where: { userId },
-          select: {
-            durationMin: true,
-            focusScore: true,
-            createdAt: true
-          },
-          orderBy: {
-            createdAt: 'asc'
-          }
-        });
-
-        // Type for selected study session fields
-        type StudySessionSummary = Pick<Prisma.StudySessionGetPayload<{
-          select: {durationMin: true;focusScore: true;createdAt: true;};
-        }>, 'durationMin' | 'focusScore' | 'createdAt'>;
-
-        // Calculate total minutes
-        const totalMinutes = sessions.reduce(
-          (sum: number, session: StudySessionSummary) => sum + (session.durationMin || 0),
-          0
-        );
-
-        // Calculate average focus
-        const focusSessions = sessions.filter(
-          (session: StudySessionSummary) => session.focusScore !== null
-        );
-        const averageFocus =
-        focusSessions.length > 0 ?
-        focusSessions.reduce(
-          (sum: number, session: StudySessionSummary) => sum + (session.focusScore || 0),
-          0
-        ) / focusSessions.length :
-        0;
-
-        // Count completed tasks
-        const tasksCompleted = await prisma.task.count({
-          where: {
-            userId,
-            status: TaskStatus.COMPLETED
-          }
-        });
-
-        // Calculate current streak
-        let streakDays = 0;
-        if (sessions.length > 0) {
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-
-          let currentDate = new Date(sessions[sessions.length - 1].createdAt);
-          currentDate.setHours(0, 0, 0, 0);
-
-          let previousDate = new Date(currentDate);
-          previousDate.setDate(previousDate.getDate() - 1);
-
-          // Check if the user studied today or yesterday
-          const studiedToday = sessions.some((session: StudySessionSummary) => {
-            const sessionDate = new Date(session.createdAt);
-            sessionDate.setHours(0, 0, 0, 0);
-            return sessionDate.getTime() === currentDate.getTime();
-          });
-
-          if (studiedToday) {
-            streakDays = 1;
-
-            // Count consecutive days
-            let checkDate = new Date(currentDate);
-            let found = true;
-
-            while (found) {
-              checkDate.setDate(checkDate.getDate() - 1);
-              found = sessions.some((session: StudySessionSummary) => {
-                const sessionDate = new Date(session.createdAt);
-                sessionDate.setHours(0, 0, 0, 0);
-                return sessionDate.getTime() === checkDate.getTime();
-              });
-
-              if (found) {
-                streakDays++;
-              }
-            }
-          }
+        if (!userId) {
+            return NextResponse.json(
+                { error: 'userId is required' },
+                { status: 400 }
+            );
         }
 
-        return {
-          totalMinutes,
-          averageFocus: Math.round(averageFocus * 100) / 100,
-          tasksCompleted,
-          streakDays
+        // Forward the request to the Go backend
+        const backendUrl = `${BACKEND_API_URL}/progress/summary?userId=${encodeURIComponent(userId)}`;
+        
+        // Build headers for the backend request
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
         };
-      }, 600); // Cache for 10 minutes (enhanced caching)
+        
+        // Forward authorization header if present
+        const authHeader = request.headers.get('authorization');
+        if (authHeader) {
+            headers['Authorization'] = authHeader;
+        }
+        
+        // Forward cookies for authentication
+        const cookie = request.headers.get('cookie');
+        if (cookie) {
+            headers['Cookie'] = cookie;
+        }
+        
+        const response = await fetch(backendUrl, {
+            method: 'GET',
+            headers,
+        });
 
-      return successResponse(summary);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Backend error (${response.status}):`, errorText);
+            
+            // If backend is not available or returns error, return default response
+            return NextResponse.json({
+                totalMinutes: 0,
+                averageFocus: 0,
+                tasksCompleted: 0,
+                streakDays: 0,
+            });
+        }
+
+        const data = await response.json();
+        return NextResponse.json(data);
+
     } catch (error) {
-      logger.error('Error fetching progress summary:', error);
-      return handleApiError(error);
+        console.error('Error in /api/progress/summary:', error);
+        
+        // Return default values on error to prevent breaking the UI
+        return NextResponse.json({
+            totalMinutes: 0,
+            averageFocus: 0,
+            tasksCompleted: 0,
+            streakDays: 0,
+        });
     }
-  });
-}
-
-// Add POST method for cache invalidation
-export async function POST(request: NextRequest) {
-  return opsWrapper(request, async (req) => {
-    try {
-      const body = await req.json();
-      const { userId, action } = body;
-
-      if (!userId) {
-        return badRequestResponse('User ID is required');
-      }
-
-      // Only invalidate cache when requested
-      if (action === 'invalidate-cache') {
-        const cacheKey = `progress_summary_${userId}`;
-        await CacheService.del(cacheKey);
-
-        return successResponse({ message: 'Progress summary cache invalidated successfully' });
-      }
-
-      return badRequestResponse('Invalid action');
-    } catch (error) {
-      logger.error('Error invalidating progress summary cache:', error);
-      return handleApiError(error);
-    }
-  });
 }

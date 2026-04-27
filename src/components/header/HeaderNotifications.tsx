@@ -11,7 +11,7 @@ import {
   VolumeX } from
 "lucide-react";
 import { Button } from "@/components/ui/button";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { VirtualList } from "@/components/ui/virtual-list";
 import { cn } from "@/lib/utils";
 
@@ -89,7 +89,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 
   return (
     <div className="relative" ref={notificationRef}>
-			<motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+			<m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
 				<Button
           variant="ghost"
           size="icon"
@@ -99,21 +99,21 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
           
 					<Bell className="h-5 w-5 sm:h-4 sm:w-4 transition-transform group-hover:rotate-12" />
 					{notificationCount > 0 &&
-          <motion.span
+          <m.span
             initial={false}
             animate={{ scale: 1 }}
             style={{ transform: "none" }}
             className="absolute top-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-gradient-to-r from-destructive via-destructive to-destructive/80 text-destructive-foreground text-[10px] font-bold shadow-lg ring-2 ring-background">
             
 							{notificationCount > 9 ? "9+" : notificationCount}
-						</motion.span>
+						</m.span>
           }
 				</Button>
-			</motion.div>
+			</m.div>
 
 			<AnimatePresence>
 				{isNotificationOpen &&
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -10, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -228,7 +228,7 @@ export function HeaderNotifications({ user, mounted }: HeaderNotificationsProps)
 								عرض جميع الإشعارات
 							</Link>
 						</div>
-					</motion.div>
+					</m.div>
         }
 			</AnimatePresence>
 		</div>);

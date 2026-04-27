@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
-import { motion, useInView } from "framer-motion";
+import { m, useInView } from "framer-motion";
 import { StatCardProps } from "./types";
 import { rpgCommonStyles } from "./constants";
 
@@ -50,7 +50,7 @@ export const StatCard = ({ icon, value, label, color, delay = 0 }: StatCardProps
     : "from-primary to-purple-600"; // Default fallback
 
   return (
-    <motion.div
+    <m.div
       ref={ref}
       initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -80,7 +80,7 @@ export const StatCard = ({ icon, value, label, color, delay = 0 }: StatCardProps
       {/* Decorative corner accents */}
       <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-white/5 to-transparent -mr-8 -mt-8 rounded-full blur-xl" />
       <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-tr from-white/5 to-transparent -ml-8 -mb-8 rounded-full blur-xl" />
-    </motion.div>
+    </m.div>
   );
 };
 

@@ -13,6 +13,8 @@
 import { useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useTheme } from 'next-themes';
+import { apiClient } from '@/lib/api/api-client';
+import { apiRoutes } from '@/lib/api/routes';
 
 import { logger } from '@/lib/logger';
 
@@ -77,6 +79,11 @@ export function useGlobalSettings() {
     document.documentElement.classList.toggle('compact-mode', compactMode);
   }, []);
 
+  const applyEfficiencyMode = useCallback((efficiencyMode: boolean) => {
+    document.documentElement.classList.toggle('efficiency-mode', efficiencyMode);
+    localStorage.setItem('efficiencyMode', String(efficiencyMode));
+  }, []);
+
   // تطبيق الإعدادات المحفوظة من localStorage على الفور (بدون انتظار API)
   const applyFromLocalStorage = useCallback(() => {
     try {
@@ -87,9 +94,24 @@ export function useGlobalSettings() {
       const numberFormat = localStorage.getItem('numberFormat') || 'english';
       const primaryColor = localStorage.getItem('primaryColor');
       const accentColor = localStorage.getItem('accentColor');
+      
+      // Smart detection for weak devices
+      const savedEfficiency = localStorage.getItem('efficiencyMode');
+      let efficiencyMode = savedEfficiency === 'true';
+      
+      if (savedEfficiency === null && typeof navigator !== 'undefined') {
+        // Auto-enable if CPU cores < 4 or RAM < 4GB (if supported)
+        const isLowEnd = (navigator.hardwareConcurrency && navigator.hardwareConcurrency < 4) || 
+                        ((navigator as any).deviceMemory && (navigator as any).deviceMemory < 4);
+        if (isLowEnd) {
+          efficiencyMode = true;
+          logger.info('[useGlobalSettings] Low-end device detected, auto-enabling Efficiency Mode');
+        }
+      }
 
       applyTheme(theme);
       applyFontSize(fontSize);
+      applyEfficiencyMode(efficiencyMode);
 
       document.documentElement.lang = language;
       document.documentElement.dir = direction;
@@ -101,28 +123,23 @@ export function useGlobalSettings() {
     } catch (err) {
       logger.warn('[useGlobalSettings] Failed to apply from localStorage:', err);
     }
-  }, [applyTheme, applyFontSize, applyColors]);
+  }, [applyTheme, applyFontSize, applyColors, applyEfficiencyMode]);
 
   // تحميل الإعدادات من الـ server عند تسجيل الدخول
   const loadAndApplyServerSettings = useCallback(async () => {
     if (!user?.id) return;
 
     try {
-      const response = await fetch('/api/settings/preferences', {
-        credentials: 'include',
-        cache: 'no-store',
-      });
+      const response = await apiClient.get<any>(apiRoutes.settings.preferences);
 
-      if (!response.ok) return;
-
-      const data = await response.json();
-      const preferences = data.preferences;
+      const preferences = response?.preferences || response;
 
       if (!preferences) return;
 
+
       // تطبيق إعدادات الم٪ر
       if (preferences.appearance) {
-        const { theme, fontSize, primaryColor, accentColor, reducedMotion, highContrast, compactMode } =
+        const { theme, fontSize, primaryColor, accentColor, reducedMotion, highContrast, compactMode, efficiencyMode } =
           preferences.appearance;
 
         if (theme) applyTheme(theme);
@@ -131,6 +148,7 @@ export function useGlobalSettings() {
         if (reducedMotion !== undefined) applyReducedMotion(reducedMotion);
         if (highContrast !== undefined) applyHighContrast(highContrast);
         if (compactMode !== undefined) applyCompactMode(compactMode);
+        if (efficiencyMode !== undefined) applyEfficiencyMode(efficiencyMode);
       }
 
       // تطبيق إعدادات اللغة

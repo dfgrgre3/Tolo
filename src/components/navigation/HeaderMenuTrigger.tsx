@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import { ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { triggerStyles } from "./navigationTokens";
 
 interface HeaderMenuTriggerProps {
@@ -33,7 +33,7 @@ export function HeaderMenuTrigger({ label, isOpen = false, onClick, className, b
         </span>
       )}
       {isOpen && (
-        <motion.div
+        <m.div
           className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent rounded-full"
           layoutId={`menu-trigger-indicator-${label}`}
           initial={false}

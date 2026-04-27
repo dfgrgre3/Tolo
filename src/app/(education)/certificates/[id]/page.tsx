@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Award, Download, Share2, Printer, CheckCircle2, ShieldCheck, GraduationCap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "@/contexts/auth-context";
 
 export default function CertificatePage() {
   const params = useParams();
@@ -92,7 +92,7 @@ export default function CertificatePage() {
         </div>
 
         {/* --- THE CERTIFICATE DESIGN --- */}
-        <motion.div 
+        <m.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative bg-white text-[#1a1a1a] p-1 shadow-2xl rounded-sm print:shadow-none print:m-0"
@@ -188,7 +188,7 @@ export default function CertificatePage() {
 
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Bottom Banner */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:hidden">

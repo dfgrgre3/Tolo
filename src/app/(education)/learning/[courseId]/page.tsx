@@ -10,7 +10,7 @@ import {
   useState,
 } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   ArrowLeft,
   Bot,
@@ -684,7 +684,7 @@ export default function AdvancedLearningHub() {
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
           <AnimatePresence initial={false}>
             {sidebarOpen ? (
-              <motion.aside
+              <m.aside
                 initial={{ opacity: 0, x: 16 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 16 }}
@@ -831,7 +831,7 @@ export default function AdvancedLearningHub() {
                     );
                   })}
                 </div>
-              </motion.aside>
+              </m.aside>
             ) : null}
           </AnimatePresence>
 
@@ -1016,7 +1016,7 @@ export default function AdvancedLearningHub() {
               </div>
 
               <AnimatePresence mode="wait">
-                <motion.div
+                <m.div
                   key={activeTab}
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1232,7 +1232,7 @@ export default function AdvancedLearningHub() {
                       <div className="flex h-[420px] flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-white/[0.03]">
                         <div className="flex-1 space-y-4 overflow-y-auto p-5">
                           {aiMessages.map((message, index) => (
-                            <motion.div
+                            <m.div
                               key={`${message.role}-${index}`}
                               initial={{ opacity: 0, y: 8 }}
                               animate={{ opacity: 1, y: 0 }}
@@ -1244,7 +1244,7 @@ export default function AdvancedLearningHub() {
                               )}
                             >
                               {message.content}
-                            </motion.div>
+                            </m.div>
                           ))}
 
                           {aiLoading ? (
@@ -1281,7 +1281,7 @@ export default function AdvancedLearningHub() {
                       </div>
                     </div>
                   ) : null}
-                </motion.div>
+                </m.div>
               </AnimatePresence>
             </section>
 

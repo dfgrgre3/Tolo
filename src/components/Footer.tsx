@@ -16,7 +16,7 @@ import {
   Bell } from
 "lucide-react";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import Link from "next/link";
 import Image from "next/image";
@@ -97,7 +97,7 @@ export default function Footer() {
               </h3>
               <ul className="space-y-4">
                 {section.items.map((item, i) =>
-              <li key={i}>
+                <li key={i}>
                     <Link href={item.href} className="text-gray-500 text-sm font-bold hover:text-primary transition-colors flex items-center gap-3 group">
                       {item.icon && <item.icon className="h-4 w-4 opacity-40 group-hover:opacity-100 transition-opacity whitespace-nowrap" />}
                       <span>{item.name}</span>
@@ -112,9 +112,9 @@ export default function Footer() {
         {/* --- Bottom Barrier --- */}
         <div className="relative pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col md:flex-row items-center gap-6">
-            <p className="font-bold text-gray-600 text-sm">آ© {new Date().getFullYear()} TOLO. جميع الحقوق محفوظة.</p>
+            <p className="font-bold text-gray-600 text-sm">© {new Date().getFullYear()} TOLO. جميع الحقوق محفوظة.</p>
             {user &&
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
               className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-black">
@@ -122,7 +122,7 @@ export default function Footer() {
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 <span>المحارب المتصل: {user.name || user.username || user.email}</span>
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              </motion.div>
+              </m.div>
             }
           </div>
           
@@ -133,5 +133,4 @@ export default function Footer() {
         </div>
       </div>
     </footer>);
-
 }

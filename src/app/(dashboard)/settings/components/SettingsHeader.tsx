@@ -1,7 +1,7 @@
 ﻿'use client';
 
 
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { LucideIcon, Loader2, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -43,7 +43,7 @@ export function SettingsHeader({
       </div>
 
       {actionButton &&
-      <motion.button
+      <m.button
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
         whileHover={{ scale: 1.02 }}
@@ -63,7 +63,7 @@ export function SettingsHeader({
         <Check className="h-4 w-4" />
         }
           {actionButton.label}
-        </motion.button>
+        </m.button>
       }
     </div>);
 

@@ -1,10 +1,10 @@
-﻿import { Job } from 'bullmq';
-import { logger } from '@/lib/logger';
-import { BaseWorker } from '@/lib/queue/bullmq';
+import { Job } from 'bullmq';
+import { logger } from '../../lib/logger';
+import { BaseWorker } from '../../lib/queue/bullmq';
 import {
   NotificationQueueService,
   type NotificationJobPayload,
-} from '@/services/notification-queue-service';
+} from '../../services/notification-queue-service';
 
 export class NotificationWorker extends BaseWorker<NotificationJobPayload> {
   constructor() {

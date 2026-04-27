@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Sparkles, TrendingUp, ChevronLeft } from "lucide-react";
 
 interface MegaMenuFooterProps {
@@ -11,7 +11,7 @@ interface MegaMenuFooterProps {
 
 export function MegaMenuFooter({ categoriesCount, totalItems }: MegaMenuFooterProps) {
 	return (
-		<motion.div
+		<m.div
 			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
 			transition={{ delay: 0.3, type: "spring", stiffness: 200 }}
@@ -22,38 +22,38 @@ export function MegaMenuFooter({ categoriesCount, totalItems }: MegaMenuFooterPr
 			
 			<div className="relative flex items-center justify-between text-xs text-muted-foreground">
 				<div className="flex items-center gap-5">
-					<motion.div
+					<m.div
 						whileHover={{ scale: 1.05 }}
 						className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20"
 					>
-						<motion.div
+						<m.div
 							animate={{ rotate: [0, 360] }}
 							transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
 						>
 							<Sparkles className="h-3.5 w-3.5 text-primary" />
-						</motion.div>
+						</m.div>
 						<span className="font-semibold text-primary">{categoriesCount} فئة</span>
-					</motion.div>
-					<motion.div
+					</m.div>
+					<m.div
 						whileHover={{ scale: 1.05 }}
 						className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20"
 					>
 						<TrendingUp className="h-3.5 w-3.5 text-primary" />
 						<span className="font-semibold text-primary">{totalItems} عنصر</span>
-					</motion.div>
+					</m.div>
 				</div>
 
 				{/* Keyboard shortcuts hint */}
 				<div className="flex items-center gap-2">
-					<motion.div
+					<m.div
 						whileHover={{ scale: 1.05 }}
 						className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-lg bg-background/60 border border-border/50 backdrop-blur-sm"
 					>
 						<ChevronLeft className="h-3 w-3 text-muted-foreground rotate-90" />
 						<ChevronLeft className="h-3 w-3 text-muted-foreground -rotate-90" />
 						<span className="font-medium">للتنقل</span>
-					</motion.div>
-					<motion.div
+					</m.div>
+					<m.div
 						whileHover={{ scale: 1.05 }}
 						className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-background/60 border border-border/50 backdrop-blur-sm"
 					>
@@ -61,9 +61,9 @@ export function MegaMenuFooter({ categoriesCount, totalItems }: MegaMenuFooterPr
 							ESC
 						</kbd>
 						<span className="font-medium">للإغلاق</span>
-					</motion.div>
+					</m.div>
 				</div>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

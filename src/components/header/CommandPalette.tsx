@@ -22,7 +22,7 @@ import {
   Star,
   Mic,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -442,7 +442,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                         const isSelected = globalIndex === selectedIndex;
 
                         return (
-                          <motion.button
+                          <m.button
                             key={command.id}
                             onClick={() => handleSelect(command)}
                             className={cn(
@@ -489,7 +489,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
                             ) : null}
 
                             <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-                          </motion.button>
+                          </m.button>
                         );
                       })}
                     </div>

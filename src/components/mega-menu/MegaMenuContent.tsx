@@ -4,7 +4,7 @@
 
 import React, { useRef } from "react";
 
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { AnimatePresence, MotionConfig, m } from "framer-motion";
 
 import { Loader2 } from "lucide-react";
 
@@ -42,7 +42,7 @@ const AiSuggestions = dynamic(
 
 const AiSuggestionsLoader = () => (
 
-	<motion.div
+	<m.div
 
 		initial={{ opacity: 0 }}
 
@@ -52,7 +52,7 @@ const AiSuggestionsLoader = () => (
 
 	>
 
-		<motion.div
+		<m.div
 
 			animate={{ rotate: 360 }}
 
@@ -62,11 +62,11 @@ const AiSuggestionsLoader = () => (
 
 			<Loader2 className="h-5 w-5 text-primary" />
 
-		</motion.div>
+		</m.div>
 
 		<span className="text-sm text-muted-foreground">جاري تحميل التوصيات الذكية...</span>
 
-	</motion.div>
+	</m.div>
 
 );
 

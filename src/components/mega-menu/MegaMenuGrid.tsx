@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { MegaMenuCategory } from "./MegaMenuCategory";
 import type { MegaMenuCategory as CategoryType } from "./types";
@@ -30,7 +30,7 @@ export function MegaMenuGrid({
 	setCategoryRef
 }: MegaMenuGridProps) {
 	return (
-		<motion.div
+		<m.div
 			key="content"
 			initial={{ opacity: 0, y: 10 }}
 			animate={{ opacity: 1, y: 0 }}
@@ -60,6 +60,6 @@ export function MegaMenuGrid({
 					/>
 				))}
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

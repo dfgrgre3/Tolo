@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { safeFetch } from "@/lib/safe-client-utils";
@@ -183,7 +183,7 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
       <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-cyan-600/5 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="relative z-10">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -212,12 +212,12 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
               {isLive ? "متصل الآن (ONLINE)" : "غير متصل (OFFLINE)"}
             </span>
           </div>
-        </motion.div>
+        </m.div>
 
         <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
           <AnimatePresence>
             {activities.length > 0 ? activities.map((activity, index) =>
-            <motion.div
+            <m.div
               key={activity.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -269,7 +269,7 @@ export const LiveActivityFeedSection = memo(function LiveActivityFeedSection() {
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>
+              </m.div>
             ) : !activities.length &&
             <div className="text-center py-20 flex flex-col items-center">
                  <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">

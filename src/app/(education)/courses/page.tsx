@@ -3,7 +3,7 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   ArrowLeft,
   BookOpen,
@@ -57,7 +57,7 @@ type CourseSummary = {
   rating: number;
   enrolledCount: number;
   createdAt: string;
-  tags: string[];
+  tags?: string[];
   enrolled: boolean;
   progress?: number;
   isFeatured: boolean;
@@ -102,7 +102,7 @@ const levelMap: Record<CourseLevel, { label: string; className: string }> = {
 };
 
 function formatPrice(price: number) {
-  return price === 0 ? "مجانية" : `${price.toLocaleString("ar-EG")} ج.م`;
+  return price === 0 ? "مجانية" : `${(price || 0).toLocaleString("ar-EG")} ج.م`;
 }
 
 function formatHours(duration: number) {
@@ -114,7 +114,7 @@ function formatHours(duration: number) {
     return "ساعة واحدة";
   }
 
-  return `${duration.toLocaleString("ar-EG")} ساعة`;
+  return `${(duration || 0).toLocaleString("ar-EG")} ساعة`;
 }
 
 function sortCourses(courses: CourseSummary[], sortBy: SortOption) {
@@ -161,7 +161,7 @@ function CourseCard({
   const levelInfo = levelMap[course.level] ?? levelMap.INTERMEDIATE;
 
   return (
-    <motion.article
+    <m.article
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.04 }}
@@ -207,7 +207,7 @@ function CourseCard({
           <div className="space-y-2">
             <div className="inline-flex items-center gap-1 rounded-full bg-black/40 px-3 py-1 text-xs font-bold backdrop-blur">
               <Star className="h-3.5 w-3.5 fill-current text-amber-300" />
-              {course.rating.toFixed(1)}
+              {(course.rating || 0).toFixed(1)}
             </div>
             <h3 className="line-clamp-2 text-xl font-black leading-tight">
               {course.title}
@@ -232,7 +232,7 @@ function CourseCard({
               <span>الطلاب</span>
             </div>
             <div className="font-black text-slate-900 dark:text-white">
-              {course.enrolledCount.toLocaleString("ar-EG")}
+              {course.enrolledCount?.toLocaleString("ar-EG") || "٠"}
             </div>
           </div>
 
@@ -242,7 +242,7 @@ function CourseCard({
               <span>الدروس</span>
             </div>
             <div className="font-black text-slate-900 dark:text-white">
-              {course.lessonsCount.toLocaleString("ar-EG")}
+              {course.lessonsCount?.toLocaleString("ar-EG") || "٠"}
             </div>
           </div>
         </div>
@@ -263,7 +263,7 @@ function CourseCard({
         ) : null}
 
         <div className="flex flex-wrap gap-2">
-          {course.tags.slice(0, 3).map((tag) => (
+          {(course.tags || []).slice(0, 3).map((tag) => (
             <span
               key={`${course.id}-${tag}`}
               className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 dark:bg-white/5 dark:text-slate-300"
@@ -299,7 +299,7 @@ function CourseCard({
           </Link>
         </Button>
       </div>
-    </motion.article>
+    </m.article>
   );
 }
 
@@ -359,7 +359,7 @@ export default function CoursesPage() {
     const freeCourses = courses.filter((course) => course.price === 0).length;
     const avgRating =
       courses.length > 0
-        ? courses.reduce((sum, course) => sum + course.rating, 0) / courses.length
+        ? courses.reduce((sum, course) => sum + (course.rating || 0), 0) / courses.length
         : 0;
 
     return {
@@ -395,7 +395,7 @@ export default function CoursesPage() {
           course.description,
           course.instructor,
           course.categoryName,
-          course.tags.join(" "),
+          (course.tags || []).join(" "),
         ]
           .join(" ")
           .toLowerCase()
@@ -524,25 +524,25 @@ export default function CoursesPage() {
               {[
                 {
                   label: "إجمالي الدورات",
-                  value: catalogStats.totalCourses.toLocaleString("ar-EG"),
+                  value: (catalogStats.totalCourses || 0).toLocaleString("ar-EG"),
                   icon: BookOpen,
                   tone: "text-orange-500 bg-orange-500/10",
                 },
                 {
                   label: "إجمالي الطلاب",
-                  value: catalogStats.totalStudents.toLocaleString("ar-EG"),
+                  value: (catalogStats.totalStudents || 0).toLocaleString("ar-EG"),
                   icon: Users,
                   tone: "text-sky-500 bg-sky-500/10",
                 },
                 {
                   label: "إجمالي الدروس",
-                  value: catalogStats.totalLessons.toLocaleString("ar-EG"),
+                  value: (catalogStats.totalLessons || 0).toLocaleString("ar-EG"),
                   icon: Layers3,
                   tone: "text-emerald-500 bg-emerald-500/10",
                 },
                 {
                   label: "متوسط التقييم",
-                  value: catalogStats.avgRating.toFixed(1),
+                  value: (catalogStats.avgRating || 0).toFixed(1),
                   icon: Star,
                   tone: "text-amber-500 bg-amber-500/10",
                 },
@@ -576,7 +576,7 @@ export default function CoursesPage() {
                       دورات مجانية متاحة الآن
                     </p>
                     <p className="text-2xl font-black">
-                      {catalogStats.freeCourses.toLocaleString("ar-EG")}
+                      {(catalogStats.freeCourses || 0).toLocaleString("ar-EG")}
                     </p>
                   </div>
                 </div>
@@ -627,7 +627,7 @@ export default function CoursesPage() {
               >
                 {category.name}
                 <span className="mr-2 text-xs opacity-70">
-                  ({category.count.toLocaleString("ar-EG")})
+                  ({(category.count || 0).toLocaleString("ar-EG")})
                 </span>
               </button>
             ))}
@@ -647,7 +647,7 @@ export default function CoursesPage() {
 
             <div className="grid gap-5 lg:grid-cols-3">
               {spotlightCourses.map((course, index) => (
-                <motion.div
+                <m.div
                   key={course.id}
                   initial={{ opacity: 0, y: 18 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -667,7 +667,7 @@ export default function CoursesPage() {
                     <div className="flex flex-wrap gap-4 text-sm text-slate-500 dark:text-slate-400">
                       <span className="flex items-center gap-2">
                         <Users className="h-4 w-4 text-sky-500" />
-                        {course.enrolledCount.toLocaleString("ar-EG")} طالب
+                        {course.enrolledCount?.toLocaleString("ar-EG") || "٠"} طالب
                       </span>
                       <span className="flex items-center gap-2">
                         <Clock3 className="h-4 w-4 text-orange-500" />
@@ -675,7 +675,7 @@ export default function CoursesPage() {
                       </span>
                       <span className="flex items-center gap-2">
                         <Star className="h-4 w-4 fill-current text-amber-400" />
-                        {course.rating.toFixed(1)}
+                        {(course.rating || 0).toFixed(1)}
                       </span>
                     </div>
 
@@ -689,7 +689,7 @@ export default function CoursesPage() {
                       </Link>
                     </Button>
                   </div>
-                </motion.div>
+                </m.div>
               ))}
             </div>
           </section>

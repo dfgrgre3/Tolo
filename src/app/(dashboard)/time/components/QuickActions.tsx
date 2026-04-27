@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { 
   PlusCircle, 
   Clock, 
@@ -90,7 +90,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-4 relative z-10">
-        <motion.div 
+        <m.div 
           className="grid grid-cols-2 sm:grid-cols-4 gap-3"
           initial="hidden"
           animate="visible"
@@ -105,7 +105,7 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
           {actions.map((action) => {
             const Icon = action.icon;
             return (
-              <motion.div
+              <m.div
                 key={action.id}
                 variants={{
                   hidden: { y: 20, opacity: 0 },
@@ -122,10 +122,10 @@ export default function QuickActions({ onAction }: QuickActionsProps) {
                   <Icon className="h-6 w-6" />
                   <span className="text-xs font-bold text-center leading-tight">{action.label}</span>
                 </Button>
-              </motion.div>
+              </m.div>
             );
           })}
-        </motion.div>
+        </m.div>
       </CardContent>
     </Card>
   );

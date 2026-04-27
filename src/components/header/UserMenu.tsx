@@ -34,7 +34,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { logger } from '@/lib/logger';
 import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client";
@@ -96,7 +96,7 @@ export function UserMenu() {
               {initials}
             </AvatarFallback>
           </Avatar>
-          <motion.span
+          <m.span
             className="absolute bottom-0 right-0 block h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"
             animate={{ scale: [1, 1.2, 1] }}
             transition={{ duration: 2, repeat: Infinity }} />
@@ -239,13 +239,13 @@ export function UserMenu() {
           disabled={isLoggingOut}>
           
           {isLoggingOut ?
-          <motion.div
+          <m.div
             className="h-4 w-4"
             animate={{ rotate: 360 }}
             transition={{ duration: 1, repeat: Infinity, ease: "linear" }}>
             
               <LogOut className="h-4 w-4" />
-            </motion.div> :
+            </m.div> :
 
           <LogOut className="h-4 w-4" />
           }

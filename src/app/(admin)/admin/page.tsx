@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { DashboardSkeleton } from "@/components/admin/ui/loading-skeleton";
@@ -14,7 +14,7 @@ import {
   ProgressOverview,
 } from "@/components/admin/dashboard/widgets";
 import dynamic from "next/dynamic";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { SystemPulse } from "@/components/admin/dashboard/system-pulse";
 import { DraggableDashboard } from "@/components/admin/dashboard/draggable-dashboard";
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
@@ -135,6 +135,34 @@ const quickActionsConfig = [
   { title: "الإعدادات", href: "/admin/settings", icon: Settings, color: "pink" as const, permission: "SETTINGS_MANAGE" },
 ];
 
+// Default values for dashboard data
+const defaultStats = {
+  totalUsers: 0,
+  totalSubjects: 0,
+  totalExams: 0,
+  totalResources: 0,
+  activeChallenges: 0,
+  newUsersToday: 0,
+  newUsersThisWeek: 0,
+};
+
+const defaultTrends = {
+  userGrowth: 0,
+  studyTime: 0,
+};
+
+const defaultCharts = {
+  userGrowth: [] as Array<{ month: string; users: number }>,
+  activity: [] as Array<{ day: string; sessions: number }>,
+};
+
+const defaultActivity = {
+  tasksCompleted: 0,
+  examsTaken: 0,
+  achievementsEarned: 0,
+  studyMinutes: 0,
+};
+
 export default function AdminDashboardPage() {
   const [timeFilter, setTimeFilter] = React.useState<TimeFilter>("week");
   const { playSound } = usePremiumSounds();
@@ -185,10 +213,12 @@ export default function AdminDashboardPage() {
   const handleExport = () => {
     if (data) {
       playSound('success');
+      const safeStats = data.stats || defaultStats;
+      const safeActivity = data.activity || defaultActivity;
       const exportData = {
         period: timeFilter,
-        stats: data.stats,
-        activity: data.activity,
+        stats: safeStats,
+        activity: safeActivity,
         exportedAt: new Date().toISOString(),
       };
       const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
@@ -212,7 +242,8 @@ export default function AdminDashboardPage() {
       return notifications;
     }
 
-    return data.recentActivity.slice(0, 6).map((item, index) => {
+    const recentActivity = data.recentActivity || [];
+    return recentActivity.slice(0, 6).map((item, index) => {
       const notificationType =
         item.type === "user" || item.type === "achievement"
           ? (item.type as "user" | "achievement")
@@ -257,13 +288,21 @@ export default function AdminDashboardPage() {
     );
   }
 
+  // Create safe data with defaults for missing properties
+  const safeStats = data.stats || defaultStats;
+  const safeTrends = data.trends || defaultTrends;
+  const safeCharts = data.charts || defaultCharts;
+  const safeActivity = data.activity || defaultActivity;
+  const safeRecentActivity = data.recentActivity || [];
+  const safeUpcomingEvents = data.upcomingEvents || [];
+
   const sections = [
     {
       id: "quick-actions",
       content: (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
            {quickActionsConfig.map((action, i) => (
-             <motion.a
+             <m.a
                key={i}
                href={action.href}
                whileHover={{ scale: 1.02 }}
@@ -278,7 +317,7 @@ export default function AdminDashboardPage() {
                    <action.icon className="w-7 h-7" />
                 </div>
                 <span className="text-xs font-black text-gray-300 uppercase tracking-widest">{action.title}</span>
-             </motion.a>
+             </m.a>
            ))}
         </div>
       )
@@ -287,10 +326,10 @@ export default function AdminDashboardPage() {
       id: "quick-stats",
       content: (
         <QuickStatsRow stats={[
-          { label: "ساعة دراسة مجمعة", value: Math.round(data.activity.studyMinutes / 60), icon: Clock, color: "blue" },
-          { label: "مبارزة مكتملة", value: data.activity.tasksCompleted, icon: Target, color: "green" },
-          { label: "وسام مكتسب", value: data.activity.achievementsEarned, icon: Award, color: "yellow" },
-          { label: "مخطوطة سجل", value: data.activity.examsTaken, icon: FileText, color: "purple" },
+          { label: "ساعة دراسة مجمعة", value: Math.round(safeActivity.studyMinutes / 60), icon: Clock, color: "blue" },
+          { label: "مبارزة مكتملة", value: safeActivity.tasksCompleted, icon: Target, color: "green" },
+          { label: "وسام مكتسب", value: safeActivity.achievementsEarned, icon: Award, color: "yellow" },
+          { label: "مخطوطة سجل", value: safeActivity.examsTaken, icon: FileText, color: "purple" },
         ]} />
       )
     },
@@ -300,32 +339,32 @@ export default function AdminDashboardPage() {
         <EnhancedStatsCards stats={[
           {
             title: "إجمالي المحاربين",
-            value: data.stats.totalUsers,
-            description: `${data.stats.newUsersToday} وافد جديد اليوم`,
+            value: safeStats.totalUsers,
+            description: `${safeStats.newUsersToday} وافد جديد اليوم`,
             icon: Users,
             color: "blue",
-            trend: data.trends.userGrowth ? {
-              value: data.trends.userGrowth,
-              isPositive: data.trends.userGrowth > 0,
+            trend: safeTrends.userGrowth ? {
+              value: safeTrends.userGrowth,
+              isPositive: safeTrends.userGrowth > 0,
             } : undefined,
           },
           {
             title: "المخطوطات العلمية",
-            value: data.stats.totalSubjects,
+            value: safeStats.totalSubjects,
             description: "مادة متاحة حالياً",
             icon: BookOpen,
             color: "green",
           },
           {
             title: "الاختبارات الملكية",
-            value: data.stats.totalExams,
-            description: `${data.activity.examsTaken} اختباراً تم اجتيازه`,
+            value: safeStats.totalExams,
+            description: `${safeActivity.examsTaken} اختباراً تم اجتيازه`,
             icon: Target,
             color: "purple",
           },
           {
             title: "الحملات النشطة",
-            value: data.stats.activeChallenges,
+            value: safeStats.activeChallenges,
             description: "تحدي عسكري جاري",
             icon: Trophy,
             color: "orange",
@@ -359,10 +398,10 @@ export default function AdminDashboardPage() {
 
               <SmartAlerts
                 alerts={generateSmartAlerts({
-                  users: { total: data.stats.totalUsers, new: data.stats.newUsersThisWeek, active: data.stats.newUsersToday },
-                  content: { subjects: data.stats.totalSubjects, exams: data.stats.totalExams, resources: data.stats.totalResources },
-                  activity: { studySessions: data.activity.studyMinutes, tasksCompleted: data.activity.tasksCompleted },
-                  trends: { userGrowth: data.trends.userGrowth, studyTime: data.trends.studyTime },
+                  users: { total: safeStats.totalUsers, new: safeStats.newUsersThisWeek, active: safeStats.newUsersToday },
+                  content: { subjects: safeStats.totalSubjects, exams: safeStats.totalExams, resources: safeStats.totalResources },
+                  activity: { studySessions: safeActivity.studyMinutes, tasksCompleted: safeActivity.tasksCompleted },
+                  trends: { userGrowth: safeTrends.userGrowth, studyTime: safeTrends.studyTime },
                 })}
                 title="تنبيهات الاستخبارات الملكية"
               />
@@ -376,7 +415,7 @@ export default function AdminDashboardPage() {
                           <span>نمو جيش المملكة</span>
                        </h3>
                     </div>
-                    <UserGrowthChart data={data.charts.userGrowth} />
+                    <UserGrowthChart data={safeCharts.userGrowth} />
                  </div>
                  <div className={STYLES.glass + " p-8 h-[450px]"}>
                     <div className="flex items-center justify-between mb-8">
@@ -385,7 +424,7 @@ export default function AdminDashboardPage() {
                           <span>نشاط ساحة القتال</span>
                        </h3>
                     </div>
-                    <ActivityChart data={data.charts.activity} />
+                    <ActivityChart data={safeCharts.activity} />
                  </div>
               </div>
            </div>
@@ -401,9 +440,9 @@ export default function AdminDashboardPage() {
 
               <ProgressOverview
                 items={[
-                  { id: "1", label: "تجنيد (أسبوعي)", current: data.stats.newUsersThisWeek, target: 100, color: "blue" },
-                  { id: "2", label: "تكتيك (مهام)", current: data.activity.tasksCompleted, target: 500, color: "green" },
-                  { id: "3", label: "فروسية (أوسمة)", current: data.activity.achievementsEarned, target: 200, color: "yellow" },
+                  { id: "1", label: "تجنيد (أسبوعي)", current: safeStats.newUsersThisWeek, target: 100, color: "blue" },
+                  { id: "2", label: "تكتيك (مهام)", current: safeActivity.tasksCompleted, target: 500, color: "green" },
+                  { id: "3", label: "فروسية (أوسمة)", current: safeActivity.achievementsEarned, target: 200, color: "yellow" },
                 ]}
                 title="مؤشرات القدرة القتالية"
               />
@@ -419,9 +458,9 @@ export default function AdminDashboardPage() {
              <h3 className="text-lg font-black mb-6 uppercase tracking-widest text-gray-500">توزيع الرتب العسكرية</h3>
              <DistributionChart
                data={[
-                 { name: "طلاب", value: Math.round(data.stats.totalUsers * 0.7), color: "#3b82f6" },
-                 { name: "معلمين", value: Math.round(data.stats.totalUsers * 0.2), color: "#10b981" },
-                 { name: "إداريين", value: Math.round(data.stats.totalUsers * 0.1), color: "#8b5cf6" },
+                 { name: "طلاب", value: Math.round(safeStats.totalUsers * 0.7), color: "#3b82f6" },
+                 { name: "معلمين", value: Math.round(safeStats.totalUsers * 0.2), color: "#10b981" },
+                 { name: "إداريين", value: Math.round(safeStats.totalUsers * 0.1), color: "#8b5cf6" },
                ]}
                title="توزيع الفئات"
                description="حسب الدور والمنصب"
@@ -432,7 +471,7 @@ export default function AdminDashboardPage() {
              <h3 className="text-lg font-black mb-6 uppercase tracking-widest text-gray-500">خارطة التحركات الزمنية</h3>
              <div className="h-[300px]">
                 <ActivityHeatmap
-                  data={data.charts.activity.map((item: { day: string; sessions: number }) => ({
+                  data={safeCharts.activity.map((item: { day: string; sessions: number }) => ({
                     date: item.day,
                     count: item.sessions,
                   }))}
@@ -451,16 +490,16 @@ export default function AdminDashboardPage() {
            <div className="lg:col-span-2">
               <GoalsKPIs
                 goals={[
-                  { id: "1", title: "اتساع المملكة", description: "الوصول إلى 1000 محارب", current: data.stats.totalUsers, target: 1000, unit: "محارب", category: "users", priority: "high" },
-                  { id: "2", title: "كفاءة التدريب", current: data.activity.tasksCompleted, target: 500, unit: "تدريب", category: "engagement", priority: "medium" },
-                  { id: "3", title: "سجلات الإنجاز", current: data.activity.achievementsEarned, target: 200, unit: "وسام", category: "engagement", priority: "low" },
+                  { id: "1", title: "اتساع المملكة", description: "الوصول إلى 1000 محارب", current: safeStats.totalUsers, target: 1000, unit: "محارب", category: "users", priority: "high" },
+                  { id: "2", title: "كفاءة التدريب", current: safeActivity.tasksCompleted, target: 500, unit: "تدريب", category: "engagement", priority: "medium" },
+                  { id: "3", title: "سجلات الإنجاز", current: safeActivity.achievementsEarned, target: 200, unit: "وسام", category: "engagement", priority: "low" },
                 ]}
                 title="الأهداف العسكرية والتقييم"
               />
            </div>
            
            <ActivityFeed
-              activities={data.recentActivity.map((item: { type: string; id: string; time: Date; title: string | null }) => ({
+               activities={safeRecentActivity.map((item: { type: string; id: string; time: Date; title: string | null }) => ({
                 id: item.id,
                 type: item.type as "user" | "exam" | "achievement" | "challenge" | "post" | "comment",
                 title: item.title || "تحرك عسكري جديد",
@@ -479,7 +518,7 @@ export default function AdminDashboardPage() {
       content: (
         <div className={STYLES.glass + " p-10"}>
            <UpcomingEvents
-              events={data.upcomingEvents.map((event: { id: string; title: string; startDate: Date; location: string | null }) => ({
+               events={safeUpcomingEvents.map((event: { id: string; title: string; startDate: Date; location: string | null }) => ({
                 id: event.id,
                 title: event.title,
                 date: new Date(event.startDate),
@@ -502,7 +541,7 @@ export default function AdminDashboardPage() {
   return (
     <div className="space-y-12 pb-20" dir="rtl">
       {/* --- Cinematic Header --- */}
-      <motion.div 
+      <m.div 
         initial={{ opacity: 0, y: -20, rotateX: -5 }}
         animate={{ opacity: 1, y: 0, rotateX: 0 }}
         className={STYLES.glass + " p-8 md:p-12 flex flex-col lg:flex-row items-center justify-between gap-10 group relative overflow-hidden"}
@@ -515,7 +554,7 @@ export default function AdminDashboardPage() {
             <span>غرفة التحكم الملكية - Dungeon Master</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
-            لوحة <span className={STYLES.neonText}>إدارة المملكة</span> ًںڈ›ï¸ڈ
+            لوحة <span className={STYLES.neonText}>إدارة المملكة</span>
           </h1>
           <p className="text-lg text-gray-400 font-medium max-w-2xl font-bold">
             أنت المتحكم في مصادر المحاربين. راقب الإحصائيات، وجّه الجيش الكان، وقم ببناء عظمة الجمهورية.
@@ -566,7 +605,7 @@ export default function AdminDashboardPage() {
             className="h-12 w-12 rounded-2xl border-white/10 text-foreground hover:bg-accent shadow-lg"
           />
         </div>
-      </motion.div>
+      </m.div>
 
       <DraggableDashboard onOrderChange={handleOrderChange}>
         {sortedSections.map(s => ({ id: s.id, content: s.content }))}

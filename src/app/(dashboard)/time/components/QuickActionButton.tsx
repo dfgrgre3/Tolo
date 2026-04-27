@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { Plus, CheckSquare, Bell, Timer, X } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
@@ -29,7 +29,7 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
       <div className="relative flex flex-col items-center gap-4">
         <AnimatePresence>
           {isOpen && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0, y: 20, scale: 0.8 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 20, scale: 0.8 }}
@@ -39,7 +39,7 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
                 <TooltipProvider key={action.id}>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <motion.button
+                      <m.button
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: idx * 0.05 }}
@@ -50,7 +50,7 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
                         className={`w-12 h-12 rounded-full ${action.color} ${action.hover} text-white shadow-lg flex items-center justify-center transition-all hover:scale-110 active:scale-95`}
                       >
                         {action.icon}
-                      </motion.button>
+                      </m.button>
                     </TooltipTrigger>
                     <TooltipContent side="left" className="font-bold">
                       {action.label}
@@ -58,7 +58,7 @@ const QuickActionButton = ({ onAction }: QuickActionButtonProps) => {
                   </Tooltip>
                 </TooltipProvider>
               ))}
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 

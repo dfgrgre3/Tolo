@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { cn } from '@/lib/utils';
 
 interface AuthShellProps {
@@ -28,7 +28,7 @@ export function AuthShell({
     : 'border-white/10 bg-black/40 shadow-[0_0_50px_rgba(0,0,0,0.5)]';
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, scale: 0.96, y: 18 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       className={cn(
@@ -50,6 +50,6 @@ export function AuthShell({
       <div className="space-y-8">{children}</div>
 
       {footer ? <div className="mt-12">{footer}</div> : null}
-    </motion.div>
+    </m.div>
   );
 }

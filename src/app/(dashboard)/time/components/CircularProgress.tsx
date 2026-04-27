@@ -1,4 +1,4 @@
-﻿import { motion } from 'framer-motion';
+﻿import { m } from "framer-motion";
 
 interface CircularProgressProps {
   value: number;
@@ -50,7 +50,7 @@ export default function CircularProgress({
             cy={size / 2}
           />
           {/* Progress */}
-          <motion.circle
+          <m.circle
             className={`fill-transparent ${colorClass}`}
             stroke="currentColor"
             strokeWidth={strokeWidth}

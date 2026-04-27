@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Mail, Loader2, AlertCircle, CheckCircle2, ArrowRight, ArrowLeft, KeyRound, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
@@ -71,7 +71,7 @@ export default function ForgotPasswordPage() {
       <div className="absolute top-[-5%] right-[-5%] w-[500px] h-[500px] bg-primary/20 blur-[130px] rounded-full" />
       <div className="absolute bottom-[-5%] left-[-5%] w-[400px] h-[400px] bg-blue-600/10 blur-[130px] rounded-full" />
       
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
@@ -89,7 +89,7 @@ export default function ForgotPasswordPage() {
 
         <AnimatePresence mode="wait">
           {status && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
@@ -105,7 +105,7 @@ export default function ForgotPasswordPage() {
                 <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
               )}
               <p className="text-xs font-bold leading-relaxed">{status.message}</p>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -156,7 +156,7 @@ export default function ForgotPasswordPage() {
           <span className="text-[8px] font-black uppercase tracking-widest text-gray-500">Ancient Key Protection</span>
           <Sparkles size={12} className="text-primary ml-2" />
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

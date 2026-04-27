@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import {
   Lightbulb,
   Sparkles,
@@ -75,7 +75,7 @@ export default function TipsPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
         
         {/* --- Header: Wisdom Arrival --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-6">
@@ -90,12 +90,12 @@ export default function TipsPage() {
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
               استراتيجيات وتكتيكات محصنة باليقين، جمڪا لك كبار الحكماء لتختصر عليك طريق السيادة وتضاعف من سرعة تطورك العلمي.
            </p>
-        </motion.div>
+        </m.div>
 
         {/* --- Categories Grid --- */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            {categories.map((cat, i) =>
-          <motion.div
+          <m.div
             key={i}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -119,7 +119,7 @@ export default function TipsPage() {
                        </div>
               )}
                  </div>
-              </motion.div>
+              </m.div>
           )}
         </div>
 
@@ -137,7 +137,7 @@ export default function TipsPage() {
 
            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {subjects.map((sub, i) =>
-            <motion.div
+            <m.div
               key={i}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -149,13 +149,13 @@ export default function TipsPage() {
                     </div>
                     <h3 className="text-xl font-black text-white">{sub.name}</h3>
                     <p className="text-[11px] text-gray-500 font-bold leading-relaxed">{sub.desc}</p>
-                 </motion.div>
+                 </m.div>
             )}
            </div>
         </div>
 
         {/* --- Bottom Call to Action: The Oath --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           className={STYLES.glass + " p-12 text-center border-emerald-500/20 shadow-emerald-500/5"}>
@@ -170,7 +170,7 @@ export default function TipsPage() {
                  <Badge className="bg-emerald-500 text-black font-black px-6 h-10 text-sm uppercase tracking-widest rounded-xl shadow-lg shadow-emerald-500/20">انطلق للمهمة التالية &gt;</Badge>
               </div>
            </div>
-        </motion.div>
+        </m.div>
       </div>
     </div>);
 

@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { ReactNode, memo } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -23,7 +23,7 @@ export const SettingsSection = memo(function SettingsSection({
   delay = 0,
 }: SettingsSectionProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
@@ -46,7 +46,7 @@ export const SettingsSection = memo(function SettingsSection({
         </div>
       </div>
       <div className="p-4">{children}</div>
-    </motion.div>
+    </m.div>
   );
 });
 

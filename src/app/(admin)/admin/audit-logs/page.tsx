@@ -19,7 +19,7 @@ import {
   Search, Filter, Calendar, Shield, User, Globe, Terminal, 
   AlertTriangle, Monitor, Info, History, UserX, UserCheck, Key, Lock, Unlock, Mail, Scan, RefreshCw
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { logger } from '@/lib/logger';
 
@@ -268,7 +268,7 @@ export default function AdminAuditLogsPage() {
         </div>
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
@@ -294,7 +294,7 @@ export default function AdminAuditLogsPage() {
             searchPlaceholder="البحث عن إحداثيات IP..."
           />
         )}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

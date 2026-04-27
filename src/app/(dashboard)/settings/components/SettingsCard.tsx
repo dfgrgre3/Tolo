@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { ReactNode } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { cn } from '@/lib/utils';
 
 interface SettingsCardProps {
@@ -18,7 +18,7 @@ export function SettingsCard({
   gradient = false,
 }: SettingsCardProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay }}
@@ -31,7 +31,7 @@ export function SettingsCard({
       )}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 

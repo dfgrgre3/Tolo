@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   CreditCard,
   Wallet,
@@ -194,7 +194,7 @@ export default function CourseCheckoutPage() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Order Details Column */}
           <div className="lg:col-span-4 space-y-8">
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-2 overflow-hidden shadow-2xl">
+            <m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="rounded-[2.5rem] bg-gradient-to-b from-white/10 to-transparent border border-white/10 p-2 overflow-hidden shadow-2xl">
                <div className="aspect-video rounded-[2rem] overflow-hidden relative">
                   {course.thumbnailUrl ?
                 <img src={course.thumbnailUrl} alt={course.nameAr} className="w-full h-full object-cover" /> :
@@ -233,7 +233,7 @@ export default function CourseCheckoutPage() {
                     <span>{course.price} <span className="text-lg">ج.م</span></span>
                   </div>
                </div>
-            </motion.div>
+            </m.div>
 
             <div className="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-[2rem] flex gap-4">
                <ShieldCheck className="w-8 h-8 text-emerald-500 shrink-0" />

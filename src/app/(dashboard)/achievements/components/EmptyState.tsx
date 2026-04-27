@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Trophy, Target, ArrowRight, Sparkles } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 export function EmptyState() {
 	return (
-		<motion.div
+		<m.div
 			initial={{ opacity: 0, scale: 0.95 }}
 			animate={{ opacity: 1, scale: 1 }}
 			transition={{ duration: 0.5, ease: "easeOut" }}
@@ -16,7 +16,7 @@ export function EmptyState() {
 			<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full max-w-[400px] max-h-[400px] bg-primary/5 rounded-full blur-[80px] -z-10" />
 			
 			<div className="relative inline-block mb-8 group">
-				<motion.div
+				<m.div
 					animate={{ rotate: [-5, 5] }}
 					transition={{ 
 						duration: 4, 
@@ -27,21 +27,21 @@ export function EmptyState() {
 					className="text-8xl md:text-9xl filter drop-shadow-2xl relative z-10"
 				>
 					ًںڈ†
-				</motion.div>
-				<motion.div 
+				</m.div>
+				<m.div 
 					className="absolute -top-4 -right-4 text-3xl"
 					animate={{ scale: [1, 1.3, 1], opacity: [0.5, 1, 0.5] }}
 					transition={{ duration: 2, repeat: Infinity }}
 				>
 					<Sparkles className="text-yellow-400 fill-yellow-400 w-10 h-10" />
-				</motion.div>
-				<motion.div 
+				</m.div>
+				<m.div 
 					className="absolute top-10 -left-6 text-3xl"
 					animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.8, 0.3] }}
 					transition={{ duration: 3, repeat: Infinity, delay: 1 }}
 				>
 					<Sparkles className="text-blue-400 fill-blue-400 w-8 h-8" />
-				</motion.div>
+				</m.div>
 			</div>
 			
 			<h2 className="text-3xl font-black mb-4 bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">جاهز لبدء رحلة الأبطال؟</h2>
@@ -67,6 +67,6 @@ export function EmptyState() {
 					</Link>
 				</Button>
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

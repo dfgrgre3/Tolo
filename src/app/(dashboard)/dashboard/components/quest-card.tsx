@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Clock, BookOpen, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +12,7 @@ export function QuestCard() {
   };
 
   return (
-    <motion.div 
+    <m.div 
       whileHover={{ y: -5 }}
       className={STYLES.glass + " p-0 overflow-hidden border-orange-500/30 group"}
     >
@@ -30,7 +30,7 @@ export function QuestCard() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-6">
               <div className="h-24 w-24 rounded-3xl border-4 border-orange-500/30 flex items-center justify-center bg-orange-500/5 relative shadow-inner overflow-hidden group">
-                  <motion.div 
+                  <m.div 
                     animate={{ scale: [1, 1.1, 1] }} 
                     transition={{ duration: 2, repeat: Infinity }}
                     className="absolute inset-0 bg-orange-500/10" 
@@ -62,7 +62,7 @@ export function QuestCard() {
               <span className="text-orange-500">65%</span>
            </div>
            <div className="h-4 w-full bg-gray-900/50 rounded-full overflow-hidden border border-white/5 p-1">
-              <motion.div 
+              <m.div 
                 initial={{ width: 0 }}
                 animate={{ width: "65%" }}
                 transition={{ duration: 1.5, delay: 0.5 }}
@@ -71,6 +71,6 @@ export function QuestCard() {
            </div>
         </div>
        </div>
-    </motion.div>
+    </m.div>
   );
 }

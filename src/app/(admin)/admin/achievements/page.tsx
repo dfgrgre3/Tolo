@@ -11,7 +11,7 @@ import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
 import { AchievementTable } from "./AchievementTable";
 import { AchievementFormDialog } from "./AchievementFormDialog";
 import { Achievement } from "./types";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { logger } from '@/lib/logger';
 
@@ -128,7 +128,7 @@ export default function AdminAchievementsPage() {
         />
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden"
@@ -142,7 +142,7 @@ export default function AdminAchievementsPage() {
             onDelete={handleDeleteRequest}
           />
         )}
-      </motion.div>
+      </m.div>
 
       <AchievementFormDialog
         open={dialogOpen}

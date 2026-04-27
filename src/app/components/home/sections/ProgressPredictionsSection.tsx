@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, memo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
@@ -98,7 +98,7 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
       <div className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
       
       <div className="relative z-10">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -116,13 +116,13 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
           <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
             محرك ذكاء اصطناعي يحلل مسارك القتالي ليتنبأ بمستوى نمو مهاراتك القادم.
           </p>
-        </motion.div>
+        </m.div>
 
         <div className="grid gap-8 md:grid-cols-2">
           {predictions.map((prediction, index) => {
             const conf = getConfidenceLevel(prediction.confidence);
             return (
-              <motion.div
+              <m.div
                 key={prediction.period}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -157,7 +157,7 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                         <span className="text-xl font-bold text-gray-500">%</span>
                       </div>
                       <div className="mt-8 h-3 bg-black/60 rounded-full overflow-hidden ring-1 ring-white/5 p-[1px]">
-                         <motion.div
+                         <m.div
                           initial={{ width: 0 }}
                           animate={{ width: `${prediction.predictedScore}%` }}
                           transition={{ delay: 0.5, duration: 1.5, ease: "easeOut" }}
@@ -223,13 +223,13 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                     </div>
                   </CardContent>
                 </Card>
-              </motion.div>);
+              </m.div>);
 
           })}
         </div>
 
         {/* Info Banner */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -250,7 +250,7 @@ export const ProgressPredictionsSection = memo(function ProgressPredictionsSecti
                 </div>
              </div>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>);
 

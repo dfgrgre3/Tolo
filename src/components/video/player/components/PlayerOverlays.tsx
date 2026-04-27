@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
 import {
   AlertCircle,
@@ -42,7 +42,7 @@ export function PlayerOverlays({
     <>
       <AnimatePresence>
         {feedback ? (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, scale: 0.92, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.92, y: 8 }}
@@ -52,13 +52,13 @@ export function PlayerOverlays({
               <feedback.icon className="mx-auto h-7 w-7 text-white" />
               <p className="mt-2 text-sm font-bold text-white">{feedback.label}</p>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {isLoading ? (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -67,13 +67,13 @@ export function PlayerOverlays({
             <div className="rounded-3xl border border-white/10 bg-black/60 px-5 py-4 shadow-xl backdrop-blur-xl">
               <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {errorMessage ? (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
@@ -83,13 +83,13 @@ export function PlayerOverlays({
               <AlertCircle className="h-4 w-4 shrink-0" />
               <span>{errorMessage}</span>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {resumeTime !== null ? (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
@@ -106,6 +106,7 @@ export function PlayerOverlays({
                 type="button"
                 onClick={onDismissResume}
                 className="rounded-full p-1 text-white/40 transition hover:bg-white/10 hover:text-white"
+                aria-label="إغلاق اقتراح الاستكمال"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -127,13 +128,13 @@ export function PlayerOverlays({
                 تجاهل
               </button>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {isEnded && onPlayNextNow ? (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -167,9 +168,10 @@ export function PlayerOverlays({
                 </button>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
+
     </>
   );
 }

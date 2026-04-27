@@ -1,26 +1,26 @@
 ﻿"use client";
 
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 export function LoadingState() {
 	return (
 		<div className="flex flex-col items-center justify-center py-32 h-[50vh]">
 			<div className="relative mb-6">
-				<motion.div 
+				<m.div 
 					className="w-20 h-20 rounded-full border-4 border-primary/20"
 				/>
-				<motion.div 
+				<m.div 
 					className="w-20 h-20 rounded-full border-4 border-primary border-t-transparent absolute top-0 left-0"
 					animate={{ rotate: 360 }}
 					transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
 				/>
-				<motion.div 
+				<m.div 
 					className="text-3xl absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2"
 					animate={{ scale: [0.8, 1.1, 0.8] }}
 					transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
 				>
 					ًںڈ†
-				</motion.div>
+				</m.div>
 			</div>
 			
 			<div className="space-y-2 text-center">

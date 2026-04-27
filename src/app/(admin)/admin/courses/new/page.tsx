@@ -1,19 +1,14 @@
-﻿import { prisma } from "@/lib/db";
+import { apiClient } from "@/lib/api/api-client";
 import { CourseEditor } from "@/components/admin/courses/course-editor";
 
+export const dynamic = "force-dynamic";
+
 export default async function NewCoursePage() {
+  // Fetch data from Go Backend API
   const [categories, teachers, allCourses] = await Promise.all([
-    prisma.category.findMany({
-      where: { type: "COURSE" },
-      orderBy: { name: "asc" },
-    }),
-    prisma.teacher.findMany({
-      orderBy: { name: "asc" },
-    }),
-    prisma.subject.findMany({
-      select: { id: true, name: true, nameAr: true },
-      orderBy: { name: "asc" },
-    }),
+    apiClient.get<any[]>("/categories?type=COURSE").catch(() => []),
+    apiClient.get<any[]>("/teachers").catch(() => []),
+    apiClient.get<any[]>("/subjects").catch(() => []),
   ]);
 
   return (

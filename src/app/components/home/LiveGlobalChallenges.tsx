@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { Users, Zap, Timer, ChevronLeft } from 'lucide-react';
 
 const CHALLENGES = [
@@ -36,7 +36,7 @@ export function LiveGlobalChallenges() {
           </div>
           
           <AnimatePresence mode="wait">
-            <motion.div
+            <m.div
               key={challenge.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -50,7 +50,7 @@ export function LiveGlobalChallenges() {
                 <span className="text-white font-bold text-sm truncate">{challenge.title}</span>
                 <span className="text-primary font-black text-sm shrink-0">+{challenge.count} طالب</span>
               </div>
-            </motion.div>
+            </m.div>
           </AnimatePresence>
         </div>
 

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -9,13 +9,15 @@ import { RoleBadge, StatusBadge } from "@/components/admin/ui/admin-badge";
 import { AdminStatsCard } from "@/components/admin/ui/admin-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserPlus, Download, Mail, Shield, Crown, Users, Zap, Search, Send } from "lucide-react";
+import { exportToCSV, ExportColumn } from '@/lib/export-utils';
 import { ColumnDef } from "@tanstack/react-table";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { RoyalCallModal as RoyalMessageModal } from "@/components/admin/royal-call";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface UserModel {
   id: string;
@@ -79,7 +81,7 @@ export default function AdminUsersPage() {
         search,
         ...(role !== "all" && { role }),
       });
-      const response = await fetch(`/api/admin/users?${params}`);
+      const response = await fetch(`${apiRoutes.admin.users}?${params}`);
       if (!response.ok) throw new Error("Failed to fetch users");
       return (await response.json()) as ApiResponse;
     },
@@ -88,7 +90,7 @@ export default function AdminUsersPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch(`/api/admin/users?userId=${deleteDialog.id}`, {
+      const response = await fetch(`${apiRoutes.admin.users}?userId=${deleteDialog.id}`, {
         method: "DELETE",
       });
       if (response.ok) {
@@ -103,6 +105,23 @@ export default function AdminUsersPage() {
     } finally {
       setDeleteDialog({ open: false, id: null });
     }
+  };
+
+  const handleExportCSV = () => {
+    if (!data?.data?.users || data.data.users.length === 0) {
+      toast.error('لا توجد بيانات للتصدير');
+      return;
+    }
+    const exportColumns: ExportColumn<UserModel>[] = [
+      { header: 'الاسم', accessor: (u) => u.name || u.username || "بدون اسم" },
+      { header: 'البريد الإلكتروني', accessor: 'email' },
+      { header: 'الرتبة', accessor: 'role' },
+      { header: 'القوة (XP)', accessor: (u) => u.totalXP || 0 },
+      { header: 'تاريخ الالتحاق', accessor: (u) => new Date(u.createdAt).toLocaleDateString('ar-EG') },
+      { header: 'آخر دخول', accessor: (u) => u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('ar-EG') : 'لم يسجل دخول' },
+    ];
+    exportToCSV(data.data.users, exportColumns, 'users');
+    toast.success('تم التصدير بنجاح');
   };
 
   const columns: ColumnDef<UserModel>[] = [
@@ -204,6 +223,29 @@ export default function AdminUsersPage() {
           extraActions={[
             { icon: Mail, label: "رسالة ملكية", onClick: (u) => setMessageDialog({ open: true, users: [u] }) },
             { icon: Shield, label: "صلاحيات القائد", onClick: (u) => router.push(`/admin/users/${u.id}/permissions`) },
+            {
+              icon: Shield, label: "تقمص شخصية", onClick: async (u) => {
+                if (window.confirm("هل أنت متأكد من تقمص شخصية هذا المستخدم؟ سيتم تسجيل دخولك كهذا المستخدم.")) {
+                  try {
+                    const res = await fetch('/api/admin/impersonate', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ targetUserId: u.id }),
+                      credentials: 'include'
+                    });
+                    if (res.ok) {
+                      toast.success('تم تقمص الشخصية، جاري التوجيه...');
+                      window.location.href = '/';
+                    } else {
+                      const data = await res.json();
+                      toast.error(data.error || 'فشل في تقمص الشخصية');
+                    }
+                  } catch (_error) {
+                    toast.error('خطأ في الاتصال');
+                  }
+                }
+              }
+            },
           ]}
         />
       ),
@@ -217,8 +259,8 @@ export default function AdminUsersPage() {
         description="إدارة جميع المحاربين، رتبهم العسكرية، وصلاحياتهم داخل الإمبراطورية."
       >
         <div className="flex items-center gap-3">
-          <AdminButton variant="outline" icon={Download} onClick={() => toast.success("جاري تصدير المخطوطات...")}>
-            تصدير الجيش
+          <AdminButton variant="outline" icon={Download} onClick={handleExportCSV}>
+            تصدير المستخدمين CSV
           </AdminButton>
           <AdminButton icon={UserPlus} onClick={() => router.push("/admin/users/create")}>
             تجنيد محارب جديد
@@ -227,32 +269,32 @@ export default function AdminUsersPage() {
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <AdminStatsCard 
-          title="إجمالي المحاربين" 
-          value={data?.data?.summary?.totalUsers || 0} 
-          icon={Users} 
+        <AdminStatsCard
+          title="إجمالي المحاربين"
+          value={data?.data?.summary?.totalUsers || 0}
+          icon={Users}
           color="blue"
           description="جندي في المملكة"
         />
-        
-        <AdminStatsCard 
-          title="القادة والنبلاء" 
-          value={data?.data?.summary?.totalAdmins || 0} 
-          icon={Crown} 
+
+        <AdminStatsCard
+          title="القادة والنبلاء"
+          value={data?.data?.summary?.totalAdmins || 0}
+          icon={Crown}
           color="yellow"
           description="حساب إداري فعال"
         />
 
-        <AdminStatsCard 
-          title="محاربين متمرسين" 
-          value={data?.data?.summary?.powerUsers || 0} 
-          icon={Zap} 
+        <AdminStatsCard
+          title="محاربين متمرسين"
+          value={data?.data?.summary?.powerUsers || 0}
+          icon={Zap}
           color="green"
           description="رتبة محارب متمرس"
         />
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
@@ -266,16 +308,16 @@ export default function AdminUsersPage() {
           serverSide
           selectable
           bulkActions={[
-            { 
-              label: "إرسال مرسوم ملكي", 
-              icon: Send, 
-              onClick: (rows) => setMessageDialog({ open: true, users: rows }) 
+            {
+              label: "إرسال مرسوم ملكي",
+              icon: Send,
+              onClick: (rows) => setMessageDialog({ open: true, users: rows })
             },
-            { 
-              label: "حذف السجلات", 
-              icon: UserPlus, 
+            {
+              label: "حذف السجلات",
+              icon: UserPlus,
               variant: "destructive",
-              onClick: (_rows) => toast.warning("يرجى حذف كل مستخدم على حدة لضمان السلامة") 
+              onClick: (_rows) => toast.warning("يرجى حذف كل مستخدم على حدة لضمان السلامة")
             },
           ]}
           totalRows={data?.data?.pagination?.total || 0}
@@ -291,9 +333,9 @@ export default function AdminUsersPage() {
             <div className="flex items-center gap-2">
               <div className="relative group">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground transition-colors group-focus-within:text-primary" />
-                <input 
-                  type="text" 
-                  placeholder="فلترة السجلات..." 
+                <input
+                  type="text"
+                  placeholder="فلترة السجلات..."
                   className="bg-accent/10 border border-border rounded-xl h-10 px-10 text-sm focus:ring-1 ring-primary outline-none w-64 font-bold"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -302,7 +344,7 @@ export default function AdminUsersPage() {
             </div>
           }
         />
-      </motion.div>
+      </m.div>
 
       <ConfirmDialog
         open={deleteDialog.open}
@@ -313,7 +355,7 @@ export default function AdminUsersPage() {
         variant="destructive"
         onConfirm={handleDelete}
       />
-      <RoyalMessageModal 
+      <RoyalMessageModal
         open={messageDialog.open}
         onOpenChange={(open) => setMessageDialog({ open, users: open ? messageDialog.users : [] })}
         users={messageDialog.users}

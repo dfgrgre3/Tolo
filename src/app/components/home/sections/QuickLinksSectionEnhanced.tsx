@@ -1,5 +1,5 @@
-﻿import Link from "next/link";
-import { motion } from "framer-motion";
+import Link from "next/link";
+import { m } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Map, Calendar, Library, CheckSquare, Zap } from "lucide-react";
@@ -44,7 +44,7 @@ export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced
 
   return (
     <section className="mt-12 max-w-7xl mx-auto px-4" aria-labelledby="quick-links-heading">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -68,11 +68,11 @@ export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced
             Fast Travel: الوصول السريع للمناطق الحيوية في عالمك.
           </p>
         </div>
-      </motion.div>
+      </m.div>
       
       <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         {quickLinks.map((link, index) => (
-          <motion.div
+          <m.div
             key={index}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -111,7 +111,7 @@ export const QuickLinksSectionEnhanced = memo(function QuickLinksSectionEnhanced
                 </CardContent>
               </Card>
             </Link>
-          </motion.div>
+          </m.div>
         ))}
       </div>
       

@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { logger } from './logger';
 import { ERROR_CODES, ErrorCode } from './error-codes';
 
@@ -44,40 +44,8 @@ export function handleError(error: unknown): NextResponse {
     );
   }
 
-  // Handle Prisma-specific errors (if prisma is not imported, we check by name)
+  // Generic Error handling
   const errorName = (error as Error)?.name;
-  if (errorName === 'PrismaClientKnownRequestError') {
-    const prismaError = error as any;
-    logger.error('[PrismaError] Known Request Error:', { 
-      code: prismaError.code, 
-      meta: prismaError.meta,
-      requestId 
-    });
-    
-    // P2002: Unique constraint failed
-    if (prismaError.code === 'P2002') {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'تم تقديم بيانات مكررة موجودة بالفعل.',
-          code: ERROR_CODES.DUPLICATE_RESOURCE,
-        },
-        { status: 409 }
-      );
-    }
-    
-    // P2025: Record not found
-    if (prismaError.code === 'P2025') {
-       return NextResponse.json(
-        {
-          success: false,
-          error: 'المورد المطلوب غير موجود.',
-          code: ERROR_CODES.NOT_FOUND,
-        },
-        { status: 404 }
-      );
-    }
-  }
 
   // Handle Zod Validation Errors
   if (errorName === 'ZodError') {

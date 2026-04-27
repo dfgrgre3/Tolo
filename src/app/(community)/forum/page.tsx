@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   BookOpen,
   MessageSquare,
@@ -115,7 +115,7 @@ export default function ForumPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
         {/* --- Hero Section: The Great Hall --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           className={STYLES.glass + " p-10 md:p-16 relative overflow-hidden group"}>
@@ -144,7 +144,7 @@ export default function ForumPage() {
                  </Button>
               </Link>
            </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Stats Row --- */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -154,7 +154,7 @@ export default function ForumPage() {
           { label: "مواضيع ساخنة", val: posts.filter((p) => p.views > 100).length, icon: TrendingUp, color: "text-purple-500", bg: "bg-purple-500/10" },
           { label: "أوسمة الشرف", val: "15", icon: Award, color: "text-amber-500", bg: "bg-amber-500/10" }].
           map((stat, i) =>
-          <motion.div
+          <m.div
             key={i}
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -171,7 +171,7 @@ export default function ForumPage() {
                    <p className="text-3xl font-black text-white">{stat.val}</p>
                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mt-1">{stat.label}</p>
                 </div>
-             </motion.div>
+             </m.div>
           )}
         </div>
 
@@ -230,7 +230,7 @@ export default function ForumPage() {
                     </div> :
               sortedPosts.length > 0 ?
               sortedPosts.map((post, index) =>
-              <motion.div
+              <m.div
                 key={post.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -287,10 +287,10 @@ export default function ForumPage() {
                                 </div>
                              </div>
                           </Link>
-                       </motion.div>
+                       </m.div>
               ) :
 
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={STYLES.glass + " p-32 text-center space-y-8"}>
+              <m.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={STYLES.glass + " p-32 text-center space-y-8"}>
                        <div className="mx-auto h-24 w-24 rounded-full bg-white/5 border border-white/5 flex items-center justify-center opacity-20">
                           <Search className="w-12 h-12" />
                        </div>
@@ -299,14 +299,14 @@ export default function ForumPage() {
                           <p className="text-gray-500 font-medium max-w-sm mx-auto">معايير البحث هذه لم تكشف عن أي لفائف حكمة منسية. حاول تغيير الكلمات المفتاحية.</p>
                        </div>
                        <Button onClick={() => {setSearchTerm("");setActiveCategory("all");}} className="h-14 px-10 rounded-2xl font-black uppercase text-xs tracking-widest border border-white/10 bg-white/5 hover:bg-white/10">إعادة تعيين الأرشيف</Button>
-                    </motion.div>
+                    </m.div>
               }
               </AnimatePresence>
            </div>
         </div>
 
         {/* --- Community Guidelines --- */}
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+        <m.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
            <div className={STYLES.glass + " p-12 relative group overflow-hidden"}>
               <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] -translate-y-1/2 translate-x-1/2" />
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-12">
@@ -321,7 +321,7 @@ export default function ForumPage() {
                  </Link>
               </div>
            </div>
-        </motion.div>
+        </m.div>
       </div>
     </div>);
 

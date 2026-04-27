@@ -71,7 +71,7 @@ interface Course {
   enrolledCount: number;
   createdAt: string;
   updatedAt: string;
-  _count: {
+  _count?: {
     enrollments: number;
     topics: number;
     reviews: number;
@@ -362,11 +362,11 @@ export default function CourseDetailsPage() {
 
   const level = course.level || "INTERMEDIATE";
   const lc = levelConfig[level] || levelConfig.INTERMEDIATE;
-  const totalStudents = stats?.enrollmentCount || course._count.enrollments || 0;
+  const totalStudents = stats?.enrollmentCount || course._count?.enrollments || 0;
   const totalLessons = stats?.totalLessons || 0;
   const totalDuration = stats?.totalDuration || 0;
   const avgRating = stats?.avgRating || course.rating || 0;
-  const totalReviews = stats?.reviewCount || course._count.reviews || 0;
+  const totalReviews = stats?.reviewCount || course._count?.reviews || 0;
   const estimatedRevenue = totalStudents * (course.price || 0);
   const trailerDurationMinutes = course.trailerDurationMinutes || 0;
 
@@ -485,7 +485,7 @@ export default function CourseDetailsPage() {
       {/* ─── Stats Grid ───────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
         <StatMiniCard icon={Users} label="الطلاب المسجلين" value={totalStudents} color="bg-blue-500/20" subtext="إجمالي الملتحقين" />
-        <StatMiniCard icon={Layers} label="الوحدات التعليمية" value={course._count.topics} color="bg-violet-500/20" subtext={`${totalLessons} درس`} />
+        <StatMiniCard icon={Layers} label="الوحدات التعليمية" value={course._count?.topics || 0} color="bg-violet-500/20" subtext={`${totalLessons} درس`} />
         <StatMiniCard icon={Clock} label="مدة المحتوى" value={`${totalDuration} د`} color="bg-cyan-500/20" subtext={`${course.durationHours} ساعة تقريباً`} />
         <StatMiniCard icon={PlayCircle} label="مدة فيديو المقدمة" value={trailerDurationMinutes > 0 ? `${trailerDurationMinutes} د` : "—"} color="bg-sky-500/20" subtext={trailerDurationMinutes > 0 ? "مدة محفوظة" : "غير محددة"} />
         <StatMiniCard icon={Star} label="متوسط التقييم" value={avgRating > 0 ? avgRating.toFixed(1) : "—"} color="bg-amber-500/20" subtext={`${totalReviews} تقييم`} />
@@ -605,7 +605,7 @@ export default function CourseDetailsPage() {
                     { icon: DollarSign, label: "السعر", value: course.price ? `${course.price} EGP` : "مجاني" },
                     { icon: Clock, label: "المدة", value: `${course.durationHours} ساعة` },
                     { icon: PlayCircle, label: "فيديو المقدمة", value: trailerDurationMinutes > 0 ? `${trailerDurationMinutes} دقيقة` : "غير محددة" },
-                    { icon: Layers, label: "الوحدات", value: `${course._count.topics} وحدة` },
+                    { icon: Layers, label: "الوحدات", value: `${course._count?.topics || 0} وحدة` },
                     { icon: Users, label: "الملتحقون", value: `${totalStudents} طالب` },
                     { icon: CalendarDays, label: "تاريخ الإنشاء", value: new Date(course.createdAt).toLocaleDateString("ar-EG") },
                     { icon: Activity, label: "آخر تحديث", value: new Date(course.updatedAt).toLocaleDateString("ar-EG") },
@@ -681,7 +681,7 @@ export default function CourseDetailsPage() {
                 </div>
                 <div>
                   <h3 className="font-black">هيكل المنهج التعليمي</h3>
-                  <p className="text-xs text-muted-foreground">{course._count.topics} وحدة - {totalLessons} درس - {totalDuration} دقيقة</p>
+                  <p className="text-xs text-muted-foreground">{course._count?.topics || 0} وحدة - {totalLessons} درس - {totalDuration} دقيقة</p>
                 </div>
               </div>
               <AdminButton className="rounded-xl h-10 gap-2" onClick={() => router.push(`/admin/courses/${course.id}/curriculum`)}>
@@ -691,7 +691,7 @@ export default function CourseDetailsPage() {
             </div>
 
             <div className="p-6">
-              {course._count.topics > 0 ? (
+              {(course._count?.topics || 0) > 0 ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-500/10">
@@ -699,7 +699,7 @@ export default function CourseDetailsPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-2xl font-black">{course._count.topics} وحدة تعليمية</p>
+                    <p className="text-2xl font-black">{course._count?.topics || 0} وحدة تعليمية</p>
                     <p className="text-muted-foreground text-sm mt-1">تحتوي على {totalLessons} درس بمدة إجمالية {totalDuration} دقيقة</p>
                   </div>
                   <AdminButton variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/admin/courses/${course.id}/curriculum`)}>

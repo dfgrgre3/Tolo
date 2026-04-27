@@ -8,7 +8,7 @@ import { ar } from 'date-fns/locale';
 import { getWeekDays, formatTimeRange } from './utils';
 import { BLOCK_TYPES } from './constants';
 import type { TimeBlock } from './types';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 interface AgendaViewProps {
   readonly currentWeek: Date;
@@ -56,7 +56,7 @@ export function AgendaView({
         const isToday = dayKey === format(new Date(), 'yyyy-MM-dd');
         
         return (
-          <motion.div
+          <m.div
             key={dayKey}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -89,7 +89,7 @@ export function AgendaView({
                     const Icon = typeInfo.icon;
                     
                     return (
-                      <motion.div
+                      <m.div
                         key={block.id}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -205,13 +205,13 @@ export function AgendaView({
                             </Button>
                           </div>
                         </div>
-                      </motion.div>
+                      </m.div>
                     );
                   })}
                 </div>
               </CardContent>
             </Card>
-          </motion.div>
+          </m.div>
         );
       })}
     </div>

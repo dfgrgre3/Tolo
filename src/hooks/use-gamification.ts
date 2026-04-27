@@ -1,8 +1,8 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/lib/logger';
-import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/services/gamification-service';
+import { UserProgress, Achievement, LeaderboardEntry, CustomGoal } from '@/types/gamification';
 export type { CustomGoal };
 import * as gamificationApi from '@/lib/api/gamification-client';
 

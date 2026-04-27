@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -127,7 +127,7 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
       <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none" />
       
       <div className="relative z-10">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -145,10 +145,10 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
           <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
             توصيات مدعومة بالذكاء الاصطناعي مصممة خصيصاً لك بناءً على أدائك القتالي وتطورك المعرفي.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Category Filter */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -169,7 +169,7 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
               <span className="font-bold text-sm tracking-wide">{category.label}</span>
             </button>
           ))}
-        </motion.div>
+        </m.div>
 
         {/* Recommendations Grid */}
         {loading ? (
@@ -180,7 +180,7 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence>
               {filteredRecommendations.length > 0 ? filteredRecommendations.map((recommendation, index) => (
-                <motion.div
+                <m.div
                   key={recommendation.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -237,7 +237,7 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
                           <span className="text-primary">{recommendation.impact}%</span>
                         </div>
                         <div className="h-2 bg-black/40 rounded-full overflow-hidden ring-1 ring-white/5 shadow-inner">
-                          <motion.div
+                          <m.div
                             initial={{ width: 0 }}
                             animate={{ width: `${recommendation.impact}%` }}
                             transition={{ delay: index * 0.1 + 0.3, duration: 1, ease: "easeOut" }}
@@ -254,7 +254,7 @@ export const IntelligentRecommendationsSection = memo(function IntelligentRecomm
                       </Link>
                     </CardContent>
                   </Card>
-                </motion.div>
+                </m.div>
               )) : (
                 <div className="col-span-full text-center py-20 flex flex-col items-center">
                    <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">

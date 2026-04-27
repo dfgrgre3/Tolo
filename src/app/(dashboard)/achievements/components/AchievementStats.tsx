@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AchievementStats as StatsType, AchievementCategory } from '../types';
 import { getCategoryIcon, getCategoryLabel } from '../utils';
 import { Trophy, Zap, Sparkles, Lock } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 interface AchievementStatsProps {
   stats: StatsType | null;
@@ -42,7 +42,7 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
                 strokeWidth="10"
                 fill="none" />
               
-							<motion.circle
+							<m.circle
                 initial={{ strokeDashoffset: circleCircumference }}
                 animate={{ strokeDashoffset }}
                 transition={{ duration: 2, ease: "easeOut" }}
@@ -118,7 +118,7 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 				<CardContent className="px-8 pb-8 pt-4">
 					<div className="grid grid-cols-2 sm:grid-cols-4 gap-4 h-full">
 						{(Object.entries(stats.byCategory) as [AchievementCategory, number][]).map(([category, count], idx) =>
-            <motion.div
+            <m.div
               key={category}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -130,7 +130,7 @@ export function AchievementStats({ stats, userProgress }: AchievementStatsProps)
 								<div className="text-[9px] font-black text-gray-500 uppercase tracking-tighter mt-1 group-hover:text-primary transition-colors">
 									{getCategoryLabel(category)}
 								</div>
-							</motion.div>
+							</m.div>
             )}
 					</div>
 				</CardContent>

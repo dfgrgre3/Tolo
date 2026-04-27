@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { 
   Megaphone, 
   Trophy, 
@@ -128,7 +128,7 @@ export default function AnnouncementsPage() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-16">
         
         {/* --- Hero Section: The Royal Square --- */}
-        <motion.div 
+        <m.div 
            initial={{ opacity: 0, y: 30 }}
            animate={{ opacity: 1, y: 0 }}
            className={STYLES.glass + " p-12 md:p-24 relative group overflow-hidden"}
@@ -163,7 +163,7 @@ export default function AnnouncementsPage() {
 
               <div className="relative w-72 h-72 hidden lg:block">
                  <div className="absolute inset-0 bg-primary/20 blur-[100px] rounded-full animate-pulse" />
-                 <motion.div 
+                 <m.div 
                    animate={{ rotate: 360 }}
                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                    className="absolute inset-0 border border-dashed border-primary/20 rounded-full"
@@ -173,7 +173,7 @@ export default function AnnouncementsPage() {
                  </div>
               </div>
            </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Switcher & Search Armory --- */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-8">
@@ -228,7 +228,7 @@ export default function AnnouncementsPage() {
                 {[1, 2, 3].map(i => <div key={i} className={STYLES.glass + " h-96 animate-pulse"} />)}
              </div>
            ) : activeTab === "announcements" ? (
-             <motion.div 
+             <m.div 
                key="announcements"
                initial={{ opacity: 0, x: -20 }}
                animate={{ opacity: 1, x: 0 }}
@@ -236,7 +236,7 @@ export default function AnnouncementsPage() {
                className="grid grid-cols-1 md:grid-cols-3 gap-10"
              >
                 {filteredAnnouncements.map((item, idx) => (
-                  <motion.div
+                  <m.div
                     key={item.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -284,11 +284,11 @@ export default function AnnouncementsPage() {
                            </Button>
                         </Link>
                      </div>
-                  </motion.div>
+                  </m.div>
                 ))}
-             </motion.div>
+             </m.div>
            ) : (
-             <motion.div 
+             <m.div 
                key="contests"
                initial={{ opacity: 0, x: 20 }}
                animate={{ opacity: 1, x: 0 }}
@@ -296,7 +296,7 @@ export default function AnnouncementsPage() {
                className="grid grid-cols-1 md:grid-cols-3 gap-10"
              >
                 {filteredContests.map((item, idx) => (
-                  <motion.div
+                  <m.div
                     key={item.id}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -342,9 +342,9 @@ export default function AnnouncementsPage() {
                            </Button>
                         </Link>
                      </div>
-                  </motion.div>
+                  </m.div>
                 ))}
-             </motion.div>
+             </m.div>
            )}
         </AnimatePresence>
       </div>

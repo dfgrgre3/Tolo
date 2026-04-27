@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 import {
@@ -84,14 +84,14 @@ export default function GamifiedCoursesDashboard() {
   return (
     <div className="space-y-8 animate-in fade-in duration-700" dir="rtl">
       {/* â”€â”€â”€ Stats Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, staggerChildren: 0.1 }}
         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         
         {/* Level Card */}
-        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-amber-500/20 shadow-[0_8px_32px_rgba(245,158,11,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <div className="absolute -top-10 -left-10 w-32 h-32 bg-amber-500/20 rounded-full blur-3xl group-hover:bg-amber-500/30 transition-colors" />
@@ -108,10 +108,10 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
 
         {/* Active Quests */}
-        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-blue-500/20 shadow-[0_8px_32px_rgba(59,130,246,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
@@ -127,10 +127,10 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
 
         {/* Victories */}
-        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-emerald-500/20 shadow-[0_8px_32px_rgba(16,185,129,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
@@ -146,10 +146,10 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
 
         {/* Streak */}
-        <motion.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
+        <m.div whileHover={{ y: -8, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }}>
           <Card className="h-full bg-background/30 backdrop-blur-2xl border border-rose-500/20 shadow-[0_8px_32px_rgba(244,63,94,0.15)] relative overflow-hidden group rounded-3xl">
             <div className="absolute inset-0 bg-gradient-to-br from-rose-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
             <CardContent className="flex items-center justify-between p-6">
@@ -166,8 +166,8 @@ export default function GamifiedCoursesDashboard() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
 
       {/* â”€â”€â”€ Main Content Area â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -209,7 +209,7 @@ export default function GamifiedCoursesDashboard() {
               <AnimatePresence mode="wait">
                 
                 {activeTab === "active" &&
-                <motion.div
+                <m.div
                   key="active"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -261,11 +261,11 @@ export default function GamifiedCoursesDashboard() {
                         </Button>
                       </div>
                   }
-                  </motion.div>
+                  </m.div>
                 }
 
                 {activeTab === "completed" &&
-                <motion.div
+                <m.div
                   key="completed"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -300,11 +300,11 @@ export default function GamifiedCoursesDashboard() {
                         <p className="text-sm text-muted-foreground mt-1">طريق الألف ميل يبدأ بخطوة. أكمل دورة للحصول على شارة النصر.</p>
                       </div>
                   }
-                  </motion.div>
+                  </m.div>
                 }
 
                 {activeTab === "explore" &&
-                <motion.div
+                <m.div
                   key="explore"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -349,7 +349,7 @@ export default function GamifiedCoursesDashboard() {
                         <h4 className="text-lg font-bold">لا توجد دورات جديدة متاحة حالياً</h4>
                       </div>
                   }
-                  </motion.div>
+                  </m.div>
                 }
 
               </AnimatePresence>

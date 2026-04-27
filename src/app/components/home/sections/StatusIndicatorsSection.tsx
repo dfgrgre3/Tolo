@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, memo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -189,7 +189,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
       <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 via-transparent to-purple-500/10 mix-blend-overlay" />
       
       <div className="relative z-10">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -202,11 +202,11 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
           <p className="text-gray-400 text-lg">
             رصد حالة النظام والاتصال والخدمات في الوقت الفعلي
           </p>
-        </motion.div>
+        </m.div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {indicators.map((indicator, index) =>
-          <motion.div
+          <m.div
             key={indicator.id}
             initial={{ opacity: 0, scale: 0.9 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -235,12 +235,12 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
                   </p>
                 </CardContent>
               </Card>
-            </motion.div>
+            </m.div>
           )}
         </div>
 
         {/* System Health Summary */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -270,7 +270,7 @@ export const StatusIndicatorsSection = memo(function StatusIndicatorsSection() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
       </div>
     </section>);
 

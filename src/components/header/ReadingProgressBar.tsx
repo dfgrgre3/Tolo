@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { memo, useMemo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useStickyHeader } from "@/hooks/use-sticky-header";
 
@@ -87,7 +87,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
       >
         {/* Progress bar */}
         {animate ? (
-          <motion.div
+          <m.div
             className={cn(
               "h-full origin-left relative",
               gradientClass,
@@ -105,7 +105,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
             {/* Glow effect at the end of the bar */}
             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-full bg-white/40 blur-sm rounded-full" />
             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-[150%] bg-primary blur-[2px] rounded-full shadow-[0_0_10px_var(--primary)]" />
-          </motion.div>
+          </m.div>
         ) : (
           <div
             className={cn(
@@ -120,7 +120,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
 
       {/* Optional percentage indicator */}
       {showPercentage && currentProgress > 0 && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className={cn(
@@ -129,7 +129,7 @@ export const ReadingProgressBar = memo(function ReadingProgressBar({
           )}
         >
           {displayProgress}%
-        </motion.div>
+        </m.div>
       )}
     </div>
   );
@@ -147,7 +147,7 @@ export const MinimalProgressIndicator = memo(function MinimalProgressIndicator({
   if (displayProgress === 0) return null;
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.8 }}
@@ -167,7 +167,7 @@ export const MinimalProgressIndicator = memo(function MinimalProgressIndicator({
           strokeWidth="2"
           strokeOpacity="0.2"
         />
-        <motion.circle
+        <m.circle
           cx="10"
           cy="10"
           r="8"
@@ -188,7 +188,7 @@ export const MinimalProgressIndicator = memo(function MinimalProgressIndicator({
         />
       </svg>
       <span>{displayProgress}%</span>
-    </motion.div>
+    </m.div>
   );
 });
 

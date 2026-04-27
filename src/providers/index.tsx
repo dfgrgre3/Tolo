@@ -13,6 +13,7 @@ import ErrorBoundary from '@/components/error-boundary';
 import { HydrationFix } from '@/components/hydration-fix';
 import GlobalSettingsApplier from '@/components/layout/global-settings-applier';
 import { ScrollPersistence } from '@/components/layout/ScrollPersistence';
+import { LazyMotion, domAnimation } from 'framer-motion';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,6 +38,8 @@ type GlobalProvidersProps = {
   initialAuthHint?: boolean;
 };
 
+import { EfficiencyProvider } from '@/hooks/use-efficiency';
+
 /**
  * GlobalProviders - Root provider composition.
  * 
@@ -53,25 +56,29 @@ export function GlobalProviders({ children, initialAuthHint }: GlobalProvidersPr
   return (
     <ErrorBoundary variant="global">
       <Suspense fallback={null}>
-        <ClientLayoutProvider>
-          <HydrationFix />
-          <ScrollPersistence />
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider initialAuthHint={initialAuthHint}>
-              <GlobalSettingsApplier>
-                  <WebSocketProvider>
-                    <NotificationsProvider>
-                      <TooltipProvider>
-                        {children}
-                        <Footer />
-                        <Toaster richColors closeButton position="top-center" />
-                      </TooltipProvider>
-                    </NotificationsProvider>
-                  </WebSocketProvider>
-                </GlobalSettingsApplier>
-              </AuthProvider>
-            </QueryClientProvider>
-        </ClientLayoutProvider>
+        <EfficiencyProvider>
+          <ClientLayoutProvider>
+            <HydrationFix />
+            <ScrollPersistence />
+            <QueryClientProvider client={queryClient}>
+              <AuthProvider initialAuthHint={initialAuthHint}>
+                <GlobalSettingsApplier>
+                    <WebSocketProvider>
+                      <NotificationsProvider>
+                        <TooltipProvider>
+                          <LazyMotion features={domAnimation} strict>
+                            {children}
+                            <Footer />
+                          </LazyMotion>
+                          <Toaster richColors closeButton position="top-center" />
+                        </TooltipProvider>
+                      </NotificationsProvider>
+                    </WebSocketProvider>
+                  </GlobalSettingsApplier>
+                </AuthProvider>
+              </QueryClientProvider>
+          </ClientLayoutProvider>
+        </EfficiencyProvider>
       </Suspense>
     </ErrorBoundary>
   );

@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 
 export function HeaderLogo() {
@@ -14,7 +14,7 @@ export function HeaderLogo() {
       prefetch={true}
       scroll={true}>
       
-      <motion.div
+      <m.div
         className="relative flex items-center justify-center w-12 h-12 rounded-xl overflow-hidden bg-white border border-primary/20 shadow-sm transition-all duration-300 group-hover:border-primary group-hover:shadow-[0_0_20px_rgba(255,109,0,0.3)]"
         whileHover={{ scale: 1.1, rotate: 5 }}
         whileTap={{ scale: 0.95 }}>
@@ -28,12 +28,12 @@ export function HeaderLogo() {
           sizes="48px"
           priority />
         
-        <motion.div
+        <m.div
           animate={{ rotate: 360 }}
           transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
           className="absolute inset-0 rounded-xl border border-dashed border-primary/10 opacity-0 group-hover:opacity-100" />
         
-      </motion.div>
+      </m.div>
       
       <div className="flex flex-col">
         <h1 className="text-3xl font-black tracking-tighter leading-none text-[#1A237E] dark:text-white uppercase transition-colors group-hover:text-primary">
@@ -46,5 +46,4 @@ export function HeaderLogo() {
         </div>
       </div>
     </Link>);
-
 }

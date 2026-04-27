@@ -32,7 +32,7 @@ import {
   Sword,
   Calendar } from
 "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 import { Card } from "@/components/ui/card";
@@ -117,10 +117,30 @@ export default function ProgressPage() {
       try {
         const userId = await ensureUser();
         const res = await fetch(`/api/progress/summary?userId=${userId}`);
+        
+        // Check if the response is OK before trying to parse JSON
+        if (!res.ok) {
+          console.warn(`Progress summary API returned ${res.status}, using default values`);
+          setSummary({
+            totalMinutes: 0,
+            averageFocus: 0,
+            tasksCompleted: 0,
+            streakDays: 0
+          });
+          return;
+        }
+        
         const data = await res.json();
         setSummary(data);
       } catch (err: unknown) {
-        logger.error("Failed to fetch summary", err instanceof Error ? err.message : String(err));
+        console.warn("Failed to fetch summary, using default values:", err instanceof Error ? err.message : String(err));
+        // Set default values on error to prevent UI from breaking
+        setSummary({
+          totalMinutes: 0,
+          averageFocus: 0,
+          tasksCompleted: 0,
+          streakDays: 0
+        });
       } finally {
         setIsLoading(false);
       }
@@ -142,7 +162,7 @@ export default function ProgressPage() {
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         
         {/* --- Header Section --- */}
-        <motion.div
+        <m.div
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   className="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -170,7 +190,7 @@ export default function ProgressPage() {
                 <p className="text-white font-black text-xl">{totalXP} XP</p>
              </div>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Stats Grid --- */}
         <div className="grid gap-6 md:grid-cols-4">
@@ -180,7 +200,7 @@ export default function ProgressPage() {
   { label: "معدل التركيز", value: summary?.averageFocus ?? 0, unit: "%", icon: Brain, color: "text-purple-400" },
   { label: "المهمات المنجزة", value: summary?.tasksCompleted ?? 0, unit: "مهمة", icon: Target, color: "text-emerald-400" }].
   map((stat, idx) =>
-  <motion.div
+  <m.div
     key={idx}
     initial={{ opacity: 0, scale: 0.9 }}
     animate={{ opacity: 1, scale: 1 }}
@@ -200,7 +220,7 @@ export default function ProgressPage() {
                       <span className="text-gray-400 font-medium">{stat.unit}</span>
                    </div>
                 </div>
-             </motion.div>
+             </m.div>
   )}
         </div>
 
@@ -224,7 +244,7 @@ export default function ProgressPage() {
            <TabsContent key="skills" value="skills" className="m-0 focus-visible:outline-none">
                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Radar Chart Section */}
-                    <motion.div
+                    <m.div
                 key="skills-radar"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -258,10 +278,10 @@ export default function ProgressPage() {
                              </RadarChart>
                           </ResponsiveContainer>
                        </div>
-                    </motion.div>
+                    </m.div>
 
                     {/* Skill List Section */}
-                    <motion.div
+                    <m.div
                 key="skills-list"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -285,7 +305,7 @@ export default function ProgressPage() {
                                       <span>{skill.level}%</span>
                                    </div>
                                    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-                                      <motion.div
+                                      <m.div
                           initial={{ width: 0 }}
                           animate={{ width: `${skill.level}%` }}
                           transition={{ duration: 1, delay: idx * 0.1 }}
@@ -299,14 +319,14 @@ export default function ProgressPage() {
                        <Button variant="outline" className="w-full border-white/10 hover:bg-white/5 text-gray-500 hover:text-white rounded-xl h-12">
                           عرض جميع المهارات
                        </Button>
-                    </motion.div>
+                    </m.div>
                  </div>
               </TabsContent>
 
               <TabsContent key="charts" value="charts" className="m-0 focus-visible:outline-none">
                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Activity Area Chart */}
-                    <motion.div
+                    <m.div
                 key="chart-activity"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -346,10 +366,10 @@ export default function ProgressPage() {
                              </AreaChart>
                           </ResponsiveContainer>
                        </div>
-                    </motion.div>
+                    </m.div>
 
                     {/* Progression Line Chart */}
-                    <motion.div
+                    <m.div
                 key="chart-growth"
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -380,7 +400,7 @@ export default function ProgressPage() {
                               </LineChart>
                            </ResponsiveContainer>
                         </div>
-                     </motion.div>
+                     </m.div>
                   </div>
                </TabsContent>
 

@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Trash2, Zap } from "lucide-react";
 import {
   actionOptions,
@@ -35,7 +35,7 @@ export function RuleCard({
   onDelete,
 }: RuleCardProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -193,6 +193,6 @@ export function RuleCard({
           )}
         </div>
       </AdminCard>
-    </motion.div>
+    </m.div>
   );
 }

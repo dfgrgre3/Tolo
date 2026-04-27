@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   GraduationCap,
   Users,
@@ -67,22 +67,22 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
         </svg>
       </div>
 
-      <motion.div
+      <m.div
         variants={container}
         initial="hidden"
         animate="show"
         className="relative z-10 flex flex-col items-center text-center gap-10">
         
         {/* Top badge */}
-        <motion.div variants={item}>
+        <m.div variants={item}>
           <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm font-bold text-primary">
             <Sparkles className="h-4 w-4" />
             <span>منصة تعليمية متكاملة</span>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Main heading */}
-        <motion.div variants={item} className="space-y-4 max-w-3xl">
+        <m.div variants={item} className="space-y-4 max-w-3xl">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] text-gray-900 dark:text-white">
             اكتشف عالم
             <br />
@@ -94,10 +94,10 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
             استكشف مئات الدورات التعليمية المصممة بعناية لتطوير مهاراتك.
             اختر مسارك التعليمي وابدأ رحلتك نحو التميز اليوم.
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Feature badges */}
-        <motion.div variants={item} className="flex flex-wrap items-center justify-center gap-3">
+        <m.div variants={item} className="flex flex-wrap items-center justify-center gap-3">
           {[
           { icon: TrendingUp, text: "محتوى محدّث", color: "text-emerald-500" },
           { icon: Award, text: "شهادات معتمدة", color: "text-amber-500" },
@@ -111,15 +111,15 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
               <span className="font-medium text-gray-600 dark:text-gray-300">{feature.text}</span>
             </div>
           )}
-        </motion.div>
+        </m.div>
 
         {/* Stats */}
-        <motion.div
+        <m.div
           variants={item}
           className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-3xl">
           
           {stats.map((stat, index) =>
-          <motion.div
+          <m.div
             key={index}
             whileHover={{ y: -4 }}
             className="group relative rounded-2xl border border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] p-5 text-center transition-all duration-300 hover:border-gray-200 dark:hover:border-white/10 hover:shadow-lg">
@@ -134,10 +134,10 @@ export const CoursesHero: React.FC<CoursesHeroProps> = ({
                 <span className="text-sm font-bold text-gray-400 mr-0.5">{stat.suffix}</span>
               </div>
               <div className="text-xs font-medium text-gray-500 mt-1">{stat.label}</div>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </section>);
 
 };

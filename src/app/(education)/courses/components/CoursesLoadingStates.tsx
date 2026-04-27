@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -13,7 +13,7 @@ const Shimmer: React.FC<{className?: string;}> = ({ className }) =>
 
 // Course card skeleton
 const CourseCardSkeleton: React.FC<{index?: number;}> = ({ index = 0 }) =>
-<motion.div
+<m.div
   initial={{ opacity: 0, y: 16 }}
   animate={{ opacity: 1, y: 0 }}
   transition={{ delay: index * 0.05 }}
@@ -35,7 +35,7 @@ const CourseCardSkeleton: React.FC<{index?: number;}> = ({ index = 0 }) =>
         <Shimmer className="h-9 w-24 rounded-xl" />
       </div>
     </div>
-  </motion.div>;
+  </m.div>;
 
 
 // Full page loading skeleton
@@ -88,7 +88,7 @@ export const CoursesLoadingSkeleton: React.FC = () =>
 
 // Empty state
 export const CoursesEmptyState: React.FC = () =>
-<motion.div
+<m.div
   initial={{ opacity: 0, y: 20 }}
   animate={{ opacity: 1, y: 0 }}
   className="flex flex-col items-center justify-center py-20 text-center">
@@ -103,7 +103,7 @@ export const CoursesEmptyState: React.FC = () =>
     <p className="text-sm text-gray-500 max-w-sm mb-6">
       لم نجد أي دورات تطابق معايير البحث. جرب تغيير الفلاتر أو ابحث بكلمات مختلفة.
     </p>
-  </motion.div>;
+  </m.div>;
 
 
 // Inline loader

@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Trophy, Star, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -17,7 +17,7 @@ export function LeaderboardCard() {
   };
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       className={STYLES.glass + " p-6 space-y-4 hover:border-amber-500/20 transition-all duration-500"}>
@@ -64,6 +64,6 @@ export function LeaderboardCard() {
       <button className="w-full py-3 text-xs font-black text-gray-500 hover:text-white transition-colors border-t border-white/5 mt-2">
          عرض القائمة الكاملة
       </button>
-    </motion.div>);
+    </m.div>);
 
 }

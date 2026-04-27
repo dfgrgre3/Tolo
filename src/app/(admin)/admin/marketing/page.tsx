@@ -15,7 +15,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Send, Target, Sparkles, Gift, BellRing, Users, MailOpen } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { logger } from '@/lib/logger';
 
 export default function MarketingPage() {
@@ -119,7 +119,7 @@ export default function MarketingPage() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-8">
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+        <m.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
           <AdminCard variant="glass" className="p-6 border-border/50 shadow-sm relative overflow-hidden">
              
              <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
@@ -220,10 +220,10 @@ export default function MarketingPage() {
 
              </form>
           </AdminCard>
-        </motion.div>
+        </m.div>
 
         {/* Live Preview / History Mock */}
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
+        <m.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="space-y-6">
            <div className="bg-accent/40 rounded-2xl p-6 border border-border/50 shadow-inner min-h-[400px]">
               <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground mb-6 text-center">المعاينة الحية للمحارب (Live Preview)</h4>
               
@@ -234,7 +234,7 @@ export default function MarketingPage() {
                 </div>
                 
                 <div className="p-4 mt-6">
-                   <motion.div 
+                   <m.div 
                      initial={{ y: -20, opacity: 0 }}
                      animate={{ y: 0, opacity: 1 }}
                      transition={{ delay: 0.5 }}
@@ -263,11 +263,11 @@ export default function MarketingPage() {
                           )}
                         </div>
                      </div>
-                   </motion.div>
+                   </m.div>
                 </div>
               </div>
            </div>
-        </motion.div>
+        </m.div>
       </div>
     </div>
   );

@@ -22,9 +22,10 @@ import {
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 // import removed
 import { formatDistanceToNow } from "date-fns";
+import { apiClient } from '@/lib/api/api-client';
 
 import { logger } from '@/lib/logger';
 
@@ -93,27 +94,25 @@ export function ActivityWidget() {
 
     const fetchActivities = async () => {
       try {
-        const response = await fetch("/api/activities/recent?limit=10");
-        if (response.ok) {
-          const data: ActivityItem[] = await response.json();
-          const items: ActivityItem[] = data.map((item: ActivityItem) => ({
-            id: item.id,
-            type: item.type,
-            title: item.title,
-            description: item.description,
-            timestamp: new Date(item.timestamp),
-            read: item.read || false,
-            icon: getIcon(item.type),
-            color: getColor(item.type),
-            action: () => {
-              if (item.url) {
-                window.location.href = item.url;
-              }
+        const data = await apiClient.get<any>("/activities/recent?limit=10");
+        const rawActivities = Array.isArray(data) ? data : (data?.activities || []);
+        const items: ActivityItem[] = rawActivities.map((item: any) => ({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          description: item.description,
+          timestamp: new Date(item.timestamp),
+          read: item.read || false,
+          icon: getIcon(item.type),
+          color: getColor(item.type),
+          action: () => {
+            if (item.url) {
+              window.location.href = item.url;
             }
-          }));
-          setActivities(items);
-          setUnreadCount(items.filter((item) => !item.read).length);
-        }
+          }
+        }));
+        setActivities(items);
+        setUnreadCount(items.filter((item) => !item.read).length);
       } catch (error) {
         logger.debug("Failed to fetch activities:", error);
       }
@@ -131,7 +130,7 @@ export function ActivityWidget() {
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`/api/activities/${id}/read`, { method: "POST" });
+      await apiClient.post<any>(`/activities/${id}/read`, {});
       setActivities((prev) =>
       prev.map((item) => item.id === id ? { ...item, read: true } : item)
       );
@@ -143,7 +142,7 @@ export function ActivityWidget() {
 
   const markAllAsRead = async () => {
     try {
-      await fetch("/api/activities/read-all", { method: "POST" });
+      await apiClient.post<any>("/activities/read-all", {});
       setActivities((prev) => prev.map((item) => ({ ...item, read: true })));
       setUnreadCount(0);
     } catch (error) {
@@ -168,7 +167,7 @@ export function ActivityWidget() {
           
 					<Activity className="h-4 w-4" />
 					{unreadCount > 0 &&
-          <motion.span
+          <m.span
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 border-2 border-background flex items-center justify-center">
@@ -176,7 +175,7 @@ export function ActivityWidget() {
 							<span className="text-[10px] font-bold text-white">
 								{unreadCount > 9 ? "9+" : unreadCount}
 							</span>
-						</motion.span>
+						</m.span>
           }
 				</Button>
 			</DropdownMenuTrigger>
@@ -212,7 +211,7 @@ export function ActivityWidget() {
           <div className="p-2 space-y-1">
 							<AnimatePresence>
 								{recentActivities.map((activity, index) =>
-              <motion.div
+              <m.div
                 key={activity.id}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -263,7 +262,7 @@ export function ActivityWidget() {
 											</div>
 											<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
 										</DropdownMenuItem>
-									</motion.div>
+									</m.div>
               )}
 							</AnimatePresence>
 						</div>

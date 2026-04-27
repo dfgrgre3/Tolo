@@ -4,7 +4,7 @@ import * as React from "react";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { Split, BarChart3, TrendingUp, Activity, Users, Target } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Link from "next/link";
 import { Experiment } from "@/types/ab-testing";
 
@@ -26,7 +26,7 @@ export const ABTestingOverview: React.FC<ABTestingOverviewProps> = ({ experiment
   }, null as Experiment | null);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
@@ -113,6 +113,6 @@ export const ABTestingOverview: React.FC<ABTestingOverviewProps> = ({ experiment
           </AdminButton>
         </Link>
       </AdminCard>
-    </motion.div>
+    </m.div>
   );
 };

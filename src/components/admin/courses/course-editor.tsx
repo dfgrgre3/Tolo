@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { apiClient } from "@/lib/api/api-client";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminUpload } from "@/components/admin/ui/admin-upload";
@@ -87,11 +88,50 @@ const courseSchema = z.object({
 
 type CourseFormValues = z.infer<typeof courseSchema>;
 
+export interface CourseCategory {
+  id: string;
+  name: string;
+}
+
+export interface CourseTeacher {
+  id: string;
+  name: string;
+}
+
+export interface CourseInitialData {
+  id: string;
+  name?: string;
+  nameAr?: string | null;
+  code?: string | null;
+  price?: number | null;
+  level?: "BEGINNER" | "INTERMEDIATE" | "ADVANCED" | string;
+  instructorName?: string | null;
+  instructorId?: string | null;
+  categoryId?: string | null;
+  description?: string | null;
+  isActive?: boolean;
+  isPublished?: boolean;
+  durationHours?: number | null;
+  requirements?: string | null;
+  learningObjectives?: string | null;
+  thumbnailUrl?: string | null;
+  trailerUrl?: string | null;
+  trailerDurationMinutes?: number | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  slug?: string | null;
+  isFeatured?: boolean;
+  language?: string | null;
+  coursePrerequisites?: string | string[] | null;
+  targetAudience?: string | string[] | null;
+  whatYouLearn?: string | string[] | null;
+}
+
 interface CourseEditorProps {
-  initialData?: any;
+  initialData?: CourseInitialData;
   courseId?: string;
-  categories?: any[];
-  teachers?: any[];
+  categories?: CourseCategory[];
+  teachers?: CourseTeacher[];
   allCourses?: Array<{ id: string; name: string; nameAr?: string | null }>;
 }
 
@@ -134,7 +174,7 @@ export function CourseEditor({
   }, []);
 
   const form = useForm<CourseFormValues>({
-    resolver: zodResolver(courseSchema) as any,
+    resolver: zodResolver(courseSchema),
     defaultValues: {
       name: initialData?.name || "",
       nameAr: initialData?.nameAr || "",
@@ -179,15 +219,10 @@ export function CourseEditor({
     const fetchCurriculumStats = async () => {
       setIsCurriculumLoading(true);
       try {
-        const response = await fetch(`/api/admin/courses/${courseId}/curriculum`);
-        const result = await response.json();
-
-        if (!response.ok) {
-          throw new Error(result?.message || result?.error || "تعذر تحميل بيانات المنهج");
-        }
+        const result = await apiClient.get<any>(`/admin/courses/${courseId}/curriculum`);
 
         if (isMounted) {
-          setCurriculumStats(result.data?.stats || null);
+          setCurriculumStats(result.data?.stats || result.stats || null);
         }
       } catch {
         if (isMounted) {
@@ -211,24 +246,26 @@ export function CourseEditor({
     setIsSubmitting(true);
     try {
       const isEdit = !!courseId;
-      const response = await fetch("/api/admin/courses", {
-        method: isEdit ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...(isEdit ? { id: initialData.id } : {}),
-          ...values,
-          coursePrerequisites: values.coursePrerequisites || values.requirements || "",
-          targetAudience: values.targetAudience || "",
-          whatYouLearn: values.whatYouLearn || values.learningObjectives || "",
-        }),
-      });
+      const result = await (isEdit 
+        ? apiClient.patch<any>(`/admin/courses`, {
+            id: initialData.id,
+            ...values,
+            coursePrerequisites: values.coursePrerequisites || values.requirements || "",
+            targetAudience: values.targetAudience || "",
+            whatYouLearn: values.whatYouLearn || values.learningObjectives || "",
+          })
+        : apiClient.post<any>(`/admin/courses`, {
+            ...values,
+            coursePrerequisites: values.coursePrerequisites || values.requirements || "",
+            targetAudience: values.targetAudience || "",
+            whatYouLearn: values.whatYouLearn || values.learningObjectives || "",
+          }));
 
-      const result = await response.json();
-      if (response.ok) {
+      if (result) {
         toast.success(
           isEdit ? "تم تحديث الدورة بنجاح" : "تم إنشاء الدورة بنجاح",
         );
-        const createdCourseId = result?.data?.course?.id;
+        const createdCourseId = result?.data?.course?.id || result?.id;
         router.refresh();
         if (!isEdit && createdCourseId) {
           router.push(`/admin/courses/${createdCourseId}/curriculum`);
@@ -236,8 +273,9 @@ export function CourseEditor({
       } else {
         throw new Error(result?.error || result?.message || "فشل حفظ الدورة");
       }
-    } catch (error: any) {
-      toast.error(error.message || "فشل حفظ الدورة");
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || "فشل حفظ الدورة");
     } finally {
       setIsSubmitting(false);
     }
@@ -272,12 +310,12 @@ export function CourseEditor({
     ? `https://www.youtube.com/embed/${youtubeMatch[1]}`
     : null;
 
-  const control = form.control as any;
+  const control = form.control;
 
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(onSubmit as any)}
+        onSubmit={form.handleSubmit(onSubmit)}
         className="space-y-8"
         dir="rtl"
       >

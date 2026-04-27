@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { rpgCommonStyles } from "./constants";
 
 export const FeatureCard = ({ icon, title, description, badge, link, color, delay = 0 }: FeatureItem) => {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -57,7 +57,7 @@ export const FeatureCard = ({ icon, title, description, badge, link, color, dela
           )}
         </CardContent>
       </Card>
-    </motion.div>
+    </m.div>
   );
 };
 

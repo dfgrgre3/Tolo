@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { format } from 'date-fns';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 import type { TimeBlock, WeeklyScheduleProps } from './WeeklySchedule/types';
 import { calculateWeekStats, addMinutesToTime } from './WeeklySchedule/utils';
@@ -333,7 +333,7 @@ export default function WeeklySchedule({
         onShowCompletedToggle={() => setShowCompleted(!showCompleted)}
       />
 
-      <motion.div 
+      <m.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative"
@@ -369,7 +369,7 @@ export default function WeeklySchedule({
             )}
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
 
       <BlockFormDialog
         isOpen={isDialogOpen}

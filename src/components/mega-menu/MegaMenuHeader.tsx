@@ -4,7 +4,7 @@
 
 import React, { useRef, useEffect } from "react";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 import { Search, Command, X, Zap, Bell, Hash } from "lucide-react";
 
@@ -128,7 +128,7 @@ export function MegaMenuHeader({
 
 					{/* Search icon with animation */}
 
-					<motion.div
+					<m.div
 
 						animate={isSearchFocused ? { scale: [1, 1.2, 1], rotate: [0, 10] } : {}}
 
@@ -146,7 +146,7 @@ export function MegaMenuHeader({
 
 						<Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within/search:text-primary transition-all duration-300 z-10" />
 
-					</motion.div>
+					</m.div>
 
 					
 
@@ -192,7 +192,7 @@ export function MegaMenuHeader({
 
 					{!searchQuery && !isSearchFocused && (
 
-						<motion.div
+						<m.div
 
 							initial={{ opacity: 0 }}
 
@@ -206,7 +206,7 @@ export function MegaMenuHeader({
 
 							<kbd className="text-[10px] font-mono text-muted-foreground">/</kbd>
 
-						</motion.div>
+						</m.div>
 
 					)}
 
@@ -216,7 +216,7 @@ export function MegaMenuHeader({
 
 					{searchQuery && (
 
-						<motion.button
+						<m.button
 
 							initial={{ opacity: 0, scale: 0.8, rotate: -90 }}
 
@@ -238,7 +238,7 @@ export function MegaMenuHeader({
 
 							<X className="h-3 w-3" />
 
-						</motion.button>
+						</m.button>
 
 					)}
 
@@ -250,7 +250,7 @@ export function MegaMenuHeader({
 
 				{hasSearchResults && (
 
-					<motion.div
+					<m.div
 
 						initial={{ opacity: 0, x: -10, scale: 0.9 }}
 
@@ -260,7 +260,7 @@ export function MegaMenuHeader({
 
 					>
 
-						<motion.div
+						<m.div
 
 							animate={{ rotate: [0, 360] }}
 
@@ -270,11 +270,11 @@ export function MegaMenuHeader({
 
 							<Zap className="h-3.5 w-3.5" />
 
-						</motion.div>
+						</m.div>
 
 						<span>{totalItems} نتيجة</span>
 
-					</motion.div>
+					</m.div>
 
 				)}
 
@@ -296,7 +296,7 @@ export function MegaMenuHeader({
 
 					>
 
-						<motion.div
+						<m.div
 
 							whileHover={{ rotate: 12, scale: 1.1 }}
 
@@ -306,11 +306,11 @@ export function MegaMenuHeader({
 
 							<Bell className="h-4 w-4" />
 
-						</motion.div>
+						</m.div>
 
 						{notificationCount > 0 && (
 
-							<motion.span
+							<m.span
 
 								initial={false}
 
@@ -324,7 +324,7 @@ export function MegaMenuHeader({
 
 								{notificationCount > 9 ? "9+" : notificationCount}
 
-							</motion.span>
+							</m.span>
 
 						)}
 
@@ -350,7 +350,7 @@ export function MegaMenuHeader({
 
 				>
 
-					<motion.div
+					<m.div
 
 						whileHover={{ rotate: 90 }}
 
@@ -360,7 +360,7 @@ export function MegaMenuHeader({
 
 						<X className="h-4 w-4" />
 
-					</motion.div>
+					</m.div>
 
 				</Button>
 
@@ -374,7 +374,7 @@ export function MegaMenuHeader({
 
 				{isSearchFocused && !searchQuery && recentSearches.length > 0 && (
 
-					<motion.div
+					<m.div
 
 						initial={{ opacity: 0, height: 0 }}
 
@@ -392,7 +392,7 @@ export function MegaMenuHeader({
 
 							{recentSearches.map((search, index) => (
 
-								<motion.button
+								<m.button
 
 									key={`${search}-${index}`}
 
@@ -412,13 +412,13 @@ export function MegaMenuHeader({
 
 									{search}
 
-								</motion.button>
+								</m.button>
 
 							))}
 
 						</div>
 
-					</motion.div>
+					</m.div>
 
 				)}
 

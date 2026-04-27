@@ -1,9 +1,9 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { hasPermission, Permission } from "@/lib/permissions";
-import { UserRole } from "@prisma/client";
+import { UserRole } from "@/types/enums";
 
 interface PermissionGuardProps {
   permission?: Permission;

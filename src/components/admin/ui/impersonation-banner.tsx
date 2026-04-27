@@ -1,9 +1,10 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import { LogOut, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { apiClient } from "@/lib/api/api-client";
 
 export function ImpersonationBanner() {
   const [isImpersonating, setIsImpersonating] = React.useState(false);
@@ -23,18 +24,11 @@ export function ImpersonationBanner() {
 
   const handleStop = async () => {
     try {
-      const res = await fetch("/api/admin/impersonate", {
-        method: "DELETE",
-      });
-
-      if (res.ok) {
-        toast.success("تم إيقاف المحاكاة، العودة لوضع المدير");
-        // Clear cookie manually just in case
-        document.cookie = "is_impersonating=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
-        window.location.href = "/admin/users";
-      } else {
-        toast.error("فشل إيقاف المحاكاة");
-      }
+      await apiClient.delete<any>("/admin/impersonate");
+      toast.success("تم إيقاف المحاكاة، العودة لوضع المدير");
+      // Clear cookie manually just in case
+      document.cookie = "is_impersonating=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      window.location.href = "/admin/users";
     } catch (_err) {
       toast.error("حدث خطأ ما");
     }

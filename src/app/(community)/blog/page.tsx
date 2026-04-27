@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { 
   Search,
@@ -106,7 +106,7 @@ export default function BlogPage() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-16">
         
         {/* --- Hero: Chronicles of the Sages --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(STYLES.glass, "p-12 md:p-24 relative group overflow-hidden")}>
@@ -141,7 +141,7 @@ export default function BlogPage() {
 
               <div className="relative w-80 h-80 hidden lg:block">
                  <div className="absolute inset-0 bg-primary/20 blur-[80px] rounded-full animate-pulse" />
-                 <motion.div
+                 <m.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 border border-dashed border-primary/20 rounded-full" />
@@ -151,7 +151,7 @@ export default function BlogPage() {
                  </div>
               </div>
            </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Tools of Discovery: Search & Filter --- */}
         <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
@@ -208,14 +208,14 @@ export default function BlogPage() {
                 {[1, 2, 3].map((i) => <div key={i} className="h-[450px] bg-white/5 rounded-[2.5rem] animate-pulse" />)}
              </div> :
           filteredPosts.length > 0 ?
-          <motion.div
+          <m.div
             key="posts"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             
                 {filteredPosts.map((post, idx) =>
-            <motion.div
+            <m.div
               key={post.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -267,9 +267,9 @@ export default function BlogPage() {
                            </Button>
                         </Link>
                      </div>
-                  </motion.div>
+                  </m.div>
             )}
-             </motion.div> :
+             </m.div> :
 
           <div className="py-40 text-center space-y-8 animate-in fade-in zoom-in">
                 <div className="p-8 bg-white/5 rounded-full w-max mx-auto border border-dashed border-white/10">
@@ -285,7 +285,7 @@ export default function BlogPage() {
         </AnimatePresence>
 
         {/* --- Bottom CTA: The Author Guild --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -314,7 +314,7 @@ export default function BlogPage() {
                 </Link>
             }
            </div>
-        </motion.div>
+        </m.div>
       </div>
     </div>);
 

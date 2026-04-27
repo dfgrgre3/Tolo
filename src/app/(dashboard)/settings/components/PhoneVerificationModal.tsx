@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import {
   X,
   Smartphone,
@@ -143,7 +143,7 @@ export default function PhoneVerificationModal({
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -151,7 +151,7 @@ export default function PhoneVerificationModal({
           className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
         
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -185,18 +185,18 @@ export default function PhoneVerificationModal({
             </div>
 
             {error &&
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               className="mb-6 flex items-center gap-3 rounded-xl bg-red-500/10 border border-red-500/20 p-4 text-sm text-red-400">
               
                 <AlertCircle className="h-5 w-5 shrink-0" />
                 <p>{error}</p>
-              </motion.div>
+              </m.div>
             }
 
             {step === 'SUCCESS' ?
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               className="py-8 flex flex-col items-center justify-center text-center">
@@ -205,7 +205,7 @@ export default function PhoneVerificationModal({
                   <CheckCircle2 className="h-10 w-10 text-green-400" />
                 </div>
                 <p className="text-white font-medium">حسابك الآن أكثر أماناً</p>
-              </motion.div> :
+              </m.div> :
             step === 'IDLE' || step === 'SENDING' ?
             <form onSubmit={handleSendOTP} className="space-y-6">
                 <div className="space-y-2">
@@ -289,7 +289,7 @@ export default function PhoneVerificationModal({
               </div>
             }
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </AnimatePresence>);
 

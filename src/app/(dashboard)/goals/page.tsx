@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { useGamification, CustomGoal } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import { ensureUser } from "@/lib/user-utils";
@@ -63,7 +63,7 @@ export default function GoalsPage() {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
       <div className="max-w-4xl mx-auto p-4">
         {/* Header */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-8">
@@ -74,10 +74,10 @@ export default function GoalsPage() {
           <p className="text-gray-600">
             حدد أهدافك الخاصة وسجل تقدمك نحو تحقيقها
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Filter Tabs */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -102,10 +102,10 @@ export default function GoalsPage() {
               </button>
             )}
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Create Goal Button */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.3 }}
@@ -117,7 +117,7 @@ export default function GoalsPage() {
             
             â‍• إنشاء هدف جديد
           </button>
-        </motion.div>
+        </m.div>
 
         {/* Goals Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -134,7 +134,7 @@ export default function GoalsPage() {
         </div>
 
         {filteredGoals.length === 0 &&
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center py-16">
@@ -154,7 +154,7 @@ export default function GoalsPage() {
             
               إنشاء أول هدف
             </button>
-          </motion.div>
+          </m.div>
         }
       </div>
 

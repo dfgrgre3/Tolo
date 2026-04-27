@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -72,7 +72,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
   }
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}>
@@ -89,7 +89,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
             {activities.map((activity, index) => {
               const Icon = activityIcons[activity.type];
               return (
-                <motion.div
+                <m.div
                   key={activity.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -100,14 +100,14 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                     borderColor: `var(--${activity.type}-200)`
                   }}>
                   
-                  <motion.div
+                  <m.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     className="flex-shrink-0">
                     
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-white shadow-lg">
                       <Icon className="h-6 w-6" />
                     </div>
-                  </motion.div>
+                  </m.div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h4 className="font-semibold text-base">
@@ -140,12 +140,12 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                       }
                     </div>
                   </div>
-                </motion.div>);
+                </m.div>);
 
             })}
           </div>
         </CardContent>
       </Card>
-    </motion.div>);
+    </m.div>);
 
 }

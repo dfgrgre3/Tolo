@@ -21,6 +21,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AiCommandCenter } from "@/components/admin/dashboard/ai-command-center";
 import { Reorder } from "framer-motion";
 import { toast } from "sonner";
+import { apiRoutes } from "@/lib/api/routes";
 
 const DailyActiveUsersChart = dynamic(() => import('./charts').then(mod => mod.DailyActiveUsersChart), { ssr: false, loading: () => <div className="h-[300px] w-full animate-pulse bg-muted/50 rounded-xl" /> });
 const DailyRegistrationsChart = dynamic(() => import('./charts').then(mod => mod.DailyRegistrationsChart), { ssr: false, loading: () => <div className="h-[300px] w-full animate-pulse bg-muted/50 rounded-xl" /> });
@@ -34,7 +35,7 @@ export default function AdminAnalyticsPage() {
   const { data, isLoading: loading, error: _queryError, refetch } = useQuery({
     queryKey: ['admin', 'analytics', period],
     queryFn: async () => {
-      const response = await fetch(`/api/admin/analytics?period=${period}`);
+      const response = await fetch(`${apiRoutes.admin.analytics}?period=${period}`);
       if (!response.ok) throw new Error("Failed to fetch analytics data");
       return response.json();
     },
@@ -342,7 +343,7 @@ export default function AdminAnalyticsPage() {
 
                          {s.danger && (
                             <div className="absolute -top-10 scale-90 w-max bg-red-500 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-bounce">
-                               نقطة اختناق خطيرة! âڑ ï¸ڈ
+                                نقطة اختناق خطيرة!
                                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-red-500 rotate-45"></div>
                             </div>
                          )}

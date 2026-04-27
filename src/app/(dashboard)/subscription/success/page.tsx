@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { CheckCircle2, ArrowRight, Download } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -44,32 +44,32 @@ export default function PaymentSuccessPage() {
         {/* Confetti effect background */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-green-400 to-emerald-500" />
         
-        <motion.div
+        <m.div
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: "spring", damping: 12, stiffness: 200 }}
           className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-8 text-green-500 shadow-[0_0_30px_rgba(34,197,94,0.2)]">
           
           <CheckCircle2 size={48} />
-        </motion.div>
+        </m.div>
 
-        <motion.h1
+        <m.h1
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-3xl font-bold mb-4">
           
           تم تفعيل اشتراكك!
-        </motion.h1>
+        </m.h1>
 
-        <motion.p
+        <m.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="text-gray-400 mb-8 leading-relaxed">
           
           شكراً لك، تم استلام دفعتك بنجاح. يمكنك الآن البدء في استخدام جميع مميزات باقتك الجديدة.
-        </motion.p>
+        </m.p>
 
         {orderId &&
         <div className="space-y-4 mb-10">
@@ -114,7 +114,7 @@ export default function PaymentSuccessPage() {
           </div>
         }
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}>
@@ -126,7 +126,7 @@ export default function PaymentSuccessPage() {
             الذهاب للوحة التحكم
             <ArrowRight size={18} className="rotate-180" />
           </Link>
-        </motion.div>
+        </m.div>
       </div>
     </div>);
 

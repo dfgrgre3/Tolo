@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, AlertCircle, CheckCircle2, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { Button } from '@/components/ui/button';
 
 function VerifyEmailContent() {
@@ -55,7 +55,7 @@ function VerifyEmailContent() {
     <div className="relative min-h-[500px] flex flex-col items-center justify-center p-8 text-center" dir="rtl">
       <AnimatePresence mode="wait">
         {status === 'loading' && (
-          <motion.div 
+          <m.div 
             key="loading"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -63,7 +63,7 @@ function VerifyEmailContent() {
             className="space-y-6"
           >
             <div className="relative w-24 h-24 mx-auto mb-10">
-               <motion.div 
+               <m.div 
                  animate={{ rotate: 360 }}
                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
                  className="absolute inset-0 border-4 border-primary/20 border-t-primary rounded-full"
@@ -72,11 +72,11 @@ function VerifyEmailContent() {
             </div>
             <h2 className="text-3xl font-black text-white tracking-tight">جاري التحقق...</h2>
             <p className="text-gray-400 font-medium">{message}</p>
-          </motion.div>
+          </m.div>
         )}
 
         {status === 'success' && (
-          <motion.div 
+          <m.div 
             key="success"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -84,7 +84,7 @@ function VerifyEmailContent() {
           >
             <div className="relative w-24 h-24 mx-auto mb-10 bg-green-500/10 rounded-[2rem] flex items-center justify-center shadow-2xl">
               <CheckCircle2 className="w-12 h-12 text-green-500" />
-              <motion.div 
+              <m.div 
                 animate={{ scale: [1, 1.2, 1], opacity: [0, 1, 0] }}
                 transition={{ duration: 2, repeat: Infinity }}
                 className="absolute inset-0 border-2 border-green-500 rounded-[2rem]"
@@ -102,11 +102,11 @@ function VerifyEmailContent() {
                 الدخول للمنصة <ArrowRight className="mr-3 h-5 w-5 rotate-180 group-hover:-translate-x-1 transition-transform" />
               </Link>
             </Button>
-          </motion.div>
+          </m.div>
         )}
 
         {status === 'error' && (
-          <motion.div 
+          <m.div 
             key="error"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -133,7 +133,7 @@ function VerifyEmailContent() {
                 العودة للبوابة
               </Link>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
       
@@ -152,7 +152,7 @@ export default function VerifyEmailPage() {
       <div className="absolute top-[-5%] left-[-5%] w-[600px] h-[600px] bg-primary/10 blur-[130px] rounded-full" />
       <div className="absolute bottom-[-5%] right-[-5%] w-[500px] h-[500px] bg-blue-600/5 blur-[130px] rounded-full" />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative w-full max-w-[500px] rounded-[3rem] border border-white/10 bg-white/5 backdrop-blur-3xl shadow-2xl p-4 md:p-8"
@@ -160,7 +160,7 @@ export default function VerifyEmailPage() {
         <Suspense fallback={<div className="flex justify-center p-12"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>}>
           <VerifyEmailContent />
         </Suspense>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

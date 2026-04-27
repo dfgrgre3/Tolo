@@ -8,7 +8,7 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import Link from 'next/link';
 
@@ -133,7 +133,7 @@ function StatBadge({
 
 }: {icon: React.ElementType;value: string | number;label: string;color: string;}) {
   return (
-    <motion.div
+    <m.div
       whileHover={{ scale: 1.05 }}
       className="flex flex-col items-center gap-1 p-3 rounded-xl bg-white/5 border border-white/5 hover:border-white/10 transition-colors cursor-default">
 
@@ -142,7 +142,7 @@ function StatBadge({
         <span className="text-lg font-black">{value}</span>
       </div>
       <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">{label}</span>
-    </motion.div>);
+    </m.div>);
 
 }
 
@@ -451,7 +451,7 @@ export default function ProfileSettingsPage() {
         <div className="flex items-center gap-2">
           {isEditing ?
           <>
-              <motion.button
+              <m.button
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               onClick={handleCancel}
@@ -459,8 +459,8 @@ export default function ProfileSettingsPage() {
 
                 <X className="h-4 w-4" />
                 إلغاء
-              </motion.button>
-              <motion.button
+              </m.button>
+              <m.button
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               onClick={handleSave}
@@ -473,10 +473,10 @@ export default function ProfileSettingsPage() {
               <Save className="h-4 w-4" />
               }
                 {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
-              </motion.button>
+              </m.button>
             </> :
 
-          <motion.button
+          <m.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => setIsEditing(true)}
@@ -484,14 +484,14 @@ export default function ProfileSettingsPage() {
 
               <Edit3 className="h-4 w-4" />
               تعديل الملف
-            </motion.button>
+            </m.button>
           }
         </div>
       </div>
 
       {/* Email verification warning */}
       {!user.emailVerified &&
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="flex items-start gap-3 p-4 rounded-2xl bg-orange-500/10 border border-orange-500/20">
@@ -503,7 +503,7 @@ export default function ProfileSettingsPage() {
               لم يتم تفعيل بريدك الإلكتروني. تحقق من بريدك الوارد للعثور على رابط التفعيل.
             </p>
           </div>
-        </motion.div>
+        </m.div>
       }
 
       {/* Hero / Avatar Section */}

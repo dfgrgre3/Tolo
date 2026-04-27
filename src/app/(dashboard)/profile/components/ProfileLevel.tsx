@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -18,7 +18,7 @@ export function ProfileLevel({ level, currentXP, nextLevelXP, totalXP }: Profile
   const xpToNextLevel = nextLevelXP - currentXP;
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -33,7 +33,7 @@ export function ProfileLevel({ level, currentXP, nextLevelXP, totalXP }: Profile
         <CardContent className="pt-6 space-y-4">
           {/* Level Badge */}
           <div className="flex items-center justify-center mb-4">
-            <motion.div
+            <m.div
               className="relative"
               whileHover={{ scale: 1.05 }}
               transition={{ type: "spring", stiffness: 300 }}
@@ -44,7 +44,7 @@ export function ProfileLevel({ level, currentXP, nextLevelXP, totalXP }: Profile
               <Badge className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white border-2 border-background">
                 المستوى
               </Badge>
-            </motion.div>
+            </m.div>
           </div>
 
           {/* Progress Bar */}
@@ -73,7 +73,7 @@ export function ProfileLevel({ level, currentXP, nextLevelXP, totalXP }: Profile
           </div>
 
           {/* XP Gain Info */}
-          <motion.div
+          <m.div
             className="bg-gradient-to-r from-yellow-50 via-orange-50 to-amber-50 dark:from-yellow-950 dark:to-orange-950 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -86,9 +86,9 @@ export function ProfileLevel({ level, currentXP, nextLevelXP, totalXP }: Profile
             <p className="text-xs text-yellow-600 dark:text-yellow-500 mt-2">
               أكمل المهام، شارك في المنتدى، واجتز الامتحانات لكسب نقاط الخبرة
             </p>
-          </motion.div>
+          </m.div>
         </CardContent>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }

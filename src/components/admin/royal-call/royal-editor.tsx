@@ -3,7 +3,7 @@
 import { AdminInput } from "@/components/admin/ui/admin-input";
 import { Textarea } from "@/components/ui/textarea";
 import { MessageType } from "./types";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface RoyalEditorProps {
   formData: {
@@ -92,7 +92,7 @@ export function RoyalEditor({ formData, updateField, isArabic: _isArabic, smsInf
             
             {/* Visual length indicator bar */}
             <div className="absolute bottom-4 inset-x-12 h-1 bg-white/5 rounded-full overflow-hidden">
-               <motion.div 
+               <m.div 
                  className={`h-full ${smsInfo.length > smsInfo.limit ? 'bg-rose-500' : 'bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]'}`}
                  initial={{ width: 0 }}
                  animate={{ width: `${Math.min((smsInfo.length / smsInfo.limit) * 100, 100)}%` }}

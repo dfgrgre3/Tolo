@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 
 import { logger } from '@/lib/logger';
 
@@ -94,7 +94,7 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
   // التحقق من صحة البيانات
   if (!Array.isArray(chartData) || chartData.length === 0) {
     return (
-      <motion.div 
+      <m.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -104,7 +104,7 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
         <div className="text-center py-8 text-gray-500 dark:text-gray-400">
           لا تتوفر بيانات لعرض الرسم البياني.
         </div>
-      </motion.div>
+      </m.div>
     );
   }
 
@@ -128,7 +128,8 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
    * حساب موقع Y للقيمة
    */
   const scaleY = (value: number): number => {
-    const normalizedValue = (value - fixedMin) / rangeY;
+    const safeValue = isNaN(value) ? fixedMin : value;
+    const normalizedValue = (safeValue - fixedMin) / rangeY;
     return height - padding - (normalizedValue * (height - 2 * padding));
   };
 
@@ -136,7 +137,8 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
   const points = chartData
     .map((d, i) => {
       const x = scaleX(i);
-      const y = scaleY(d.progress);
+      const progress = typeof d.progress === 'number' && !isNaN(d.progress) ? d.progress : fixedMin;
+      const y = scaleY(progress);
       return `${x},${y}`;
     })
     .join(' L ');
@@ -145,10 +147,11 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
   const lastIndex = chartData.length - 1;
   const lastPoint = chartData[lastIndex];
   const lastX = scaleX(lastIndex);
-  const lastY = scaleY(lastPoint.progress);
+  const lastProgress = typeof lastPoint.progress === 'number' && !isNaN(lastPoint.progress) ? lastPoint.progress : fixedMin;
+  const lastY = scaleY(lastProgress);
 
   return (
-    <motion.div 
+    <m.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
@@ -237,7 +240,7 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
             <g key={d.day}>
               <circle
                 cx={scaleX(i)}
-                cy={scaleY(d.progress)}
+                cy={scaleY(Number(d.progress) || fixedMin)}
                 r={hoveredIndex === i ? 6 : 4}
                 fill={hoveredIndex === i ? "#6366f1" : themeColors.light}
                 stroke="#ffffff"
@@ -309,22 +312,22 @@ export const DailyProgressChart = React.memo<DailyProgressChartProps>(({
 
       <AnimatePresence>
         {isLoading && (
-          <motion.div 
+          <m.div 
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-white dark:bg-gray-800 bg-opacity-70 flex items-center justify-center"
           >
-            <motion.div 
+            <m.div 
               animate={{ rotate: 360 }}
               transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
               className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full"
               role="status"
               aria-label="جارٍ التحميل"
             />
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
-    </motion.div>
+    </m.div>
   );
 });
 

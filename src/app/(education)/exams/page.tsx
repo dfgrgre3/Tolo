@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { ensureUser } from "@/lib/user-utils";
 import { safeFetch } from "@/lib/safe-client-utils";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
 
    Sword,
@@ -134,7 +134,7 @@ export default function ExamsPage() {
          <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
 
             {/* --- Header: The Chamber Arrival --- */}
-            <motion.div
+            <m.div
                initial={{ opacity: 0, y: -30 }}
                animate={{ opacity: 1, y: 0 }}
                className="text-center space-y-6">
@@ -149,7 +149,7 @@ export default function ExamsPage() {
                <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
                   هنا تظڈختبر القدرات وتظڈصقل المهارات. اختر ساحة معركتك، دوّن إنجازاتك، وراقب نمو قوتك القتالية ضد أصعب العقبات.
                </p>
-            </motion.div>
+            </m.div>
 
             {/* --- Main Grid: Portal & Registry --- */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
@@ -178,7 +178,7 @@ export default function ExamsPage() {
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <AnimatePresence>
                            {exams.map((exam, idx) =>
-                              <motion.div
+                              <m.div
                                  key={exam.id}
                                  initial={{ opacity: 0, scale: 0.95 }}
                                  animate={{ opacity: 1, scale: 1 }}
@@ -203,7 +203,7 @@ export default function ExamsPage() {
                                        <ExternalLink className="w-4 h-4" />
                                     </a>
                                  </div>
-                              </motion.div>
+                              </m.div>
                            )}
                         </AnimatePresence>
                      </div>
@@ -312,7 +312,7 @@ export default function ExamsPage() {
 
                         <AnimatePresence>
                            {results.map((result, idx) =>
-                              <motion.div
+                              <m.div
                                  key={result.id}
                                  initial={{ opacity: 0, x: -30 }}
                                  animate={{ opacity: 1, x: 0 }}
@@ -348,7 +348,7 @@ export default function ExamsPage() {
 
                                     <Trash2 className="h-5 w-5" />
                                  </Button>
-                              </motion.div>
+                              </m.div>
                            )}
                         </AnimatePresence>
                      }

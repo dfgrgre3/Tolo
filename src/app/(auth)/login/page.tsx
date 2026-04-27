@@ -23,7 +23,7 @@ import {
   KeyRound } from
 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import {
@@ -174,7 +174,7 @@ function LoginForm() {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center space-y-6 text-center bg-black">
         <div className="relative h-24 w-24">
-          <motion.div
+          <m.div
             animate={{ rotate: 360 }}
             transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
             className="absolute inset-0 rounded-full border-2 border-primary/20 border-t-primary shadow-[0_0_20px_rgba(var(--primary),0.3)]" />
@@ -199,7 +199,7 @@ function LoginForm() {
       
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none" />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
@@ -209,12 +209,12 @@ function LoginForm() {
         <div className="absolute inset-0 pointer-events-none border border-white/5 rounded-[2.5rem]" />
         
         <div className="mb-10 text-center space-y-4">
-           <motion.div
+           <m.div
             whileHover={{ scale: 1.05, rotate: 5 }}
             className="mx-auto w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5 border border-primary/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(var(--primary),0.2)]">
             
               <Shield className="w-10 h-10 text-primary drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
-           </motion.div>
+           </m.div>
            <h2 className="text-4xl font-black text-white tracking-tight leading-tight">
              بوابـة <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">تـولـو</span>
            </h2>
@@ -223,7 +223,7 @@ function LoginForm() {
 
         {/* Auth Selection */}
         <div className="mb-8 grid grid-cols-2 gap-4">
-          <motion.button
+          <m.button
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {window.location.href = `/api/auth/oauth/google`;}}
@@ -231,8 +231,8 @@ function LoginForm() {
             
             <Chrome className="h-5 w-5 text-red-500" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">Google</span>
-          </motion.button>
-          <motion.button
+          </m.button>
+          <m.button
             whileHover={{ y: -2 }}
             whileTap={{ scale: 0.98 }}
             onClick={() => {window.location.href = `/api/auth/oauth/github`;}}
@@ -240,7 +240,7 @@ function LoginForm() {
             
             <Github className="h-5 w-5 text-white" />
             <span className="text-[10px] font-black uppercase tracking-widest text-white">Github</span>
-          </motion.button>
+          </m.button>
         </div>
 
         <div className="relative mb-8 flex items-center justify-center">
@@ -250,7 +250,7 @@ function LoginForm() {
 
         <AnimatePresence mode="wait">
           {errorStatus &&
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -288,13 +288,13 @@ function LoginForm() {
                 }
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           }
         </AnimatePresence>
 
         <div className="space-y-6">
           {!requires2FA ?
-          <motion.form
+          <m.form
             layout
             onSubmit={handleSubmit(onSubmit)}
             className="space-y-6">
@@ -318,7 +318,7 @@ function LoginForm() {
 
               <AnimatePresence mode="wait">
                 {loginMode === 'password' &&
-              <motion.div
+              <m.div
                 key="password-field"
                 initial={{ opacity: 0, height: 0, y: -20 }}
                 animate={{ opacity: 1, height: 'auto', y: 0 }}
@@ -349,7 +349,7 @@ function LoginForm() {
                       </button>
                     </div>
                     {errors.password && <p className="mr-1 text-[10px] font-bold text-red-500 uppercase tracking-tight">{errors.password.message}</p>}
-                  </motion.div>
+                  </m.div>
               }
               </AnimatePresence>
 
@@ -388,7 +388,7 @@ function LoginForm() {
                  </button>
               </div>
 
-              <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+              <m.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
                 <Button
                 type="submit"
                 disabled={isSubmitting}
@@ -406,10 +406,10 @@ function LoginForm() {
                     </div>
                 }
                 </Button>
-              </motion.div>
-            </motion.form> :
+              </m.div>
+            </m.form> :
 
-          <motion.form
+          <m.form
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             onSubmit={onVerify2FA}
@@ -453,7 +453,7 @@ function LoginForm() {
                   العودة للخلف
                 </button>
               </div>
-            </motion.form>
+            </m.form>
           }
         </div>
 
@@ -472,7 +472,7 @@ function LoginForm() {
           <span className="text-[8px] font-black uppercase tracking-[0.3em] text-gray-500">Security Rank: Grade A</span>
           <Sparkles size={12} className="text-primary" />
         </div>
-      </motion.div>
+      </m.div>
     </div>);
 
 }

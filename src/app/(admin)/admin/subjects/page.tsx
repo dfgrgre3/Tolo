@@ -33,7 +33,8 @@ import {
   SelectValue 
 } from "@/components/ui/select";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface Subject {
   id: string;
@@ -112,7 +113,7 @@ export default function AdminSubjectsPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`/api/admin/subjects?${params.toString()}`);
+      const response = await fetch(`${apiRoutes.admin.subjects}?${params.toString()}`);
       return (await response.json()) as SubjectsResponse;
     },
   });
@@ -189,7 +190,7 @@ export default function AdminSubjectsPage() {
     try {
       const method = editingSubject ? "PATCH" : "POST";
       const body = editingSubject ? { ...values, id: editingSubject.id } : values;
-      const response = await fetch("/api/admin/subjects", {
+      const response = await fetch(apiRoutes.admin.subjects, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -210,7 +211,7 @@ export default function AdminSubjectsPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch("/api/admin/subjects", {
+      const response = await fetch(apiRoutes.admin.subjects, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
@@ -371,7 +372,7 @@ export default function AdminSubjectsPage() {
         />
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
@@ -403,7 +404,7 @@ export default function AdminSubjectsPage() {
             </div>
           }
         />
-      </motion.div>
+      </m.div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl rounded-[2.5rem] overflow-hidden bg-card/80 backdrop-blur-xl border-white/10 p-0 shadow-2xl">

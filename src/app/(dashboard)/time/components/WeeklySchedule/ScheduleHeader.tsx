@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Settings, Download, Upload, Activity, Clock, Brain, Trophy } from 'lucide-react';
 import type { WeekStats } from './types';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 interface ScheduleHeaderProps {
   weekStats: WeekStats;
@@ -43,7 +43,7 @@ export function ScheduleHeader({
       </div>
       
       <div className="flex flex-wrap gap-3 relative z-10">
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
             variant="outline"
             size="icon"
@@ -52,9 +52,9 @@ export function ScheduleHeader({
           >
             <Settings className="w-5 h-5" />
           </Button>
-        </motion.div>
+        </m.div>
         
-        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
           <Button
             variant="outline"
             size="icon"
@@ -63,15 +63,15 @@ export function ScheduleHeader({
           >
             <Download className="w-5 h-5" />
           </Button>
-        </motion.div>
+        </m.div>
         
         <label className="cursor-pointer">
-          <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+          <m.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 px-4 h-12 transition-all duration-300 font-bold backdrop-blur-md">
               <Upload className="w-5 h-5" />
               <span>استيراد الخطة</span>
             </div>
-          </motion.div>
+          </m.div>
           <input
             type="file"
             accept=".json"

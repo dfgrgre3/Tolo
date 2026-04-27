@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   ArrowLeft,
   BadgePercent,
@@ -21,6 +21,7 @@ import {
 "lucide-react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
+import { apiClient } from "@/lib/api/api-client";
 
 interface Plan {
   id: string;
@@ -98,10 +99,9 @@ export default function SubscriptionPlans() {
   useEffect(() => {
     async function fetchPlans() {
       try {
-        const res = await fetch("/api/subscriptions/plans");
-        if (!res.ok) throw new Error("تعذر تحميل الباقات");
-        const data = await res.json();
-        setPlans(data);
+        const data = await apiClient.get<any>("/subscriptions/plans");
+        const plansList = Array.isArray(data) ? data : (data?.plans || []);
+        setPlans(plansList);
       } catch (error: any) {
         toast.error(error.message || "تعذر تحميل الباقات");
       } finally {
@@ -126,16 +126,10 @@ export default function SubscriptionPlans() {
     if (!couponCode || !selectedPlanData) return;
     setValidatingCoupon(true);
     try {
-      const res = await fetch("/api/coupons/validate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          code: couponCode.trim().toUpperCase(),
-          amount: basePrice
-        })
+      const data = await apiClient.post<any>("/coupons/validate", {
+        code: couponCode.trim().toUpperCase(),
+        amount: basePrice
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "كود الخصم غير صالح");
       setCouponData(data);
       toast.success("تم تطبيق كود الخصم");
     } catch (error: any) {
@@ -149,18 +143,12 @@ export default function SubscriptionPlans() {
     if (!selectedPlan) return;
     setProcessing(true);
     try {
-      const res = await fetch("/api/subscriptions/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          planId: selectedPlan,
-          billingCycle,
-          paymentMethod,
-          couponCode: couponData ? couponCode.trim().toUpperCase() : undefined
-        })
+      const data = await apiClient.post<any>("/subscriptions/checkout", {
+        planId: selectedPlan,
+        billingCycle,
+        paymentMethod,
+        couponCode: couponData ? couponCode.trim().toUpperCase() : undefined
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "تعذر بدء عملية الدفع");
 
       if (paymentMethod === "internal_wallet" && data.success) {
         toast.success("تم تفعيل الاشتراك من رصيد الحساب");
@@ -215,14 +203,14 @@ export default function SubscriptionPlans() {
             className={`relative z-10 px-10 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "monthly" ? "text-gray-900" : "text-gray-400 hover:text-white"}`}>
             
             شهرياً
-            {billingCycle === "monthly" && <motion.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
+            {billingCycle === "monthly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
           </button>
           <button
             onClick={() => setBillingCycle("yearly")}
             className={`relative z-10 px-10 py-3 rounded-xl text-sm font-black transition-all ${billingCycle === "yearly" ? "text-gray-900" : "text-gray-400 hover:text-white"}`}>
             
             سنوياً
-            {billingCycle === "yearly" && <motion.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
+            {billingCycle === "yearly" && <m.div layoutId="cycle" className="absolute inset-0 bg-white rounded-xl -z-10 shadow-lg" />}
             <span className="absolute -top-3 -right-3 bg-emerald-500 text-white text-[10px] px-3 py-1 rounded-full font-black shadow-lg shadow-emerald-500/20">وفر 20%</span>
           </button>
         </div>
@@ -230,7 +218,7 @@ export default function SubscriptionPlans() {
 
       <AnimatePresence mode="wait">
         {paymentStep === "plans" ?
-        <motion.div
+        <m.div
           key="plans"
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -238,7 +226,7 @@ export default function SubscriptionPlans() {
           className="grid grid-cols-1 md:grid-cols-3 gap-8">
           
             {plans.map((plan, _idx) =>
-          <motion.div
+          <m.div
             key={plan.id}
             whileHover={{ y: -12, scale: 1.02 }}
             className={`relative group rounded-[3rem] p-10 border-2 transition-all duration-500 flex flex-col ${plan.popular ? "border-primary bg-gradient-to-b from-primary/10 via-primary/5 to-transparent shadow-[0_30px_60px_-15px_rgba(var(--primary-rgb),0.2)]" : "border-white/5 bg-white/5 hover:border-white/20"}`}>
@@ -257,14 +245,14 @@ export default function SubscriptionPlans() {
 
                 <div className="mb-10 p-6 rounded-3xl bg-white/5 border border-white/10 group-hover:bg-primary/5 group-hover:border-primary/20 transition-all">
                   <div className="flex items-baseline gap-2">
-                    <motion.span
+                    <m.span
                   key={`${plan.id}-${billingCycle}`}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   className="text-5xl font-black text-white">
                   
                       {getPlanPrice(plan.price, billingCycle).toLocaleString()}
-                    </motion.span>
+                    </m.span>
                     <span className="text-gray-400 font-black text-lg">ج.م <span className="text-sm font-bold opacity-50">/ {billingCycle === "monthly" ? "شهر" : "سنة"}</span></span>
                   </div>
                   {billingCycle === "yearly" &&
@@ -293,11 +281,11 @@ export default function SubscriptionPlans() {
                   <span>اختيار هذه الخطة</span>
                   <ChevronLeft className="w-5 h-5 group-hover/btn:-translate-x-1 transition-transform" />
                 </button>
-              </motion.div>
+              </m.div>
           )}
-          </motion.div> :
+          </m.div> :
 
-        <motion.div
+        <m.div
           key="checkout"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -338,9 +326,9 @@ export default function SubscriptionPlans() {
                         <span className="text-sm text-gray-400 font-medium">{opt.subtitle}</span>
                       </div>
                       {paymentMethod === opt.id &&
-                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-primary/20 text-primary p-1.5 rounded-full">
+                  <m.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="bg-primary/20 text-primary p-1.5 rounded-full">
                           <Check className="w-4 h-4" />
-                        </motion.div>
+                        </m.div>
                   }
                     </label>
                 )}
@@ -397,10 +385,10 @@ export default function SubscriptionPlans() {
                            <span>{basePrice.toLocaleString()} ج.م</span>
                         </div>
                         {couponData &&
-                    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center text-emerald-400 px-2 bg-emerald-500/5 py-2 rounded-xl border border-emerald-500/10">
+                    <m.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="flex justify-between items-center text-emerald-400 px-2 bg-emerald-500/5 py-2 rounded-xl border border-emerald-500/10">
                             <span className="text-sm font-black">خصم الكوبون</span>
                             <span className="font-black">-{couponData.discountAmount.toLocaleString()} ج.م</span>
-                          </motion.div>
+                          </m.div>
                     }
                      </div>
                    </div>
@@ -415,14 +403,14 @@ export default function SubscriptionPlans() {
                      </div>
                    </div>
                    <div className="text-left">
-                     <motion.span
+                     <m.span
                     key={finalAmount}
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     className="text-6xl font-black text-primary drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]">
                     
                         {finalAmount.toLocaleString()}
-                      </motion.span>
+                      </m.span>
                      <span className="text-xl font-bold text-gray-500 block">جنيهاً مصرياً</span>
                    </div>
                  </div>
@@ -447,7 +435,7 @@ export default function SubscriptionPlans() {
                  </p>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         }
       </AnimatePresence>
     </div>);

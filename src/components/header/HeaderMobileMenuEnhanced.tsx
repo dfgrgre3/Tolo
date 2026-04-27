@@ -4,7 +4,7 @@ import React, { useRef, useEffect, useState, useCallback, useMemo } from "react"
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { ChevronDown, Search, X, Moon, Sun, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -16,7 +16,10 @@ import { cn } from "@/lib/utils";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/auth-context";
 import { LogIn, UserPlus, LogOut } from "lucide-react";
-import { buildLoginUrl } from "@/services/auth/navigation";
+// Removed broken import: import { buildLoginUrl } from "@/services/auth/navigation";
+const buildLoginUrl = (redirect?: string) => {
+  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
+};
 import { saveSettingsPreferences } from "@/app/(dashboard)/settings/preferences-client";
 import { logger } from "@/lib/logger";
 
@@ -173,8 +176,8 @@ export function HeaderMobileMenuEnhanced({
     <AnimatePresence>
       {isMobileMenuOpen && (
         <>
-          <motion.div {...overlayVariants} className="fixed inset-0 bg-black/60 dark:bg-black/80 z-[60] lg:hidden backdrop-blur-sm" onClick={closeMobileMenu} />
-          <motion.div
+          <m.div {...overlayVariants} className="fixed inset-0 bg-black/60 dark:bg-black/80 z-[60] lg:hidden backdrop-blur-sm" onClick={closeMobileMenu} />
+          <m.div
             ref={mobileMenuRef}
             {...menuVariants}
             className="fixed right-0 top-0 bottom-0 w-[85%] max-w-sm bg-background/95 backdrop-blur-2xl z-[70] overflow-hidden lg:hidden flex flex-col shadow-2xl border-l border-border/40"
@@ -254,18 +257,18 @@ export function HeaderMobileMenuEnhanced({
                 )}
               </div>
 
-              <motion.div variants={staggerContainer} initial="hidden" animate="show" className="px-3 pb-6 space-y-2">
+              <m.div variants={staggerContainer} initial="hidden" animate="show" className="px-3 pb-6 space-y-2">
                 {searchQuery.trim() ? (
-                  <motion.div variants={staggerItem} className="space-y-1.5">
+                  <m.div variants={staggerItem} className="space-y-1.5">
                     {searchResults.length > 0 ? (
                       searchResults.map((result) => renderNavLink(result, closeMobileMenu))
                     ) : (
                       <div className="rounded-xl border border-dashed border-border/60 bg-muted/30 px-4 py-5 text-center text-sm text-muted-foreground">لا توجد نتائج مطابقة</div>
                     )}
-                  </motion.div>
+                  </m.div>
                 ) : (
                   <>
-                    <motion.div variants={staggerItem}>
+                    <m.div variants={staggerItem}>
                         <HeaderNavLink
                           href="/"
                           label="الرئيسية"
@@ -274,13 +277,13 @@ export function HeaderMobileMenuEnhanced({
                           variant="mobile"
                           onClick={closeMobileMenu}
                         />
-                      </motion.div>
+                      </m.div>
 
                     {allNavItems.map((item) => {
                       const active = mounted && isActiveRoute(item.href);
                       const hasMegaMenu = !!item.megaMenu?.length;
                       return (
-                        <motion.div key={item.href} variants={staggerItem}>
+                        <m.div key={item.href} variants={staggerItem}>
                           {hasMegaMenu ? (
                             <div className="space-y-1">
                               <button
@@ -297,13 +300,13 @@ export function HeaderMobileMenuEnhanced({
                                   <span className="text-sm">{item.label}</span>
                                   {item.badge && <span className="px-1.5 py-0.5 text-[9px] font-bold bg-gradient-to-r from-primary to-primary/80 text-white rounded-full shadow-sm shadow-primary/20">{item.badge}</span>}
                                 </div>
-                                <motion.div animate={{ rotate: expandedMenus.has(item.href) ? 180 : 0 }} transition={{ duration: 0.2 }} className={expandedMenus.has(item.href) ? "text-primary" : "text-muted-foreground"}>
+                                <m.div animate={{ rotate: expandedMenus.has(item.href) ? 180 : 0 }} transition={{ duration: 0.2 }} className={expandedMenus.has(item.href) ? "text-primary" : "text-muted-foreground"}>
                                   <ChevronDown className="h-3.5 w-3.5" />
-                                </motion.div>
+                                </m.div>
                               </button>
                               <AnimatePresence>
                                 {expandedMenus.has(item.href) && (
-                                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }} className="overflow-hidden">
+                                  <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }} className="overflow-hidden">
                                     <div className="ms-3 ps-3 border-s-2 border-primary/10 space-y-1 py-1 my-1">
                                       {item.megaMenu?.map((category, catIndex) => (
                                         <div key={catIndex} className="space-y-1">
@@ -329,7 +332,7 @@ export function HeaderMobileMenuEnhanced({
                                         </div>
                                       ))}
                                     </div>
-                                  </motion.div>
+                                  </m.div>
                                 )}
                               </AnimatePresence>
                             </div>
@@ -344,11 +347,11 @@ export function HeaderMobileMenuEnhanced({
                               onClick={closeMobileMenu}
                             />
                           )}
-                        </motion.div>
+                        </m.div>
                       );
                     })}
 
-                    <motion.div variants={staggerItem}>
+                    <m.div variants={staggerItem}>
                       <div className="space-y-1">
                         <HeaderMenuTrigger
                           label="المزيد"
@@ -362,7 +365,7 @@ export function HeaderMobileMenuEnhanced({
 
                         <AnimatePresence>
                           {expandedMenus.has("more") && (
-                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }} className="overflow-hidden">
+                            <m.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: [0.04, 0.62, 0.23, 0.98] }} className="overflow-hidden">
                               <div className="ms-3 ps-3 border-s-2 border-border/50 space-y-1 py-1 my-1">
                                 {moreMegaMenu.map((category, catIndex) => (
                                   <div key={catIndex} className="space-y-1">
@@ -385,14 +388,14 @@ export function HeaderMobileMenuEnhanced({
                                   </div>
                                 ))}
                               </div>
-                            </motion.div>
+                            </m.div>
                           )}
                         </AnimatePresence>
                       </div>
-                    </motion.div>
+                    </m.div>
                   </>
                 )}
-              </motion.div>
+              </m.div>
             </div>
 
             <div className="p-4 border-t border-border/40 space-y-3 bg-muted/20 backdrop-blur-sm mt-auto">
@@ -411,7 +414,7 @@ export function HeaderMobileMenuEnhanced({
                 )}
               </Button>
             </div>
-          </motion.div>
+          </m.div>
         </>
       )}
     </AnimatePresence>

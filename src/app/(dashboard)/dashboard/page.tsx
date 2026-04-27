@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   ArrowRight,
   BarChart3,
@@ -186,7 +186,7 @@ export default function DashboardPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10" dir="rtl">
         
         {/* --- Epic Hero Header --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
           className={STYLES.glass + " p-8 md:p-12 border-primary/20 shadow-primary/5 group transition-all duration-700 hover:border-primary/40"}>
@@ -197,25 +197,25 @@ export default function DashboardPage() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-12 relative z-10">
             <div className="space-y-6 flex-1 text-center md:text-right">
               <div className="flex flex-wrap justify-center md:justify-start items-center gap-4">
-                <motion.div
+                <m.div
                   whileHover={{ scale: 1.05 }}
                   className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-5 py-2 text-xs font-black uppercase tracking-widest text-primary shadow-[0_0_20px_rgba(var(--primary),0.2)]">
                   
                   <Sparkles className="h-4 w-4 animate-pulse" />
                   <span>القائد العام للمنصة</span>
-                </motion.div>
+                </m.div>
                 <Clock />
               </div>
 
               <h1 className="text-5xl md:text-8xl font-black tracking-tight leading-none">
                 أهلاً، <span className={STYLES.neonText}>{displayName}</span>
-                <motion.span
+                <m.span
                   animate={{ rotate: [0, 10, -10, 10, 0] }}
                   transition={{ duration: 5, repeat: Infinity }}
                   className="inline-block mr-4 scale-75 md:scale-100">
                   
                   🛡️
-                </motion.span>
+                </m.span>
               </h1>
 
               <p className="max-w-2xl text-xl text-gray-400 font-medium leading-relaxed">
@@ -235,14 +235,14 @@ export default function DashboardPage() {
             </div>
 
             {/* Level Hexagon Display */}
-            <motion.div
+            <m.div
               initial={{ scale: 0.8, opacity: 0, rotate: -10 }}
               animate={{ scale: 1, opacity: 1, rotate: 3 }}
               whileHover={{ rotate: 0, scale: 1.05 }}
               transition={{ type: "spring", damping: 12 }}
               className="relative">
               
-               <motion.div
+               <m.div
                 animate={{
                   boxShadow: ["0 0 40px rgba(var(--primary), 0.1)", "0 0 80px rgba(var(--primary), 0.3)", "0 0 40px rgba(var(--primary), 0.1)"]
                 }}
@@ -269,7 +269,7 @@ export default function DashboardPage() {
                   {/* Circular XP Progress */}
                   <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none p-4">
                      <circle cx="112" cy="112" r="100" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-white/5" />
-                     <motion.circle
+                     <m.circle
                     initial={{ strokeDashoffset: 628 }}
                     animate={{ strokeDashoffset: 628 * (1 - xpPercentage / 100) }}
                     transition={{ duration: 2.5, ease: "circOut" }}
@@ -279,21 +279,21 @@ export default function DashboardPage() {
                </div>
                
                {/* Level Tooltip Floating */}
-               <motion.div
+               <m.div
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 1 }}
                 className="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-white text-black text-[10px] font-black px-4 py-1.5 rounded-full shadow-2xl z-20 whitespace-nowrap">
                 
                   متبقي {(nextLevelXP - userXP % nextLevelXP).toLocaleString()} XP للترقية التالية 🎉
-               </motion.div>
-            </motion.div>
+               </m.div>
+            </m.div>
           </div>
 
           {/* --- Continue Learning Banner --- */}
           <AnimatePresence>
             {lastCourse && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 className="mt-8"
@@ -329,7 +329,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                       <div className="w-full h-2 bg-white/5 rounded-full mt-4 overflow-hidden border border-white/5">
-                        <motion.div 
+                        <m.div 
                           initial={{ width: 0 }}
                           animate={{ width: `${lastCourse.progress}%` }}
                           className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]"
@@ -345,7 +345,7 @@ export default function DashboardPage() {
                     </Button>
                   </div>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
@@ -356,12 +356,12 @@ export default function DashboardPage() {
             totalXP={userXP}
             achievementsCount={userProgress?.achievements?.length || 0} />
           
-        </motion.div>
+        </m.div>
         
         {/* --- Dynamic Verification Banner --- */}
         <AnimatePresence>
           {mounted && (!user?.emailVerified || !user?.phoneVerified) &&
-          <motion.div
+          <m.div
             initial={{ height: 0, opacity: 0, y: -20 }}
             animate={{ height: "auto", opacity: 1, y: 0 }}
             className="space-y-4">
@@ -381,7 +381,7 @@ export default function DashboardPage() {
                   </Button>
                 </div>
             }
-            </motion.div>
+            </m.div>
           }
         </AnimatePresence>
 
@@ -404,7 +404,7 @@ export default function DashboardPage() {
               {quickLinks.map((link) => {
                 const Icon = link.icon;
                 return (
-                  <motion.div
+                  <m.div
                     key={link.href}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -424,7 +424,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="mt-10 flex items-center justify-between">
                             <div className="h-2 flex-1 bg-white/5 rounded-full overflow-hidden mr-6 shadow-inner border border-white/5">
-                               <motion.div
+                               <m.div
                               initial={{ width: 0 }}
                               animate={{ width: "75%" }}
                               transition={{ duration: 1.5, delay: 1 }}
@@ -438,7 +438,7 @@ export default function DashboardPage() {
                         </div>
                       </Card>
                     </Link>
-                  </motion.div>);
+                  </m.div>);
 
               })}
             </div>
@@ -466,10 +466,10 @@ export default function DashboardPage() {
               </h2>
               
               <Card className={STYLES.glass + " border-white/5 bg-transparent p-6 space-y-6"}>
-                {recentActivities.length > 0 ? recentActivities.map((activity) => {
+                {recentActivities.length > 0 ? recentActivities.map((activity: any) => {
                   const Icon = activity.icon;
                   return (
-                    <motion.div
+                    <m.div
                       key={activity.id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -489,9 +489,11 @@ export default function DashboardPage() {
                           {activity.xp}
                         </Badge>
                       )}
-                    </motion.div>);
-
-                })}
+                    </m.div>
+                  );
+                }) : (
+                  <div className="text-center py-8 text-gray-500">لا توجد نشاطات مؤخراً</div>
+                )}
                 
                 <Button variant="ghost" className="w-full text-gray-500 font-black hover:text-white hover:bg-white/5 text-xs py-2 h-auto rounded-xl">
                   عرض الأرشيف الكامل
@@ -504,14 +506,14 @@ export default function DashboardPage() {
               <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-primary to-transparent shadow-[0_0_20px_rgba(var(--primary),0.5)]" />
               
               <div className="relative">
-                <motion.div
+                <m.div
                   whileHover={{ rotate: 360, scale: 1.1 }}
                   transition={{ duration: 1, type: "spring" }}
                   className="mx-auto w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-primary to-indigo-600 flex items-center justify-center shadow-2xl relative z-10">
                   
                    <Bot className="w-12 h-12 text-white drop-shadow-lg" />
                    <div className="absolute inset-0 rounded-[2.5rem] bg-white/20 animate-pulse pointer-events-none" />
-                </motion.div>
+                </m.div>
               </div>
 
               <div className="space-y-3 relative z-10">
@@ -533,7 +535,7 @@ export default function DashboardPage() {
         </div>
 
         {/* --- Social Goal Section --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -544,7 +546,7 @@ export default function DashboardPage() {
               <div className="relative h-40 w-40 flex-shrink-0">
                  <svg className="w-full h-full -rotate-90">
                     <circle cx="80" cy="80" r="72" stroke="currentColor" strokeWidth="12" fill="transparent" className="text-white/5" />
-                    <motion.circle
+                    <m.circle
                   initial={{ strokeDashoffset: 452 }}
                   whileInView={{ strokeDashoffset: 452 * (1 - 0.75) }}
                   viewport={{ once: true }}
@@ -553,13 +555,13 @@ export default function DashboardPage() {
                 
                  </svg>
                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <motion.span
+                    <m.span
                   animate={{ scale: [1, 1.1, 1] }}
                   transition={{ duration: 3, repeat: Infinity }}
                   className="text-4xl font-black text-white">
                   
                       75%
-                    </motion.span>
+                    </m.span>
                     <span className="text-[10px] text-emerald-500 font-black uppercase tracking-widest mt-1">اكتمال الهدف</span>
                  </div>
               </div>
@@ -575,13 +577,13 @@ export default function DashboardPage() {
                     <div className="flex flex-col items-center md:items-end gap-3">
                        <div className="flex -space-x-4 space-x-reverse">
                           {[1, 2, 3, 4, 5].map((i) =>
-                    <motion.div
+                    <m.div
                       key={i}
                       whileHover={{ y: -5, scale: 1.1, zIndex: 50 }}
                       className="h-12 w-12 rounded-full border-2 border-background bg-card flex items-center justify-center overflow-hidden hover:border-primary transition-all cursor-pointer shadow-xl relative">
                       
                              <Image src={`https://api.dicebear.com/7.x/avataaars/svg?seed=User${i}`} alt="user" width={48} height={48} className="object-cover" />
-                          </motion.div>
+                          </m.div>
                     )}
                           <div className="h-12 w-12 rounded-full border-2 border-background bg-primary flex items-center justify-center text-xs font-black text-white relative z-10 shadow-xl shadow-primary/20">
                              +1.2k
@@ -602,7 +604,7 @@ export default function DashboardPage() {
                   </div>
               </div>
            </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Professional Footer Status --- */}
         <div className="flex flex-col md:flex-row items-center justify-between pt-12 pb-12 border-t border-white/5 gap-8">

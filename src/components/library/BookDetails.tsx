@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { X, Download, Star, Eye, Calendar, User, BookOpen, Share2, Heart, ShieldCheck } from "lucide-react";
 import { Book } from "./types";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ export function BookDetails({ book, onClose }: BookDetailsProps) {
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-8" dir="rtl">
       {/* Backdrop */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
@@ -26,7 +26,7 @@ export function BookDetails({ book, onClose }: BookDetailsProps) {
       />
 
       {/* Modal */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, scale: 0.9, y: 50 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.9, y: 50 }}
@@ -141,7 +141,7 @@ export function BookDetails({ book, onClose }: BookDetailsProps) {
              </Button>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

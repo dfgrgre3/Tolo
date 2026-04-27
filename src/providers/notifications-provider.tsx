@@ -3,7 +3,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { type Notification } from '@/types/notification';
 import { logger } from '@/lib/logger';
-import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
+import { apiClient } from '@/lib/api/api-client';
+// import { scheduleNotificationChecks } from '@/lib/notification-scheduler';
 import { toast } from 'sonner';
 
 interface NotificationsContextType {
@@ -54,22 +55,10 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         offset: currentOffset.toString()
       });
 
-      const response = await fetch(`/api/notifications?${params}`, {
-        credentials: 'include'
-      });
-
-      if (response.status === 401 || response.status === 403) {
-        setNotifications([]);
-        setUnreadCount(0);
-        setHasMore(false);
-        return;
-      }
-
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-
-      const data = await response.json();
-      const payload = data?.data ?? data;
-      const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : [];
+      const response = await apiClient.get<any>(`/notifications?${params}`);
+      
+      const payload = response?.data ?? response;
+      const nextNotifications = Array.isArray(payload?.notifications) ? payload.notifications : (Array.isArray(payload) ? payload : []);
       const nextUnreadCount = typeof payload?.unreadCount === 'number' ? payload.unreadCount : 0;
       const nextHasMore = typeof payload?.hasMore === 'boolean' ? payload.hasMore : nextNotifications.length === limit;
 
@@ -83,7 +72,7 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
           if (!newest.isRead && newest.id !== lastNotifiedId.current) {
             toast(newest.title, {
               description: newest.message,
-              icon: newest.icon || 'ًں””'
+              icon: newest.icon || '🔔'
             });
             lastNotifiedId.current = newest.id;
           }
@@ -105,16 +94,10 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
 
   const markAsRead = async (notificationIds?: string[], all = false) => {
     try {
-      const response = await fetch('/api/notifications/mark-read', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ notificationIds, all })
+      const response = await apiClient.post<any>('/notifications/mark-read', { 
+        id: notificationIds ? notificationIds[0] : "", // Go backend handles 'id'
+        all 
       });
-
-      if (!response.ok) throw new Error('Failed to mark notifications as read');
-
-      const data = await response.json();
 
       if (all) {
         setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
@@ -124,7 +107,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
         );
       }
 
-      setUnreadCount(data.unreadCount ?? (all ? 0 : Math.max(0, unreadCount - (notificationIds?.length || 0))));
+      setUnreadCount(response.unreadCount ?? (all ? 0 : Math.max(0, unreadCount - (notificationIds?.length || 0))));
+
     } catch (error) {
       logger.error('Error marking notifications as read:', error);
     }
@@ -146,7 +130,8 @@ export function NotificationsProvider({ children }: NotificationsProviderProps) 
     // Only schedule if possible and hold onto cleanup function
     let cleanup: (() => void) | undefined;
     try {
-      cleanup = scheduleNotificationChecks?.();
+      // scheduleNotificationChecks is currently disabled as the library was removed
+      // cleanup = scheduleNotificationChecks?.();
     } catch (e) {
       logger.warn('Failed to schedule notification checks:', e);
     }

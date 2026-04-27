@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import {
   Beaker,
   BookOpen,
@@ -133,14 +133,14 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
             )} />
           
           {searchTerm.trim() !== "" &&
-          <motion.button
+          <m.button
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             onClick={() => setSearchTerm("")}
             className="absolute left-3 top-1/2 -translate-y-1/2 rounded-lg p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5">
             
               <X className="h-4 w-4" />
-            </motion.button>
+            </m.button>
           }
         </div>
 
@@ -161,9 +161,9 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
               âœ“
             </span>
           }
-          <motion.div animate={{ rotate: showFilters ? 180 : 0 }} transition={{ duration: 0.2 }}>
+          <m.div animate={{ rotate: showFilters ? 180 : 0 }} transition={{ duration: 0.2 }}>
             <ChevronDown className="h-4 w-4" />
-          </motion.div>
+          </m.div>
         </button>
 
         {/* Reset filters */}
@@ -230,7 +230,7 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
       {/* Expanded filter panel */}
       <AnimatePresence>
         {showFilters &&
-        <motion.div
+        <m.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
           exit={{ opacity: 0, height: 0 }}
@@ -289,7 +289,7 @@ export const CoursesFilter: React.FC<CoursesFilterProps> = ({
                 </div>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         }
       </AnimatePresence>
     </section>);

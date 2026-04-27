@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Achievement } from '../types';
@@ -53,7 +53,7 @@ export function AchievementCard({ achievement, index = 0 }: AchievementCardProps
 
   return (
     <>
-			<motion.div
+			<m.div
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ delay: index * 0.05 }}
@@ -126,7 +126,7 @@ export function AchievementCard({ achievement, index = 0 }: AchievementCardProps
                           <span className="text-primary">{achievement.progress} / {achievement.maxProgress}</span>
                        </div>
                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                          <motion.div
+                          <m.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, achievement.progress / achievement.maxProgress * 100)}%` }}
                     className="h-full bg-gradient-to-r from-primary to-purple-600" />
@@ -153,7 +153,7 @@ export function AchievementCard({ achievement, index = 0 }: AchievementCardProps
               </div>
            </CardContent>
 				</Card>
-			</motion.div>
+			</m.div>
 
 			<AchievementModal
         achievement={achievement}

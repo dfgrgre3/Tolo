@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -13,7 +13,7 @@ interface AuthNoticeProps {
 
 export function AuthNotice({ type, message, className }: AuthNoticeProps) {
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: -8 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
@@ -26,6 +26,6 @@ export function AuthNotice({ type, message, className }: AuthNoticeProps) {
     >
       {type === 'error' ? <AlertCircle className="h-5 w-5 shrink-0" /> : <CheckCircle2 className="h-5 w-5 shrink-0" />}
       <p>{message}</p>
-    </motion.div>
+    </m.div>
   );
 }

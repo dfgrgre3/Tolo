@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { 
   Database, 
   ShieldCheck, 
@@ -66,7 +66,7 @@ export default function PartitionsHealthPage() {
   return (
     <div className="min-h-screen space-y-12 pb-20" dir="rtl">
       {/* Cinematic Header */}
-      <motion.div 
+      <m.div 
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className={STYLES.glass + " p-8 md:p-12 mb-10 overflow-hidden group"}
@@ -98,7 +98,7 @@ export default function PartitionsHealthPage() {
              </Button>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Stats Summary */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -108,7 +108,7 @@ export default function PartitionsHealthPage() {
            { label: "المساحة الموفرة", value: "+45%", icon: Zap, color: "amber" },
            { label: "الرتبة التقنية", value: "S-Tier", icon: Server, color: "purple" }
          ].map((stat, i) => (
-           <motion.div 
+           <m.div 
              key={i}
              initial={{ opacity: 0, scale: 0.9 }}
              animate={{ opacity: 1, scale: 1 }}
@@ -120,7 +120,7 @@ export default function PartitionsHealthPage() {
               </div>
               <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{stat.label}</span>
               <span className="text-2xl font-black">{stat.value}</span>
-           </motion.div>
+           </m.div>
          ))}
       </div>
 
@@ -142,7 +142,7 @@ export default function PartitionsHealthPage() {
                   ))
                 ) : (
                   data?.tableHealth?.map((table: PartitionHealth, i: number) => (
-                    <motion.div
+                    <m.div
                       key={table.tableName}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -197,7 +197,7 @@ export default function PartitionsHealthPage() {
                            </div>
                         </div>
                       )}
-                    </motion.div>
+                    </m.div>
                   ))
                 )}
               </AnimatePresence>

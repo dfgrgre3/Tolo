@@ -12,7 +12,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import {
   Lock,
   Eye,
@@ -243,7 +243,7 @@ export default function PrivacySettingsPage() {
               const isSelected = settings.profileVisibility === option.value;
               
               return (
-                <motion.button
+                <m.button
                   key={option.value}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
@@ -272,7 +272,7 @@ export default function PrivacySettingsPage() {
                       <Check className="h-5 w-5 text-indigo-400" />
                     </div>
                   )}
-                </motion.button>
+                </m.button>
               );
             })}
           </div>
@@ -323,7 +323,7 @@ export default function PrivacySettingsPage() {
           />
         </div>
       </SettingsCard>
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
@@ -374,7 +374,7 @@ export default function PrivacySettingsPage() {
             onToggle={(v) => updateSetting('allowFriendRequests', v)}
           />
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Data & Analytics */}
       <SettingsCard delay={0.3}>
@@ -491,14 +491,14 @@ export default function PrivacySettingsPage() {
       <AnimatePresence>
         {showDeleteConfirm && (
           <>
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowDeleteConfirm(false)}
               className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
             />
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
@@ -554,7 +554,7 @@ export default function PrivacySettingsPage() {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </>
         )}
       </AnimatePresence>

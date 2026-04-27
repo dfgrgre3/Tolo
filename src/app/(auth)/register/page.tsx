@@ -11,7 +11,7 @@ import {
   ArrowRight } from
 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import { DEFAULT_AUTHENTICATED_ROUTE, sanitizeRedirectPath } from '@/services/auth/navigation';
 import { Label } from '@/components/ui/label';
@@ -204,7 +204,7 @@ function RegisterForm() {
   if (isAuthLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black">
-        <motion.div
+        <m.div
           animate={{ rotate: 360 }}
           transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           className="h-12 w-12 border-2 border-primary border-t-transparent rounded-full shadow-[0_0_15px_rgba(var(--primary),0.2)]" />
@@ -221,7 +221,7 @@ function RegisterForm() {
       <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 pointer-events-none" />
 
       <div className="relative w-full max-w-2xl">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-12 text-center space-y-4">
@@ -233,14 +233,14 @@ function RegisterForm() {
             إنشاء <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-400">الهوية الأسطورية</span>
           </h2>
           <p className="text-gray-400 font-medium">ابدأ رحلة صناعة بطلك التعليمي في منصة تولو</p>
-        </motion.div>
+        </m.div>
 
         {/* Improved Stepper */}
         <div className="mb-16 flex items-center justify-center gap-6">
           {[1, 2, 3].map((i) =>
           <div key={i} className="flex items-center">
               <div className="relative flex flex-col items-center">
-                <motion.div
+                <m.div
                 animate={{
                   scale: step === i ? 1.1 : 1,
                   backgroundColor: step >= i ? 'var(--primary-rgb)' : 'rgba(255,255,255,0.05)'
@@ -248,14 +248,14 @@ function RegisterForm() {
                 className={`flex h-12 w-12 items-center justify-center rounded-2xl border-2 transition-all shadow-lg ${step >= i ? 'border-primary bg-primary text-black' : 'border-white/5 bg-white/5 text-gray-500'}`}>
                 
                   {step > i ? <Check className="h-5 w-5" /> : <span className="text-lg font-black">{i}</span>}
-                </motion.div>
+                </m.div>
                 <span className={`absolute -bottom-8 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-colors ${step >= i ? 'text-primary' : 'text-gray-600'}`}>
                   {i === 1 ? 'نـوع الهويـة' : i === 2 ? 'بيانـات الواقـع' : 'تحديد المسـار'}
                 </span>
               </div>
               {i < 3 &&
             <div className="mx-2 h-0.5 w-8 rounded-full bg-white/5 relative overflow-hidden">
-                   <motion.div
+                   <m.div
                 initial={{ width: 0 }}
                 animate={{ width: step > i ? '100%' : '0%' }}
                 className="absolute inset-0 bg-primary" />
@@ -266,7 +266,7 @@ function RegisterForm() {
           )}
         </div>
 
-        <motion.div
+        <m.div
           layout
           initial={{ opacity: 0, scale: 0.98 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -278,7 +278,7 @@ function RegisterForm() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             <AnimatePresence mode="wait">
               {step === 1 &&
-              <motion.div
+              <m.div
                 key="step1"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -301,12 +301,12 @@ function RegisterForm() {
                       <label key={id} className={`group cursor-pointer rounded-[2rem] border-2 p-8 transition-all relative overflow-hidden ${active ? 'border-primary bg-primary/10 shadow-[0_0_20px_rgba(var(--primary),0.1)]' : 'border-white/5 bg-white/5 hover:border-white/10'}`}>
                           <input type="radio" value={id} {...register('role')} className="hidden" />
                           <div className="flex flex-col items-center gap-4 text-center">
-                            <motion.div
+                            <m.div
                             animate={{ scale: active ? 1.1 : 1 }}
                             className={`rounded-2xl p-5 ${active ? 'bg-primary text-black' : 'bg-white/5 text-gray-500 group-hover:bg-white/10'}`}>
                             
                               <Icon size={32} />
-                            </motion.div>
+                            </m.div>
                             <div className="space-y-1">
                               <span className={`block font-black text-lg ${active ? 'text-white' : 'text-gray-400'}`}>{label}</span>
                               <span className="block text-[10px] text-gray-600 font-bold uppercase tracking-widest">{desc}</span>
@@ -317,16 +317,16 @@ function RegisterForm() {
                   })}
                   </div>
                   
-                  <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="pt-4">
+                  <m.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="pt-4">
                     <Button type="button" onClick={handleNextStep} className="h-16 w-full rounded-2xl bg-primary font-black text-black group">
                       انتقـل للمرحلة التالية <ArrowRight className="mr-3 h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </Button>
-                  </motion.div>
-                </motion.div>
+                  </m.div>
+                </m.div>
               }
 
               {step === 2 &&
-              <motion.div
+              <m.div
                 key="step2"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -376,11 +376,11 @@ function RegisterForm() {
                       تأكيد البيانات <ArrowRight className="mr-2 h-5 w-5" />
                     </Button>
                   </div>
-                </motion.div>
+                </m.div>
               }
 
               {step === 3 &&
-              <motion.div
+              <m.div
                 key="step3"
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -413,7 +413,7 @@ function RegisterForm() {
                       {SUBJECTS.map((subject) => {
                       const selected = interestedSubjects.includes(subject);
                       return (
-                        <motion.button
+                        <m.button
                           whileHover={{ y: -2 }}
                           key={subject}
                           type="button"
@@ -421,7 +421,7 @@ function RegisterForm() {
                           className={`h-12 rounded-xl border text-[10px] font-black transition-all ${selected ? 'border-primary bg-primary text-black shadow-[0_0_15px_rgba(var(--primary),0.2)]' : 'border-white/5 bg-white/5 text-gray-500 hover:border-white/20'}`}>
                           
                             {subject}
-                          </motion.button>);
+                          </m.button>);
 
                     })}
                     </div>
@@ -451,11 +451,11 @@ function RegisterForm() {
                        {isLoading ? <Loader2 className="h-6 w-6 animate-spin mx-auto" /> : "إعـلان الهويـة والنـشوء"}
                     </Button>
                   </div>
-                </motion.div>
+                </m.div>
               }
             </AnimatePresence>
           </form>
-        </motion.div>
+        </m.div>
 
         <div className="mt-12 text-center pb-12">
            <p className="text-sm font-bold text-gray-500">

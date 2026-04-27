@@ -1,4 +1,4 @@
-﻿import { UserRole } from "@prisma/client";
+import { UserRole } from "@/types/enums";
 
 export const PERMISSIONS = {
   // Global / Dashboard

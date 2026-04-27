@@ -58,6 +58,7 @@ export function HydrationFix() {
     cleanElements();
 
     // Use MutationObserver to clean up elements added by extensions dynamically
+    let timeout: NodeJS.Timeout;
     const observer = new MutationObserver((mutations) => {
       let shouldClean = false;
       for (const mutation of mutations) {
@@ -72,7 +73,8 @@ export function HydrationFix() {
       }
       
       if (shouldClean) {
-        cleanElements();
+        clearTimeout(timeout);
+        timeout = setTimeout(cleanElements, 1000); // Debounce to 1 second
       }
     });
 

@@ -25,7 +25,7 @@ import {
   DropdownMenuTrigger } from
 "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 // import removed
 
 interface QuickAction {
@@ -156,12 +156,12 @@ export function QuickActions() {
           aria-label="إجراءات سريعة"
           title="إجراءات سريعة (Ctrl+Shift+N)">
           
-					<motion.div
+					<m.div
             animate={{ rotate: isOpen ? 45 : 0 }}
             transition={{ duration: 0.2 }}>
             
 						<Zap className="h-4 w-4 text-primary-foreground" />
-					</motion.div>
+					</m.div>
 					{availableActions.length > 0 &&
           <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-yellow-500 border-2 border-background flex items-center justify-center">
 							<span className="text-[8px] font-bold text-background">{availableActions.length}</span>
@@ -182,7 +182,7 @@ export function QuickActions() {
 				<div className="grid grid-cols-1 gap-1 p-1">
 					<AnimatePresence>
 						{availableActions.map((action, index) =>
-            <motion.div
+            <m.div
               key={action.id}
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
@@ -215,7 +215,7 @@ export function QuickActions() {
 									</div>
 									<ChevronRight className="h-4 w-4 text-muted-foreground shrink-0 opacity-0 group-hover/item:opacity-100 transition-opacity" />
 								</DropdownMenuItem>
-							</motion.div>
+							</m.div>
             )}
 					</AnimatePresence>
 				</div>

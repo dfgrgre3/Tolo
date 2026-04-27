@@ -1,14 +1,14 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
-import { LoadingPage } from '@/components/ui/loading-state';
+import { UnifiedLayoutSkeleton } from '@/components/ui/loading-state';
 
 /**
  * Root Loading Component
  * 
- * This component provides an immediate visual feedback during page transitions.
- * It uses a premium design with unified loading states.
+ * Uses an inline skeleton layout instead of a fixed overlay
+ * to prevent the loading screen from permanently blocking page content.
  */
 export default function Loading() {
-  return <LoadingPage />;
+  return <UnifiedLayoutSkeleton />;
 }

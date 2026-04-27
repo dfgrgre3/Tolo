@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ShieldAlert, Lock, Loader2, AlertCircle, ArrowRight, Eye, EyeOff, ShieldCheck, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from '@/contexts/auth-context';
 import {
   sanitizeRedirectPath,
@@ -123,7 +123,7 @@ export default function AdminLoginPage() {
       <div className="absolute -top-32 -left-32 h-80 w-80 rounded-full bg-red-600/10 blur-[120px] animate-pulse" />
       <div className="absolute -bottom-32 -right-32 h-80 w-80 rounded-full bg-orange-600/10 blur-[120px] animate-pulse" />
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
@@ -144,7 +144,7 @@ export default function AdminLoginPage() {
 
         <AnimatePresence mode="wait">
           {errorStatus && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.95, height: 0 }}
               animate={{ opacity: 1, scale: 1, height: 'auto', x: [0, -10, 10, -10, 10, 0] }}
               exit={{ opacity: 0, scale: 0.95, height: 0 }}
@@ -153,7 +153,7 @@ export default function AdminLoginPage() {
             >
               <AlertCircle className="h-6 w-6 flex-shrink-0" />
               <p className="text-sm font-semibold">{errorStatus}</p>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -230,7 +230,7 @@ export default function AdminLoginPage() {
               </div>
             </>
           ) : (
-            <motion.form
+            <m.form
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               onSubmit={onVerify2FA}
@@ -278,10 +278,10 @@ export default function AdminLoginPage() {
               >
                 إلغاء والمحاولة مرة أخرى
               </button>
-            </motion.form>
+            </m.form>
           )}
         </div>
-      </motion.div>
+      </m.div>
       
       {/* Footer info */}
       <div className="mt-8 flex items-center justify-center gap-6 opacity-30 grayscale hover:grayscale-0 transition-all duration-700">

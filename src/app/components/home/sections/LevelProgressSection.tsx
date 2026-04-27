@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { User } from '@/types/user';
 import { Zap, Crown, Target } from 'lucide-react';
 
@@ -19,7 +19,7 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
   const remainingXP = Math.max(nextLevelXP - currentXP, 0);
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -104,7 +104,7 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
 
           {/* 3D Progress Bar Container */}
           <div className="relative h-6 w-full overflow-hidden rounded-full bg-gray-900/50 shadow-inner ring-1 ring-white/5">
-            <motion.div
+            <m.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
@@ -112,7 +112,7 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
               
               {/* Shimmer Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent w-1/2 -skew-x-12 animate-[shimmer_2s_infinite]"></div>
-            </motion.div>
+            </m.div>
           </div>
 
           <div className="mt-3 flex justify-between items-center text-xs">
@@ -122,6 +122,6 @@ export const LevelProgressSection = ({ user }: LevelProgressProps) => {
         </div>
 
       </div>
-    </motion.div>);
+    </m.div>);
 
 };

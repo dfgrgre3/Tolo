@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, memo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -142,7 +142,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
       <div className="absolute inset-0 bg-gradient-to-br from-yellow-200/25 via-transparent to-orange-200/25" />
       
       <div className="relative z-10">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -160,11 +160,11 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
           <p className="text-muted-foreground text-lg">
             شارك إنجازاتك، تنافس مع الأصدقاء، وشاهد ترتيبك في لوحة المتصدرين
           </p>
-        </motion.div>
+        </m.div>
 
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Leaderboard */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: -20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -192,7 +192,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                   </div> :
 
                 leaderboard.map((entry, index) =>
-                <motion.div
+                <m.div
                   key={`${entry.rank}-${index}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -225,15 +225,15 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                       <div className="text-lg font-bold text-slate-700">
                         #{entry.rank}
                       </div>
-                    </motion.div>
+                    </m.div>
                 )
                 }
               </CardContent>
             </Card>
-          </motion.div>
+          </m.div>
 
           {/* Recent Achievements */}
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
@@ -261,7 +261,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                   </div> :
 
                 recentAchievements.map((achievement, index) =>
-                <motion.div
+                <m.div
                   key={`${achievement.id}-${index}`}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -287,7 +287,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                               </span>
                             </div>
                             <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                              <motion.div
+                              <m.div
                           initial={{ width: 0 }}
                           animate={{ width: `${achievement.progress / achievement.total * 100}%` }}
                           transition={{ duration: 0.8 }}
@@ -305,16 +305,16 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
                           </div>
                     }
                       </div>
-                    </motion.div>
+                    </m.div>
                 )
                 }
               </CardContent>
             </Card>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Share Achievements CTA */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -342,7 +342,7 @@ export const SocialFeaturesSection = memo(function SocialFeaturesSection() {
               </div>
             </CardContent>
           </Card>
-        </motion.div>
+        </m.div>
       </div>
     </section>);
 

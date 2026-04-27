@@ -1,7 +1,7 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Activity, Database, Cpu, Zap, Shield, HardDrive } from "lucide-react";
 
 interface PulseItemProps {
@@ -47,7 +47,7 @@ function PulseBar({ label, value, max, icon: Icon, color, unit = "%" }: PulseIte
       </div>
       
       <div className="relative h-3 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-         <motion.div
+         <m.div
            initial={{ width: 0 }}
            animate={{ width: `${percentage}%` }}
            transition={{ duration: 1, ease: "easeOut" }}

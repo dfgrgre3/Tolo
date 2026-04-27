@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Upload,
   Book as BookIcon,
@@ -19,6 +19,7 @@ import { ensureUser } from "@/lib/user-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { logger } from '@/lib/logger';
+import { apiClient } from "@/lib/api/api-client";
 
 // New Components
 import { Book, Category } from "@/components/library/types";
@@ -56,14 +57,12 @@ export default function LibraryPage() {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [catRes, bookRes] = await Promise.all([
-          fetch("/api/library/categories"),
-          fetch("/api/library/books")
+        const [catData, bookData] = await Promise.all([
+          apiClient.get<any>("/categories"),
+          apiClient.get<any>("/library/books")
         ]);
-        const catData = await catRes.json();
-        const bookData = await bookRes.json();
-        setCategories(Array.isArray(catData) ? catData : []);
-        setBooks(Array.isArray(bookData) ? bookData : []);
+        setCategories(Array.isArray(catData) ? catData : (catData?.categories || []));
+        setBooks(Array.isArray(bookData) ? bookData : (bookData?.books || []));
       } catch (error) {
         logger.error("Failed to fetch library data", error);
         toast.error("فشل في جلب البيانات من الأرشيف");
@@ -107,31 +106,21 @@ export default function LibraryPage() {
     
     setUploading(true);
     try {
-      const response = await fetch("/api/library/books", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: formData.title,
-          author: formData.author,
-          description: formData.description,
-          subjectId: formData.subjectId,
-          tags: formData.tags,
-          coverUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(formData.title)}&backgroundColor=0a0a0a&shapeColor=fbbf24`,
-          downloadUrl: "#",
-        })
+      await apiClient.post<any>("/library/books", {
+        title: formData.title,
+        author: formData.author,
+        description: formData.description,
+        subjectId: formData.subjectId,
+        tags: formData.tags,
+        coverUrl: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(formData.title)}&backgroundColor=0a0a0a&shapeColor=fbbf24`,
+        downloadUrl: "#",
       });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to upload");
-      }
 
       toast.success("تم إرسال المخطوطة للأرشيف الملكي!");
       setShowUploadModal(false);
       
-      const bookRes = await fetch("/api/library/books");
-      const bookData = await bookRes.json();
-      setBooks(Array.isArray(bookData) ? bookData : []);
+      const bookData = await apiClient.get<any>("/library/books");
+      setBooks(Array.isArray(bookData) ? bookData : (bookData?.books || []));
       
       setFormData({
         title: "",
@@ -197,7 +186,7 @@ export default function LibraryPage() {
                   ))}
                 </div>
               ) : sortedBooks.length > 0 ? (
-                <motion.div 
+                <m.div 
                   layout
                   className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-10"
                 >
@@ -209,9 +198,9 @@ export default function LibraryPage() {
                       onClick={setSelectedBook}
                     />
                   ))}
-                </motion.div>
+                </m.div>
               ) : (
-                <motion.div 
+                <m.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   className="rpg-glass p-32 text-center space-y-6"
@@ -226,13 +215,13 @@ export default function LibraryPage() {
                    <Button variant="outline" onClick={() => {setSearchTerm(""); setActiveCategory("all")}} className="rounded-2xl border-white/10 text-gray-500">
                      إعادة تعيين المرشحات
                    </Button>
-                </motion.div>
+                </m.div>
               )}
            </AnimatePresence>
         </section>
 
         {/* Footer Banner: Join the Scribes */}
-        <motion.div 
+        <m.div 
           initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -256,7 +245,7 @@ export default function LibraryPage() {
                 <Plus className="w-5 h-5" />
               </Button>
            </div>
-        </motion.div>
+        </m.div>
       </div>
 
       {/* Overlays */}
@@ -270,7 +259,7 @@ export default function LibraryPage() {
       <AnimatePresence>
         {showUploadModal && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-            <motion.div
+            <m.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -278,7 +267,7 @@ export default function LibraryPage() {
               className="absolute inset-0 bg-black/90 backdrop-blur-2xl"
             />
           
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0.9, y: 50 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 50 }}
@@ -370,7 +359,7 @@ export default function LibraryPage() {
                   </Button>
                 </div>
               </form>
-            </motion.div>
+            </m.div>
           </div>
         )}
       </AnimatePresence>

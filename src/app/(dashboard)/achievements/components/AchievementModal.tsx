@@ -13,7 +13,7 @@ import {
 	formatArabicDate,
 } from '../utils';
 import { Trophy, Lock, Zap, Calendar, Target, Award, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 
 interface AchievementModalProps {
 	achievement: Achievement;
@@ -49,7 +49,7 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 						<div className={`absolute inset-0 bg-gradient-to-br ${isEarned ? getRarityGlow() : 'from-muted to-muted-foreground/30'} opacity-20`} />
 						
 						{isEarned && (
-							<motion.div 
+							<m.div 
 								animate={{ 
 									rotate: 360,
 									scale: [1, 1.2, 1]
@@ -71,7 +71,7 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 					<div className="relative pt-16 sm:pt-20 px-6 sm:px-10 pb-8 sm:pb-10 bg-gradient-to-b from-transparent to-background/50">
 						{/* Floating Icon */}
 						<div className="absolute -top-16 sm:-top-20 left-1/2 transform -translate-x-1/2 flex justify-center">
-							<motion.div
+							<m.div
 								initial={{ scale: 0, y: 50, rotate: -180 }}
 								animate={{ scale: 1, y: 0, rotate: 0 }}
 								transition={{ type: 'spring', stiffness: 200, damping: 20, delay: 0.1 }}
@@ -85,7 +85,7 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 										{achievement.icon || getCategoryIcon(achievement.category)}
 									</span>
 									{isEarned && (
-										<motion.div
+										<m.div
 											initial={{ opacity: 0 }}
 											animate={{ opacity: [0, 1, 0] }}
 											transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -96,21 +96,21 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 								
 								{/* Earned Badge Overlay */}
 								{isEarned && (
-									<motion.div 
+									<m.div 
 										initial={{ scale: 0 }}
 										animate={{ scale: 1 }}
 										transition={{ type: "spring", delay: 0.5 }}
 										className="absolute -bottom-2 -right-2 bg-yellow-500 text-white p-2.5 rounded-full shadow-lg border-[3px] border-card z-30"
 									>
 										<Trophy className="w-5 h-5 sm:w-6 sm:h-6" />
-									</motion.div>
+									</m.div>
 								)}
-							</motion.div>
+							</m.div>
 						</div>
 
 						{/* Content */}
 						<div className="text-center mt-2 mb-8">
-							<motion.h2 
+							<m.h2 
 								initial={{ opacity: 0, y: 20 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: 0.2 }}
@@ -121,9 +121,9 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 								}`}
 							>
 								{achievement.isSecret && !isEarned ? 'إنجاز سري غير معروف' : achievement.title}
-							</motion.h2>
+							</m.h2>
 
-							<motion.div 
+							<m.div 
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
 								transition={{ delay: 0.3 }}
@@ -138,19 +138,19 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 								<Badge variant="outline" className="text-xs font-bold px-3 py-1 bg-background/50">
 									{getCategoryIcon(achievement.category)} {getCategoryLabel(achievement.category)}
 								</Badge>
-							</motion.div>
+							</m.div>
 
 							{(!achievement.isSecret || isEarned) ? (
-								<motion.p 
+								<m.p 
 									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
 									transition={{ delay: 0.4 }}
 									className="text-muted-foreground leading-relaxed max-w-sm mx-auto"
 								>
 									{achievement.description}
-								</motion.p>
+								</m.p>
 							) : (
-								<motion.div 
+								<m.div 
 									initial={{ opacity: 0 }}
 									animate={{ opacity: 1 }}
 									transition={{ delay: 0.4 }}
@@ -158,12 +158,12 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 								>
 									<Sparkles className="w-6 h-6 animate-pulse" />
 									<p className="font-medium italic text-sm">استمر في استكشاف المنصة لاكتشاف هذا الإنجاز السري المخبأ!</p>
-								</motion.div>
+								</m.div>
 							)}
 						</div>
 
 						{/* Stats grid */}
-						<motion.div 
+						<m.div 
 							initial={{ opacity: 0, y: 20 }}
 							animate={{ opacity: 1, y: 0 }}
 							transition={{ delay: 0.5 }}
@@ -180,7 +180,7 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 							{achievement.progress !== undefined && achievement.maxProgress ? (
 								<div className="bg-secondary/40 border border-border/50 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 relative overflow-hidden">
 									<div className="absolute bottom-0 inset-x-0 h-1 bg-secondary">
-										<motion.div 
+										<m.div 
 											className="h-full bg-primary"
 											initial={{ width: 0 }}
 									animate={{ width: `${Math.min(100, (achievement.progress / achievement.maxProgress) * 100)}%` }}
@@ -206,12 +206,12 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 									<div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">الحالة الحالية</div>
 								</div>
 							)}
-						</motion.div>
+						</m.div>
 
 						{/* Requirements List */}
 						<AnimatePresence>
 							{Object.keys(achievement.requirements).length > 0 && (!achievement.isSecret || isEarned) && (
-								<motion.div 
+								<m.div 
 									initial={{ opacity: 0, height: 0 }}
 									animate={{ opacity: 1, height: 'auto' }}
 									transition={{ delay: 0.6 }}
@@ -229,13 +229,13 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 											</div>
 										))}
 									</div>
-								</motion.div>
+								</m.div>
 							)}
 						</AnimatePresence>
 
 						{/* Footer Note Date */}
 						{isEarned && achievement.earnedAt && (
-							<motion.div 
+							<m.div 
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
 								transition={{ delay: 0.7 }}
@@ -243,7 +243,7 @@ export function AchievementModal({ achievement, isOpen, onClose }: AchievementMo
 							>
 								<Calendar className="w-4 h-4" />
 								<span>تم الحصول عليه في {formatArabicDate(achievement.earnedAt)}</span>
-							</motion.div>
+							</m.div>
 						)}
 					</div>
 				</div>

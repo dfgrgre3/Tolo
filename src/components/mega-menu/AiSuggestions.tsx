@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useState, useEffect, useCallback, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Sparkles,
   TrendingUp,
@@ -42,7 +42,7 @@ interface AiSuggestionsProps {
 
 // Skeleton loader component
 const SkeletonCard = ({ index }: { index: number }) => (
-  <motion.div
+  <m.div
     initial={{ opacity: 0 }}
     animate={{ opacity: 1 }}
     transition={{ delay: index * 0.1 }}
@@ -56,7 +56,7 @@ const SkeletonCard = ({ index }: { index: number }) => (
         <div className="h-3 bg-muted/30 rounded w-1/2 animate-pulse" />
       </div>
     </div>
-  </motion.div>
+  </m.div>
 );
 
 export const AiSuggestions = memo(function AiSuggestions({ 
@@ -254,17 +254,17 @@ export const AiSuggestions = memo(function AiSuggestions({
     <div className={cn("space-y-4", className)}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           className="flex items-center gap-2"
         >
           {/* Animated Brain Icon */}
-          <motion.div 
+          <m.div 
             className="relative"
             whileHover={{ scale: 1.1 }}
           >
-            <motion.div
+            <m.div
               animate={{ 
                 scale: [1, 1.05, 1],
                 opacity: [0.7, 1, 0.7]
@@ -279,30 +279,30 @@ export const AiSuggestions = memo(function AiSuggestions({
             <div className="relative p-1.5 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 border border-primary/30">
               <Brain className="h-4 w-4 text-primary" />
             </div>
-          </motion.div>
+          </m.div>
           
           <h3 className="font-semibold text-foreground">توصيات ذكية</h3>
           
-          <motion.span
+          <m.span
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 2, repeat: Infinity }}
             className="px-2 py-0.5 rounded-full bg-gradient-to-r from-primary/15 to-primary/10 text-primary text-xs font-bold border border-primary/25 shadow-sm"
           >
             AI
-          </motion.span>
+          </m.span>
 
           {/* Trending indicator */}
           {recommendations.length > 0 && (
-            <motion.div
+            <m.div
               initial={{ opacity: 0, scale: 0 }}
               animate={{ opacity: 1, scale: 1 }}
               className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 text-xs border border-orange-500/20"
             >
               <Flame className="h-3 w-3" />
               <span className="font-medium">رائج</span>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
+        </m.div>
 
         <Button
           variant="ghost"
@@ -312,19 +312,19 @@ export const AiSuggestions = memo(function AiSuggestions({
           className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-colors"
           aria-label="تحديث التوصيات"
         >
-          <motion.div
+          <m.div
             animate={isRefreshing ? { rotate: 360 } : {}}
             transition={{ duration: 1, repeat: isRefreshing ? Infinity : 0, ease: "linear" }}
           >
             <RefreshCw className={cn("h-4 w-4", isRefreshing && "text-primary")} />
-          </motion.div>
+          </m.div>
         </Button>
       </div>
 
       {/* Content */}
       <AnimatePresence mode="wait">
         {isLoading && !isRefreshing ? (
-          <motion.div
+          <m.div
             key="loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -337,9 +337,9 @@ export const AiSuggestions = memo(function AiSuggestions({
             {[...Array(isCompact ? 3 : 4)].map((_, i) => (
               <SkeletonCard key={i} index={i} />
             ))}
-          </motion.div>
+          </m.div>
         ) : error ? (
-          <motion.div
+          <m.div
             key="error"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -359,28 +359,28 @@ export const AiSuggestions = memo(function AiSuggestions({
             >
               إعادة المحاولة
             </Button>
-          </motion.div>
+          </m.div>
         ) : recommendations.length === 0 ? (
-          <motion.div
+          <m.div
             key="empty"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             className="text-center py-8 px-4 rounded-lg bg-muted/30 border border-border/50"
           >
-            <motion.div
+            <m.div
               animate={{ rotate: [0, 10, -10, 0] }}
               transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
               className="inline-flex p-3 rounded-full bg-muted/50 mb-3"
             >
               <Lightbulb className="h-8 w-8 text-muted-foreground" />
-            </motion.div>
+            </m.div>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">
               لم يتم العثور على توصيات حالياً. استمر في استخدام التطبيق للحصول على توصيات شخصية!
             </p>
-          </motion.div>
+          </m.div>
         ) : (
-          <motion.div
+          <m.div
             key="recommendations"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -397,7 +397,7 @@ export const AiSuggestions = memo(function AiSuggestions({
               const algorithmLabel = getAlgorithmLabel(recommendation.algorithm);
 
               return (
-                <motion.div
+                <m.div
                   key={recommendation.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -417,7 +417,7 @@ export const AiSuggestions = memo(function AiSuggestions({
                   >
                     <div className="flex items-start gap-3">
                       {/* Icon */}
-                      <motion.div 
+                      <m.div 
                         whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
                         transition={{ duration: 0.5 }}
                         className={cn(
@@ -426,7 +426,7 @@ export const AiSuggestions = memo(function AiSuggestions({
                         )}
                       >
                         <IconComponent className="h-4 w-4" />
-                      </motion.div>
+                      </m.div>
 
                       {/* Content */}
                       <div className="flex-1 min-w-0">
@@ -471,16 +471,16 @@ export const AiSuggestions = memo(function AiSuggestions({
                       </div>
                     </div>
                   </button>
-                </motion.div>
+                </m.div>
               );
             })}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
       {/* Last updated indicator */}
       {lastRefresh && recommendations.length > 0 && !isLoading && (
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground"
@@ -489,7 +489,7 @@ export const AiSuggestions = memo(function AiSuggestions({
           <span>
             آخر تحديث: {lastRefresh.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
           </span>
-        </motion.div>
+        </m.div>
       )}
     </div>
   );

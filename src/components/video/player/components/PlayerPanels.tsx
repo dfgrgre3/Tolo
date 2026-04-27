@@ -1,4 +1,4 @@
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useShallow } from "zustand/react/shallow";
 import {
   Bookmark,
@@ -8,12 +8,12 @@ import {
   Copy,
   Keyboard,
   Layers,
+  ListVideo,
   MessageSquare,
   RotateCcw,
   Sparkles,
   SunMedium,
   type LucideIcon,
-  ListVideo,
 } from "lucide-react";
 import { useCourseVideoPlayerStore } from "../store";
 import type {
@@ -27,6 +27,7 @@ import type {
 import { formatDuration, formatWatchTime } from "../utils";
 import { SidebarTabButton } from "./SidebarTabButton";
 import { cn } from "@/lib/utils";
+import { useEfficiencyMode } from "@/hooks";
 
 export function PlayerPanels({
   qualities,
@@ -115,19 +116,21 @@ export function PlayerPanels({
       isSettingsOpen: state.isSettingsOpen,
       isStatsOpen: state.isStatsOpen,
       isHelpOpen: state.isHelpOpen,
-    isSidebarOpen: state.isSidebarOpen,
-    sidebarTab: state.sidebarTab,
-    selectedQuality: state.selectedQuality,
-    currentAutoQuality: state.currentAutoQuality,
-    playbackRate: state.playbackRate,
-    selectedSubtitle: state.selectedSubtitle,
-    isAmbientMode: state.isAmbientMode,
+      isSidebarOpen: state.isSidebarOpen,
+      sidebarTab: state.sidebarTab,
+      selectedQuality: state.selectedQuality,
+      currentAutoQuality: state.currentAutoQuality,
+      playbackRate: state.playbackRate,
+      selectedSubtitle: state.selectedSubtitle,
+      isAmbientMode: state.isAmbientMode,
       brightness: state.brightness,
       currentTime: state.currentTime,
       buffered: state.buffered,
       watchSeconds: state.watchSeconds,
     }))
   );
+
+  const isEfficiencyMode = useEfficiencyMode();
 
   const statsItems = [
     {
@@ -143,7 +146,7 @@ export function PlayerPanels({
     { label: "الترجمة", value: selectedSubtitleLabel },
     { label: "السرعة", value: `${playbackRate}x` },
     {
-      label: "الذاكرة المؤقتة",
+      label: "المخزن المؤقت",
       value: `${Math.max(0, Math.round(buffered - currentTime))} ث`,
     },
     { label: "السطوع", value: `${Math.round(brightness * 100)}%` },
@@ -154,12 +157,15 @@ export function PlayerPanels({
     ["J / ←", "رجوع 10 ثوان"],
     ["L / →", "تقديم 10 ثوان"],
     ["↑ / ↓", "رفع أو خفض الصوت"],
+    ["0 - 9", "الانتقال إلى نسبة من الفيديو"],
+    ["Home / End", "البداية أو النهاية"],
     ["M", "كتم أو إلغاء الكتم"],
     ["F", "ملء الشاشة"],
     ["P", "النافذة العائمة"],
     ["T", "الوضع المسرحي"],
     ["C", "تشغيل أو إيقاف الترجمة"],
     ["N", "فتح لوحة الملاحظات"],
+    ["Esc", "إغلاق النوافذ المفتوحة"],
     ["?", "إظهار هذه المساعدة"],
   ];
 
@@ -167,11 +173,15 @@ export function PlayerPanels({
     <>
       <AnimatePresence>
         {isSettingsOpen ? (
-          <motion.div
-            initial={{ opacity: 0, y: 16, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 16, scale: 0.97 }}
-            className="absolute bottom-24 right-4 z-40 w-[320px] rounded-[28px] border border-white/10 bg-slate-950/90 p-4 shadow-2xl backdrop-blur-2xl"
+          <m.div
+            initial={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.97 }}
+            animate={isEfficiencyMode ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, y: 16, scale: 0.97 }}
+            transition={isEfficiencyMode ? { duration: 0 } : undefined}
+            className={cn(
+              "absolute bottom-24 right-4 z-40 w-[320px] rounded-[28px] border border-white/10 bg-slate-950/90 p-4 shadow-2xl",
+              !isEfficiencyMode && "backdrop-blur-2xl"
+            )}
           >
             <div className="mb-4 flex items-center justify-between">
               <div>
@@ -184,6 +194,7 @@ export function PlayerPanels({
                 type="button"
                 onClick={onCloseSettings}
                 className="rounded-full p-2 text-white/40 transition hover:bg-white/10 hover:text-white"
+                aria-label="إغلاق الإعدادات"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -196,18 +207,18 @@ export function PlayerPanels({
                 </p>
                 <div className="grid grid-cols-3 gap-2">
                   {allowAutoQuality ? (
-                  <button
-                    type="button"
-                    onClick={() => onChangeQuality(-1)}
-                    className={cn(
-                      "rounded-2xl px-3 py-2 text-xs font-bold transition",
-                      selectedQuality === -1
-                        ? "bg-blue-500 text-white"
-                        : "bg-white/5 text-white/65 hover:bg-white/10"
-                    )}
-                  >
-                    تلقائي
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => onChangeQuality(-1)}
+                      className={cn(
+                        "rounded-2xl px-3 py-2 text-xs font-bold transition",
+                        selectedQuality === -1
+                          ? "bg-blue-500 text-white"
+                          : "bg-white/5 text-white/65 hover:bg-white/10"
+                      )}
+                    >
+                      تلقائي
+                    </button>
                   ) : null}
                   {qualities.map((quality) => (
                     <button
@@ -314,6 +325,7 @@ export function PlayerPanels({
                   step={0.05}
                   value={brightness}
                   onChange={(event) => onChangeBrightness(Number(event.target.value))}
+                  aria-label="السطوع"
                   className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/20 accent-white"
                 />
               </div>
@@ -347,17 +359,21 @@ export function PlayerPanels({
                 />
               ) : null}
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {isStatsOpen ? (
-          <motion.div
-            initial={{ opacity: 0, y: 18, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 18, scale: 0.97 }}
-            className="absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-6 backdrop-blur-xl"
+          <m.div
+            initial={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.97 }}
+            animate={isEfficiencyMode ? { opacity: 1 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, y: 18, scale: 0.97 }}
+            transition={isEfficiencyMode ? { duration: 0 } : undefined}
+            className={cn(
+              "absolute inset-0 z-40 flex items-center justify-center bg-black/70 p-6",
+              !isEfficiencyMode && "backdrop-blur-xl"
+            )}
             onClick={onCloseStats}
           >
             <div
@@ -375,6 +391,7 @@ export function PlayerPanels({
                   type="button"
                   onClick={onCloseStats}
                   className="rounded-full p-2 text-white/40 transition hover:bg-white/10 hover:text-white"
+                  aria-label="إغلاق الإحصاءات"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
@@ -412,17 +429,21 @@ export function PlayerPanels({
                 </div>
               ) : null}
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {isHelpOpen ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="absolute inset-0 z-40 flex items-center justify-center bg-black/75 p-6 backdrop-blur-xl"
+          <m.div
+            initial={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+            animate={isEfficiencyMode ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+            exit={isEfficiencyMode ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+            transition={isEfficiencyMode ? { duration: 0 } : undefined}
+            className={cn(
+              "absolute inset-0 z-40 flex items-center justify-center bg-black/75 p-6",
+              !isEfficiencyMode && "backdrop-blur-xl"
+            )}
             onClick={onCloseHelp}
           >
             <div
@@ -447,6 +468,7 @@ export function PlayerPanels({
                   type="button"
                   onClick={onCloseHelp}
                   className="rounded-full p-2 text-white/40 transition hover:bg-white/10 hover:text-white"
+                  aria-label="إغلاق المساعدة"
                 >
                   <ChevronRight className="h-5 w-5" />
                 </button>
@@ -468,17 +490,21 @@ export function PlayerPanels({
                 ))}
               </div>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </AnimatePresence>
 
       <AnimatePresence>
         {isSidebarOpen ? (
-          <motion.aside
-            initial={{ x: 360, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 360, opacity: 0 }}
-            className="absolute bottom-0 right-0 top-0 z-30 flex w-full max-w-[360px] flex-col border-r border-white/10 bg-slate-950/92 p-4 shadow-2xl backdrop-blur-2xl"
+          <m.aside
+            initial={isEfficiencyMode ? { opacity: 0 } : { x: 360, opacity: 0 }}
+            animate={isEfficiencyMode ? { opacity: 1 } : { x: 0, opacity: 1 }}
+            exit={isEfficiencyMode ? { opacity: 0 } : { x: 360, opacity: 0 }}
+            transition={isEfficiencyMode ? { duration: 0 } : undefined}
+            className={cn(
+              "absolute bottom-0 right-0 top-0 z-30 flex w-full max-w-[360px] flex-col border-r border-white/10 bg-slate-950/92 p-4 shadow-2xl",
+              !isEfficiencyMode && "backdrop-blur-2xl"
+            )}
           >
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
@@ -491,6 +517,7 @@ export function PlayerPanels({
                 type="button"
                 onClick={onCloseSidebar}
                 className="rounded-full p-2 text-white/40 transition hover:bg-white/10 hover:text-white"
+                aria-label="إغلاق اللوحة الجانبية"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>
@@ -679,7 +706,7 @@ export function PlayerPanels({
                 )
               ) : null}
             </div>
-          </motion.aside>
+          </m.aside>
         ) : null}
       </AnimatePresence>
     </>

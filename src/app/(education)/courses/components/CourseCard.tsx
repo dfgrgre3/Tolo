@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -38,7 +38,7 @@ export interface CourseCardProps {
   price: number;
   rating: number;
   enrolledCount: number;
-  tags: string[];
+  tags?: string[];
   enrolled: boolean;
   progress?: number;
   lessonsCount?: number;
@@ -91,11 +91,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
 }) => {
   const levelInfo = levelConfig[level] || levelConfig.INTERMEDIATE;
   const safeProgress = Math.max(0, Math.min(progress ?? 0, 100));
-  const visibleTags = tags.slice(0, 2);
+  const visibleTags = (tags || []).slice(0, 2);
   const _ratingStars = Math.min(5, Math.max(0, Math.round(rating)));
 
   return (
-    <motion.article
+    <m.article
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.06, duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
@@ -204,7 +204,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
               </span>
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
-              <motion.div
+              <m.div
               initial={{ width: 0 }}
               animate={{ width: `${safeProgress}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
@@ -272,11 +272,11 @@ export const CourseCard: React.FC<CourseCardProps> = ({
         <div className="mt-auto flex items-center gap-4 border-t border-gray-100 dark:border-white/5 pt-3 text-[11px] text-gray-500">
           <div className="flex items-center gap-1">
             <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-            <span className="font-bold text-gray-700 dark:text-white">{rating.toFixed(1)}</span>
+            <span className="font-bold text-gray-700 dark:text-white">{(rating || 0).toFixed(1)}</span>
           </div>
           <div className="flex items-center gap-1">
             <Users className="h-3.5 w-3.5" />
-            <span>{enrolledCount.toLocaleString("en")}</span>
+            <span>{enrolledCount?.toLocaleString("en") || "0"}</span>
           </div>
           <div className="flex items-center gap-1">
             <Clock className="h-3.5 w-3.5" />
@@ -343,7 +343,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({
           </div>
         </div>
       </div>
-    </motion.article>);
+    </m.article>);
 
 };
 

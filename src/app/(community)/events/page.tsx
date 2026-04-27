@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Calendar,
   MapPin,
@@ -120,7 +120,7 @@ export default function EventsPage() {
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 space-y-16">
         
         {/* --- Hero: Kingdom Gatherings --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(STYLES.glass, "p-12 md:p-24 relative group overflow-hidden")}>
@@ -155,7 +155,7 @@ export default function EventsPage() {
 
               <div className="relative w-80 h-80 hidden lg:block">
                  <div className="absolute inset-0 bg-primary/20 blur-[80px] rounded-full animate-pulse" />
-                 <motion.div
+                 <m.div
                 animate={{ rotate: 360 }}
                 transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
                 className="absolute inset-0 border border-dotted border-primary/30 rounded-full" />
@@ -165,7 +165,7 @@ export default function EventsPage() {
                  </div>
               </div>
            </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Tools of Discovery --- */}
         <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
@@ -215,14 +215,14 @@ export default function EventsPage() {
                 {[1, 2, 3].map((i) => <div key={i} className="h-96 bg-white/5 rounded-[2.5rem] animate-pulse" />)}
              </div> :
           filteredEvents.length > 0 ?
-          <motion.div
+          <m.div
             key="events"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
             
                 {filteredEvents.map((event, idx) =>
-            <motion.div
+            <m.div
               key={event.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -280,9 +280,9 @@ export default function EventsPage() {
                            </Button>
                         </Link>
                      </div>
-                  </motion.div>
+                  </m.div>
             )}
-             </motion.div> :
+             </m.div> :
 
           <div className="py-40 text-center space-y-8 animate-in fade-in zoom-in">
                 <div className="p-8 bg-white/5 rounded-full w-max mx-auto border border-dashed border-white/10 text-gray-700">

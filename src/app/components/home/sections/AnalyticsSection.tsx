@@ -126,22 +126,29 @@ const DailyProgressChart = React.memo(({ chartData }: {chartData: Array<{day: st
   const fixedMax = 100;
   const rangeY = fixedMax - fixedMin;
 
-  const scaleX = (index: number) => index / (chartData.length - 1) * (width - 2 * padding) + padding;
+  const scaleX = (index: number) => {
+    const divisor = chartData.length > 1 ? chartData.length - 1 : 1;
+    return (index / divisor) * (width - 2 * padding) + padding;
+  };
+
   const scaleY = (value: number) => {
-    const normalizedValue = (value - fixedMin) / rangeY;
+    const safeValue = typeof value === 'number' && !isNaN(value) ? value : fixedMin;
+    const normalizedValue = (safeValue - fixedMin) / (rangeY || 1);
     return height - padding - normalizedValue * (height - 2 * padding);
   };
 
   const points = chartData.map((d, i) => {
     const x = scaleX(i);
-    const y = scaleY(d.progress);
+    const progress = typeof d.progress === 'number' && !isNaN(d.progress) ? d.progress : fixedMin;
+    const y = scaleY(progress);
     return `${x},${y}`;
   }).join(' L ');
 
   const lastIndex = chartData.length - 1;
-  const lastPoint = chartData[lastIndex];
+  const lastPoint = chartData[lastIndex] || { day: '', progress: fixedMin };
   const lastX = scaleX(lastIndex);
-  const lastY = scaleY(lastPoint.progress);
+  const lastProgress = typeof lastPoint.progress === 'number' && !isNaN(lastPoint.progress) ? lastPoint.progress : fixedMin;
+  const lastY = scaleY(lastProgress);
 
   return (
     <div className="w-full bg-black/20 rounded-xl p-4 border border-white/10 shadow-lg mb-6 backdrop-blur-md">
@@ -211,7 +218,7 @@ const DailyProgressChart = React.memo(({ chartData }: {chartData: Array<{day: st
           <circle
             key={i}
             cx={scaleX(i)}
-            cy={scaleY(d.progress)}
+            cy={scaleY(Number(d.progress) || fixedMin)}
             r={4}
             fill="#8b5cf6"
             stroke="#ffffff"
@@ -328,7 +335,7 @@ function AnalyticsSectionComponent() {
                              <Target className="h-5 w-5 text-indigo-400" />
                              <p className="text-sm text-gray-400">إتمام المهام (Quest Completion)</p>
                         </div>
-                        <p className={`text-3xl font-extrabold ${rpgCommonStyles.neonText} mt-1`}>{data?.progressRate}%</p>
+                        <p className={`text-3xl font-extrabold ${rpgCommonStyles.neonText} mt-1`}>{isNaN(data?.progressRate ?? 0) ? 0 : (data?.progressRate ?? 0)}%</p>
                         <div className="h-2 bg-gray-700 rounded-full mt-3 overflow-hidden">
                             <div
               className="h-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(139,92,246,0.5)]"
@@ -343,7 +350,7 @@ function AnalyticsSectionComponent() {
                              <Scroll className="h-5 w-5 text-emerald-400" />
                              <p className="text-sm text-gray-400">المهارات (XP Gained)</p>
                         </div>
-                        <p className="text-3xl font-extrabold text-emerald-400 mt-1 transition-colors duration-1000 drop-shadow-md">{data?.skillsAcquired}</p>
+                        <p className="text-3xl font-extrabold text-emerald-400 mt-1 transition-colors duration-1000 drop-shadow-md">{isNaN(data?.skillsAcquired ?? 0) ? 0 : (data?.skillsAcquired ?? 0)}</p>
                         <p className="text-xs text-emerald-500 mt-2 flex items-center gap-1">
                             <span className="text-lg">+</span> 3 مهارات جديدة هذا الأسبوع
                         </p>
@@ -355,7 +362,7 @@ function AnalyticsSectionComponent() {
                              <Clock className="h-5 w-5 text-amber-400" />
                              <p className="text-sm text-gray-400">ساعات التدريب (Training)</p>
                         </div>
-                        <p className={`text-3xl font-extrabold ${rpgCommonStyles.goldText} mt-1`}>{data?.studyHours}</p>
+                        <p className={`text-3xl font-extrabold ${rpgCommonStyles.goldText} mt-1`}>{isNaN(data?.studyHours ?? 0) ? 0 : (data?.studyHours ?? 0)}</p>
                         <p className="text-xs text-amber-500 mt-2">إجمالي وقت اللعب</p>
                     </div>
                 </div>

@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Award, Star, Trophy, Medal, Target, Zap } from "lucide-react";
@@ -49,7 +49,7 @@ export function RecentAchievements({ achievements }: RecentAchievementsProps) {
   }
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
@@ -66,21 +66,21 @@ export function RecentAchievements({ achievements }: RecentAchievementsProps) {
             {achievements.map((achievement, index) => {
               const Icon = achievementIcons[achievement.icon as keyof typeof achievementIcons] || Award;
               return (
-                <motion.div
+                <m.div
                   key={achievement.id}
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: index * 0.1 }}
                   className="flex items-start gap-4 p-4 rounded-xl bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 border border-yellow-200 dark:border-yellow-800 hover:shadow-lg transition-shadow"
                 >
-                  <motion.div
+                  <m.div
                     whileHover={{ scale: 1.1, rotate: 5 }}
                     className="flex-shrink-0"
                   >
                     <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 flex items-center justify-center text-white shadow-lg">
                       <Icon className="h-6 w-6" />
                     </div>
-                  </motion.div>
+                  </m.div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2 mb-1">
                       <h4 className="font-semibold text-base text-yellow-700 dark:text-yellow-400">
@@ -101,12 +101,12 @@ export function RecentAchievements({ achievements }: RecentAchievementsProps) {
                       })}
                     </p>
                   </div>
-                </motion.div>
+                </m.div>
               );
             })}
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </m.div>
   );
 }

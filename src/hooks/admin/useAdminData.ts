@@ -20,6 +20,30 @@ interface PaginatedResponse<T> {
   totalPages: number;
 }
 
+function normalizePaginatedResponse<T>(payload: any): PaginatedResponse<T> {
+  const data = payload?.data ?? payload ?? {};
+  const pagination = data?.pagination ?? payload?.pagination ?? {};
+
+  const items =
+    data?.items ??
+    data?.users ??
+    data?.subjects ??
+    data?.courses ??
+    data?.exams ??
+    data?.categories ??
+    data?.teachers ??
+    payload?.items ??
+    [];
+
+  return {
+    items: Array.isArray(items) ? items : [],
+    total: pagination?.total ?? pagination?.totalCount ?? 0,
+    page: pagination?.page ?? 1,
+    pageSize: pagination?.limit ?? pagination?.pageSize ?? 10,
+    totalPages: pagination?.totalPages ?? pagination?.pages ?? 1,
+  };
+}
+
 interface PaginationParams {
   page?: number;
   pageSize?: number;
@@ -57,8 +81,7 @@ export function useAdminFetch<T>(
           });
         }
 
-        const cleanEndpoint = endpoint.replace(/^\/api/, "");
-        const url = `${cleanEndpoint}${searchParams.toString() ? `?${searchParams}` : ""}`;
+        const url = `${endpoint}${searchParams.toString() ? `?${searchParams}` : ""}`;
         const data = await apiClient.get<T>(url);
 
         setState({ data, loading: false, error: null });
@@ -113,9 +136,9 @@ export function useAdminPaginated<T>(
       if (params.sortBy) searchParams.append("sortBy", params.sortBy);
       if (params.sortOrder) searchParams.append("sortOrder", params.sortOrder);
 
-      const cleanEndpoint = endpoint.replace(/^\/api/, "");
-      const data = await apiClient.get<PaginatedResponse<T>>(`${cleanEndpoint}?${searchParams}`);
-      
+      const rawData = await apiClient.get<any>(`${endpoint}?${searchParams}`);
+      const data = normalizePaginatedResponse<T>(rawData);
+
       setState({ data, loading: false, error: null });
     } catch (error) {
       const errorMessage =
@@ -171,13 +194,11 @@ export function useAdminCrud<T extends { id: string }>(
   }
 ) {
   const [loading, setLoading] = React.useState(false);
-  const cleanEndpoint = endpoint.replace(/^\/api/, "");
-
   const create = React.useCallback(
     async (data: Partial<T>): Promise<T | null> => {
       setLoading(true);
       try {
-        const result = await apiClient.post<T>(cleanEndpoint, data);
+        const result = await apiClient.post<T>(endpoint, data);
         toast.success("تم الإنشاء بنجاح");
         options?.onSuccess?.("create", result);
         return result;
@@ -191,14 +212,14 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [cleanEndpoint, options]
+    [endpoint, options]
   );
 
   const update = React.useCallback(
     async (id: string, data: Partial<T>): Promise<T | null> => {
       setLoading(true);
       try {
-        const result = await apiClient.patch<T>(cleanEndpoint, { id, ...data });
+        const result = await apiClient.patch<T>(endpoint, { id, ...data });
         toast.success("تم التحديث بنجاح");
         options?.onSuccess?.("update", result);
         return result;
@@ -212,14 +233,14 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [cleanEndpoint, options]
+    [endpoint, options]
   );
 
   const remove = React.useCallback(
     async (id: string): Promise<boolean> => {
       setLoading(true);
       try {
-        await apiClient.delete(cleanEndpoint, { body: JSON.stringify({ id }) });
+        await apiClient.delete(endpoint, { body: JSON.stringify({ id }) });
         toast.success("تم الحذف بنجاح");
         options?.onSuccess?.("delete");
         return true;
@@ -233,7 +254,7 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [cleanEndpoint, options]
+    [endpoint, options]
   );
 
   const bulkDelete = React.useCallback(
@@ -243,7 +264,7 @@ export function useAdminCrud<T extends { id: string }>(
       try {
         for (const id of ids) {
           try {
-            await apiClient.delete(cleanEndpoint, { body: JSON.stringify({ id }) });
+            await apiClient.delete(endpoint, { body: JSON.stringify({ id }) });
             deletedCount++;
           } catch (e) {
             logger.error(`Failed to delete item ${id}:`, e);
@@ -265,7 +286,7 @@ export function useAdminCrud<T extends { id: string }>(
         setLoading(false);
       }
     },
-    [cleanEndpoint, options]
+    [endpoint, options]
   );
 
   return {
@@ -297,8 +318,7 @@ export function useAdminItem<T>(
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      const cleanEndpoint = endpoint.replace(/^\/api/, "");
-      const data = await apiClient.get<T>(`${cleanEndpoint}/${id}`);
+      const data = await apiClient.get<T>(`${endpoint}/${id}`);
       setState({ data, loading: false, error: null });
       return data;
     } catch (error) {

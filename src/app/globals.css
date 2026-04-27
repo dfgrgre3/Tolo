@@ -1,4 +1,4 @@
-﻿@import "tailwindcss";
+@import "tailwindcss";
 @config "../../tailwind.config.js";
 
 @layer base {
@@ -137,6 +137,55 @@
   *:focus-visible {
     @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
   }
+
+  /* Efficiency Mode - Disables heavy effects for weak devices */
+  .efficiency-mode {
+    --backdrop-blur: 0px !important;
+    --glass-opacity: 0.98 !important;
+    --radius: 0.5rem !important;
+  }
+
+  .efficiency-mode * {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    transition-duration: 0ms !important;
+    animation-duration: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    background-attachment: scroll !important;
+    transform: none !important;
+    opacity: 1 !important;
+  }
+
+  .efficiency-mode img,
+  .efficiency-mode video {
+    image-rendering: auto !important;
+  }
+
+  .efficiency-mode canvas {
+    display: none !important;
+  }
+
+  .efficiency-mode .mesh-gradient,
+  .efficiency-mode .ambient-bg {
+    background-image: none !important;
+    background-color: hsl(var(--background)) !important;
+    display: none !important;
+  }
+
+  .efficiency-mode .rpg-glow-primary,
+  .efficiency-mode .rpg-neon-text,
+  .efficiency-mode .rpg-gold-text {
+    box-shadow: none !important;
+    filter: none !important;
+    background: none !important;
+    background-clip: unset !important;
+    -webkit-background-clip: unset !important;
+    color: hsl(var(--primary)) !important;
+  }
 }
 
 /* Respect user motion preferences */
@@ -189,18 +238,33 @@
 }
 
 .dark .rpg-glass {
-  @apply relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-2xl ring-1 ring-white/10;
+  @apply relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 backdrop-blur-2xl ring-1 ring-white/10;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 .rpg-glass-light {
-  @apply relative overflow-hidden rounded-[2.5rem] border border-black/[0.03] bg-white/60 shadow-[0_20px_50px_rgba(0,0,0,0.05)] backdrop-blur-2xl ring-1 ring-black/[0.05];
+  @apply relative overflow-hidden rounded-[2.5rem] border border-black/[0.03] bg-white/60 backdrop-blur-2xl ring-1 ring-black/[0.05];
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
 }
 
 .dark .rpg-glass-premium {
-  @apply relative overflow-hidden bg-black/40 shadow-[0_40px_100px_rgba(0,0,0,0.8)] backdrop-blur-3xl ring-1 ring-white/10;
-  background-image: 
+  @apply relative overflow-hidden bg-black/40 backdrop-blur-3xl ring-1 ring-white/10;
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
+  background-image:
     radial-gradient(closest-side at 0 0, hsla(26, 100%, 50%, 0.15) 0px, transparent 50%),
     radial-gradient(closest-side at 100% 100%, hsla(234, 100%, 40%, 0.1) 0px, transparent 50%);
+}
+
+.efficiency-mode .rpg-glass,
+.efficiency-mode .rpg-glass-light,
+.efficiency-mode .rpg-glass-premium,
+.efficiency-mode .rpg-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-color: hsl(var(--card)) !important;
+  box-shadow: none !important;
+  border-color: hsl(var(--border)) !important;
+  background-image: none !important;
 }
 
 .custom-scrollbar-premium::-webkit-scrollbar {
@@ -220,15 +284,26 @@
 }
 
 .rpg-card {
-  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 shadow-[0_4px_20px_rgba(0,0,0,0.03)] backdrop-blur-md transition-all duration-300 hover:shadow-[0_8px_30px_rgba(0,0,0,0.06)] hover:border-primary/40 hover:scale-[1.01];
+  @apply relative overflow-hidden rounded-2xl border border-border bg-card/40 p-6 backdrop-blur-md transition-all duration-300 hover:scale-[1.01];
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.rpg-card:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+  @apply border-primary/40;
 }
 
 .dark .rpg-card {
-  @apply border-white/5 bg-white/[0.03] shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/[0.05] hover:border-primary/50;
+  @apply border-white/5 bg-white/[0.03];
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.dark .rpg-card:hover {
+  @apply bg-white/[0.05] border-primary/50;
 }
 
 .rpg-glow-primary {
-  @apply shadow-[0_0_30px_rgba(139,92,246,0.3)];
+  box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
 }
 
 .rpg-neon-text {
@@ -270,4 +345,17 @@
   to {
     background-position: -200% 0;
   }
+}
+
+/* Fix RTL dialog positioning */
+.dialog-content {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+[dir="rtl"] .dialog-content {
+  left: auto;
+  right: 50%;
+  transform: translate(50%, -50%);
 }

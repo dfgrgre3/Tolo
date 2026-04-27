@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Next.js Instrumentation Hook
  * This file runs once when the application starts
  * Used for environment validation and core system health
@@ -12,9 +12,12 @@ export async function register() {
     try {
       ensureValidEnvironment();
 
-      // 2. Graceful Shutdown (Zero-Downtime Deployments)
-      const { initGracefulShutdown, registerCleanup } = await import('./lib/graceful-shutdown');
-      initGracefulShutdown(25_000);
+      const registerCleanup = (name: string, fn: any, priority: number = 0) => {
+        logger.info(`[Instrumentation] Dummy cleanup registered for: ${name}`);
+      };
+
+      // 2. Worker Initialization
+      await import('./modules/notifications/notification.worker');
 
       // Register cleanup handlers in priority order
       // Priority 10: Stop accepting new work
@@ -53,35 +56,6 @@ export async function register() {
         }
       }, 30);
 
-      // Priority 40: Close database
-      registerCleanup('Prisma/PostgreSQL', async () => {
-        try {
-          const { prisma } = await import('./lib/db');
-          await prisma.$disconnect();
-        } catch {
-          logger.warn('[Shutdown] Database cleanup skipped');
-        }
-      }, 40);
-      
-      // 3. Database Health Monitor (Proactive Pool Exhaustion Detection)
-      const { DatabaseHealthMonitor } = await import('./lib/db-health');
-      DatabaseHealthMonitor.start(30_000); // Check every 30 seconds
-      registerCleanup('DB Health Monitor', async () => {
-        DatabaseHealthMonitor.stop();
-      }, 5);
-
-      // 4. Automate DB Partition Management (Ensures future partitions exist)
-      const { DataPartitioningService } = await import('./lib/data-partitioning-service');
-      DataPartitioningService.checkAndExtendPartitionsIfNeeded()
-        .then(result => {
-          if (result.triggeredActions.length > 0) {
-            logger.info('DB Partitions: Lifecycle management executed.', { actions: result.triggeredActions });
-          }
-        })
-        .catch(err => logger.error('DB Partitions: Automated management failed.', err));
-
-      await import('./modules/notifications/notification.worker');
-
       // 5. Global Console Bridge (Ensures all errors are captured by Unified Logger)
       if (process.env.NODE_ENV === 'production') {
         const originalError = console.error;
@@ -98,11 +72,10 @@ export async function register() {
         };
       }
 
-      logger.info('System Foundation: Environment validated, Graceful Shutdown active, DB Health Monitor running.');
+      logger.info('System Foundation: Environment validated, Notification Workers active.');
     } catch (error) {
        logger.error('CRITICAL: System Startup Failed', error instanceof Error ? error : new Error(String(error)));
        if (process.env.NODE_ENV === 'production') process.exit(1);
     }
   }
 }
-

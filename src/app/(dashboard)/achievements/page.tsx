@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { useAchievements } from './hooks/useAchievements';
 import { AchievementStats } from './components/AchievementStats';
 import { AchievementFilters } from './components/AchievementFilters';
@@ -81,7 +81,7 @@ export default function AchievementsPage() {
 			<div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
 				
 				{/* --- Hero Header Section --- */}
-				<motion.div
+				<m.div
 					initial={{ opacity: 0, y: 30 }}
 					animate={{ opacity: 1, y: 0 }}
 					className={STYLES.glass + " p-8 md:p-16 text-center md:text-right flex flex-col md:flex-row items-center justify-between gap-12 group overflow-hidden"}
@@ -113,14 +113,14 @@ export default function AchievementsPage() {
 							 </div>
 						</div>
 					)}
-				</motion.div>
+				</m.div>
 
 				{/* Loading State */}
 				{loading && <LoadingState />}
 
 				{/* Error State */}
 				{error && (
-					<motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={STYLES.glass + " border-red-500/20 bg-red-500/5 p-8 text-center md:text-right"}>
+					<m.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={STYLES.glass + " border-red-500/20 bg-red-500/5 p-8 text-center md:text-right"}>
 						<div className="flex flex-col md:flex-row items-center gap-6">
 							<div className="p-4 bg-red-500/10 rounded-3xl text-red-500">
 								<Info className="h-10 w-10" />
@@ -133,7 +133,7 @@ export default function AchievementsPage() {
 								إعادة استدعاء
 							</Button>
 						</div>
-					</motion.div>
+					</m.div>
 				)}
 
 				{/* Main Content */}
@@ -141,7 +141,7 @@ export default function AchievementsPage() {
 					<div className="space-y-16">
 						<AnimatePresence>
 							{showCelebration && (
-								<motion.div 
+								<m.div 
 									initial={{ opacity: 0, scale: 0.9 }}
 									animate={{ opacity: 1, scale: 1 }}
 									exit={{ opacity: 0, scale: 0.9 }}
@@ -160,15 +160,15 @@ export default function AchievementsPage() {
 										</div>
 										<Button variant="ghost" onClick={() => setShowCelebration(false)} className="h-12 px-6 rounded-xl hover:bg-white/5 uppercase font-black text-xs tracking-widest text-gray-500">إغلاق التنبيه</Button>
 									</div>
-								</motion.div>
+								</m.div>
 							)}
 						</AnimatePresence>
 
 						{/* Statistics */}
 						{stats && (
-							<motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+							<m.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
 								<AchievementStats stats={stats} userProgress={userProgress} />
-							</motion.div>
+							</m.div>
 						)}
 
 						{/* Main Layout Grid */}
@@ -227,7 +227,7 @@ export default function AchievementsPage() {
 									</div>
 
 									{filteredAchievements.length === 0 ? (
-										<motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={STYLES.glass + " p-20 text-center space-y-8 border-dashed"}>
+										<m.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={STYLES.glass + " p-20 text-center space-y-8 border-dashed"}>
 											<div className="p-8 bg-white/5 rounded-full inline-flex items-center justify-center border border-white/5">
 												<Search className="w-20 h-20 text-gray-700" />
 											</div>
@@ -241,7 +241,7 @@ export default function AchievementsPage() {
 											>
 												إعادة تعيين كامل للسجلات
 											</Button>
-										</motion.div>
+										</m.div>
 									) : (
 										<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
 											<AnimatePresence mode="popLayout">
@@ -260,7 +260,7 @@ export default function AchievementsPage() {
 						</div>
 
 						{/* The Guide: Visual Redesign */}
-						<motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+						<m.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
 							<Card className={STYLES.glass + " p-0 border border-white/5 relative group overflow-hidden"}>
 								<div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors" />
 								<CardHeader className="p-10 pb-4 relative z-10 flex flex-col md:flex-row items-center justify-between border-b border-white/5">
@@ -306,7 +306,7 @@ export default function AchievementsPage() {
 												items: ["الالتزام بالجدول لـ 30 يوماً", "جلسات دراسة عميقة (بومودورو)", "تنظيم جيوش الوقت بدقة"]
 											}
 										].map((item, i) => (
-											<motion.div 
+											<m.div 
 												key={i}
 												whileHover={{ y: -5 }}
 												className={`p-8 rounded-[2rem] bg-gradient-to-b ${item.bg} border border-white/5 backdrop-blur-3xl relative overflow-hidden group/item`}
@@ -324,12 +324,12 @@ export default function AchievementsPage() {
 														</li>
 													))}
 												</ul>
-											</motion.div>
+											</m.div>
 										))}
 									</div>
 								</CardContent>
 							</Card>
-						</motion.div>
+						</m.div>
 					</div>
 				)}
 			</div>

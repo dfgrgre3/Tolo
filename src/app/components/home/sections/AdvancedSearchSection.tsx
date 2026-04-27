@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
@@ -258,7 +258,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
       <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-emerald-500/20 mix-blend-overlay" />
       
       <div className="relative z-10 max-w-4xl mx-auto">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
@@ -276,10 +276,10 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
           <p className="text-gray-400 text-lg max-w-xl mx-auto">
             ابحث في الدورات، الموارد، المعلمين والمزيد باستخدام الذكاء الاصطناعي
           </p>
-        </motion.div>
+        </m.div>
 
         {/* Search Input */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.95 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
@@ -313,7 +313,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
           {/* Suggestions */}
           <AnimatePresence>
             {suggestions.length > 0 &&
-            <motion.div
+            <m.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
@@ -329,14 +329,14 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
                     <span className="flex-1">{suggestion}</span>
                   </button>
               )}
-              </motion.div>
+              </m.div>
             }
           </AnimatePresence>
-        </motion.div>
+        </m.div>
 
         {/* Recent Searches */}
         {recentSearches.length > 0 && !query &&
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="mb-6">
@@ -355,7 +355,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
                 </Badge>
             )}
             </div>
-          </motion.div>
+          </m.div>
         }
 
         {/* Search Results */}
@@ -367,7 +367,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
 
         <AnimatePresence>
           {results.length > 0 && !isSearching &&
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -380,7 +380,7 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
               </div>
 
               {results.map((result, index) =>
-            <motion.div
+            <m.div
               key={result.id}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -423,9 +423,9 @@ export const AdvancedSearchSection = memo(function AdvancedSearchSection() {
                       </CardContent>
                     </Card>
                   </Link>
-                </motion.div>
+                </m.div>
             )}
-            </motion.div>
+            </m.div>
           }
         </AnimatePresence>
 

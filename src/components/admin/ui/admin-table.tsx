@@ -54,7 +54,7 @@ import {
   RefreshCw } from
 "lucide-react";
 import { ButtonGroup } from "./admin-button";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { CheckSquare, X } from "lucide-react";
 
 interface AdminDataTableProps<TData, TValue> {
@@ -203,7 +203,7 @@ export function AdminDataTable<TData, TValue>({
           {/* Floating Bulk Actions Bar */}
           <AnimatePresence>
             {selectable && selectedCount > 0 && bulkActions && bulkActions.length > 0 &&
-            <motion.div
+            <m.div
               initial={{ y: 100, opacity: 0, x: "-50%" }}
               animate={{ y: 0, opacity: 1, x: "-50%" }}
               exit={{ y: 100, opacity: 0, x: "-50%" }}
@@ -249,7 +249,7 @@ export function AdminDataTable<TData, TValue>({
                     <X className="w-5 h-5" />
                   </button>
                 </div>
-              </motion.div>
+              </m.div>
             }
           </AnimatePresence>
 

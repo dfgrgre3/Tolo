@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { MessageType } from "./types";
 
@@ -21,7 +21,7 @@ const TYPE_STYLES: Record<MessageType, string> = {
 export function RoyalPreview({ title, message, type, actionUrl }: RoyalPreviewProps) {
   return (
     <div className="flex items-center justify-center py-6 min-h-[400px]">
-      <motion.div 
+      <m.div 
         key={type}
         initial={{ opacity: 0, scale: 0.9, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -51,7 +51,7 @@ export function RoyalPreview({ title, message, type, actionUrl }: RoyalPreviewPr
           </div>
 
           {actionUrl && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               className="pt-4"
@@ -59,7 +59,7 @@ export function RoyalPreview({ title, message, type, actionUrl }: RoyalPreviewPr
               <div className="w-full h-14 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center font-black text-sm border border-white/20 transition-all cursor-default">
                 تفاصيل المخطوطة ًں“œ
               </div>
-            </motion.div>
+            </m.div>
           )}
         </div>
 
@@ -80,7 +80,7 @@ export function RoyalPreview({ title, message, type, actionUrl }: RoyalPreviewPr
             </div>
           </div>
         </div>
-      </motion.div>
+      </m.div>
     </div>
   );
 }

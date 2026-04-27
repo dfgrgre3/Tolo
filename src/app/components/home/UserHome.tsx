@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { ProgressSummary } from '@/lib/server-data-fetch';
+import { m } from 'framer-motion';
+import { ProgressSummary } from '@/types/gamification';
 import { User } from '@/types/user';
 import { PerformanceMetric } from './types';
 import { rpgCommonStyles } from './constants';
@@ -103,7 +103,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
   const todayDate = new Date().toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <motion.div
+    <m.div
       variants={containerVariants}
       initial="hidden"
       animate="visible"
@@ -121,17 +121,17 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,#000_20%,transparent_100%)]" />
 
         {/* Animated Floating Orbs using framer-motion */}
-        <motion.div
+        <m.div
           animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.5, 0.3], x: [0, 50, 0], y: [0, 30, 0] }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
           className="absolute -top-40 right-1/4 w-[600px] h-[600px] bg-primary/20 rounded-full blur-[120px] mix-blend-screen" />
         
-        <motion.div
+        <m.div
           animate={{ scale: [1, 1.3, 1], opacity: [0.2, 0.4, 0.2], x: [0, -40, 0], y: [0, -50, 0] }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut", delay: 2 }}
           className="absolute top-1/3 left-1/4 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[120px] mix-blend-screen" />
         
-        <motion.div
+        <m.div
           animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.6, 0.3], x: [0, 30, 0], y: [0, -30, 0] }}
           transition={{ duration: 18, repeat: Infinity, ease: "easeInOut", delay: 5 }}
           className="absolute -bottom-40 right-1/3 w-[550px] h-[550px] bg-emerald-600/10 rounded-full blur-[120px] mix-blend-screen" />
@@ -139,7 +139,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
       </div>
 
       {/* --- Premium Hero Header --- */}
-      <motion.header variants={itemVariants} className="relative z-10">
+      <m.header variants={itemVariants} className="relative z-10">
         <div className="relative overflow-hidden rounded-[3rem] bg-card/40 border border-border p-10 md:p-16 shadow-2xl backdrop-blur-2xl mb-12 ring-1 ring-border/5">
            {/* Inner glass reflection and decorations */}
            <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent opacity-50 pointer-events-none" />
@@ -148,7 +148,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
            
            <div className="relative z-10 flex flex-col items-center text-center gap-10">
               <div className="space-y-8 max-w-4xl">
-                 <motion.div
+                 <m.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.2 }}
@@ -159,7 +159,7 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
                       <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]"></span>
                     </span>
                     نظام المغامرة (RPG MODE) متصل
-                 </motion.div>
+                 </m.div>
                  
                  <div className="space-y-4">
                    <div className="flex items-center justify-center gap-3 mb-2">
@@ -171,13 +171,13 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
                      <span className={`${rpgCommonStyles.neonText} drop-shadow-[0_0_35px_rgba(168,85,247,0.6)]`}>
                        {firstName}
                      </span>
-                     <motion.span
+                     <m.span
                     animate={{ rotate: [0, 14, -8, 14, -4, 10, 0, 0] }}
                     transition={{ duration: 2.5, repeat: Infinity, repeatDelay: 1 }}
                     className="inline-block origin-bottom-right ml-4 text-6xl md:text-7xl">
                     
                        âڑ”ï¸ڈ
-                     </motion.span>
+                     </m.span>
                    </h1>
                  </div>
                  
@@ -199,45 +199,45 @@ export function UserHome({ user, summary, performanceMetrics, metricsLoading }: 
                <LevelProgressSection user={user} />
            </div>
         </div>
-      </motion.header>
+      </m.header>
 
       {/* --- Main Vertical Layout --- */}
       <div className="flex flex-col max-w-7xl mx-auto lg:px-4">
          
          {/* Quick Links */}
-         <motion.div variants={itemVariants} className="w-full">
+         <m.div variants={itemVariants} className="w-full">
             <QuickLinksSectionEnhanced />
-         </motion.div>
+         </m.div>
 
          <SectionDivider label="إحصائيات القوة" />
 
          {/* Analytics & Performance */}
-         <motion.div variants={itemVariants} className="w-full space-y-12">
+         <m.div variants={itemVariants} className="w-full space-y-12">
             <PerformanceDashboardSection metrics={performanceMetrics || []} loading={metricsLoading} />
             <AnalyticsSection />
-         </motion.div>
+         </m.div>
 
          <SectionDivider label="ساحة التدريب" />
 
          {/* Core Interaction Areas */}
-         <motion.div variants={itemVariants} className="w-full space-y-12">
+         <m.div variants={itemVariants} className="w-full space-y-12">
             <ExamsSection />
             <AchievementsSection />
-         </motion.div>
+         </m.div>
          
          <SectionDivider label="مركز الاستخبارات" />
 
          {/* Intelligence & Recommendations */}
-         <motion.div variants={itemVariants} className="flex flex-col gap-12 w-full">
+         <m.div variants={itemVariants} className="flex flex-col gap-12 w-full">
             <IntelligentRecommendationsSection />
             <ProgressPredictionsSection />
             <TipsSection />
             <SocialFeaturesSection />
             <LiveActivityFeedSection />
-         </motion.div>
+         </m.div>
 
       </div>
 
-    </motion.div>);
+    </m.div>);
 
 }

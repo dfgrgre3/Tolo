@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { m, useScroll, useTransform } from "framer-motion";
 import {
   Crown,
   Shield,
@@ -43,8 +43,8 @@ export default function LandingPage() {
     <div className="relative min-h-screen bg-background text-foreground overflow-hidden pb-40" dir="rtl">
       {/* --- Cinematic Background --- */}
       <div className="fixed inset-0 pointer-events-none -z-10">
-        <motion.div style={{ y: y1 }} className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full opacity-30" />
-        <motion.div style={{ y: y2 }} className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-purple-600/15 blur-[150px] rounded-full opacity-20" />
+        <m.div style={{ y: y1 }} className="absolute -top-[10%] -left-[10%] w-[60%] h-[60%] bg-primary/20 blur-[150px] rounded-full opacity-30" />
+        <m.div style={{ y: y2 }} className="absolute top-[40%] -right-[10%] w-[50%] h-[50%] bg-purple-600/15 blur-[150px] rounded-full opacity-20" />
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_at_center,black_70%,transparent_100%)]" />
       </div>
 
@@ -59,34 +59,34 @@ export default function LandingPage() {
 
       {/* --- HERO SECTION --- */}
       <section className="relative pt-32 pb-20 px-4 flex flex-col items-center justify-center text-center">
-         <motion.div
+         <m.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           className="inline-flex items-center gap-3 rounded-full border border-primary/30 bg-primary/10 px-6 py-2 text-xs font-black uppercase tracking-[0.2em] text-primary mb-12 shadow-[0_0_20px_rgba(var(--primary),0.2)]">
           
            <Shield className="h-5 w-5" />
            <span>TOLO: عصر جديد في التعلم</span>
-         </motion.div>
+         </m.div>
 
-         <motion.h1
+         <m.h1
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           className="text-6xl md:text-9xl font-black tracking-tighter leading-[1.1] mb-8">
           
            حوّل دراستك <br /> إلى <span className={STYLES.neonText}>لحظات مجد</span> ًںڈ†
-         </motion.h1>
+         </m.h1>
 
-         <motion.p
+         <m.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           className="text-xl md:text-2xl text-gray-400 font-medium max-w-3xl mb-16 leading-relaxed">
           
            لا تكتفي بمذاكرة الدروس. انطلق في <span className={STYLES.goldText}>رحلة بطل</span>، اجمع نقاط القوة، ارفع مستواك الدراسي، وسيطر على لوحة الشرف الملكية.
-         </motion.p>
+         </m.p>
 
-         <motion.div
+         <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.4 }}
@@ -104,15 +104,15 @@ export default function LandingPage() {
                  استكشاف المهام (المواد)
               </Button>
            </Link>
-         </motion.div>
+         </m.div>
 
-         <motion.div
+         <m.div
           animate={{ y: [0, 10, 0] }}
           transition={{ repeat: Infinity, duration: 2 }}
           className="mt-20 opacity-30">
           
             <ChevronDown className="h-10 w-10 text-primary" />
-         </motion.div>
+         </m.div>
       </section>
 
       {/* --- THE REALM FEATURES --- */}
@@ -120,7 +120,7 @@ export default function LandingPage() {
          {/* Feature Grid */}
          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {HIGHLIGHT_CARDS.map((card, i) =>
-          <motion.div
+          <m.div
             key={i}
             {...scrollVariants.fadeUp}
             viewport={{ once: true, margin: "-100px" }}
@@ -136,7 +136,7 @@ export default function LandingPage() {
                     <span>{card.actionLabel}</span>
                     <ArrowRight className="h-4 w-4 rotate-180" />
                  </Link>
-              </motion.div>
+              </m.div>
           )}
          </div>
 
@@ -175,7 +175,7 @@ export default function LandingPage() {
 
                <div className="relative w-full max-w-md lg:max-w-lg aspect-square">
                   <div className="absolute inset-0 bg-primary/20 blur-[120px] rounded-full animate-pulse" />
-                  <motion.div
+                  <m.div
                 animate={{ rotate: 360 }}
                 transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
                 className="absolute inset-0 border-[2px] border-dashed border-white/5 rounded-full" />
@@ -186,7 +186,7 @@ export default function LandingPage() {
                   
                   {/* Floating Icons around */}
                   {[Zap, Target, Shield, Users].map((Icon, idx) =>
-              <motion.div
+              <m.div
                 key={idx}
                 animate={{
                   y: [0, idx % 2 === 0 ? 30 : -30, 0],
@@ -206,7 +206,7 @@ export default function LandingPage() {
                 }}>
                 
                        <Icon className="w-8 h-8 text-white/40" />
-                    </motion.div>
+                    </m.div>
               )}
                </div>
             </div>
@@ -221,7 +221,7 @@ export default function LandingPage() {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
                {FEATURES_LIST.map((feat, i) =>
-            <motion.div
+            <m.div
               key={i}
               {...scrollVariants.scaleUp}
               viewport={{ once: true, margin: "-50px" }}
@@ -235,13 +235,13 @@ export default function LandingPage() {
                        <h4 className="font-black text-lg">{feat.title}</h4>
                        <p className="text-xs text-gray-500 font-medium leading-relaxed">{feat.description}</p>
                     </div>
-                 </motion.div>
+                 </m.div>
             )}
             </div>
          </div>
 
          {/* Final Call to Action - The Coliseum */}
-         <motion.div
+         <m.div
           {...scrollVariants.fadeUp}
           viewport={{ once: true }}
           className="relative p-20 rounded-[4rem] bg-gradient-to-br from-primary/10 via-purple-600/5 to-transparent border border-white/10 overflow-hidden text-center group">
@@ -284,7 +284,7 @@ export default function LandingPage() {
                   </div>
                </div>
             </div>
-         </motion.div>
+         </m.div>
       </section>
 
       {/* --- Simple Footer Info --- */}

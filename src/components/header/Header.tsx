@@ -1,11 +1,11 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect, useCallback, useMemo, useRef, memo, useSyncExternalStore } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Menu, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
@@ -24,7 +24,10 @@ import { useStickyHeader } from "@/hooks/use-sticky-header";
 import { useAuth } from "@/contexts/auth-context";
 import { UserMenu } from "./UserMenu";
 import { LogIn, UserPlus } from "lucide-react";
-import { buildLoginUrl } from "@/services/auth/navigation";
+// Removed broken import: import { buildLoginUrl } from "@/services/auth/navigation";
+const buildLoginUrl = (redirect?: string) => {
+  return redirect ? `/login?redirect=${encodeURIComponent(redirect)}` : '/login';
+};
 
 // Dynamic imports for better performance
 const CommandPalette = dynamic(
@@ -208,7 +211,7 @@ export default function Header() {
         />
       )}
 
-      <motion.header
+      <m.header
         ref={headerRef}
         className={computedHeaderClasses}
         initial={false}
@@ -244,14 +247,14 @@ export default function Header() {
               {/* Progress Indicator (compact) */}
               {headerPreferences.showProgress && isShrunk && (
                 <AnimatePresence>
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, scale: 0.8 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.8 }}
                     className="hidden md:flex"
                   >
                     <ProgressIndicator />
-                  </motion.div>
+                  </m.div>
                 </AnimatePresence>
               )}
 
@@ -342,9 +345,9 @@ export default function Header() {
                 aria-controls="mobile-menu"
                 data-mobile-menu-trigger
               >
-                <AnimatePresence mode="wait">
+                <AnimatePresence>
                   {isMobileMenuOpen ? (
-                    <motion.div
+                    <m.div
                       key="close"
                       initial={{ rotate: -90, opacity: 0 }}
                       animate={{ rotate: 0, opacity: 1 }}
@@ -352,9 +355,9 @@ export default function Header() {
                       transition={{ duration: 0.15 }}
                     >
                       <X className="h-5 w-5" aria-hidden="true" />
-                    </motion.div>
+                    </m.div>
                   ) : (
-                    <motion.div
+                    <m.div
                       key="menu"
                       initial={{ rotate: 90, opacity: 0 }}
                       animate={{ rotate: 0, opacity: 1 }}
@@ -362,7 +365,7 @@ export default function Header() {
                       transition={{ duration: 0.15 }}
                     >
                       <Menu className="h-5 w-5" aria-hidden="true" />
-                    </motion.div>
+                    </m.div>
                   )}
                 </AnimatePresence>
               </Button>
@@ -373,7 +376,7 @@ export default function Header() {
         {/* Breadcrumbs */}
         {!isShrunk && <MemoizedHeaderBreadcrumbs />}
 
-      </motion.header>
+      </m.header>
 
       {/* Mobile Menu */}
       <HeaderMobileMenuEnhanced

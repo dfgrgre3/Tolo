@@ -23,7 +23,7 @@ import {
   Star,
   Loader2 } from
 "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { ar } from "date-fns/locale";
@@ -37,6 +37,7 @@ import {
   ResponsiveContainer } from
 'recharts';
 import { WalletHeroSkeleton } from "./BillingSkeletons";
+import { apiClient } from "@/lib/api/api-client";
 
 interface Transaction {
   id: string;
@@ -83,7 +84,7 @@ const handleComingSoon = () => {
 // --- Enhanced Sub-components ---
 
 const VirtualCard = ({ balance }: {balance: number;}) =>
-<motion.div
+<m.div
   whileHover={{ rotateY: 5, rotateX: -5, scale: 1.02 }}
   className="relative w-full aspect-[1.6/1] rounded-[2.5rem] p-8 overflow-hidden group shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] cursor-pointer">
   
@@ -128,7 +129,7 @@ const VirtualCard = ({ balance }: {balance: number;}) =>
         </div>
       </div>
     </div>
-  </motion.div>;
+  </m.div>;
 
 
 const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: () => void;onDeposit: (amount: number) => void;}) => {
@@ -148,14 +149,14 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
     <AnimatePresence>
       {isOpen &&
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <motion.div
+          <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
           className="absolute inset-0 bg-[#07080f]/90 backdrop-blur-md" />
         
-          <motion.div
+          <m.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
@@ -212,7 +213,7 @@ const DepositModal = ({ isOpen, onClose, onDeposit }: {isOpen: boolean;onClose: 
                <ShieldCheck className="w-4 h-4 text-emerald-500" />
                بوابات دفع مشفرة وآمنة تماماً
             </div>
-          </motion.div>
+          </m.div>
         </div>
       }
     </AnimatePresence>);
@@ -238,17 +239,11 @@ export default function WalletDashboard() {
 
   const fetchData = async () => {
     try {
-      const [walletRes, invoiceRes] = await Promise.all([
-      fetch("/api/billing/wallet"),
-      fetch("/api/billing/invoices")]
-      );
+      const walletData = await apiClient.get<any>("/billing/wallet");
 
-      const walletData = await walletRes.json();
-      const invoiceData = await invoiceRes.json();
-
-      setBalance(walletData.balance || 0);
-      setTransactions(walletData.history || []);
-      setInvoices(invoiceData.invoices || []);
+      setBalance(walletData?.balance || 0);
+      setTransactions(walletData?.history || walletData?.transactions || []);
+      setInvoices(walletData?.invoices || []);
     } catch (_error) {
       toast.error("فشل في تحميل بيانات المحفظة");
     } finally {
@@ -258,16 +253,10 @@ export default function WalletDashboard() {
 
   const handleDeposit = async (amount: number) => {
     try {
-      const res = await fetch("/api/billing/wallet", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل الشحن");
+      const data = await apiClient.post<any>("/billing/wallet", { amount });
 
       setBalance(data.balance);
-      toast.success(data.message);
+      toast.success(data.message || "تم الشحن بنجاح");
       fetchData(); // Refresh history
     } catch (err: any) {
       toast.error(err.message);
@@ -336,7 +325,7 @@ export default function WalletDashboard() {
                 <VirtualCard balance={balance} />
                 
                 <div className="flex flex-wrap gap-6">
-                  <motion.button
+                  <m.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setIsDepositModalOpen(true)}
@@ -345,8 +334,8 @@ export default function WalletDashboard() {
                     <Plus className="w-7 h-7" />
                     <span className="text-xl">شحن الحساب</span>
                     <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500" />
-                  </motion.button>
-                  <motion.button
+                  </m.button>
+                  <m.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleComingSoon}
@@ -354,7 +343,7 @@ export default function WalletDashboard() {
                   
                     <ArrowUpRight className="w-7 h-7 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                     <span className="text-xl">سحب نقدي</span>
-                  </motion.button>
+                  </m.button>
                 </div>
               </div>
 
@@ -457,7 +446,7 @@ export default function WalletDashboard() {
            </div>
 
            <AnimatePresence mode="wait">
-             <motion.div
+             <m.div
               key={activeTab}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -476,7 +465,7 @@ export default function WalletDashboard() {
                           {txs.map((tx) => {
                     const type = typeMap[tx.type] || { label: tx.type, icon: Wallet, color: "text-gray-400", bg: "bg-gray-500/10" };
                     return (
-                      <motion.div
+                      <m.div
                         key={tx.id}
                         whileHover={{ x: -10 }}
                         onClick={() => copyToClipboard(tx.id)}
@@ -502,7 +491,7 @@ export default function WalletDashboard() {
                                     {statusMap[tx.status]?.label || tx.status}
                                   </div>
                                 </div>
-                              </motion.div>);
+                              </m.div>);
 
                   })}
                         </div>
@@ -545,7 +534,7 @@ export default function WalletDashboard() {
                     </div>
 
               }
-             </motion.div>
+             </m.div>
            </AnimatePresence>
         </div>
 
@@ -574,7 +563,7 @@ export default function WalletDashboard() {
                       <span className="text-xs font-black text-amber-500">Gold Tier</span>
                    </div>
                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
-                      <motion.div initial={{ width: 0 }} animate={{ width: "75%" }} className="h-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]" />
+                      <m.div initial={{ width: 0 }} animate={{ width: "75%" }} className="h-full bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)]" />
                    </div>
                 </div>
                 <button

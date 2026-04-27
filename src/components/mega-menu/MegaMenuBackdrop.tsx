@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 interface MegaMenuBackdropProps {
 	onClose: () => void;
@@ -8,7 +8,7 @@ interface MegaMenuBackdropProps {
 
 export function MegaMenuBackdrop({ onClose }: MegaMenuBackdropProps) {
 	return (
-		<motion.div
+		<m.div
 			initial={{ opacity: 0 }}
 			animate={{ opacity: 1 }}
 			exit={{ opacity: 0 }}

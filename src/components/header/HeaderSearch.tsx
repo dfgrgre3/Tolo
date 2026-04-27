@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 
 
@@ -36,7 +36,7 @@ import { Input } from "@/components/ui/input";
 
 import { cn } from "@/lib/utils";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 import { safeGetItem, safeSetItem } from "@/lib/safe-client-utils";
 
@@ -44,6 +44,8 @@ import { errorService as errorManager } from "@/lib/logging/error-service";
 import { toast } from "sonner";
 import { useAdaptiveDebounce } from "@/hooks/use-adaptive-debounce";
 import { registerServiceWorker, preCacheSearch } from "@/lib/service-worker";
+import { useEfficiency } from "@/hooks/use-efficiency";
+import { Zap, ZapOff } from "lucide-react";
 
 
 import { logger } from '@/lib/logger';
@@ -58,6 +60,7 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 	const router = useRouter();
+	const { isEfficiencyMode, toggleEfficiencyMode } = useEfficiency();
 	const [isSearchOpen, setIsSearchOpen] = useState(false);
 	const [searchQuery, setSearchQuery] = useState("");
 	interface SearchResult {
@@ -633,6 +636,19 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 			<form onSubmit={handleSearch} className="mb-4 space-y-3">
 
 				<div className="flex gap-2">
+					<Button
+						type="button"
+						size="icon"
+						variant="ghost"
+						onClick={toggleEfficiencyMode}
+						className={cn(
+							"h-10 w-10 shrink-0 border border-border/50",
+							isEfficiencyMode ? "text-primary bg-primary/10" : "text-muted-foreground"
+						)}
+						title={isEfficiencyMode ? "تعطيل وضع الأداء المتوازن" : "تفعيل وضع الأجهزة الضعيفة"}
+					>
+						{isEfficiencyMode ? <Zap className="h-4 w-4" /> : <ZapOff className="h-4 w-4" />}
+					</Button>
 					<div className="relative flex-1">
 						<Input
 							type="text"
@@ -727,14 +743,10 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 				{searchQuery.trim().length > 0 && (
 					<div className="space-y-2 max-h-64 overflow-y-auto -webkit-overflow-scrolling: touch">
 						{isSearching && (
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								className="flex items-center justify-center py-4"
-							>
+							<div className="flex items-center justify-center py-4">
 								<div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary dark:border-primary" />
 								<span className="mr-2 text-sm text-muted-foreground dark:text-muted-foreground">جاري البحث...</span>
-							</motion.div>
+							</div>
 						)}
 						{!isSearching && searchResults.length > 0 && searchResults.map((result) => {
 							const IconComponent = result.type === "course" ? BookOpen :
@@ -743,7 +755,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 								FileText;
 							
 							return (
-								<motion.button
+								<m.button
 									key={result.id}
 									initial={{ opacity: 0, x: 10 }}
 									animate={{ opacity: 1, x: 0 }}
@@ -781,11 +793,11 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 											</span>
 										)}
 									</div>
-								</motion.button>
+								</m.button>
 							);
 						})}
 						{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
-							<motion.div
+							<m.div
 								initial={{ opacity: 0 }}
 								animate={{ opacity: 1 }}
 								className="px-3 py-6 text-center"
@@ -793,7 +805,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 								<Search className="h-8 w-8 text-muted-foreground dark:text-muted-foreground mx-auto mb-2 opacity-50" />
 								<p className="text-sm text-muted-foreground dark:text-muted-foreground">لا توجد نتائج</p>
 								<p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">جرب مصطلحات بحث مختلفة</p>
-							</motion.div>
+							</m.div>
 						)}
 					</div>
 				)}
@@ -812,7 +824,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 			{isSearchOpen ? (
 
-				<motion.form
+				<m.form
 
 					initial={{ width: 0, opacity: 0 }}
 
@@ -823,7 +835,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 					className="flex items-center gap-2 absolute top-1/2 -translate-y-1/2 left-2 right-2 md:relative md:translate-y-0 md:left-auto md:right-auto md:top-auto bg-background/95 md:bg-transparent backdrop-blur-lg md:backdrop-blur-none p-2 md:p-0 rounded-xl md:rounded-none shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:shadow-none z-[100] md:z-auto border border-border/50 md:border-transparent origin-right"
 				>
 
-					<motion.div
+					<m.div
 
 						initial={{ scale: 0.9 }}
 
@@ -1009,7 +1021,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 							{(showSearchSuggestions || (searchQuery.trim().length === 0 && recentSearches.length > 0)) && (
 
-								<motion.div
+								<m.div
 
 									initial={{ opacity: 0, y: -10, scale: 0.95 }}
 
@@ -1075,7 +1087,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 									{isSearching && (
 
-										<motion.div
+										<m.div
 
 											initial={{ opacity: 0 }}
 
@@ -1089,7 +1101,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 											<span className="mr-2 text-sm text-muted-foreground dark:text-muted-foreground">جاري البحث...</span>
 
-										</motion.div>
+										</m.div>
 
 									)}
 
@@ -1229,7 +1241,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 									{!isSearching && searchResults.length === 0 && searchQuery.trim().length > 0 && (
 
-										<motion.div
+										<m.div
 
 											initial={{ opacity: 0 }}
 
@@ -1245,17 +1257,17 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 											<p className="text-xs text-muted-foreground dark:text-muted-foreground mt-1">جرب مصطلحات بحث مختلفة</p>
 
-										</motion.div>
+										</m.div>
 
 									)}
 
-								</motion.div>
+								</m.div>
 
 							)}
 
 						</AnimatePresence>
 
-					</motion.div>
+					</m.div>
 
 					<Button type="submit" size="icon" variant="ghost" className="hover:bg-primary/10 hover:text-primary transition-all duration-300 shadow-sm">
 
@@ -1291,11 +1303,11 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 					</Button>
 
-				</motion.form>
+				</m.form>
 
 			) : (
 
-				<motion.div
+				<m.div
 
 					whileHover={{ scale: 1.05 }}
 
@@ -1318,7 +1330,7 @@ export function HeaderSearch({ isMobile = false }: HeaderSearchProps) {
 
 					</Button>
 
-				</motion.div>
+				</m.div>
 
 			)}
 

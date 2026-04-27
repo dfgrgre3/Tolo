@@ -36,6 +36,8 @@ type PlayerUiState = {
   selectedSubtitle: string;
   watermarkIndex: number;
   brightness: number;
+  loopStart: number | null;
+  loopEnd: number | null;
 };
 
 type PlayerStore = PlayerUiState & {
@@ -77,6 +79,8 @@ export const defaultPlayerUiState: PlayerUiState = {
   selectedSubtitle: "off",
   watermarkIndex: 0,
   brightness: 1,
+  loopStart: null,
+  loopEnd: null,
 };
 
 export const useCourseVideoPlayerStore = create<PlayerStore>((set) => ({

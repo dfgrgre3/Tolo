@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { ROYAL_TEMPLATES, MessageTemplate } from "./types";
 
 interface RoyalTemplatesProps {
@@ -16,7 +16,7 @@ export function RoyalTemplates({ selectedId, onSelect }: RoyalTemplatesProps) {
         const Icon = t.icon;
         
         return (
-          <motion.button
+          <m.button
             key={t.id}
             whileHover={{ y: -5, scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -42,12 +42,12 @@ export function RoyalTemplates({ selectedId, onSelect }: RoyalTemplatesProps) {
             </div>
 
             {isSelected && (
-              <motion.div 
+              <m.div 
                 layoutId="royal-template-active"
                 className="absolute inset-0 border-[2.5rem] border-amber-500/5 pointer-events-none rounded-[2.5rem]"
               />
             )}
-          </motion.button>
+          </m.button>
         );
       })}
     </div>

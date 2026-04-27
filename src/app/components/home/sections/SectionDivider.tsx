@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { LucideIcon } from "lucide-react";
 
 
@@ -18,14 +18,14 @@ export function SectionDivider({ icon: Icon, label }: SectionDividerProps) {
       {/* Glowing Center */}
       <div className="relative z-10 flex flex-col items-center gap-2">
         {Icon ?
-        <motion.div
+        <m.div
           initial={{ scale: 0.8, opacity: 0 }}
           whileInView={{ scale: 1, opacity: 1 }}
           viewport={{ once: true }}
           className="p-3 rounded-full bg-black border border-white/20 shadow-[0_0_20px_rgba(255,255,255,0.05)] text-gray-400">
           
             <Icon className="w-5 h-5" />
-          </motion.div> :
+          </m.div> :
 
         <div className="h-2 w-2 rounded-full bg-primary/40 shadow-[0_0_10px_rgba(168,85,247,0.5)]" />
         }

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import WalletDashboard from "@/components/billing/WalletDashboard";
 import SubscriptionPlans from "@/components/billing/SubscriptionPlans";
 import { CreditCard, Wallet, Sparkles, LayoutDashboard, ShieldCheck } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 export default function BillingPage() {
   const [activeTab, setActiveTab] = useState<"wallet" | "upgrade">("wallet");
@@ -37,7 +37,7 @@ export default function BillingPage() {
             className={`relative flex items-center gap-3 px-10 py-4 rounded-[2rem] font-black transition-all duration-500 z-10 ${activeTab === "wallet" ? "text-gray-900" : "text-gray-400 hover:text-white"}`}>
             
             {activeTab === "wallet" &&
-            <motion.div
+            <m.div
               layoutId="activeTabBg"
               className="absolute inset-0 bg-white rounded-[2rem] shadow-2xl -z-10"
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
@@ -52,7 +52,7 @@ export default function BillingPage() {
             className={`relative flex items-center gap-3 px-10 py-4 rounded-[2rem] font-black transition-all duration-500 z-10 ${activeTab === "upgrade" ? "text-white" : "text-gray-400 hover:text-white"}`}>
             
             {activeTab === "upgrade" &&
-            <motion.div
+            <m.div
               layoutId="activeTabBg"
               className="absolute inset-0 bg-primary rounded-[2rem] shadow-[0_10px_30px_rgba(var(--primary-rgb),0.4)] -z-10"
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />
@@ -66,7 +66,7 @@ export default function BillingPage() {
 
       <div className="max-w-7xl mx-auto">
         <AnimatePresence mode="wait">
-          <motion.div
+          <m.div
             key={activeTab}
             initial={{ opacity: 0, y: 40, filter: "blur(10px)" }}
             animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
@@ -74,7 +74,7 @@ export default function BillingPage() {
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
             
             {activeTab === "wallet" ? <WalletDashboard /> : <SubscriptionPlans />}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
       </div>
 

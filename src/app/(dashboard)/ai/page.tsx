@@ -19,7 +19,7 @@ import {
   Scroll } from
 'lucide-react';
 
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 
 import AIAssistant from './components/AIAssistant';
 import ExamGenerator from './components/ExamGenerator';
@@ -58,7 +58,7 @@ export default function AILearningPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
         
         {/* --- Hero: The Oracle Entrance --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-6">
@@ -83,7 +83,7 @@ export default function AILearningPage() {
                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">متصل (Online)</span>
               </div>
            </div>
-        </motion.div>
+        </m.div>
 
         {/* --- Glyph Tabs: The Modes of Magic --- */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-12">
@@ -115,7 +115,7 @@ export default function AILearningPage() {
            </TabsList>
 
            <AnimatePresence mode="wait">
-              <motion.div
+              <m.div
               key={activeTab}
               initial={{ opacity: 0, scale: 0.98, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -173,7 +173,7 @@ export default function AILearningPage() {
                        <TipsGenerator subjects={subjects} className="w-full" />
                     </div>
                  </TabsContent>
-              </motion.div>
+              </m.div>
            </AnimatePresence>
         </Tabs>
 

@@ -30,7 +30,8 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface Announcement {
   id: string;
@@ -90,7 +91,7 @@ export default function AdminAnnouncementsPage() {
         params.set("search", deferredSearch);
       }
 
-      const response = await fetch(`/api/admin/announcements?${params.toString()}`);
+      const response = await fetch(`${apiRoutes.admin.announcements}?${params.toString()}`);
       return (await response.json()) as AnnouncementsResponse;
     },
   });
@@ -140,7 +141,7 @@ export default function AdminAnnouncementsPage() {
     try {
       const method = editingAnnouncement ? "PATCH" : "POST";
       const body = editingAnnouncement ? { ...values, id: editingAnnouncement.id } : { ...values, authorId: "admin" };
-      const response = await fetch("/api/admin/announcements", {
+      const response = await fetch(apiRoutes.admin.announcements, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -161,7 +162,7 @@ export default function AdminAnnouncementsPage() {
   const handleDelete = async () => {
     if (!deleteDialog.id) return;
     try {
-      const response = await fetch("/api/admin/announcements", {
+      const response = await fetch(apiRoutes.admin.announcements, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id }),
@@ -312,7 +313,7 @@ export default function AdminAnnouncementsPage() {
         />
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
@@ -342,7 +343,7 @@ export default function AdminAnnouncementsPage() {
             </div>
           }
         />
-      </motion.div>
+      </m.div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md bg-card/80 backdrop-blur-xl border-white/10 rounded-[2.5rem] p-0 overflow-hidden shadow-2xl">

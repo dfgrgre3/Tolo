@@ -1,4 +1,5 @@
-﻿import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { apiClient } from '@/lib/api/api-client';
 
 import { logger } from '@/lib/logger';
 
@@ -108,17 +109,9 @@ export function useMegaMenu({ categories, isOpen, onClose, user }: UseMegaMenuPr
 
         try {
 
-            const res = await fetch("/api/notifications/unread-count");
+            const data = await apiClient.get<any>("/notifications/unread-count");
 
-            if (!res.ok) {
-
-                throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-
-            }
-
-            const data = await res.json();
-
-            if (data.count !== undefined) {
+            if (data?.count !== undefined) {
 
                 setNotificationCount(data.count);
 

@@ -16,7 +16,7 @@ import {
   QrCode,
   ChevronRight
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -165,7 +165,7 @@ export default function ContestsPage() {
         {/* Game Engine Config / Creation */}
         <AnimatePresence>
           {(!activeLobby || activeLobby.status === "FINISHED" || showConfig) && (
-            <motion.div 
+            <m.div 
               className="lg:col-span-1"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -219,13 +219,13 @@ export default function ContestsPage() {
                    </Link>
                 </div>
               </AdminCard>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
         {/* Live Arena Screen */}
         {activeLobby && activeLobby.status !== "FINISHED" && (
-           <motion.div 
+           <m.div 
              className="lg:col-span-2"
              initial={{ opacity: 0, scale: 0.95 }}
              animate={{ opacity: 1, scale: 1 }}
@@ -266,7 +266,7 @@ export default function ContestsPage() {
                     
                     {activeLobby.status === "WAITING" ? (
                        <div className="text-center z-10 w-full max-w-2xl">
-                          <motion.div 
+                          <m.div 
                              animate={{ scale: pulse ? 1.05 : 1 }}
                              transition={{ duration: 0.5 }}
                              className="mb-8 p-6 bg-background/80 backdrop-blur-md rounded-3xl border-2 border-primary/50 shadow-2xl inline-block"
@@ -276,11 +276,11 @@ export default function ContestsPage() {
                                 {activeLobby.pinCode}
                              </h1>
                              <p className="text-muted-foreground font-bold mt-2 uppercase tracking-wider text-xs">أدخل الكود في المنصة للإنضمام</p>
-                          </motion.div>
+                          </m.div>
 
                           <div className="flex flex-wrap items-center justify-center gap-3">
                              {activeLobby.players.map((p, i) => (
-                                <motion.div 
+                                <m.div 
                                   key={p.id}
                                   initial={{ opacity: 0, y: 10 }}
                                   animate={{ opacity: 1, y: 0 }}
@@ -291,7 +291,7 @@ export default function ContestsPage() {
                                      <AvatarFallback className="bg-primary/20 text-primary text-[10px] font-black">{p.name.substring(0,2)}</AvatarFallback>
                                   </Avatar>
                                   {p.name}
-                                </motion.div>
+                                </m.div>
                              ))}
                              {activeLobby.players.length === 0 && (
                                 <p className="text-muted-foreground font-bold animate-pulse text-sm">بانتظار دخول المحاربين...</p>
@@ -349,7 +349,7 @@ export default function ContestsPage() {
                     )}
                  </div>
               </AdminCard>
-           </motion.div>
+           </m.div>
         )}
       </div>
     </div>

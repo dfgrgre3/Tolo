@@ -59,7 +59,7 @@ export default function SchedulePage() {
       );
 
       const { data: subjectsData } = await safeFetch<SubjectEnrollment[]>(
-        `/api/subjects?userId=${encodeURIComponent(ensuredUserId)}`,
+        `/api/courses?userId=${encodeURIComponent(ensuredUserId)}`,
         undefined,
         []
       );

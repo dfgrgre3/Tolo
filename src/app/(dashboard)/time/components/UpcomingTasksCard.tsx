@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BookOpen, Eye, EyeOff, Play } from 'lucide-react';
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { Task } from '../types';
 
 interface UpcomingTasksCardProps {
@@ -46,7 +46,7 @@ export default function UpcomingTasksCard({
         </Button>
       </CardHeader>
       <CardContent className="p-4 relative z-10">
-        <motion.div 
+        <m.div 
           className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar"
           initial="hidden"
           animate="visible"
@@ -59,7 +59,7 @@ export default function UpcomingTasksCard({
           }}
         >
           {displayTasks.map((task) => (
-            <motion.div 
+            <m.div 
               key={task.id} 
               variants={{
                 hidden: { x: 20, opacity: 0 },
@@ -106,19 +106,19 @@ export default function UpcomingTasksCard({
                   <Play className="h-4 w-4" />
                 </Button>
               </div>
-            </motion.div>
+            </m.div>
           ))}
           {displayTasks.length === 0 && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="text-center py-10 flex flex-col items-center"
             >
               <div className="mb-4 text-5xl opacity-50 grayscale">📝</div>
               <p className="text-muted-foreground font-semibold text-lg">لا توجد مهام قادمة</p>
               <p className="text-sm text-muted-foreground mt-1">ابدأ بمهمة ومغامرة جديدة!</p>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
+        </m.div>
       </CardContent>
     </Card>
   );

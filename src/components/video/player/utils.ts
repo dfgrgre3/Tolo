@@ -85,13 +85,21 @@ export function formatDuration(totalSeconds: number) {
 }
 
 export function formatWatchTime(totalSeconds: number) {
-  if (totalSeconds < 60) {
-    return `${totalSeconds} ث`;
+  const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+
+  if (safeSeconds < 60) {
+    return `${safeSeconds} ث`;
   }
 
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes} د ${seconds} ث`;
+  if (safeSeconds < 3600) {
+    const minutes = Math.floor(safeSeconds / 60);
+    const seconds = safeSeconds % 60;
+    return `${minutes} د ${seconds} ث`;
+  }
+
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  return `${hours} س ${minutes} د`;
 }
 
 export function readPlayerPreferences(): PlayerPreferences {
@@ -196,7 +204,12 @@ export function serializeCloudTimelineNotes(
     return normalizedFreeform;
   }
 
-  const sections = [normalizedFreeform, NOTES_TIMELINE_START, normalizedNotes, NOTES_TIMELINE_END]
+  const sections = [
+    normalizedFreeform,
+    NOTES_TIMELINE_START,
+    normalizedNotes,
+    NOTES_TIMELINE_END,
+  ]
     .filter(Boolean)
     .join("\n\n");
 
@@ -274,10 +287,7 @@ export function parseThumbnailVtt(
     .filter((cue): cue is ThumbnailCue => cue !== null);
 }
 
-export function getThumbnailCueAtTime(
-  cues: ThumbnailCue[],
-  time: number
-) {
+export function getThumbnailCueAtTime(cues: ThumbnailCue[], time: number) {
   return cues.find((cue) => time >= cue.start && time < cue.end) ?? null;
 }
 

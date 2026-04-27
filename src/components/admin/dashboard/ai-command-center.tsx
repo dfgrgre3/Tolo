@@ -16,7 +16,8 @@ import {
   Crown,
   Scroll
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
+import { apiClient } from "@/lib/api/api-client";
 
 type RiskStudent = {
   id: string;
@@ -78,46 +79,23 @@ export function AiCommandCenter() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin-ai"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/ai");
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to load admin AI data");
-      }
-      return payload as AdminAiPayload;
+      return await apiClient.get<AdminAiPayload>("/admin/ai");
     },
   });
 
   const copilotMutation = useMutation({
     mutationFn: async (value: string) => {
-      const response = await fetch("/api/admin/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "copilot", prompt: value }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to get copilot response");
-      }
-      return payload as { message: string };
+      return await apiClient.post<{ message: string }>("/admin/ai", { action: "copilot", prompt: value });
     },
     onSuccess: (payload) => setCopilotReply(payload.message),
   });
 
   const generateMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch("/api/admin/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "generate_content",
-          ...generatorForm,
-        }),
+      return await apiClient.post<any>("/admin/ai", {
+        action: "generate_content",
+        ...generatorForm,
       });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to generate content request");
-      }
-      return payload;
     },
     onSuccess: () => {
       setGeneratorForm({ title: "", prompt: "", contentType: "exam_blueprint", subjectId: "" });
@@ -127,16 +105,7 @@ export function AiCommandCenter() {
 
   const reviewMutation = useMutation({
     mutationFn: async ({ id, decision }: { id: string; decision: "approve" | "reject" }) => {
-      const response = await fetch("/api/admin/ai", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "review_content", id, decision }),
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error || "Failed to review content");
-      }
-      return payload;
+      return await apiClient.post<any>("/admin/ai", { action: "review_content", id, decision });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-ai"] }),
   });
@@ -144,7 +113,7 @@ export function AiCommandCenter() {
   return (
     <section className="grid gap-8 xl:grid-cols-[1.4fr_0.6fr]" dir="rtl">
       {/* --- Main Intelligence Hub --- */}
-      <motion.div 
+      <m.div 
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         className="rpg-glass p-8 border-primary/20 space-y-8"
@@ -176,7 +145,7 @@ export function AiCommandCenter() {
         <div className="space-y-6">
           <div className="flex flex-wrap gap-2">
             {starterPrompts.map((item, index) => (
-              <motion.button
+              <m.button
                 key={`prompt-${index}-${item.substring(0, 20).replace(/\s+/g, '-')}`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -185,7 +154,7 @@ export function AiCommandCenter() {
                 className="rounded-xl border border-white/5 bg-white/5 px-4 py-2.5 text-xs font-bold text-gray-300 transition-all hover:border-primary/50 hover:bg-primary/5 hover:text-primary backdrop-blur-md"
               >
                 {item}
-              </motion.button>
+              </m.button>
             ))}
           </div>
 
@@ -201,7 +170,7 @@ export function AiCommandCenter() {
               <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest">
                 تم استدعاء المستشار بنجاح
               </span>
-              <motion.button
+              <m.button
                 whileHover={{ scale: 1.05, x: -5 }}
                 whileTap={{ scale: 0.95 }}
                 type="button"
@@ -211,14 +180,14 @@ export function AiCommandCenter() {
               >
                 {copilotMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 أرسل الهدهد
-              </motion.button>
+              </m.button>
             </div>
           </div>
         </div>
 
         <AnimatePresence>
           {copilotReply && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               className="rounded-[2rem] border border-amber-500/20 bg-amber-500/5 p-8 relative overflow-hidden group"
@@ -235,7 +204,7 @@ export function AiCommandCenter() {
                   {copilotReply}
                 </p>
               </div>
-            </motion.div>
+            </m.div>
           )}
         </AnimatePresence>
 
@@ -301,7 +270,7 @@ export function AiCommandCenter() {
              <span className="text-xs text-primary/70 font-bold max-w-sm">
                 * جميع العناصر المصنوعة بواسطة السحر تدخل قائمة المراجعة تلقائياً قبل نشرها للعامة.
              </span>
-             <motion.button
+             <m.button
                whileHover={{ scale: 1.05 }}
                whileTap={{ scale: 0.95 }}
                type="button"
@@ -311,15 +280,15 @@ export function AiCommandCenter() {
              >
                {generateMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                صناعة الآن
-             </motion.button>
+             </m.button>
           </div>
         </div>
-      </motion.div>
+      </m.div>
 
       {/* --- Intelligence Feeds (Sidebar) --- */}
       <div className="space-y-8">
         {/* Risk Assessment */}
-        <motion.div 
+        <m.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           className="rpg-glass p-6 border-red-500/10"
@@ -335,7 +304,7 @@ export function AiCommandCenter() {
           <div className="space-y-4">
             {isLoading && <div className="text-xs text-gray-500 font-bold animate-pulse text-center p-8">جارٍ استطلاع الجبهة...</div>}
             {(data?.riskStudents || []).map((student, index) => (
-              <motion.div 
+              <m.div 
                 key={`risk-student-${student.id || index}`} 
                 whileHover={{ x: -4 }}
                 className="rpg-card p-4 border-white/5 bg-white/5 hover:border-red-500/30 transition-all group"
@@ -362,7 +331,7 @@ export function AiCommandCenter() {
                      </div>
                    ))}
                 </div>
-              </motion.div>
+              </m.div>
             ))}
             {!isLoading && (data?.riskStudents || []).length === 0 && (
               <div className="rounded-2xl border border-dashed border-white/10 p-8 text-center bg-white/5">
@@ -371,10 +340,10 @@ export function AiCommandCenter() {
               </div>
             )}
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Content Review Queue */}
-        <motion.div 
+        <m.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.1 }}
@@ -407,7 +376,7 @@ export function AiCommandCenter() {
                 </p>
                 
                 <div className="flex gap-2">
-                  <motion.button
+                  <m.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="button"
@@ -417,8 +386,8 @@ export function AiCommandCenter() {
                   >
                     <CheckCircle2 className="h-3 w-3" />
                     اختم بالقبول
-                  </motion.button>
-                  <motion.button
+                  </m.button>
+                  <m.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="button"
@@ -427,7 +396,7 @@ export function AiCommandCenter() {
                     className="inline-flex items-center justify-center rounded-xl bg-rose-500/10 border border-rose-500/30 p-2 text-rose-500 hover:bg-rose-500/20 transition-all"
                   >
                     <XCircle className="h-3 w-3" />
-                  </motion.button>
+                  </m.button>
                 </div>
               </div>
             ))}
@@ -438,7 +407,7 @@ export function AiCommandCenter() {
               </div>
             )}
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );

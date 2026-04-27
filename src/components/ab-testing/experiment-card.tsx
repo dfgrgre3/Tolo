@@ -3,7 +3,7 @@ import { AdminCard } from "@/components/admin/ui/admin-card";
 import { AdminButton } from "@/components/admin/ui/admin-button";
 import { StatusBadge } from "@/components/admin/ui/admin-badge";
 import { Pause, Play, Search } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Experiment } from "@/types/ab-testing";
 
 interface ExperimentCardProps {
@@ -20,7 +20,7 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({
   const maxViews = Math.max(experiment.variantA.views, experiment.variantB.views);
 
   return (
-    <motion.div 
+    <m.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.1 }}
@@ -199,6 +199,6 @@ export const ExperimentCard: React.FC<ExperimentCardProps> = ({
           </div>
         </div>
       </AdminCard>
-    </motion.div>
+    </m.div>
   );
 };

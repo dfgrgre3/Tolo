@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { usePathname } from "next/navigation";
 import { Progress } from "@/components/ui/progress";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { BookOpen, Clock, Award } from "lucide-react";
 // import removed
@@ -102,7 +102,7 @@ function ProgressIndicator() {
 
   return (
     <AnimatePresence>
-			<motion.div
+			<m.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -10 }}
@@ -127,7 +127,7 @@ function ProgressIndicator() {
 						</div>);
 
         })}
-			</motion.div>
+			</m.div>
 		</AnimatePresence>);
 
 }

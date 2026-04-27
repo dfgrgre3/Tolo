@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { UserModel } from "./types";
 import { Users, Shield, Zap } from "lucide-react";
@@ -42,7 +42,7 @@ export function RoyalAudience({ users }: RoyalAudienceProps) {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-1">
         {users.map((u, i) => (
-          <motion.div 
+          <m.div 
             key={u.id} 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -68,7 +68,7 @@ export function RoyalAudience({ users }: RoyalAudienceProps) {
               <p className="text-xs font-black truncate group-hover:text-amber-500 transition-colors">{u.name || "محارب مجهول"}</p>
               <p className="text-[9px] text-muted-foreground font-bold opacity-60 truncate tracking-tight">{u.email}</p>
             </div>
-          </motion.div>
+          </m.div>
         ))}
       </div>
     </div>

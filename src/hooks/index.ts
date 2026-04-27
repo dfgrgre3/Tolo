@@ -1,4 +1,4 @@
-﻿export * from './use-debounce';
+export * from './use-debounce';
 export * from './use-key-press';
 export * from './use-media-query';
 export * from './use-on-click-outside';
@@ -16,3 +16,4 @@ export * from './use-settings-sync';
 export * from './use-form-persistence';
 export * from './use-premium-sounds';
 export * from './use-scroll-position-persistence';
+export * from './use-efficiency-mode';

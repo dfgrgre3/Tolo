@@ -12,7 +12,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { ar } from 'date-fns/locale';
 import { formatDistanceToNow } from 'date-fns';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import {
   Shield,
   Key,
@@ -237,7 +237,7 @@ export default function SecurityPage() {
           </div>
 
           {isChangingPassword &&
-          <motion.form
+          <m.form
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             onSubmit={handlePasswordChange}
@@ -285,7 +285,7 @@ export default function SecurityPage() {
                 {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                 تحديث كلمة المرور
               </button>
-            </motion.form>
+            </m.form>
           }
         </div>
       </section>

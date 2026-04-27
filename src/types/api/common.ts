@@ -27,11 +27,18 @@ export interface PaginationParams {
     order?: 'asc' | 'desc';
 }
 
-export interface PaginatedResponse<T> extends ApiSuccessResponse<T[]> {
-    pagination: {
-        total: number;
-        page: number;
-        limit: number;
-        pages: number;
-    };
+export interface PaginationMeta {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+}
+
+export interface ApiListData<T> {
+    items: T[];
+    pagination: PaginationMeta;
+    [key: string]: unknown;
+}
+
+export interface PaginatedResponse<T> extends ApiSuccessResponse<ApiListData<T>> {
 }

@@ -1,6 +1,6 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import { memo } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Lightbulb, Zap, Calendar, BarChart3, ArrowRight } from "lucide-react";
 import { rpgCommonStyles } from "../constants";
 
@@ -39,7 +39,7 @@ export const TipsSection = memo(function TipsSection() {
 			<div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px] animate-pulse" />
 			<div className="absolute -bottom-24 -left-24 w-80 h-80 bg-purple-500/5 rounded-full blur-[120px]" />
 			
-			<motion.div 
+			<m.div 
 				initial={{ opacity: 0, y: 20 }}
 				whileInView={{ opacity: 1, y: 0 }}
 				viewport={{ once: true }}
@@ -61,11 +61,11 @@ export const TipsSection = memo(function TipsSection() {
 						</p>
 					</div>
 				</div>
-			</motion.div>
+			</m.div>
 
 			<div className="grid gap-8 grid-cols-1 lg:grid-cols-3 relative z-10">
 				{tips.map((tip, index) => (
-					<motion.div
+					<m.div
 						key={index}
 						initial={{ opacity: 0, y: 30 }}
 						whileInView={{ opacity: 1, y: 0 }}
@@ -89,7 +89,7 @@ export const TipsSection = memo(function TipsSection() {
 							<span>{tip.action}</span>
 							<ArrowRight className="h-4 w-4 transition-transform group-hover:-translate-x-1 rtl:rotate-180" />
 						</Link>
-					</motion.div>
+					</m.div>
 				))}
 			</div>
 		</section>

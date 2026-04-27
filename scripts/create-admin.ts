@@ -5,11 +5,11 @@ import { v4 as uuidv4 } from 'uuid';
 const prisma = new PrismaClient();
 
 async function main() {
-  const adminEmail = 'admin@thanawy.app';
+  const adminEmail = 'admin@thanawy.com';
   const adminPassword = 'Admin@123456';
-  const adminName = 'ط§ظ„ظ…ط¯ظٹط± ط§ظ„ط¹ط§ظ…';
+  const adminName = 'المدير العام';
 
-  console.log('--- ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨ ط§ظ„ظ…ط³ط¤ظˆظ„ ---');
+  console.log('--- إنشاء حساب المسؤول ---');
 
   // Check if admin already exists
   const existing = await prisma.user.findUnique({
@@ -17,23 +17,23 @@ async function main() {
   });
 
   if (existing) {
-    console.log('! ط­ط³ط§ط¨ ط§ظ„ظ…ط³ط¤ظˆظ„ ظ…ظˆط¬ظˆط¯ ط¨ط§ظ„ظپط¹ظ„.');
+    console.log('! حساب المسؤول موجود بالفعل.');
     
     // Ensure it has the ADMIN role
     if (existing.role !== 'ADMIN') {
-      console.log('طھط­ط¯ظٹط« ط¯ظˆط± ط§ظ„ظ…ط³طھط®ط¯ظ… ط¥ظ„ظ‰ ظ…ط³ط¤ظˆظ„ (ADMIN)...');
+      console.log('تحديث دور المستخدم إلى مسؤول (ADMIN)...');
       await prisma.user.update({
         where: { email: adminEmail },
         data: { role: 'ADMIN' },
       });
-      console.log('âœ“ طھظ… طھط­ط¯ظٹط« ط§ظ„ط¯ظˆط± ط¨ظ†ط¬ط§ط­.');
+      console.log('âœ“ تم تحديث الدور بنجاح.');
     } else {
-      console.log('âœ“ ط§ظ„ظ…ط³طھط®ط¯ظ… ظ‡ظˆ ظ…ط³ط¤ظˆظ„ ط¨ط§ظ„ظپط¹ظ„.');
+      console.log('âœ“ المستخدم هو مسؤول بالفعل.');
     }
 
     // Inform about resetting password if needed
     console.log(`Email: ${adminEmail}`);
-    console.log(`Password: ${adminPassword} (ط¥ط°ط§ ظ„ظ… ظٹطھظ… طھط؛ظٹظٹط±ظ‡ ظ…ط³ط¨ظ‚ط§ظ‹)`);
+    console.log(`Password: ${adminPassword} (إذا لم يتم تغييره مسبقاً)`);
     await prisma.$disconnect();
     return;
   }
@@ -61,7 +61,7 @@ async function main() {
     },
   });
 
-  console.log('âœ“ طھظ… ط¥ظ†ط´ط§ط، ط­ط³ط§ط¨ ط§ظ„ظ…ط³ط¤ظˆظ„ ط¨ظ†ط¬ط§ط­!');
+  console.log('âœ“ تم إنشاء حساب المسؤول بنجاح!');
   console.log(`Email: ${adminEmail}`);
   console.log(`Password: ${adminPassword}`);
   console.log(`User ID: ${user.id}`);

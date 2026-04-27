@@ -1,28 +1,23 @@
 "use client";
 
 import { useEffect, useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import { useGamification } from '@/hooks/use-gamification';
 import { AchievementToast } from '@/components/gamification/AchievementToast';
 import {
   Trophy,
   Crown,
   Medal,
-
   Zap,
-
   Shield,
   Sparkles,
-
   Users,
-
-
-  Clock } from
-
-'lucide-react';
+  Clock 
+} from 'lucide-react';
 import { ensureUser } from "@/lib/user-utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useEfficiency } from "@/hooks/use-efficiency";
 
 const STYLES = {
   glass: "relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-black/40 shadow-2xl backdrop-blur-2xl ring-1 ring-white/5",
@@ -32,6 +27,7 @@ const STYLES = {
 };
 
 export default function LeaderboardPage() {
+  const { isEfficiencyMode } = useEfficiency();
   const [userId, setUserId] = useState<string>('');
   const [leaderboardType, setLeaderboardType] = useState<'global' | 'friends'>('global');
 
@@ -59,7 +55,6 @@ export default function LeaderboardPage() {
 
   const userRank = getUserRank();
   const safeLeaderboard = Array.isArray(leaderboard) ? leaderboard : [];
-
   const memoizedSafeLeaderboard = useMemo(() => safeLeaderboard, [safeLeaderboard]);
 
   const topThree = useMemo(() => memoizedSafeLeaderboard.slice(0, 3), [memoizedSafeLeaderboard]);
@@ -74,23 +69,25 @@ export default function LeaderboardPage() {
              <Trophy className="h-10 w-10 text-primary" />
           </div>
         </div>
-      </div>);
-
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background text-gray-100 overflow-hidden" dir="rtl">
       {/* --- Ambient Background --- */}
-      <div className="fixed inset-0 pointer-events-none -z-10">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[130px] rounded-full opacity-40 translate-x-1/3 -translate-y-1/3" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 blur-[130px] rounded-full opacity-30 -translate-x-1/3 translate-y-1/3" />
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:60px_60px]" />
-      </div>
+      {!isEfficiencyMode && (
+        <div className="fixed inset-0 pointer-events-none -z-10">
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-primary/10 blur-[130px] rounded-full opacity-40 translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/10 blur-[130px] rounded-full opacity-30 -translate-x-1/3 translate-y-1/3" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:60px_60px]" />
+        </div>
+      )}
 
       <div className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-12">
         
         {/* --- Header: Coliseum Entrance --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-6">
@@ -100,28 +97,28 @@ export default function LeaderboardPage() {
             <span>الحلبة الكبرى للمتفوقين</span>
           </div>
           <h1 className="text-4xl md:text-6xl font-black tracking-tight leading-tight">
-             مدرج <span className={STYLES.neonText}>خالد الطلبة</span> ًںڈ›ï¸ڈ
+             مدرج <span className={STYLES.neonText}>خالد الطلبة</span> 🏛️
           </h1>
           <p className="text-lg text-gray-400 font-medium max-w-2xl mx-auto">
-            هنا تظڈخلد أسماء الأبطال الذين قهروا رغبات الراحة وبنوا مجدهم بالعلم والاجتهاد. هل أنت مستعد لتحدي العظماء؟
+            هنا تخلد أسماء الأبطال الذين قهروا رغبات الراحة وبنوا مجدهم بالعلم والاجتهاد. هل أنت مستعد لتحدي العظماء؟
           </p>
-        </motion.div>
+        </m.div>
 
         {/* --- Top 3 Podium: The Champions --- */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end pt-12">
            {topThree.map((entry, idx) => {
             const colors = [
-            { border: 'border-amber-400/50', bg: 'bg-amber-400/10', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
-            { border: 'border-slate-300/50', bg: 'bg-slate-300/10', text: 'text-slate-300', glow: 'shadow-slate-400/20' },
-            { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-orange-600/20' }][
-            idx];
+              { border: 'border-amber-400/50', bg: 'bg-amber-400/10', text: 'text-amber-400', glow: 'shadow-amber-500/20' },
+              { border: 'border-slate-300/50', bg: 'bg-slate-300/10', text: 'text-slate-300', glow: 'shadow-slate-400/20' },
+              { border: 'border-orange-500/50', bg: 'bg-orange-500/10', text: 'text-orange-500', glow: 'shadow-orange-600/20' }
+            ][idx];
 
             const isFirst = idx === 0;
 
             return (
-              <motion.div
+              <m.div
                 key={entry.userId}
-                initial={{ opacity: 0, y: 50 }}
+                initial={isEfficiencyMode ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.2 }}
                 className={`${isFirst ? 'md:order-2 h-[450px]' : idx === 1 ? 'md:order-1 h-[380px]' : 'md:order-3 h-[350px]'} relative flex flex-col items-center justify-end pb-8`}>
@@ -153,21 +150,21 @@ export default function LeaderboardPage() {
                          <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-1">XP كلي</p>
                       </div>
                    </div>
-                </motion.div>);
+                </m.div>);
 
           })}
         </div>
 
         {/* --- Current Player Status: Contender's Badge --- */}
         {userProgress &&
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
+        <m.div
+          initial={isEfficiencyMode ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className={STYLES.glass + " p-8 flex flex-col md:flex-row items-center justify-between gap-8 group"}>
           
               <div className="flex items-center gap-6">
                  <div className="relative">
-                    <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:bg-primary/60 transition-all duration-700" />
+                    {!isEfficiencyMode && <div className="absolute inset-0 bg-primary/40 blur-2xl rounded-full scale-150 group-hover:bg-primary/60 transition-all duration-700" />}
                     <div className="relative h-20 w-20 rounded-3xl bg-black/40 border-2 border-primary/50 flex items-center justify-center text-4xl font-black text-white shadow-2xl">
                        {userRank || '?'}
                     </div>
@@ -191,7 +188,7 @@ export default function LeaderboardPage() {
                     تحدي أصدقائك
                  </Button>
               </div>
-           </motion.div>
+           </m.div>
         }
 
         {/* --- Leaderboard List: Scroll of Rankings --- */}
@@ -228,9 +225,9 @@ export default function LeaderboardPage() {
                     </div> :
 
               others.map((entry, idx) =>
-              <motion.div
+              <m.div
                 key={entry.userId}
-                initial={{ opacity: 0, x: -30 }}
+                initial={isEfficiencyMode ? { opacity: 1, x: 0 } : { opacity: 0, x: -30 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.05 }}
                 className={`p-6 flex items-center justify-between hover:bg-white/[0.03] transition-all group ${entry.userId === userId ? 'bg-primary/10' : ''}`}>
@@ -257,7 +254,7 @@ export default function LeaderboardPage() {
                              <p className="text-2xl font-black text-white">{entry.totalXP.toLocaleString()}</p>
                              <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">XP عسكري</p>
                           </div>
-                       </motion.div>
+                       </m.div>
               )
               }
               </div>
@@ -288,6 +285,6 @@ export default function LeaderboardPage() {
         achievement={currentAchievement}
         onClose={clearAchievementNotification} />
       
-    </div>);
-
+    </div>
+  );
 }

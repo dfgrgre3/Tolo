@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { m, useMotionValue, useSpring, useTransform } from "framer-motion";
 import { Download, Eye, Star, Book as BookIcon, Sparkles } from "lucide-react";
 import { Book } from "./types";
 import { Badge } from "@/components/ui/badge";
@@ -46,14 +46,14 @@ export function BookCard({ book, onClick, index }: BookCardProps) {
   };
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.5 }}
       style={{ perspective: 1000 }}
       className="group relative h-full"
     >
-      <motion.div
+      <m.div
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
         onMouseEnter={() => setIsHovered(true)}
@@ -126,21 +126,21 @@ export function BookCard({ book, onClick, index }: BookCardProps) {
              </div>
              
              {isHovered && (
-               <motion.div 
+               <m.div 
                  initial={{ opacity: 0, scale: 0.8 }}
                  animate={{ opacity: 1, scale: 1 }}
                  className="flex items-center gap-1 text-amber-500"
                >
                  <Sparkles className="w-3 h-3 animate-pulse" />
                  <span className="text-[9px] font-black uppercase tracking-widest">عرض التفاصيل</span>
-               </motion.div>
+               </m.div>
              )}
            </div>
         </div>
-      </motion.div>
+      </m.div>
       
       {/* Decorative Shadow/Glow */}
       <div className="absolute -inset-1 bg-amber-500/20 blur-2xl opacity-0 group-hover:opacity-30 transition-opacity duration-500 -z-10" />
-    </motion.div>
+    </m.div>
   );
 }

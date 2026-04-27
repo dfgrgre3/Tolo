@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import React, { useRef, useEffect, useCallback } from "react";
-import { motion, useMotionValue, useSpring } from "framer-motion";
+import { m, useMotionValue, useSpring } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface MegaMenuContainerProps {
@@ -35,7 +35,7 @@ export function MegaMenuContainer({ children, menuWidth }: MegaMenuContainerProp
 	}, [handleMouseMove]);
 
 	return (
-		<motion.div
+		<m.div
 			ref={menuRef}
 			initial={{ opacity: 0, y: -30, scale: 0.95, filter: "blur(10px)" }}
 			animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
@@ -64,7 +64,7 @@ export function MegaMenuContainer({ children, menuWidth }: MegaMenuContainerProp
 				<div className="absolute inset-0 bg-gradient-to-br from-primary/12 via-primary/5 via-primary/8 to-primary/12 pointer-events-none" />
 				
 				{/* Animated gradient overlay with smooth movement */}
-				<motion.div
+				<m.div
 					className="absolute inset-0 bg-gradient-to-tr from-primary/15 via-transparent to-primary/10 pointer-events-none"
 					animate={{
 						backgroundPosition: ["0% 0%", "100% 100%"],
@@ -79,7 +79,7 @@ export function MegaMenuContainer({ children, menuWidth }: MegaMenuContainerProp
 				/>
 				
 				{/* Interactive mouse glow effect */}
-				<motion.div
+				<m.div
 					className="absolute pointer-events-none"
 					style={{
 						left: mouseXSpring,
@@ -90,10 +90,10 @@ export function MegaMenuContainer({ children, menuWidth }: MegaMenuContainerProp
 					}}
 				>
 					<div className="w-96 h-96 bg-gradient-radial from-primary/40 via-primary/20 to-transparent rounded-full blur-3xl" />
-				</motion.div>
+				</m.div>
 				
 				{/* Shimmer effect */}
-				<motion.div
+				<m.div
 					className="absolute inset-0 -translate-x-full pointer-events-none"
 					animate={{
 						translateX: ["-100%", "200%"],
@@ -106,10 +106,10 @@ export function MegaMenuContainer({ children, menuWidth }: MegaMenuContainerProp
 					}}
 				>
 					<div className="w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12" />
-				</motion.div>
+				</m.div>
 
 				{children}
 			</div>
-		</motion.div>
+		</m.div>
 	);
 }

@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { formatTimeRange, getBlockDuration } from './utils';
 import { BLOCK_TYPES, PRIORITY_COLORS } from './constants';
 import type { TimeBlock } from './types';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 
 interface TimeBlockCardProps {
   block: TimeBlock;
@@ -37,7 +37,7 @@ export function TimeBlockCard({
   };
 
   return (
-    <motion.div
+    <m.div
       initial={{ scale: 0.9, opacity: 0 }}
       animate={{ scale: 1, opacity: 1 }}
       whileHover={{ y: -2, scale: 1.02 }}
@@ -111,6 +111,6 @@ export function TimeBlockCard({
 
       {/* Glossy Overlay Effect */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none rounded-xl" />
-    </motion.div>
+    </m.div>
   );
 }

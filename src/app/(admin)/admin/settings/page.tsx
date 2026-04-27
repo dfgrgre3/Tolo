@@ -45,7 +45,7 @@ import {
   TrendingUp
 } from "lucide-react";
 import { SettingsSkeleton } from "@/components/admin/ui/loading-skeleton";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { logger } from '@/lib/logger';
 
 const settingsSchema = z.object({
@@ -231,7 +231,7 @@ export default function AdminSettingsPage() {
         <div className="flex items-center gap-3">
           <AnimatePresence>
             {hasChanges && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
@@ -239,7 +239,7 @@ export default function AdminSettingsPage() {
                 <Badge variant="outline" className="bg-amber-500/10 text-amber-500 border-amber-500/20 font-black h-8 px-4 px-3 rounded-xl animate-pulse">
                   تعديلات غير مختومة âœ’ï¸ڈ
                 </Badge>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
           

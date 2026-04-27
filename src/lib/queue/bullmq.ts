@@ -1,192 +1,146 @@
-﻿import { Queue, Worker, Job, QueueOptions, WorkerOptions } from 'bullmq';
+import { Queue, Worker, Job } from 'bullmq';
 import { logger } from '../logger';
-import { trackQueueLatency } from '@/lib/metrics/prometheus';
+import Redis from 'ioredis';
 
-const redisUrl = process.env.REDIS_URL;
-const isRedisDisabled = process.env.DISABLE_REDIS === 'true';
-
-export const redisConnection = redisUrl && !isRedisDisabled
-  ? (() => {
-      try {
-        const url = new URL(redisUrl);
-        return {
-          host: url.hostname,
-          port: Number(url.port || '6379'),
-          username: url.username || undefined,
-          password: url.password || undefined,
-          db: url.pathname ? Number(url.pathname.replace('/', '') || '0') : 0,
-          tls: url.protocol === 'rediss:' ? {} : undefined,
-          maxRetriesPerRequest: null,
-          connectTimeout: 5000, // 5 second hard timeout for boot survival
-          // Skip BullMQ's internal Redis version & eviction policy check.
-          // Managed Redis providers (Upstash, Railway, etc.) often report
-          // volatile-lru but don't allow CONFIG SET to change it, causing
-          // repeated console.warn spam. Configure at the provider level instead.
-          skipVersionCheck: true,
-        };
-      } catch (err) {
-        logger.error('[BullMQ] Invalid REDIS_URL, falling back to localhost:', err);
-        return { host: 'localhost', port: 6379, maxRetriesPerRequest: null, enableOfflineQueue: false, skipVersionCheck: true };
-      }
-    })()
-  : {
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379', 10),
-      password: process.env.REDIS_PASSWORD,
-      maxRetriesPerRequest: null,
-      connectTimeout: isRedisDisabled ? 100 : 5000,
-      skipVersionCheck: true,
-    };
-
-/**
- * Enhanced BullMQ wrapper for the modular monolith
- */
-export class BullQueue<T = any> {
-  private queue: Queue<T>;
-  private name: string;
-
-  constructor(name: string, options?: Partial<QueueOptions>) {
-    this.name = name;
-    this.queue = new Queue(name, {
-      connection: redisConnection,
-      defaultJobOptions: {
-        attempts: 3,
-        backoff: {
-          type: 'exponential',
-          delay: 1000,
-        },
-        removeOnComplete: {
-          count: 1000, // Keep last 1000 jobs for deduplication
-          age: 3600,  // Keep for 1 hour
-        },
-        removeOnFail: {
-          count: 5000,
-        },
-      },
-      ...options,
-    });
-
-    this.queue.on('error', (err: any) => {
-      const msg = err?.message || err?.code || String(err);
-      if (msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT') || msg.includes('ENOTFOUND')) {
-        // Suppress expected Redis network timeout errors to avoid log spam or unhandled crashes
-      } else {
-        logger.error(`[BullMQ Queue - ${name}] Error:`, err);
-      }
-    });
-
-    logger.info(`Queue [${name}] initialized`);
-  }
-
-  async addJob(type: string, data: T, options?: { jobId?: string, priority?: number }): Promise<Job<T, any, string>> {
-     try {
-       const job = await this.queue.add(type as any, data as any, { 
-         jobId: options?.jobId,
-         priority: options?.priority // Higher number = Lower priority (BullMQ default)
-       });
-       logger.debug(`Job ${job.id} added to ${this.name} with priority ${options?.priority || 'default'}`);
-       return job as any;
-     } catch (error) {
-       logger.error(`Failed to add job to ${this.name}:`, error);
-       throw error;
-     }
-   }
-
-  getInternalQueue() {
-    return this.queue;
-  }
-}
-
-/**
- * Base Worker class for modular services
- */
-export abstract class BaseWorker<T = any> {
-  protected worker: Worker<T>;
-  protected name: string;
-
-  constructor(name: string, options?: Partial<WorkerOptions>) {
-    this.name = name;
-    this.worker = new Worker(
-      name,
-      async (job: Job<T, any, string>) => {
-        // Track the latency (time spent in queue)
-        if (job.timestamp && job.processedOn) {
-          const latency = job.processedOn - job.timestamp;
-          trackQueueLatency(this.name, job.name || 'default', latency);
-        }
-        
-        logger.debug(`Processing job ${job.id} on ${this.name}`);
-        return this.process(job);
-      },
-      {
-        connection: redisConnection,
-        concurrency: options?.concurrency || 20, // Increased default concurrency for 10M-user throughput
-        ...options,
-      }
-    );
-
-    this.worker.on('failed', (job, err) => {
-      logger.error(`Job ${job?.id} failed on ${this.name}:`, err);
-    });
-
-    this.worker.on('error', (err: any) => {
-      const msg = err?.message || err?.code || String(err);
-      if (msg.includes('ECONNREFUSED') || msg.includes('ETIMEDOUT') || msg.includes('ENOTFOUND')) {
-        // Suppress expected redis network timeout errors to avoid log spam
-      } else {
-        logger.error(`[BullMQ Worker - ${this.name}] Error:`, err);
-      }
-    });
-
-    this.worker.on('completed', (job) => {
-      logger.debug(`Job ${job.id} completed on ${this.name}`);
-    });
-
-    logger.info(`Worker [${this.name}] initialized`);
-  }
-
-  abstract process(job: Job<T, any, string>): Promise<void>;
-
-  async stop() {
-    await this.worker.close();
-  }
-}
-
-// Singleton management for HMR support
-const globalForQueues = globalThis as unknown as {
-  queues: Record<string, BullQueue>;
-};
-
-if (!globalForQueues.queues) {
-  globalForQueues.queues = {};
-}
-
-function getOrCreateQueue<T>(name: string, options?: any): BullQueue<T> {
-  if (process.env.NODE_ENV !== 'production') {
-    if (!globalForQueues.queues[name]) {
-      globalForQueues.queues[name] = new BullQueue(name, options);
-    }
-    return globalForQueues.queues[name] as BullQueue<T>;
-  }
-  return new BullQueue(name, options);
-}
-
-export const highPriorityQueue = getOrCreateQueue('high-priority');
-export const gamificationQueue = getOrCreateQueue('gamification');
-export const notificationQueue = getOrCreateQueue('notifications');
-export const analyticsQueue = getOrCreateQueue('analytics');
-export const referralQueue = getOrCreateQueue('referrals');
-export const bulkSyncQueue = getOrCreateQueue('bulk-sync', {
-  defaultJobOptions: { 
-    priority: 100, 
-    attempts: 5,
-    backoff: { type: 'exponential', delay: 5000 }
-  } 
+// Dedicated Redis connection for BullMQ as per documentation requirements
+// BullMQ requires maxRetriesPerRequest to be null
+const queueConnection = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+    maxRetriesPerRequest: null,
 });
 
 /**
- * Compatibility helper for the old queue system
+ * Ensures Redis is configured with 'noeviction' policy.
+ * BullMQ requires this to prevent data loss when Redis is under memory pressure.
  */
-export const enqueueJob = async (queue: BullQueue, type: string, payload: any, options: { jobId?: string; priority?: number } = {}) => {
-  return queue.addJob(type, payload, options);
-};
+async function ensureCorrectEvictionPolicy() {
+    try {
+        const result = await queueConnection.config('GET', 'maxmemory-policy');
+        // ioredis returns config as [name, value]
+        const policy = Array.isArray(result) ? result[1] : null;
+        
+        if (policy && policy !== 'noeviction') {
+            logger.warn(`[BullMQ] Redis eviction policy is '${policy}'. Attempting to set to 'noeviction'...`);
+            await queueConnection.config('SET', 'maxmemory-policy', 'noeviction');
+            logger.info('[BullMQ] Redis eviction policy successfully set to \'noeviction\'');
+        } else if (!policy) {
+            logger.debug('[BullMQ] Could not determine Redis eviction policy via CONFIG GET');
+        }
+    } catch (error) {
+        // Many managed Redis services (like Redis Labs free tier) disable CONFIG commands
+        logger.debug('[BullMQ] Could not automatically configure Redis eviction policy:', error instanceof Error ? error.message : String(error));
+        logger.warn(
+            '[BullMQ] IMPORTANT: Ensure your Redis maxmemory-policy is set to \'noeviction\' ' +
+            'to prevent job loss under memory pressure.'
+        );
+    }
+}
+
+// Run check on startup
+ensureCorrectEvictionPolicy();
+
+function getQueueConnection() {
+    return queueConnection;
+}
+
+// Base Worker class that other workers can extend
+export abstract class BaseWorker<T = any> {
+    private worker: Worker;
+    private queue: Queue;
+
+    constructor(
+        queueName: string,
+        options?: {
+            concurrency?: number;
+        }
+    ) {
+        const connection = getQueueConnection();
+
+        this.queue = new Queue(queueName, {
+            connection,
+        });
+
+        this.worker = new Worker(
+            queueName,
+            async (job: Job<T>) => {
+                try {
+                    await this.process(job);
+                } catch (error) {
+                    logger.error(`[${queueName}Worker] Error processing job ${job.id}:`, error);
+                    throw error;
+                }
+            },
+            {
+                connection,
+                concurrency: options?.concurrency || 10,
+            }
+        );
+
+        this.worker.on('completed', (job) => {
+            logger.debug(`[${queueName}Worker] Job ${job.id} completed`);
+        });
+
+        this.worker.on('failed', (job, err) => {
+            logger.error(`[${queueName}Worker] Job ${job?.id} failed:`, err);
+        });
+
+        logger.info(`[${queueName}Worker] Worker initialized`);
+    }
+
+    abstract process(job: Job<T, any, string>): Promise<void>;
+
+    getQueue(): Queue {
+        return this.queue;
+    }
+
+    async close(): Promise<void> {
+        await this.worker.close();
+        await this.queue.close();
+    }
+}
+
+// Queue wrapper class
+class AppQueue {
+    private queue: Queue;
+
+    constructor(name: string) {
+        const connection = getQueueConnection();
+        this.queue = new Queue(name, {
+            connection,
+        });
+    }
+
+    async addJob(name: string, data: any, options?: any) {
+        return await this.queue.add(name, data, options);
+    }
+
+    getInternalQueue(): Queue {
+        return this.queue;
+    }
+
+    async close() {
+        return await this.queue.close();
+    }
+}
+
+// Create queue instances
+export const gamificationQueue = new AppQueue('gamification');
+export const notificationQueue = new AppQueue('notifications');
+export const analyticsQueue = new AppQueue('analytics');
+export const referralQueue = new AppQueue('referral');
+
+// Helper function to enqueue jobs
+export async function enqueueJob(queueName: string, jobName: string, data: any, options?: any) {
+    const queueMap: Record<string, AppQueue> = {
+        gamification: gamificationQueue,
+        notification: notificationQueue,
+        analytics: analyticsQueue,
+        referral: referralQueue,
+    };
+
+    const queue = queueMap[queueName];
+    if (!queue) {
+        throw new Error(`Unknown queue: ${queueName}`);
+    }
+
+    return await queue.addJob(jobName, data, options);
+}

@@ -1,112 +1,73 @@
-﻿'use client';
+'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Skeleton } from './skeleton';
 
 export function LoadingSpinner({ className }: { className?: string }) {
   return (
     <div className={cn("relative h-16 w-16", className)}>
-      {/* Outer Glow */}
-      <motion.div
-        className="absolute inset-[-4px] rounded-full bg-primary/20 blur-md"
-        animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{
-          repeat: Infinity,
-          duration: 2,
-          ease: "easeInOut",
-        }}
-      />
-      
+      {/* Pure CSS animated spinner - no framer-motion needed */}
+      <div className="absolute inset-[-4px] rounded-full bg-primary/20 blur-md animate-pulse" />
+
       {/* Background Circle */}
       <div className="absolute inset-0 rounded-full border-4 border-primary/10" />
-      
-      {/* Main Spinner Ring */}
-      <motion.div
-        className="absolute inset-0 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent"
-        animate={{ rotate: 360 }}
-        transition={{
-          repeat: Infinity,
-          duration: 1,
-          ease: "linear",
-        }}
-      />
-      
-      {/* Inner Fast Ring */}
-      <motion.div
-        className="absolute inset-2 rounded-full border-4 border-t-transparent border-r-primary/60 border-b-transparent border-l-transparent"
-        animate={{ rotate: -360 }}
-        transition={{
-          repeat: Infinity,
-          duration: 0.8,
-          ease: "linear",
-        }}
-      />
-      
+
+      {/* Main Spinner Ring - CSS animation */}
+      <div className="absolute inset-0 rounded-full border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent animate-spin" />
+
+      {/* Inner Fast Ring - CSS animation */}
+      <div className="absolute inset-2 rounded-full border-4 border-t-transparent border-r-primary/60 border-b-transparent border-l-transparent animate-[spin_0.8s_linear_infinite_reverse]" />
+
       {/* Center Dot */}
-      <motion.div
-        className="absolute inset-[45%] rounded-full bg-primary shadow-[0_0_10px_rgba(249,115,22,0.8)]"
-        animate={{
-          scale: [0.8, 1.2, 0.8],
-        }}
-        transition={{
-          repeat: Infinity,
-          duration: 1.5,
-          ease: "easeInOut",
-        }}
-      />
+      <div className="absolute inset-[45%] rounded-full bg-primary shadow-[0_0_10px_rgba(249,115,22,0.8)] animate-[pulse_1.5s_ease-in-out_infinite]" />
     </div>
   );
 }
 
 export function LoadingPage() {
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background/60 backdrop-blur-xl">
-      {/* Top Progress Bar */}
-      <div className="fixed top-0 left-0 right-0 h-1.5 z-[101] overflow-hidden bg-primary/10">
-        <motion.div
-          className="h-full bg-gradient-to-r from-primary via-orange-500 to-amber-500"
-          initial={{ x: '-100%' }}
-          animate={{ x: '100%' }}
-          transition={{
-            repeat: Infinity,
-            duration: 1.5,
-            ease: "easeInOut",
-          }}
-        />
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background">
+      {/* Top Progress Bar - CSS animation */}
+      <div className="fixed top-0 left-0 right-0 h-1.5 z-50 overflow-hidden bg-primary/10">
+        <div className="h-full bg-gradient-to-r from-primary via-orange-500 to-amber-500 animate-[slide_1.5s_ease-in-out_infinite]"
+          style={{ animation: 'slide 1.5s ease-in-out infinite' }} />
       </div>
 
       <div className="flex flex-col items-center gap-8">
         <LoadingSpinner />
-        
+
         <div className="flex flex-col items-center gap-2 text-center px-4">
-          <motion.h3 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-2xl font-bold bg-gradient-to-r from-primary via-orange-500 to-amber-500 bg-clip-text text-transparent"
-          >
+          <h3 className="text-2xl font-bold bg-gradient-to-r from-primary via-orange-500 to-amber-500 bg-clip-text text-transparent animate-[fadeInUp_0.5s_ease-out]">
             جاري تحضير المحتوى...
-          </motion.h3>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-muted-foreground max-w-xs"
-          >
+          </h3>
+          <p className="text-muted-foreground max-w-xs animate-[fadeIn_0.7s_ease-out]">
             نحن نجهز لك تجربة تعليمية فريدة ومنظمة.
-          </motion.p>
+          </p>
         </div>
       </div>
-      
-      {/* Animated Background Elements */}
+
+      {/* Static Background Elements - no animation needed */}
       <div className="absolute inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 -left-20 w-80 h-80 bg-primary/10 rounded-full blur-[100px]" />
         <div className="absolute bottom-1/4 -right-20 w-80 h-80 bg-orange-500/10 rounded-full blur-[100px]" />
       </div>
+
+      {/* Add CSS animations */}
+      <style jsx>{`
+        @keyframes slide {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+      `}</style>
     </div>
   );
 }

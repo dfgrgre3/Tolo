@@ -1,6 +1,6 @@
-﻿"use client";
+"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Link from "next/link";
 import { memo } from "react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
 
   return (
     <section aria-labelledby="features-heading" className="max-w-7xl mx-auto px-4 !pt-0">
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -37,7 +37,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
         <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
           اكتشف الأدوات التي ستساعدك في رحلتك الملحمية نحو التفوق
         </p>
-      </motion.div>
+      </m.div>
 
       <div className="grid gap-6 md:gap-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {FEATURES_LIST.map((feature, index) => (
@@ -54,7 +54,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
         ))}
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -101,7 +101,7 @@ export const FeaturesSection = memo(function FeaturesSection() {
             </div>
           </CardContent>
         </Card>
-      </motion.div>
+      </m.div>
     </section>
   );
 });

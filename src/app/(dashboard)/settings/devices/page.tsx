@@ -1,7 +1,7 @@
 ﻿'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import {
   Smartphone,
   Monitor,
@@ -233,7 +233,7 @@ export default function DevicesPage() {
         </div>
 
         {otherDevices.length > 0 &&
-        <motion.button
+        <m.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={() => setShowRevokeAllConfirm(true)}
@@ -241,12 +241,12 @@ export default function DevicesPage() {
           
             <LogOut className="h-4 w-4" />
             تسجيل خروج الكل
-          </motion.button>
+          </m.button>
         }
       </div>
 
       <div className="grid sm:grid-cols-3 gap-4">
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="rounded-xl bg-white/5 border border-white/10 p-4">
@@ -260,9 +260,9 @@ export default function DevicesPage() {
               <p className="text-xs text-slate-400">إجمالي الجلسات</p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -277,9 +277,9 @@ export default function DevicesPage() {
               <p className="text-xs text-slate-400">جلسات موثوقة</p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -294,11 +294,11 @@ export default function DevicesPage() {
               <p className="text-xs text-slate-400">عناوين IP مختلفة</p>
             </div>
           </div>
-        </motion.div>
+        </m.div>
       </div>
 
       {currentDevice &&
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 overflow-hidden">
@@ -314,11 +314,11 @@ export default function DevicesPage() {
           onRevoke={() => undefined}
           onToggleTrust={() => handleToggleTrust(currentDevice.id, currentDevice.isTrusted)} />
         
-        </motion.div>
+        </m.div>
       }
 
       {otherDevices.length > 0 &&
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden">
@@ -344,7 +344,7 @@ export default function DevicesPage() {
           <div className="divide-y divide-white/5">
             <AnimatePresence>
               {otherDevices.map((device, index) =>
-            <motion.div
+            <m.div
               key={device.id}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -357,15 +357,15 @@ export default function DevicesPage() {
                 isRevoking={isRevoking === device.id}
                 onToggleTrust={() => handleToggleTrust(device.id, device.isTrusted)} />
               
-                </motion.div>
+                </m.div>
             )}
             </AnimatePresence>
           </div>
-        </motion.div>
+        </m.div>
       }
 
       {otherDevices.length === 0 &&
-      <motion.div
+      <m.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         className="rounded-2xl bg-white/5 border border-white/10 p-8 text-center">
@@ -373,20 +373,20 @@ export default function DevicesPage() {
           <Shield className="h-12 w-12 text-green-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-white mb-2">لا توجد أجهزة أخرى</h3>
           <p className="text-sm text-slate-400">أنت مسجل دخول فقط من هذا الجهاز</p>
-        </motion.div>
+        </m.div>
       }
 
       <AnimatePresence>
         {showRevokeAllConfirm &&
         <>
-            <motion.div
+            <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setShowRevokeAllConfirm(false)}
             className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" />
           
-            <motion.div
+            <m.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.9 }}
@@ -420,7 +420,7 @@ export default function DevicesPage() {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           </>
         }
       </AnimatePresence>
@@ -503,14 +503,14 @@ function DeviceCard({
             <AnimatePresence>
               {showMenu &&
             <>
-                  <motion.div
+                  <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setShowMenu(false)}
                 className="fixed inset-0 z-10" />
               
-                  <motion.div
+                  <m.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -541,7 +541,7 @@ function DeviceCard({
                   }
                       تسجيل خروج الجهاز
                     </button>
-                  </motion.div>
+                  </m.div>
                 </>
             }
             </AnimatePresence>

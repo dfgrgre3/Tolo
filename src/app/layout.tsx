@@ -1,4 +1,4 @@
-﻿import type { Metadata } from 'next';
+import type { Metadata } from 'next';
 import { Alexandria } from 'next/font/google';
 import { GlobalProviders } from '@/providers';
 import { SWRegistration } from '@/components/sw-registration';
@@ -9,7 +9,7 @@ const alexandria = Alexandria({
   variable: '--font-alexandria',
   display: 'swap',
   preload: true,
-  weight: ['400', '500', '600', '700', '800'],
+  weight: ['400', '600', '700'],
 });
 
 export const metadata: Metadata = {

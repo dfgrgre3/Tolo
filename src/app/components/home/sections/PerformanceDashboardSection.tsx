@@ -1,7 +1,7 @@
 "use client";
 
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -76,7 +76,7 @@ export const PerformanceDashboardSection = ({ metrics = [], loading = false }: D
 
         <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {metrics.map((metric, index) =>
-          <motion.div
+          <m.div
             key={metric.name}
             initial={{ opacity: 0, y: 15 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -112,14 +112,14 @@ export const PerformanceDashboardSection = ({ metrics = [], loading = false }: D
 
                   <div className="space-y-1.5">
                     <Progress
-                    value={Math.min(metric.value / metric.target * 100, 100)}
+                    value={metric.target > 0 ? Math.min((metric.value / metric.target) * 100, 100) : 0}
                     className="h-1.5 bg-white/5"
                     indicatorClassName={metric.status === 'excellent' ? 'bg-emerald-500 shadow-[0_0_8px_currentColor]' : metric.status === 'good' ? 'bg-blue-500' : 'bg-yellow-500'} />
                   
                   </div>
                 </CardContent>
               </Card>
-            </motion.div>
+            </m.div>
           )}
         </div>
       </div>

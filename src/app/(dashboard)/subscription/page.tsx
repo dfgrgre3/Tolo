@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Wallet,
   Clock,
@@ -191,7 +191,7 @@ export default function SubscriptionPage() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <motion.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+          <m.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
                 <Wallet size={20} />
@@ -200,9 +200,9 @@ export default function SubscriptionPage() {
             </div>
             <div className="text-2xl font-bold mb-1">{summary.balance.toLocaleString()} ج.م</div>
             <div className="text-gray-400 text-xs">متاح للاستخدام في المنصة</div>
-          </motion.div>
+          </m.div>
 
-          <motion.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+          <m.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
                 <TrendingUp size={20} />
@@ -211,9 +211,9 @@ export default function SubscriptionPage() {
             </div>
             <div className="text-2xl font-bold mb-1">{summary.stats.totalSpent.toLocaleString()} ج.م</div>
             <div className="text-gray-400 text-xs">مجموع العمليات الناجحة</div>
-          </motion.div>
+          </m.div>
 
-          <motion.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+          <m.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center text-green-500">
                 <CheckCircle2 size={20} />
@@ -222,9 +222,9 @@ export default function SubscriptionPage() {
             </div>
             <div className="text-2xl font-bold mb-1">{summary.stats.successCount}</div>
             <div className="text-gray-400 text-xs">عمليات مكتملة بنجاح</div>
-          </motion.div>
+          </m.div>
 
-          <motion.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
+          <m.div whileHover={{ y: -5 }} className="bg-[#111114] border border-white/5 p-6 rounded-3xl">
             <div className="flex items-center justify-between mb-4">
               <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
                 <XCircle size={20} />
@@ -233,7 +233,7 @@ export default function SubscriptionPage() {
             </div>
             <div className="text-2xl font-bold mb-1">{summary.stats.pendingCount + summary.stats.failedCount}</div>
             <div className="text-gray-400 text-xs">تحتاج لمراجعة</div>
-          </motion.div>
+          </m.div>
         </div>
 
         {/* Current Credits Section */}
@@ -284,7 +284,7 @@ export default function SubscriptionPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {addons.map((addon) =>
-            <motion.div
+            <m.div
               key={addon.id}
               whileHover={{ y: -8 }}
               className="bg-[#111114] border border-white/5 rounded-[2rem] p-6 flex flex-col items-center text-center group relative overflow-hidden">
@@ -321,7 +321,7 @@ export default function SubscriptionPage() {
                   }
                   </button>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </div>
         </section>

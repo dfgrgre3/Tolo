@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Edit, Trash2, Calendar, AlertCircle } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 
 interface TaskListProps {
   tasks: Task[];
@@ -57,7 +57,7 @@ export const TaskList: FC<TaskListProps> = ({
           const completed = task.status === 'COMPLETED';
 
           return (
-            <motion.div
+            <m.div
               key={task.id}
               initial={{ opacity: 0, y: 30, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -154,7 +154,7 @@ export const TaskList: FC<TaskListProps> = ({
                     </div>
                  </CardContent>
               </Card>
-            </motion.div>
+            </m.div>
           );
         })}
       </AnimatePresence>

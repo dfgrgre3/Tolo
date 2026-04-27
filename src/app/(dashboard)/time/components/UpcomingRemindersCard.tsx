@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Bell, Eye, EyeOff } from 'lucide-react';
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import type { Reminder } from '../types';
 
 interface UpcomingRemindersCardProps {
@@ -39,7 +39,7 @@ export default function UpcomingRemindersCard({
         </Button>
       </CardHeader>
       <CardContent className="p-4 relative z-10">
-        <motion.div 
+        <m.div 
           className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar"
           initial="hidden"
           animate="visible"
@@ -61,7 +61,7 @@ export default function UpcomingRemindersCard({
             .map((reminder) => {
               const isUpcoming = new Date(reminder.remindAt) > new Date();
               return (
-                <motion.div 
+                <m.div 
                   key={reminder.id} 
                   variants={{
                     hidden: { x: 20, opacity: 0 },
@@ -97,7 +97,7 @@ export default function UpcomingRemindersCard({
                   >
                     {isUpcoming ? 'مهمة قادمة' : 'منتهي'}
                   </Badge>
-                </motion.div>
+                </m.div>
               );
             })}
           {reminders
@@ -105,7 +105,7 @@ export default function UpcomingRemindersCard({
               if (!showUpcomingOnly) return true;
               return new Date(reminder.remindAt) > new Date();
             }).length === 0 && (
-            <motion.div 
+            <m.div 
               initial={{ opacity: 0 }} animate={{ opacity: 1 }}
               className="text-center py-10 flex flex-col items-center"
             >
@@ -116,9 +116,9 @@ export default function UpcomingRemindersCard({
               <p className="text-sm text-muted-foreground mt-1">
                 {showUpcomingOnly ? 'جميع تذكيراتك استظڈكملت' : 'قم بإنشاء تذكير جديد'}
               </p>
-            </motion.div>
+            </m.div>
           )}
-        </motion.div>
+        </m.div>
       </CardContent>
     </Card>
   );

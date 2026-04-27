@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Sparkles, Lightbulb, TrendingUp, AlertTriangle, Brain } from 'lucide-react';
 import type { TimeStats } from '../types';
@@ -81,7 +81,7 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
         <div className="space-y-3">
           <AnimatePresence mode="popLayout">
             {insights.map((insight, idx) => (
-              <motion.div
+              <m.div
                 key={idx}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -94,7 +94,7 @@ const StudyAdvisor = ({ stats }: StudyAdvisorProps) => {
                 <p className="text-sm text-slate-300 leading-relaxed">
                   {insight.text}
                 </p>
-              </motion.div>
+              </m.div>
             ))}
           </AnimatePresence>
         </div>

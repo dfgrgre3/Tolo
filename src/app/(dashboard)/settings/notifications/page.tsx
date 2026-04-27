@@ -11,7 +11,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { m } from "framer-motion";
 import {
   Bell,
   BellRing,
@@ -132,7 +132,7 @@ export default function NotificationsSettingsPage() {
       />
 
       {/* Notification Channels */}
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 p-6"
@@ -168,7 +168,7 @@ export default function NotificationsSettingsPage() {
             color="pink"
           />
         </div>
-      </motion.div>
+      </m.div>
 
       {/* Study & Tasks */}
       <SettingsSection
@@ -184,7 +184,7 @@ export default function NotificationsSettingsPage() {
           onToggle={(v) => updateSetting('taskReminders', v)}
         />
         {settings.taskReminders && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             className="mr-12 mb-4"
@@ -201,7 +201,7 @@ export default function NotificationsSettingsPage() {
               <option value="120" className="bg-slate-800">ساعتين</option>
               <option value="1440" className="bg-slate-800">يوم واحد</option>
             </select>
-          </motion.div>
+          </m.div>
         )}
         
         <SettingsToggle
@@ -235,7 +235,7 @@ export default function NotificationsSettingsPage() {
           onToggle={(v) => updateSetting('examReminders', v)}
         />
         {settings.examReminders && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             className="mr-12 mb-4"
@@ -250,7 +250,7 @@ export default function NotificationsSettingsPage() {
               <option value={3} className="bg-slate-800">3 أيام</option>
               <option value={7} className="bg-slate-800">أسبوع</option>
             </select>
-          </motion.div>
+          </m.div>
         )}
         
         <SettingsToggle
@@ -342,7 +342,7 @@ export default function NotificationsSettingsPage() {
         />
         
         {settings.quietHoursEnabled && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             className="mr-12 grid grid-cols-2 gap-4"
@@ -369,7 +369,7 @@ export default function NotificationsSettingsPage() {
                 className="mt-1 w-full p-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
               />
             </div>
-          </motion.div>
+          </m.div>
         )}
       </SettingsSection>
     </div>
@@ -399,7 +399,7 @@ function ChannelCard({
   };
 
   return (
-    <motion.div
+    <m.div
       whileHover={{ scale: 1.02 }}
       className={cn(
         'rounded-xl p-4 border transition-all cursor-pointer',
@@ -422,7 +422,7 @@ function ChannelCard({
         {title}
       </h4>
       <p className="text-xs text-slate-400 mt-1">{description}</p>
-    </motion.div>
+    </m.div>
   );
 }
 

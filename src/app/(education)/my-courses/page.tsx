@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -173,7 +173,7 @@ export default function MyCoursesPage() {
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
         {/* Header */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-4">
@@ -201,11 +201,11 @@ export default function MyCoursesPage() {
               </Button>
             </Link>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Stats Overview */}
         {stats &&
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
@@ -218,7 +218,7 @@ export default function MyCoursesPage() {
           { label: "الشهادات", val: stats.certificates, icon: Award, color: "text-violet-500", bg: "bg-violet-500/10" },
           { label: "التقدم العام", val: `${overallProgress}%`, icon: Target, color: "text-primary", bg: "bg-primary/10" }].
           map((stat, i) =>
-          <motion.div
+          <m.div
             key={i}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -232,14 +232,14 @@ export default function MyCoursesPage() {
                   <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 truncate">{stat.label}</p>
                   <p className="text-xl font-black text-gray-900 dark:text-white">{stat.val}</p>
                 </div>
-              </motion.div>
+              </m.div>
           )}
-          </motion.div>
+          </m.div>
         }
 
         {/* Overall Progress Bar */}
         {stats && stats.total > 0 &&
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
@@ -258,11 +258,11 @@ export default function MyCoursesPage() {
             <p className="text-xs text-gray-400 mt-2">
               {stats.totalCompletedLessons} من {stats.totalLessons} درس مكتمل
             </p>
-          </motion.div>
+          </m.div>
         }
 
         {/* Filters & Search */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
@@ -301,11 +301,11 @@ export default function MyCoursesPage() {
               className="w-full h-10 rounded-xl border border-gray-200 dark:border-white/10 bg-white dark:bg-gray-900/80 pr-10 pl-4 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-primary/20" />
             
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Course Grid */}
         {filteredCourses.length === 0 ?
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center justify-center py-20 rounded-2xl border-2 border-dashed border-gray-200 dark:border-white/10">
@@ -327,7 +327,7 @@ export default function MyCoursesPage() {
                 </Button>
               </Link>
           }
-          </motion.div> :
+          </m.div> :
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <AnimatePresence mode="popLayout">
@@ -336,7 +336,7 @@ export default function MyCoursesPage() {
               const isComplete = (course.progress ?? 0) >= 100;
 
               return (
-                <motion.div
+                <m.div
                   key={course.id}
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -398,7 +398,7 @@ export default function MyCoursesPage() {
                           </span>
                         </div>
                         <div className="h-1.5 overflow-hidden rounded-full bg-gray-100 dark:bg-white/5">
-                          <motion.div
+                          <m.div
                           initial={{ width: 0 }}
                           animate={{ width: `${course.progress ?? 0}%` }}
                           transition={{ duration: 1, ease: "easeOut" }}
@@ -490,7 +490,7 @@ export default function MyCoursesPage() {
                       }
                       </div>
                     </div>
-                  </motion.div>
+                  </m.div>
                 );
               })}
 

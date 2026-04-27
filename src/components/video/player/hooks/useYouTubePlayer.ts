@@ -7,41 +7,7 @@ import {
   type RefObject,
 } from "react";
 
-type YouTubePlayer = {
-  destroy: () => void;
-  getAvailablePlaybackRates: () => number[];
-  getCurrentTime: () => number;
-  getDuration: () => number;
-  mute: () => void;
-  pauseVideo: () => void;
-  playVideo: () => void;
-  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
-  setPlaybackRate: (playbackRate: number) => void;
-  setVolume: (volume: number) => void;
-  unMute: () => void;
-};
-
-type YouTubeNamespace = {
-  Player: new (
-    element: HTMLElement,
-    config: {
-      videoId: string;
-      playerVars: Record<string, number>;
-      events: {
-        onReady?: () => void;
-        onStateChange?: (event: { data: number }) => void;
-        onError?: () => void;
-      };
-    }
-  ) => YouTubePlayer;
-  PlayerState: {
-    ENDED: 0;
-    PLAYING: 1;
-    PAUSED: 2;
-    BUFFERING: 3;
-    CUED: 5;
-  };
-};
+import type { YouTubeRuntimePlayer, YouTubeNamespace } from "../types";
 
 declare global {
   interface Window {
@@ -99,9 +65,9 @@ type UseYouTubePlayerOptions = {
   volume: number;
   isMuted: boolean;
   playbackRate: number;
-  playerRef?: MutableRefObject<YouTubePlayer | null>;
-  onReady?: (player: YouTubePlayer, api: YouTubeNamespace) => void;
-  onStateChange?: (state: number, player: YouTubePlayer, api: YouTubeNamespace) => void;
+  playerRef?: MutableRefObject<YouTubeRuntimePlayer | null>;
+  onReady?: (player: YouTubeRuntimePlayer, api: YouTubeNamespace) => void;
+  onStateChange?: (state: number, player: YouTubeRuntimePlayer, api: YouTubeNamespace) => void;
   onError?: () => void;
 };
 
@@ -117,9 +83,11 @@ export function useYouTubePlayer({
   onStateChange,
   onError,
 }: UseYouTubePlayerOptions) {
-  const internalPlayerRef = useRef<YouTubePlayer | null>(null);
+  const internalPlayerRef = useRef<YouTubeRuntimePlayer | null>(null);
   const playerRef = externalPlayerRef ?? internalPlayerRef;
+  const isReadyRef = useRef(false);
 
+  // 1. Initialization Effect
   useEffect(() => {
     if (!enabled || !videoId || !containerRef.current) {
       return;
@@ -148,8 +116,13 @@ export function useYouTubePlayer({
           },
           events: {
             onReady: () => {
+              if (isCancelled) return;
               const player = playerRef.current;
               if (!player) return;
+              
+              isReadyRef.current = true;
+              
+              // Apply initial state
               player.setVolume(Math.round(volume * 100));
               if (isMuted) {
                 player.mute();
@@ -181,28 +154,19 @@ export function useYouTubePlayer({
 
     return () => {
       isCancelled = true;
+      isReadyRef.current = false;
       playerRef.current?.destroy();
       playerRef.current = null;
       if (containerNode) {
         containerNode.innerHTML = "";
       }
     };
-  }, [
-    containerRef,
-    enabled,
-    isMuted,
-    onError,
-    onReady,
-    onStateChange,
-    playerRef,
-    playbackRate,
-    videoId,
-    volume,
-  ]);
+  }, [containerRef, enabled, videoId]); // Reduced dependencies to avoid re-creation
 
+  // 2. Volume/Mute Updates
   useEffect(() => {
     const player = playerRef.current;
-    if (!player) return;
+    if (!player || !isReadyRef.current) return;
 
     player.setVolume(Math.round(volume * 100));
     if (isMuted) {
@@ -210,17 +174,18 @@ export function useYouTubePlayer({
     } else {
       player.unMute();
     }
-  }, [isMuted, playerRef, volume]);
+  }, [isMuted, volume]);
 
+  // 3. Playback Rate Updates
   useEffect(() => {
     const player = playerRef.current;
-    if (!player) return;
+    if (!player || !isReadyRef.current) return;
 
     const availableRates = player.getAvailablePlaybackRates();
     if (availableRates.includes(playbackRate)) {
       player.setPlaybackRate(playbackRate);
     }
-  }, [playbackRate, playerRef]);
+  }, [playbackRate]);
 
   return playerRef;
 }

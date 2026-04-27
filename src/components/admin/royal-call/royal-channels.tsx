@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { Mail, Smartphone, Bell, CheckCircle2 } from "lucide-react";
 
 interface RoyalChannelsProps {
@@ -40,7 +40,7 @@ export function RoyalChannels({ channels, toggleChannel, toggleAll, allSelected 
         {CHANNELS_CONFIG.map((c) => {
           const isSelected = channels[c.id];
           return (
-            <motion.button
+            <m.button
               key={c.id}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -57,15 +57,15 @@ export function RoyalChannels({ channels, toggleChannel, toggleAll, allSelected 
               </div>
 
               {isSelected && (
-                <motion.div 
+                <m.div 
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   className="absolute top-4 right-4"
                 >
                   <CheckCircle2 className="w-4 h-4 text-primary" />
-                </motion.div>
+                </m.div>
               )}
-            </motion.button>
+            </m.button>
           );
         })}
       </div>

@@ -465,17 +465,19 @@ function isHtmlContent(text: string): boolean {
 function shouldAttemptTokenRefresh(url: string, response: Response): boolean {
   if (response.status !== 401) return false;
   if (!isBrowser()) return false;
-  if (!url.startsWith('/api/')) return false;
-  if (url.startsWith('/api/auth/')) return false;
+  const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+  if (!url.startsWith('/api/') && !url.startsWith(BASE_API_URL)) return false;
+  if (url.includes('/auth/')) return false;
   return true;
 }
 
 async function refreshAuthSession(): Promise<boolean> {
   try {
+    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 8000); // 8s timeout
 
-    const refreshResponse = await fetch('/api/auth/refresh', {
+    const refreshResponse = await fetch(`${BASE_API_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
       signal: controller.signal
@@ -588,17 +590,58 @@ options?: RequestInit,
 fallback: T | null = null)
 : Promise<{data: T | null;error: Error | null;response: Response | null;}> {
   try {
-    const fetchOptions: RequestInit = {
-      ...options,
-      credentials: options?.credentials ?? 'include'
-    };
+    const BASE_API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+    const finalUrl = url.startsWith('/api/') 
+      ? `${BASE_API_URL}${url.substring(4)}` 
+      : url;
 
-    let response = await fetch(url, fetchOptions);
+    // Add timeout to prevent hanging requests (30 seconds)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    // Merge abort signals if options already has a signal
+    let signal: AbortSignal | undefined;
+    if (options?.signal) {
+      signal = options.signal as AbortSignal;
+    } else {
+      signal = controller.signal;
+    }
+
+    let response: Response;
+    try {
+      response = await fetch(finalUrl, { ...options, signal });
+      clearTimeout(timeoutId);
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      // Enhance error message with URL for debugging
+      if (fetchError instanceof Error) {
+        fetchError.message = `Failed to fetch from ${finalUrl}: ${fetchError.message}`;
+        throw fetchError;
+      }
+      throw new Error(`Failed to fetch from ${finalUrl}`);
+    }
 
     if (shouldAttemptTokenRefresh(url, response)) {
       const refreshed = await refreshAuthSession();
       if (refreshed) {
-        response = await fetch(url, fetchOptions);
+        // Add timeout for the retry request as well
+        const retryController = new AbortController();
+        const retryTimeoutId = setTimeout(() => retryController.abort(), 30000);
+        
+        let retrySignal: AbortSignal | undefined;
+        if (options?.signal) {
+          retrySignal = options.signal as AbortSignal;
+        } else {
+          retrySignal = retryController.signal;
+        }
+
+        try {
+          response = await fetch(finalUrl, { ...options, signal: retrySignal });
+          clearTimeout(retryTimeoutId);
+        } catch (retryError) {
+          clearTimeout(retryTimeoutId);
+          throw retryError;
+        }
       }
     }
 

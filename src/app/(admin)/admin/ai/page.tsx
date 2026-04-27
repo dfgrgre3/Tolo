@@ -19,7 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Check, Target, Clock, Bot, AlertTriangle, TrendingDown, Sparkles, User } from "lucide-react";
 import { toast } from "sonner";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 
 
@@ -186,7 +186,7 @@ export default function AdminAIPage() {
 
       <AnimatePresence>
         {data?.summary?.aiBriefing && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+          <m.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
             <AdminCard variant="glass" className="border-primary/30 p-6 bg-primary/5 relative overflow-hidden group">
                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
                   <Sparkles className="w-20 h-20 text-primary" />
@@ -207,7 +207,7 @@ export default function AdminAIPage() {
                   </AdminButton>
                </div>
             </AdminCard>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -229,7 +229,7 @@ export default function AdminAIPage() {
 
         <TabsContent value="studio" className="mt-0">
           <div className="grid gap-8 lg:grid-cols-2">
-            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <m.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
               <AdminCard variant="glass" className="h-full border-primary/20 p-6">
                 <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); generateMutation.mutate(); }}>
                   <div className="flex items-center gap-3 border-b border-border/50 pb-4 mb-4">
@@ -296,9 +296,9 @@ export default function AdminAIPage() {
                   </AdminButton>
                 </form>
               </AdminCard>
-            </motion.div>
+            </m.div>
 
-            <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
+            <m.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }}>
               <AdminCard variant="glass" className="h-full flex flex-col p-0 overflow-hidden border-orange-500/20">
                 <div className="p-6 border-b border-border/50 bg-orange-500/5">
                   <h3 className="text-xl font-black flex items-center gap-2 text-orange-500">
@@ -350,7 +350,7 @@ export default function AdminAIPage() {
                   )}
                 </div>
               </AdminCard>
-            </motion.div>
+            </m.div>
           </div>
         </TabsContent>
 

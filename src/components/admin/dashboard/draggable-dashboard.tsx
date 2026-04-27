@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import * as React from "react";
 import {
@@ -19,7 +19,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { usePremiumSounds } from "@/hooks/use-premium-sounds";
 
 interface SortableItemProps {
@@ -53,7 +53,7 @@ function SortableItem({ id, children }: SortableItemProps) {
       >
         <GripVertical className="w-6 h-6" />
       </div>
-      <motion.div
+      <m.div
         animate={{ 
           scale: isDragging ? 1.02 : 1,
           boxShadow: isDragging ? "0 20px 50px rgba(0,0,0,0.2)" : "0 0 0 rgba(0,0,0,0)",
@@ -61,7 +61,7 @@ function SortableItem({ id, children }: SortableItemProps) {
         transition={{ duration: 0.2 }}
       >
         {children}
-      </motion.div>
+      </m.div>
     </div>
   );
 }

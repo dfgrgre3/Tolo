@@ -1,19 +1,14 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useRef, useState } from "react";
+import { apiClient } from '@/lib/api/api-client';
 
 import { logger } from '@/lib/logger';
 
 async function getUserId(): Promise<string | null> {
 	try {
-		const res = await fetch("/api/auth/me", {
-			credentials: "include",
-		});
-
-		if (!res.ok) return null;
-
-		const data = await res.json();
-		return data.user.id;
+		const data = await apiClient.get<any>('/auth/me');
+		return data?.user?.id || null;
 	} catch (error) {
 		logger.error("Error getting user ID:", error);
 		return null;
@@ -72,14 +67,9 @@ export default function NotificationsClient() {
 				if (!active) return;
 
 				try {
-					const res = await fetch(`/api/reminders?userId=${encodeURIComponent(userId)}`);
-					if (!res.ok) {
-						logger.warn("Failed to load reminders:", res.status);
-						return;
-					}
+					const data = await apiClient.get<any>(`/reminders?userId=${encodeURIComponent(userId)}`);
 
-					const json = await res.json();
-					const payload = json?.data ?? json;
+					const payload = data?.data ?? data;
 					const reminders: Reminder[] = Array.isArray(payload)
 						? payload
 						: Array.isArray(payload?.reminders)

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Centralized API Client (Fetch Wrapper)
  * This replaces all custom apiFetch instances across the app to reduce over-engineering.
  */
@@ -13,6 +13,16 @@ interface FetchOptions extends RequestInit {
     timeout?: number;
     retries?: number;
 }
+
+interface ApiEnvelope<T> {
+    success?: boolean;
+    data?: T;
+    message?: string;
+    error?: string;
+    code?: string;
+}
+
+const AUTH_REFRESH_ENDPOINT = '/api/auth/refresh';
 
 const API_TIMEOUT = 30000; // 30 seconds
 const MAX_RETRIES = 3;
@@ -32,6 +42,38 @@ export class ApiError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const BASE_API_URL = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '');
+
+function normalizeEndpoint(endpoint: string): string {
+    if (!endpoint) return '';
+    if (endpoint.startsWith('http://') || endpoint.startsWith('https://')) {
+        return endpoint;
+    }
+
+    const normalized = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    if (normalized.startsWith('/api/')) {
+        return normalized;
+    }
+    if (BASE_API_URL.endsWith('/api')) {
+        return `${BASE_API_URL}${normalized}`;
+    }
+    return `${BASE_API_URL}/api${normalized}`;
+}
+
+function unwrapApiEnvelope<T>(payload: T | ApiEnvelope<T>): T {
+    if (
+        payload &&
+        typeof payload === 'object' &&
+        !Array.isArray(payload) &&
+        'success' in payload &&
+        'data' in payload
+    ) {
+        return (payload as ApiEnvelope<T>).data as T;
+    }
+
+    return payload as T;
+}
+
 class ApiClient {
     private async request<T>(endpoint: string, options: FetchOptions = {}, retryCount = 0): Promise<T> {
         const { timeout = API_TIMEOUT, retries = MAX_RETRIES, ...customOptions } = options;
@@ -45,7 +87,9 @@ class ApiClient {
         });
 
         try {
-            const response = await fetch(endpoint.startsWith('http') ? endpoint : `/api${endpoint}`, {
+            const url = normalizeEndpoint(endpoint);
+            
+            const response = await fetch(url, {
                 ...customOptions,
                 headers,
                 credentials: 'include', // Ensure cookies are sent (access_token)
@@ -73,13 +117,15 @@ class ApiClient {
             if (!response.ok) {
                 let errorMessage = `Server error: ${response.statusText}`;
                 let errorCode = 'HTTP_ERROR';
+                // Read response body once as text to avoid "body stream already read" errors
+                const responseText = await response.text();
                 try {
-                    const errorData = await response.json();
+                    const errorData = JSON.parse(responseText);
                     errorMessage = errorData.error || errorData.message || errorMessage;
                     errorCode = errorData.code || errorCode;
                 } catch {
-                    const textData = await response.text();
-                    if (textData) errorMessage = textData;
+                    // If JSON parsing fails, use the raw text response if available
+                    if (responseText) errorMessage = responseText;
                 }
 
                 const shouldRetry = [408, 429, 500, 502, 503, 504].includes(response.status) && retryCount < retries;
@@ -97,7 +143,8 @@ class ApiClient {
                 return {} as T;
             }
 
-            return await response.json() as T;
+            const payload = await response.json() as T | ApiEnvelope<T>;
+            return unwrapApiEnvelope<T>(payload);
         } catch (error: unknown) {
             clearTimeout(id);
 
@@ -128,7 +175,7 @@ class ApiClient {
 
         this.refreshPromise = (async () => {
             try {
-                const response = await fetch('/api/auth/refresh', {
+                const response = await fetch(AUTH_REFRESH_ENDPOINT, {
                     method: 'POST',
                     credentials: 'include',
                 });

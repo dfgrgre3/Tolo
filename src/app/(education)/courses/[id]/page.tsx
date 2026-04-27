@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/contexts/auth-context";
 import { ensureUser } from "@/lib/user-utils";
 import { logger } from "@/lib/logger";
@@ -40,6 +40,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { apiClient } from "@/lib/api/api-client";
 
 type Review = {
   id: string;
@@ -68,7 +69,7 @@ type Course = {
   rating: number;
   enrolledCount: number;
   createdAt: string;
-  tags: string[];
+  tags?: string[];
   enrolled: boolean;
   progress?: number;
   lessonsCount?: number;
@@ -144,63 +145,46 @@ export default function CourseDetailPage() {
 
     const fetchCourse = async () => {
       try {
-        const res = await fetch(`/api/courses/${courseId}${userId ? `?userId=${userId}` : ""}`);
-        if (res.ok) {
-          const courseData = await res.json();
-          if (courseData?.subject) {
-            const subject = courseData.subject;
-            setCourse({
-              id: subject.id,
-              title: subject.nameAr || subject.name,
-              description: subject.description || "لا يوجد وصف متاح لهذه الدورة.",
-              instructor: subject.instructorName || "المنصة التعليمية",
-              subject: subject.nameAr || subject.name,
-              level: subject.level as Course['level'] || "INTERMEDIATE",
-              duration: subject.durationHours || 0,
-              thumbnailUrl: subject.thumbnailUrl || undefined,
-              price: subject.price || 0,
-              rating: subject.rating || 0,
-              enrolledCount: subject.enrolledCount || 0,
-              createdAt: subject.createdAt || new Date().toISOString(),
-              tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
-              enrolled: Boolean(courseData.enrollment),
-              progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined
-            });
-          }
+        const courseData = await apiClient.get<any>(`/courses/${courseId}${userId ? `?userId=${userId}` : ""}`);
+        
+        if (courseData?.subject) {
+          const subject = courseData.subject;
+          setCourse({
+            id: subject.id,
+            title: subject.nameAr || subject.name,
+            description: subject.description || "لا يوجد وصف متاح لهذه الدورة.",
+            instructor: subject.instructorName || "المنصة التعليمية",
+            subject: subject.nameAr || subject.name,
+            level: subject.level as Course['level'] || "INTERMEDIATE",
+            duration: subject.durationHours || 0,
+            thumbnailUrl: subject.thumbnailUrl || undefined,
+            price: subject.price || 0,
+            rating: subject.rating || 0,
+            enrolledCount: subject.enrolledCount || 0,
+            createdAt: subject.createdAt || new Date().toISOString(),
+            tags: [subject.nameAr || subject.name, ...(subject.tags || [])],
+            enrolled: Boolean(courseData.enrollment),
+            progress: courseData.enrollment ? courseData.enrollment.progress || 0 : undefined
+          });
         }
       } catch (error) {
         logger.error("Error fetching course:", error);
       }
     };
 
+
     const fetchLessons = async () => {
       try {
-        const res = await fetch(`/api/courses/${courseId}/lessons${userId ? `?userId=${userId}` : ""}`);
-        if (res.ok) {
-          const data = await res.json();
-          const payload = data.data ?? data;
-          const rawLessons = Array.isArray(payload) ? payload : payload.lessons ?? [];
-          const progressMap = payload.progress || {};
+        const data = await apiClient.get<any>(`/courses/${courseId}/lessons${userId ? `?userId=${userId}` : ""}`);
+        
+        const payload = data.data ?? data;
+        const rawLessons = Array.isArray(payload) ? payload : (payload.lessons ?? []);
+        const progressMap = payload.progress || {};
 
-          const normalized = rawLessons.map((l: {
-            id: string;
-            title?: string;
-            name?: string;
-            description?: string;
-            content?: string | null;
-            videoUrl?: string | null;
-            duration?: number;
-            durationMinutes?: number;
-            order?: number;
-            completed?: boolean;
-            progress?: number;
-            type?: CourseLesson["type"];
-            isFree?: boolean;
-            locked?: boolean;
-          }, i: number) => {
-            const durationMinutes = typeof l.durationMinutes === "number" ? l.durationMinutes : l.duration || 0;
+        const normalized = rawLessons.map((l: any, i: number) => {
+          const durationMinutes = typeof l.durationMinutes === "number" ? l.durationMinutes : l.duration || 0;
 
-            return ({
+          return ({
             id: l.id,
             title: l.title || l.name || `الدرس ${i + 1}`,
             description: l.description || undefined,
@@ -214,17 +198,17 @@ export default function CourseDetailPage() {
             completed: l.completed || Boolean(progressMap[l.id]),
             progress: l.completed ? 100 : l.progress || 0
           });
-          });
-          setLessons(normalized);
-          if (normalized.length > 0) {
-            const firstPlayableLesson = normalized.find((lesson) => !lesson.locked) || normalized[0];
-            setActiveLesson(firstPlayableLesson.id);
-          }
+        });
+        setLessons(normalized);
+        if (normalized.length > 0) {
+          const firstPlayableLesson = normalized.find((lesson: any) => !lesson.locked) || normalized[0];
+          setActiveLesson(firstPlayableLesson.id);
         }
       } catch (error) {
         logger.error("Error fetching lessons:", error);
       }
     };
+
 
     const loadData = async () => {
       setLoading(true);
@@ -243,38 +227,35 @@ export default function CourseDetailPage() {
     }
     setEnrolling(true);
     try {
-      const res = await fetch(`/api/courses/${courseId}/enroll`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject: courseId })
+      const data = await apiClient.post<any>(`/courses/${courseId}/enroll`, { 
+        subject: courseId 
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.requiresPayment) {
-          router.push(`/courses/${courseId}/checkout`);
-          return;
-        }
-        if (course) setCourse({ ...course, enrolled: true, progress: 0 });
+      
+      if (data.requiresPayment) {
+        router.push(`/courses/${courseId}/checkout`);
+        return;
       }
+      if (course) setCourse({ ...course, enrolled: true, progress: 0 });
     } catch (err) {
-      logger.error("Error enclosing handleEnroll", err);
+      logger.error("Error in handleEnroll", err);
     } finally {
       setEnrolling(false);
     }
+
   };
 
   const handleLessonComplete = async (lessonId: string) => {
     if (!userId || !course) return;
     try {
       setLessons((prev) => prev.map((l) => l.id === lessonId ? { ...l, completed: true, progress: 100 } : l));
-      await fetch(`/api/courses/lessons/${lessonId}/progress`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: true, subject: course.subject })
+      await apiClient.post<any>(`/courses/lessons/${lessonId}/progress`, {
+        completed: true,
+        subject: course.subject
       });
     } catch (err) {
       logger.error("Error marking lesson complete:", err);
     }
+
   };
 
   const activeLessonData = useMemo(() => lessons.find((l) => l.id === activeLesson), [lessons, activeLesson]);
@@ -320,14 +301,14 @@ export default function CourseDetailPage() {
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-violet-500/[0.02] blur-[130px] rounded-full" />
       </div>
 
-      <motion.div
+      <m.div
         variants={container}
         initial="hidden"
         animate="show"
         className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
         
         {/* Breadcrumb */}
-        <motion.nav
+        <m.nav
           variants={fadeUp}
           className="flex items-center gap-2 text-sm text-gray-500">
           
@@ -336,10 +317,10 @@ export default function CourseDetailPage() {
           </Link>
           <ChevronLeft className="h-4 w-4" />
           <span className="text-gray-900 dark:text-white font-bold truncate">{course.title}</span>
-        </motion.nav>
+        </m.nav>
 
         {/* Course Header */}
-        <motion.div
+        <m.div
           variants={fadeUp}
           className="grid grid-cols-1 lg:grid-cols-5 gap-8">
           
@@ -403,9 +384,9 @@ export default function CourseDetailPage() {
             </div>
 
             {/* Tags */}
-            {course.tags.length > 0 &&
+            {(course.tags || []).length > 0 &&
             <div className="flex flex-wrap gap-2">
-                {course.tags.map((tag) =>
+                {(course.tags || []).map((tag) =>
               <span key={tag} className="rounded-lg bg-gray-100 dark:bg-white/5 px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400">
                     {tag}
                   </span>
@@ -519,10 +500,10 @@ export default function CourseDetailPage() {
               </div>
             </div>
           </div>
-        </motion.div>
+        </m.div>
 
         {/* Tabs */}
-        <motion.div variants={fadeUp} className="space-y-8">
+        <m.div variants={fadeUp} className="space-y-8">
           <div className="flex items-center gap-1 p-1 rounded-xl bg-gray-100 dark:bg-white/5 max-w-fit">
             {[
             { key: "curriculum", label: "المنهج الدراسي", icon: Layers },
@@ -616,7 +597,7 @@ export default function CourseDetailPage() {
               <div className="lg:col-span-7 space-y-6">
                 <AnimatePresence mode="wait">
                   {activeLessonData &&
-                <motion.div
+                <m.div
                   key={activeLessonData.id}
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -716,7 +697,7 @@ export default function CourseDetailPage() {
                           <ChevronLeft className="w-4 h-4" />
                         </Button>
                       </div>
-                    </motion.div>
+                    </m.div>
                 }
                 </AnimatePresence>
               </div>
@@ -725,7 +706,7 @@ export default function CourseDetailPage() {
 
           {/* Overview Tab */}
           {activeTab === "overview" &&
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
@@ -788,7 +769,7 @@ export default function CourseDetailPage() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </m.div>
           }
 
           {/* Reviews Tab */}
@@ -811,8 +792,8 @@ export default function CourseDetailPage() {
             setSubmittingReview={setSubmittingReview} />
 
           }
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </div>);
 
 }
@@ -897,7 +878,7 @@ function ReviewsTab({
   const totalReviews = reviewStats?.totalReviews || 0;
 
   return (
-    <motion.div
+    <m.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       className="max-w-3xl space-y-6">
@@ -1037,6 +1018,6 @@ function ReviewsTab({
           </p>
         </div>
       }
-    </motion.div>);
+    </m.div>);
 
 }

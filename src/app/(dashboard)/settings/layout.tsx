@@ -13,7 +13,7 @@
 import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import {
   Settings,
   User,
@@ -184,7 +184,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
         <div className="flex items-center justify-between">
           <AnimatePresence mode="wait">
             {(isSidebarOpen || mobile) && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
@@ -197,7 +197,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                   <h2 className="font-bold text-white">الإعدادات</h2>
                   <p className="text-xs text-slate-400">تخصيص حسابك</p>
                 </div>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
 
@@ -228,7 +228,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       {/* User Profile Card */}
       <AnimatePresence mode="wait">
         {(isSidebarOpen || mobile) && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -289,7 +289,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 <span className="text-[10px] font-bold text-indigo-400">{profileCompletion}%</span>
               </div>
               <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
-                <motion.div
+                <m.div
                   initial={{ width: 0 }}
                   animate={{ width: `${profileCompletion}%` }}
                   transition={{ delay: 0.5, duration: 0.8, ease: 'easeOut' }}
@@ -322,7 +322,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 <p className="text-[9px] text-slate-500 mt-0.5">يوم</p>
               </div>
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
 
@@ -346,7 +346,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
             >
               {/* Active Indicator */}
               {isActive && (
-                <motion.div
+                <m.div
                   layoutId="activeTab"
                   className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-8 rounded-l-full bg-gradient-to-b from-indigo-400 to-purple-500"
                 />
@@ -365,7 +365,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
 
               <AnimatePresence mode="wait">
                 {(isSidebarOpen || mobile) && (
-                  <motion.div
+                  <m.div
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
@@ -385,7 +385,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                       )}
                     </div>
                     <p className="text-xs text-slate-500 truncate mt-0.5">{item.description}</p>
-                  </motion.div>
+                  </m.div>
                 )}
               </AnimatePresence>
             </Link>
@@ -410,14 +410,14 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
           </div>
           <AnimatePresence mode="wait">
             {(isSidebarOpen || mobile) && (
-              <motion.div
+              <m.div
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
               >
                 <span className="font-medium whitespace-nowrap">تسجيل الخروج</span>
                 <p className="text-xs text-red-400/60 mt-0.5">إنهاء الجلسة الحالية</p>
-              </motion.div>
+              </m.div>
             )}
           </AnimatePresence>
         </button>
@@ -426,7 +426,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       {/* Sidebar Footer - Tips */}
       <AnimatePresence mode="wait">
         {(isSidebarOpen || mobile) && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -460,7 +460,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 </Link>
               </div>
             )}
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>
@@ -490,28 +490,28 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
       <div className="flex">
         {/* Desktop Sidebar */}
         {!isMobile && (
-          <motion.aside
+          <m.aside
             initial={false}
             animate={{ width: isSidebarOpen ? 300 : 80 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="sticky top-0 h-screen bg-slate-900/50 backdrop-blur-xl border-l border-white/10 flex flex-col overflow-hidden"
           >
             <SidebarContent />
-          </motion.aside>
+          </m.aside>
         )}
 
         {/* Mobile Sidebar Overlay */}
         <AnimatePresence>
           {isMobile && isMobileSidebarOpen && (
             <>
-              <motion.div
+              <m.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 onClick={() => setIsMobileSidebarOpen(false)}
                 className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
               />
-              <motion.aside
+              <m.aside
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
@@ -519,7 +519,7 @@ export default function SettingsLayout({ children }: { children: React.ReactNode
                 className="fixed right-0 top-0 bottom-0 z-50 w-80 bg-slate-900 border-l border-white/10 flex flex-col"
               >
                 <SidebarContent mobile />
-              </motion.aside>
+              </m.aside>
             </>
           )}
         </AnimatePresence>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { ensureUser } from "@/lib/user-utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import {
   Users,
   UserCheck,
@@ -111,7 +111,7 @@ export default function TeachersPage() {
       <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8 space-y-12">
         
         {/* --- Header: The Guild Entrance --- */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center space-y-6">
@@ -126,7 +126,7 @@ export default function TeachersPage() {
            <p className="text-lg md:text-xl text-gray-400 font-medium max-w-3xl mx-auto leading-relaxed">
               تعرف على كبار المخططين والمدربين في رحلتك التعليمية. هنا يمكنك العثور على رفقاء الطريق الذين سيقودونك نحو السيادة العلمية المطلقة.
            </p>
-        </motion.div>
+        </m.div>
 
         {/* --- Top Masters: List --- */}
         <div className="space-y-8">
@@ -147,7 +147,7 @@ export default function TeachersPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                  {teachers.map((t, idx) =>
-            <motion.div
+            <m.div
               key={t.id}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -174,7 +174,7 @@ export default function TeachersPage() {
                              <span>الملف السحري</span>
                           </a>
               }
-                    </motion.div>
+                    </m.div>
             )}
               </div>
           }
@@ -256,7 +256,7 @@ export default function TeachersPage() {
 
                 <AnimatePresence>
                            {lessons.map((l, idx) =>
-                  <motion.div
+                  <m.div
                     key={l.id}
                     initial={{ opacity: 0, x: 30 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -288,7 +288,7 @@ export default function TeachersPage() {
                                     </div>
                                     <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">{new Date(l.startTime).toLocaleDateString('ar-EG', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                                  </div>
-                              </motion.div>
+                              </m.div>
                   )}
                         </AnimatePresence>
                 }

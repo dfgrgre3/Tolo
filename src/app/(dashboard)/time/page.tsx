@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
@@ -279,7 +279,7 @@ export default function TimeManagementPage() {
         <div className="absolute top-[20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/5 blur-[120px] rounded-full pointer-events-none animate-pulse duration-7000 delay-1000" />
 
         <div className="container mx-auto p-4 md:p-6 lg:p-8 rtl relative z-10" dir="rtl">
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
@@ -297,7 +297,7 @@ export default function TimeManagementPage() {
               isCreateTaskOpen={isCreateTaskOpen}
               setIsCreateTaskOpen={setIsCreateTaskOpen}
             />
-          </motion.div>
+          </m.div>
 
           <QuickActionButton
             onAction={(type) => {
@@ -329,7 +329,7 @@ export default function TimeManagementPage() {
                     className="relative px-2 py-3 sm:py-3.5 text-sm sm:text-sm font-bold transition-all duration-300 rounded-2xl whitespace-nowrap data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-emerald-400 hover:bg-muted/30 w-full group overflow-hidden"
                   >
                     {activeTab === tab.id && (
-                      <motion.div
+                      <m.div
                         layoutId="activeTabIndicator"
                         className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 rounded-2xl border border-emerald-500/30 z-0 shadow-[inset_0_0_10px_rgba(16,185,129,0.1)]"
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}

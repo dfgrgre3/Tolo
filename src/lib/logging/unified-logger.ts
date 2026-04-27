@@ -1,16 +1,17 @@
 /**
-* Unified Logging System
-* نظام تسجيل موحد للمشروع
-* 
-* هذا النظام يوحد جميع أنظمة التسجيل في المشروع ويوفر:
-* - دعم للتسجيل على الخادم والعميل
-* - تكامل مع ELK Stack
-* - تسجيل الأخطاء المتقدم
-* - تسجيل الأحداث الأمنية
-* - تسجيل أحداث المصادقة
-*/
+ * Unified Logging System
+ * نظام تسجيل موحد للمشروع
+ * 
+ * هذا النظام يوحد جميع أنظمة التسجيل في المشروع ويوفر:
+ * - دعم للتسجيل على الخادم والعميل
+ * - تكامل مع ELK Stack
+ * - تسجيل الأخطاء المتقدم
+ * - تسجيل الأحداث الأمنية
+ * - تسجيل أحداث المصادقة
+ */
 
 import { getRequestContext } from './correlation';
+import { sanitizeLogContext, sanitizeErrorMessage, containsSensitiveData } from './sanitizer';
 
 // Types
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -67,12 +68,12 @@ async function getWinstonLogger() {
           winston.format.printf(({ timestamp, level, message, ...meta }: any) => {
             const rid = meta.requestId || meta.context?.requestId || '';
             const ridStr = rid ? ` [RID:${rid.substring(0, 8)}]` : '';
-            const metaToLink = { ...meta };
-            delete metaToLink.requestId;
-            if (metaToLink.context?.requestId) delete metaToLink.context.requestId;
+            const metaToClean = { ...meta };
+            delete metaToClean.requestId;
+            if (metaToClean.context?.requestId) delete metaToClean.context.requestId;
 
-            const metaString = Object.keys(metaToLink).length && JSON.stringify(metaToLink) !== "{}" ?
-            `\n${JSON.stringify(metaToLink, null, 2)}` :
+            const metaString = Object.keys(metaToClean).length && JSON.stringify(metaToClean) !== "{}" ?
+            `\n${JSON.stringify(metaToClean, null, 2)}` :
             '';
 
             return `${timestamp} ${level}${ridStr}: ${message}${metaString}`;
@@ -82,7 +83,6 @@ async function getWinstonLogger() {
         new winston.transports.Console({
           silent: !isServer
         })]
-
       });
     } catch (_err) {
       // If winston fails to load, return null
@@ -162,22 +162,27 @@ class UnifiedLogger {
   }
 
   /**
-   * Create log entry
+   * Create log entry with sanitization
    */
   private createLogEntry(
-  level: LogLevel,
-  message: string,
-  error?: Error | unknown,
-  context?: LogContext)
-  : LogEntry {
+    level: LogLevel,
+    message: string,
+    error?: Error | unknown,
+    context?: LogContext)
+    : LogEntry {
     const contextStore = getRequestContext();
+
+    // Sanitize message and context before logging
+    const sanitizedMessage = containsSensitiveData(message, context) 
+      ? sanitizeErrorMessage(message) 
+      : message;
 
     const entry: LogEntry = {
       timestamp: new Date().toISOString(),
       level,
-      message,
+      message: sanitizedMessage,
       context: {
-        ...context,
+        ...(context ? sanitizeLogContext(context) : {}),
         requestId: context?.requestId || contextStore?.requestId
       }
     };
@@ -185,7 +190,9 @@ class UnifiedLogger {
     if (error !== undefined) {
       if (error instanceof Error) {
         entry.error = {
-          message: error.message,
+          message: containsSensitiveData(error.message) 
+            ? sanitizeErrorMessage(error.message) 
+            : error.message,
           stack: error.stack,
           name: error.name
         };
@@ -200,12 +207,14 @@ class UnifiedLogger {
           }
         }
         entry.error = {
-          message: errorMsg
+          message: containsSensitiveData(errorMsg) 
+            ? sanitizeErrorMessage(errorMsg) 
+            : errorMsg
         };
       }
     }
 
-    // Add context metadata
+    // Add context metadata (already sanitized above)
     if (context) {
       if (context.userId) entry.userId = String(context.userId);
       if (context.sessionId) entry.sessionId = String(context.sessionId);
@@ -393,66 +402,64 @@ class UnifiedLogger {
   }
 
   private async log(
-  level: LogLevel,
-  message: string,
-  error?: Error | unknown,
-  context?: LoggableContext)
-  : Promise<void> {
+    level: LogLevel,
+    message: string,
+    error?: Error | unknown,
+    context?: LoggableContext)
+    : Promise<void> {
     if (!this.shouldLog(level)) return;
 
     const normalizedContext = this.normalizeContext(context);
 
     // Log to console (async now)
     this.logToConsole(level, message, normalizedContext, error).catch(() => {
-
       // Silently handle async errors
     });
     // Log to ELK (server-side, async)
     this.logToELK(level, message, normalizedContext, error).catch(() => {
-
       // Silently handle async errors
     });
     // Log to Error Logger (client-side, async)
     this.logToErrorLogger(level, message, error, normalizedContext).catch(() => {
-
       // Silently handle async errors
-    });}
+    });
+  }
 
   /**
    * Debug log
    */
   debug(message: string, context?: LoggableContext): void {
     this.log('debug', message, undefined, context).catch(() => {
-
       // Silently handle async errors
-    });}
+    });
+  }
 
   /**
    * Info log
    */
   info(message: string, context?: LoggableContext): void {
     this.log('info', message, undefined, context).catch(() => {
-
       // Silently handle async errors
-    });}
+    });
+  }
 
   /**
    * Warn log
    */
   warn(message: string, context?: LoggableContext): void {
     this.log('warn', message, undefined, context).catch(() => {
-
       // Silently handle async errors
-    });}
+    });
+  }
 
   /**
    * Error log
    */
   error(message: string, error?: Error | unknown, context?: LoggableContext): void {
     this.log('error', message, error, context).catch(() => {
-
       // Silently handle async errors
-    });}
+    });
+  }
 
   /**
    * HTTP request log
@@ -508,9 +515,9 @@ class UnifiedLogger {
       duration: `${query.duration}ms`,
       success: query.success
     }).catch(() => {
-
       // Silently handle async errors
-    });}
+    });
+  }
 
 
   /**

@@ -6,7 +6,7 @@ services:
     container_name: thanawy-postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: Khaled@2008
       POSTGRES_DB: thanawy
     ports:
       - "5432:5432"

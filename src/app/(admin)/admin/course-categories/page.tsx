@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { apiRoutes } from "@/lib/api/routes";
 
 interface CourseCategory {
   id: string;
@@ -69,7 +70,7 @@ export default function AdminCourseCategoriesPage() {
   const { data: categories = [], isLoading, refetch } = useQuery({
     queryKey: ["admin", "course-categories", "page"],
     queryFn: async () => {
-      const response = await fetch("/api/admin/course-categories");
+      const response = await fetch(apiRoutes.admin.courseCategories);
       const result = await response.json();
       return (result.data?.categories || []) as CourseCategory[];
     }
@@ -101,7 +102,7 @@ export default function AdminCourseCategoriesPage() {
     try {
       const method = editingCategory ? "PATCH" : "POST";
       const payload = editingCategory ? { ...values, id: editingCategory.id } : values;
-      const response = await fetch("/api/admin/course-categories", {
+      const response = await fetch(apiRoutes.admin.courseCategories, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -127,7 +128,7 @@ export default function AdminCourseCategoriesPage() {
     if (!deleteDialog.id) return;
 
     try {
-      const response = await fetch("/api/admin/course-categories", {
+      const response = await fetch(apiRoutes.admin.courseCategories, {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id: deleteDialog.id })

@@ -43,7 +43,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ui/confirm-dialog";
 import { TableSkeleton } from "@/components/admin/ui/loading-skeleton";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 
 import { logger } from '@/lib/logger';
 
@@ -426,7 +426,7 @@ export default function AdminRewardsPage() {
         />
       </div>
 
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="rpg-glass-light dark:rpg-glass p-1 rounded-[2.5rem] border border-white/10 overflow-hidden shadow-2xl"
@@ -442,7 +442,7 @@ export default function AdminRewardsPage() {
             actions={{ onRefresh: () => fetchRewards() }}
           />
         )}
-      </motion.div>
+      </m.div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
